@@ -67,9 +67,15 @@ from app.scheduler.hashing import (
     _minute_bucket,
     _simplify_team_status,
 )
+from app.scheduler.heartbeat import (
+    _heartbeat_context_is_confident,
+    _heartbeat_copy,
+    _heartbeat_safe_category_available,
+    _is_heartbeat_recommendation,
+    _low_hp_pattern_recommendation,
+)
 from app.scheduler.safety_predicates import (
     _death_event_id,
-    _hp_pressure_state,
     _low_hp_severe_signature,
     _objective_context_changed_clearly,
     _post_laning_int,
@@ -82,7 +88,6 @@ from app.scheduler.safety_predicates import (
 )
 from app.scheduler.state_utils import (
     _ctx_int,
-    _ctx_value,
     _is_dead_or_respawning,
     _optional_float,
     _state_game_time_seconds,
@@ -1900,76 +1905,6 @@ def _is_lower_value_post_laning_advice(decision_point: str, category: str) -> bo
         "post_laning_safe_farm_route",
         "post_laning_objective_caution",
     }
-
-
-def _low_hp_pattern_recommendation() -> RecommendationResponse:
-    return RecommendationResponse(
-        action="Stop re-contesting the pressured lane until you reset HP.",
-        reason="Repeated low-HP returns can cost more than missing one wave.",
-        risk="High risk if you keep returning to pressure without resetting.",
-        priority="high",
-        time_window="next 60-90 seconds",
-        source="fallback",
-    )
-
-
-def _heartbeat_context_is_confident(state: dict[str, Any]) -> bool:
-    confidence = str(_ctx_value(state, "context_confidence", "high") or "high").strip().lower()
-    return confidence in {"high", "medium"}
-
-
-def _heartbeat_safe_category_available(state: dict[str, Any]) -> bool:
-    if _ctx_int(state, "hp_percent", _to_int(state.get("hp_percent"), 100)) < 35:
-        return False
-    if _hp_pressure_state(state) == "critical":
-        return False
-    if _is_dead_or_respawning(state):
-        return False
-    return True
-
-
-def _heartbeat_copy(state: dict[str, Any]) -> tuple[str, str, str]:
-    hp_percent = _ctx_int(state, "hp_percent", _to_int(state.get("hp_percent"), 100))
-    mana_percent = _ctx_int(state, "mana_percent", 100)
-    hp_pressure = _hp_pressure_state(state)
-    position_risk = str(_ctx_value(state, "position_risk", "") or "").strip().lower()
-    position_zone = str(_ctx_value(state, "position_zone", "") or "").strip().lower()
-    pressure_active = hp_pressure in {"pressured_but_stable", "risky"}
-    pressure_active = pressure_active or any(
-        token in str(state.get("game_state") or "").lower()
-        for token in ("pressure", "risk", "damage")
-    )
-
-    if hp_percent <= 55 or mana_percent <= 25:
-        return (
-            "Reset resources before showing on another lane.",
-            "A short reset keeps the next farming route safer without forcing a fight.",
-            "Medium risk if you keep showing while resources are low.",
-        )
-    if position_risk == "high" or position_zone == "deep_enemy_side":
-        return (
-            "Farm closer to a safer zone until enemy positions are clearer.",
-            "Enemy locations are not confirmed, so exposed farming is unnecessary risk.",
-            "Medium risk if you stay visible in an exposed area.",
-        )
-    if pressure_active:
-        return (
-            "Avoid the pressured lane and farm a safer wave or nearby camp.",
-            "Staying in pressure can cost HP and slow your recovery.",
-            "Medium risk if you keep farming the pressured area.",
-        )
-    return (
-        "Keep farming the safest wave-and-camp route and reassess soon.",
-        "Your farm route is the safest low-risk choice while enemy locations are uncertain.",
-        "Low risk if you keep farming without forcing uncertain fights.",
-    )
-
-
-def _is_heartbeat_recommendation(recommendation: RecommendationResponse) -> bool:
-    return (
-        recommendation.priority == "low"
-        and recommendation.time_window == "reassess in 60-90 seconds"
-    )
 
 
 def _active_advice_duration(decision_point: str, state: dict[str, Any]) -> timedelta:
