@@ -365,6 +365,55 @@ class AdviceScheduler:
         next_allowed = self._cooldown_for_type_locked(decision_point)
         return should_refine, next_allowed, gap
 
+    def _evaluate_duplicate_locked(
+        self,
+        decision_point: str,
+        current_time: datetime,
+        cooldown_remaining: int,
+        state_hash: str,
+        tactical_hash: str,
+    ) -> ScheduledAdvice | None:
+        # Phase 4B extract (S3): duplicate gate. Runs under the evaluate lock.
+        # cooldown_remaining is hoisted into evaluate (unconditional pure read,
+        # computed just above this call) and passed in - keeps S3 uniform with
+        # S2/S4/S5/S6 (all return a bare ScheduledAdvice | None). On a duplicate
+        # it keeps an active advice visible or returns a cooldown result; None
+        # to fall through. Early-return preserved.
+        duplicate = self.state._last_advice_state_hash == state_hash
+        if duplicate:
+            self.state.duplicate_suppressed_count += 1
+            suppressed_reason = (
+                "duplicate_death_review"
+                if decision_point in DEATH_REVIEW_DECISIONS
+                else "duplicate"
+            )
+            active = self._active_result_locked(
+                decision_point=decision_point,
+                now=current_time,
+                next_allowed=cooldown_remaining,
+                suppressed_reason="cooldown_keep_visible"
+                if suppressed_reason == "duplicate"
+                else suppressed_reason,
+            )
+            if active is not None:
+                return active
+            recommendation, source, llm_used, advice_mode = self._last_matching_advice_locked(
+                tactical_hash
+            )
+            return self._result_locked(
+                status="cooldown",
+                decision_point=decision_point,
+                recommendation=recommendation,
+                source=source,
+                llm_used=llm_used,
+                next_allowed=cooldown_remaining,
+                new_advice=False,
+                advice_mode=advice_mode,
+                suppressed_reason=suppressed_reason,
+            )
+
+        return None
+
     def evaluate(
         self,
         request: GameSituationRequest,
@@ -395,38 +444,15 @@ class AdviceScheduler:
                 current_time,
                 game_time_seconds,
             )
-            duplicate = self.state._last_advice_state_hash == state_hash
-            if duplicate:
-                self.state.duplicate_suppressed_count += 1
-                suppressed_reason = (
-                    "duplicate_death_review"
-                    if decision_point in DEATH_REVIEW_DECISIONS
-                    else "duplicate"
-                )
-                active = self._active_result_locked(
-                    decision_point=decision_point,
-                    now=current_time,
-                    next_allowed=cooldown_remaining,
-                    suppressed_reason="cooldown_keep_visible"
-                    if suppressed_reason == "duplicate"
-                    else suppressed_reason,
-                )
-                if active is not None:
-                    return active
-                recommendation, source, llm_used, advice_mode = self._last_matching_advice_locked(
-                    tactical_hash
-                )
-                return self._result_locked(
-                    status="cooldown",
-                    decision_point=decision_point,
-                    recommendation=recommendation,
-                    source=source,
-                    llm_used=llm_used,
-                    next_allowed=cooldown_remaining,
-                    new_advice=False,
-                    advice_mode=advice_mode,
-                    suppressed_reason=suppressed_reason,
-                )
+            _duplicate = self._evaluate_duplicate_locked(
+                decision_point=decision_point,
+                current_time=current_time,
+                cooldown_remaining=cooldown_remaining,
+                state_hash=state_hash,
+                tactical_hash=tactical_hash,
+            )
+            if _duplicate is not None:
+                return _duplicate
 
             _cooldown = self._evaluate_cooldown_locked(
                 decision_point=decision_point,
