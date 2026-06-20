@@ -237,6 +237,42 @@ class AdviceScheduler:
 
         return None
 
+    def _evaluate_cooldown_locked(
+        self,
+        decision_point: str,
+        current_time: datetime,
+        cooldown_remaining: int,
+        tactical_hash: str,
+    ) -> ScheduledAdvice | None:
+        # Phase 4B extract (S4): cooldown gate. Runs under the evaluate lock.
+        # When a cooldown is still active, keep an active advice visible or
+        # return a cooldown result; None to fall through. Early-return preserved.
+        if cooldown_remaining > 0:
+            active = self._active_result_locked(
+                decision_point=decision_point,
+                now=current_time,
+                next_allowed=cooldown_remaining,
+                suppressed_reason="cooldown_keep_visible",
+            )
+            if active is not None:
+                return active
+            recommendation, source, llm_used, advice_mode = self._last_matching_advice_locked(
+                tactical_hash
+            )
+            return self._result_locked(
+                status="cooldown",
+                decision_point=decision_point,
+                recommendation=recommendation,
+                source=source,
+                llm_used=llm_used,
+                next_allowed=cooldown_remaining,
+                new_advice=False,
+                advice_mode=advice_mode,
+                suppressed_reason="cooldown",
+            )
+
+        return None
+
     def evaluate(
         self,
         request: GameSituationRequest,
@@ -300,29 +336,14 @@ class AdviceScheduler:
                     suppressed_reason=suppressed_reason,
                 )
 
-            if cooldown_remaining > 0:
-                active = self._active_result_locked(
-                    decision_point=decision_point,
-                    now=current_time,
-                    next_allowed=cooldown_remaining,
-                    suppressed_reason="cooldown_keep_visible",
-                )
-                if active is not None:
-                    return active
-                recommendation, source, llm_used, advice_mode = self._last_matching_advice_locked(
-                    tactical_hash
-                )
-                return self._result_locked(
-                    status="cooldown",
-                    decision_point=decision_point,
-                    recommendation=recommendation,
-                    source=source,
-                    llm_used=llm_used,
-                    next_allowed=cooldown_remaining,
-                    new_advice=False,
-                    advice_mode=advice_mode,
-                    suppressed_reason="cooldown",
-                )
+            _cooldown = self._evaluate_cooldown_locked(
+                decision_point=decision_point,
+                current_time=current_time,
+                cooldown_remaining=cooldown_remaining,
+                tactical_hash=tactical_hash,
+            )
+            if _cooldown is not None:
+                return _cooldown
 
             if decision_point == "LOW_HP_WARNING" and (
                 self.state._low_hp_episode_active
