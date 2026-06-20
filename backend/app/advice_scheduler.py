@@ -208,6 +208,35 @@ class AdviceScheduler:
             self._update_low_hp_recovery_locked(state)
         return game_time_seconds
 
+    def _evaluate_no_advice_locked(
+        self, decision_point: str, current_time: datetime
+    ) -> ScheduledAdvice | None:
+        # Phase 4B extract (S2): NO_ADVICE gate. Runs under the evaluate lock;
+        # returns a ScheduledAdvice when active advice is kept visible, otherwise
+        # a no_advice result, or None to fall through. Early-return preserved.
+        if decision_point == "NO_ADVICE":
+            active = self._active_result_locked(
+                decision_point=decision_point,
+                now=current_time,
+                next_allowed=0,
+                suppressed_reason="cooldown_keep_visible",
+            )
+            if active is not None:
+                return active
+            return self._result_locked(
+                status="no_advice",
+                decision_point=decision_point,
+                recommendation=None,
+                source="none",
+                llm_used=False,
+                next_allowed=0,
+                new_advice=False,
+                advice_mode="status",
+                suppressed_reason="no_advice",
+            )
+
+        return None
+
     def evaluate(
         self,
         request: GameSituationRequest,
@@ -229,26 +258,9 @@ class AdviceScheduler:
                 tactical_hash=tactical_hash,
             )
 
-            if decision_point == "NO_ADVICE":
-                active = self._active_result_locked(
-                    decision_point=decision_point,
-                    now=current_time,
-                    next_allowed=0,
-                    suppressed_reason="cooldown_keep_visible",
-                )
-                if active is not None:
-                    return active
-                return self._result_locked(
-                    status="no_advice",
-                    decision_point=decision_point,
-                    recommendation=None,
-                    source="none",
-                    llm_used=False,
-                    next_allowed=0,
-                    new_advice=False,
-                    advice_mode="status",
-                    suppressed_reason="no_advice",
-                )
+            _no_advice = self._evaluate_no_advice_locked(decision_point, current_time)
+            if _no_advice is not None:
+                return _no_advice
 
             cooldown_remaining = self._cooldown_remaining_locked(
                 decision_point,
