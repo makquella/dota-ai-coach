@@ -18,7 +18,6 @@ from typing import Any
 
 import requests
 
-
 BACKEND_DIR = Path(__file__).resolve().parents[1]
 REPO_ROOT = BACKEND_DIR.parent
 sys.path.insert(0, str(BACKEND_DIR))
@@ -30,7 +29,6 @@ from app.item_timing import (  # noqa: E402
 )
 from app.schemas import SUPPORTED_HEROES  # noqa: E402
 from app.signal_capabilities import capability_summary  # noqa: E402
-
 
 OPENDOTA_MATCH_URL = "https://api.opendota.com/api/matches/{match_id}"
 RAW_MATCH_DIR = BACKEND_DIR / "imported_matches"
@@ -299,7 +297,9 @@ def main() -> int:
     )
     if selected is None:
         _print_candidates(_rank_candidates(players))
-        print("Could not confidently auto-select a supported carry. Rerun with --player-slot or --account-id.")
+        print(
+            "Could not confidently auto-select a supported carry. Rerun with --player-slot or --account-id."
+        )
         return 1
 
     if not selected.supported:
@@ -339,10 +339,7 @@ def main() -> int:
         f"end={args.end_minute if args.end_minute is not None else 'match_end'}m, "
         f"states={len(rows)}"
     )
-    print(
-        "Next: "
-        f"python scripts/simulate_match_advice.py --simulation-file {output_path}"
-    )
+    print(f"Next: python scripts/simulate_match_advice.py --simulation-file {output_path}")
     return 0
 
 
@@ -370,7 +367,10 @@ def _parse_args() -> argparse.Namespace:
     )
     parser.add_argument("--player-slot", type=int, help="Exact OpenDota player_slot to import.")
     parser.add_argument("--account-id", type=int, help="OpenDota account_id to import.")
-    parser.add_argument("--output", help="Output JSONL path. Defaults to data/match_simulations/opendota_match_<match_id>.jsonl.")
+    parser.add_argument(
+        "--output",
+        help="Output JSONL path. Defaults to data/match_simulations/opendota_match_<match_id>.jsonl.",
+    )
     args = parser.parse_args()
     if args.interval_seconds < 1:
         parser.error("--interval-seconds must be at least 1")
@@ -415,10 +415,14 @@ def _select_player(
     candidates = _rank_candidates(players)
 
     if account_id is not None:
-        return next((candidate for candidate in candidates if candidate.account_id == account_id), None)
+        return next(
+            (candidate for candidate in candidates if candidate.account_id == account_id), None
+        )
 
     if player_slot is not None:
-        return next((candidate for candidate in candidates if candidate.player_slot == player_slot), None)
+        return next(
+            (candidate for candidate in candidates if candidate.player_slot == player_slot), None
+        )
 
     supported = [candidate for candidate in candidates if candidate.supported]
     if not supported:
@@ -442,12 +446,7 @@ def _build_candidate(player: dict[str, Any]) -> PlayerCandidate:
     gold_per_min = _to_int(player.get("gold_per_min"), 0)
     carry_item_count = _carry_item_count(player)
     supported = hero.lower() in SUPPORTED_HERO_SET
-    score = (
-        gold_per_min
-        + last_hits * 2
-        + carry_item_count * 75
-        + (40 if supported else -80)
-    )
+    score = gold_per_min + last_hits * 2 + carry_item_count * 75 + (40 if supported else -80)
     return PlayerCandidate(
         player=player,
         player_slot=_to_int(player.get("player_slot"), -1),
@@ -498,10 +497,16 @@ def _build_simulation_rows(
     for timestamp in range(start_seconds, end_seconds + 1, interval_seconds):
         minute = min(90, timestamp // 60)
         team_context = _team_context_at(timestamp, events)
-        near_player_death = team_context.selected_player_death_nearby or _near_player_death(timestamp, events.death_times)
+        near_player_death = team_context.selected_player_death_nearby or _near_player_death(
+            timestamp, events.death_times
+        )
         near_teamfight = team_context.near_teamfight or _near_teamfight(timestamp, events)
-        near_objective = team_context.near_objective or _near_any(timestamp, events.objective_times, max(60, interval_seconds))
-        recent_item_timing = _recent_item_timing(events.purchase_events, timestamp, interval_seconds)
+        near_objective = team_context.near_objective or _near_any(
+            timestamp, events.objective_times, max(60, interval_seconds)
+        )
+        recent_item_timing = _recent_item_timing(
+            events.purchase_events, timestamp, interval_seconds
+        )
         recent_item_purchase = recent_item_timing.item if recent_item_timing else None
         item_timing_category = recent_item_timing.timing_category if recent_item_timing else None
         gold_delta = _gold_delta_at_timestamp(player, timestamp, farm_window_seconds)
@@ -513,7 +518,8 @@ def _build_simulation_rows(
             and _farm_rate_state(
                 _gold_delta_at_timestamp(player, previous_farm_timestamp, farm_window_seconds),
                 _lh_delta_at_timestamp(player, previous_farm_timestamp, farm_window_seconds),
-            ) == "slow"
+            )
+            == "slow"
             and (near_player_death or near_teamfight or near_objective or minute < 18)
         )
         game_state, event_context = _state_context_at(
@@ -598,7 +604,9 @@ def _opendota_context_confidence(
     return "low"
 
 
-def _extract_match_events(match: dict[str, Any], player: dict[str, Any], duration: int) -> MatchEvents:
+def _extract_match_events(
+    match: dict[str, Any], player: dict[str, Any], duration: int
+) -> MatchEvents:
     players = match.get("players") if isinstance(match.get("players"), list) else []
     selected_slot = _to_int(player.get("player_slot"), -1)
     selected_team = _team_from_slot(selected_slot)
@@ -607,10 +615,14 @@ def _extract_match_events(match: dict[str, Any], player: dict[str, Any], duratio
     selected_teamfight_death_times = _selected_teamfight_death_times(teamfight_events)
     death_times, death_times_inferred = _death_times(player, duration)
     if selected_teamfight_death_times:
-        remaining_deaths = max(0, _to_int(player.get("deaths"), 0) - len(selected_teamfight_death_times))
+        remaining_deaths = max(
+            0, _to_int(player.get("deaths"), 0) - len(selected_teamfight_death_times)
+        )
         death_times = sorted(
             set(selected_teamfight_death_times)
-            | set(_spread_inferred_events(remaining_deaths, duration, start_ratio=0.18, end_ratio=0.9))
+            | set(
+                _spread_inferred_events(remaining_deaths, duration, start_ratio=0.18, end_ratio=0.9)
+            )
         )
         death_times_inferred = remaining_deaths > 0
     kill_times, kill_times_inferred = _kill_times(player, duration)
@@ -649,14 +661,21 @@ def _extract_match_events(match: dict[str, Any], player: dict[str, Any], duratio
 
 def _team_context_at(timestamp: int, events: MatchEvents) -> TeamContextSnapshot:
     teamfights = [
-        fight for fight in events.teamfight_events
+        fight
+        for fight in events.teamfight_events
         if fight.start - 45 <= timestamp <= fight.end + 45
     ]
-    nearest_fight = min(teamfights, key=lambda fight: _distance_to_window(timestamp, fight.start, fight.end), default=None)
+    nearest_fight = min(
+        teamfights,
+        key=lambda fight: _distance_to_window(timestamp, fight.start, fight.end),
+        default=None,
+    )
     allied_deaths_in_fight = sum(fight.allied_deaths for fight in teamfights)
     enemy_deaths_in_fight = sum(fight.enemy_deaths for fight in teamfights)
     selected_player_in_teamfight = any(fight.selected_player_in_teamfight for fight in teamfights)
-    teamfight_result = _fight_result(allied_deaths_in_fight, enemy_deaths_in_fight) if teamfights else "unknown"
+    teamfight_result = (
+        _fight_result(allied_deaths_in_fight, enemy_deaths_in_fight) if teamfights else "unknown"
+    )
 
     objective = min(
         [event for event in events.objective_events if abs(timestamp - event.time) <= 60],
@@ -665,12 +684,16 @@ def _team_context_at(timestamp: int, events: MatchEvents) -> TeamContextSnapshot
     )
     objective_for_selected_team = (
         None
-        if objective is None or objective.objective_team is None or events.selected_team == "unknown"
+        if objective is None
+        or objective.objective_team is None
+        or events.selected_team == "unknown"
         else objective.objective_team == events.selected_team
     )
     near_objective = objective is not None
 
-    recent_allied_deaths = sum(1 for time in events.allied_death_times if abs(timestamp - time) <= 60)
+    recent_allied_deaths = sum(
+        1 for time in events.allied_death_times if abs(timestamp - time) <= 60
+    )
     recent_enemy_deaths = sum(1 for time in events.enemy_death_times if abs(timestamp - time) <= 60)
     selected_player_death_nearby = _near_player_death(timestamp, events.death_times)
 
@@ -908,7 +931,10 @@ def _farm_rate_state(gold_delta: int, lh_delta: int) -> str:
 
 
 def _near_player_death(timestamp: int, death_times: list[int]) -> bool:
-    return any(-15 <= timestamp - death_time <= 60 or 0 <= death_time - timestamp <= 60 for death_time in death_times)
+    return any(
+        -15 <= timestamp - death_time <= 60 or 0 <= death_time - timestamp <= 60
+        for death_time in death_times
+    )
 
 
 def _near_teamfight(timestamp: int, events: MatchEvents) -> bool:
@@ -917,9 +943,12 @@ def _near_teamfight(timestamp: int, events: MatchEvents) -> bool:
     return _near_any(timestamp, events.kill_times, 45)
 
 
-def _recent_item_timing(events: list[PurchaseEvent], timestamp: int, interval_seconds: int) -> PurchaseEvent | None:
+def _recent_item_timing(
+    events: list[PurchaseEvent], timestamp: int, interval_seconds: int
+) -> PurchaseEvent | None:
     recent = [
-        event for event in events
+        event
+        for event in events
         if _nearest_interval_timestamp(event.time, interval_seconds) == timestamp
     ]
     if not recent:
@@ -1202,7 +1231,9 @@ def _selected_teamfight_death_times(teamfight_events: list[TeamfightEvent]) -> l
     return sorted(times)
 
 
-def _append_unique_times(existing: list[int], additional: list[int], *, tolerance_seconds: int = 10) -> list[int]:
+def _append_unique_times(
+    existing: list[int], additional: list[int], *, tolerance_seconds: int = 10
+) -> list[int]:
     merged = list(existing)
     for time in additional:
         if not any(abs(time - current) <= tolerance_seconds for current in merged):
@@ -1283,7 +1314,9 @@ def _death_times(player: dict[str, Any], duration: int) -> tuple[list[int], bool
         )
 
     death_count = _to_int(player.get("deaths"), 0)
-    return _spread_inferred_events(death_count, duration, start_ratio=0.18, end_ratio=0.9), death_count > 0
+    return _spread_inferred_events(
+        death_count, duration, start_ratio=0.18, end_ratio=0.9
+    ), death_count > 0
 
 
 def _kill_times(player: dict[str, Any], duration: int) -> tuple[list[int], bool]:
@@ -1299,10 +1332,14 @@ def _kill_times(player: dict[str, Any], duration: int) -> tuple[list[int], bool]
         )
 
     kill_count = _to_int(player.get("kills"), 0)
-    return _spread_inferred_events(kill_count, duration, start_ratio=0.22, end_ratio=0.86), kill_count > 0
+    return _spread_inferred_events(
+        kill_count, duration, start_ratio=0.22, end_ratio=0.86
+    ), kill_count > 0
 
 
-def _spread_inferred_events(count: int, duration: int, *, start_ratio: float, end_ratio: float) -> list[int]:
+def _spread_inferred_events(
+    count: int, duration: int, *, start_ratio: float, end_ratio: float
+) -> list[int]:
     if count <= 0 or duration <= 0:
         return []
     start = int(duration * start_ratio)
@@ -1381,7 +1418,9 @@ def _timeline_inference_context(player: dict[str, Any], interval_seconds: int) -
     if isinstance(player.get("lh_t"), list) and player.get("lh_t"):
         inferred_fields.append("last hits carried forward")
     if not inferred_fields:
-        return "high-frequency replay uses match totals where per-second OpenDota data is unavailable"
+        return (
+            "high-frequency replay uses match totals where per-second OpenDota data is unavailable"
+        )
     return "high-frequency replay uses per-minute OpenDota data: " + ", ".join(inferred_fields)
 
 

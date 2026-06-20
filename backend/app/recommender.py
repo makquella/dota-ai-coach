@@ -11,7 +11,6 @@ from app.laning_coach import build_laning_advice
 from app.post_laning_coach import build_post_laning_advice
 from app.schemas import GameSituationRequest, RecommendationResponse
 
-
 FALLBACK_TEXT = {
     "retreat_reset": {
         "action": "Leave the wave now and reset HP before rejoining.",
@@ -217,7 +216,9 @@ def _replay_item_timing_text(req: GameSituationRequest) -> dict[str, str] | None
     }
 
 
-def _post_laning_fallback_text(req: GameSituationRequest, action_type: str) -> dict[str, str] | None:
+def _post_laning_fallback_text(
+    req: GameSituationRequest, action_type: str
+) -> dict[str, str] | None:
     decision_point = _decision_point_from_request(req)
     post_laning_advice = build_post_laning_advice(req, decision_point)
     if post_laning_advice is None:
@@ -313,7 +314,10 @@ def _has_low_farm_rate(req: GameSituationRequest) -> bool:
         return False
 
     thresholds = ((25, 170), (20, 120), (15, 80), (10, 45))
-    if any(req.minute >= minute and last_hits is not None and last_hits < target for minute, target in thresholds):
+    if any(
+        req.minute >= minute and last_hits is not None and last_hits < target
+        for minute, target in thresholds
+    ):
         return True
     return req.minute >= 15 and gpm is not None and gpm < 400
 
@@ -335,14 +339,20 @@ def _hero_safety_fallback_text(req: GameSituationRequest) -> dict[str, str]:
         return {
             "action": "Reset mana before taking an extended fight.",
             "reason": "Low mana reduces Medusa's effective survivability.",
-            "risk": _risk_from_constraint(constraint, FALLBACK_TEXT["respect_hero_safety_window"]["risk"]),
+            "risk": _risk_from_constraint(
+                constraint, FALLBACK_TEXT["respect_hero_safety_window"]["risk"]
+            ),
         }
 
     if ability and ("escape_on_cooldown" in flags or kind == "escape"):
         return {
             "action": _truncate(f"Avoid committing forward until {ability} is ready.", 100),
-            "reason": _truncate(f"Without {ability}, escaping a bad trade or fight is harder.", 180),
-            "risk": _risk_from_constraint(constraint, FALLBACK_TEXT["respect_hero_safety_window"]["risk"]),
+            "reason": _truncate(
+                f"Without {ability}, escaping a bad trade or fight is harder.", 180
+            ),
+            "risk": _risk_from_constraint(
+                constraint, FALLBACK_TEXT["respect_hero_safety_window"]["risk"]
+            ),
         }
 
     if ability and ("defensive_ability_on_cooldown" in flags or kind == "defensive"):

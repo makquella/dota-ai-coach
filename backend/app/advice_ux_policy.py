@@ -4,12 +4,11 @@ advice_ux_policy.py - cognitive load guard for overlay advice.
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 from app.advice_policy import build_advice_policy
 from app.schemas import RecommendationResponse
-
 
 MAX_ADVICE_PER_MINUTE = 2
 MAX_ACTION_CHARS = 100
@@ -42,7 +41,8 @@ def apply_ux_policy(
 
     current_time = _now(now)
     recent_minute = [
-        entry for entry in recent_advice_history
+        entry
+        for entry in recent_advice_history
         if _parse_time(entry.get("timestamp")) >= current_time - timedelta(seconds=60)
     ]
     bypass_rate_limit = decision_point in RATE_LIMIT_BYPASS_DECISIONS
@@ -50,8 +50,10 @@ def apply_ux_policy(
         return _suppressed("rate_limit")
 
     recent_duplicates = [
-        entry for entry in recent_advice_history
-        if _parse_time(entry.get("timestamp")) >= current_time - timedelta(seconds=DUPLICATE_SUPPRESSION_SECONDS)
+        entry
+        for entry in recent_advice_history
+        if _parse_time(entry.get("timestamp"))
+        >= current_time - timedelta(seconds=DUPLICATE_SUPPRESSION_SECONDS)
     ]
     action = recommendation.action.strip()
     same_action = action.lower()
@@ -167,17 +169,17 @@ def _trim(value: str, max_chars: int) -> str:
 
 def _parse_time(value: Any) -> datetime:
     if isinstance(value, datetime):
-        return value if value.tzinfo else value.replace(tzinfo=timezone.utc)
+        return value if value.tzinfo else value.replace(tzinfo=UTC)
     if isinstance(value, str):
         try:
             parsed = datetime.fromisoformat(value)
-            return parsed if parsed.tzinfo else parsed.replace(tzinfo=timezone.utc)
+            return parsed if parsed.tzinfo else parsed.replace(tzinfo=UTC)
         except ValueError:
-            return datetime.min.replace(tzinfo=timezone.utc)
-    return datetime.min.replace(tzinfo=timezone.utc)
+            return datetime.min.replace(tzinfo=UTC)
+    return datetime.min.replace(tzinfo=UTC)
 
 
 def _now(value: datetime | None = None) -> datetime:
     if value is None:
-        return datetime.now(timezone.utc)
-    return value if value.tzinfo else value.replace(tzinfo=timezone.utc)
+        return datetime.now(UTC)
+    return value if value.tzinfo else value.replace(tzinfo=UTC)

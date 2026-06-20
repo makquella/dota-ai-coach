@@ -17,7 +17,6 @@ from app.hero_profiles import (
     load_hero_profile,
 )
 
-
 RISK_ORDER = {"low": 0, "medium": 1, "high": 2}
 DEFAULT_RESULT = {
     "hero_safety_flags": [],
@@ -103,8 +102,7 @@ def evaluate_hero_safety(normalized_state: Mapping[str, Any] | Any) -> dict[str,
     )
     return {
         "hero_safety_flags": [
-            str(rule.get("flag") or rule.get("type") or "hero_safety_risk")
-            for rule in triggered
+            str(rule.get("flag") or rule.get("type") or "hero_safety_risk") for rule in triggered
         ],
         "hero_risk_level": _safe_risk(str(highest.get("risk") or "low")),
         "hero_safety_reason": str(highest.get("reason") or "").strip(),

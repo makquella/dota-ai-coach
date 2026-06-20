@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import json
 import threading
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -33,7 +33,9 @@ class LiveSessionRecorder:
                 return self._status_locked()
 
             started_at = _now_iso()
-            safe_stamp = started_at.replace(":", "").replace("-", "").replace("+", "_").replace(".", "_")
+            safe_stamp = (
+                started_at.replace(":", "").replace("-", "").replace("+", "_").replace(".", "_")
+            )
             self._session_dir = self.base_dir / f"live_session_{safe_stamp}"
             self._session_dir.mkdir(parents=True, exist_ok=True)
             self._active = True
@@ -133,7 +135,9 @@ class LiveSessionRecorder:
         if self._session_dir is None:
             return
         path = self._session_dir / "metadata.json"
-        path.write_text(json.dumps(self._metadata, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+        path.write_text(
+            json.dumps(self._metadata, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
+        )
 
 
 def _state_summary(state: dict[str, Any]) -> dict[str, Any]:
@@ -172,7 +176,7 @@ def _extra(state: dict[str, Any]) -> dict[str, Any]:
 
 
 def _now_iso() -> str:
-    return datetime.now(timezone.utc).isoformat()
+    return datetime.now(UTC).isoformat()
 
 
 LIVE_SESSION_RECORDER = LiveSessionRecorder()

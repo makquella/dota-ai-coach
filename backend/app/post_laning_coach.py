@@ -11,7 +11,6 @@ from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import Any
 
-
 POST_LANING_REPEAT_WINDOW_SECONDS = 120
 POST_LANING_SAME_ACTION_WINDOW_SECONDS = 330
 POST_LANING_RECENT_SAFETY_WINDOW_SECONDS = 150

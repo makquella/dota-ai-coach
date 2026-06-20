@@ -5,7 +5,7 @@ Files are stored in backend/logs/ with a timestamp-based name.
 """
 
 import json
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 from app.config import LOGS_DIR
@@ -28,7 +28,7 @@ def log_recommendation(
     """
     LOGS_DIR.mkdir(parents=True, exist_ok=True)
 
-    timestamp = datetime.now(timezone.utc).isoformat()
+    timestamp = datetime.now(UTC).isoformat()
     # Build a filename that is easy to sort chronologically
     safe_ts = timestamp.replace(":", "-").replace("+", "Z")
     filename = f"{safe_ts}_{request.hero.replace(' ', '_')}.json"

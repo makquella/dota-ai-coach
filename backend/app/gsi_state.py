@@ -5,7 +5,7 @@ gsi_state.py — in-memory Dota 2 Game State Integration state for MVP overlay u
 from __future__ import annotations
 
 import json
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 from app.advice_context import build_advice_context
@@ -14,7 +14,6 @@ from app.hero_profiles import evaluate_laning_context
 from app.hero_safety import evaluate_hero_safety
 from app.item_timing import normalize_item_name
 from app.signal_capabilities import capability_summary, live_gsi_observed_capabilities
-
 
 _latest_raw_payload: dict[str, Any] | None = None
 _latest_normalized_state: dict[str, Any] | None = None
@@ -128,9 +127,11 @@ def update_latest_gsi(payload: dict[str, Any]) -> dict[str, Any]:
     global _latest_raw_payload, _latest_normalized_state, _latest_timestamp, _previous_extra_context
 
     _latest_raw_payload = payload
-    _latest_normalized_state = normalize_gsi_payload(payload, previous_extra_context=_previous_extra_context)
+    _latest_normalized_state = normalize_gsi_payload(
+        payload, previous_extra_context=_previous_extra_context
+    )
     _previous_extra_context = dict(_latest_normalized_state.get("extra_context") or {})
-    _latest_timestamp = datetime.now(timezone.utc).isoformat()
+    _latest_timestamp = datetime.now(UTC).isoformat()
     _write_debug_payload_sample(payload, _latest_timestamp)
     return {
         "status": "ok",
@@ -199,10 +200,7 @@ def get_gsi_debug_fields() -> dict[str, Any]:
 
 def _detected_available_fields(payload: dict[str, Any] | None) -> dict[str, bool]:
     payload = payload or {}
-    return {
-        field: _has_payload_field(payload, field)
-        for field in _DEBUG_TOP_LEVEL_FIELDS
-    }
+    return {field: _has_payload_field(payload, field) for field in _DEBUG_TOP_LEVEL_FIELDS}
 
 
 def _has_payload_field(payload: dict[str, Any], field: str) -> bool:
@@ -242,9 +240,15 @@ def normalize_gsi_payload(
     if payload.get("minute") is not None:
         minute = _clamp_int(payload.get("minute"), 0, 90, default=0)
     else:
-        minute = _normalize_minute(_first_value(map_block.get("clock_time"), map_block.get("game_time")))
-    level = _clamp_int(_first_value(payload.get("level"), hero_block.get("level")), 1, 30, default=1)
-    gold = _clamp_int(_first_value(payload.get("gold"), player_block.get("gold")), 0, None, default=0)
+        minute = _normalize_minute(
+            _first_value(map_block.get("clock_time"), map_block.get("game_time"))
+        )
+    level = _clamp_int(
+        _first_value(payload.get("level"), hero_block.get("level")), 1, 30, default=1
+    )
+    gold = _clamp_int(
+        _first_value(payload.get("gold"), player_block.get("gold")), 0, None, default=0
+    )
     hp_percent = _normalize_hp_percent(payload, hero_block)
     game_state = _normalize_game_state(payload, map_block)
     team_status = _normalize_team_status(payload, hero_block)
@@ -299,9 +303,15 @@ def _normalize_extra_context(
     buyback_cooldown = _optional_int(hero_block.get("buyback_cooldown"))
     status_effects = _status_effects(hero_block)
     abilities = _normalize_abilities(payload.get("abilities"))
-    minute = _normalize_minute(_first_value(map_block.get("clock_time"), map_block.get("game_time")))
-    match_id, is_demo_or_lobby = _normalize_match_id(_first_value(map_block.get("matchid"), map_block.get("match_id")))
-    demo_values_detected = _demo_values_detected(gold=gold, gpm=_optional_int(player_block.get("gpm")), minute=minute)
+    minute = _normalize_minute(
+        _first_value(map_block.get("clock_time"), map_block.get("game_time"))
+    )
+    match_id, is_demo_or_lobby = _normalize_match_id(
+        _first_value(map_block.get("matchid"), map_block.get("match_id"))
+    )
+    demo_values_detected = _demo_values_detected(
+        gold=gold, gpm=_optional_int(player_block.get("gpm")), minute=minute
+    )
     has_abilities = _has_payload_field(payload, "abilities")
     has_buildings = _has_payload_field(payload, "buildings")
     has_position = hero_block.get("xpos") is not None and hero_block.get("ypos") is not None
@@ -375,10 +385,9 @@ def _normalize_extra_context(
     }
 
     context["death_count_changed"] = _value_changed(previous_for_deltas, context, "deaths")
-    context["score_changed"] = (
-        _value_changed(previous_for_deltas, context, "radiant_score")
-        or _value_changed(previous_for_deltas, context, "dire_score")
-    )
+    context["score_changed"] = _value_changed(
+        previous_for_deltas, context, "radiant_score"
+    ) or _value_changed(previous_for_deltas, context, "dire_score")
     context["farm_rate_state"] = _farm_rate_state(
         minute=minute,
         last_hits=context.get("last_hits"),
@@ -419,7 +428,9 @@ def _status_effects(hero_block: dict[str, Any]) -> list[str]:
     ]
 
 
-def _available_gold(*, reliable_gold: int | None, unreliable_gold: int | None, gold: int | None) -> int | None:
+def _available_gold(
+    *, reliable_gold: int | None, unreliable_gold: int | None, gold: int | None
+) -> int | None:
     if reliable_gold is not None or unreliable_gold is not None:
         return max(0, reliable_gold or 0) + max(0, unreliable_gold or 0)
     return gold
@@ -456,7 +467,9 @@ def _farm_rate_state(
 ) -> str:
     if minute < 10 or demo_values_detected or (gpm is not None and gpm > 2000):
         return "unknown"
-    if _farm_threshold_missed(minute, last_hits) or (minute >= 15 and gpm is not None and gpm < 400):
+    if _farm_threshold_missed(minute, last_hits) or (
+        minute >= 15 and gpm is not None and gpm < 400
+    ):
         return "slow"
     if last_hits is not None or gpm is not None:
         return "good"
@@ -467,7 +480,10 @@ def _farm_threshold_missed(minute: int, last_hits: int | None) -> bool:
     if last_hits is None:
         return False
     thresholds = ((25, 170), (20, 120), (15, 80), (10, 45))
-    return any(minute >= threshold_minute and last_hits < threshold_lh for threshold_minute, threshold_lh in thresholds)
+    return any(
+        minute >= threshold_minute and last_hits < threshold_lh
+        for threshold_minute, threshold_lh in thresholds
+    )
 
 
 def _value_changed(previous: dict[str, Any] | None, current: dict[str, Any], key: str) -> bool:
@@ -629,7 +645,9 @@ def _normalize_ability(value: Any) -> dict[str, Any] | None:
         raw_name = _optional_str(value.get("name"))
         level = _optional_int(value.get("level"))
         cooldown = _optional_number(
-            _first_value(value.get("cooldown"), value.get("cooldown_remaining"), value.get("cooldown_time"))
+            _first_value(
+                value.get("cooldown"), value.get("cooldown_remaining"), value.get("cooldown_time")
+            )
         )
         can_cast = _optional_bool(value.get("can_cast"))
         if can_cast is None:

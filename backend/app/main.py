@@ -2,7 +2,7 @@
 main.py — FastAPI application entry point for Dota AI Coach (MVP-1).
 """
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 from fastapi import FastAPI, Request
@@ -12,8 +12,8 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import ValidationError
 
 from app.advice_scheduler import ADVICE_SCHEDULER, ScheduledAdvice
-from app.config import GSI_STALE_SECONDS, LIVE_CONSERVATIVE_MODE, USE_LLM
 from app.coach_summary import COACH_SESSION_HISTORY
+from app.config import GSI_STALE_SECONDS, LIVE_CONSERVATIVE_MODE, USE_LLM
 from app.decision_points import detect_decision_point
 from app.gsi_state import (
     get_current_state,
@@ -23,11 +23,11 @@ from app.gsi_state import (
 )
 from app.live_session_recorder import LIVE_SESSION_RECORDER
 from app.llm_provider import generate_llm_recommendation, is_llm_provider_enabled
+from app.logger import log_recommendation
 from app.match_memory import MATCH_MEMORY
-from app.schemas import GameSituationRequest, RecommendationResponse, is_supported_hero
 from app.rag import retrieve_context
 from app.recommender import generate_recommendation
-from app.logger import log_recommendation
+from app.schemas import GameSituationRequest, RecommendationResponse, is_supported_hero
 
 app = FastAPI(
     title="Dota AI Coach",
@@ -113,7 +113,8 @@ def _build_recommendation(
         provider="fallback",
         fallback_reason=(
             "llm_disabled"
-            if decision_point not in {"NO_ADVICE", "SOFT_STATUS"} and (not USE_LLM or not is_llm_provider_enabled())
+            if decision_point not in {"NO_ADVICE", "SOFT_STATUS"}
+            and (not USE_LLM or not is_llm_provider_enabled())
             else None
         ),
     )
@@ -136,8 +137,7 @@ def _retrieve_rag_context(request: GameSituationRequest) -> list[str]:
         f"death_context {request.extra_context.get('last_death_context', '')} "
         f"death_pattern {request.extra_context.get('recent_death_pattern', '')} "
         f"minute {request.minute} level {request.level} "
-        f"hp {request.hp_percent} gold {request.gold} "
-        + " ".join(request.items)
+        f"hp {request.hp_percent} gold {request.gold} " + " ".join(request.items)
     )
 
     rag_context = retrieve_context(
@@ -147,7 +147,6 @@ def _retrieve_rag_context(request: GameSituationRequest) -> list[str]:
         owned_items=request.items,
     )
     return rag_context
-
 
 
 @app.post("/recommend", response_model=RecommendationResponse, summary="Get a carry recommendation")
@@ -422,14 +421,16 @@ async def demo_replay_state(request: Request):
 
     timestamp_seconds = _safe_int(payload.get("timestamp_seconds"), 0)
     state = dict(payload["state"])
-    extra_context = state.get("extra_context") if isinstance(state.get("extra_context"), dict) else {}
+    extra_context = (
+        state.get("extra_context") if isinstance(state.get("extra_context"), dict) else {}
+    )
     state["extra_context"] = {
         **extra_context,
         "demo_replay_mode": True,
         "demo_simulation_file": str(payload.get("simulation_file") or ""),
         "demo_speed": payload.get("speed"),
     }
-    demo_now = datetime(2026, 1, 1, tzinfo=timezone.utc) + timedelta(seconds=timestamp_seconds)
+    demo_now = datetime(2026, 1, 1, tzinfo=UTC) + timedelta(seconds=timestamp_seconds)
     timestamp = demo_now.isoformat()
 
     MATCH_MEMORY.observe_state(state)
@@ -475,9 +476,7 @@ def _overlay_response(
     record_history: bool = True,
 ) -> dict[str, object]:
     recommendation = (
-        scheduled.recommendation.model_dump()
-        if scheduled.recommendation is not None
-        else None
+        scheduled.recommendation.model_dump() if scheduled.recommendation is not None else None
     )
     response: dict[str, object] = {
         "status": scheduled.status,
@@ -615,7 +614,9 @@ def _overlay_response_for_state(
             response=scheduled.recommendation,
             decision_point=decision_point,
             provider=scheduled.source,
-            fallback_reason="overlay_demo_fallback_first" if scheduled.source == "fallback" else None,
+            fallback_reason="overlay_demo_fallback_first"
+            if scheduled.source == "fallback"
+            else None,
         )
         log_filename = log_path.name
 
@@ -656,7 +657,9 @@ def _gsi_status_response() -> dict[str, object]:
     fields = get_gsi_debug_fields()
     latest_advice = ADVICE_SCHEDULER.latest_advice_snapshot()
     latest_recommendation = latest_advice.get("recommendation")
-    extra_context = state.get("extra_context") if isinstance(state.get("extra_context"), dict) else {}
+    extra_context = (
+        state.get("extra_context") if isinstance(state.get("extra_context"), dict) else {}
+    )
     return {
         "gsi_connected": connected,
         "last_gsi_received_at": timestamp,
@@ -667,7 +670,9 @@ def _gsi_status_response() -> dict[str, object]:
         "received_fields": _received_gsi_fields(fields),
         "missing_important_fields": _missing_important_fields(state, fields),
         "last_advice_time": latest_advice.get("last_updated"),
-        "current_advice": latest_recommendation.get("action") if isinstance(latest_recommendation, dict) else None,
+        "current_advice": latest_recommendation.get("action")
+        if isinstance(latest_recommendation, dict)
+        else None,
         "current_mode": "live_gsi" if state else "idle",
     }
 
@@ -685,8 +690,8 @@ def _seconds_since_timestamp(timestamp: object) -> float | None:
     except ValueError:
         return None
     if parsed.tzinfo is None:
-        parsed = parsed.replace(tzinfo=timezone.utc)
-    return max(0.0, (datetime.now(timezone.utc) - parsed).total_seconds())
+        parsed = parsed.replace(tzinfo=UTC)
+    return max(0.0, (datetime.now(UTC) - parsed).total_seconds())
 
 
 def _received_gsi_fields(fields: dict[str, object]) -> list[str]:
@@ -710,7 +715,9 @@ def _missing_important_fields(state: dict[str, object], fields: dict[str, object
     for name in ("map", "player", "hero", "items"):
         if not fields.get(f"has_{name}"):
             missing.append(name)
-    extra_context = state.get("extra_context") if isinstance(state.get("extra_context"), dict) else {}
+    extra_context = (
+        state.get("extra_context") if isinstance(state.get("extra_context"), dict) else {}
+    )
     important_context = {
         "hero.health": state.get("hp_percent"),
         "hero.mana": extra_context.get("mana_percent"),
@@ -726,7 +733,9 @@ def _missing_important_fields(state: dict[str, object], fields: dict[str, object
 def _live_conservative_decision_point(decision_point: str, state: dict[str, object]) -> str:
     if not LIVE_CONSERVATIVE_MODE:
         return decision_point
-    extra_context = state.get("extra_context") if isinstance(state.get("extra_context"), dict) else {}
+    extra_context = (
+        state.get("extra_context") if isinstance(state.get("extra_context"), dict) else {}
+    )
     if extra_context.get("source_type") != "live_gsi":
         return decision_point
     if decision_point != "OBJECTIVE_FIGHT_CHECK":
@@ -745,7 +754,9 @@ def _live_conservative_decision_point(decision_point: str, state: dict[str, obje
 
 
 def _overlay_live_context(state: dict[str, object]) -> dict[str, object]:
-    extra_context = state.get("extra_context") if isinstance(state.get("extra_context"), dict) else {}
+    extra_context = (
+        state.get("extra_context") if isinstance(state.get("extra_context"), dict) else {}
+    )
     status_effects = extra_context.get("status_effects")
     if not isinstance(status_effects, list):
         status_effects = []
@@ -812,13 +823,13 @@ def _format_game_time(timestamp_seconds: int) -> str:
 def _set_demo_overlay_response(response: dict[str, object]) -> None:
     global _DEMO_OVERLAY_RESPONSE, _DEMO_OVERLAY_EXPIRES_AT
     _DEMO_OVERLAY_RESPONSE = response
-    _DEMO_OVERLAY_EXPIRES_AT = datetime.now(timezone.utc) + timedelta(seconds=_DEMO_CACHE_SECONDS)
+    _DEMO_OVERLAY_EXPIRES_AT = datetime.now(UTC) + timedelta(seconds=_DEMO_CACHE_SECONDS)
 
 
 def _get_demo_overlay_response() -> dict[str, object] | None:
     if _DEMO_OVERLAY_RESPONSE is None or _DEMO_OVERLAY_EXPIRES_AT is None:
         return None
-    if datetime.now(timezone.utc) > _DEMO_OVERLAY_EXPIRES_AT:
+    if datetime.now(UTC) > _DEMO_OVERLAY_EXPIRES_AT:
         _clear_demo_overlay_response()
         return None
     return _DEMO_OVERLAY_RESPONSE

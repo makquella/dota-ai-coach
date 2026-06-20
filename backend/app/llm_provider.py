@@ -14,24 +14,23 @@ import time
 from dataclasses import dataclass
 from typing import Any
 
-from pydantic import ValidationError
 import requests
+from pydantic import ValidationError
 
+from app.advice_policy import apply_advice_policy, build_advice_policy
+from app.advice_text import clean_recommendation_text
 from app.config import (
     GROQ_API_KEY,
     GROQ_MODEL,
+    LLAMACPP_BASE_URL,
+    LLAMACPP_MODEL,
     LLM_MAX_TOKENS,
     LLM_PROVIDER,
     LLM_TIMEOUT,
-    LLAMACPP_BASE_URL,
-    LLAMACPP_MODEL,
     OPENROUTER_API_KEY,
     OPENROUTER_MODEL,
 )
-from app.advice_policy import apply_advice_policy, build_advice_policy
-from app.advice_text import clean_recommendation_text
 from app.schemas import GameSituationRequest, RecommendationResponse
-
 
 OPENROUTER_CHAT_URL = "https://openrouter.ai/api/v1/chat/completions"
 GROQ_CHAT_URL = "https://api.groq.com/openai/v1/chat/completions"
@@ -632,8 +631,7 @@ def _clean_context_sensitive_recommendation(
         risk = _remove_missing_gold_language(risk)
 
     missing_team_context = (
-        "nearby_allies_enemies" in missing_signals
-        or "exact_teamfight_context" in missing_signals
+        "nearby_allies_enemies" in missing_signals or "exact_teamfight_context" in missing_signals
     )
     if missing_team_context:
         action = _remove_overconfident_team_language(action, decision_point)
@@ -703,7 +701,9 @@ def _validate_context_sensitive_text(
     defaulted_fields: set[str],
 ) -> None:
     combined = " ".join([recommendation.action, recommendation.reason, recommendation.risk]).lower()
-    if ("gold" in missing_signals or "gold" in defaulted_fields) and re.search(r"\bgold\b", combined):
+    if ("gold" in missing_signals or "gold" in defaulted_fields) and re.search(
+        r"\bgold\b", combined
+    ):
         raise LLMWordingGuardError("LLM output mentioned gold while gold signal is missing")
 
     if "nearby_allies_enemies" in missing_signals or "exact_teamfight_context" in missing_signals:

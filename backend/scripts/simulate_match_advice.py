@@ -15,15 +15,15 @@ import sys
 import time
 from collections import Counter
 from dataclasses import replace
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any
-
 
 BACKEND_DIR = Path(__file__).resolve().parents[1]
 REPO_ROOT = BACKEND_DIR.parent
 sys.path.insert(0, str(BACKEND_DIR))
 
+from app.advice_policy import apply_advice_policy, build_advice_policy  # noqa: E402
 from app.advice_scheduler import (  # noqa: E402
     DEATH_REVIEW_DECISIONS,
     AdviceScheduler,
@@ -31,7 +31,6 @@ from app.advice_scheduler import (  # noqa: E402
     _compact_recommendation,
     _is_safe_recommendation,
 )
-from app.advice_policy import apply_advice_policy, build_advice_policy  # noqa: E402
 from app.advice_text import clean_recommendation_text  # noqa: E402
 from app.advice_ux_policy import apply_ux_policy  # noqa: E402
 from app.config import LLM_TIMEOUT  # noqa: E402
@@ -42,7 +41,6 @@ from app.post_laning_coach import post_laning_context_for_review  # noqa: E402
 from app.rag import retrieve_context  # noqa: E402
 from app.schemas import GameSituationRequest  # noqa: E402
 from app.signal_capabilities import capability_summary  # noqa: E402
-
 
 DEFAULT_SIMULATION_PATH = REPO_ROOT / "data/match_simulations/carry_match_40min.jsonl"
 RESULTS_DIR = BACKEND_DIR / "simulation_results"
@@ -138,7 +136,7 @@ def main() -> int:
     review_only_shown = _env_bool("SIMULATION_REVIEW_ONLY_SHOWN", default=True)
     scheduler = AdviceScheduler(enable_llm=False if llm_blocking else use_llm)
     blocking_llm_metrics = _new_blocking_llm_metrics()
-    base_time = datetime(2026, 1, 1, tzinfo=timezone.utc)
+    base_time = datetime(2026, 1, 1, tzinfo=UTC)
 
     total_states = 0
     min_timestamp_seconds: int | None = None
@@ -175,7 +173,9 @@ def main() -> int:
         stats_before = scheduler.stats(now)
         if decision_point in {"NO_ADVICE", "SOFT_STATUS"}:
             scheduler.observe_state(request.model_dump(), decision_point, now=now)
-            active = scheduler.active_advice_for_state(request.model_dump(), decision_point, now=now)
+            active = scheduler.active_advice_for_state(
+                request.model_dump(), decision_point, now=now
+            )
             result = active or _status_result(
                 status="monitoring" if decision_point == "SOFT_STATUS" else "no_advice",
                 decision_point=decision_point,
@@ -230,11 +230,17 @@ def main() -> int:
                 latest_snapshot=(
                     blocking_snapshot
                     if blocking_snapshot is not None
-                    else scheduler.latest_advice_snapshot() if llm_applied else None
+                    else scheduler.latest_advice_snapshot()
+                    if llm_applied
+                    else None
                 ),
                 repeated_laning_suppressed_count=stats_after["repeated_laning_suppressed_count"],
-                repeated_post_laning_suppressed_count=stats_after["repeated_post_laning_suppressed_count"],
-                repeated_objective_suppressed_count=stats_after["repeated_objective_suppressed_count"],
+                repeated_post_laning_suppressed_count=stats_after[
+                    "repeated_post_laning_suppressed_count"
+                ],
+                repeated_objective_suppressed_count=stats_after[
+                    "repeated_objective_suppressed_count"
+                ],
                 repeated_low_hp_suppressed_count=stats_after["repeated_low_hp_suppressed_count"],
             )
         )
@@ -268,11 +274,8 @@ def main() -> int:
     review_csv_path = None
     review_md_path = None
     if export_review:
-        exported_rows = [
-            row for row in review_rows
-            if not review_only_shown or row["shown_advice"]
-        ]
-        timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
+        exported_rows = [row for row in review_rows if not review_only_shown or row["shown_advice"]]
+        timestamp = datetime.now(UTC).strftime("%Y%m%d_%H%M%S")
         review_csv_path = _write_review_csv(exported_rows, timestamp)
         review_md_path = _write_review_markdown(exported_rows, timestamp)
 
@@ -301,15 +304,13 @@ def _state_from_entry(entry: dict[str, Any]) -> dict[str, Any]:
     state = entry.get("state")
     if isinstance(state, dict):
         return state
-    return {
-        key: value
-        for key, value in entry.items()
-        if key != "timestamp_seconds"
-    }
+    return {key: value for key, value in entry.items() if key != "timestamp_seconds"}
 
 
 def _ensure_signal_capabilities(state: dict[str, Any], simulation_path: Path) -> dict[str, Any]:
-    extra_context = state.get("extra_context") if isinstance(state.get("extra_context"), dict) else {}
+    extra_context = (
+        state.get("extra_context") if isinstance(state.get("extra_context"), dict) else {}
+    )
     source_type = _source_type_from_state(state, simulation_path)
     if extra_context.get("available_signals") and extra_context.get("missing_signals"):
         return state
@@ -440,7 +441,9 @@ def _record_blocking_llm_failure(metrics: dict[str, Any], error: str | None) -> 
 
 
 def _source_type_from_state(state: dict[str, Any], simulation_path: Path) -> str:
-    extra_context = state.get("extra_context") if isinstance(state.get("extra_context"), dict) else {}
+    extra_context = (
+        state.get("extra_context") if isinstance(state.get("extra_context"), dict) else {}
+    )
     source_type = str(extra_context.get("source_type") or state.get("source_type") or "").strip()
     if source_type:
         return source_type
@@ -456,8 +459,14 @@ def _source_type_from_state(state: dict[str, Any], simulation_path: Path) -> str
 
 
 def _context_confidence_from_state(state: dict[str, Any]) -> str:
-    extra_context = state.get("extra_context") if isinstance(state.get("extra_context"), dict) else {}
-    confidence = str(extra_context.get("context_confidence") or state.get("context_confidence") or "").strip().lower()
+    extra_context = (
+        state.get("extra_context") if isinstance(state.get("extra_context"), dict) else {}
+    )
+    confidence = (
+        str(extra_context.get("context_confidence") or state.get("context_confidence") or "")
+        .strip()
+        .lower()
+    )
     return confidence if confidence in {"low", "medium", "high"} else "unknown"
 
 
@@ -508,7 +517,9 @@ def _build_review_row(
         time_window = recommendation.time_window
 
     source = latest_snapshot.get("source") if latest_snapshot else result.source
-    llm_used = bool(result.llm_used or llm_applied or (latest_snapshot and latest_snapshot.get("llm_used")))
+    llm_used = bool(
+        result.llm_used or llm_applied or (latest_snapshot and latest_snapshot.get("llm_used"))
+    )
     if llm_applied:
         source = "llm"
     extra_context = request.extra_context if isinstance(request.extra_context, dict) else {}
@@ -565,7 +576,9 @@ def _build_review_row(
         "objective_type": request.objective_type or "",
         "objective_team": request.objective_team or "",
         "objective_for_selected_team": (
-            "" if request.objective_for_selected_team is None else request.objective_for_selected_team
+            ""
+            if request.objective_for_selected_team is None
+            else request.objective_for_selected_team
         ),
         "objective_context": request.objective_context,
         "event_context": request.event_context,
@@ -580,12 +593,15 @@ def _build_review_row(
         "action_type": action_type,
         "advice_mode": result.advice_mode,
         "game_time_gap_since_previous_advice": (
-            "" if result.game_time_gap_since_previous_advice is None else result.game_time_gap_since_previous_advice
+            ""
+            if result.game_time_gap_since_previous_advice is None
+            else result.game_time_gap_since_previous_advice
         ),
         "suppressed_by_game_time_spacing": result.suppressed_by_game_time_spacing,
         "source": source,
         "llm_used": llm_used,
-        "fallback_used": recommendation is not None and (result.source == "fallback" or llm_applied),
+        "fallback_used": recommendation is not None
+        and (result.source == "fallback" or llm_applied),
         "stale_response": stale_response,
         "suppressed_reason": result.suppressed_reason or "",
         "action": action,
@@ -603,7 +619,9 @@ def _review_gold_value(gold: int, extra_context: dict[str, Any]) -> int | str:
     source_type = str(extra_context.get("source_type") or "").strip()
     defaulted_fields = set(extra_context.get("replay_defaulted_fields") or [])
     missing_signals = set(extra_context.get("missing_signals") or [])
-    if source_type == "replay_gsi_like" and ("gold" in defaulted_fields or "gold" in missing_signals):
+    if source_type == "replay_gsi_like" and (
+        "gold" in defaulted_fields or "gold" in missing_signals
+    ):
         return "unknown"
     return gold
 
@@ -650,26 +668,34 @@ def _build_report(
     advice_per_minute = total_advice / duration_minutes
     repeated_advice_suppressed_count = int(stats["duplicate_suppressed_count"])
     repeated_laning_suppressed_count = int(stats.get("repeated_laning_suppressed_count", 0))
-    repeated_post_laning_suppressed_count = int(stats.get("repeated_post_laning_suppressed_count", 0))
+    repeated_post_laning_suppressed_count = int(
+        stats.get("repeated_post_laning_suppressed_count", 0)
+    )
     repeated_objective_suppressed_count = int(stats.get("repeated_objective_suppressed_count", 0))
     post_laning_safety_suppressed_count = int(stats.get("post_laning_safety_suppressed_count", 0))
     objective_suppressed_by_recent_safety_count = int(
         stats.get("objective_suppressed_by_recent_safety_count", 0)
     )
-    item_timing_suppressed_by_safety_count = int(stats.get("item_timing_suppressed_by_safety_count", 0))
+    item_timing_suppressed_by_safety_count = int(
+        stats.get("item_timing_suppressed_by_safety_count", 0)
+    )
     death_route_suppressed_count = int(stats.get("death_route_suppressed_count", 0))
     repeated_low_hp_suppressed_count = int(stats.get("repeated_low_hp_suppressed_count", 0))
-    suppressed_by_game_time_spacing_count = int(stats.get("suppressed_by_game_time_spacing_count", 0))
+    suppressed_by_game_time_spacing_count = int(
+        stats.get("suppressed_by_game_time_spacing_count", 0)
+    )
     heartbeat_nudge_count = int(stats.get("heartbeat_nudge_count", 0))
     suppressed_heartbeat_duplicate_count = int(stats.get("suppressed_heartbeat_duplicate_count", 0))
     source_type = _single_or_mixed(source_types)
-    llm_count = int(blocking_llm_metrics["llm_call_count"] if llm_blocking else stats["llm_call_count"])
+    llm_count = int(
+        blocking_llm_metrics["llm_call_count"] if llm_blocking else stats["llm_call_count"]
+    )
     llm_applied_count = int(
         blocking_llm_metrics["llm_applied_count"] if llm_blocking else stats["llm_applied_count"]
     )
     llm_latencies = blocking_llm_metrics["llm_latencies"] if llm_blocking else None
     return {
-        "created_at": datetime.now(timezone.utc).isoformat(),
+        "created_at": datetime.now(UTC).isoformat(),
         "simulation_file": str(simulation_path),
         "source_type": source_type,
         "source_type_counts": dict(source_types),
@@ -742,7 +768,9 @@ def _build_report(
         "stale_response_count": 0 if llm_blocking else stats["stale_llm_count"],
         "tactical_hash_changes": stats["tactical_hash_changes"],
         "duplicate_suppressed_count": stats["duplicate_suppressed_count"],
-        "average_latency": _average(llm_latencies) if llm_blocking else stats["average_llm_latency"],
+        "average_latency": _average(llm_latencies)
+        if llm_blocking
+        else stats["average_llm_latency"],
         "p95_latency": _p95(llm_latencies) if llm_blocking else stats["p95_llm_latency"],
         "expected_hints_per_match": f"{EXPECTED_HINT_RANGE[0]}-{EXPECTED_HINT_RANGE[1]}",
         "fits_target_40_50_hints": fits_target,
@@ -762,7 +790,7 @@ def _build_report(
 
 def _write_report(report: dict[str, Any]) -> Path:
     RESULTS_DIR.mkdir(parents=True, exist_ok=True)
-    timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
+    timestamp = datetime.now(UTC).strftime("%Y%m%d_%H%M%S")
     path = RESULTS_DIR / f"match_advice_simulation_{timestamp}.json"
     path.write_text(json.dumps(report, indent=2, ensure_ascii=False), encoding="utf-8")
     return path
@@ -848,15 +876,23 @@ def _print_report(
     print(f"pinned advice count: {report['pinned_advice_count']}")
     print(f"repeated advice suppressed count: {report['repeated_advice_suppressed_count']}")
     print(f"repeated laning suppressed count: {report['repeated_laning_suppressed_count']}")
-    print(f"repeated post-laning suppressed count: {report['repeated_post_laning_suppressed_count']}")
+    print(
+        f"repeated post-laning suppressed count: {report['repeated_post_laning_suppressed_count']}"
+    )
     print(f"repeated objective suppressed count: {report['repeated_objective_suppressed_count']}")
     print(f"post-laning safety suppressed count: {report['post_laning_safety_suppressed_count']}")
-    print(f"objective suppressed by recent safety count: {report['objective_suppressed_by_recent_safety_count']}")
-    print(f"item timing suppressed by safety count: {report['item_timing_suppressed_by_safety_count']}")
+    print(
+        f"objective suppressed by recent safety count: {report['objective_suppressed_by_recent_safety_count']}"
+    )
+    print(
+        f"item timing suppressed by safety count: {report['item_timing_suppressed_by_safety_count']}"
+    )
     print(f"death route suppressed count: {report['death_route_suppressed_count']}")
     print(f"low_hp_episode_count: {report['low_hp_episode_count']}")
     print(f"repeated_low_hp_suppressed_count: {report['repeated_low_hp_suppressed_count']}")
-    print(f"suppressed_by_game_time_spacing_count: {report['suppressed_by_game_time_spacing_count']}")
+    print(
+        f"suppressed_by_game_time_spacing_count: {report['suppressed_by_game_time_spacing_count']}"
+    )
     print(f"heartbeat_nudge_count: {report['heartbeat_nudge_count']}")
     print(f"suppressed_heartbeat_duplicate_count: {report['suppressed_heartbeat_duplicate_count']}")
     print(f"min_game_time_gap_seconds: {report['min_game_time_gap_seconds']}")
@@ -882,7 +918,9 @@ def _print_report(
     print(f"expected hints per match: {report['expected_hints_per_match']}")
     print(f"fits target 40-50 hints/match: {'yes' if report['fits_target_40_50_hints'] else 'no'}")
     if report["expected_hints_for_duration"]:
-        print(f"expected hints for {report['duration_minutes']}m replay: {report['expected_hints_for_duration']}")
+        print(
+            f"expected hints for {report['duration_minutes']}m replay: {report['expected_hints_for_duration']}"
+        )
         print(f"fits duration target: {'yes' if report['fits_duration_target'] else 'no'}")
     print(f"stale response count: {report['stale_response_count']}")
     print(f"tactical_hash_changes: {report['tactical_hash_changes']}")

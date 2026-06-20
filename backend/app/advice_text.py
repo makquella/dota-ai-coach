@@ -8,7 +8,6 @@ import re
 
 from app.schemas import RecommendationResponse
 
-
 ACTION_REPLACEMENTS = {
     "consider farm jungle camps": "Avoid this fight and move to safer farm.",
     "consider farm safely": "Avoid the fight and keep farming safely.",

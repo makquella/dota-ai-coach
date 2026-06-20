@@ -136,4 +136,6 @@ def test_heartbeat_nudge_stays_non_aggressive(client):
 
     assert heartbeat["new_advice"] is True
     assert "farm" in action or "reset" in action or "safer" in action
-    assert not any(word in action for word in ("fight now", "take objective", "buy back", "push now"))
+    assert not any(
+        word in action for word in ("fight now", "take objective", "buy back", "push now")
+    )

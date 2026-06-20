@@ -10,7 +10,6 @@ from __future__ import annotations
 from copy import deepcopy
 from typing import Any
 
-
 CORE_SIGNALS = (
     "hp",
     "mana",
@@ -149,7 +148,9 @@ CAPABILITY_MATRIX: dict[str, dict[str, list[str]]] = {
 }
 
 
-def capability_summary(source_type: str, *, observed: dict[str, bool] | None = None) -> dict[str, Any]:
+def capability_summary(
+    source_type: str, *, observed: dict[str, bool] | None = None
+) -> dict[str, Any]:
     source = normalize_source_type(source_type)
     summary = deepcopy(CAPABILITY_MATRIX[source])
     observed = observed or {}
@@ -207,4 +208,6 @@ def _sort_summary(summary: dict[str, list[str]]) -> None:
     known_order = list(CORE_SIGNALS) + list(EXTRA_REPLAY_SIGNALS)
     order = {signal: index for index, signal in enumerate(known_order)}
     for bucket in ("available", "partial", "missing"):
-        summary[bucket] = sorted(set(summary[bucket]), key=lambda item: (order.get(item, 999), item))
+        summary[bucket] = sorted(
+            set(summary[bucket]), key=lambda item: (order.get(item, 999), item)
+        )

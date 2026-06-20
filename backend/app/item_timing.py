@@ -13,7 +13,6 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Any
 
-
 REPO_ROOT = Path(__file__).resolve().parents[2]
 RULES_PATH = REPO_ROOT / "data" / "meta" / "item_timing_rules.json"
 

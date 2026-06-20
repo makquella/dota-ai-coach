@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import json
 
-
 DEMO_FILES = [
     "replay_gsi_like_match_8843382732_pl_20_30.jsonl",
     "replay_gsi_like_match_8843471434_jugg_10_20.jsonl",

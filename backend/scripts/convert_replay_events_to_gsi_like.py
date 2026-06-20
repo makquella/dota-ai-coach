@@ -15,7 +15,6 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
-
 BACKEND_DIR = Path(__file__).resolve().parents[1]
 REPO_ROOT = BACKEND_DIR.parent
 sys.path.insert(0, str(BACKEND_DIR))
@@ -24,7 +23,6 @@ from app.advice_context import build_advice_context  # noqa: E402
 from app.item_timing import classify_item_timing, is_ignored_item, normalize_item_name  # noqa: E402
 from app.schemas import is_supported_hero  # noqa: E402
 from app.signal_capabilities import capability_summary  # noqa: E402
-
 
 DEFAULT_RESPAWN_SECONDS = 20
 UTILITY_ABILITY_KEYS = {
@@ -140,7 +138,9 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument("--player-slot", type=int, required=True, help="Selected player_slot.")
     parser.add_argument("--start-minute", type=int, default=0, help="First minute to emit.")
     parser.add_argument("--end-minute", type=int, default=10, help="Last minute to emit.")
-    parser.add_argument("--interval-seconds", type=int, default=1, help="Output interval in seconds.")
+    parser.add_argument(
+        "--interval-seconds", type=int, default=1, help="Output interval in seconds."
+    )
     parser.add_argument("--output", required=True, help="Output simulation JSONL path.")
     args = parser.parse_args()
     if args.interval_seconds < 1:
@@ -178,7 +178,9 @@ def convert_events_to_rows(
 
     for timestamp in range(start_seconds, end_seconds + 1, interval_seconds):
         current_events: list[dict[str, Any]] = []
-        for event_time in sorted(time for time in grouped_events if previous_timestamp <= time <= timestamp):
+        for event_time in sorted(
+            time for time in grouped_events if previous_timestamp <= time <= timestamp
+        ):
             current_events.extend(grouped_events[event_time])
         previous_timestamp = timestamp + 1
 
@@ -264,11 +266,14 @@ def _apply_event(
             timestamp,
             DENSE_DAMAGE_WINDOW_SECONDS,
         )
-        has_dangerous_damage = _event_count_in_window(
-            accumulator.dangerous_damage_event_times,
-            timestamp,
-            DENSE_DAMAGE_WINDOW_SECONDS,
-        ) > 0
+        has_dangerous_damage = (
+            _event_count_in_window(
+                accumulator.dangerous_damage_event_times,
+                timestamp,
+                DENSE_DAMAGE_WINDOW_SECONDS,
+            )
+            > 0
+        )
         is_pressure_window = raw_damage_count >= DENSE_DAMAGE_EVENT_COUNT or has_dangerous_damage
         accumulator.last_relevant_event_at = timestamp
         if is_pressure_window:
@@ -394,7 +399,9 @@ def _apply_event(
         objective_type = str(data.get("objective_type") or data.get("type") or "objective").strip()
         objective_team = _optional_str(data.get("team") or data.get("objective_team"))
         accumulator.objective_events.append((timestamp, objective_type, objective_team))
-        accumulator.team_status = str(data.get("team_status") or accumulator.team_status or "unknown")
+        accumulator.team_status = str(
+            data.get("team_status") or accumulator.team_status or "unknown"
+        )
         accumulator.last_relevant_event_at = timestamp
         accumulator.last_meaningful_event_at = timestamp
         accumulator.last_meaningful_context_kind = "objective"
@@ -430,12 +437,9 @@ def _build_state(
         or damage_10s >= 20
     )
     recent_damage_taken = damage_10s >= 20
-    near_death = (
-        not accumulator.alive
-        or (
-            accumulator.last_death_time is not None
-            and 0 <= timestamp - accumulator.last_death_time <= 5
-        )
+    near_death = not accumulator.alive or (
+        accumulator.last_death_time is not None
+        and 0 <= timestamp - accumulator.last_death_time <= 5
     )
     objective = _nearest_objective(accumulator.objective_events, timestamp)
     near_objective = objective is not None
@@ -498,7 +502,8 @@ def _build_state(
         "replay_dangerous_damage_event_count_10s": dangerous_damage_count_10s,
         "last_replay_utility_event": (
             accumulator.last_utility_context
-            if accumulator.last_utility_event_at is not None and 0 <= timestamp - accumulator.last_utility_event_at <= 10
+            if accumulator.last_utility_event_at is not None
+            and 0 <= timestamp - accumulator.last_utility_event_at <= 10
             else ""
         ),
         "alive": accumulator.alive,
@@ -519,12 +524,15 @@ def _build_state(
         "damage_taken_last_5s": damage_5s,
         "damage_taken_last_10s": damage_10s,
         "recent_damage_taken": recent_damage_taken,
-        "recent_pressure_context": "took heavy replay-derived damage recently" if recent_damage_taken else "",
+        "recent_pressure_context": "took heavy replay-derived damage recently"
+        if recent_damage_taken
+        else "",
         "deaths": accumulator.deaths,
         "respawn_seconds": respawn_seconds,
         "event_context": "replay-derived",
         "match_session_id": f"replay_{accumulator.player_slot}_{accumulator.hero.lower().replace(' ', '_')}",
-        "death_review_available": not accumulator.alive and accumulator.last_death_decision is not None,
+        "death_review_available": not accumulator.alive
+        and accumulator.last_death_decision is not None,
         "death_review_decision": accumulator.last_death_decision,
         "match_death_count": accumulator.deaths,
         "sample_interval_seconds": interval_seconds,
@@ -563,7 +571,11 @@ def _build_state(
 
 
 def _update_respawn(accumulator: ReplayAccumulator, timestamp: int) -> None:
-    if not accumulator.alive and accumulator.respawn_until and timestamp >= accumulator.respawn_until:
+    if (
+        not accumulator.alive
+        and accumulator.respawn_until
+        and timestamp >= accumulator.respawn_until
+    ):
         accumulator.alive = True
         accumulator.hp_percent = 100
         accumulator.mana_percent = max(accumulator.mana_percent, 80)
@@ -612,7 +624,9 @@ def _death_decision(accumulator: ReplayAccumulator, previous_hp: int) -> str:
     return "DEATH_REVIEW"
 
 
-def _apply_common_snapshot(accumulator: ReplayAccumulator, data: dict[str, Any], timestamp: int) -> None:
+def _apply_common_snapshot(
+    accumulator: ReplayAccumulator, data: dict[str, Any], timestamp: int
+) -> None:
     raw_health = _first_int(data, "hp", "health")
     raw_max_health = _first_int(data, "max_hp", "max_health")
     if raw_health is not None:
@@ -721,7 +735,15 @@ def is_minor_replay_item(item: Any) -> bool:
 
 
 def _item_key(value: Any) -> str:
-    return str(value or "").strip().lower().replace("'", "").replace("-", " ").replace("_", " ").replace(" ", "_")
+    return (
+        str(value or "")
+        .strip()
+        .lower()
+        .replace("'", "")
+        .replace("-", " ")
+        .replace("_", " ")
+        .replace(" ", "_")
+    )
 
 
 def _ability_snapshot(data: dict[str, Any]) -> dict[str, Any] | None:
@@ -743,7 +765,9 @@ def _ability_snapshot(data: dict[str, Any]) -> dict[str, Any] | None:
 
 def _is_utility_ability(ability_name: Any) -> bool:
     key = _ability_key(ability_name)
-    return key in UTILITY_ABILITY_KEYS or any(keyword in key for keyword in UTILITY_ABILITY_KEYWORDS)
+    return key in UTILITY_ABILITY_KEYS or any(
+        keyword in key for keyword in UTILITY_ABILITY_KEYWORDS
+    )
 
 
 def _is_meaningful_replay_ability(ability_name: Any) -> bool:
@@ -752,8 +776,7 @@ def _is_meaningful_replay_ability(ability_name: Any) -> bool:
 
 def _is_dangerous_damage_event(data: dict[str, Any]) -> bool:
     text = " ".join(
-        str(data.get(key) or "")
-        for key in ("ability", "inflictor", "attacker", "event_context")
+        str(data.get(key) or "") for key in ("ability", "inflictor", "attacker", "event_context")
     )
     key = _ability_key(text)
     return any(keyword in key for keyword in DANGEROUS_DAMAGE_ABILITY_KEYWORDS)
@@ -782,7 +805,10 @@ def _context_confidence(accumulator: ReplayAccumulator, timestamp: int) -> str:
         return "low"
     event_age = timestamp - accumulator.last_meaningful_event_at
     if event_age <= 5:
-        if accumulator.last_meaningful_context_kind == "damage_pressure" and not accumulator.has_exact_hp:
+        if (
+            accumulator.last_meaningful_context_kind == "damage_pressure"
+            and not accumulator.has_exact_hp
+        ):
             return "medium"
         return "high"
     if event_age <= 30:
@@ -888,7 +914,9 @@ def _has_exact_ability_cooldown(accumulator: ReplayAccumulator) -> bool:
     return any(ability.get("cooldown") is not None for ability in accumulator.abilities.values())
 
 
-def _nearest_objective(events: list[tuple[int, str, str | None]], timestamp: int) -> tuple[int, str, str | None] | None:
+def _nearest_objective(
+    events: list[tuple[int, str, str | None]], timestamp: int
+) -> tuple[int, str, str | None] | None:
     nearby = [event for event in events if abs(timestamp - event[0]) <= 60]
     if not nearby:
         return None
@@ -911,7 +939,9 @@ def _load_events(path: Path) -> list[dict[str, Any]]:
 
 def _write_jsonl(path: Path, rows: list[dict[str, Any]]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text("\n".join(json.dumps(row, ensure_ascii=False) for row in rows) + "\n", encoding="utf-8")
+    path.write_text(
+        "\n".join(json.dumps(row, ensure_ascii=False) for row in rows) + "\n", encoding="utf-8"
+    )
 
 
 def _join_context(parts: list[str]) -> str:

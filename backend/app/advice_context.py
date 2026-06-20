@@ -10,7 +10,6 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Any
 
-
 LH_RANGE_POINTS = (
     (3, 8, 15),
     (5, 18, 30),
@@ -41,7 +40,9 @@ def build_advice_context(state: Mapping[str, Any] | Any) -> dict[str, Any]:
 
 def enrich_state_with_advice_context(state: dict[str, Any]) -> dict[str, Any]:
     enriched = dict(state)
-    extra = dict(enriched.get("extra_context") if isinstance(enriched.get("extra_context"), dict) else {})
+    extra = dict(
+        enriched.get("extra_context") if isinstance(enriched.get("extra_context"), dict) else {}
+    )
     extra.update(build_advice_context(enriched))
     enriched["extra_context"] = extra
     return enriched
@@ -90,7 +91,9 @@ def _expected_lh_range(minute: int) -> list[int] | None:
     return [LH_RANGE_POINTS[-1][1], LH_RANGE_POINTS[-1][2]]
 
 
-def _interpolate_range(previous: tuple[int, int, int], current: tuple[int, int, int], minute: int) -> list[int]:
+def _interpolate_range(
+    previous: tuple[int, int, int], current: tuple[int, int, int], minute: int
+) -> list[int]:
     prev_minute, prev_low, prev_high = previous
     current_minute, current_low, current_high = current
     span = max(1, current_minute - prev_minute)
@@ -100,7 +103,9 @@ def _interpolate_range(previous: tuple[int, int, int], current: tuple[int, int, 
     return [low, high]
 
 
-def _hp_pressure_context(hp_percent: int, game_state: str, extra: Mapping[str, Any]) -> dict[str, Any]:
+def _hp_pressure_context(
+    hp_percent: int, game_state: str, extra: Mapping[str, Any]
+) -> dict[str, Any]:
     pressure = _pressure_active(game_state, extra)
     if hp_percent < 35:
         state = "critical"

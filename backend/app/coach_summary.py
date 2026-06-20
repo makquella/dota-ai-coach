@@ -10,9 +10,8 @@ from __future__ import annotations
 
 from collections import Counter
 from copy import deepcopy
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
-
 
 MAX_HISTORY = 200
 
@@ -67,11 +66,12 @@ class CoachSessionHistory:
         record = {
             "timestamp": overlay_response.get("timestamp")
             or overlay_response.get("last_updated")
-            or datetime.now(timezone.utc).isoformat(),
+            or datetime.now(UTC).isoformat(),
             "game_time": game_time,
             "timestamp_seconds": overlay_response.get("simulated_timestamp_seconds"),
             "hero": overlay_response.get("hero") or (state or {}).get("hero"),
-            "stage": overlay_response.get("stage") or _stage_from_minute(overlay_response.get("minute")),
+            "stage": overlay_response.get("stage")
+            or _stage_from_minute(overlay_response.get("minute")),
             "decision_point": overlay_response.get("decision_point"),
             "action": action,
             "reason": reason,
@@ -82,11 +82,17 @@ class CoachSessionHistory:
             "advice_mode": overlay_response.get("advice_mode"),
             "laning_category": extra_context.get("laning_category", ""),
             "post_laning_category": extra_context.get("post_laning_category", ""),
-            "farm_quality": overlay_response.get("farm_quality") or extra_context.get("farm_quality", ""),
+            "farm_quality": overlay_response.get("farm_quality")
+            or extra_context.get("farm_quality", ""),
             "hp_pressure_state": extra_context.get("hp_pressure_state", ""),
             "position_zone": extra_context.get("position_zone", ""),
-            "position_risk": overlay_response.get("position_risk") or extra_context.get("position_risk", ""),
-            "missing_signals": list(overlay_response.get("missing_signals") or extra_context.get("missing_signals") or []),
+            "position_risk": overlay_response.get("position_risk")
+            or extra_context.get("position_risk", ""),
+            "missing_signals": list(
+                overlay_response.get("missing_signals")
+                or extra_context.get("missing_signals")
+                or []
+            ),
         }
         self._records.append(record)
         if len(self._records) > MAX_HISTORY:
@@ -99,10 +105,14 @@ class CoachSessionHistory:
         records = self.records()
         scheduler_stats = scheduler_stats or {}
         hero = _most_common(record.get("hero") for record in records) or "unknown"
-        game_times = [str(record.get("game_time") or "") for record in records if record.get("game_time")]
+        game_times = [
+            str(record.get("game_time") or "") for record in records if record.get("game_time")
+        ]
         urgent_count = sum(1 for record in records if record.get("advice_mode") == "urgent")
         coaching_count = max(0, len(records) - urgent_count)
-        decision_counts = Counter(str(record.get("decision_point") or "UNKNOWN") for record in records)
+        decision_counts = Counter(
+            str(record.get("decision_point") or "UNKNOWN") for record in records
+        )
         pattern_counts = _detect_patterns(records)
 
         overview = {
@@ -111,7 +121,9 @@ class CoachSessionHistory:
             "total_advice_shown": len(records),
             "urgent_advice_count": urgent_count,
             "coaching_advice_count": coaching_count,
-            "source_counts": dict(Counter(str(record.get("source") or "unknown") for record in records)),
+            "source_counts": dict(
+                Counter(str(record.get("source") or "unknown") for record in records)
+            ),
             "decision_point_counts": dict(decision_counts),
             "suppression_metrics": _suppression_metrics(scheduler_stats),
         }
@@ -119,7 +131,7 @@ class CoachSessionHistory:
         patterns = _pattern_list(pattern_counts)
         return {
             "title": "Coach Session Summary",
-            "generated_at": datetime.now(timezone.utc).isoformat(),
+            "generated_at": datetime.now(UTC).isoformat(),
             "session_overview": overview,
             "patterns": patterns,
             "most_repeated_issue_types": decision_counts.most_common(5),
@@ -150,13 +162,14 @@ def summary_to_markdown(summary: dict[str, Any]) -> str:
     ]
 
     patterns = summary.get("patterns") or []
-    lines.extend(f"- {pattern}" for pattern in patterns) if patterns else lines.append("- No strong repeated pattern detected.")
+    lines.extend(f"- {pattern}" for pattern in patterns) if patterns else lines.append(
+        "- No strong repeated pattern detected."
+    )
 
     lines.extend(["", "## Key advice moments"])
     moments = summary.get("key_moments") or []
     lines.extend(
-        f"- {moment.get('time', '??:??')} - {moment.get('action', '')}"
-        for moment in moments
+        f"- {moment.get('time', '??:??')} - {moment.get('action', '')}" for moment in moments
     ) if moments else lines.append("- No advice cards were shown.")
 
     lines.extend(["", "## What to improve next"])
@@ -175,15 +188,31 @@ def _detect_patterns(records: list[dict[str, Any]]) -> Counter[str]:
         action = str(record.get("action") or "").lower()
         reason = str(record.get("reason") or "").lower()
         combined = f"{action} {reason}"
-        if decision in {"LOW_HP", "LOW_HP_WARNING", "RECENT_DAMAGE_WARNING", "OVERSTAY_WARNING", "DEATH_LOW_RESOURCE"}:
+        if decision in {
+            "LOW_HP",
+            "LOW_HP_WARNING",
+            "RECENT_DAMAGE_WARNING",
+            "OVERSTAY_WARNING",
+            "DEATH_LOW_RESOURCE",
+        }:
             counts["HP/reset management"] += 1
-        if decision in {"FARMING_PHASE_PRESSURE", "LANING_FARM_CHECK", "SAFE_FARMING"} or "farm" in combined:
+        if (
+            decision in {"FARMING_PHASE_PRESSURE", "LANING_FARM_CHECK", "SAFE_FARMING"}
+            or "farm" in combined
+        ):
             counts["safe farming route and recovery"] += 1
         if decision == "OBJECTIVE_FIGHT_CHECK" or "objective" in combined:
             counts["objective participation caution"] += 1
-        if decision in {"REPEATED_DEATH_PATTERN"} or "repeating" in combined or "re-contesting" in combined:
+        if (
+            decision in {"REPEATED_DEATH_PATTERN"}
+            or "repeating" in combined
+            or "re-contesting" in combined
+        ):
             counts["repeated risky re-entry"] += 1
-        if record.get("position_risk") in {"medium", "high"} or "enemy locations are not confirmed" in combined:
+        if (
+            record.get("position_risk") in {"medium", "high"}
+            or "enemy locations are not confirmed" in combined
+        ):
             counts["position risk with missing enemy information"] += 1
     return counts
 
@@ -225,19 +254,28 @@ def _observations(
     if pattern_counts["safe farming route and recovery"]:
         observations.append("The session repeatedly emphasized safer farm routes and recovery.")
     if pattern_counts["objective participation caution"]:
-        observations.append("Objective advice stayed cautious because full team context is not available.")
+        observations.append(
+            "Objective advice stayed cautious because full team context is not available."
+        )
     if pattern_counts["repeated risky re-entry"]:
-        observations.append("The player pattern suggests repeated risky re-entry after pressure or deaths.")
+        observations.append(
+            "The player pattern suggests repeated risky re-entry after pressure or deaths."
+        )
 
-    suppressed = sum(int(scheduler_stats.get(key, 0) or 0) for key in (
-        "duplicate_suppressed_count",
-        "repeated_laning_suppressed_count",
-        "repeated_post_laning_suppressed_count",
-        "repeated_objective_suppressed_count",
-        "repeated_low_hp_suppressed_count",
-    ))
+    suppressed = sum(
+        int(scheduler_stats.get(key, 0) or 0)
+        for key in (
+            "duplicate_suppressed_count",
+            "repeated_laning_suppressed_count",
+            "repeated_post_laning_suppressed_count",
+            "repeated_objective_suppressed_count",
+            "repeated_low_hp_suppressed_count",
+        )
+    )
     if suppressed > 0:
-        observations.append(f"The scheduler filtered {suppressed} repeated or low-value advice opportunities to avoid spam.")
+        observations.append(
+            f"The scheduler filtered {suppressed} repeated or low-value advice opportunities to avoid spam."
+        )
     if not observations and records:
         observations.append("The session produced a small set of concise coaching moments.")
     return observations[:5]
@@ -252,11 +290,15 @@ def _focus_points(pattern_counts: Counter[str], records: list[dict[str, Any]]) -
     if pattern_counts["objective participation caution"]:
         points.append("Join objectives only when you can confirm team context is favorable.")
     if pattern_counts["repeated risky re-entry"]:
-        points.append("Avoid returning to the same pressured route immediately after a bad trade or death.")
+        points.append(
+            "Avoid returning to the same pressured route immediately after a bad trade or death."
+        )
     if pattern_counts["position risk with missing enemy information"]:
         points.append("Avoid showing in exposed areas when enemy locations are not confirmed.")
     if len(points) < 3 and records:
-        points.append("Keep advice simple: survive first, then recover farm, then reassess objectives.")
+        points.append(
+            "Keep advice simple: survive first, then recover farm, then reassess objectives."
+        )
     return points[:3]
 
 
@@ -267,7 +309,9 @@ def _limitations(records: list[dict[str, Any]]) -> list[str]:
 
     limitations = []
     if "enemy_positions" in missing or "nearby_allies_enemies" in missing:
-        limitations.append("This session does not include exact enemy positions or nearby ally/enemy context.")
+        limitations.append(
+            "This session does not include exact enemy positions or nearby ally/enemy context."
+        )
     if "exact_teamfight_context" in missing:
         limitations.append("Team readiness and exact fight context are not available.")
     if "objective_context" in missing or "exact_roshan_context" in missing:
@@ -275,9 +319,13 @@ def _limitations(records: list[dict[str, Any]]) -> list[str]:
     if "ability_cooldowns" in missing:
         limitations.append("Ability cooldown advice is avoided when cooldown signals are missing.")
     if "gold" in missing:
-        limitations.append("Spendable gold is not treated as exact when the replay marks gold as missing.")
+        limitations.append(
+            "Spendable gold is not treated as exact when the replay marks gold as missing."
+        )
     if not limitations:
-        limitations.append("The summary only uses advice already produced by the backend during this session.")
+        limitations.append(
+            "The summary only uses advice already produced by the backend during this session."
+        )
     return limitations
 
 

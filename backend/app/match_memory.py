@@ -11,9 +11,8 @@ import hashlib
 import json
 from collections import deque
 from collections.abc import Mapping
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
-
 
 DEATH_DECISION_POINTS = {
     "DEATH_REVIEW",
@@ -82,7 +81,7 @@ class MatchMemory:
         self._last_player_deaths: int | None = None
 
     def observe_state(self, state: dict[str, Any]) -> dict[str, Any]:
-        now_dt = datetime.now(timezone.utc)
+        now_dt = datetime.now(UTC)
         now = now_dt.isoformat()
         now_ts = now_dt.timestamp()
         hero = str(state.get("hero") or "Unknown").strip() or "Unknown"
@@ -118,16 +117,18 @@ class MatchMemory:
         )
 
         track_deaths = not current_demo or self.allow_demo_history
-        alive_transition_death = previous_alive is True and current_alive is False and previous_alive_state is not None
+        alive_transition_death = (
+            previous_alive is True and current_alive is False and previous_alive_state is not None
+        )
         if track_deaths and (alive_transition_death or death_delta):
             pre_death_state = previous_alive_state or self._best_previous_alive_state() or state
             self._record_death_event(pre_death_state, state)
 
         if track_deaths and current_alive is True:
             self.previous_alive_state = _copy_state(state)
-        elif track_deaths and current_alive is False:
-            self.previous_alive_state = None
-        elif current_demo and not self.allow_demo_history:
+        elif (
+            track_deaths and current_alive is False or current_demo and not self.allow_demo_history
+        ):
             self.previous_alive_state = None
 
         self._annotate_recent_damage(state, now_ts)
@@ -194,7 +195,11 @@ class MatchMemory:
         hp_percent = _to_int(state.get("hp_percent"), 100)
         hp_delta_5s = _hp_delta_from_recent_peak(self.last_states, hp_percent, now_ts, 5)
         hp_delta_10s = _hp_delta_from_recent_peak(self.last_states, hp_percent, now_ts, 10)
-        laning_context = extra_context.get("laning_context") if isinstance(extra_context.get("laning_context"), Mapping) else {}
+        laning_context = (
+            extra_context.get("laning_context")
+            if isinstance(extra_context.get("laning_context"), Mapping)
+            else {}
+        )
         low_hp_threshold = _to_int(laning_context.get("low_hp_warning_threshold"), 50)
         critical_hp_threshold = _to_int(laning_context.get("critical_hp_threshold"), 35)
         recent_damage_taken = hp_delta_10s <= -20
@@ -212,7 +217,9 @@ class MatchMemory:
                 "recent_damage_taken": recent_damage_taken,
                 "recent_hp_low": hp_percent <= low_hp_threshold,
                 "recent_critical_hp": hp_percent <= critical_hp_threshold,
-                "recent_pressure_context": "took heavy damage recently" if recent_damage_taken else "",
+                "recent_pressure_context": "took heavy damage recently"
+                if recent_damage_taken
+                else "",
                 "overstay_warning": overstay_warning,
             }
         )
@@ -255,8 +262,7 @@ class MatchMemory:
     def _classify_death(self, previous_state: Mapping[str, Any], minute: int) -> list[str]:
         patterns: list[str] = []
         recent_deaths = [
-            event for event in self.death_events
-            if minute - _to_int(event.get("minute"), -999) <= 8
+            event for event in self.death_events if minute - _to_int(event.get("minute"), -999) <= 8
         ]
         if self.death_count >= 2 or recent_deaths:
             patterns.append("REPEATED_DEATHS")
@@ -477,7 +483,10 @@ def _has_recent_low_hp_or_damage(
         if _alive(state) is not True:
             continue
         extra_context = _extra_context(state)
-        if _to_bool(extra_context.get("recent_damage_taken")) or _to_int(state.get("hp_percent"), 100) <= 55:
+        if (
+            _to_bool(extra_context.get("recent_damage_taken"))
+            or _to_int(state.get("hp_percent"), 100) <= 55
+        ):
             return True
     return False
 
@@ -491,7 +500,7 @@ def _recent_state_age(now_ts: float, state: Mapping[str, Any]) -> float:
 
 
 def _now() -> str:
-    return datetime.now(timezone.utc).isoformat()
+    return datetime.now(UTC).isoformat()
 
 
 MATCH_MEMORY = MatchMemory()

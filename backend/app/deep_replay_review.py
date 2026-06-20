@@ -10,7 +10,7 @@ readiness, Roshan/objective state, cooldowns, or spendable gold.
 from __future__ import annotations
 
 from collections import Counter
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 
@@ -25,11 +25,16 @@ def build_deep_replay_review(
     timestamps = [_safe_int(entry.get("timestamp_seconds")) for entry in processed_entries]
     timestamps = [value for value in timestamps if value is not None]
     duration_minutes = _duration_minutes(timestamps, len(processed_entries))
-    hero = _most_common(
-        [state.get("hero") for state in states]
-        + [record.get("hero") for record in advice_history]
-    ) or "unknown"
-    confidence_counts = Counter(_extra(state).get("context_confidence", "unknown") for state in states)
+    hero = (
+        _most_common(
+            [state.get("hero") for state in states]
+            + [record.get("hero") for record in advice_history]
+        )
+        or "unknown"
+    )
+    confidence_counts = Counter(
+        _extra(state).get("context_confidence", "unknown") for state in states
+    )
     urgent_count = sum(1 for record in advice_history if record.get("advice_mode") == "urgent")
     coaching_count = max(0, len(advice_history) - urgent_count)
 
@@ -52,7 +57,7 @@ def build_deep_replay_review(
 
     return {
         "title": "Deep Replay Review",
-        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "generated_at": datetime.now(UTC).isoformat(),
         "overview": overview,
         "main_patterns": _main_patterns(pattern_counts),
         "key_moments": _key_moments(advice_history),
@@ -81,7 +86,9 @@ def deep_replay_review_to_markdown(review: dict[str, Any]) -> str:
         "",
         "## Main patterns",
     ]
-    _extend_bullets(lines, review.get("main_patterns"), fallback="No strong repeated pattern detected.")
+    _extend_bullets(
+        lines, review.get("main_patterns"), fallback="No strong repeated pattern detected."
+    )
 
     lines.extend(["", "## Key moments"])
     key_moments = review.get("key_moments") or []
@@ -132,9 +139,18 @@ def _pattern_counts(advice_history: list[dict[str, Any]], stats: dict[str, Any])
     for record in advice_history:
         decision = str(record.get("decision_point") or "")
         text = f"{record.get('action', '')} {record.get('reason', '')}".lower()
-        if decision in {"FARMING_PHASE_PRESSURE", "LANING_FARM_CHECK", "SAFE_FARMING"} or "farm" in text:
+        if (
+            decision in {"FARMING_PHASE_PRESSURE", "LANING_FARM_CHECK", "SAFE_FARMING"}
+            or "farm" in text
+        ):
             counts["Safe farming route and recovery"] += 1
-        if decision in {"LOW_HP", "LOW_HP_WARNING", "RECENT_DAMAGE_WARNING", "OVERSTAY_WARNING", "DEATH_LOW_RESOURCE"}:
+        if decision in {
+            "LOW_HP",
+            "LOW_HP_WARNING",
+            "RECENT_DAMAGE_WARNING",
+            "OVERSTAY_WARNING",
+            "DEATH_LOW_RESOURCE",
+        }:
             counts["HP and reset management"] += 1
         if decision == "REPEATED_DEATH_PATTERN" or "repeated" in text or "re-contesting" in text:
             counts["Repeated risky re-entry"] += 1
@@ -215,7 +231,9 @@ def _why_it_matters(decision_point: str) -> str:
     return "This advice was selected as a shown coaching moment in the replay session."
 
 
-def _farm_review(states: list[dict[str, Any]], advice_history: list[dict[str, Any]]) -> dict[str, Any]:
+def _farm_review(
+    states: list[dict[str, Any]], advice_history: list[dict[str, Any]]
+) -> dict[str, Any]:
     qualities = Counter(str(_extra(state).get("farm_quality") or "unknown") for state in states)
     deficits = [
         str(_extra(state).get("lh_deficit_or_status") or "")
@@ -223,16 +241,24 @@ def _farm_review(states: list[dict[str, Any]], advice_history: list[dict[str, An
         if _extra(state).get("lh_deficit_or_status")
     ]
     farm_advice = [
-        record for record in advice_history
-        if record.get("decision_point") in {"FARMING_PHASE_PRESSURE", "LANING_FARM_CHECK", "SAFE_FARMING"}
+        record
+        for record in advice_history
+        if record.get("decision_point")
+        in {"FARMING_PHASE_PRESSURE", "LANING_FARM_CHECK", "SAFE_FARMING"}
     ]
     observations = []
     if qualities.get("very_low") or qualities.get("low"):
-        observations.append("The replay window contains periods where farm quality was below the expected local range.")
+        observations.append(
+            "The replay window contains periods where farm quality was below the expected local range."
+        )
     if qualities.get("okay") or qualities.get("good"):
-        observations.append("Some states show farm quality stabilizing later in the reviewed window.")
+        observations.append(
+            "Some states show farm quality stabilizing later in the reviewed window."
+        )
     if farm_advice:
-        observations.append("Shown advice emphasized safer wave-and-camp routes before uncertain fights.")
+        observations.append(
+            "Shown advice emphasized safer wave-and-camp routes before uncertain fights."
+        )
     if deficits:
         observations.append(f"Representative farm context: {deficits[0]}.")
     if not observations:
@@ -250,10 +276,14 @@ def _hp_and_death_review(
     advice_history: list[dict[str, Any]],
     stats: dict[str, Any],
 ) -> dict[str, Any]:
-    hp_states = Counter(str(_extra(state).get("hp_pressure_state") or "unknown") for state in states)
+    hp_states = Counter(
+        str(_extra(state).get("hp_pressure_state") or "unknown") for state in states
+    )
     hp_advice = [
-        record for record in advice_history
-        if record.get("decision_point") in {
+        record
+        for record in advice_history
+        if record.get("decision_point")
+        in {
             "LOW_HP",
             "LOW_HP_WARNING",
             "RECENT_DAMAGE_WARNING",
@@ -284,15 +314,20 @@ def _hp_and_death_review(
     }
 
 
-def _objective_review(advice_history: list[dict[str, Any]], states: list[dict[str, Any]]) -> dict[str, Any]:
+def _objective_review(
+    advice_history: list[dict[str, Any]], states: list[dict[str, Any]]
+) -> dict[str, Any]:
     objective_advice = [
-        record for record in advice_history
+        record
+        for record in advice_history
         if record.get("decision_point") == "OBJECTIVE_FIGHT_CHECK"
     ]
     near_objective_states = sum(1 for state in states if state.get("near_objective"))
     observations = []
     if objective_advice:
-        observations.append("Objective advice appeared, but it stayed conditional because team readiness is unavailable.")
+        observations.append(
+            "Objective advice appeared, but it stayed conditional because team readiness is unavailable."
+        )
     if near_objective_states:
         observations.append(f"Replay states near objective context: {near_objective_states}.")
     if not objective_advice:
@@ -305,8 +340,12 @@ def _objective_review(advice_history: list[dict[str, Any]], states: list[dict[st
     }
 
 
-def _item_timing_review(advice_history: list[dict[str, Any]], states: list[dict[str, Any]]) -> dict[str, Any]:
-    item_advice = [record for record in advice_history if record.get("decision_point") == "ITEM_TIMING"]
+def _item_timing_review(
+    advice_history: list[dict[str, Any]], states: list[dict[str, Any]]
+) -> dict[str, Any]:
+    item_advice = [
+        record for record in advice_history if record.get("decision_point") == "ITEM_TIMING"
+    ]
     item_pickups = [
         str(state.get("recent_item_purchase") or "")
         for state in states
@@ -314,9 +353,13 @@ def _item_timing_review(advice_history: list[dict[str, Any]], states: list[dict[
     ]
     observations = []
     if item_advice:
-        observations.append("A meaningful item timing was shown as a reassessment point, not as a forced fight call.")
+        observations.append(
+            "A meaningful item timing was shown as a reassessment point, not as a forced fight call."
+        )
     if item_pickups:
-        observations.append(f"Meaningful item timing candidates seen: {', '.join(sorted(set(item_pickups))[:5])}.")
+        observations.append(
+            f"Meaningful item timing candidates seen: {', '.join(sorted(set(item_pickups))[:5])}."
+        )
     if not item_advice and not item_pickups:
         observations.append("No meaningful item timing advice appeared in this session.")
     return {
@@ -337,13 +380,21 @@ def _focus_points(
     if patterns.get("HP and reset management"):
         candidates.append("Reset HP before showing on another lane or taking another trade.")
     if patterns.get("Safe farming route and recovery"):
-        candidates.append("Use safer wave-and-camp routes when farm is behind or pressure is active.")
-    if patterns.get("Objective participation caution") or objective_review.get("objective_advice_count"):
+        candidates.append(
+            "Use safer wave-and-camp routes when farm is behind or pressure is active."
+        )
+    if patterns.get("Objective participation caution") or objective_review.get(
+        "objective_advice_count"
+    ):
         candidates.append("Do not join objective fights unless team context is favorable.")
     if patterns.get("Repeated risky re-entry"):
-        candidates.append("Avoid returning to the same pressured route immediately after a bad trade or death.")
+        candidates.append(
+            "Avoid returning to the same pressured route immediately after a bad trade or death."
+        )
     if patterns.get("Item timing reassessment"):
-        candidates.append("Treat item pickups as reassessment points, not automatic fight commands.")
+        candidates.append(
+            "Treat item pickups as reassessment points, not automatic fight commands."
+        )
     while len(candidates) < 3:
         fallback = [
             farm_review.get("recommendation"),
@@ -375,7 +426,9 @@ def _limitations(states: list[dict[str, Any]], advice_history: list[dict[str, An
     else:
         limitations.append("Spendable gold may be missing in replay-derived states.")
     if "ability_cooldowns" in missing:
-        limitations.append("Cooldown-specific conclusions are avoided when cooldown signals are missing.")
+        limitations.append(
+            "Cooldown-specific conclusions are avoided when cooldown signals are missing."
+        )
     else:
         limitations.append("Full cooldown state may be missing in replay-derived states.")
     return limitations
@@ -426,7 +479,9 @@ def _duration_minutes(timestamps: list[int], state_count: int) -> float:
 def _time_window(timestamps: list[int], advice_history: list[dict[str, Any]]) -> str:
     if timestamps:
         return f"{_format_time(min(timestamps))}-{_format_time(max(timestamps))}"
-    advice_times = [str(record.get("game_time") or "") for record in advice_history if record.get("game_time")]
+    advice_times = [
+        str(record.get("game_time") or "") for record in advice_history if record.get("game_time")
+    ]
     if advice_times:
         return f"{advice_times[0]}-{advice_times[-1]}"
     return "unknown"

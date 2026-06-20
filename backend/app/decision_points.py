@@ -5,11 +5,10 @@ decision_points.py — tiny event detector for GSI-driven overlay advice.
 from collections.abc import Mapping
 from typing import Any, Literal
 
-from app.hero_safety import evaluate_hero_safety
 from app.hero_profiles import evaluate_laning_context
+from app.hero_safety import evaluate_hero_safety
 from app.item_timing import contains_meaningful_item_reference, is_meaningful_item_timing
 from app.match_memory import DEATH_DECISION_POINTS, MATCH_MEMORY
-
 
 DecisionPoint = Literal[
     "LOW_HP",
@@ -140,7 +139,13 @@ def _ctx_bool(state: Mapping[str, Any], key: str) -> bool:
 def _state_text(state: Mapping[str, Any]) -> str:
     return " ".join(
         str(state.get(key, ""))
-        for key in ("game_state", "team_status", "event_context", "teamfight_result", "objective_context")
+        for key in (
+            "game_state",
+            "team_status",
+            "event_context",
+            "teamfight_result",
+            "objective_context",
+        )
     ).lower()
 
 
@@ -168,7 +173,9 @@ def has_item_timing_signal(state: Mapping[str, Any]) -> bool:
 
     text = _state_text(state)
     items = state.get("items") if isinstance(state.get("items"), list) else []
-    if ("item_timing" in text or "timing" in text or "power_spike" in text) and contains_meaningful_item_reference(
+    if (
+        "item_timing" in text or "timing" in text or "power_spike" in text
+    ) and contains_meaningful_item_reference(
         text,
         items,
     ):
@@ -182,10 +189,16 @@ def has_safe_farming_signal(state: Mapping[str, Any]) -> bool:
 
 
 def has_low_farm_pressure_signal(state: Mapping[str, Any]) -> bool:
-    farm_rate_state = str(_ctx_value(state, "farm_rate_state", state.get("farm_rate_state", ""))).strip().lower()
+    farm_rate_state = (
+        str(_ctx_value(state, "farm_rate_state", state.get("farm_rate_state", ""))).strip().lower()
+    )
     gold_delta = _ctx_int(state, "gold_delta", default=0)
     lh_delta = _ctx_int(state, "lh_delta", default=0)
-    low_farm = farm_rate_state == "slow" or _is_low_farm_rate(state) or (gold_delta > 0 and gold_delta < 220 and lh_delta <= 1)
+    low_farm = (
+        farm_rate_state == "slow"
+        or _is_low_farm_rate(state)
+        or (gold_delta > 0 and gold_delta < 220 and lh_delta <= 1)
+    )
     pressure_nearby = (
         _to_bool(state.get("near_player_death"))
         or _to_bool(state.get("near_teamfight"))
@@ -222,7 +235,9 @@ def hero_safety_context(state: Mapping[str, Any]) -> Mapping[str, Any]:
     return evaluate_hero_safety(state)
 
 
-def has_hero_survivability_risk(state: Mapping[str, Any], *, hp_percent: int, mana_percent: int) -> bool:
+def has_hero_survivability_risk(
+    state: Mapping[str, Any], *, hp_percent: int, mana_percent: int
+) -> bool:
     safety_context = hero_safety_context(state)
     risk = str(safety_context.get("hero_risk_level") or "low").strip().lower()
     if risk not in {"medium", "high"}:
@@ -289,7 +304,12 @@ def _is_low_farm_rate(state: Mapping[str, Any]) -> bool:
         return False
 
     thresholds = ((25, 170), (20, 120), (15, 80), (10, 45))
-    if any(minute >= threshold_minute and last_hits_number is not None and last_hits_number < threshold_lh for threshold_minute, threshold_lh in thresholds):
+    if any(
+        minute >= threshold_minute
+        and last_hits_number is not None
+        and last_hits_number < threshold_lh
+        for threshold_minute, threshold_lh in thresholds
+    ):
         return True
     return minute >= 15 and gpm_number is not None and gpm_number < 400
 
@@ -310,7 +330,8 @@ def detect_decision_point(state: Mapping[str, Any] | None) -> DecisionPoint:
     available_gold = _ctx_int(
         state,
         "available_gold",
-        default=_ctx_int(state, "gold_reliable", default=0) + _ctx_int(state, "gold_unreliable", default=0),
+        default=_ctx_int(state, "gold_reliable", default=0)
+        + _ctx_int(state, "gold_unreliable", default=0),
     )
     near_player_death = _to_bool(state.get("near_player_death"))
     near_objective = _to_bool(state.get("near_objective"))
@@ -371,10 +392,14 @@ def detect_decision_point(state: Mapping[str, Any] | None) -> DecisionPoint:
     if has_hero_survivability_risk(state, hp_percent=hp_percent, mana_percent=mana_percent):
         return "HERO_SURVIVABILITY_RISK"
 
-    if has_ability_safety_cooldown(laning_context, hp_percent=hp_percent, fight_pressure=fight_pressure):
+    if has_ability_safety_cooldown(
+        laning_context, hp_percent=hp_percent, fight_pressure=fight_pressure
+    ):
         return "ABILITY_SAFETY_COOLDOWN"
 
-    if (low_mana or _ctx_bool(state, "death_count_changed") or _ctx_bool(state, "score_changed")) and fight_pressure:
+    if (
+        low_mana or _ctx_bool(state, "death_count_changed") or _ctx_bool(state, "score_changed")
+    ) and fight_pressure:
         return "BAD_FIGHT_RISK"
 
     if team_status == "disadvantage" and near_teamfight:
@@ -458,9 +483,7 @@ def _has_conservative_buyback_context(
     objective_for_selected_team: Any,
 ) -> bool:
     buyback_available = _ctx_bool(state, "buyback_available") or (
-        buyback_cost > 0
-        and buyback_cooldown == 0
-        and available_gold >= buyback_cost
+        buyback_cost > 0 and buyback_cooldown == 0 and available_gold >= buyback_cost
     )
     if not buyback_available:
         return False

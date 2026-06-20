@@ -27,7 +27,6 @@ from urllib.parse import urlparse
 
 import requests
 
-
 BACKEND_DIR = Path(__file__).resolve().parents[1]
 REPO_ROOT = BACKEND_DIR.parent
 DEFAULT_REPLAY_DIR = REPO_ROOT / "data" / "replays"
@@ -101,8 +100,12 @@ def _parse_args() -> argparse.Namespace:
     )
     source = parser.add_mutually_exclusive_group(required=True)
     source.add_argument("--demo", help="Path to a local .dem or .dem.bz2 replay file.")
-    source.add_argument("--match-id", help="Match id. Uses local/OpenDota match JSON replay_url when available.")
-    parser.add_argument("--hero", required=True, help='Selected hero name, for example "Juggernaut".')
+    source.add_argument(
+        "--match-id", help="Match id. Uses local/OpenDota match JSON replay_url when available."
+    )
+    parser.add_argument(
+        "--hero", required=True, help='Selected hero name, for example "Juggernaut".'
+    )
     parser.add_argument("--player-slot", type=int, required=True, help="Selected Dota player_slot.")
     parser.add_argument("--start-minute", type=int, default=0, help="First minute to keep.")
     parser.add_argument("--end-minute", type=int, default=10, help="Last minute to keep.")
@@ -145,7 +148,9 @@ def _resolve_demo_path(args: argparse.Namespace) -> Path:
     match_json = _load_match_json(match_id, explicit_path=args.match_json)
     replay_url = str(match_json.get("replay_url") or "").strip()
     if not replay_url:
-        raise ValueError("Replay URL is not available from local/OpenDota match data. Provide --demo path.")
+        raise ValueError(
+            "Replay URL is not available from local/OpenDota match data. Provide --demo path."
+        )
     return _download_replay(replay_url, Path(args.replay_dir).expanduser())
 
 
@@ -384,7 +389,10 @@ def _normalize_event(
     if "event_context" not in merged_data:
         merged_data["event_context"] = _default_context(event_type)
 
-    hero = str(raw_event.get("hero") or merged_data.get("hero") or default_hero).strip() or default_hero
+    hero = (
+        str(raw_event.get("hero") or merged_data.get("hero") or default_hero).strip()
+        or default_hero
+    )
     player_slot = _optional_int(raw_event.get("player_slot"))
     if player_slot is None:
         player_slot = _optional_int(merged_data.get("player_slot"))

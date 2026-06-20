@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import json
 
-
 SAMPLES = [
     "generic_carry_safe_laning.json",
     "juggernaut_laning_low_hp_warning.json",

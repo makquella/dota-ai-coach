@@ -19,7 +19,6 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
-
 BACKEND_DIR = Path(__file__).resolve().parents[1]
 REPO_ROOT = BACKEND_DIR.parent
 sys.path.insert(0, str(BACKEND_DIR))
@@ -31,8 +30,7 @@ from app.deep_replay_review import (  # noqa: E402
 )
 
 DEFAULT_SIMULATION_FILE = (
-    REPO_ROOT
-    / "data/match_simulations/replay_gsi_like_match_8843382732_pl_20_30.jsonl"
+    REPO_ROOT / "data/match_simulations/replay_gsi_like_match_8843382732_pl_20_30.jsonl"
 )
 
 
@@ -96,7 +94,11 @@ def main() -> int:
 
             print_bucket = timestamp_seconds // max(1, args.print_every_seconds)
             should_print = is_new_advice
-            if args.verbose and not args.only_advice_events and print_bucket != previous_print_bucket:
+            if (
+                args.verbose
+                and not args.only_advice_events
+                and print_bucket != previous_print_bucket
+            ):
                 should_print = True
             if should_print:
                 previous_print_bucket = print_bucket
@@ -156,9 +158,15 @@ def _parse_args() -> argparse.Namespace:
         default=20.0,
         help="Playback speed multiplier for non-advice states.",
     )
-    parser.add_argument("--start-time", type=int, default=None, help="First timestamp_seconds to send.")
-    parser.add_argument("--end-time", type=int, default=None, help="Last timestamp_seconds to send.")
-    parser.add_argument("--max-states", type=int, default=None, help="Maximum number of states to send.")
+    parser.add_argument(
+        "--start-time", type=int, default=None, help="First timestamp_seconds to send."
+    )
+    parser.add_argument(
+        "--end-time", type=int, default=None, help="Last timestamp_seconds to send."
+    )
+    parser.add_argument(
+        "--max-states", type=int, default=None, help="Maximum number of states to send."
+    )
     parser.add_argument(
         "--only-advice-events",
         action="store_true",
@@ -313,11 +321,19 @@ def _export_reviews_if_requested(
         print(f"Coach summary JSON saved: {json_path}")
 
     if wants_deep_review:
-        overview = summary.get("session_overview") if isinstance(summary.get("session_overview"), dict) else {}
+        overview = (
+            summary.get("session_overview")
+            if isinstance(summary.get("session_overview"), dict)
+            else {}
+        )
         deep_review = build_deep_replay_review(
             processed_entries=entries,
-            advice_history=summary.get("advice_history") if isinstance(summary.get("advice_history"), list) else [],
-            scheduler_stats=overview.get("suppression_metrics") if isinstance(overview.get("suppression_metrics"), dict) else {},
+            advice_history=summary.get("advice_history")
+            if isinstance(summary.get("advice_history"), list)
+            else [],
+            scheduler_stats=overview.get("suppression_metrics")
+            if isinstance(overview.get("suppression_metrics"), dict)
+            else {},
         )
 
         if args.export_deep_review:
@@ -352,7 +368,9 @@ def _playback_delay(previous_timestamp: int | None, timestamp_seconds: int, spee
     return delta / speed
 
 
-def _format_status_line(timestamp_seconds: int, state: dict[str, Any], overlay: dict[str, Any]) -> str:
+def _format_status_line(
+    timestamp_seconds: int, state: dict[str, Any], overlay: dict[str, Any]
+) -> str:
     recommendation = overlay.get("recommendation")
     action = ""
     if isinstance(recommendation, dict):

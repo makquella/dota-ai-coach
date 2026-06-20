@@ -12,10 +12,9 @@ import argparse
 import csv
 import json
 import sys
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
-
 
 BACKEND_DIR = Path(__file__).resolve().parents[1]
 RESULTS_DIR = BACKEND_DIR / "simulation_results"
@@ -166,7 +165,9 @@ def _latest_two_reports() -> tuple[Path, Path]:
     details = ", ".join(f"{path.name}: {mode}" for path, mode in classified)
     if ambiguous:
         raise ValueError(f"Latest two reports are ambiguous ({details}). Use explicit paths.")
-    raise ValueError(f"Latest two reports are not one fallback and one LLM report ({details}). Use explicit paths.")
+    raise ValueError(
+        f"Latest two reports are not one fallback and one LLM report ({details}). Use explicit paths."
+    )
 
 
 def _infer_mode(report: dict[str, Any]) -> str:
@@ -222,7 +223,9 @@ def _build_markdown(
         f"- duration: `{_scenario_value(fallback, llm, 'duration_minutes')}` minutes",
         f"- states processed: `{_scenario_value(fallback, llm, 'total_states_processed')}`",
     ]
-    confidence = fallback.get("context_confidence_distribution") or llm.get("context_confidence_distribution")
+    confidence = fallback.get("context_confidence_distribution") or llm.get(
+        "context_confidence_distribution"
+    )
     if confidence:
         lines.append(f"- context confidence distribution: `{_format_value(confidence)}`")
 
@@ -260,7 +263,7 @@ def _build_markdown(
     )
     lines.extend(f"- {item}" for item in _interpretation(fallback, llm))
     lines.append("")
-    lines.append(f"_Generated at {datetime.now(timezone.utc).isoformat()}._")
+    lines.append(f"_Generated at {datetime.now(UTC).isoformat()}._")
     lines.append("")
     return "\n".join(lines)
 
@@ -280,23 +283,35 @@ def _decision_points_table(value: Any) -> str:
 def _interpretation(fallback: dict[str, Any], llm: dict[str, Any]) -> list[str]:
     notes: list[str] = []
     if _number(fallback.get("total_advice_shown")) == _number(llm.get("total_advice_shown")):
-        notes.append("Advice frequency was controlled by the local policy and scheduler; the LLM did not increase hint volume.")
+        notes.append(
+            "Advice frequency was controlled by the local policy and scheduler; the LLM did not increase hint volume."
+        )
     else:
-        notes.append("Advice frequency changed between runs; check scheduler settings and decision-point distribution before attributing the difference to wording quality.")
+        notes.append(
+            "Advice frequency changed between runs; check scheduler settings and decision-point distribution before attributing the difference to wording quality."
+        )
 
     if _number(llm.get("llm_applied_count")) > 0 and _number(llm.get("stale_response_count")) == 0:
-        notes.append("Blocking mode successfully applied LLM responses offline without stale-response losses.")
+        notes.append(
+            "Blocking mode successfully applied LLM responses offline without stale-response losses."
+        )
 
     if _number(llm.get("average_latency")) > 0:
         notes.append("The local LLM can improve wording at the cost of added per-advice latency.")
 
     if _number(llm.get("llm_timeout_count")) == 0 and _number(llm.get("llm_invalid_count")) == 0:
-        notes.append("The local LLM was stable in this test: no timeouts or invalid responses were reported.")
+        notes.append(
+            "The local LLM was stable in this test: no timeouts or invalid responses were reported."
+        )
 
     if _number(llm.get("llm_skipped_by_policy_count")) > 0:
-        notes.append("Some advice remained fallback-first by policy, especially urgent low-HP, death review, or status-safe cases.")
+        notes.append(
+            "Some advice remained fallback-first by policy, especially urgent low-HP, death review, or status-safe cases."
+        )
 
-    notes.append("Priority and time_window remain controlled by local advice_policy, even when LLM wording is applied.")
+    notes.append(
+        "Priority and time_window remain controlled by local advice_policy, even when LLM wording is applied."
+    )
     return notes
 
 

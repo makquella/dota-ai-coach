@@ -12,7 +12,6 @@ import json
 from pathlib import Path
 from typing import Any
 
-
 BACKEND_DIR = Path(__file__).resolve().parents[1]
 REPO_ROOT = BACKEND_DIR.parent
 DEFAULT_OUTPUT = REPO_ROOT / "data" / "replay_events" / "synthetic_juggernaut_lane_events.jsonl"
@@ -58,12 +57,32 @@ def _sample_events(*, hero: str, player_slot: int) -> list[dict[str, Any]]:
             _event(520, "level", base, {"level": 5, "xp": 1980, "context_confidence": "high"}),
             _event(75, "purchase", base, {"item": "quelling_blade", "context_confidence": "high"}),
             _event(215, "purchase", base, {"item": "boots", "context_confidence": "high"}),
-            _event(110, "damage", base, {"damage_percent": 12, "hp_after_percent": 88, "context_confidence": "high"}),
-            _event(125, "damage", base, {"damage_percent": 25, "hp_after_percent": 63, "context_confidence": "high"}),
-            _event(132, "damage", base, {"damage_percent": 16, "hp_after_percent": 47, "context_confidence": "high"}),
+            _event(
+                110,
+                "damage",
+                base,
+                {"damage_percent": 12, "hp_after_percent": 88, "context_confidence": "high"},
+            ),
+            _event(
+                125,
+                "damage",
+                base,
+                {"damage_percent": 25, "hp_after_percent": 63, "context_confidence": "high"},
+            ),
+            _event(
+                132,
+                "damage",
+                base,
+                {"damage_percent": 16, "hp_after_percent": 47, "context_confidence": "high"},
+            ),
             _event(148, "snapshot", base, _manual_snapshot(148, hp=47, mana=69, lh=5, gold=980)),
             _event(160, "snapshot", base, _manual_snapshot(160, hp=34, mana=67, lh=6, gold=1030)),
-            _event(170, "death", base, {"deaths": 1, "respawn_seconds": 22, "context_confidence": "high"}),
+            _event(
+                170,
+                "death",
+                base,
+                {"deaths": 1, "respawn_seconds": 22, "context_confidence": "high"},
+            ),
             _event(195, "snapshot", base, _manual_snapshot(195, hp=100, mana=92, lh=6, gold=1040)),
             _event(260, "snapshot", base, _manual_snapshot(260, hp=92, mana=84, lh=10, gold=1290)),
             _event(300, "snapshot", base, _manual_snapshot(300, hp=90, mana=82, lh=13, gold=1450)),
@@ -71,18 +90,40 @@ def _sample_events(*, hero: str, player_slot: int) -> list[dict[str, Any]]:
             _event(340, "snapshot", base, _manual_snapshot(340, hp=68, mana=78, lh=15, gold=1560)),
             _event(345, "ability", base, _blade_fury_snapshot(345, cooldown=7)),
             _event(360, "ability", base, _blade_fury_snapshot(360, cooldown=0)),
-            _event(405, "damage", base, {"damage_percent": 18, "hp_after_percent": 76, "context_confidence": "high"}),
-            _event(422, "damage", base, {"damage_percent": 24, "hp_after_percent": 52, "context_confidence": "high"}),
+            _event(
+                405,
+                "damage",
+                base,
+                {"damage_percent": 18, "hp_after_percent": 76, "context_confidence": "high"},
+            ),
+            _event(
+                422,
+                "damage",
+                base,
+                {"damage_percent": 24, "hp_after_percent": 52, "context_confidence": "high"},
+            ),
             _event(438, "snapshot", base, _manual_snapshot(438, hp=45, mana=55, lh=21, gold=1810)),
-            _event(448, "damage", base, {"damage_percent": 18, "hp_after_percent": 27, "context_confidence": "high"}),
-            _event(462, "death", base, {"deaths": 2, "respawn_seconds": 25, "context_confidence": "high"}),
+            _event(
+                448,
+                "damage",
+                base,
+                {"damage_percent": 18, "hp_after_percent": 27, "context_confidence": "high"},
+            ),
+            _event(
+                462,
+                "death",
+                base,
+                {"deaths": 2, "respawn_seconds": 25, "context_confidence": "high"},
+            ),
             _event(492, "snapshot", base, _manual_snapshot(492, hp=100, mana=88, lh=22, gold=1840)),
             _event(540, "snapshot", base, _manual_snapshot(540, hp=96, mana=84, lh=28, gold=2120)),
             _event(580, "snapshot", base, _manual_snapshot(580, hp=98, mana=82, lh=34, gold=2400)),
         ]
     )
 
-    return sorted(events, key=lambda event: (event["timestamp_seconds"], _event_order(event["type"])))
+    return sorted(
+        events, key=lambda event: (event["timestamp_seconds"], _event_order(event["type"]))
+    )
 
 
 def _lane_snapshot(timestamp: int) -> dict[str, Any]:
@@ -224,7 +265,9 @@ def _event_order(event_type: str) -> int:
     }.get(event_type, 9)
 
 
-def _event(timestamp: int, event_type: str, base: dict[str, Any], data: dict[str, Any]) -> dict[str, Any]:
+def _event(
+    timestamp: int, event_type: str, base: dict[str, Any], data: dict[str, Any]
+) -> dict[str, Any]:
     return {
         "timestamp_seconds": timestamp,
         "type": event_type,

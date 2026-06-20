@@ -9,6 +9,7 @@ Scoring weights:
 """
 
 from pathlib import Path
+
 from app.config import KNOWLEDGE_BASE_DIR, RAG_TOP_K
 
 # Heroes tracked in the knowledge base (lowercase, space-separated)
@@ -86,8 +87,7 @@ def retrieve_context(
     paragraphs = _load_paragraphs(KNOWLEDGE_BASE_DIR)
     owned_items = owned_items or []
     paragraphs = [
-        para for para in paragraphs
-        if not _paragraph_contradicts_owned_items(para, owned_items)
+        para for para in paragraphs if not _paragraph_contradicts_owned_items(para, owned_items)
     ]
     if not paragraphs:
         return []
@@ -97,10 +97,7 @@ def retrieve_context(
     # Split game_state on underscores too (e.g. "enemy_pressure_mid" → {"enemy","pressure","mid"})
     gs_words = set(game_state.lower().replace("_", " ").split())
 
-    scored = [
-        (para, _score(para, query_tokens, hero_words, gs_words))
-        for para in paragraphs
-    ]
+    scored = [(para, _score(para, query_tokens, hero_words, gs_words)) for para in paragraphs]
     scored.sort(key=lambda x: x[1], reverse=True)
     # Only keep paragraphs with a positive final score
     top = [para for para, score in scored[:top_k] if score > 0]

@@ -14,13 +14,12 @@ import os
 import sys
 import time
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
 import requests
 from dotenv import load_dotenv
-
 
 BACKEND_DIR = Path(__file__).resolve().parents[1]
 REPO_ROOT = BACKEND_DIR.parent
@@ -28,10 +27,9 @@ sys.path.insert(0, str(BACKEND_DIR))
 
 from app.decision_points import detect_decision_point  # noqa: E402
 from app.gsi_state import normalize_gsi_payload  # noqa: E402
-from app.llm_provider import OUTPUT_SCHEMA, OPENROUTER_CHAT_URL  # noqa: E402
+from app.llm_provider import OPENROUTER_CHAT_URL, OUTPUT_SCHEMA  # noqa: E402
 from app.rag import retrieve_context  # noqa: E402
 from app.schemas import GameSituationRequest  # noqa: E402
-
 
 OPENROUTER_MODELS = (
     "openai/gpt-oss-120b:free",
@@ -84,7 +82,9 @@ def main() -> int:
 
     api_key = os.getenv(provider.api_key_env, "").strip() if provider.api_key_env else ""
     if provider.api_key_env and not api_key:
-        print(f"{provider.api_key_env} is missing. Add it to backend/.env or export it in your shell.")
+        print(
+            f"{provider.api_key_env} is missing. Add it to backend/.env or export it in your shell."
+        )
         return 1
 
     timeout = _get_timeout()
@@ -92,7 +92,7 @@ def main() -> int:
     delay_seconds = _get_delay_seconds()
     models = _get_models(provider.default_models)
     scenarios = _load_scenarios()
-    timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
+    timestamp = datetime.now(UTC).strftime("%Y%m%d_%H%M%S")
     output_dir = BACKEND_DIR / "benchmark_results"
     output_dir.mkdir(parents=True, exist_ok=True)
 
@@ -155,7 +155,9 @@ def _get_provider_config() -> ProviderConfig | None:
         )
     if provider == "llamacpp":
         base_url = os.getenv("LLAMACPP_BASE_URL", "http://127.0.0.1:8080").strip().rstrip("/")
-        model = os.getenv("LLAMACPP_MODEL", DEFAULT_LLAMACPP_MODEL).strip() or DEFAULT_LLAMACPP_MODEL
+        model = (
+            os.getenv("LLAMACPP_MODEL", DEFAULT_LLAMACPP_MODEL).strip() or DEFAULT_LLAMACPP_MODEL
+        )
         return ProviderConfig(
             name="llamacpp",
             chat_url=f"{base_url}/v1/chat/completions",
@@ -389,7 +391,9 @@ def _provider_worker(
 
         queue.put({"response_json": response.json()})
     except requests.Timeout:
-        queue.put({"error": "timeout_error", "raw_error_body": f"requests timeout after {timeout:g}s"})
+        queue.put(
+            {"error": "timeout_error", "raw_error_body": f"requests timeout after {timeout:g}s"}
+        )
     except requests.exceptions.JSONDecodeError as exc:
         queue.put({"error": "invalid_json", "raw_error_body": clean_error(exc)})
     except requests.HTTPError as exc:
@@ -595,7 +599,8 @@ def _score_result(
         "valid_json": valid_json,
         "required_fields": required_fields,
         "priority_match": valid_json and parsed.get("priority") == scenario.expected_priority,
-        "time_window_match": valid_json and parsed.get("time_window") == scenario.expected_time_window,
+        "time_window_match": valid_json
+        and parsed.get("time_window") == scenario.expected_time_window,
         "action_concise": bool(action) and len(action) < 160,
         "reason_concise": bool(reason) and len(reason) < 280,
         "conservative_action": _is_conservative(action, reason, scenario),
@@ -611,7 +616,9 @@ def _is_pressure_scenario(scenario: Scenario) -> bool:
 def _suggests_fighting(text: str) -> bool:
     fight_terms = ["fight", "engage", "commit", "contest", "join", "attack", "initiate"]
     safety_terms = ["avoid", "only if", "do not", "don't", "retreat", "reset", "farm"]
-    return any(term in text for term in fight_terms) and not any(term in text for term in safety_terms)
+    return any(term in text for term in fight_terms) and not any(
+        term in text for term in safety_terms
+    )
 
 
 def _ignores_pressure(text: str) -> bool:
@@ -651,11 +658,14 @@ def _contains_chain_of_thought(content: str) -> bool:
     return any(marker in lowered for marker in markers)
 
 
-def _summarize(results: list[dict[str, Any]], provider_name: str, models: list[str]) -> list[dict[str, Any]]:
+def _summarize(
+    results: list[dict[str, Any]], provider_name: str, models: list[str]
+) -> list[dict[str, Any]]:
     summary = []
     for model in models:
         model_results = [
-            result for result in results
+            result
+            for result in results
             if result["provider"] == provider_name and result["model"] == model
         ]
         count = len(model_results)
@@ -681,7 +691,8 @@ def _rank(summary: list[dict[str, Any]]) -> dict[str, Any]:
     fastest = min(summary, key=lambda item: item["average_response_time"])
     best_json = max(summary, key=lambda item: item["valid_json_rate"])
     eligible = [
-        item for item in summary
+        item
+        for item in summary
         if item["valid_json_rate"] >= 0.8 and item["average_response_time"] <= 10
     ]
     recommended = max(eligible, key=lambda item: item["average_score"]) if eligible else None
@@ -701,7 +712,9 @@ def _summary_label(item: dict[str, Any]) -> str:
 
 def _print_row(result: dict[str, Any]) -> None:
     if not hasattr(_print_row, "printed_header"):
-        print("provider | model | scenario | valid_json | response_time | score | priority | source/error")
+        print(
+            "provider | model | scenario | valid_json | response_time | score | priority | source/error"
+        )
         print("-" * 125)
         _print_row.printed_header = True
 
@@ -726,7 +739,7 @@ def _write_json(
     ranking: dict[str, Any],
 ) -> None:
     payload = {
-        "created_at": datetime.now(timezone.utc).isoformat(),
+        "created_at": datetime.now(UTC).isoformat(),
         "benchmark_provider": provider_name,
         "benchmark_timeout": timeout,
         "benchmark_max_tokens": max_tokens,

@@ -40,7 +40,10 @@ def build_advice_policy(game_state: Mapping[str, Any] | Any, decision_point: str
             "action_type": "play_back_and_regen",
             "priority": "medium",
             "time_window": "next 30-60 seconds",
-            "safety_constraints": ["avoid low-value trades while HP is low", "regen or play back before contesting"],
+            "safety_constraints": [
+                "avoid low-value trades while HP is low",
+                "regen or play back before contesting",
+            ],
             "overlay_goal": f"{base_goal} Stabilize lane HP before trading.",
         }
 
@@ -49,7 +52,10 @@ def build_advice_policy(game_state: Mapping[str, Any] | Any, decision_point: str
             "action_type": "stabilize_after_recent_damage",
             "priority": "medium",
             "time_window": "next 10-30 seconds",
-            "safety_constraints": ["back up after heavy damage", "avoid another trade until stabilized"],
+            "safety_constraints": [
+                "back up after heavy damage",
+                "avoid another trade until stabilized",
+            ],
             "overlay_goal": f"{base_goal} Stabilize after recent damage.",
         }
 
@@ -67,7 +73,10 @@ def build_advice_policy(game_state: Mapping[str, Any] | Any, decision_point: str
             "action_type": "stabilize_lane_farm",
             "priority": "medium",
             "time_window": "next 60 seconds",
-            "safety_constraints": ["do not force trades to recover farm", "take safe last hits first"],
+            "safety_constraints": [
+                "do not force trades to recover farm",
+                "take safe last hits first",
+            ],
             "overlay_goal": f"{base_goal} Recover lane farm without taking bad damage.",
         }
 
@@ -77,7 +86,10 @@ def build_advice_policy(game_state: Mapping[str, Any] | Any, decision_point: str
             "action_type": "respect_defensive_ability_cooldown",
             "priority": "high" if hp_percent <= 45 else "medium",
             "time_window": "next 10-30 seconds",
-            "safety_constraints": ["avoid risky trades until the safety tool is ready", "do not fight into slows or disables"],
+            "safety_constraints": [
+                "avoid risky trades until the safety tool is ready",
+                "do not fight into slows or disables",
+            ],
             "overlay_goal": f"{base_goal} Wait for the safety spell before trading.",
         }
 
@@ -96,7 +108,10 @@ def build_advice_policy(game_state: Mapping[str, Any] | Any, decision_point: str
             "action_type": "wait_out_disable",
             "priority": "high" if hp_percent <= 60 else "medium",
             "time_window": "immediate: next 10-15 seconds",
-            "safety_constraints": ["do not force actions while disabled", "survive the control duration"],
+            "safety_constraints": [
+                "do not force actions while disabled",
+                "survive the control duration",
+            ],
             "overlay_goal": f"{base_goal} Stay safe while controlled.",
         }
 
@@ -105,7 +120,10 @@ def build_advice_policy(game_state: Mapping[str, Any] | Any, decision_point: str
             "action_type": "check_buyback_value",
             "priority": "high" if phase == "late_game" else "medium",
             "time_window": "immediate: next 10-15 seconds",
-            "safety_constraints": ["buyback only for base defense or major objective", "avoid low-value buybacks"],
+            "safety_constraints": [
+                "buyback only for base defense or major objective",
+                "avoid low-value buybacks",
+            ],
             "overlay_goal": f"{base_goal} Evaluate buyback value conservatively.",
         }
 
@@ -114,7 +132,10 @@ def build_advice_policy(game_state: Mapping[str, Any] | Any, decision_point: str
             "action_type": "break_repeated_death_pattern",
             "priority": "high",
             "time_window": "immediate: next 10-15 seconds",
-            "safety_constraints": ["do not repeat the same risky route", "prioritize survival after respawn"],
+            "safety_constraints": [
+                "do not repeat the same risky route",
+                "prioritize survival after respawn",
+            ],
             "overlay_goal": f"{base_goal} Break the repeated death pattern.",
         }
 
@@ -123,7 +144,10 @@ def build_advice_policy(game_state: Mapping[str, Any] | Any, decision_point: str
             "action_type": "respect_escape_cooldown_after_respawn",
             "priority": "high",
             "time_window": "immediate: next 10-15 seconds",
-            "safety_constraints": ["wait for escape or defensive tools before committing", "avoid forward moves after respawn"],
+            "safety_constraints": [
+                "wait for escape or defensive tools before committing",
+                "avoid forward moves after respawn",
+            ],
             "overlay_goal": f"{base_goal} Respect escape cooldowns after respawn.",
         }
 
@@ -133,7 +157,10 @@ def build_advice_policy(game_state: Mapping[str, Any] | Any, decision_point: str
             "action_type": "reset_before_resources_collapse",
             "priority": "high" if hero_risk_level == "high" else "medium",
             "time_window": "immediate: next 10-15 seconds",
-            "safety_constraints": ["reset earlier when HP or key resources are low", "avoid extending low-resource fights"],
+            "safety_constraints": [
+                "reset earlier when HP or key resources are low",
+                "avoid extending low-resource fights",
+            ],
             "overlay_goal": f"{base_goal} Reset before survivability resources collapse.",
         }
 
@@ -142,7 +169,10 @@ def build_advice_policy(game_state: Mapping[str, Any] | Any, decision_point: str
             "action_type": "plan_safer_respawn_route",
             "priority": "medium",
             "time_window": "reassess in 60 seconds",
-            "safety_constraints": ["avoid returning to the same risky area", "plan around vision and team support"],
+            "safety_constraints": [
+                "avoid returning to the same risky area",
+                "plan around vision and team support",
+            ],
             "overlay_goal": f"{base_goal} Use respawn time to plan a safer route.",
         }
 
@@ -151,7 +181,10 @@ def build_advice_policy(game_state: Mapping[str, Any] | Any, decision_point: str
             "action_type": "prepare_next_move",
             "priority": "low",
             "time_window": "reassess in 60 seconds",
-            "safety_constraints": ["avoid rushing back to the same risky area", "plan the next safe route"],
+            "safety_constraints": [
+                "avoid rushing back to the same risky area",
+                "plan the next safe route",
+            ],
             "overlay_goal": f"{base_goal} Plan the next safe movement.",
         }
 
@@ -160,12 +193,17 @@ def build_advice_policy(game_state: Mapping[str, Any] | Any, decision_point: str
             "action_type": "stay_hidden_until_team_ready",
             "priority": "medium",
             "time_window": "next 60-90 seconds",
-            "safety_constraints": ["do not reveal on waves early", "avoid forcing aggression alone"],
+            "safety_constraints": [
+                "do not reveal on waves early",
+                "avoid forcing aggression alone",
+            ],
             "overlay_goal": f"{base_goal} Preserve smoke value without forcing.",
         }
 
     if decision_point == "HERO_SURVIVABILITY_RISK":
-        hero_risk_level = str(_extra_context(state).get("hero_risk_level") or "medium").strip().lower()
+        hero_risk_level = (
+            str(_extra_context(state).get("hero_risk_level") or "medium").strip().lower()
+        )
         high_risk = hero_risk_level == "high"
         return {
             "action_type": "respect_hero_safety_window",
@@ -183,7 +221,10 @@ def build_advice_policy(game_state: Mapping[str, Any] | Any, decision_point: str
             "action_type": "join_only_if_objective_value",
             "priority": "medium",
             "time_window": "next 60-90 seconds",
-            "safety_constraints": ["do not force fight without objective", "avoid random skirmishes"],
+            "safety_constraints": [
+                "do not force fight without objective",
+                "avoid random skirmishes",
+            ],
             "overlay_goal": f"{base_goal} Fight only for clear objective value.",
         }
 
@@ -192,7 +233,10 @@ def build_advice_policy(game_state: Mapping[str, Any] | Any, decision_point: str
             "action_type": "avoid_bad_fight",
             "priority": "high",
             "time_window": "next 60-90 seconds",
-            "safety_constraints": ["avoid fighting without team/objective", "prefer farming or resetting"],
+            "safety_constraints": [
+                "avoid fighting without team/objective",
+                "prefer farming or resetting",
+            ],
             "overlay_goal": f"{base_goal} Skip low-value fights.",
         }
 
@@ -201,7 +245,10 @@ def build_advice_policy(game_state: Mapping[str, Any] | Any, decision_point: str
             "action_type": "play_around_timing",
             "priority": "medium",
             "time_window": "next 60-90 seconds",
-            "safety_constraints": ["do not force fights only because a timing is near", "keep map risk low"],
+            "safety_constraints": [
+                "do not force fights only because a timing is near",
+                "keep map risk low",
+            ],
             "overlay_goal": f"{base_goal} Convert current strength without forcing.",
         }
 

@@ -14,7 +14,6 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Any
 
-
 DEFAULT_PROFILE = {
     "hero": "Unknown",
     "aliases": [],
@@ -124,7 +123,8 @@ def evaluate_laning_context(normalized_state: Mapping[str, Any] | Any) -> dict[s
         "key_safety_ability": safety_status["ability"],
         "key_safety_kind": safety_status["kind"],
         "key_safety_cooldown": safety_status["cooldown"],
-        "laning_advice_context": "; ".join(part for part in context_parts if part) or "stable lane context",
+        "laning_advice_context": "; ".join(part for part in context_parts if part)
+        or "stable lane context",
     }
 
 
