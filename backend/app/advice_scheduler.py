@@ -170,13 +170,14 @@ class AdviceScheduler:
             self._update_hashes_locked(state_hash, tactical_hash)
             self._update_low_hp_recovery_locked(state)
 
-    def evaluate(
+    def _evaluate_normalize_input(
         self,
         request: GameSituationRequest,
         decision_point: str,
-        rag_context: list[str],
-        now: datetime | None = None,
-    ) -> ScheduledAdvice:
+        now: datetime | None,
+    ) -> tuple[datetime, dict[str, Any], str, dict[str, Any], str]:
+        # Phase 4B extract (S0): input normalization. No lock; pure derivation
+        # of current_time/state/hashes/policy from the request. Behavior-preserving.
         current_time = _utcnow(now)
         state = request.model_dump()
         state_hash = build_state_hash(state, decision_point)
@@ -185,6 +186,18 @@ class AdviceScheduler:
             state,
             decision_point,
             action_type=policy["action_type"],
+        )
+        return current_time, state, state_hash, policy, tactical_hash
+
+    def evaluate(
+        self,
+        request: GameSituationRequest,
+        decision_point: str,
+        rag_context: list[str],
+        now: datetime | None = None,
+    ) -> ScheduledAdvice:
+        current_time, state, state_hash, policy, tactical_hash = self._evaluate_normalize_input(
+            request, decision_point, now
         )
 
         with self._lock:
