@@ -414,6 +414,41 @@ class AdviceScheduler:
 
         return None
 
+    def _evaluate_low_hp_warning_locked(
+        self, decision_point: str, current_time: datetime, game_time_seconds: float
+    ) -> ScheduledAdvice | None:
+        # Phase 4B extract (S5): LOW_HP_WARNING gate. Runs under the evaluate lock.
+        # When a low-HP episode is active (or a recent low-HP pattern is live), a
+        # LOW_HP_WARNING is suppressed as duplicate_low_hp_episode; returns None to
+        # fall through. Uniform with S2/S3/S4: bare ScheduledAdvice | None.
+        if decision_point == "LOW_HP_WARNING" and (
+            self.state._low_hp_episode_active
+            or self._recent_low_hp_pattern_locked(current_time, game_time_seconds)
+        ):
+            self.state.repeated_low_hp_suppressed_count += 1
+            self.state.duplicate_suppressed_count += 1
+            active = self._active_result_locked(
+                decision_point=decision_point,
+                now=current_time,
+                next_allowed=self._cooldown_for_type_locked(decision_point),
+                suppressed_reason="cooldown_keep_visible",
+            )
+            if active is not None:
+                return active
+            return self._result_locked(
+                status="cooldown",
+                decision_point=decision_point,
+                recommendation=None,
+                source="none",
+                llm_used=False,
+                next_allowed=self._cooldown_for_type_locked(decision_point),
+                new_advice=False,
+                advice_mode="status",
+                suppressed_reason="duplicate_low_hp_episode",
+            )
+
+        return None
+
     def evaluate(
         self,
         request: GameSituationRequest,
@@ -463,31 +498,11 @@ class AdviceScheduler:
             if _cooldown is not None:
                 return _cooldown
 
-            if decision_point == "LOW_HP_WARNING" and (
-                self.state._low_hp_episode_active
-                or self._recent_low_hp_pattern_locked(current_time, game_time_seconds)
-            ):
-                self.state.repeated_low_hp_suppressed_count += 1
-                self.state.duplicate_suppressed_count += 1
-                active = self._active_result_locked(
-                    decision_point=decision_point,
-                    now=current_time,
-                    next_allowed=self._cooldown_for_type_locked(decision_point),
-                    suppressed_reason="cooldown_keep_visible",
-                )
-                if active is not None:
-                    return active
-                return self._result_locked(
-                    status="cooldown",
-                    decision_point=decision_point,
-                    recommendation=None,
-                    source="none",
-                    llm_used=False,
-                    next_allowed=self._cooldown_for_type_locked(decision_point),
-                    new_advice=False,
-                    advice_mode="status",
-                    suppressed_reason="duplicate_low_hp_episode",
-                )
+            _low_hp_warning = self._evaluate_low_hp_warning_locked(
+                decision_point, current_time, game_time_seconds
+            )
+            if _low_hp_warning is not None:
+                return _low_hp_warning
 
             if decision_point == "LOW_HP":
                 low_hp_action = self._low_hp_episode_action_locked(state)
