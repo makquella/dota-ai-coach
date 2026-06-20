@@ -33,7 +33,6 @@ import threading
 import time
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
-from statistics import mean
 from typing import Any, Literal
 
 from app.advice_policy import apply_advice_policy, build_advice_policy
@@ -60,6 +59,14 @@ from app.post_laning_coach import (
     important_post_laning_context_changed,
 )
 from app.recommender import generate_recommendation
+from app.scheduler.stats_utils import (
+    _average,
+    _maximum,
+    _minimum,
+    _p95,
+    _rate,
+    _session_id_from_state,
+)
 from app.schemas import GameSituationRequest, RecommendationResponse
 
 AdviceType = Literal[
@@ -2277,48 +2284,6 @@ def _key_item_signature(items: Any) -> str:
     }
     key_items = sorted(item for item in normalized if item in KEY_ITEMS)
     return "|".join(key_items) if key_items else "none"
-
-
-def _session_id_from_state(state: dict[str, Any]) -> str | None:
-    extra_context = (
-        state.get("extra_context") if isinstance(state.get("extra_context"), dict) else {}
-    )
-    value = extra_context.get("match_session_id") or extra_context.get("match_id")
-    if value in {None, ""}:
-        return None
-    return str(value)
-
-
-def _average(values: list[float]) -> float | None:
-    if not values:
-        return None
-    return round(mean(values), 3)
-
-
-def _minimum(values: list[float]) -> float | None:
-    if not values:
-        return None
-    return round(min(values), 3)
-
-
-def _maximum(values: list[float]) -> float | None:
-    if not values:
-        return None
-    return round(max(values), 3)
-
-
-def _p95(values: list[float]) -> float | None:
-    if not values:
-        return None
-    ordered = sorted(values)
-    index = max(0, min(len(ordered) - 1, int(round((len(ordered) - 1) * 0.95))))
-    return round(ordered[index], 3)
-
-
-def _rate(part: int, total: int) -> float:
-    if total <= 0:
-        return 0.0
-    return round(part / total, 3)
 
 
 ADVICE_SCHEDULER = AdviceScheduler()
