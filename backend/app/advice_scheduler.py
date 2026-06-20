@@ -27,19 +27,14 @@ arrives.
 
 from __future__ import annotations
 
-import hashlib
-import json
 import threading
 import time
-from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
-from typing import Any, Literal
+from typing import Any
 
 from app.advice_policy import apply_advice_policy, build_advice_policy
 from app.advice_text import clean_recommendation_text
 from app.advice_ux_policy import (
-    REGULAR_ADVICE_INTERVAL_SECONDS,
-    URGENT_ADVICE_INTERVAL_SECONDS,
     apply_ux_policy,
 )
 from app.config import USE_LLM
@@ -59,13 +54,22 @@ from app.post_laning_coach import (
     important_post_laning_context_changed,
 )
 from app.recommender import generate_recommendation
+from app.scheduler.constants import (
+    COACHING_GAME_TIME_GAP_SECONDS,
+    DEATH_REVIEW_DECISIONS,
+    HEARTBEAT_DUPLICATE_WAIT_SECONDS,
+    HEARTBEAT_NUDGE_SECONDS,
+    LLM_REFINEMENT_EVERY_N_ADVICES,
+    POST_LANING_GAME_TIME_GAP_SECONDS,
+    RECENT_SAFETY_GAME_TIME_GAP_SECONDS,
+    REGULAR_ADVICE_COOLDOWN_SECONDS,
+    SAME_ACTION_GAME_TIME_GAP_SECONDS,
+    URGENT_LOW_HP_COOLDOWN_SECONDS,
+)
 from app.scheduler.hashing import (
     _action_hash,
-    _game_phase,
-    _hp_bucket,
-    _key_item_signature,
-    _minute_bucket,
-    _simplify_team_status,
+    build_state_hash,
+    build_tactical_state_hash,
 )
 from app.scheduler.heartbeat import (
     _heartbeat_context_is_confident,
@@ -107,76 +111,10 @@ from app.scheduler.text import (
     MAX_REASON_LENGTH,
     _compact_recommendation,
 )
+from app.scheduler.types import OverlaySource, OverlayStatus, ScheduledAdvice
 from app.schemas import GameSituationRequest, RecommendationResponse
 
-AdviceType = Literal[
-    "LOW_HP",
-    "LOW_HP_WARNING",
-    "RECENT_DAMAGE_WARNING",
-    "OVERSTAY_WARNING",
-    "DEATH_REVIEW",
-    "REPEATED_DEATH_PATTERN",
-    "DEATH_WITH_ESCAPE_ON_COOLDOWN",
-    "DEATH_LOW_RESOURCE",
-    "LOW_MANA",
-    "DISABLED_STATUS",
-    "BUYBACK_AVAILABLE",
-    "DEAD_WAIT",
-    "SMOKED_STATUS",
-    "HERO_SURVIVABILITY_RISK",
-    "LANING_REGEN_CHECK",
-    "LANING_FARM_CHECK",
-    "ABILITY_SAFETY_COOLDOWN",
-    "SOFT_STATUS",
-    "FARMING_PHASE_PRESSURE",
-    "OBJECTIVE_FIGHT_CHECK",
-    "BAD_FIGHT_RISK",
-    "ITEM_TIMING",
-    "SAFE_FARMING",
-    "NO_ADVICE",
-]
-
-OverlayStatus = Literal["advice", "active_advice", "no_advice", "cooldown"]
-OverlaySource = Literal["llm", "fallback", "none"]
-
-SOFT_INTERVAL_SECONDS = REGULAR_ADVICE_INTERVAL_SECONDS
-REGULAR_ADVICE_COOLDOWN_SECONDS = REGULAR_ADVICE_INTERVAL_SECONDS
-URGENT_LOW_HP_COOLDOWN_SECONDS = URGENT_ADVICE_INTERVAL_SECONDS
-LLM_REFINEMENT_EVERY_N_ADVICES = 3
-
-DEATH_REVIEW_DECISIONS = {
-    "DEATH_REVIEW",
-    "REPEATED_DEATH_PATTERN",
-    "DEATH_WITH_ESCAPE_ON_COOLDOWN",
-    "DEATH_LOW_RESOURCE",
-}
-COACHING_GAME_TIME_GAP_SECONDS = 45
-POST_LANING_GAME_TIME_GAP_SECONDS = 60
-SAME_ACTION_GAME_TIME_GAP_SECONDS = 120
-RECENT_SAFETY_GAME_TIME_GAP_SECONDS = 35
-HEARTBEAT_NUDGE_SECONDS = 150
-HEARTBEAT_DUPLICATE_WAIT_SECONDS = 180
-
-
-@dataclass
-class ScheduledAdvice:
-    status: OverlayStatus
-    decision_point: str
-    recommendation: RecommendationResponse | None
-    advice_count: int
-    llm_used: bool
-    source: OverlaySource
-    last_updated: str | None
-    next_allowed_advice_in_seconds: int
-    new_advice: bool = False
-    advice_mode: str = "status"
-    suppressed_reason: str | None = None
-    active_advice_until: str | None = None
-    last_visible_advice: dict[str, Any] | None = None
-    is_pinned: bool = False
-    low_hp_episode_id: int | None = None
-    game_time_gap_since_previous_advice: float | None = None
-    suppressed_by_game_time_spacing: bool = False
+# Public types, constants, and the ScheduledAdvice DTO now live in leaf modules app.scheduler.types and app.scheduler.constants. They are imported below and re-exported by this facade for backwards compatibility.
 
 
 class AdviceScheduler:
@@ -1805,56 +1743,6 @@ class AdviceScheduler:
             if self._advice_history:
                 self._advice_history[-1]["source"] = "llm"
                 self._advice_history[-1]["action"] = recommendation.action
-
-
-def build_state_hash(state: dict[str, Any], decision_point: str) -> str:
-    minute = _to_int(state.get("minute"), 0)
-    hp_percent = _to_int(state.get("hp_percent"), 100)
-    extra_context = (
-        state.get("extra_context") if isinstance(state.get("extra_context"), dict) else {}
-    )
-    payload = {
-        "hero": str(state.get("hero", "")).strip().lower(),
-        "minute_bucket": minute,
-        "hp_bucket": hp_percent // 10,
-        "items": sorted(str(item).strip().lower() for item in state.get("items", [])),
-        "game_state": str(state.get("game_state", "")).strip().lower(),
-        "team_status": str(state.get("team_status", "")).strip().lower(),
-        "decision_point": decision_point,
-        "death_event_id": extra_context.get("last_death_event_id")
-        if decision_point in DEATH_REVIEW_DECISIONS
-        else None,
-    }
-    raw = json.dumps(payload, sort_keys=True, separators=(",", ":"))
-    return hashlib.sha1(raw.encode("utf-8")).hexdigest()[:16]
-
-
-def build_tactical_state_hash(
-    state: dict[str, Any],
-    decision_point: str,
-    *,
-    action_type: str | None = None,
-) -> str:
-    if not action_type:
-        action_type = str(build_advice_policy(state, decision_point)["action_type"])
-    extra_context = (
-        state.get("extra_context") if isinstance(state.get("extra_context"), dict) else {}
-    )
-    payload = {
-        "hero": str(state.get("hero", "")).strip().lower(),
-        "decision_point": decision_point,
-        "action_type": action_type,
-        "game_phase": _game_phase(_to_int(state.get("minute"), 0)),
-        "hp_bucket": _hp_bucket(_to_int(state.get("hp_percent"), 100)),
-        "minute_bucket": _minute_bucket(_to_int(state.get("minute"), 0)),
-        "team_status": _simplify_team_status(state.get("team_status", "")),
-        "key_items": _key_item_signature(state.get("items", [])),
-        "death_event_id": extra_context.get("last_death_event_id")
-        if decision_point in DEATH_REVIEW_DECISIONS
-        else None,
-    }
-    raw = json.dumps(payload, sort_keys=True, separators=(",", ":"))
-    return hashlib.sha1(raw.encode("utf-8")).hexdigest()[:16]
 
 
 def _is_safe_recommendation(recommendation: RecommendationResponse, decision_point: str) -> bool:
