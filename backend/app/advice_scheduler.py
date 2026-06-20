@@ -189,6 +189,25 @@ class AdviceScheduler:
         )
         return current_time, state, state_hash, policy, tactical_hash
 
+    def _evaluate_locked_setup(
+        self,
+        current_time: datetime,
+        request: GameSituationRequest,
+        state: dict[str, Any],
+        decision_point: str,
+        state_hash: str,
+        tactical_hash: str,
+    ) -> float:
+        # Phase 4B extract (S1): session/game-time/hash/recovery setup.
+        # Runs under the already-held evaluate lock (Zone 1); does NOT acquire it.
+        # Produces game_time_seconds and mutates session/hash/recovery state.
+        self._ensure_session_locked(current_time, request.minute, state)
+        game_time_seconds = self._game_time_seconds_locked(state, current_time)
+        self._update_hashes_locked(state_hash, tactical_hash)
+        if decision_point != "LOW_HP":
+            self._update_low_hp_recovery_locked(state)
+        return game_time_seconds
+
     def evaluate(
         self,
         request: GameSituationRequest,
@@ -201,11 +220,14 @@ class AdviceScheduler:
         )
 
         with self._lock:
-            self._ensure_session_locked(current_time, request.minute, state)
-            game_time_seconds = self._game_time_seconds_locked(state, current_time)
-            self._update_hashes_locked(state_hash, tactical_hash)
-            if decision_point != "LOW_HP":
-                self._update_low_hp_recovery_locked(state)
+            game_time_seconds = self._evaluate_locked_setup(
+                current_time=current_time,
+                request=request,
+                state=state,
+                decision_point=decision_point,
+                state_hash=state_hash,
+                tactical_hash=tactical_hash,
+            )
 
             if decision_point == "NO_ADVICE":
                 active = self._active_result_locked(
