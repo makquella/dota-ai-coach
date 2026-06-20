@@ -273,6 +273,20 @@ class AdviceScheduler:
 
         return None
 
+    def _evaluate_fallback_recommendation(
+        self,
+        request: GameSituationRequest,
+        rag_context: list[str],
+        policy: dict[str, Any],
+        decision_point: str,
+    ) -> RecommendationResponse:
+        # Phase 4B extract (S7): fallback recommendation generation.
+        # NO lock: generate_recommendation is intentionally expensive and runs
+        # outside the lock between Zone 1 and Zone 3 (preserved here).
+        fallback = apply_advice_policy(generate_recommendation(request, rag_context), policy)
+        fallback = _compact_recommendation(fallback, decision_point)
+        return fallback
+
     def evaluate(
         self,
         request: GameSituationRequest,
@@ -489,8 +503,9 @@ class AdviceScheduler:
                         game_time_gap_since_previous_advice=gap,
                     )
 
-        fallback = apply_advice_policy(generate_recommendation(request, rag_context), policy)
-        fallback = _compact_recommendation(fallback, decision_point)
+        fallback = self._evaluate_fallback_recommendation(
+            request, rag_context, policy, decision_point
+        )
 
         with self._lock:
             ux_result = apply_ux_policy(
