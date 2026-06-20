@@ -1,0 +1,109 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+backend/.venv/
+.venv/
+venv/
+.env
+.env.*
+backend/.env
+backend/.env.*
+!.env.example
+!backend/.env.example
+
+# Python packaging / PyInstaller
+backend/build/
+backend/dist/
+backend/**/*.spec~
+*.manifest
+*.log
+
+# Node / Electron
+node_modules/
+frontend/*/node_modules/
+frontend/*/dist/
+frontend/*/out/
+frontend/*/build/
+frontend/*/.vite/
+frontend/*/.cache/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Electron builder
+frontend/*/release/
+frontend/*/*.AppImage
+frontend/*/*.snap
+frontend/*/*.deb
+frontend/*/*.rpm
+frontend/*/*.exe
+frontend/*/*.dmg
+frontend/*/*.zip
+frontend/*/*.blockmap
+
+# OS/editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Runtime logs and records
+logs/
+backend/logs/
+backend/session_records/
+backend/runtime_logs/
+backend/tmp/
+tmp/
+
+# Dota replay binaries / downloaded raw data
+data/replays/
+data/opendota/
+*.dem
+*.dem.bz2
+match_*.json
+public_matches.json
+
+# Local model files
+models/
+*.gguf
+*.bin
+*.safetensors
+*.pt
+*.pth
+
+# Generated/debug outputs
+.gradle/
+backend/benchmark_results/
+backend/imported_matches/
+backend/gsi_debug_samples/
+backend/replay_tools/clarity/build/
+backend/replay_tools/clarity/dota-replay-events.jar
+
+# Generated simulation outputs
+backend/simulation_results/match_advice_simulation_*.json
+backend/simulation_results/advice_review_*.csv
+backend/simulation_results/advice_review_*.md
+backend/simulation_results/demo_session_summary_*.md
+backend/simulation_results/demo_session_summary_*.json
+backend/simulation_results/deep_review_*.md
+backend/simulation_results/deep_review_*.json
+!backend/simulation_results/replay_evaluation_summary_20260608.md
+!backend/simulation_results/replay_evaluation_summary_20260608.csv
+
+# Generated match simulations
+data/match_simulations/*.jsonl
+!data/match_simulations/replay_gsi_like_match_8843382732_pl_20_30.jsonl
+!data/match_simulations/replay_gsi_like_match_8843471434_jugg_10_20.jsonl
+
+# Local coursework export artifacts
+/coursework_artifacts/

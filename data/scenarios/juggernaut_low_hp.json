@@ -1,0 +1,11 @@
+{
+  "hero": "Juggernaut",
+  "role": "carry",
+  "minute": 22,
+  "level": 14,
+  "gold": 800,
+  "items": ["Power Treads", "Maelstrom", "Magic Wand"],
+  "hp_percent": 28,
+  "game_state": "skirmish_near_top_tier2",
+  "team_status": "all_alive"
+}

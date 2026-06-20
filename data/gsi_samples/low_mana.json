@@ -1,0 +1,45 @@
+{
+  "map": {
+    "clock_time": 1080,
+    "game_time": 1080,
+    "radiant_score": 12,
+    "dire_score": 10,
+    "game_state": "DOTA_GAMERULES_STATE_GAME_IN_PROGRESS",
+    "daytime": true,
+    "paused": false
+  },
+  "player": {
+    "gold": 1200,
+    "gold_reliable": 500,
+    "gold_unreliable": 700,
+    "kills": 2,
+    "deaths": 1,
+    "assists": 5,
+    "last_hits": 96,
+    "denies": 7,
+    "gpm": 455,
+    "xpm": 520,
+    "player_slot": 0,
+    "team_name": "radiant",
+    "team_slot": 0
+  },
+  "hero": {
+    "name": "npc_dota_hero_juggernaut",
+    "health": 1280,
+    "max_health": 1600,
+    "health_percent": 80,
+    "mana": 72,
+    "max_mana": 480,
+    "mana_percent": 15,
+    "alive": true,
+    "level": 12,
+    "xp": 9000
+  },
+  "items": {
+    "slot0": {"name": "item_power_treads"},
+    "slot1": {"name": "item_maelstrom"}
+  },
+  "abilities": {
+    "ability0": {"name": "juggernaut_blade_fury", "level": 4}
+  }
+}

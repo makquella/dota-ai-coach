@@ -1,0 +1,28 @@
+{
+  "game_state": "enemy_pressure_mid",
+  "team_status": "supports_dead",
+  "map": {
+    "clock_time": 840,
+    "game_state": "DOTA_GAMERULES_STATE_GAME_IN_PROGRESS"
+  },
+  "player": {
+    "gold": 1800
+  },
+  "hero": {
+    "name": "npc_dota_hero_antimage",
+    "level": 10,
+    "health_percent": 70,
+    "alive": true
+  },
+  "items": {
+    "slot0": {
+      "name": "item_power_treads"
+    },
+    "slot1": {
+      "name": "item_ring_of_health"
+    },
+    "slot2": {
+      "name": "item_claymore"
+    }
+  }
+}

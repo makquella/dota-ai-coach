@@ -1,0 +1,11 @@
+{
+  "hero": "Anti-Mage",
+  "role": "carry",
+  "minute": 20,
+  "level": 14,
+  "gold": 1200,
+  "items": ["Power Treads", "Battle Fury"],
+  "hp_percent": 82,
+  "game_state": "calm_safe_farming",
+  "team_status": "team_split"
+}

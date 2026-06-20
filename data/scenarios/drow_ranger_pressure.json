@@ -1,0 +1,11 @@
+{
+  "hero": "Drow Ranger",
+  "role": "carry",
+  "minute": 14,
+  "level": 10,
+  "gold": 1200,
+  "items": ["Power Treads", "Dragon Lance"],
+  "hp_percent": 76,
+  "game_state": "enemy_pressure_safe_lane",
+  "team_status": "supports_rotating_mid"
+}

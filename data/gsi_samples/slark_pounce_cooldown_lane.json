@@ -1,0 +1,59 @@
+{
+  "map": {
+    "matchid": "gsi_slark_pounce_cooldown_lane",
+    "clock_time": 360,
+    "game_time": 360,
+    "radiant_score": 3,
+    "dire_score": 3,
+    "game_state": "lane pressure near river",
+    "daytime": true,
+    "paused": false
+  },
+  "player": {
+    "gold": 740,
+    "gold_reliable": 340,
+    "gold_unreliable": 400,
+    "kills": 1,
+    "deaths": 0,
+    "assists": 0,
+    "last_hits": 21,
+    "denies": 3,
+    "gpm": 340,
+    "xpm": 330,
+    "player_slot": 1,
+    "team_name": "radiant",
+    "team_slot": 1
+  },
+  "hero": {
+    "name": "npc_dota_hero_slark",
+    "health": 620,
+    "health_percent": 62,
+    "mana": 210,
+    "mana_percent": 46,
+    "max_health": 1000,
+    "max_mana": 455,
+    "alive": true,
+    "respawn_seconds": 0,
+    "level": 5,
+    "xpos": -900,
+    "ypos": -2500,
+    "stunned": false,
+    "silenced": false,
+    "hexed": false,
+    "disarmed": false,
+    "muted": false,
+    "break": false,
+    "magicimmune": false,
+    "smoked": false,
+    "buyback_cost": 320,
+    "buyback_cooldown": 0
+  },
+  "items": {
+    "slot0": {"name": "item_orb_of_venom"},
+    "slot1": {"name": "item_magic_stick"}
+  },
+  "abilities": {
+    "ability0": {"name": "slark_pounce", "level": 1, "cooldown": 8, "can_cast": false},
+    "ability1": {"name": "slark_dark_pact", "level": 2, "cooldown": 0, "can_cast": true}
+  }
+}

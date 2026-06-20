@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Dota AI Coach Overlay</title>
+    <link rel="stylesheet" href="./styles.css">
+  </head>
+  <body class="locked">
+    <main id="overlay-root" class="overlay-root">
+      <section id="overlay-shell" class="overlay-shell status" aria-live="polite">
+        <div class="top-row">
+          <span id="label" class="label">Status</span>
+          <span id="priority" class="priority"></span>
+        </div>
+        <div id="status-row" class="status-row hidden"></div>
+        <p id="action" class="action">Waiting for backend...</p>
+        <p id="reason" class="reason"></p>
+      </section>
+    </main>
+    <script src="./app.js"></script>
+  </body>
+</html>

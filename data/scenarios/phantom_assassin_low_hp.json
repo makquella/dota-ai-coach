@@ -1,0 +1,11 @@
+{
+  "hero": "Phantom Assassin",
+  "role": "carry",
+  "minute": 9,
+  "level": 6,
+  "gold": 650,
+  "items": ["Power Treads", "Magic Wand"],
+  "hp_percent": 24,
+  "game_state": "low_hp_after_gank",
+  "team_status": "support_far"
+}

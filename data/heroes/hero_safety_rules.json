@@ -1,0 +1,132 @@
+{
+  "version": 1,
+  "heroes": {
+    "Medusa": [
+      {
+        "type": "resource_low",
+        "field": "mana_percent",
+        "threshold": 25,
+        "flag": "mana_shield_resource_low",
+        "risk": "high",
+        "reason": "Medusa is low on mana, so her effective survivability is reduced.",
+        "constraint": "avoid extended fights and reset mana"
+      }
+    ],
+    "Anti-Mage": [
+      {
+        "type": "escape_on_cooldown",
+        "ability": "Blink",
+        "flag": "blink_unavailable",
+        "risk": "high",
+        "reason": "Blink is unavailable, so committing forward is risky.",
+        "constraint": "avoid aggressive jumps until Blink is ready"
+      }
+    ],
+    "Juggernaut": [
+      {
+        "type": "defensive_ability_on_cooldown",
+        "ability": "Blade Fury",
+        "flag": "blade_fury_unavailable",
+        "risk": "medium",
+        "reason": "Blade Fury is unavailable against disables.",
+        "constraint": "avoid forcing fights into control"
+      }
+    ],
+    "Lifestealer": [
+      {
+        "type": "defensive_ability_on_cooldown",
+        "ability": "Rage",
+        "flag": "rage_unavailable",
+        "risk": "high",
+        "reason": "Rage is unavailable, so diving into control is risky.",
+        "constraint": "avoid diving until Rage is ready"
+      }
+    ],
+    "Slark": [
+      {
+        "type": "defensive_ability_on_cooldown",
+        "ability": "Dark Pact",
+        "flag": "dark_pact_unavailable",
+        "risk": "medium",
+        "reason": "Dark Pact is unavailable, so dispelling control is harder.",
+        "constraint": "avoid control-heavy fights until Dark Pact is ready"
+      },
+      {
+        "type": "escape_on_cooldown",
+        "ability": "Pounce",
+        "flag": "pounce_unavailable",
+        "risk": "high",
+        "reason": "Pounce is unavailable, so escaping a bad fight is harder.",
+        "constraint": "avoid committing forward until Pounce is ready"
+      }
+    ],
+    "Morphling": [
+      {
+        "type": "defensive_ability_on_cooldown",
+        "ability": "Attribute Shift",
+        "flag": "attribute_shift_unavailable",
+        "risk": "high",
+        "reason": "Attribute Shift is unavailable, so Morphling is easier to punish.",
+        "constraint": "avoid extended fights until Attribute Shift is ready"
+      }
+    ],
+    "Phantom Assassin": [
+      {
+        "type": "defensive_ability_on_cooldown",
+        "ability": "Blur",
+        "flag": "blur_unavailable",
+        "risk": "medium",
+        "reason": "Blur is unavailable, so map movement and fight entry are riskier.",
+        "constraint": "avoid showing in risky areas until Blur is ready"
+      }
+    ],
+    "Drow Ranger": [
+      {
+        "type": "defensive_ability_on_cooldown",
+        "ability": "Gust",
+        "flag": "gust_unavailable",
+        "risk": "medium",
+        "reason": "Gust is unavailable, so disengaging from jumps is harder.",
+        "constraint": "keep safer positioning until Gust is ready"
+      }
+    ],
+    "Luna": [
+      {
+        "type": "status_vulnerable",
+        "statuses": ["stunned", "silenced", "disarmed"],
+        "flag": "limited_escape_while_controlled",
+        "risk": "medium",
+        "reason": "Luna has limited escape when controlled.",
+        "constraint": "avoid forcing fights while controlled or exposed"
+      }
+    ],
+    "Sven": [
+      {
+        "type": "defensive_ability_on_cooldown",
+        "ability": "Warcry",
+        "flag": "warcry_unavailable",
+        "risk": "medium",
+        "reason": "Warcry is unavailable, so front-lining is riskier.",
+        "constraint": "avoid forcing fights until Warcry is ready"
+      }
+    ],
+    "Kez": [
+      {
+        "type": "escape_on_cooldown",
+        "ability": "Grappling Claw",
+        "flag": "grappling_claw_unavailable",
+        "risk": "high",
+        "reason": "Grappling Claw is unavailable, so escaping after a commit is harder.",
+        "constraint": "avoid committing forward until mobility is ready"
+      },
+      {
+        "type": "defensive_ability_on_cooldown",
+        "ability": "Raptor Dance",
+        "flag": "raptor_dance_unavailable",
+        "risk": "medium",
+        "reason": "Raptor Dance is unavailable, so extended fights are riskier.",
+        "constraint": "avoid extended fights until the defensive window is ready"
+      }
+    ]
+  }
+}

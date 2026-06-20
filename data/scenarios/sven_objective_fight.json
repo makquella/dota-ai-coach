@@ -1,0 +1,11 @@
+{
+  "hero": "Sven",
+  "role": "carry",
+  "minute": 24,
+  "level": 16,
+  "gold": 900,
+  "items": ["Power Treads", "Mask of Madness", "Black King Bar"],
+  "hp_percent": 84,
+  "game_state": "objective_fight_roshan_check",
+  "team_status": "team_grouping"
+}

@@ -1,0 +1,38 @@
+plugins {
+    id "java"
+    id "com.github.johnrengelman.shadow" version "8.1.1"
+}
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(17)
+    }
+}
+
+dependencies {
+    implementation "com.skadistats:clarity:4.0.1"
+    implementation "org.slf4j:slf4j-simple:2.0.16"
+    annotationProcessor "com.skadistats:clarity:4.0.1"
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = "UTF-8"
+}
+
+tasks.named("shadowJar") {
+    archiveFileName = "dota-replay-events.jar"
+    manifest {
+        attributes "Main-Class": "com.dotaai.replay.DotaReplayEvents"
+    }
+    mergeServiceFiles()
+}
+
+tasks.register("copyHelperJar", Copy) {
+    dependsOn tasks.named("shadowJar")
+    from tasks.named("shadowJar").flatMap { it.archiveFile }
+    into projectDir
+}
+
+tasks.named("build") {
+    finalizedBy tasks.named("copyHelperJar")
+}

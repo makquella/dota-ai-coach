@@ -1,0 +1,58 @@
+{
+  "map": {
+    "clock_time": 1320,
+    "game_time": 1320,
+    "radiant_score": 22,
+    "dire_score": 20,
+    "game_state": "objective pressure near tower",
+    "daytime": false,
+    "paused": false
+  },
+  "player": {
+    "gold": 1380,
+    "gold_reliable": 900,
+    "gold_unreliable": 480,
+    "kills": 4,
+    "deaths": 2,
+    "assists": 5,
+    "last_hits": 145,
+    "denies": 11,
+    "gpm": 505,
+    "xpm": 560,
+    "player_slot": 129,
+    "team_name": "dire",
+    "team_slot": 1
+  },
+  "hero": {
+    "name": "npc_dota_hero_life_stealer",
+    "health": 1680,
+    "health_percent": 72,
+    "mana": 390,
+    "mana_percent": 62,
+    "max_health": 2320,
+    "max_mana": 630,
+    "alive": true,
+    "respawn_seconds": 0,
+    "level": 16,
+    "xpos": 3400,
+    "ypos": 1700,
+    "stunned": false,
+    "silenced": false,
+    "hexed": false,
+    "disarmed": false,
+    "muted": false,
+    "break": false,
+    "magicimmune": false,
+    "smoked": false,
+    "buyback_cost": 980,
+    "buyback_cooldown": 0
+  },
+  "items": {
+    "slot0": {"name": "item_armlet"},
+    "slot1": {"name": "item_desolator"},
+    "slot2": {"name": "item_empty"}
+  },
+  "abilities": {
+    "ability0": {"name": "life_stealer_rage", "level": 4, "cooldown": 9, "can_cast": false}
+  }
+}

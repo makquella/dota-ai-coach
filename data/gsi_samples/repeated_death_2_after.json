@@ -1,0 +1,48 @@
+{
+  "map": {
+    "matchid": "gsi_repeated_death",
+    "clock_time": 1065,
+    "game_time": 1065,
+    "radiant_score": 13,
+    "dire_score": 16,
+    "game_state": "hero_dead",
+    "daytime": true,
+    "paused": false
+  },
+  "player": {
+    "gold": 1180,
+    "gold_reliable": 600,
+    "gold_unreliable": 580,
+    "kills": 1,
+    "deaths": 2,
+    "assists": 3,
+    "last_hits": 92,
+    "denies": 5,
+    "gpm": 385,
+    "xpm": 418,
+    "player_slot": 2,
+    "team_name": "radiant",
+    "team_slot": 2
+  },
+  "hero": {
+    "name": "npc_dota_hero_luna",
+    "health": 0,
+    "health_percent": 0,
+    "mana": 0,
+    "mana_percent": 0,
+    "max_health": 1370,
+    "max_mana": 650,
+    "alive": false,
+    "respawn_seconds": 42,
+    "level": 12,
+    "xpos": -3600,
+    "ypos": 3100,
+    "buyback_cost": 720,
+    "buyback_cooldown": 0
+  },
+  "items": {
+    "slot0": {"name": "item_power_treads"},
+    "slot1": {"name": "item_mask_of_madness"},
+    "slot2": {"name": "item_dragon_lance"}
+  }
+}

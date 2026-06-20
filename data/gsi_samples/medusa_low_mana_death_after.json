@@ -1,0 +1,47 @@
+{
+  "map": {
+    "matchid": "gsi_medusa_resource_death",
+    "clock_time": 1530,
+    "game_time": 1530,
+    "radiant_score": 25,
+    "dire_score": 23,
+    "game_state": "hero_dead",
+    "daytime": true,
+    "paused": false
+  },
+  "player": {
+    "gold": 1650,
+    "gold_reliable": 900,
+    "gold_unreliable": 750,
+    "kills": 3,
+    "deaths": 3,
+    "assists": 6,
+    "last_hits": 176,
+    "denies": 9,
+    "gpm": 505,
+    "xpm": 548,
+    "player_slot": 129,
+    "team_name": "dire",
+    "team_slot": 1
+  },
+  "hero": {
+    "name": "npc_dota_hero_medusa",
+    "health": 0,
+    "health_percent": 0,
+    "mana": 0,
+    "mana_percent": 0,
+    "max_health": 1900,
+    "max_mana": 950,
+    "alive": false,
+    "respawn_seconds": 56,
+    "level": 17,
+    "xpos": 2800,
+    "ypos": 2400,
+    "buyback_cost": 1050,
+    "buyback_cooldown": 0
+  },
+  "items": {
+    "slot0": {"name": "item_manta"},
+    "slot1": {"name": "item_skadi"}
+  }
+}

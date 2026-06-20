@@ -1,0 +1,42 @@
+{
+  "map": {
+    "clock_time": 1320,
+    "game_time": 1320,
+    "radiant_score": 18,
+    "dire_score": 17,
+    "game_state": "moving_with_team",
+    "daytime": false,
+    "paused": false
+  },
+  "player": {
+    "gold": 2100,
+    "gold_reliable": 1000,
+    "gold_unreliable": 1100,
+    "kills": 5,
+    "deaths": 2,
+    "assists": 6,
+    "last_hits": 145,
+    "denies": 8,
+    "gpm": 510,
+    "xpm": 570,
+    "player_slot": 128,
+    "team_name": "dire",
+    "team_slot": 0
+  },
+  "hero": {
+    "name": "npc_dota_hero_drow_ranger",
+    "health": 1500,
+    "max_health": 1700,
+    "health_percent": 88,
+    "mana": 620,
+    "max_mana": 760,
+    "mana_percent": 82,
+    "alive": true,
+    "level": 15,
+    "smoked": true
+  },
+  "items": {
+    "slot0": {"name": "item_power_treads"},
+    "slot1": {"name": "item_hurricane_pike"}
+  }
+}

@@ -1,0 +1,41 @@
+{
+  "map": {
+    "clock_time": 960,
+    "game_time": 960,
+    "radiant_score": 8,
+    "dire_score": 12,
+    "game_state": "calm_farming",
+    "daytime": true,
+    "paused": false
+  },
+  "player": {
+    "gold": 700,
+    "gold_reliable": 300,
+    "gold_unreliable": 400,
+    "kills": 1,
+    "deaths": 2,
+    "assists": 2,
+    "last_hits": 52,
+    "denies": 4,
+    "gpm": 340,
+    "xpm": 410,
+    "player_slot": 0,
+    "team_name": "radiant",
+    "team_slot": 0
+  },
+  "hero": {
+    "name": "npc_dota_hero_phantom_assassin",
+    "health": 1200,
+    "max_health": 1500,
+    "health_percent": 80,
+    "mana": 350,
+    "max_mana": 500,
+    "mana_percent": 70,
+    "alive": true,
+    "level": 10
+  },
+  "items": {
+    "slot0": {"name": "item_power_treads"},
+    "slot1": {"name": "item_magic_wand"}
+  }
+}

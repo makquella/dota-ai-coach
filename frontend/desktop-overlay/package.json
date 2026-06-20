@@ -1,0 +1,39 @@
+{
+  "name": "dota-ai-coach-desktop-overlay",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Desktop always-on-top overlay for the Dota AI Coach local backend.",
+  "main": "main.js",
+  "scripts": {
+    "dev": "electron .",
+    "dev:x11": "ELECTRON_ENABLE_WAYLAND=0 ELECTRON_OZONE_PLATFORM_HINT=x11 electron . --ozone-platform=x11",
+    "start": "electron .",
+    "pack": "electron-builder --dir",
+    "dist:unpacked": "electron-builder --dir",
+    "dist": "electron-builder --win portable"
+  },
+  "devDependencies": {
+    "electron": "42.4.0",
+    "electron-builder": "26.15.2"
+  },
+  "build": {
+    "appId": "com.dotaai.coach.overlay",
+    "productName": "Dota AI Coach Overlay",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "overlay.config.json",
+      "renderer/**/*",
+      "package.json"
+    ],
+    "win": {
+      "target": [
+        "portable"
+      ],
+      "artifactName": "Dota AI Coach Overlay-${version}-portable.${ext}"
+    }
+  }
+}

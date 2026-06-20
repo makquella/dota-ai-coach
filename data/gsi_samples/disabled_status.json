@@ -1,0 +1,48 @@
+{
+  "map": {
+    "clock_time": 1500,
+    "game_time": 1500,
+    "radiant_score": 22,
+    "dire_score": 20,
+    "game_state": "teamfight_near_tower",
+    "daytime": false,
+    "paused": false
+  },
+  "player": {
+    "gold": 900,
+    "gold_reliable": 300,
+    "gold_unreliable": 600,
+    "kills": 4,
+    "deaths": 3,
+    "assists": 7,
+    "last_hits": 150,
+    "denies": 10,
+    "gpm": 470,
+    "xpm": 560,
+    "player_slot": 128,
+    "team_name": "dire",
+    "team_slot": 0
+  },
+  "hero": {
+    "name": "npc_dota_hero_luna",
+    "health": 920,
+    "max_health": 1800,
+    "health_percent": 51,
+    "mana": 380,
+    "max_mana": 780,
+    "mana_percent": 48,
+    "alive": true,
+    "level": 16,
+    "stunned": true,
+    "silenced": false,
+    "hexed": false,
+    "disarmed": false,
+    "muted": false,
+    "break": false,
+    "magicimmune": false
+  },
+  "items": {
+    "slot0": {"name": "item_power_treads"},
+    "slot1": {"name": "item_manta"}
+  }
+}

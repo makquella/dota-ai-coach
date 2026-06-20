@@ -1,0 +1,58 @@
+{
+  "map": {
+    "matchid": "gsi_juggernaut_low_lh_min5",
+    "clock_time": 300,
+    "game_time": 300,
+    "radiant_score": 1,
+    "dire_score": 1,
+    "game_state": "lane",
+    "daytime": false,
+    "paused": false
+  },
+  "player": {
+    "gold": 470,
+    "gold_reliable": 250,
+    "gold_unreliable": 220,
+    "kills": 0,
+    "deaths": 0,
+    "assists": 0,
+    "last_hits": 8,
+    "denies": 1,
+    "gpm": 250,
+    "xpm": 260,
+    "player_slot": 1,
+    "team_name": "radiant",
+    "team_slot": 1
+  },
+  "hero": {
+    "name": "npc_dota_hero_juggernaut",
+    "health": 820,
+    "health_percent": 78,
+    "mana": 315,
+    "mana_percent": 60,
+    "max_health": 1050,
+    "max_mana": 525,
+    "alive": true,
+    "respawn_seconds": 0,
+    "level": 5,
+    "xpos": -1050,
+    "ypos": -3000,
+    "stunned": false,
+    "silenced": false,
+    "hexed": false,
+    "disarmed": false,
+    "muted": false,
+    "break": false,
+    "magicimmune": false,
+    "smoked": false,
+    "buyback_cost": 310,
+    "buyback_cooldown": 0
+  },
+  "items": {
+    "slot0": {"name": "item_quelling_blade"},
+    "slot1": {"name": "item_boots"}
+  },
+  "abilities": {
+    "ability0": {"name": "juggernaut_blade_fury", "level": 2, "cooldown": 0, "can_cast": true}
+  }
+}

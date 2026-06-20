@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Dota 2 Coach</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <main class="shell">
+      <header class="topbar">
+        <div>
+          <p class="eyebrow">Live GSI Tool</p>
+          <h1>Dota 2 Coach</h1>
+        </div>
+        <div class="status-grid" aria-label="Launcher status">
+          <span class="chip" id="backend-status">Backend: unknown</span>
+          <span class="chip" id="overlay-status">Overlay: unknown</span>
+          <span class="chip" id="demo-status">Demo: stopped</span>
+          <span class="chip" id="recording-status">Recording: stopped</span>
+          <span class="chip" id="gsi-status">GSI config: unknown</span>
+          <span class="chip" id="mode-status">Mode: Live GSI</span>
+          <span class="chip" id="llm-status">LLM: off</span>
+        </div>
+      </header>
+
+      <section class="panel">
+        <h2>Main controls</h2>
+        <div class="button-grid">
+          <button id="start-backend">Start Backend</button>
+          <button id="stop-backend" class="secondary">Stop Backend</button>
+          <button id="start-overlay">Start Overlay</button>
+          <button id="stop-overlay" class="secondary">Stop Overlay</button>
+          <button id="install-gsi">Install / Check Dota GSI</button>
+          <button id="run-demo">Run Demo Replay</button>
+          <button id="stop-demo" class="secondary">Stop Demo</button>
+          <button id="open-logs" class="secondary">Open Logs</button>
+        </div>
+      </section>
+
+      <section class="panel">
+        <h2>GSI config</h2>
+        <div class="path-row">
+          <input id="gsi-path" type="text" placeholder="Optional gamestate_integration folder path" />
+          <button id="choose-gsi" class="secondary">Choose Folder</button>
+          <button id="check-gsi" class="secondary">Check</button>
+        </div>
+        <p class="hint" id="gsi-detail">Default endpoint: http://127.0.0.1:8000/gsi</p>
+      </section>
+
+      <section class="panel">
+        <h2>Live GSI status</h2>
+        <div class="live-grid">
+          <span id="live-connection" class="chip">GSI: waiting</span>
+          <span id="live-last" class="chip">Last GSI: n/a</span>
+          <span id="live-hero" class="chip">Hero: unknown</span>
+          <span id="live-time" class="chip">Game time: unknown</span>
+          <span id="live-stage" class="chip">Stage: unknown</span>
+        </div>
+        <p class="hint" id="live-advice">Current advice: unknown</p>
+        <p class="hint" id="live-missing">Missing important fields: unknown</p>
+        <div class="button-grid live-actions">
+          <button id="check-live-gsi">Check Live GSI</button>
+          <button id="start-recording">Start Live Recording</button>
+          <button id="stop-recording" class="secondary">Stop Live Recording</button>
+          <button id="open-records" class="secondary">Open session_records folder</button>
+        </div>
+      </section>
+
+      <section class="panel">
+        <h2>Advanced presets</h2>
+        <div class="button-grid advanced">
+          <button id="preset-pl">Demo: Phantom Lancer 20-30 macro</button>
+          <button id="preset-jugg">Demo: Juggernaut 10-20 safety</button>
+          <button id="deep-review">Run Deep Replay Review</button>
+          <button id="open-results" class="secondary">Open simulation_results folder</button>
+          <button id="open-readme" class="secondary">Open README</button>
+        </div>
+      </section>
+
+      <section class="panel logs-panel">
+        <div class="logs-header">
+          <h2>Logs</h2>
+          <div class="logs-actions">
+            <button id="log-clean" class="secondary small active">Clean logs</button>
+            <button id="log-verbose" class="secondary small">Verbose logs</button>
+            <button id="copy-logs" class="secondary small">Copy logs</button>
+            <button id="clear-logs" class="secondary small">Clear logs</button>
+          </div>
+        </div>
+        <pre id="logs" aria-live="polite"></pre>
+      </section>
+    </main>
+    <script src="./app.js"></script>
+  </body>
+</html>

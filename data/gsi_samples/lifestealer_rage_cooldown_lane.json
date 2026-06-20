@@ -1,0 +1,58 @@
+{
+  "map": {
+    "matchid": "gsi_lifestealer_rage_cooldown_lane",
+    "clock_time": 300,
+    "game_time": 300,
+    "radiant_score": 2,
+    "dire_score": 3,
+    "game_state": "enemy pressure in lane",
+    "daytime": true,
+    "paused": false
+  },
+  "player": {
+    "gold": 690,
+    "gold_reliable": 310,
+    "gold_unreliable": 380,
+    "kills": 0,
+    "deaths": 0,
+    "assists": 0,
+    "last_hits": 19,
+    "denies": 1,
+    "gpm": 320,
+    "xpm": 295,
+    "player_slot": 1,
+    "team_name": "radiant",
+    "team_slot": 1
+  },
+  "hero": {
+    "name": "npc_dota_hero_life_stealer",
+    "health": 660,
+    "health_percent": 66,
+    "mana": 180,
+    "mana_percent": 48,
+    "max_health": 1000,
+    "max_mana": 375,
+    "alive": true,
+    "respawn_seconds": 0,
+    "level": 5,
+    "xpos": -1250,
+    "ypos": -3100,
+    "stunned": false,
+    "silenced": false,
+    "hexed": false,
+    "disarmed": false,
+    "muted": false,
+    "break": false,
+    "magicimmune": false,
+    "smoked": false,
+    "buyback_cost": 300,
+    "buyback_cooldown": 0
+  },
+  "items": {
+    "slot0": {"name": "item_quelling_blade"},
+    "slot1": {"name": "item_magic_stick"}
+  },
+  "abilities": {
+    "ability0": {"name": "life_stealer_rage", "level": 2, "cooldown": 9, "can_cast": false}
+  }
+}

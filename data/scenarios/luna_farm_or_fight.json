@@ -1,0 +1,11 @@
+{
+  "hero": "Luna",
+  "role": "carry",
+  "minute": 27,
+  "level": 16,
+  "gold": 3200,
+  "items": ["Power Treads", "Manta Style", "Helm of the Dominator"],
+  "hp_percent": 85,
+  "game_state": "team_fight_breaking_out_bot",
+  "team_status": "full_team_alive"
+}

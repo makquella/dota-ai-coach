@@ -1,0 +1,143 @@
+"""
+schemas.py — Pydantic models for request and response validation.
+"""
+
+from typing import Any, Literal
+from pydantic import BaseModel, Field, field_validator
+
+
+SUPPORTED_HEROES = (
+    "Anti-Mage",
+    "Drow Ranger",
+    "Ember Spirit",
+    "Gyrocopter",
+    "Juggernaut",
+    "Kez",
+    "Lifestealer",
+    "Luna",
+    "Medusa",
+    "Monkey King",
+    "Morphling",
+    "Muerta",
+    "Naga Siren",
+    "Phantom Assassin",
+    "Phantom Lancer",
+    "Slark",
+    "Sniper",
+    "Spectre",
+    "Sven",
+    "Terrorblade",
+    "Ursa",
+)
+_SUPPORTED_HERO_LOOKUP = {hero.lower(): hero for hero in SUPPORTED_HEROES}
+_SUPPORTED_HERO_LOOKUP.update(
+    {
+        "npc_dota_hero_antimage": "Anti-Mage",
+        "anti mage": "Anti-Mage",
+        "npc_dota_hero_drow_ranger": "Drow Ranger",
+        "drow": "Drow Ranger",
+        "npc_dota_hero_gyrocopter": "Gyrocopter",
+        "gyro": "Gyrocopter",
+        "npc_dota_hero_juggernaut": "Juggernaut",
+        "npc_dota_hero_kez": "Kez",
+        "npc_dota_hero_life_stealer": "Lifestealer",
+        "life stealer": "Lifestealer",
+        "npc_dota_hero_luna": "Luna",
+        "npc_dota_hero_medusa": "Medusa",
+        "npc_dota_hero_monkey_king": "Monkey King",
+        "mk": "Monkey King",
+        "npc_dota_hero_morphling": "Morphling",
+        "npc_dota_hero_muerta": "Muerta",
+        "npc_dota_hero_naga_siren": "Naga Siren",
+        "naga": "Naga Siren",
+        "npc_dota_hero_phantom_assassin": "Phantom Assassin",
+        "pa": "Phantom Assassin",
+        "npc_dota_hero_phantom_lancer": "Phantom Lancer",
+        "pl": "Phantom Lancer",
+        "npc_dota_hero_slark": "Slark",
+        "npc_dota_hero_sniper": "Sniper",
+        "npc_dota_hero_spectre": "Spectre",
+        "npc_dota_hero_sven": "Sven",
+        "npc_dota_hero_terrorblade": "Terrorblade",
+        "tb": "Terrorblade",
+        "npc_dota_hero_ursa": "Ursa",
+        "npc_dota_hero_ember_spirit": "Ember Spirit",
+        "ember": "Ember Spirit",
+    }
+)
+
+
+def is_supported_hero(value: str) -> bool:
+    return _SUPPORTED_HERO_LOOKUP.get(value.strip().lower()) is not None
+
+
+class GameSituationRequest(BaseModel):
+    hero: str = Field(..., min_length=1, description="Hero name, e.g. 'Anti-Mage'")
+    role: Literal["carry"] = Field(..., description="Only 'carry' is supported in MVP-1")
+    minute: int = Field(..., ge=0, le=90, description="Current game minute (0–90)")
+    level: int = Field(..., ge=1, le=30, description="Hero level (1–30)")
+    gold: int = Field(..., ge=0, description="Current gold amount")
+    items: list[str] = Field(..., description="List of item names the hero currently owns")
+    hp_percent: int = Field(..., ge=0, le=100, description="Current HP as a percentage (0–100)")
+    game_state: str = Field(..., min_length=1, description="Short description of the current game state")
+    team_status: str = Field(..., min_length=1, description="Short description of teammate situation")
+    event_context: str = Field("", description="Optional simulation/import context for review")
+    near_player_death: bool = Field(False, description="Simulation hint: player death nearby")
+    near_teamfight: bool = Field(False, description="Simulation hint: teamfight nearby")
+    near_objective: bool = Field(False, description="Simulation hint: objective event nearby")
+    selected_team: str = Field("unknown", description="Simulation hint: selected player's team")
+    teamfight_result: str = Field("unknown", description="Simulation hint: nearby teamfight result")
+    allied_deaths_in_fight: int = Field(0, ge=0, description="Simulation hint: allied deaths in nearby teamfight")
+    enemy_deaths_in_fight: int = Field(0, ge=0, description="Simulation hint: enemy deaths in nearby teamfight")
+    recent_allied_deaths: int = Field(0, ge=0, description="Simulation hint: allied deaths near timestamp")
+    recent_enemy_deaths: int = Field(0, ge=0, description="Simulation hint: enemy deaths near timestamp")
+    selected_player_death_nearby: bool = Field(False, description="Simulation hint: selected player death nearby")
+    selected_player_in_teamfight: bool = Field(False, description="Simulation hint: selected player participated in nearby teamfight")
+    teamfight_start: int | None = Field(None, description="Simulation hint: nearby teamfight start time")
+    teamfight_end: int | None = Field(None, description="Simulation hint: nearby teamfight end time")
+    objective_type: str | None = Field(None, description="Simulation hint: nearby objective type")
+    objective_team: str | None = Field(None, description="Simulation hint: team that secured nearby objective")
+    objective_for_selected_team: bool | None = Field(None, description="Simulation hint: objective helped selected player's team")
+    objective_context: str = Field("unknown", description="Simulation hint: nearby objective context")
+    recent_item_purchase: str | None = Field(None, description="Simulation hint: recent meaningful item timing")
+    item_timing_category: str | None = Field(None, description="Simulation hint: item timing category")
+    gold_delta: int = Field(0, description="Simulation hint: gold gained since previous interval")
+    lh_delta: int = Field(0, description="Simulation hint: last hits gained since previous interval")
+    farm_rate_state: Literal["good", "slow", "unknown"] = Field(
+        "unknown",
+        description="Simulation hint: farm pace for this interval",
+    )
+    extra_context: dict[str, Any] = Field(
+        default_factory=dict,
+        description="Optional live GSI-only fields that do not belong to the public MVP schema",
+    )
+
+    @field_validator("hero")
+    @classmethod
+    def validate_supported_hero(cls, value: str) -> str:
+        hero = value.strip()
+        supported_hero = _SUPPORTED_HERO_LOOKUP.get(hero.lower())
+        if supported_hero is None:
+            supported = ", ".join(SUPPORTED_HEROES)
+            raise ValueError(f"Unsupported hero '{value}'. Supported heroes: {supported}.")
+        return supported_hero
+
+    @field_validator("items")
+    @classmethod
+    def validate_items(cls, value: list[str]) -> list[str]:
+        cleaned_items: list[str] = []
+        for item in value:
+            cleaned_item = item.strip()
+            if not cleaned_item:
+                raise ValueError("Items must not contain empty strings.")
+            cleaned_items.append(cleaned_item)
+        return cleaned_items
+
+
+class RecommendationResponse(BaseModel):
+    action: str
+    reason: str
+    risk: str
+    priority: Literal["low", "medium", "high"]
+    time_window: str
+    source: Literal["fallback", "llm"] = "fallback"

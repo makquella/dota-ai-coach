@@ -1,0 +1,12 @@
+flowchart LR
+    A[Dota 2 GSI] --> B[FastAPI backend]
+    C[GSI-like replay demo] --> B
+    B --> D[State normalizer]
+    D --> E[Decision points]
+    E --> F[Rule-based recommender]
+    F --> G[Advice scheduler]
+    G --> H[Electron overlay]
+    G --> I[Electron launcher]
+    G --> J[Session recorder]
+    G --> K[Coach summary]
+    F -. optional wording/review .-> L[LLM provider]

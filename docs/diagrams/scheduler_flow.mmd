@@ -1,0 +1,15 @@
+flowchart TD
+    A[Incoming normalized state] --> B[Urgent safety checks]
+    B --> C{Urgent or death?}
+    C -- yes --> D[Episode and pinning rules]
+    C -- no --> E[Duplicate suppression]
+    E --> F[Game-time spacing]
+    F --> G{Long silence?}
+    G -- yes --> H[Heartbeat nudge]
+    G -- no --> I[No new advice]
+    D --> J[Final advice]
+    E --> K{Suppressed?}
+    K -- yes --> I
+    K -- no --> F
+    H --> J
+    J --> L[Overlay response]

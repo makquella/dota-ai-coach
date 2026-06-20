@@ -1,0 +1,48 @@
+{
+  "map": {
+    "clock_time": 2280,
+    "game_time": 2280,
+    "radiant_score": 34,
+    "dire_score": 36,
+    "game_state": "highground_defense",
+    "daytime": true,
+    "paused": false
+  },
+  "player": {
+    "gold": 1800,
+    "gold_reliable": 900,
+    "gold_unreliable": 900,
+    "kills": 6,
+    "deaths": 5,
+    "assists": 12,
+    "last_hits": 255,
+    "denies": 12,
+    "gpm": 520,
+    "xpm": 610,
+    "player_slot": 0,
+    "team_name": "radiant",
+    "team_slot": 0
+  },
+  "hero": {
+    "name": "npc_dota_hero_antimage",
+    "health": 0,
+    "max_health": 2200,
+    "health_percent": 0,
+    "mana": 0,
+    "max_mana": 900,
+    "mana_percent": 0,
+    "alive": false,
+    "respawn_seconds": 55,
+    "level": 24,
+    "buyback_cost": 1600,
+    "buyback_cooldown": 0
+  },
+  "items": {
+    "slot0": {"name": "item_power_treads"},
+    "slot1": {"name": "item_bfury"},
+    "slot2": {"name": "item_manta"}
+  },
+  "buildings": {
+    "radiant_tower4_top": {"health": 1200}
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "hero": "Anti-Mage",
+  "role": "carry",
+  "minute": 14,
+  "level": 10,
+  "gold": 1800,
+  "items": ["Power Treads", "Ring of Health", "Claymore"],
+  "hp_percent": 70,
+  "game_state": "enemy_pressure_mid",
+  "team_status": "supports_dead"
+}

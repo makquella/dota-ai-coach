@@ -1,0 +1,204 @@
+:root {
+  color-scheme: dark;
+  --hud-bg: rgba(11, 12, 14, 0.65);
+  --hud-status-bg: rgba(11, 12, 14, 0.5);
+  --border: rgba(255, 255, 255, 0.08);
+  --text: #ffffff;
+  --reason: #e0e0e0;
+  --muted: #9ca3af;
+  --soft: rgba(255, 255, 255, 0.08);
+  --cyan: #00f0ff;
+  --purple: #6a1b9a;
+  --safe: #a3cf62;
+  --warning: #ff9800;
+  --danger: #ff3b30;
+  --stripe: var(--cyan);
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  overflow: hidden;
+  background: transparent;
+}
+
+body:not(.locked) .overlay-shell {
+  -webkit-app-region: drag;
+  cursor: move;
+}
+
+.overlay-root {
+  width: 100%;
+  height: 100%;
+  padding: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.overlay-shell {
+  position: relative;
+  width: 100%;
+  min-height: 84px;
+  max-height: 124px;
+  padding: 11px 13px 11px 16px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: var(--hud-bg);
+  color: var(--text);
+  opacity: 1;
+  overflow: hidden;
+  transform: translateY(0);
+  transition: opacity 160ms ease, transform 160ms ease, border-color 160ms ease, background 160ms ease;
+  backdrop-filter: blur(8px);
+  box-shadow: 0 0 12px rgba(0, 240, 255, 0.08);
+}
+
+.overlay-shell::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 3px;
+  background: var(--stripe);
+}
+
+.overlay-shell.hidden {
+  opacity: 0;
+  transform: translateY(5px);
+}
+
+.overlay-shell.status {
+  --stripe: var(--cyan);
+  min-height: 46px;
+  max-height: 70px;
+  background: var(--hud-status-bg);
+}
+
+.overlay-shell.coaching {
+  --stripe: var(--cyan);
+  border-color: rgba(0, 240, 255, 0.16);
+}
+
+.overlay-shell.urgent,
+.overlay-shell.priority-high {
+  --stripe: var(--danger);
+  border-color: rgba(255, 59, 48, 0.38);
+}
+
+.overlay-shell.priority-medium {
+  --stripe: var(--warning);
+  border-color: rgba(255, 152, 0, 0.28);
+}
+
+.overlay-shell.priority-low,
+.overlay-shell.priority-safe {
+  --stripe: var(--safe);
+  border-color: rgba(163, 207, 98, 0.24);
+}
+
+.top-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 5px;
+}
+
+.label,
+.priority {
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 1.2;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.urgent .label,
+.urgent .priority,
+.priority-high .label,
+.priority-high .priority {
+  color: var(--danger);
+}
+
+.priority-medium .label,
+.priority-medium .priority {
+  color: var(--warning);
+}
+
+.priority-low .label,
+.priority-safe .label,
+.priority-low .priority,
+.priority-safe .priority {
+  color: var(--safe);
+}
+
+.coaching:not(.priority-high):not(.priority-medium):not(.priority-low):not(.priority-safe) .label {
+  color: var(--cyan);
+}
+
+.action {
+  margin: 0;
+  color: var(--text);
+  font-size: 17px;
+  font-weight: 800;
+  line-height: 1.2;
+  letter-spacing: 0;
+  overflow-wrap: anywhere;
+}
+
+.status .action {
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.reason {
+  margin: 6px 0 0;
+  color: var(--reason);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+
+.status .reason {
+  display: none;
+}
+
+.status-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin: 0 0 6px;
+}
+
+.debug-hidden .status-row {
+  display: none;
+}
+
+.status-chip {
+  max-width: 132px;
+  padding: 2px 5px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 999px;
+  background: var(--soft);
+  color: var(--muted);
+  font-size: 9px;
+  font-weight: 800;
+  line-height: 1.25;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.hidden {
+  display: none;
+}

@@ -1,0 +1,7 @@
+scenario,hero,match_id,time_window,stage,duration_minutes,states_processed,high_confidence_states,low_confidence_states,advice_shown,advice_per_minute,urgent_advice_count,coaching_advice_count,repeated_laning_suppressed_count,repeated_post_laning_suppressed_count,repeated_objective_suppressed_count,low_hp_episode_count,repeated_low_hp_suppressed_count,low_hp_pattern_advice_count,llm_applied_count,llm_invalid_count,average_latency,p95_latency,fits_duration_target
+Phantom Lancer laning replay,Phantom Lancer,8843382732,0-10,laning / bad-lane recovery,10.0,601,498,103,8,0.8,3,5,57,0,0,3,90,1,4,0,2.420s,2.573s,yes
+Phantom Lancer post-laning replay,Phantom Lancer,8843382732,10-20,post-laning / early recovery,10.0,601,601,0,8,0.8,3,4,0,249,66,3,0,0,0,0,0.000s,0.000s,yes
+Phantom Lancer macro farming replay,Phantom Lancer,8843382732,20-30,macro / post-laning farming,10.0,601,601,0,8,0.8,1,7,0,279,20,1,0,0,0,0,0.000s,0.000s,yes
+Juggernaut laning replay,Juggernaut,8843471434,0-10,laning / farm deficit and pressure,10.0,601,469,132,5,0.5,0,5,98,0,0,0,0,0,0,0,0.000s,0.000s,yes
+Juggernaut noisy post-laning replay,Juggernaut,8843471434,10-20,post-laning / noisy safety recovery,10.0,601,601,0,8,0.8,3,5,0,239,55,4,28,1,0,0,0.000s,0.000s,yes
+Juggernaut macro farming replay,Juggernaut,8843471434,20-30,macro / post-laning farming,10.0,601,601,0,6,0.6,0,5,0,261,70,0,0,0,0,0,0.000s,0.000s,yes

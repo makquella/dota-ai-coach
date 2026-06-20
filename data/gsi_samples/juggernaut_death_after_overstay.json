@@ -1,0 +1,54 @@
+{
+  "map": {
+    "matchid": "gsi_juggernaut_live_lane_test",
+    "clock_time": 135,
+    "game_time": 135,
+    "radiant_score": 0,
+    "dire_score": 1,
+    "game_state": "dead after overstaying lane",
+    "daytime": true,
+    "paused": false
+  },
+  "player": {
+    "gold": 260,
+    "gold_reliable": 120,
+    "gold_unreliable": 140,
+    "kills": 0,
+    "deaths": 1,
+    "assists": 0,
+    "last_hits": 9,
+    "denies": 1,
+    "gpm": 260,
+    "xpm": 240,
+    "player_slot": 1,
+    "team_name": "radiant",
+    "team_slot": 1
+  },
+  "hero": {
+    "name": "npc_dota_hero_juggernaut",
+    "health": 0,
+    "health_percent": 0,
+    "mana": 210,
+    "mana_percent": 43,
+    "max_health": 1000,
+    "max_mana": 490,
+    "alive": false,
+    "respawn_seconds": 18,
+    "level": 3,
+    "stunned": false,
+    "silenced": false,
+    "hexed": false,
+    "disarmed": false,
+    "muted": false,
+    "break": false,
+    "magicimmune": false,
+    "smoked": false
+  },
+  "items": {
+    "slot0": {"name": "item_quelling_blade"},
+    "slot1": {"name": "item_tango"}
+  },
+  "abilities": {
+    "ability0": {"name": "juggernaut_blade_fury", "level": 1, "cooldown": 0, "can_cast": false}
+  }
+}

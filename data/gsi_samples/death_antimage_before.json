@@ -1,0 +1,58 @@
+{
+  "map": {
+    "matchid": "gsi_death_antimage",
+    "clock_time": 1120,
+    "game_time": 1120,
+    "radiant_score": 18,
+    "dire_score": 17,
+    "game_state": "calm_farming",
+    "daytime": true,
+    "paused": false
+  },
+  "player": {
+    "gold": 1320,
+    "gold_reliable": 800,
+    "gold_unreliable": 520,
+    "kills": 2,
+    "deaths": 1,
+    "assists": 3,
+    "last_hits": 124,
+    "denies": 8,
+    "gpm": 510,
+    "xpm": 500,
+    "player_slot": 1,
+    "team_name": "radiant",
+    "team_slot": 1
+  },
+  "hero": {
+    "name": "npc_dota_hero_antimage",
+    "health": 980,
+    "health_percent": 58,
+    "mana": 350,
+    "mana_percent": 52,
+    "max_health": 1690,
+    "max_mana": 670,
+    "alive": true,
+    "respawn_seconds": 0,
+    "level": 14,
+    "xpos": 3400,
+    "ypos": -2900,
+    "stunned": false,
+    "silenced": false,
+    "hexed": false,
+    "disarmed": false,
+    "muted": false,
+    "break": false,
+    "magicimmune": false,
+    "smoked": false,
+    "buyback_cost": 820,
+    "buyback_cooldown": 0
+  },
+  "items": {
+    "slot0": {"name": "item_bfury"},
+    "slot1": {"name": "item_power_treads"}
+  },
+  "abilities": {
+    "ability0": {"name": "antimage_blink", "level": 4, "cooldown": 8, "can_cast": false}
+  }
+}

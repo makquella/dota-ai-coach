@@ -1,0 +1,22 @@
+{
+  "game_state": "danger_low_hp",
+  "team_status": "unknown",
+  "map": {
+    "clock_time": 500,
+    "game_state": "DOTA_GAMERULES_STATE_GAME_IN_PROGRESS"
+  },
+  "player": {
+    "gold": 1000
+  },
+  "hero": {
+    "name": "npc_dota_hero_batman",
+    "level": 8,
+    "health_percent": 20,
+    "alive": true
+  },
+  "items": {
+    "slot0": {
+      "name": "item_power_treads"
+    }
+  }
+}

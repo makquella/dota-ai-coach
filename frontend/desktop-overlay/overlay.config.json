@@ -1,0 +1,14 @@
+{
+  "backendUrl": "http://127.0.0.1:8000",
+  "pollIntervalMs": 1000,
+  "positionPreset": "custom",
+  "locked": true,
+  "debugVisible": false,
+  "opacity": 0.92,
+  "autoHideMs": 8000,
+  "urgentAutoHideMs": 12000,
+  "customBounds": {
+    "x": 28,
+    "y": 28
+  }
+}

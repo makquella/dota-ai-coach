@@ -1,0 +1,10 @@
+flowchart TD
+    A[Dota 2] --> B[GSI config]
+    B --> C[POST /gsi]
+    C --> D[FastAPI backend]
+    D --> E[Normalize live state]
+    E --> F[Hero profile and signal capabilities]
+    F --> G[Recommender and scheduler]
+    G --> H[GET /overlay/recommendation]
+    H --> I[Desktop overlay]
+    G --> J[Live session recorder]
