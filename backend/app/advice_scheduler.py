@@ -287,6 +287,84 @@ class AdviceScheduler:
         fallback = _compact_recommendation(fallback, decision_point)
         return fallback
 
+    def _evaluate_record_advice_locked(
+        self,
+        current_time: datetime,
+        decision_point: str,
+        fallback: RecommendationResponse,
+        game_time_seconds: float,
+        laning_category: str,
+        post_laning_category: str,
+        state: dict[str, Any],
+        state_hash: str,
+        tactical_hash: str,
+        ux_result: dict[str, Any],
+    ) -> tuple[bool, int, float | None]:
+        # Phase 4B extract (S11): final advice recording. Runs under the evaluate
+        # lock (Zone 3 tail, after all gating). Increments counters, records shown
+        # timing, mutates last-advice state, appends history, runs laning/post-laning/
+        # safety recorders, and computes should_refine/next_allowed/gap. Returns
+        # (should_refine, next_allowed, gap); gap is consumed by the finalize step.
+        # Side-effect order is preserved verbatim.
+        self.state.advice_count += 1
+        self.state.fallback_count += 1
+        shown_category = post_laning_category or laning_category or decision_point
+        if _is_heartbeat_recommendation(fallback):
+            self.state.heartbeat_nudge_count += 1
+        gap = self._record_shown_advice_timing_locked(
+            decision_point=decision_point,
+            state=state,
+            recommendation=fallback,
+            category=shown_category,
+            game_time_seconds=game_time_seconds,
+        )
+        self.state.last_advice_at = current_time
+        self.state.last_advice_type = decision_point
+        self.state._last_advice_state_hash = state_hash
+        self.state._last_advice_tactical_state_hash = tactical_hash
+        self.state._last_recommendation = fallback
+        self.state._last_source = "fallback"
+        self.state._last_llm_used = False
+        self.state._last_advice_mode = ux_result["advice_mode"]
+        self.state._last_updated = current_time.isoformat()
+        self._set_active_advice_locked(decision_point, state, current_time)
+        self.state._advice_history.append(
+            {
+                "timestamp": self.state._last_updated,
+                "decision_point": decision_point,
+                "source": "fallback",
+                "action": fallback.action,
+                "action_type": ux_result["action_type"],
+                "laning_category": laning_category or "",
+                "post_laning_category": post_laning_category or "",
+                "game_time_gap_since_previous_advice": gap,
+            }
+        )
+        self._record_laning_advice_locked(
+            decision_point=decision_point,
+            state=state,
+            recommendation=fallback,
+            now=current_time,
+            game_time_seconds=game_time_seconds,
+        )
+        self._record_post_laning_advice_locked(
+            decision_point=decision_point,
+            state=state,
+            recommendation=fallback,
+            now=current_time,
+            game_time_seconds=game_time_seconds,
+        )
+        self._record_safety_advice_locked(
+            decision_point=decision_point,
+            state=state,
+            post_laning_category=post_laning_category,
+            now=current_time,
+            game_time_seconds=game_time_seconds,
+        )
+        should_refine = self._should_start_llm_locked(decision_point, tactical_hash)
+        next_allowed = self._cooldown_for_type_locked(decision_point)
+        return should_refine, next_allowed, gap
+
     def evaluate(
         self,
         request: GameSituationRequest,
@@ -664,63 +742,18 @@ class AdviceScheduler:
                     suppressed_by_game_time_spacing=True,
                 )
 
-            self.state.advice_count += 1
-            self.state.fallback_count += 1
-            shown_category = post_laning_category or laning_category or decision_point
-            if _is_heartbeat_recommendation(fallback):
-                self.state.heartbeat_nudge_count += 1
-            gap = self._record_shown_advice_timing_locked(
+            should_refine, next_allowed, gap = self._evaluate_record_advice_locked(
+                current_time=current_time,
                 decision_point=decision_point,
-                state=state,
-                recommendation=fallback,
-                category=shown_category,
+                fallback=fallback,
                 game_time_seconds=game_time_seconds,
-            )
-            self.state.last_advice_at = current_time
-            self.state.last_advice_type = decision_point
-            self.state._last_advice_state_hash = state_hash
-            self.state._last_advice_tactical_state_hash = tactical_hash
-            self.state._last_recommendation = fallback
-            self.state._last_source = "fallback"
-            self.state._last_llm_used = False
-            self.state._last_advice_mode = ux_result["advice_mode"]
-            self.state._last_updated = current_time.isoformat()
-            self._set_active_advice_locked(decision_point, state, current_time)
-            self.state._advice_history.append(
-                {
-                    "timestamp": self.state._last_updated,
-                    "decision_point": decision_point,
-                    "source": "fallback",
-                    "action": fallback.action,
-                    "action_type": ux_result["action_type"],
-                    "laning_category": laning_category or "",
-                    "post_laning_category": post_laning_category or "",
-                    "game_time_gap_since_previous_advice": gap,
-                }
-            )
-            self._record_laning_advice_locked(
-                decision_point=decision_point,
-                state=state,
-                recommendation=fallback,
-                now=current_time,
-                game_time_seconds=game_time_seconds,
-            )
-            self._record_post_laning_advice_locked(
-                decision_point=decision_point,
-                state=state,
-                recommendation=fallback,
-                now=current_time,
-                game_time_seconds=game_time_seconds,
-            )
-            self._record_safety_advice_locked(
-                decision_point=decision_point,
-                state=state,
+                laning_category=laning_category,
                 post_laning_category=post_laning_category,
-                now=current_time,
-                game_time_seconds=game_time_seconds,
+                state=state,
+                state_hash=state_hash,
+                tactical_hash=tactical_hash,
+                ux_result=ux_result,
             )
-            should_refine = self._should_start_llm_locked(decision_point, tactical_hash)
-            next_allowed = self._cooldown_for_type_locked(decision_point)
 
         if should_refine:
             self._start_llm_refinement(tactical_hash, request, decision_point, rag_context)
