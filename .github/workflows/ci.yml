@@ -1,0 +1,68 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  backend:
+    name: Backend (ruff, mypy, pytest)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: backend/requirements-dev.txt
+
+      - name: Install dependencies
+        run: pip install -r requirements-dev.txt
+
+      - name: Lint (ruff check)
+        run: ruff check .
+
+      - name: Format check (ruff format)
+        run: ruff format --check .
+
+      # Soft start: mypy reports issues but does not fail the job yet.
+      - name: Type check (mypy, non-blocking)
+        run: mypy app || true
+
+      - name: Tests (pytest)
+        run: pytest -q
+
+      - name: Byte-compile (compileall)
+        run: python -m compileall -q app scripts packaging tests
+
+  frontend:
+    name: Frontend (node --check)
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Syntax check launcher
+        run: |
+          node --check frontend/launcher/main.js
+          node --check frontend/launcher/preload.js
+          node --check frontend/launcher/renderer/app.js
+
+      - name: Syntax check desktop overlay
+        run: |
+          node --check frontend/desktop-overlay/main.js
+          node --check frontend/desktop-overlay/preload.js
+          node --check frontend/desktop-overlay/renderer/app.js

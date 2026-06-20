@@ -1,9 +1,10 @@
 # Dota AI Coach — agent instructions
 
 ## Что это
-Real-time коуч для керри в Dota 2 (курсовая MVP). Принимает live GSI от Dota 2,
+Real-time коуч для керри в Dota 2. Принимает live GSI от Dota 2,
 нормализует состояние, применяет детерминированные правила, фильтрует советы
 через анти-спам scheduler и показывает компактную карточку в Electron-оверлее.
+Проект начат как курсовой MVP и продолжается как личный проект.
 
 ## ГЛАВНЫЙ ПРИНЦИП (не нарушать)
 - Локальная rule-based политика — единственный источник правды для live-советов.
@@ -21,11 +22,22 @@ Real-time коуч для керри в Dota 2 (курсовая MVP). Прин�
 - зависимость от STRATZ в live-режиме
 Live-режим потребляет только локальные HTTP GSI-пейлоады.
 
+## Границы фаз (Phase 0: сетка безопасности)
+Текущая фаза добавляет guardrails без изменения логики:
+- Линт/формат: ruff (pyproject.toml, line-length 100, target py311)
+- Тайп-чек: mypy (мягкий старт, check_untyped_defs, non-blocking)
+- Тесты: pytest (testpaths=tests, addopts=-q)
+- CI: .github/workflows/ci.yml — backend (ruff/mypy/pytest/compileall)
+  и frontend (node --check) jobs на push/PR в main
+- Локальные хуки: .claude/settings.json — PostToolUse (Edit|Write|MultiEdit)
+  -> ruff check --fix + ruff format; Stop -> pytest -q
+Главное правило фазы: НИКАКОГО рефакторинга логики, только сетка безопасности.
+
 ## Стек
-- Backend: Python, FastAPI, uvicorn, pydantic v2, requests, httpx
-- Frontend: Electron (Node) — launcher + desktop-overlay
+- Backend: Python 3.11, FastAPI, uvicorn, pydantic v2, requests, httpx
+- Frontend: Electron (Node 20) — launcher + desktop-overlay
 - Replays: Java (Gradle) clarity-парсер -> события -> GSI-like JSONL
-- Тесты: pytest (backend), node --check (frontend)
+- Тесты/линт: pytest, ruff, mypy (backend); node --check (frontend)
 
 ## Структура
 - backend/app/        — FastAPI приложение и логика коуча
@@ -45,9 +57,12 @@ Live-режим потребляет только локальные HTTP GSI-п
 - Сохранять обратную совместимость GSI-парсинга (gsi_state.py)
 
 ## Команды
-- Установка:  cd backend && python3 -m venv .venv && source .venv/bin/activate && pip install -r requirements.txt
+- Установка:  cd backend && python3 -m venv .venv && source .venv/bin/activate && pip install -r requirements-dev.txt
 - Запуск:     USE_LLM=false uvicorn app.main:app --reload   (127.0.0.1:8000)
 - Тесты:      pytest -q
+- Линт:       ruff check .       (cd backend)
+- Формат:     ruff format .      (cd backend)
+- Тайп-чек:   mypy app           (cd backend, non-blocking)
 - Компиляция: python3 -m compileall -q app scripts packaging tests
 - Frontend:   node --check frontend/launcher/main.js  (и остальные js)
 - Демо без Dota: python3 scripts/run_overlay_demo.py --simulation-file ... 

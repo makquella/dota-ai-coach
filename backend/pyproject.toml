@@ -1,0 +1,44 @@
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+# E  = pycodestyle errors
+# F  = pyflakes (unused imports, undefined names)
+# I  = isort (import sorting)
+# UP = pyupgrade (modernize syntax for target py version)
+# B  = flake8-bugbear (likely-bugs / design problems)
+# SIM = flake8-simplify (simplifiable code patterns)
+select = ["E", "F", "I", "UP", "B", "SIM"]
+# E501 (line too long) is the formatter's job; line-length above still guides it.
+#
+# Phase 0 soft-start exceptions — these rules currently fire on existing logic
+# (nested ifs, bool-returning conditionals, one unused local in evaluate()).
+# Fixing them is a logic refactor, which Phase 0 explicitly forbids.
+# Track them as known debt; revisit when touching the surrounding code.
+#   SIM102: collapse nested ifs        (advice_scheduler.py x3)
+#   SIM103: return the condition       (advice_scheduler.py x4, post_laning_coach.py x1)
+#   F841:   unused local var           (advice_scheduler.py:247, inside evaluate())
+ignore = ["E501", "SIM102", "SIM103", "F841"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["app"]
+
+[tool.ruff.format]
+# Defaults are fine; kept explicit for documentation.
+quote-style = "double"
+indent-style = "space"
+
+[tool.mypy]
+python_version = "3.11"
+ignore_missing_imports = true
+# Soft start: require checking of functions that DO have annotations,
+# but do not yet force annotations on everything.
+check_untyped_defs = true
+disallow_untyped_defs = false
+# Don't fail on the modules that are not yet annotated cleanly.
+warn_unused_ignores = false
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
