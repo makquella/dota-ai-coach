@@ -731,6 +731,14 @@ def _missing_important_fields(state: dict[str, object], fields: dict[str, object
 
 
 def _live_conservative_decision_point(decision_point: str, state: dict[str, object]) -> str:
+    # Intentional trade-off (do not "fix"): in live GSI mode we deliberately
+    # downgrade OBJECTIVE_FIGHT_CHECK to SOFT_STATUS whenever the local GSI
+    # payload is missing nearby_allies_enemies / enemy_positions /
+    # exact_teamfight_context, or context_confidence != "high" - even if the
+    # team appears fully alive. Live GSI cannot confirm team readiness, so we
+    # refuse to escalate toward an objective call without those signals. This is
+    # intentional conservatism (under-advice over wrong objective calls),
+    # documented in AGENTS.md. Phase 3 records the trade-off without changing it.
     if not LIVE_CONSERVATIVE_MODE:
         return decision_point
     extra_context = (
