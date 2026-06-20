@@ -165,13 +165,16 @@ def _category_for_state(
     position_zone: str,
     death_context: bool,
 ) -> str | None:
-    if death_context or decision_point in {
-        "DEATH_REVIEW",
-        "DEATH_LOW_RESOURCE",
-        "DEATH_WITH_ESCAPE_ON_COOLDOWN",
-        "REPEATED_DEATH_PATTERN",
-        "DEAD_WAIT",
-    }:
+    # Phase 3 fix: death_route_reset is gated by the factual death_context (derived
+    # from GSI state: alive/respawn_seconds/near_player_death/death_count_changed),
+    # NOT by the decision_point. Previously the disjunction `death_context OR
+    # decision_point in DEATH-set` let a DEATH_REVIEW decision_point select this
+    # category even when state carried no sign of death, desyncing category from
+    # the public `death_context` field. Per the main principle, GSI state is the
+    # single source of truth for live advice; decision_point is secondary. A
+    # death decision_point without factual death signs degrades conservatively to
+    # a safe category (or None) rather than a death-route reset.
+    if death_context:
         return "post_laning_death_route_reset"
 
     if decision_point == "LOW_HP" or hp_percent < 35 or hp_pressure == "critical":

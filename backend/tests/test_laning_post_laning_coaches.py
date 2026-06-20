@@ -162,6 +162,10 @@ def test_post_laning_low_hp_reset() -> None:
 
 
 def test_post_laning_death_route_reset() -> None:
+    # Phase 3 fix: death_route_reset is selected by the factual death_context
+    # (alive=False / respawn_seconds>0 / death_count_changed / near_player_death),
+    # NOT by the decision_point. Here alive=False makes death_context=True, which
+    # is what actually drives the category. See the regression tests below.
     advice = build_post_laning_advice(
         _post_state(alive=False, respawn_seconds=20),
         "DEATH_REVIEW",
@@ -169,6 +173,34 @@ def test_post_laning_death_route_reset() -> None:
     assert advice is not None
     assert advice.category == "post_laning_death_route_reset"
     assert advice.death_context is True
+
+
+def test_post_laning_death_route_reset_requires_death_context() -> None:
+    # Phase 3 regression fix: a DEATH_REVIEW decision_point alone must NOT select
+    # post_laning_death_route_reset when state carries no sign of death. Category
+    # and the public death_context field must stay in sync. This is an intentional
+    # behavior change, not a regression.
+    advice = build_post_laning_advice(
+        _post_state(alive=True, respawn_seconds=0),
+        "DEATH_REVIEW",
+    )
+    if advice is not None:
+        assert advice.category != "post_laning_death_route_reset"
+        assert advice.death_context is False
+
+
+def test_post_laning_death_route_reset_post_respawn_series() -> None:
+    # Phase 3 guard: variant A must not over-dry. Post-respawn death series
+    # (REPEATED_DEATH_PATTERN / DEATH_WITH_ESCAPE_ON_COOLDOWN can fire when
+    # alive=True but death_count_changed=True) must still select the death-route
+    # reset, because death_context becomes True via death_count_changed.
+    advice = build_post_laning_advice(
+        _post_state(alive=True, respawn_seconds=0, death_count_changed=True),
+        "REPEATED_DEATH_PATTERN",
+    )
+    assert advice is not None
+    assert advice.death_context is True
+    assert advice.category == "post_laning_death_route_reset"
 
 
 def test_post_laning_risky_showing() -> None:
