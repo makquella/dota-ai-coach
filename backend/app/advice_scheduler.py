@@ -59,6 +59,15 @@ from app.post_laning_coach import (
     important_post_laning_context_changed,
 )
 from app.recommender import generate_recommendation
+from app.scheduler.state_utils import (
+    _ctx_int,
+    _ctx_value,
+    _is_dead_or_respawning,
+    _optional_float,
+    _state_game_time_seconds,
+    _to_int,
+    _utcnow,
+)
 from app.scheduler.stats_utils import (
     _average,
     _maximum,
@@ -2123,14 +2132,6 @@ def _truncate(value: str, max_length: int) -> str:
     return value[: max_length - 3].rstrip() + "..."
 
 
-def _utcnow(value: datetime | None) -> datetime:
-    if value is None:
-        return datetime.now(UTC)
-    if value.tzinfo is None:
-        return value.replace(tzinfo=UTC)
-    return value
-
-
 def _active_advice_duration(decision_point: str, state: dict[str, Any]) -> timedelta:
     if decision_point in DEATH_REVIEW_DECISIONS or _is_dead_or_respawning(state):
         respawn_seconds = _ctx_int(state, "respawn_seconds", 0)
@@ -2146,59 +2147,6 @@ def _active_advice_duration(decision_point: str, state: dict[str, Any]) -> timed
     }:
         return timedelta(seconds=10)
     return timedelta(seconds=8)
-
-
-def _is_dead_or_respawning(state: dict[str, Any]) -> bool:
-    alive = _ctx_value(state, "alive", True)
-    respawn_seconds = _ctx_int(state, "respawn_seconds", 0)
-    return (
-        alive is False or str(alive).strip().lower() in {"false", "0", "no"} or respawn_seconds > 0
-    )
-
-
-def _ctx_value(state: dict[str, Any], key: str, default: Any = None) -> Any:
-    if key in state:
-        return state.get(key)
-    extra_context = (
-        state.get("extra_context") if isinstance(state.get("extra_context"), dict) else {}
-    )
-    return extra_context.get(key, default)
-
-
-def _ctx_int(state: dict[str, Any], key: str, default: int) -> int:
-    return _to_int(_ctx_value(state, key), default)
-
-
-def _to_int(value: Any, default: int) -> int:
-    try:
-        return int(value)
-    except (TypeError, ValueError):
-        return default
-
-
-def _optional_float(value: Any) -> float | None:
-    try:
-        return float(value)
-    except (TypeError, ValueError):
-        return None
-
-
-def _state_game_time_seconds(state: dict[str, Any]) -> float | None:
-    extra_context = (
-        state.get("extra_context") if isinstance(state.get("extra_context"), dict) else {}
-    )
-    for key in (
-        "game_time",
-        "clock_time",
-        "timestamp_seconds",
-        "simulated_timestamp_seconds",
-        "demo_timestamp_seconds",
-    ):
-        value = extra_context.get(key) if key in extra_context else state.get(key)
-        parsed = _optional_float(value)
-        if parsed is not None:
-            return max(0.0, parsed)
-    return None
 
 
 def _action_hash(action: str) -> str:
