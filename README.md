@@ -105,7 +105,7 @@ See:
 ### Backend
 
 ```bash
-cd ~/Study/CourseWork/dota-ai-coach/backend
+cd ~/Документы/dota-ai-coach/backend
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
@@ -123,7 +123,7 @@ http://127.0.0.1:8000
 In another terminal:
 
 ```bash
-cd ~/Study/CourseWork/dota-ai-coach/frontend/launcher
+cd ~/Документы/dota-ai-coach/frontend/launcher
 npm install
 npm run dev
 ```
@@ -135,7 +135,7 @@ The launcher can start the backend, desktop overlay, and replay demo presets.
 If starting the overlay manually:
 
 ```bash
-cd ~/Study/CourseWork/dota-ai-coach/frontend/desktop-overlay
+cd ~/Документы/dota-ai-coach/frontend/desktop-overlay
 npm install
 npm run dev
 ```
@@ -151,7 +151,7 @@ http://127.0.0.1:8000/overlay/recommendation
 Recommended stable demo:
 
 ```bash
-cd ~/Study/CourseWork/dota-ai-coach/backend
+cd ~/Документы/dota-ai-coach/backend
 source .venv/bin/activate
 SIMULATION_USE_LLM=false \
 python3 scripts/run_overlay_demo.py \
@@ -224,7 +224,7 @@ Details:
 Backend:
 
 ```bash
-cd ~/Study/CourseWork/dota-ai-coach/backend
+cd ~/Документы/dota-ai-coach/backend
 source .venv/bin/activate
 pytest -q
 python3 -m compileall -q app scripts packaging tests
@@ -233,7 +233,7 @@ python3 -m compileall -q app scripts packaging tests
 Frontend syntax checks:
 
 ```bash
-cd ~/Study/CourseWork/dota-ai-coach
+cd ~/Документы/dota-ai-coach
 node --check frontend/launcher/main.js
 node --check frontend/launcher/preload.js
 node --check frontend/launcher/renderer/app.js
