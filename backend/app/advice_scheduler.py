@@ -59,6 +59,14 @@ from app.post_laning_coach import (
     important_post_laning_context_changed,
 )
 from app.recommender import generate_recommendation
+from app.scheduler.hashing import (
+    _action_hash,
+    _game_phase,
+    _hp_bucket,
+    _key_item_signature,
+    _minute_bucket,
+    _simplify_team_status,
+)
 from app.scheduler.state_utils import (
     _ctx_int,
     _ctx_value,
@@ -2084,91 +2092,6 @@ def _active_advice_duration(decision_point: str, state: dict[str, Any]) -> timed
     }:
         return timedelta(seconds=10)
     return timedelta(seconds=8)
-
-
-def _action_hash(action: str) -> str:
-    normalized = " ".join(str(action or "").strip().lower().split())
-    if not normalized:
-        return ""
-    return hashlib.sha1(normalized.encode("utf-8")).hexdigest()[:12]
-
-
-def _game_phase(minute: int) -> str:
-    if minute < 10:
-        return "laning"
-    if minute < 20:
-        return "early_mid"
-    if minute < 35:
-        return "mid_game"
-    return "late_game"
-
-
-def _minute_bucket(minute: int) -> str:
-    if minute < 10:
-        return "0-10"
-    if minute < 20:
-        return "10-20"
-    if minute < 35:
-        return "20-35"
-    return "35+"
-
-
-def _hp_bucket(hp_percent: int) -> str:
-    if hp_percent <= 20:
-        return "0-20"
-    if hp_percent <= 35:
-        return "21-35"
-    if hp_percent <= 60:
-        return "36-60"
-    return "61-100"
-
-
-def _simplify_team_status(value: Any) -> str:
-    text = str(value or "").strip().lower().replace("_", " ")
-    if not text:
-        return "unknown"
-
-    categories = [
-        ("objective", ("objective", "roshan", "tower", "barracks", "push", "highground")),
-        ("pressure", ("pressure", "gank", "danger", "smoke", "under attack")),
-        ("bad_fight", ("bad fight", "dive", "chase", "skirmish", "brawl")),
-        ("fight", ("fight", "teamfight", "contest", "engage")),
-        ("safe_farm", ("farm", "farming", "calm", "safe", "jungle", "lane")),
-        ("dead_or_paused", ("dead", "paused", "disconnected")),
-    ]
-    matches = [
-        label for label, keywords in categories if any(keyword in text for keyword in keywords)
-    ]
-    return "+".join(matches) if matches else "generic"
-
-
-KEY_ITEMS = {
-    "battle fury",
-    "manta style",
-    "black king bar",
-    "bkb",
-    "butterfly",
-    "satanic",
-    "abyssal blade",
-    "eye of skadi",
-    "dragon lance",
-    "hurricane pike",
-    "silver edge",
-    "desolator",
-    "diffusal blade",
-}
-
-
-def _key_item_signature(items: Any) -> str:
-    if not isinstance(items, list):
-        return "none"
-    normalized = {
-        str(item).strip().lower().replace("_", " ").replace("-", " ")
-        for item in items
-        if str(item).strip()
-    }
-    key_items = sorted(item for item in normalized if item in KEY_ITEMS)
-    return "|".join(key_items) if key_items else "none"
 
 
 ADVICE_SCHEDULER = AdviceScheduler()
