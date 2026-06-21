@@ -693,6 +693,91 @@ class AdviceScheduler:
             laning_category=laning_category,
         )
 
+    def _evaluate_post_laning_locked(
+        self,
+        *,
+        current_time: datetime,
+        decision_point: str,
+        state: dict[str, Any],
+        game_time_seconds: float,
+        fallback: RecommendationResponse,
+        ux_result: dict[str, Any],
+    ) -> _SegmentResult:
+        # Phase 4B extract (S9): post-laning suppression gate. Behavior-preserving
+        # via result object: the suppressed early return becomes
+        # _SegmentResult(advice=...); the fall-through carries the (possibly
+        # heartbeat-rebound) fallback plus post_laning_category/reason back to
+        # evaluate. The heartbeat path REBINDS fallback, so it is returned and
+        # rebound in evaluate. Counter mutations stay immediately before the
+        # early returns, byte-for-byte.
+        suppress_post_laning, post_laning_category, post_laning_reason = (
+            self._should_suppress_post_laning_locked(
+                decision_point=decision_point,
+                state=state,
+                recommendation=fallback,
+                now=current_time,
+                game_time_seconds=game_time_seconds,
+            )
+        )
+        if suppress_post_laning:
+            heartbeat = self._heartbeat_nudge_locked(
+                decision_point=decision_point,
+                state=state,
+                recommendation=fallback,
+                category=post_laning_category,
+                reason=post_laning_reason,
+                game_time_seconds=game_time_seconds,
+            )
+            if heartbeat is not None:
+                fallback = heartbeat
+                post_laning_category = "post_laning_safe_farm_route"
+                post_laning_reason = None
+                suppress_post_laning = False
+            else:
+                if post_laning_reason == "objective_after_recent_safety":
+                    self.state.objective_suppressed_by_recent_safety_count += 1
+                    self.state.repeated_objective_suppressed_count += 1
+                elif post_laning_reason in {"duplicate_objective", "objective_context_missing"}:
+                    self.state.repeated_objective_suppressed_count += 1
+                elif post_laning_reason == "item_timing_after_recent_safety":
+                    self.state.item_timing_suppressed_by_safety_count += 1
+                elif post_laning_reason == "death_route_duplicate":
+                    self.state.death_route_suppressed_count += 1
+                elif post_laning_reason == "recent_safety":
+                    self.state.post_laning_safety_suppressed_count += 1
+                    self.state.repeated_post_laning_suppressed_count += 1
+                else:
+                    self.state.repeated_post_laning_suppressed_count += 1
+                self.state.duplicate_suppressed_count += 1
+                active = self._active_result_locked(
+                    decision_point=decision_point,
+                    now=current_time,
+                    next_allowed=self._cooldown_for_type_locked(decision_point),
+                    suppressed_reason="cooldown_keep_visible",
+                )
+                if active is not None:
+                    return _SegmentResult(advice=active)
+                return _SegmentResult(
+                    advice=self._result_locked(
+                        status="cooldown",
+                        decision_point=decision_point,
+                        recommendation=None,
+                        source="none",
+                        llm_used=False,
+                        next_allowed=self._cooldown_for_type_locked(decision_point),
+                        new_advice=False,
+                        advice_mode=ux_result["advice_mode"],
+                        suppressed_reason=post_laning_reason or "duplicate_post_laning",
+                    )
+                )
+
+        return _SegmentResult(
+            fallback=fallback,
+            suppress_post_laning=suppress_post_laning,
+            post_laning_category=post_laning_category,
+            post_laning_reason=post_laning_reason,
+        )
+
     def evaluate(
         self,
         request: GameSituationRequest,
@@ -776,64 +861,17 @@ class AdviceScheduler:
                 return r.advice
             ux_result, fallback, laning_category = r.ux_result, r.fallback, r.laning_category
 
-            suppress_post_laning, post_laning_category, post_laning_reason = (
-                self._should_suppress_post_laning_locked(
-                    decision_point=decision_point,
-                    state=state,
-                    recommendation=fallback,
-                    now=current_time,
-                    game_time_seconds=game_time_seconds,
-                )
+            r = self._evaluate_post_laning_locked(
+                current_time=current_time,
+                decision_point=decision_point,
+                state=state,
+                game_time_seconds=game_time_seconds,
+                fallback=fallback,
+                ux_result=ux_result,
             )
-            if suppress_post_laning:
-                heartbeat = self._heartbeat_nudge_locked(
-                    decision_point=decision_point,
-                    state=state,
-                    recommendation=fallback,
-                    category=post_laning_category,
-                    reason=post_laning_reason,
-                    game_time_seconds=game_time_seconds,
-                )
-                if heartbeat is not None:
-                    fallback = heartbeat
-                    post_laning_category = "post_laning_safe_farm_route"
-                    post_laning_reason = None
-                    suppress_post_laning = False
-                else:
-                    if post_laning_reason == "objective_after_recent_safety":
-                        self.state.objective_suppressed_by_recent_safety_count += 1
-                        self.state.repeated_objective_suppressed_count += 1
-                    elif post_laning_reason in {"duplicate_objective", "objective_context_missing"}:
-                        self.state.repeated_objective_suppressed_count += 1
-                    elif post_laning_reason == "item_timing_after_recent_safety":
-                        self.state.item_timing_suppressed_by_safety_count += 1
-                    elif post_laning_reason == "death_route_duplicate":
-                        self.state.death_route_suppressed_count += 1
-                    elif post_laning_reason == "recent_safety":
-                        self.state.post_laning_safety_suppressed_count += 1
-                        self.state.repeated_post_laning_suppressed_count += 1
-                    else:
-                        self.state.repeated_post_laning_suppressed_count += 1
-                    self.state.duplicate_suppressed_count += 1
-                    active = self._active_result_locked(
-                        decision_point=decision_point,
-                        now=current_time,
-                        next_allowed=self._cooldown_for_type_locked(decision_point),
-                        suppressed_reason="cooldown_keep_visible",
-                    )
-                    if active is not None:
-                        return active
-                    return self._result_locked(
-                        status="cooldown",
-                        decision_point=decision_point,
-                        recommendation=None,
-                        source="none",
-                        llm_used=False,
-                        next_allowed=self._cooldown_for_type_locked(decision_point),
-                        new_advice=False,
-                        advice_mode=ux_result["advice_mode"],
-                        suppressed_reason=post_laning_reason or "duplicate_post_laning",
-                    )
+            if r.advice is not None:
+                return r.advice
+            fallback, post_laning_category = r.fallback, r.post_laning_category
 
             spacing_remaining, spacing_gap = self._game_time_spacing_remaining_locked(
                 decision_point=decision_point,
