@@ -29,6 +29,7 @@ from __future__ import annotations
 
 import threading
 import time
+from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
@@ -116,6 +117,29 @@ from app.scheduler.types import OverlaySource, OverlayStatus, ScheduledAdvice
 from app.schemas import GameSituationRequest, RecommendationResponse
 
 # Public types, constants, and the ScheduledAdvice DTO now live in leaf modules app.scheduler.types and app.scheduler.constants. They are imported below and re-exported by this facade for backwards compatibility.
+
+
+@dataclass
+class _SegmentResult:
+    """Phase 4B (Zone 3 decomposition): carrier for locals produced by the
+    extracted ``_evaluate_*_locked`` segments of ``evaluate``.
+
+    ``advice`` is set when a segment short-circuits with a finished
+    ``ScheduledAdvice`` (early return); the remaining fields carry the
+    fall-through locals back to ``evaluate`` byte-for-byte. All default to
+    ``None`` so each segment populates only what it produces.
+    """
+
+    advice: ScheduledAdvice | None = None
+    ux_result: dict[str, Any] | None = None
+    fallback: RecommendationResponse | None = None
+    suppress_laning: bool | None = None
+    laning_category: str | None = None
+    suppress_post_laning: bool | None = None
+    post_laning_category: str | None = None
+    post_laning_reason: str | None = None
+    spacing_remaining: int | None = None
+    spacing_gap: float | None = None
 
 
 class AdviceScheduler:
@@ -582,6 +606,93 @@ class AdviceScheduler:
 
         return None
 
+    def _evaluate_ux_laning_locked(
+        self,
+        *,
+        current_time: datetime,
+        decision_point: str,
+        state: dict[str, Any],
+        game_time_seconds: float,
+        fallback: RecommendationResponse,
+        policy: dict[str, Any],
+    ) -> _SegmentResult:
+        # Phase 4B extract (S8): UX policy application + laning-repeat gate.
+        # Behavior-preserving via result object: each early ``return <advice>``
+        # becomes ``return _SegmentResult(advice=<advice>)``; the fall-through
+        # carries ux_result/fallback/laning_category back to ``evaluate``.
+        # Counter mutations stay immediately before their returns, byte-for-byte.
+        ux_result = apply_ux_policy(
+            fallback,
+            decision_point,
+            list(self.state._advice_history),
+            now=current_time,
+            action_type=policy["action_type"],
+        )
+        if ux_result["recommendation"] is None:
+            reason = ux_result["suppressed_reason"] or "cooldown"
+            if reason == "duplicate":
+                self.state.duplicate_suppressed_count += 1
+            active = self._active_result_locked(
+                decision_point=decision_point,
+                now=current_time,
+                next_allowed=self._cooldown_for_type_locked(decision_point),
+                suppressed_reason="cooldown_keep_visible",
+            )
+            if active is not None:
+                return _SegmentResult(advice=active)
+            return _SegmentResult(
+                advice=self._result_locked(
+                    status="cooldown",
+                    decision_point=decision_point,
+                    recommendation=None,
+                    source="none",
+                    llm_used=False,
+                    next_allowed=self._cooldown_for_type_locked(decision_point),
+                    new_advice=False,
+                    advice_mode=ux_result["advice_mode"],
+                    suppressed_reason=reason,
+                )
+            )
+
+        fallback = clean_recommendation_text(ux_result["recommendation"], decision_point)
+        suppress_laning, laning_category = self._should_suppress_laning_locked(
+            decision_point=decision_point,
+            state=state,
+            recommendation=fallback,
+            now=current_time,
+            game_time_seconds=game_time_seconds,
+        )
+        if suppress_laning:
+            self.state.repeated_laning_suppressed_count += 1
+            self.state.duplicate_suppressed_count += 1
+            active = self._active_result_locked(
+                decision_point=decision_point,
+                now=current_time,
+                next_allowed=self._cooldown_for_type_locked(decision_point),
+                suppressed_reason="cooldown_keep_visible",
+            )
+            if active is not None:
+                return _SegmentResult(advice=active)
+            return _SegmentResult(
+                advice=self._result_locked(
+                    status="cooldown",
+                    decision_point=decision_point,
+                    recommendation=None,
+                    source="none",
+                    llm_used=False,
+                    next_allowed=self._cooldown_for_type_locked(decision_point),
+                    new_advice=False,
+                    advice_mode=ux_result["advice_mode"],
+                    suppressed_reason="duplicate_laning",
+                )
+            )
+
+        return _SegmentResult(
+            ux_result=ux_result,
+            fallback=fallback,
+            laning_category=laning_category,
+        )
+
     def evaluate(
         self,
         request: GameSituationRequest,
@@ -653,67 +764,17 @@ class AdviceScheduler:
         )
 
         with self._lock:
-            ux_result = apply_ux_policy(
-                fallback,
-                decision_point,
-                list(self.state._advice_history),
-                now=current_time,
-                action_type=policy["action_type"],
-            )
-            if ux_result["recommendation"] is None:
-                reason = ux_result["suppressed_reason"] or "cooldown"
-                if reason == "duplicate":
-                    self.state.duplicate_suppressed_count += 1
-                active = self._active_result_locked(
-                    decision_point=decision_point,
-                    now=current_time,
-                    next_allowed=self._cooldown_for_type_locked(decision_point),
-                    suppressed_reason="cooldown_keep_visible",
-                )
-                if active is not None:
-                    return active
-                return self._result_locked(
-                    status="cooldown",
-                    decision_point=decision_point,
-                    recommendation=None,
-                    source="none",
-                    llm_used=False,
-                    next_allowed=self._cooldown_for_type_locked(decision_point),
-                    new_advice=False,
-                    advice_mode=ux_result["advice_mode"],
-                    suppressed_reason=reason,
-                )
-
-            fallback = clean_recommendation_text(ux_result["recommendation"], decision_point)
-            suppress_laning, laning_category = self._should_suppress_laning_locked(
+            r = self._evaluate_ux_laning_locked(
+                current_time=current_time,
                 decision_point=decision_point,
                 state=state,
-                recommendation=fallback,
-                now=current_time,
                 game_time_seconds=game_time_seconds,
+                fallback=fallback,
+                policy=policy,
             )
-            if suppress_laning:
-                self.state.repeated_laning_suppressed_count += 1
-                self.state.duplicate_suppressed_count += 1
-                active = self._active_result_locked(
-                    decision_point=decision_point,
-                    now=current_time,
-                    next_allowed=self._cooldown_for_type_locked(decision_point),
-                    suppressed_reason="cooldown_keep_visible",
-                )
-                if active is not None:
-                    return active
-                return self._result_locked(
-                    status="cooldown",
-                    decision_point=decision_point,
-                    recommendation=None,
-                    source="none",
-                    llm_used=False,
-                    next_allowed=self._cooldown_for_type_locked(decision_point),
-                    new_advice=False,
-                    advice_mode=ux_result["advice_mode"],
-                    suppressed_reason="duplicate_laning",
-                )
+            if r.advice is not None:
+                return r.advice
+            ux_result, fallback, laning_category = r.ux_result, r.fallback, r.laning_category
 
             suppress_post_laning, post_laning_category, post_laning_reason = (
                 self._should_suppress_post_laning_locked(
