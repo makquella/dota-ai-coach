@@ -449,6 +449,139 @@ class AdviceScheduler:
 
         return None
 
+    def _evaluate_low_hp_locked(
+        self,
+        current_time: datetime,
+        decision_point: str,
+        game_time_seconds: float,
+        state: dict[str, Any],
+        state_hash: str,
+        tactical_hash: str,
+    ) -> ScheduledAdvice | None:
+        # Phase 4B extract (S6): LOW_HP episode gate. Runs under the evaluate
+        # lock. Dispatches on _low_hp_episode_action_locked: suppress (repeat in
+        # episode), show+suppress (show action but recent safety), or pattern
+        # (third repeat). The pattern branch is the heaviest - it mutates state,
+        # appends history, and returns a constructed ScheduledAdvice - and is
+        # extracted as one atomic block. Returns a bare ScheduledAdvice | None.
+        if decision_point == "LOW_HP":
+            low_hp_action = self._low_hp_episode_action_locked(state)
+            if low_hp_action == "suppress":
+                self.state.repeated_low_hp_suppressed_count += 1
+                self.state.post_laning_safety_suppressed_count += _post_laning_int(state)
+                self.state.duplicate_suppressed_count += 1
+                active = self._active_result_locked(
+                    decision_point=decision_point,
+                    now=current_time,
+                    next_allowed=self._cooldown_for_type_locked(decision_point),
+                    suppressed_reason="cooldown_keep_visible",
+                )
+                if active is not None:
+                    return active
+                return self._result_locked(
+                    status="cooldown",
+                    decision_point=decision_point,
+                    recommendation=None,
+                    source="none",
+                    llm_used=False,
+                    next_allowed=self._cooldown_for_type_locked(decision_point),
+                    new_advice=False,
+                    advice_mode="status",
+                    suppressed_reason="duplicate_low_hp_episode",
+                )
+            if low_hp_action == "show" and self._should_suppress_post_laning_low_hp_locked(
+                state=state,
+                now=current_time,
+                game_time_seconds=game_time_seconds,
+            ):
+                self.state.repeated_low_hp_suppressed_count += 1
+                self.state.post_laning_safety_suppressed_count += 1
+                self.state.duplicate_suppressed_count += 1
+                active = self._active_result_locked(
+                    decision_point=decision_point,
+                    now=current_time,
+                    next_allowed=self._cooldown_for_type_locked(decision_point),
+                    suppressed_reason="cooldown_keep_visible",
+                )
+                if active is not None:
+                    return active
+                return self._result_locked(
+                    status="cooldown",
+                    decision_point=decision_point,
+                    recommendation=None,
+                    source="none",
+                    llm_used=False,
+                    next_allowed=self._cooldown_for_type_locked(decision_point),
+                    new_advice=False,
+                    advice_mode="status",
+                    suppressed_reason="duplicate_low_hp_episode",
+                )
+            if low_hp_action == "pattern":
+                pattern = _low_hp_pattern_recommendation()
+                self.state.advice_count += 1
+                self.state.fallback_count += 1
+                self.state.low_hp_pattern_advice_count += 1
+                self._record_post_laning_safety_locked(
+                    now=current_time,
+                    state=state,
+                    category="low_hp_pattern",
+                    game_time_seconds=game_time_seconds,
+                )
+                self.state._last_low_hp_pattern_at = current_time
+                self.state._low_hp_pattern_last_at = current_time
+                gap = self._record_shown_advice_timing_locked(
+                    decision_point=decision_point,
+                    state=state,
+                    recommendation=pattern,
+                    category="low_hp_pattern",
+                    game_time_seconds=game_time_seconds,
+                )
+                self.state.last_advice_at = current_time
+                self.state.last_advice_type = decision_point
+                self.state._last_advice_state_hash = state_hash
+                self.state._last_advice_tactical_state_hash = tactical_hash
+                self.state._last_recommendation = pattern
+                self.state._last_source = "fallback"
+                self.state._last_llm_used = False
+                self.state._last_advice_mode = "coaching"
+                self.state._last_updated = current_time.isoformat()
+                self._set_active_advice_locked(decision_point, state, current_time)
+                self.state._advice_history.append(
+                    {
+                        "timestamp": self.state._last_updated,
+                        "decision_point": decision_point,
+                        "source": "fallback",
+                        "action": pattern.action,
+                        "action_type": "low_hp_pattern",
+                        "low_hp_episode_id": self.state._low_hp_episode_id,
+                        "game_time_gap_since_previous_advice": gap,
+                    }
+                )
+                return ScheduledAdvice(
+                    status="advice",
+                    decision_point=decision_point,
+                    recommendation=pattern,
+                    advice_count=self.state.advice_count,
+                    llm_used=False,
+                    source="fallback",
+                    last_updated=self.state._last_updated,
+                    next_allowed_advice_in_seconds=self._cooldown_for_type_locked(decision_point),
+                    new_advice=True,
+                    advice_mode="coaching",
+                    suppressed_reason=None,
+                    active_advice_until=(
+                        self.state._active_advice_until.isoformat()
+                        if self.state._active_advice_until
+                        else None
+                    ),
+                    last_visible_advice=pattern.model_dump(),
+                    is_pinned=self.state._is_pinned,
+                    low_hp_episode_id=self.state._low_hp_episode_id,
+                    game_time_gap_since_previous_advice=gap,
+                )
+
+        return None
+
     def evaluate(
         self,
         request: GameSituationRequest,
@@ -504,123 +637,16 @@ class AdviceScheduler:
             if _low_hp_warning is not None:
                 return _low_hp_warning
 
-            if decision_point == "LOW_HP":
-                low_hp_action = self._low_hp_episode_action_locked(state)
-                if low_hp_action == "suppress":
-                    self.state.repeated_low_hp_suppressed_count += 1
-                    self.state.post_laning_safety_suppressed_count += _post_laning_int(state)
-                    self.state.duplicate_suppressed_count += 1
-                    active = self._active_result_locked(
-                        decision_point=decision_point,
-                        now=current_time,
-                        next_allowed=self._cooldown_for_type_locked(decision_point),
-                        suppressed_reason="cooldown_keep_visible",
-                    )
-                    if active is not None:
-                        return active
-                    return self._result_locked(
-                        status="cooldown",
-                        decision_point=decision_point,
-                        recommendation=None,
-                        source="none",
-                        llm_used=False,
-                        next_allowed=self._cooldown_for_type_locked(decision_point),
-                        new_advice=False,
-                        advice_mode="status",
-                        suppressed_reason="duplicate_low_hp_episode",
-                    )
-                if low_hp_action == "show" and self._should_suppress_post_laning_low_hp_locked(
-                    state=state,
-                    now=current_time,
-                    game_time_seconds=game_time_seconds,
-                ):
-                    self.state.repeated_low_hp_suppressed_count += 1
-                    self.state.post_laning_safety_suppressed_count += 1
-                    self.state.duplicate_suppressed_count += 1
-                    active = self._active_result_locked(
-                        decision_point=decision_point,
-                        now=current_time,
-                        next_allowed=self._cooldown_for_type_locked(decision_point),
-                        suppressed_reason="cooldown_keep_visible",
-                    )
-                    if active is not None:
-                        return active
-                    return self._result_locked(
-                        status="cooldown",
-                        decision_point=decision_point,
-                        recommendation=None,
-                        source="none",
-                        llm_used=False,
-                        next_allowed=self._cooldown_for_type_locked(decision_point),
-                        new_advice=False,
-                        advice_mode="status",
-                        suppressed_reason="duplicate_low_hp_episode",
-                    )
-                if low_hp_action == "pattern":
-                    pattern = _low_hp_pattern_recommendation()
-                    self.state.advice_count += 1
-                    self.state.fallback_count += 1
-                    self.state.low_hp_pattern_advice_count += 1
-                    self._record_post_laning_safety_locked(
-                        now=current_time,
-                        state=state,
-                        category="low_hp_pattern",
-                        game_time_seconds=game_time_seconds,
-                    )
-                    self.state._last_low_hp_pattern_at = current_time
-                    self.state._low_hp_pattern_last_at = current_time
-                    gap = self._record_shown_advice_timing_locked(
-                        decision_point=decision_point,
-                        state=state,
-                        recommendation=pattern,
-                        category="low_hp_pattern",
-                        game_time_seconds=game_time_seconds,
-                    )
-                    self.state.last_advice_at = current_time
-                    self.state.last_advice_type = decision_point
-                    self.state._last_advice_state_hash = state_hash
-                    self.state._last_advice_tactical_state_hash = tactical_hash
-                    self.state._last_recommendation = pattern
-                    self.state._last_source = "fallback"
-                    self.state._last_llm_used = False
-                    self.state._last_advice_mode = "coaching"
-                    self.state._last_updated = current_time.isoformat()
-                    self._set_active_advice_locked(decision_point, state, current_time)
-                    self.state._advice_history.append(
-                        {
-                            "timestamp": self.state._last_updated,
-                            "decision_point": decision_point,
-                            "source": "fallback",
-                            "action": pattern.action,
-                            "action_type": "low_hp_pattern",
-                            "low_hp_episode_id": self.state._low_hp_episode_id,
-                            "game_time_gap_since_previous_advice": gap,
-                        }
-                    )
-                    return ScheduledAdvice(
-                        status="advice",
-                        decision_point=decision_point,
-                        recommendation=pattern,
-                        advice_count=self.state.advice_count,
-                        llm_used=False,
-                        source="fallback",
-                        last_updated=self.state._last_updated,
-                        next_allowed_advice_in_seconds=self._cooldown_for_type_locked(
-                            decision_point
-                        ),
-                        new_advice=True,
-                        advice_mode="coaching",
-                        suppressed_reason=None,
-                        active_advice_until=(
-                            self.state._active_advice_until.isoformat()
-                            if self.state._active_advice_until
-                            else None
-                        ),
-                        last_visible_advice=pattern.model_dump(),
-                        is_pinned=self.state._is_pinned,
-                        low_hp_episode_id=self.state._low_hp_episode_id,
-                        game_time_gap_since_previous_advice=gap,
-                    )
+            _low_hp = self._evaluate_low_hp_locked(
+                current_time=current_time,
+                decision_point=decision_point,
+                game_time_seconds=game_time_seconds,
+                state=state,
+                state_hash=state_hash,
+                tactical_hash=tactical_hash,
+            )
+            if _low_hp is not None:
+                return _low_hp
 
         fallback = self._evaluate_fallback_recommendation(
             request, rag_context, policy, decision_point
