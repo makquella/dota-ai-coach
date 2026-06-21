@@ -778,6 +778,63 @@ class AdviceScheduler:
             post_laning_reason=post_laning_reason,
         )
 
+    def _evaluate_spacing_locked(
+        self,
+        *,
+        current_time: datetime,
+        decision_point: str,
+        state: dict[str, Any],
+        game_time_seconds: float,
+        fallback: RecommendationResponse,
+        ux_result: dict[str, Any],
+        post_laning_category: str | None,
+        laning_category: str | None,
+    ) -> _SegmentResult:
+        # Phase 4B extract (S10): game-time spacing gate. Behavior-preserving via
+        # result object: the spacing early return becomes _SegmentResult(advice=...).
+        # The active sub-path still mutates the active card (suppressed_by_game_time
+        # _spacing + gap) before returning it. spacing_remaining/spacing_gap are
+        # carried for completeness but are not read downstream by evaluate. Counter
+        # mutations stay immediately before the early returns, byte-for-byte.
+        spacing_remaining, spacing_gap = self._game_time_spacing_remaining_locked(
+            decision_point=decision_point,
+            state=state,
+            recommendation=fallback,
+            advice_mode=ux_result["advice_mode"],
+            category=post_laning_category or laning_category,
+            game_time_seconds=game_time_seconds,
+        )
+        if spacing_remaining > 0:
+            self.state.suppressed_by_game_time_spacing_count += 1
+            self.state.duplicate_suppressed_count += 1
+            active = self._active_result_locked(
+                decision_point=decision_point,
+                now=current_time,
+                next_allowed=spacing_remaining,
+                suppressed_reason="cooldown_keep_visible",
+            )
+            if active is not None:
+                active.suppressed_by_game_time_spacing = True
+                active.game_time_gap_since_previous_advice = spacing_gap
+                return _SegmentResult(advice=active)
+            return _SegmentResult(
+                advice=self._result_locked(
+                    status="cooldown",
+                    decision_point=decision_point,
+                    recommendation=None,
+                    source="none",
+                    llm_used=False,
+                    next_allowed=spacing_remaining,
+                    new_advice=False,
+                    advice_mode=ux_result["advice_mode"],
+                    suppressed_reason="game_time_spacing",
+                    game_time_gap_since_previous_advice=spacing_gap,
+                    suppressed_by_game_time_spacing=True,
+                )
+            )
+
+        return _SegmentResult(spacing_remaining=spacing_remaining, spacing_gap=spacing_gap)
+
     def evaluate(
         self,
         request: GameSituationRequest,
@@ -873,40 +930,18 @@ class AdviceScheduler:
                 return r.advice
             fallback, post_laning_category = r.fallback, r.post_laning_category
 
-            spacing_remaining, spacing_gap = self._game_time_spacing_remaining_locked(
+            r = self._evaluate_spacing_locked(
+                current_time=current_time,
                 decision_point=decision_point,
                 state=state,
-                recommendation=fallback,
-                advice_mode=ux_result["advice_mode"],
-                category=post_laning_category or laning_category,
                 game_time_seconds=game_time_seconds,
+                fallback=fallback,
+                ux_result=ux_result,
+                post_laning_category=post_laning_category,
+                laning_category=laning_category,
             )
-            if spacing_remaining > 0:
-                self.state.suppressed_by_game_time_spacing_count += 1
-                self.state.duplicate_suppressed_count += 1
-                active = self._active_result_locked(
-                    decision_point=decision_point,
-                    now=current_time,
-                    next_allowed=spacing_remaining,
-                    suppressed_reason="cooldown_keep_visible",
-                )
-                if active is not None:
-                    active.suppressed_by_game_time_spacing = True
-                    active.game_time_gap_since_previous_advice = spacing_gap
-                    return active
-                return self._result_locked(
-                    status="cooldown",
-                    decision_point=decision_point,
-                    recommendation=None,
-                    source="none",
-                    llm_used=False,
-                    next_allowed=spacing_remaining,
-                    new_advice=False,
-                    advice_mode=ux_result["advice_mode"],
-                    suppressed_reason="game_time_spacing",
-                    game_time_gap_since_previous_advice=spacing_gap,
-                    suppressed_by_game_time_spacing=True,
-                )
+            if r.advice is not None:
+                return r.advice
 
             should_refine, next_allowed, gap = self._evaluate_record_advice_locked(
                 current_time=current_time,
