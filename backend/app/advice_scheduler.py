@@ -133,13 +133,8 @@ class _SegmentResult:
     advice: ScheduledAdvice | None = None
     ux_result: dict[str, Any] | None = None
     fallback: RecommendationResponse | None = None
-    suppress_laning: bool | None = None
     laning_category: str | None = None
-    suppress_post_laning: bool | None = None
     post_laning_category: str | None = None
-    post_laning_reason: str | None = None
-    spacing_remaining: int | None = None
-    spacing_gap: float | None = None
 
 
 class AdviceScheduler:
@@ -221,7 +216,7 @@ class AdviceScheduler:
         decision_point: str,
         state_hash: str,
         tactical_hash: str,
-    ) -> float:
+    ) -> float | None:
         # Phase 4B extract (S1): session/game-time/hash/recovery setup.
         # Runs under the already-held evaluate lock (Zone 1); does NOT acquire it.
         # Produces game_time_seconds and mutates session/hash/recovery state.
@@ -316,9 +311,9 @@ class AdviceScheduler:
         current_time: datetime,
         decision_point: str,
         fallback: RecommendationResponse,
-        game_time_seconds: float,
-        laning_category: str,
-        post_laning_category: str,
+        game_time_seconds: float | None,
+        laning_category: str | None,
+        post_laning_category: str | None,
         state: dict[str, Any],
         state_hash: str,
         tactical_hash: str,
@@ -439,7 +434,7 @@ class AdviceScheduler:
         return None
 
     def _evaluate_low_hp_warning_locked(
-        self, decision_point: str, current_time: datetime, game_time_seconds: float
+        self, decision_point: str, current_time: datetime, game_time_seconds: float | None
     ) -> ScheduledAdvice | None:
         # Phase 4B extract (S5): LOW_HP_WARNING gate. Runs under the evaluate lock.
         # When a low-HP episode is active (or a recent low-HP pattern is live), a
@@ -477,7 +472,7 @@ class AdviceScheduler:
         self,
         current_time: datetime,
         decision_point: str,
-        game_time_seconds: float,
+        game_time_seconds: float | None,
         state: dict[str, Any],
         state_hash: str,
         tactical_hash: str,
@@ -612,7 +607,7 @@ class AdviceScheduler:
         current_time: datetime,
         decision_point: str,
         state: dict[str, Any],
-        game_time_seconds: float,
+        game_time_seconds: float | None,
         fallback: RecommendationResponse,
         policy: dict[str, Any],
     ) -> _SegmentResult:
@@ -699,14 +694,14 @@ class AdviceScheduler:
         current_time: datetime,
         decision_point: str,
         state: dict[str, Any],
-        game_time_seconds: float,
+        game_time_seconds: float | None,
         fallback: RecommendationResponse,
         ux_result: dict[str, Any],
     ) -> _SegmentResult:
         # Phase 4B extract (S9): post-laning suppression gate. Behavior-preserving
         # via result object: the suppressed early return becomes
         # _SegmentResult(advice=...); the fall-through carries the (possibly
-        # heartbeat-rebound) fallback plus post_laning_category/reason back to
+        # heartbeat-rebound) fallback plus post_laning_category back to
         # evaluate. The heartbeat path REBINDS fallback, so it is returned and
         # rebound in evaluate. Counter mutations stay immediately before the
         # early returns, byte-for-byte.
@@ -773,9 +768,7 @@ class AdviceScheduler:
 
         return _SegmentResult(
             fallback=fallback,
-            suppress_post_laning=suppress_post_laning,
             post_laning_category=post_laning_category,
-            post_laning_reason=post_laning_reason,
         )
 
     def _evaluate_spacing_locked(
@@ -784,7 +777,7 @@ class AdviceScheduler:
         current_time: datetime,
         decision_point: str,
         state: dict[str, Any],
-        game_time_seconds: float,
+        game_time_seconds: float | None,
         fallback: RecommendationResponse,
         ux_result: dict[str, Any],
         post_laning_category: str | None,
@@ -793,8 +786,8 @@ class AdviceScheduler:
         # Phase 4B extract (S10): game-time spacing gate. Behavior-preserving via
         # result object: the spacing early return becomes _SegmentResult(advice=...).
         # The active sub-path still mutates the active card (suppressed_by_game_time
-        # _spacing + gap) before returning it. spacing_remaining/spacing_gap are
-        # carried for completeness but are not read downstream by evaluate. Counter
+        # _spacing + gap) before returning it. The fall-through carries no locals
+        # back to evaluate (spacing_remaining/spacing_gap are local-only). Counter
         # mutations stay immediately before the early returns, byte-for-byte.
         spacing_remaining, spacing_gap = self._game_time_spacing_remaining_locked(
             decision_point=decision_point,
@@ -833,7 +826,7 @@ class AdviceScheduler:
                 )
             )
 
-        return _SegmentResult(spacing_remaining=spacing_remaining, spacing_gap=spacing_gap)
+        return _SegmentResult()
 
     def _evaluate_finalize(
         self,
@@ -958,6 +951,10 @@ class AdviceScheduler:
             )
             if r.advice is not None:
                 return r.advice
+            # Fall-through invariant (S8): ux_result/fallback are always populated
+            # on the non-advice return (line guarded by the ux_result-is-None and
+            # suppress_laning early returns above). laning_category may be None.
+            assert r.ux_result is not None and r.fallback is not None
             ux_result, fallback, laning_category = r.ux_result, r.fallback, r.laning_category
 
             r = self._evaluate_post_laning_locked(
@@ -970,6 +967,9 @@ class AdviceScheduler:
             )
             if r.advice is not None:
                 return r.advice
+            # Fall-through invariant (S9): fallback is always populated on the
+            # non-advice return. post_laning_category may be None.
+            assert r.fallback is not None
             fallback, post_laning_category = r.fallback, r.post_laning_category
 
             r = self._evaluate_spacing_locked(
