@@ -753,9 +753,8 @@ class AdviceScheduler:
         now: datetime | None = None,
     ) -> dict[str, Any]:
         current_time = _utcnow(now)
-        extra_context = (
-            state.get("extra_context") if isinstance(state.get("extra_context"), dict) else {}
-        )
+        raw_extra_context = state.get("extra_context")
+        extra_context = raw_extra_context if isinstance(raw_extra_context, dict) else {}
         with self._lock:
             game_time_seconds = self._game_time_seconds_locked(state, current_time)
             return {
@@ -1430,6 +1429,9 @@ class AdviceScheduler:
         ):
             return None
 
+        # _heartbeat_allowed_locked returns False whenever game_time_seconds is None,
+        # so reaching this point guarantees it is set (narrows float | None -> float).
+        assert game_time_seconds is not None
         gap = max(0.0, game_time_seconds - (self.state._last_shown_game_time_seconds or 0.0))
         if (
             category
