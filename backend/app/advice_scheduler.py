@@ -835,6 +835,48 @@ class AdviceScheduler:
 
         return _SegmentResult(spacing_remaining=spacing_remaining, spacing_gap=spacing_gap)
 
+    def _evaluate_finalize(
+        self,
+        *,
+        should_refine: bool,
+        tactical_hash: str,
+        request: GameSituationRequest,
+        decision_point: str,
+        rag_context: list[str],
+        fallback: RecommendationResponse,
+        next_allowed: int,
+        ux_result: dict[str, Any],
+        gap: float | None,
+    ) -> ScheduledAdvice:
+        # Phase 4B extract (S12): async LLM-refinement kickoff + finalize return.
+        # NO lock: this runs AFTER the second `with self._lock` block, exactly as
+        # the inlined tail did, so it does NOT acquire the lock. The refinement is
+        # fire-and-forget and never overrides the rule-based result. State reads
+        # (advice_count/_last_updated/_active_advice_until/_is_pinned) stay outside
+        # the lock, byte-for-byte.
+        if should_refine:
+            self._start_llm_refinement(tactical_hash, request, decision_point, rag_context)
+
+        return ScheduledAdvice(
+            status="advice",
+            decision_point=decision_point,
+            recommendation=fallback,
+            advice_count=self.state.advice_count,
+            llm_used=False,
+            source="fallback",
+            last_updated=self.state._last_updated,
+            next_allowed_advice_in_seconds=next_allowed,
+            new_advice=True,
+            advice_mode=ux_result["advice_mode"],
+            suppressed_reason=None,
+            active_advice_until=self.state._active_advice_until.isoformat()
+            if self.state._active_advice_until
+            else None,
+            last_visible_advice=fallback.model_dump(),
+            is_pinned=self.state._is_pinned,
+            game_time_gap_since_previous_advice=gap,
+        )
+
     def evaluate(
         self,
         request: GameSituationRequest,
@@ -956,27 +998,16 @@ class AdviceScheduler:
                 ux_result=ux_result,
             )
 
-        if should_refine:
-            self._start_llm_refinement(tactical_hash, request, decision_point, rag_context)
-
-        return ScheduledAdvice(
-            status="advice",
+        return self._evaluate_finalize(
+            should_refine=should_refine,
+            tactical_hash=tactical_hash,
+            request=request,
             decision_point=decision_point,
-            recommendation=fallback,
-            advice_count=self.state.advice_count,
-            llm_used=False,
-            source="fallback",
-            last_updated=self.state._last_updated,
-            next_allowed_advice_in_seconds=next_allowed,
-            new_advice=True,
-            advice_mode=ux_result["advice_mode"],
-            suppressed_reason=None,
-            active_advice_until=self.state._active_advice_until.isoformat()
-            if self.state._active_advice_until
-            else None,
-            last_visible_advice=fallback.model_dump(),
-            is_pinned=self.state._is_pinned,
-            game_time_gap_since_previous_advice=gap,
+            rag_context=rag_context,
+            fallback=fallback,
+            next_allowed=next_allowed,
+            ux_result=ux_result,
+            gap=gap,
         )
 
     # ------------------------------------------------------------------
