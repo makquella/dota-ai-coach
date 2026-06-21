@@ -27,20 +27,15 @@ arrives.
 
 from __future__ import annotations
 
-import hashlib
-import json
 import threading
 import time
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
-from statistics import mean
-from typing import Any, Literal
+from typing import Any
 
 from app.advice_policy import apply_advice_policy, build_advice_policy
 from app.advice_text import clean_recommendation_text
 from app.advice_ux_policy import (
-    REGULAR_ADVICE_INTERVAL_SECONDS,
-    URGENT_ADVICE_INTERVAL_SECONDS,
     apply_ux_policy,
 )
 from app.config import USE_LLM
@@ -60,78 +55,91 @@ from app.post_laning_coach import (
     important_post_laning_context_changed,
 )
 from app.recommender import generate_recommendation
+from app.scheduler.constants import (
+    COACHING_GAME_TIME_GAP_SECONDS,
+    DEATH_REVIEW_DECISIONS,
+    HEARTBEAT_DUPLICATE_WAIT_SECONDS,
+    HEARTBEAT_NUDGE_SECONDS,
+    LLM_REFINEMENT_EVERY_N_ADVICES,
+    POST_LANING_GAME_TIME_GAP_SECONDS,
+    RECENT_SAFETY_GAME_TIME_GAP_SECONDS,
+    REGULAR_ADVICE_COOLDOWN_SECONDS,
+    SAME_ACTION_GAME_TIME_GAP_SECONDS,
+    URGENT_LOW_HP_COOLDOWN_SECONDS,
+)
+from app.scheduler.hashing import (
+    _action_hash,
+    build_state_hash,
+    build_tactical_state_hash,
+)
+from app.scheduler.heartbeat import (
+    _heartbeat_context_is_confident,
+    _heartbeat_copy,
+    _heartbeat_safe_category_available,
+    _is_heartbeat_recommendation,
+    _low_hp_pattern_recommendation,
+)
+from app.scheduler.safety_predicates import (
+    _death_event_id,
+    _low_hp_severe_signature,
+    _objective_context_changed_clearly,
+    _post_laning_int,
+    _post_laning_item_timing_is_unsafe,
+    _post_laning_new_death_or_severe_pressure,
+    _post_laning_safety_suppression_exception,
+    _strong_laning_interrupt,
+    _strong_post_laning_interrupt,
+    _suggests_fighting_without_safety,
+)
+from app.scheduler.state import SchedulerState
+from app.scheduler.state_utils import (
+    _ctx_int,
+    _is_dead_or_respawning,
+    _optional_float,
+    _state_game_time_seconds,
+    _to_int,
+    _utcnow,
+)
+from app.scheduler.stats_utils import (
+    _average,
+    _maximum,
+    _minimum,
+    _p95,
+    _rate,
+    _session_id_from_state,
+)
+from app.scheduler.text import (
+    MAX_ACTION_LENGTH,
+    MAX_REASON_LENGTH,
+    _compact_recommendation,
+)
+from app.scheduler.types import OverlaySource, OverlayStatus, ScheduledAdvice
 from app.schemas import GameSituationRequest, RecommendationResponse
 
-AdviceType = Literal[
-    "LOW_HP",
-    "LOW_HP_WARNING",
-    "RECENT_DAMAGE_WARNING",
-    "OVERSTAY_WARNING",
-    "DEATH_REVIEW",
-    "REPEATED_DEATH_PATTERN",
-    "DEATH_WITH_ESCAPE_ON_COOLDOWN",
-    "DEATH_LOW_RESOURCE",
-    "LOW_MANA",
-    "DISABLED_STATUS",
-    "BUYBACK_AVAILABLE",
-    "DEAD_WAIT",
-    "SMOKED_STATUS",
-    "HERO_SURVIVABILITY_RISK",
-    "LANING_REGEN_CHECK",
-    "LANING_FARM_CHECK",
-    "ABILITY_SAFETY_COOLDOWN",
-    "SOFT_STATUS",
-    "FARMING_PHASE_PRESSURE",
-    "OBJECTIVE_FIGHT_CHECK",
-    "BAD_FIGHT_RISK",
-    "ITEM_TIMING",
-    "SAFE_FARMING",
-    "NO_ADVICE",
-]
-
-OverlayStatus = Literal["advice", "active_advice", "no_advice", "cooldown"]
-OverlaySource = Literal["llm", "fallback", "none"]
-
-SOFT_INTERVAL_SECONDS = REGULAR_ADVICE_INTERVAL_SECONDS
-REGULAR_ADVICE_COOLDOWN_SECONDS = REGULAR_ADVICE_INTERVAL_SECONDS
-URGENT_LOW_HP_COOLDOWN_SECONDS = URGENT_ADVICE_INTERVAL_SECONDS
-LLM_REFINEMENT_EVERY_N_ADVICES = 3
-
-MAX_ACTION_LENGTH = 100
-MAX_REASON_LENGTH = 180
-DEATH_REVIEW_DECISIONS = {
-    "DEATH_REVIEW",
-    "REPEATED_DEATH_PATTERN",
-    "DEATH_WITH_ESCAPE_ON_COOLDOWN",
-    "DEATH_LOW_RESOURCE",
-}
-COACHING_GAME_TIME_GAP_SECONDS = 45
-POST_LANING_GAME_TIME_GAP_SECONDS = 60
-SAME_ACTION_GAME_TIME_GAP_SECONDS = 120
-RECENT_SAFETY_GAME_TIME_GAP_SECONDS = 35
-HEARTBEAT_NUDGE_SECONDS = 150
-HEARTBEAT_DUPLICATE_WAIT_SECONDS = 180
+# Public types, constants, and the ScheduledAdvice DTO now live in leaf modules app.scheduler.types and app.scheduler.constants. They are imported below and re-exported by this facade for backwards compatibility.
 
 
 @dataclass
-class ScheduledAdvice:
-    status: OverlayStatus
-    decision_point: str
-    recommendation: RecommendationResponse | None
-    advice_count: int
-    llm_used: bool
-    source: OverlaySource
-    last_updated: str | None
-    next_allowed_advice_in_seconds: int
-    new_advice: bool = False
-    advice_mode: str = "status"
-    suppressed_reason: str | None = None
-    active_advice_until: str | None = None
-    last_visible_advice: dict[str, Any] | None = None
-    is_pinned: bool = False
-    low_hp_episode_id: int | None = None
-    game_time_gap_since_previous_advice: float | None = None
-    suppressed_by_game_time_spacing: bool = False
+class _SegmentResult:
+    """Phase 4B (Zone 3 decomposition): carrier for locals produced by the
+    extracted ``_evaluate_*_locked`` segments of ``evaluate``.
+
+    ``advice`` is set when a segment short-circuits with a finished
+    ``ScheduledAdvice`` (early return); the remaining fields carry the
+    fall-through locals back to ``evaluate`` byte-for-byte. All default to
+    ``None`` so each segment populates only what it produces.
+    """
+
+    advice: ScheduledAdvice | None = None
+    ux_result: dict[str, Any] | None = None
+    fallback: RecommendationResponse | None = None
+    suppress_laning: bool | None = None
+    laning_category: str | None = None
+    suppress_post_laning: bool | None = None
+    post_laning_category: str | None = None
+    post_laning_reason: str | None = None
+    spacing_remaining: int | None = None
+    spacing_gap: float | None = None
 
 
 class AdviceScheduler:
@@ -153,72 +161,10 @@ class AdviceScheduler:
             self._reset_locked()
 
     def _reset_locked(self) -> None:
-        self.match_started_at: datetime | None = None
-        self.match_session_id: str | None = None
-        self.last_advice_at: datetime | None = None
-        self.last_advice_type: str | None = None
-        self.last_state_hash: str | None = None
-        self.last_tactical_state_hash: str | None = None
-        self.advice_count = 0
-        self.llm_call_count = 0
-        self.llm_applied_count = 0
-        self.fallback_count = 0
-        self.stale_llm_count = 0
-        self.duplicate_suppressed_count = 0
-        self.repeated_laning_suppressed_count = 0
-        self.repeated_post_laning_suppressed_count = 0
-        self.repeated_objective_suppressed_count = 0
-        self.post_laning_safety_suppressed_count = 0
-        self.objective_suppressed_by_recent_safety_count = 0
-        self.item_timing_suppressed_by_safety_count = 0
-        self.death_route_suppressed_count = 0
-        self.low_hp_episode_count = 0
-        self.repeated_low_hp_suppressed_count = 0
-        self.low_hp_pattern_advice_count = 0
-        self.tactical_hash_changes = 0
-        self._last_advice_state_hash: str | None = None
-        self._last_advice_tactical_state_hash: str | None = None
-        self._last_recommendation: RecommendationResponse | None = None
-        self._last_source: OverlaySource = "none"
-        self._last_llm_used = False
-        self._last_advice_mode = "status"
-        self._last_updated: str | None = None
-        self._active_advice_until: datetime | None = None
-        self._is_pinned = False
-        self._last_seen_minute: int | None = None
-        self._pending_llm_tactical_hashes: set[str] = set()
-        self._llm_latencies: list[float] = []
-        self._advice_history: list[dict[str, Any]] = []
-        self._last_laning_category: dict[str, dict[str, Any]] = {}
-        self._last_post_laning_category: dict[str, dict[str, Any]] = {}
-        self._last_objective_advice_at: datetime | None = None
-        self._last_post_laning_safety_at: datetime | None = None
-        self._last_post_laning_safety_game_time: float | None = None
-        self._last_post_laning_death_route_at: datetime | None = None
-        self._last_post_laning_death_route_game_time: float | None = None
-        self._last_post_laning_death_route_event_id: str | None = None
-        self._last_low_hp_urgent_at: datetime | None = None
-        self._last_low_hp_urgent_game_time: float | None = None
-        self._last_low_hp_pattern_at: datetime | None = None
-        self._last_low_hp_pattern_game_time: float | None = None
-        self._last_objective_advice_game_time: float | None = None
-        self._post_laning_hp_recovered_since_safety = False
-        self._last_shown_game_time_seconds: float | None = None
-        self._last_shown_decision_point: str | None = None
-        self._last_shown_category: str | None = None
-        self._last_shown_action_hash: str | None = None
-        self._advice_game_time_gaps_seconds: list[float] = []
-        self.suppressed_by_game_time_spacing_count = 0
-        self.heartbeat_nudge_count = 0
-        self.suppressed_heartbeat_duplicate_count = 0
-        self._low_hp_episode_active = False
-        self._low_hp_episode_id = 0
-        self._low_hp_episode_lowest_hp: int | None = None
-        self._low_hp_episode_repeat_count = 0
-        self._low_hp_episode_pattern_shown = False
-        self._low_hp_pattern_advice_shown = False
-        self._low_hp_pattern_last_at: datetime | None = None
-        self._low_hp_episode_last_severe_signature: str | None = None
+        # Phase 4: all 66 game/advice state fields now live in SchedulerState;
+        # recreating the dataclass reproduces the previous 66 assignments
+        # verbatim (defaults transcribed from the former reset body).
+        self.state = SchedulerState()
 
     # ------------------------------------------------------------------
     # Public API — observe_state and evaluate are the two entry points.
@@ -248,13 +194,14 @@ class AdviceScheduler:
             self._update_hashes_locked(state_hash, tactical_hash)
             self._update_low_hp_recovery_locked(state)
 
-    def evaluate(
+    def _evaluate_normalize_input(
         self,
         request: GameSituationRequest,
         decision_point: str,
-        rag_context: list[str],
-        now: datetime | None = None,
-    ) -> ScheduledAdvice:
+        now: datetime | None,
+    ) -> tuple[datetime, dict[str, Any], str, dict[str, Any], str]:
+        # Phase 4B extract (S0): input normalization. No lock; pure derivation
+        # of current_time/state/hashes/policy from the request. Behavior-preserving.
         current_time = _utcnow(now)
         state = request.model_dump()
         state_hash = build_state_hash(state, decision_point)
@@ -264,103 +211,289 @@ class AdviceScheduler:
             decision_point,
             action_type=policy["action_type"],
         )
+        return current_time, state, state_hash, policy, tactical_hash
 
-        with self._lock:
-            self._ensure_session_locked(current_time, request.minute, state)
-            game_time_seconds = self._game_time_seconds_locked(state, current_time)
-            self._update_hashes_locked(state_hash, tactical_hash)
-            if decision_point != "LOW_HP":
-                self._update_low_hp_recovery_locked(state)
+    def _evaluate_locked_setup(
+        self,
+        current_time: datetime,
+        request: GameSituationRequest,
+        state: dict[str, Any],
+        decision_point: str,
+        state_hash: str,
+        tactical_hash: str,
+    ) -> float:
+        # Phase 4B extract (S1): session/game-time/hash/recovery setup.
+        # Runs under the already-held evaluate lock (Zone 1); does NOT acquire it.
+        # Produces game_time_seconds and mutates session/hash/recovery state.
+        self._ensure_session_locked(current_time, request.minute, state)
+        game_time_seconds = self._game_time_seconds_locked(state, current_time)
+        self._update_hashes_locked(state_hash, tactical_hash)
+        if decision_point != "LOW_HP":
+            self._update_low_hp_recovery_locked(state)
+        return game_time_seconds
 
-            if decision_point == "NO_ADVICE":
-                active = self._active_result_locked(
-                    decision_point=decision_point,
-                    now=current_time,
-                    next_allowed=0,
-                    suppressed_reason="cooldown_keep_visible",
-                )
-                if active is not None:
-                    return active
-                return self._result_locked(
-                    status="no_advice",
-                    decision_point=decision_point,
-                    recommendation=None,
-                    source="none",
-                    llm_used=False,
-                    next_allowed=0,
-                    new_advice=False,
-                    advice_mode="status",
-                    suppressed_reason="no_advice",
-                )
-
-            cooldown_remaining = self._cooldown_remaining_locked(
-                decision_point,
-                current_time,
-                game_time_seconds,
+    def _evaluate_no_advice_locked(
+        self, decision_point: str, current_time: datetime
+    ) -> ScheduledAdvice | None:
+        # Phase 4B extract (S2): NO_ADVICE gate. Runs under the evaluate lock;
+        # returns a ScheduledAdvice when active advice is kept visible, otherwise
+        # a no_advice result, or None to fall through. Early-return preserved.
+        if decision_point == "NO_ADVICE":
+            active = self._active_result_locked(
+                decision_point=decision_point,
+                now=current_time,
+                next_allowed=0,
+                suppressed_reason="cooldown_keep_visible",
             )
-            duplicate = self._last_advice_state_hash == state_hash
-            if duplicate:
-                self.duplicate_suppressed_count += 1
-                suppressed_reason = (
-                    "duplicate_death_review"
-                    if decision_point in DEATH_REVIEW_DECISIONS
-                    else "duplicate"
-                )
-                active = self._active_result_locked(
-                    decision_point=decision_point,
-                    now=current_time,
-                    next_allowed=cooldown_remaining,
-                    suppressed_reason="cooldown_keep_visible"
-                    if suppressed_reason == "duplicate"
-                    else suppressed_reason,
-                )
-                if active is not None:
-                    return active
-                recommendation, source, llm_used, advice_mode = self._last_matching_advice_locked(
-                    tactical_hash
-                )
-                return self._result_locked(
-                    status="cooldown",
-                    decision_point=decision_point,
-                    recommendation=recommendation,
-                    source=source,
-                    llm_used=llm_used,
-                    next_allowed=cooldown_remaining,
-                    new_advice=False,
-                    advice_mode=advice_mode,
-                    suppressed_reason=suppressed_reason,
-                )
+            if active is not None:
+                return active
+            return self._result_locked(
+                status="no_advice",
+                decision_point=decision_point,
+                recommendation=None,
+                source="none",
+                llm_used=False,
+                next_allowed=0,
+                new_advice=False,
+                advice_mode="status",
+                suppressed_reason="no_advice",
+            )
 
-            if cooldown_remaining > 0:
-                active = self._active_result_locked(
-                    decision_point=decision_point,
-                    now=current_time,
-                    next_allowed=cooldown_remaining,
-                    suppressed_reason="cooldown_keep_visible",
-                )
-                if active is not None:
-                    return active
-                recommendation, source, llm_used, advice_mode = self._last_matching_advice_locked(
-                    tactical_hash
-                )
-                return self._result_locked(
-                    status="cooldown",
-                    decision_point=decision_point,
-                    recommendation=recommendation,
-                    source=source,
-                    llm_used=llm_used,
-                    next_allowed=cooldown_remaining,
-                    new_advice=False,
-                    advice_mode=advice_mode,
-                    suppressed_reason="cooldown",
-                )
+        return None
 
-            if decision_point == "LOW_HP_WARNING" and (
-                self._low_hp_episode_active
-                or self._recent_low_hp_pattern_locked(current_time, game_time_seconds)
-            ):
-                self.repeated_low_hp_suppressed_count += 1
-                self.duplicate_suppressed_count += 1
+    def _evaluate_cooldown_locked(
+        self,
+        decision_point: str,
+        current_time: datetime,
+        cooldown_remaining: int,
+        tactical_hash: str,
+    ) -> ScheduledAdvice | None:
+        # Phase 4B extract (S4): cooldown gate. Runs under the evaluate lock.
+        # When a cooldown is still active, keep an active advice visible or
+        # return a cooldown result; None to fall through. Early-return preserved.
+        if cooldown_remaining > 0:
+            active = self._active_result_locked(
+                decision_point=decision_point,
+                now=current_time,
+                next_allowed=cooldown_remaining,
+                suppressed_reason="cooldown_keep_visible",
+            )
+            if active is not None:
+                return active
+            recommendation, source, llm_used, advice_mode = self._last_matching_advice_locked(
+                tactical_hash
+            )
+            return self._result_locked(
+                status="cooldown",
+                decision_point=decision_point,
+                recommendation=recommendation,
+                source=source,
+                llm_used=llm_used,
+                next_allowed=cooldown_remaining,
+                new_advice=False,
+                advice_mode=advice_mode,
+                suppressed_reason="cooldown",
+            )
+
+        return None
+
+    def _evaluate_fallback_recommendation(
+        self,
+        request: GameSituationRequest,
+        rag_context: list[str],
+        policy: dict[str, Any],
+        decision_point: str,
+    ) -> RecommendationResponse:
+        # Phase 4B extract (S7): fallback recommendation generation.
+        # NO lock: generate_recommendation is intentionally expensive and runs
+        # outside the lock between Zone 1 and Zone 3 (preserved here).
+        fallback = apply_advice_policy(generate_recommendation(request, rag_context), policy)
+        fallback = _compact_recommendation(fallback, decision_point)
+        return fallback
+
+    def _evaluate_record_advice_locked(
+        self,
+        current_time: datetime,
+        decision_point: str,
+        fallback: RecommendationResponse,
+        game_time_seconds: float,
+        laning_category: str,
+        post_laning_category: str,
+        state: dict[str, Any],
+        state_hash: str,
+        tactical_hash: str,
+        ux_result: dict[str, Any],
+    ) -> tuple[bool, int, float | None]:
+        # Phase 4B extract (S11): final advice recording. Runs under the evaluate
+        # lock (Zone 3 tail, after all gating). Increments counters, records shown
+        # timing, mutates last-advice state, appends history, runs laning/post-laning/
+        # safety recorders, and computes should_refine/next_allowed/gap. Returns
+        # (should_refine, next_allowed, gap); gap is consumed by the finalize step.
+        # Side-effect order is preserved verbatim.
+        self.state.advice_count += 1
+        self.state.fallback_count += 1
+        shown_category = post_laning_category or laning_category or decision_point
+        if _is_heartbeat_recommendation(fallback):
+            self.state.heartbeat_nudge_count += 1
+        gap = self._record_shown_advice_timing_locked(
+            decision_point=decision_point,
+            state=state,
+            recommendation=fallback,
+            category=shown_category,
+            game_time_seconds=game_time_seconds,
+        )
+        self.state.last_advice_at = current_time
+        self.state.last_advice_type = decision_point
+        self.state._last_advice_state_hash = state_hash
+        self.state._last_advice_tactical_state_hash = tactical_hash
+        self.state._last_recommendation = fallback
+        self.state._last_source = "fallback"
+        self.state._last_llm_used = False
+        self.state._last_advice_mode = ux_result["advice_mode"]
+        self.state._last_updated = current_time.isoformat()
+        self._set_active_advice_locked(decision_point, state, current_time)
+        self.state._advice_history.append(
+            {
+                "timestamp": self.state._last_updated,
+                "decision_point": decision_point,
+                "source": "fallback",
+                "action": fallback.action,
+                "action_type": ux_result["action_type"],
+                "laning_category": laning_category or "",
+                "post_laning_category": post_laning_category or "",
+                "game_time_gap_since_previous_advice": gap,
+            }
+        )
+        self._record_laning_advice_locked(
+            decision_point=decision_point,
+            state=state,
+            recommendation=fallback,
+            now=current_time,
+            game_time_seconds=game_time_seconds,
+        )
+        self._record_post_laning_advice_locked(
+            decision_point=decision_point,
+            state=state,
+            recommendation=fallback,
+            now=current_time,
+            game_time_seconds=game_time_seconds,
+        )
+        self._record_safety_advice_locked(
+            decision_point=decision_point,
+            state=state,
+            post_laning_category=post_laning_category,
+            now=current_time,
+            game_time_seconds=game_time_seconds,
+        )
+        should_refine = self._should_start_llm_locked(decision_point, tactical_hash)
+        next_allowed = self._cooldown_for_type_locked(decision_point)
+        return should_refine, next_allowed, gap
+
+    def _evaluate_duplicate_locked(
+        self,
+        decision_point: str,
+        current_time: datetime,
+        cooldown_remaining: int,
+        state_hash: str,
+        tactical_hash: str,
+    ) -> ScheduledAdvice | None:
+        # Phase 4B extract (S3): duplicate gate. Runs under the evaluate lock.
+        # cooldown_remaining is hoisted into evaluate (unconditional pure read,
+        # computed just above this call) and passed in - keeps S3 uniform with
+        # S2/S4/S5/S6 (all return a bare ScheduledAdvice | None). On a duplicate
+        # it keeps an active advice visible or returns a cooldown result; None
+        # to fall through. Early-return preserved.
+        duplicate = self.state._last_advice_state_hash == state_hash
+        if duplicate:
+            self.state.duplicate_suppressed_count += 1
+            suppressed_reason = (
+                "duplicate_death_review"
+                if decision_point in DEATH_REVIEW_DECISIONS
+                else "duplicate"
+            )
+            active = self._active_result_locked(
+                decision_point=decision_point,
+                now=current_time,
+                next_allowed=cooldown_remaining,
+                suppressed_reason="cooldown_keep_visible"
+                if suppressed_reason == "duplicate"
+                else suppressed_reason,
+            )
+            if active is not None:
+                return active
+            recommendation, source, llm_used, advice_mode = self._last_matching_advice_locked(
+                tactical_hash
+            )
+            return self._result_locked(
+                status="cooldown",
+                decision_point=decision_point,
+                recommendation=recommendation,
+                source=source,
+                llm_used=llm_used,
+                next_allowed=cooldown_remaining,
+                new_advice=False,
+                advice_mode=advice_mode,
+                suppressed_reason=suppressed_reason,
+            )
+
+        return None
+
+    def _evaluate_low_hp_warning_locked(
+        self, decision_point: str, current_time: datetime, game_time_seconds: float
+    ) -> ScheduledAdvice | None:
+        # Phase 4B extract (S5): LOW_HP_WARNING gate. Runs under the evaluate lock.
+        # When a low-HP episode is active (or a recent low-HP pattern is live), a
+        # LOW_HP_WARNING is suppressed as duplicate_low_hp_episode; returns None to
+        # fall through. Uniform with S2/S3/S4: bare ScheduledAdvice | None.
+        if decision_point == "LOW_HP_WARNING" and (
+            self.state._low_hp_episode_active
+            or self._recent_low_hp_pattern_locked(current_time, game_time_seconds)
+        ):
+            self.state.repeated_low_hp_suppressed_count += 1
+            self.state.duplicate_suppressed_count += 1
+            active = self._active_result_locked(
+                decision_point=decision_point,
+                now=current_time,
+                next_allowed=self._cooldown_for_type_locked(decision_point),
+                suppressed_reason="cooldown_keep_visible",
+            )
+            if active is not None:
+                return active
+            return self._result_locked(
+                status="cooldown",
+                decision_point=decision_point,
+                recommendation=None,
+                source="none",
+                llm_used=False,
+                next_allowed=self._cooldown_for_type_locked(decision_point),
+                new_advice=False,
+                advice_mode="status",
+                suppressed_reason="duplicate_low_hp_episode",
+            )
+
+        return None
+
+    def _evaluate_low_hp_locked(
+        self,
+        current_time: datetime,
+        decision_point: str,
+        game_time_seconds: float,
+        state: dict[str, Any],
+        state_hash: str,
+        tactical_hash: str,
+    ) -> ScheduledAdvice | None:
+        # Phase 4B extract (S6): LOW_HP episode gate. Runs under the evaluate
+        # lock. Dispatches on _low_hp_episode_action_locked: suppress (repeat in
+        # episode), show+suppress (show action but recent safety), or pattern
+        # (third repeat). The pattern branch is the heaviest - it mutates state,
+        # appends history, and returns a constructed ScheduledAdvice - and is
+        # extracted as one atomic block. Returns a bare ScheduledAdvice | None.
+        if decision_point == "LOW_HP":
+            low_hp_action = self._low_hp_episode_action_locked(state)
+            if low_hp_action == "suppress":
+                self.state.repeated_low_hp_suppressed_count += 1
+                self.state.post_laning_safety_suppressed_count += _post_laning_int(state)
+                self.state.duplicate_suppressed_count += 1
                 active = self._active_result_locked(
                     decision_point=decision_point,
                     now=current_time,
@@ -380,140 +513,14 @@ class AdviceScheduler:
                     advice_mode="status",
                     suppressed_reason="duplicate_low_hp_episode",
                 )
-
-            if decision_point == "LOW_HP":
-                low_hp_action = self._low_hp_episode_action_locked(state)
-                if low_hp_action == "suppress":
-                    self.repeated_low_hp_suppressed_count += 1
-                    self.post_laning_safety_suppressed_count += _post_laning_int(state)
-                    self.duplicate_suppressed_count += 1
-                    active = self._active_result_locked(
-                        decision_point=decision_point,
-                        now=current_time,
-                        next_allowed=self._cooldown_for_type_locked(decision_point),
-                        suppressed_reason="cooldown_keep_visible",
-                    )
-                    if active is not None:
-                        return active
-                    return self._result_locked(
-                        status="cooldown",
-                        decision_point=decision_point,
-                        recommendation=None,
-                        source="none",
-                        llm_used=False,
-                        next_allowed=self._cooldown_for_type_locked(decision_point),
-                        new_advice=False,
-                        advice_mode="status",
-                        suppressed_reason="duplicate_low_hp_episode",
-                    )
-                if low_hp_action == "show" and self._should_suppress_post_laning_low_hp_locked(
-                    state=state,
-                    now=current_time,
-                    game_time_seconds=game_time_seconds,
-                ):
-                    self.repeated_low_hp_suppressed_count += 1
-                    self.post_laning_safety_suppressed_count += 1
-                    self.duplicate_suppressed_count += 1
-                    active = self._active_result_locked(
-                        decision_point=decision_point,
-                        now=current_time,
-                        next_allowed=self._cooldown_for_type_locked(decision_point),
-                        suppressed_reason="cooldown_keep_visible",
-                    )
-                    if active is not None:
-                        return active
-                    return self._result_locked(
-                        status="cooldown",
-                        decision_point=decision_point,
-                        recommendation=None,
-                        source="none",
-                        llm_used=False,
-                        next_allowed=self._cooldown_for_type_locked(decision_point),
-                        new_advice=False,
-                        advice_mode="status",
-                        suppressed_reason="duplicate_low_hp_episode",
-                    )
-                if low_hp_action == "pattern":
-                    pattern = _low_hp_pattern_recommendation()
-                    self.advice_count += 1
-                    self.fallback_count += 1
-                    self.low_hp_pattern_advice_count += 1
-                    self._record_post_laning_safety_locked(
-                        now=current_time,
-                        state=state,
-                        category="low_hp_pattern",
-                        game_time_seconds=game_time_seconds,
-                    )
-                    self._last_low_hp_pattern_at = current_time
-                    self._low_hp_pattern_last_at = current_time
-                    gap = self._record_shown_advice_timing_locked(
-                        decision_point=decision_point,
-                        state=state,
-                        recommendation=pattern,
-                        category="low_hp_pattern",
-                        game_time_seconds=game_time_seconds,
-                    )
-                    self.last_advice_at = current_time
-                    self.last_advice_type = decision_point
-                    self._last_advice_state_hash = state_hash
-                    self._last_advice_tactical_state_hash = tactical_hash
-                    self._last_recommendation = pattern
-                    self._last_source = "fallback"
-                    self._last_llm_used = False
-                    self._last_advice_mode = "coaching"
-                    self._last_updated = current_time.isoformat()
-                    self._set_active_advice_locked(decision_point, state, current_time)
-                    self._advice_history.append(
-                        {
-                            "timestamp": self._last_updated,
-                            "decision_point": decision_point,
-                            "source": "fallback",
-                            "action": pattern.action,
-                            "action_type": "low_hp_pattern",
-                            "low_hp_episode_id": self._low_hp_episode_id,
-                            "game_time_gap_since_previous_advice": gap,
-                        }
-                    )
-                    return ScheduledAdvice(
-                        status="advice",
-                        decision_point=decision_point,
-                        recommendation=pattern,
-                        advice_count=self.advice_count,
-                        llm_used=False,
-                        source="fallback",
-                        last_updated=self._last_updated,
-                        next_allowed_advice_in_seconds=self._cooldown_for_type_locked(
-                            decision_point
-                        ),
-                        new_advice=True,
-                        advice_mode="coaching",
-                        suppressed_reason=None,
-                        active_advice_until=(
-                            self._active_advice_until.isoformat()
-                            if self._active_advice_until
-                            else None
-                        ),
-                        last_visible_advice=pattern.model_dump(),
-                        is_pinned=self._is_pinned,
-                        low_hp_episode_id=self._low_hp_episode_id,
-                        game_time_gap_since_previous_advice=gap,
-                    )
-
-        fallback = apply_advice_policy(generate_recommendation(request, rag_context), policy)
-        fallback = _compact_recommendation(fallback, decision_point)
-
-        with self._lock:
-            ux_result = apply_ux_policy(
-                fallback,
-                decision_point,
-                list(self._advice_history),
+            if low_hp_action == "show" and self._should_suppress_post_laning_low_hp_locked(
+                state=state,
                 now=current_time,
-                action_type=policy["action_type"],
-            )
-            if ux_result["recommendation"] is None:
-                reason = ux_result["suppressed_reason"] or "cooldown"
-                if reason == "duplicate":
-                    self.duplicate_suppressed_count += 1
+                game_time_seconds=game_time_seconds,
+            ):
+                self.state.repeated_low_hp_suppressed_count += 1
+                self.state.post_laning_safety_suppressed_count += 1
+                self.state.duplicate_suppressed_count += 1
                 active = self._active_result_locked(
                     decision_point=decision_point,
                     now=current_time,
@@ -523,6 +530,118 @@ class AdviceScheduler:
                 if active is not None:
                     return active
                 return self._result_locked(
+                    status="cooldown",
+                    decision_point=decision_point,
+                    recommendation=None,
+                    source="none",
+                    llm_used=False,
+                    next_allowed=self._cooldown_for_type_locked(decision_point),
+                    new_advice=False,
+                    advice_mode="status",
+                    suppressed_reason="duplicate_low_hp_episode",
+                )
+            if low_hp_action == "pattern":
+                pattern = _low_hp_pattern_recommendation()
+                self.state.advice_count += 1
+                self.state.fallback_count += 1
+                self.state.low_hp_pattern_advice_count += 1
+                self._record_post_laning_safety_locked(
+                    now=current_time,
+                    state=state,
+                    category="low_hp_pattern",
+                    game_time_seconds=game_time_seconds,
+                )
+                self.state._last_low_hp_pattern_at = current_time
+                self.state._low_hp_pattern_last_at = current_time
+                gap = self._record_shown_advice_timing_locked(
+                    decision_point=decision_point,
+                    state=state,
+                    recommendation=pattern,
+                    category="low_hp_pattern",
+                    game_time_seconds=game_time_seconds,
+                )
+                self.state.last_advice_at = current_time
+                self.state.last_advice_type = decision_point
+                self.state._last_advice_state_hash = state_hash
+                self.state._last_advice_tactical_state_hash = tactical_hash
+                self.state._last_recommendation = pattern
+                self.state._last_source = "fallback"
+                self.state._last_llm_used = False
+                self.state._last_advice_mode = "coaching"
+                self.state._last_updated = current_time.isoformat()
+                self._set_active_advice_locked(decision_point, state, current_time)
+                self.state._advice_history.append(
+                    {
+                        "timestamp": self.state._last_updated,
+                        "decision_point": decision_point,
+                        "source": "fallback",
+                        "action": pattern.action,
+                        "action_type": "low_hp_pattern",
+                        "low_hp_episode_id": self.state._low_hp_episode_id,
+                        "game_time_gap_since_previous_advice": gap,
+                    }
+                )
+                return ScheduledAdvice(
+                    status="advice",
+                    decision_point=decision_point,
+                    recommendation=pattern,
+                    advice_count=self.state.advice_count,
+                    llm_used=False,
+                    source="fallback",
+                    last_updated=self.state._last_updated,
+                    next_allowed_advice_in_seconds=self._cooldown_for_type_locked(decision_point),
+                    new_advice=True,
+                    advice_mode="coaching",
+                    suppressed_reason=None,
+                    active_advice_until=(
+                        self.state._active_advice_until.isoformat()
+                        if self.state._active_advice_until
+                        else None
+                    ),
+                    last_visible_advice=pattern.model_dump(),
+                    is_pinned=self.state._is_pinned,
+                    low_hp_episode_id=self.state._low_hp_episode_id,
+                    game_time_gap_since_previous_advice=gap,
+                )
+
+        return None
+
+    def _evaluate_ux_laning_locked(
+        self,
+        *,
+        current_time: datetime,
+        decision_point: str,
+        state: dict[str, Any],
+        game_time_seconds: float,
+        fallback: RecommendationResponse,
+        policy: dict[str, Any],
+    ) -> _SegmentResult:
+        # Phase 4B extract (S8): UX policy application + laning-repeat gate.
+        # Behavior-preserving via result object: each early ``return <advice>``
+        # becomes ``return _SegmentResult(advice=<advice>)``; the fall-through
+        # carries ux_result/fallback/laning_category back to ``evaluate``.
+        # Counter mutations stay immediately before their returns, byte-for-byte.
+        ux_result = apply_ux_policy(
+            fallback,
+            decision_point,
+            list(self.state._advice_history),
+            now=current_time,
+            action_type=policy["action_type"],
+        )
+        if ux_result["recommendation"] is None:
+            reason = ux_result["suppressed_reason"] or "cooldown"
+            if reason == "duplicate":
+                self.state.duplicate_suppressed_count += 1
+            active = self._active_result_locked(
+                decision_point=decision_point,
+                now=current_time,
+                next_allowed=self._cooldown_for_type_locked(decision_point),
+                suppressed_reason="cooldown_keep_visible",
+            )
+            if active is not None:
+                return _SegmentResult(advice=active)
+            return _SegmentResult(
+                advice=self._result_locked(
                     status="cooldown",
                     decision_point=decision_point,
                     recommendation=None,
@@ -533,27 +652,29 @@ class AdviceScheduler:
                     advice_mode=ux_result["advice_mode"],
                     suppressed_reason=reason,
                 )
-
-            fallback = clean_recommendation_text(ux_result["recommendation"], decision_point)
-            suppress_laning, laning_category = self._should_suppress_laning_locked(
-                decision_point=decision_point,
-                state=state,
-                recommendation=fallback,
-                now=current_time,
-                game_time_seconds=game_time_seconds,
             )
-            if suppress_laning:
-                self.repeated_laning_suppressed_count += 1
-                self.duplicate_suppressed_count += 1
-                active = self._active_result_locked(
-                    decision_point=decision_point,
-                    now=current_time,
-                    next_allowed=self._cooldown_for_type_locked(decision_point),
-                    suppressed_reason="cooldown_keep_visible",
-                )
-                if active is not None:
-                    return active
-                return self._result_locked(
+
+        fallback = clean_recommendation_text(ux_result["recommendation"], decision_point)
+        suppress_laning, laning_category = self._should_suppress_laning_locked(
+            decision_point=decision_point,
+            state=state,
+            recommendation=fallback,
+            now=current_time,
+            game_time_seconds=game_time_seconds,
+        )
+        if suppress_laning:
+            self.state.repeated_laning_suppressed_count += 1
+            self.state.duplicate_suppressed_count += 1
+            active = self._active_result_locked(
+                decision_point=decision_point,
+                now=current_time,
+                next_allowed=self._cooldown_for_type_locked(decision_point),
+                suppressed_reason="cooldown_keep_visible",
+            )
+            if active is not None:
+                return _SegmentResult(advice=active)
+            return _SegmentResult(
+                advice=self._result_locked(
                     status="cooldown",
                     decision_point=decision_point,
                     recommendation=None,
@@ -564,55 +685,80 @@ class AdviceScheduler:
                     advice_mode=ux_result["advice_mode"],
                     suppressed_reason="duplicate_laning",
                 )
-
-            suppress_post_laning, post_laning_category, post_laning_reason = (
-                self._should_suppress_post_laning_locked(
-                    decision_point=decision_point,
-                    state=state,
-                    recommendation=fallback,
-                    now=current_time,
-                    game_time_seconds=game_time_seconds,
-                )
             )
-            if suppress_post_laning:
-                heartbeat = self._heartbeat_nudge_locked(
-                    decision_point=decision_point,
-                    state=state,
-                    recommendation=fallback,
-                    category=post_laning_category,
-                    reason=post_laning_reason,
-                    game_time_seconds=game_time_seconds,
-                )
-                if heartbeat is not None:
-                    fallback = heartbeat
-                    post_laning_category = "post_laning_safe_farm_route"
-                    post_laning_reason = None
-                    suppress_post_laning = False
+
+        return _SegmentResult(
+            ux_result=ux_result,
+            fallback=fallback,
+            laning_category=laning_category,
+        )
+
+    def _evaluate_post_laning_locked(
+        self,
+        *,
+        current_time: datetime,
+        decision_point: str,
+        state: dict[str, Any],
+        game_time_seconds: float,
+        fallback: RecommendationResponse,
+        ux_result: dict[str, Any],
+    ) -> _SegmentResult:
+        # Phase 4B extract (S9): post-laning suppression gate. Behavior-preserving
+        # via result object: the suppressed early return becomes
+        # _SegmentResult(advice=...); the fall-through carries the (possibly
+        # heartbeat-rebound) fallback plus post_laning_category/reason back to
+        # evaluate. The heartbeat path REBINDS fallback, so it is returned and
+        # rebound in evaluate. Counter mutations stay immediately before the
+        # early returns, byte-for-byte.
+        suppress_post_laning, post_laning_category, post_laning_reason = (
+            self._should_suppress_post_laning_locked(
+                decision_point=decision_point,
+                state=state,
+                recommendation=fallback,
+                now=current_time,
+                game_time_seconds=game_time_seconds,
+            )
+        )
+        if suppress_post_laning:
+            heartbeat = self._heartbeat_nudge_locked(
+                decision_point=decision_point,
+                state=state,
+                recommendation=fallback,
+                category=post_laning_category,
+                reason=post_laning_reason,
+                game_time_seconds=game_time_seconds,
+            )
+            if heartbeat is not None:
+                fallback = heartbeat
+                post_laning_category = "post_laning_safe_farm_route"
+                post_laning_reason = None
+                suppress_post_laning = False
+            else:
+                if post_laning_reason == "objective_after_recent_safety":
+                    self.state.objective_suppressed_by_recent_safety_count += 1
+                    self.state.repeated_objective_suppressed_count += 1
+                elif post_laning_reason in {"duplicate_objective", "objective_context_missing"}:
+                    self.state.repeated_objective_suppressed_count += 1
+                elif post_laning_reason == "item_timing_after_recent_safety":
+                    self.state.item_timing_suppressed_by_safety_count += 1
+                elif post_laning_reason == "death_route_duplicate":
+                    self.state.death_route_suppressed_count += 1
+                elif post_laning_reason == "recent_safety":
+                    self.state.post_laning_safety_suppressed_count += 1
+                    self.state.repeated_post_laning_suppressed_count += 1
                 else:
-                    if post_laning_reason == "objective_after_recent_safety":
-                        self.objective_suppressed_by_recent_safety_count += 1
-                        self.repeated_objective_suppressed_count += 1
-                    elif post_laning_reason in {"duplicate_objective", "objective_context_missing"}:
-                        self.repeated_objective_suppressed_count += 1
-                    elif post_laning_reason == "item_timing_after_recent_safety":
-                        self.item_timing_suppressed_by_safety_count += 1
-                    elif post_laning_reason == "death_route_duplicate":
-                        self.death_route_suppressed_count += 1
-                    elif post_laning_reason == "recent_safety":
-                        self.post_laning_safety_suppressed_count += 1
-                        self.repeated_post_laning_suppressed_count += 1
-                    else:
-                        self.repeated_post_laning_suppressed_count += 1
-                    self.duplicate_suppressed_count += 1
-                    active = self._active_result_locked(
-                        decision_point=decision_point,
-                        now=current_time,
-                        next_allowed=self._cooldown_for_type_locked(decision_point),
-                        suppressed_reason="cooldown_keep_visible",
-                    )
-                    if active is not None:
-                        return active
-                    return self._result_locked(
+                    self.state.repeated_post_laning_suppressed_count += 1
+                self.state.duplicate_suppressed_count += 1
+                active = self._active_result_locked(
+                    decision_point=decision_point,
+                    now=current_time,
+                    next_allowed=self._cooldown_for_type_locked(decision_point),
+                    suppressed_reason="cooldown_keep_visible",
+                )
+                if active is not None:
+                    return _SegmentResult(advice=active)
+                return _SegmentResult(
+                    advice=self._result_locked(
                         status="cooldown",
                         decision_point=decision_point,
                         recommendation=None,
@@ -623,29 +769,56 @@ class AdviceScheduler:
                         advice_mode=ux_result["advice_mode"],
                         suppressed_reason=post_laning_reason or "duplicate_post_laning",
                     )
-
-            spacing_remaining, spacing_gap = self._game_time_spacing_remaining_locked(
-                decision_point=decision_point,
-                state=state,
-                recommendation=fallback,
-                advice_mode=ux_result["advice_mode"],
-                category=post_laning_category or laning_category,
-                game_time_seconds=game_time_seconds,
-            )
-            if spacing_remaining > 0:
-                self.suppressed_by_game_time_spacing_count += 1
-                self.duplicate_suppressed_count += 1
-                active = self._active_result_locked(
-                    decision_point=decision_point,
-                    now=current_time,
-                    next_allowed=spacing_remaining,
-                    suppressed_reason="cooldown_keep_visible",
                 )
-                if active is not None:
-                    active.suppressed_by_game_time_spacing = True
-                    active.game_time_gap_since_previous_advice = spacing_gap
-                    return active
-                return self._result_locked(
+
+        return _SegmentResult(
+            fallback=fallback,
+            suppress_post_laning=suppress_post_laning,
+            post_laning_category=post_laning_category,
+            post_laning_reason=post_laning_reason,
+        )
+
+    def _evaluate_spacing_locked(
+        self,
+        *,
+        current_time: datetime,
+        decision_point: str,
+        state: dict[str, Any],
+        game_time_seconds: float,
+        fallback: RecommendationResponse,
+        ux_result: dict[str, Any],
+        post_laning_category: str | None,
+        laning_category: str | None,
+    ) -> _SegmentResult:
+        # Phase 4B extract (S10): game-time spacing gate. Behavior-preserving via
+        # result object: the spacing early return becomes _SegmentResult(advice=...).
+        # The active sub-path still mutates the active card (suppressed_by_game_time
+        # _spacing + gap) before returning it. spacing_remaining/spacing_gap are
+        # carried for completeness but are not read downstream by evaluate. Counter
+        # mutations stay immediately before the early returns, byte-for-byte.
+        spacing_remaining, spacing_gap = self._game_time_spacing_remaining_locked(
+            decision_point=decision_point,
+            state=state,
+            recommendation=fallback,
+            advice_mode=ux_result["advice_mode"],
+            category=post_laning_category or laning_category,
+            game_time_seconds=game_time_seconds,
+        )
+        if spacing_remaining > 0:
+            self.state.suppressed_by_game_time_spacing_count += 1
+            self.state.duplicate_suppressed_count += 1
+            active = self._active_result_locked(
+                decision_point=decision_point,
+                now=current_time,
+                next_allowed=spacing_remaining,
+                suppressed_reason="cooldown_keep_visible",
+            )
+            if active is not None:
+                active.suppressed_by_game_time_spacing = True
+                active.game_time_gap_since_previous_advice = spacing_gap
+                return _SegmentResult(advice=active)
+            return _SegmentResult(
+                advice=self._result_locked(
                     status="cooldown",
                     decision_point=decision_point,
                     recommendation=None,
@@ -658,65 +831,29 @@ class AdviceScheduler:
                     game_time_gap_since_previous_advice=spacing_gap,
                     suppressed_by_game_time_spacing=True,
                 )
+            )
 
-            self.advice_count += 1
-            self.fallback_count += 1
-            shown_category = post_laning_category or laning_category or decision_point
-            if _is_heartbeat_recommendation(fallback):
-                self.heartbeat_nudge_count += 1
-            gap = self._record_shown_advice_timing_locked(
-                decision_point=decision_point,
-                state=state,
-                recommendation=fallback,
-                category=shown_category,
-                game_time_seconds=game_time_seconds,
-            )
-            self.last_advice_at = current_time
-            self.last_advice_type = decision_point
-            self._last_advice_state_hash = state_hash
-            self._last_advice_tactical_state_hash = tactical_hash
-            self._last_recommendation = fallback
-            self._last_source = "fallback"
-            self._last_llm_used = False
-            self._last_advice_mode = ux_result["advice_mode"]
-            self._last_updated = current_time.isoformat()
-            self._set_active_advice_locked(decision_point, state, current_time)
-            self._advice_history.append(
-                {
-                    "timestamp": self._last_updated,
-                    "decision_point": decision_point,
-                    "source": "fallback",
-                    "action": fallback.action,
-                    "action_type": ux_result["action_type"],
-                    "laning_category": laning_category or "",
-                    "post_laning_category": post_laning_category or "",
-                    "game_time_gap_since_previous_advice": gap,
-                }
-            )
-            self._record_laning_advice_locked(
-                decision_point=decision_point,
-                state=state,
-                recommendation=fallback,
-                now=current_time,
-                game_time_seconds=game_time_seconds,
-            )
-            self._record_post_laning_advice_locked(
-                decision_point=decision_point,
-                state=state,
-                recommendation=fallback,
-                now=current_time,
-                game_time_seconds=game_time_seconds,
-            )
-            self._record_safety_advice_locked(
-                decision_point=decision_point,
-                state=state,
-                post_laning_category=post_laning_category,
-                now=current_time,
-                game_time_seconds=game_time_seconds,
-            )
-            should_refine = self._should_start_llm_locked(decision_point, tactical_hash)
-            next_allowed = self._cooldown_for_type_locked(decision_point)
+        return _SegmentResult(spacing_remaining=spacing_remaining, spacing_gap=spacing_gap)
 
+    def _evaluate_finalize(
+        self,
+        *,
+        should_refine: bool,
+        tactical_hash: str,
+        request: GameSituationRequest,
+        decision_point: str,
+        rag_context: list[str],
+        fallback: RecommendationResponse,
+        next_allowed: int,
+        ux_result: dict[str, Any],
+        gap: float | None,
+    ) -> ScheduledAdvice:
+        # Phase 4B extract (S12): async LLM-refinement kickoff + finalize return.
+        # NO lock: this runs AFTER the second `with self._lock` block, exactly as
+        # the inlined tail did, so it does NOT acquire the lock. The refinement is
+        # fire-and-forget and never overrides the rule-based result. State reads
+        # (advice_count/_last_updated/_active_advice_until/_is_pinned) stay outside
+        # the lock, byte-for-byte.
         if should_refine:
             self._start_llm_refinement(tactical_hash, request, decision_point, rag_context)
 
@@ -724,20 +861,153 @@ class AdviceScheduler:
             status="advice",
             decision_point=decision_point,
             recommendation=fallback,
-            advice_count=self.advice_count,
+            advice_count=self.state.advice_count,
             llm_used=False,
             source="fallback",
-            last_updated=self._last_updated,
+            last_updated=self.state._last_updated,
             next_allowed_advice_in_seconds=next_allowed,
             new_advice=True,
             advice_mode=ux_result["advice_mode"],
             suppressed_reason=None,
-            active_advice_until=self._active_advice_until.isoformat()
-            if self._active_advice_until
+            active_advice_until=self.state._active_advice_until.isoformat()
+            if self.state._active_advice_until
             else None,
             last_visible_advice=fallback.model_dump(),
-            is_pinned=self._is_pinned,
+            is_pinned=self.state._is_pinned,
             game_time_gap_since_previous_advice=gap,
+        )
+
+    def evaluate(
+        self,
+        request: GameSituationRequest,
+        decision_point: str,
+        rag_context: list[str],
+        now: datetime | None = None,
+    ) -> ScheduledAdvice:
+        current_time, state, state_hash, policy, tactical_hash = self._evaluate_normalize_input(
+            request, decision_point, now
+        )
+
+        with self._lock:
+            game_time_seconds = self._evaluate_locked_setup(
+                current_time=current_time,
+                request=request,
+                state=state,
+                decision_point=decision_point,
+                state_hash=state_hash,
+                tactical_hash=tactical_hash,
+            )
+
+            _no_advice = self._evaluate_no_advice_locked(decision_point, current_time)
+            if _no_advice is not None:
+                return _no_advice
+
+            cooldown_remaining = self._cooldown_remaining_locked(
+                decision_point,
+                current_time,
+                game_time_seconds,
+            )
+            _duplicate = self._evaluate_duplicate_locked(
+                decision_point=decision_point,
+                current_time=current_time,
+                cooldown_remaining=cooldown_remaining,
+                state_hash=state_hash,
+                tactical_hash=tactical_hash,
+            )
+            if _duplicate is not None:
+                return _duplicate
+
+            _cooldown = self._evaluate_cooldown_locked(
+                decision_point=decision_point,
+                current_time=current_time,
+                cooldown_remaining=cooldown_remaining,
+                tactical_hash=tactical_hash,
+            )
+            if _cooldown is not None:
+                return _cooldown
+
+            _low_hp_warning = self._evaluate_low_hp_warning_locked(
+                decision_point, current_time, game_time_seconds
+            )
+            if _low_hp_warning is not None:
+                return _low_hp_warning
+
+            _low_hp = self._evaluate_low_hp_locked(
+                current_time=current_time,
+                decision_point=decision_point,
+                game_time_seconds=game_time_seconds,
+                state=state,
+                state_hash=state_hash,
+                tactical_hash=tactical_hash,
+            )
+            if _low_hp is not None:
+                return _low_hp
+
+        fallback = self._evaluate_fallback_recommendation(
+            request, rag_context, policy, decision_point
+        )
+
+        with self._lock:
+            r = self._evaluate_ux_laning_locked(
+                current_time=current_time,
+                decision_point=decision_point,
+                state=state,
+                game_time_seconds=game_time_seconds,
+                fallback=fallback,
+                policy=policy,
+            )
+            if r.advice is not None:
+                return r.advice
+            ux_result, fallback, laning_category = r.ux_result, r.fallback, r.laning_category
+
+            r = self._evaluate_post_laning_locked(
+                current_time=current_time,
+                decision_point=decision_point,
+                state=state,
+                game_time_seconds=game_time_seconds,
+                fallback=fallback,
+                ux_result=ux_result,
+            )
+            if r.advice is not None:
+                return r.advice
+            fallback, post_laning_category = r.fallback, r.post_laning_category
+
+            r = self._evaluate_spacing_locked(
+                current_time=current_time,
+                decision_point=decision_point,
+                state=state,
+                game_time_seconds=game_time_seconds,
+                fallback=fallback,
+                ux_result=ux_result,
+                post_laning_category=post_laning_category,
+                laning_category=laning_category,
+            )
+            if r.advice is not None:
+                return r.advice
+
+            should_refine, next_allowed, gap = self._evaluate_record_advice_locked(
+                current_time=current_time,
+                decision_point=decision_point,
+                fallback=fallback,
+                game_time_seconds=game_time_seconds,
+                laning_category=laning_category,
+                post_laning_category=post_laning_category,
+                state=state,
+                state_hash=state_hash,
+                tactical_hash=tactical_hash,
+                ux_result=ux_result,
+            )
+
+        return self._evaluate_finalize(
+            should_refine=should_refine,
+            tactical_hash=tactical_hash,
+            request=request,
+            decision_point=decision_point,
+            rag_context=rag_context,
+            fallback=fallback,
+            next_allowed=next_allowed,
+            ux_result=ux_result,
+            gap=gap,
         )
 
     # ------------------------------------------------------------------
@@ -778,45 +1048,49 @@ class AdviceScheduler:
         with self._lock:
             game_time_seconds = None
             return {
-                "match_started_at": self.match_started_at.isoformat()
-                if self.match_started_at
+                "match_started_at": self.state.match_started_at.isoformat()
+                if self.state.match_started_at
                 else None,
-                "match_session_id": self.match_session_id,
-                "advice_count": self.advice_count,
-                "llm_call_count": self.llm_call_count,
-                "llm_applied_count": self.llm_applied_count,
-                "llm_applied_rate": _rate(self.llm_applied_count, self.llm_call_count),
-                "fallback_count": self.fallback_count,
-                "stale_llm_count": self.stale_llm_count,
-                "duplicate_suppressed_count": self.duplicate_suppressed_count,
-                "repeated_laning_suppressed_count": self.repeated_laning_suppressed_count,
-                "repeated_post_laning_suppressed_count": self.repeated_post_laning_suppressed_count,
-                "repeated_objective_suppressed_count": self.repeated_objective_suppressed_count,
-                "post_laning_safety_suppressed_count": self.post_laning_safety_suppressed_count,
-                "objective_suppressed_by_recent_safety_count": self.objective_suppressed_by_recent_safety_count,
-                "item_timing_suppressed_by_safety_count": self.item_timing_suppressed_by_safety_count,
-                "death_route_suppressed_count": self.death_route_suppressed_count,
-                "low_hp_episode_count": self.low_hp_episode_count,
-                "repeated_low_hp_suppressed_count": self.repeated_low_hp_suppressed_count,
-                "low_hp_pattern_advice_count": self.low_hp_pattern_advice_count,
-                "tactical_hash_changes": self.tactical_hash_changes,
-                "last_advice_type": self.last_advice_type,
-                "average_llm_latency": _average(self._llm_latencies),
-                "p95_llm_latency": _p95(self._llm_latencies),
+                "match_session_id": self.state.match_session_id,
+                "advice_count": self.state.advice_count,
+                "llm_call_count": self.state.llm_call_count,
+                "llm_applied_count": self.state.llm_applied_count,
+                "llm_applied_rate": _rate(self.state.llm_applied_count, self.state.llm_call_count),
+                "fallback_count": self.state.fallback_count,
+                "stale_llm_count": self.state.stale_llm_count,
+                "duplicate_suppressed_count": self.state.duplicate_suppressed_count,
+                "repeated_laning_suppressed_count": self.state.repeated_laning_suppressed_count,
+                "repeated_post_laning_suppressed_count": self.state.repeated_post_laning_suppressed_count,
+                "repeated_objective_suppressed_count": self.state.repeated_objective_suppressed_count,
+                "post_laning_safety_suppressed_count": self.state.post_laning_safety_suppressed_count,
+                "objective_suppressed_by_recent_safety_count": self.state.objective_suppressed_by_recent_safety_count,
+                "item_timing_suppressed_by_safety_count": self.state.item_timing_suppressed_by_safety_count,
+                "death_route_suppressed_count": self.state.death_route_suppressed_count,
+                "low_hp_episode_count": self.state.low_hp_episode_count,
+                "repeated_low_hp_suppressed_count": self.state.repeated_low_hp_suppressed_count,
+                "low_hp_pattern_advice_count": self.state.low_hp_pattern_advice_count,
+                "tactical_hash_changes": self.state.tactical_hash_changes,
+                "last_advice_type": self.state.last_advice_type,
+                "average_llm_latency": _average(self.state._llm_latencies),
+                "p95_llm_latency": _p95(self.state._llm_latencies),
                 "current_cooldown_remaining": self._current_cooldown_remaining_locked(
                     current_time, game_time_seconds
                 ),
-                "active_advice_until": self._active_advice_until.isoformat()
-                if self._active_advice_until
+                "active_advice_until": self.state._active_advice_until.isoformat()
+                if self.state._active_advice_until
                 else None,
-                "is_pinned": self._is_pinned,
-                "suppressed_by_game_time_spacing_count": self.suppressed_by_game_time_spacing_count,
-                "heartbeat_nudge_count": self.heartbeat_nudge_count,
-                "suppressed_heartbeat_duplicate_count": self.suppressed_heartbeat_duplicate_count,
-                "min_game_time_gap_seconds": _minimum(self._advice_game_time_gaps_seconds),
-                "max_game_time_silence_seconds": _maximum(self._advice_game_time_gaps_seconds),
-                "average_game_time_gap_seconds": _average(self._advice_game_time_gaps_seconds),
-                "advice_game_time_gaps_seconds": list(self._advice_game_time_gaps_seconds),
+                "is_pinned": self.state._is_pinned,
+                "suppressed_by_game_time_spacing_count": self.state.suppressed_by_game_time_spacing_count,
+                "heartbeat_nudge_count": self.state.heartbeat_nudge_count,
+                "suppressed_heartbeat_duplicate_count": self.state.suppressed_heartbeat_duplicate_count,
+                "min_game_time_gap_seconds": _minimum(self.state._advice_game_time_gaps_seconds),
+                "max_game_time_silence_seconds": _maximum(
+                    self.state._advice_game_time_gaps_seconds
+                ),
+                "average_game_time_gap_seconds": _average(
+                    self.state._advice_game_time_gaps_seconds
+                ),
+                "advice_game_time_gaps_seconds": list(self.state._advice_game_time_gaps_seconds),
             }
 
     def state_machine_debug(
@@ -834,18 +1108,18 @@ class AdviceScheduler:
             game_time_seconds = self._game_time_seconds_locked(state, current_time)
             return {
                 "current_decision_point": current_decision_point,
-                "last_full_advice": self._last_recommendation.model_dump()
-                if self._last_recommendation
+                "last_full_advice": self.state._last_recommendation.model_dump()
+                if self.state._last_recommendation
                 else None,
-                "last_full_advice_at": self._last_updated,
-                "active_advice_until": self._active_advice_until.isoformat()
-                if self._active_advice_until
+                "last_full_advice_at": self.state._last_updated,
+                "active_advice_until": self.state._active_advice_until.isoformat()
+                if self.state._active_advice_until
                 else None,
-                "is_pinned": self._is_pinned,
+                "is_pinned": self.state._is_pinned,
                 "cooldown_reason": self._cooldown_reason_locked(
                     current_decision_point, current_time, game_time_seconds
                 ),
-                "last_shown_game_time_seconds": self._last_shown_game_time_seconds,
+                "last_shown_game_time_seconds": self.state._last_shown_game_time_seconds,
                 "hp_delta_5s": extra_context.get("hp_delta_5s", 0),
                 "hp_delta_10s": extra_context.get("hp_delta_10s", 0),
                 "recent_damage_taken": extra_context.get("recent_damage_taken", False),
@@ -854,30 +1128,38 @@ class AdviceScheduler:
                 "match_death_count": extra_context.get("match_death_count", 0),
             }
 
+    @property
+    def advice_count(self) -> int:
+        # Phase 4 shim: advice_count moved into SchedulerState, but app/main.py
+        # and scripts/check_overlay_scheduler_accounting.py read it directly off
+        # the scheduler. Keep the public read-only accessor stable so external
+        # callers (which we do not edit) keep working.
+        return self.state.advice_count
+
     def llm_latencies(self) -> list[float]:
         with self._lock:
-            return list(self._llm_latencies)
+            return list(self.state._llm_latencies)
 
     def latest_advice_snapshot(self) -> dict[str, Any]:
         with self._lock:
             recommendation = (
-                self._last_recommendation.model_dump()
-                if self._last_recommendation is not None
+                self.state._last_recommendation.model_dump()
+                if self.state._last_recommendation is not None
                 else None
             )
             return {
                 "recommendation": recommendation,
-                "source": self._last_source,
-                "llm_used": self._last_llm_used,
-                "advice_mode": self._last_advice_mode,
-                "last_updated": self._last_updated,
+                "source": self.state._last_source,
+                "llm_used": self.state._last_llm_used,
+                "advice_mode": self.state._last_advice_mode,
+                "last_updated": self.state._last_updated,
             }
 
     def wait_for_pending(self, timeout: float = 0.0) -> None:
         deadline = time.perf_counter() + timeout
         while time.perf_counter() < deadline:
             with self._lock:
-                if not self._pending_llm_tactical_hashes:
+                if not self.state._pending_llm_tactical_hashes:
                     return
             time.sleep(0.01)
 
@@ -888,28 +1170,28 @@ class AdviceScheduler:
     # ------------------------------------------------------------------
 
     def _update_hashes_locked(self, state_hash: str, tactical_hash: str) -> None:
-        self.last_state_hash = state_hash
+        self.state.last_state_hash = state_hash
         if (
-            self.last_tactical_state_hash is not None
-            and self.last_tactical_state_hash != tactical_hash
+            self.state.last_tactical_state_hash is not None
+            and self.state.last_tactical_state_hash != tactical_hash
         ):
-            self.tactical_hash_changes += 1
-        self.last_tactical_state_hash = tactical_hash
+            self.state.tactical_hash_changes += 1
+        self.state.last_tactical_state_hash = tactical_hash
 
     def _last_matching_advice_locked(
         self,
         tactical_hash: str,
     ) -> tuple[RecommendationResponse | None, OverlaySource, bool, str]:
         if (
-            self._last_recommendation is None
-            or self._last_advice_tactical_state_hash != tactical_hash
+            self.state._last_recommendation is None
+            or self.state._last_advice_tactical_state_hash != tactical_hash
         ):
             return None, "none", False, "status"
         return (
-            self._last_recommendation,
-            self._last_source,
-            self._last_llm_used,
-            self._last_advice_mode,
+            self.state._last_recommendation,
+            self.state._last_source,
+            self.state._last_llm_used,
+            self.state._last_advice_mode,
         )
 
     def _should_suppress_laning_locked(
@@ -927,7 +1209,7 @@ class AdviceScheduler:
         if laning_advice.category == "critical_hp_reset" or decision_point == "LOW_HP":
             return False, laning_advice.category
 
-        previous = self._last_laning_category.get(laning_advice.category)
+        previous = self.state._last_laning_category.get(laning_advice.category)
         if previous is None:
             return False, laning_advice.category
 
@@ -961,7 +1243,7 @@ class AdviceScheduler:
         laning_advice = build_laning_advice(state, decision_point)
         if laning_advice is None:
             return
-        self._last_laning_category[laning_advice.category] = {
+        self.state._last_laning_category[laning_advice.category] = {
             "at": now,
             "game_time_seconds": game_time_seconds,
             "category": laning_advice.category,
@@ -1017,9 +1299,9 @@ class AdviceScheduler:
                 and not post_laning_advice.clear_pressure_context
             ):
                 return True, post_laning_advice.category, "objective_context_missing"
-            if self._last_objective_advice_at is not None:
+            if self.state._last_objective_advice_at is not None:
                 elapsed = self._elapsed_since_time_locked(
-                    at=self._last_objective_advice_at,
+                    at=self.state._last_objective_advice_at,
                     game_time_at=getattr(self, "_last_objective_advice_game_time", None),
                     now=now,
                     game_time_seconds=game_time_seconds,
@@ -1037,7 +1319,7 @@ class AdviceScheduler:
             ):
                 return True, post_laning_advice.category, "recent_safety"
 
-        previous = self._last_post_laning_category.get(post_laning_advice.category)
+        previous = self.state._last_post_laning_category.get(post_laning_advice.category)
         if previous is None:
             return False, post_laning_advice.category, None
 
@@ -1079,7 +1361,7 @@ class AdviceScheduler:
         post_laning_advice = build_post_laning_advice(state, decision_point)
         if post_laning_advice is None:
             return
-        self._last_post_laning_category[post_laning_advice.category] = {
+        self.state._last_post_laning_category[post_laning_advice.category] = {
             "at": now,
             "game_time_seconds": game_time_seconds,
             "category": post_laning_advice.category,
@@ -1091,8 +1373,8 @@ class AdviceScheduler:
             "position_zone": post_laning_advice.position_zone,
         }
         if post_laning_advice.category == "post_laning_objective_caution":
-            self._last_objective_advice_at = now
-            self._last_objective_advice_game_time = game_time_seconds
+            self.state._last_objective_advice_at = now
+            self.state._last_objective_advice_game_time = game_time_seconds
 
     def _should_suppress_post_laning_low_hp_locked(
         self,
@@ -1103,11 +1385,11 @@ class AdviceScheduler:
     ) -> bool:
         if _to_int(state.get("minute"), 0) < 10:
             return False
-        if self._last_low_hp_urgent_at is None:
+        if self.state._last_low_hp_urgent_at is None:
             return False
-        if self._last_low_hp_pattern_at is not None:
+        if self.state._last_low_hp_pattern_at is not None:
             elapsed_pattern = self._elapsed_since_time_locked(
-                at=self._last_low_hp_pattern_at,
+                at=self.state._last_low_hp_pattern_at,
                 game_time_at=getattr(self, "_last_low_hp_pattern_game_time", None),
                 now=now,
                 game_time_seconds=game_time_seconds,
@@ -1118,14 +1400,14 @@ class AdviceScheduler:
             ):
                 return True
         elapsed = self._elapsed_since_time_locked(
-            at=self._last_low_hp_urgent_at,
+            at=self.state._last_low_hp_urgent_at,
             game_time_at=getattr(self, "_last_low_hp_urgent_game_time", None),
             now=now,
             game_time_seconds=game_time_seconds,
         )
         if elapsed >= POST_LANING_RECENT_SAFETY_WINDOW_SECONDS:
             return False
-        if self._post_laning_hp_recovered_since_safety:
+        if self.state._post_laning_hp_recovered_since_safety:
             return False
         if _post_laning_new_death_or_severe_pressure(state):
             return False
@@ -1144,9 +1426,9 @@ class AdviceScheduler:
         ) and not _is_dead_or_respawning(state):
             return True
 
-        if self._last_low_hp_pattern_at is not None:
+        if self.state._last_low_hp_pattern_at is not None:
             elapsed_pattern = self._elapsed_since_time_locked(
-                at=self._last_low_hp_pattern_at,
+                at=self.state._last_low_hp_pattern_at,
                 game_time_at=getattr(self, "_last_low_hp_pattern_game_time", None),
                 now=now,
                 game_time_seconds=game_time_seconds,
@@ -1154,11 +1436,11 @@ class AdviceScheduler:
             if elapsed_pattern < POST_LANING_DEATH_ROUTE_WINDOW_SECONDS:
                 return True
 
-        if self._last_post_laning_death_route_at is None:
+        if self.state._last_post_laning_death_route_at is None:
             return False
 
         elapsed = self._elapsed_since_time_locked(
-            at=self._last_post_laning_death_route_at,
+            at=self.state._last_post_laning_death_route_at,
             game_time_at=getattr(self, "_last_post_laning_death_route_game_time", None),
             now=now,
             game_time_seconds=game_time_seconds,
@@ -1167,7 +1449,10 @@ class AdviceScheduler:
             return False
 
         current_event_id = _death_event_id(state)
-        if current_event_id and current_event_id != self._last_post_laning_death_route_event_id:
+        if (
+            current_event_id
+            and current_event_id != self.state._last_post_laning_death_route_event_id
+        ):
             return False
         return True
 
@@ -1183,8 +1468,8 @@ class AdviceScheduler:
         if _to_int(state.get("minute"), 0) < 10:
             return
         if decision_point == "LOW_HP":
-            self._last_low_hp_urgent_at = now
-            self._last_low_hp_urgent_game_time = game_time_seconds
+            self.state._last_low_hp_urgent_at = now
+            self.state._last_low_hp_urgent_game_time = game_time_seconds
             self._record_post_laning_safety_locked(
                 now=now,
                 state=state,
@@ -1213,16 +1498,16 @@ class AdviceScheduler:
     ) -> None:
         if _to_int(state.get("minute"), 0) < 10:
             return
-        self._last_post_laning_safety_at = now
-        self._last_post_laning_safety_game_time = game_time_seconds
-        self._post_laning_hp_recovered_since_safety = False
+        self.state._last_post_laning_safety_at = now
+        self.state._last_post_laning_safety_game_time = game_time_seconds
+        self.state._post_laning_hp_recovered_since_safety = False
         if category == "post_laning_death_route_reset":
-            self._last_post_laning_death_route_at = now
-            self._last_post_laning_death_route_game_time = game_time_seconds
-            self._last_post_laning_death_route_event_id = _death_event_id(state)
+            self.state._last_post_laning_death_route_at = now
+            self.state._last_post_laning_death_route_game_time = game_time_seconds
+            self.state._last_post_laning_death_route_event_id = _death_event_id(state)
         if category == "low_hp_pattern":
-            self._last_low_hp_pattern_at = now
-            self._last_low_hp_pattern_game_time = game_time_seconds
+            self.state._last_low_hp_pattern_at = now
+            self.state._last_low_hp_pattern_game_time = game_time_seconds
 
     def _recent_post_laning_safety_locked(
         self,
@@ -1231,11 +1516,11 @@ class AdviceScheduler:
         seconds: int,
         game_time_seconds: float | None,
     ) -> bool:
-        if self._last_post_laning_safety_at is None:
+        if self.state._last_post_laning_safety_at is None:
             return False
         return (
             self._elapsed_since_time_locked(
-                at=self._last_post_laning_safety_at,
+                at=self.state._last_post_laning_safety_at,
                 game_time_at=getattr(self, "_last_post_laning_safety_game_time", None),
                 now=now,
                 game_time_seconds=game_time_seconds,
@@ -1246,47 +1531,51 @@ class AdviceScheduler:
     def _update_low_hp_recovery_locked(self, state: dict[str, Any]) -> None:
         hp_percent = _ctx_int(state, "hp_percent", _to_int(state.get("hp_percent"), 100))
         if _is_dead_or_respawning(state):
-            self._low_hp_episode_active = False
-            self._low_hp_episode_lowest_hp = None
-            self._low_hp_episode_repeat_count = 0
-            self._low_hp_episode_pattern_shown = False
-            self._low_hp_episode_last_severe_signature = None
+            self.state._low_hp_episode_active = False
+            self.state._low_hp_episode_lowest_hp = None
+            self.state._low_hp_episode_repeat_count = 0
+            self.state._low_hp_episode_pattern_shown = False
+            self.state._low_hp_episode_last_severe_signature = None
             return
         if hp_percent > 60:
-            self._low_hp_episode_active = False
-            self._low_hp_episode_lowest_hp = None
-            self._low_hp_episode_repeat_count = 0
-            self._low_hp_episode_pattern_shown = False
-            self._low_hp_episode_last_severe_signature = None
+            self.state._low_hp_episode_active = False
+            self.state._low_hp_episode_lowest_hp = None
+            self.state._low_hp_episode_repeat_count = 0
+            self.state._low_hp_episode_pattern_shown = False
+            self.state._low_hp_episode_last_severe_signature = None
             if _to_int(state.get("minute"), 0) >= 10:
-                self._post_laning_hp_recovered_since_safety = True
+                self.state._post_laning_hp_recovered_since_safety = True
 
     def _low_hp_episode_action_locked(self, state: dict[str, Any]) -> str:
         hp_percent = _ctx_int(state, "hp_percent", _to_int(state.get("hp_percent"), 100))
         severe_signature = _low_hp_severe_signature(state)
 
-        if not self._low_hp_episode_active:
+        if not self.state._low_hp_episode_active:
             self._start_low_hp_episode_locked(hp_percent, severe_signature)
             return "show"
 
-        lowest_hp = self._low_hp_episode_lowest_hp
+        lowest_hp = self.state._low_hp_episode_lowest_hp
         significant_drop = lowest_hp is not None and hp_percent <= lowest_hp - 15
         new_severe_event = bool(
-            severe_signature and severe_signature != self._low_hp_episode_last_severe_signature
+            severe_signature
+            and severe_signature != self.state._low_hp_episode_last_severe_signature
         )
         if significant_drop or new_severe_event:
-            self._low_hp_episode_lowest_hp = (
+            self.state._low_hp_episode_lowest_hp = (
                 hp_percent if lowest_hp is None else min(lowest_hp, hp_percent)
             )
-            self._low_hp_episode_last_severe_signature = severe_signature
-            self._low_hp_episode_repeat_count = 0
+            self.state._low_hp_episode_last_severe_signature = severe_signature
+            self.state._low_hp_episode_repeat_count = 0
             return "show"
 
-        self._low_hp_episode_repeat_count += 1
-        if self._low_hp_episode_repeat_count >= 2 and not self._low_hp_episode_pattern_shown:
-            self._low_hp_episode_pattern_shown = True
-            if not self._low_hp_pattern_advice_shown:
-                self._low_hp_pattern_advice_shown = True
+        self.state._low_hp_episode_repeat_count += 1
+        if (
+            self.state._low_hp_episode_repeat_count >= 2
+            and not self.state._low_hp_episode_pattern_shown
+        ):
+            self.state._low_hp_episode_pattern_shown = True
+            if not self.state._low_hp_pattern_advice_shown:
+                self.state._low_hp_pattern_advice_shown = True
                 return "pattern"
         return "suppress"
 
@@ -1295,24 +1584,24 @@ class AdviceScheduler:
         hp_percent: int,
         severe_signature: str | None,
     ) -> None:
-        self.low_hp_episode_count += 1
-        self._low_hp_episode_id += 1
-        self._low_hp_episode_active = True
-        self._low_hp_episode_lowest_hp = hp_percent
-        self._low_hp_episode_repeat_count = 0
-        self._low_hp_episode_pattern_shown = False
-        self._low_hp_episode_last_severe_signature = severe_signature
+        self.state.low_hp_episode_count += 1
+        self.state._low_hp_episode_id += 1
+        self.state._low_hp_episode_active = True
+        self.state._low_hp_episode_lowest_hp = hp_percent
+        self.state._low_hp_episode_repeat_count = 0
+        self.state._low_hp_episode_pattern_shown = False
+        self.state._low_hp_episode_last_severe_signature = severe_signature
 
     def _recent_low_hp_pattern_locked(
         self,
         now: datetime,
         game_time_seconds: float | None,
     ) -> bool:
-        if self._low_hp_pattern_last_at is None:
+        if self.state._low_hp_pattern_last_at is None:
             return False
         return (
             self._elapsed_since_time_locked(
-                at=self._low_hp_pattern_last_at,
+                at=self.state._low_hp_pattern_last_at,
                 game_time_at=getattr(self, "_last_low_hp_pattern_game_time", None),
                 now=now,
                 game_time_seconds=game_time_seconds,
@@ -1329,21 +1618,21 @@ class AdviceScheduler:
         suppressed_reason: str,
     ) -> ScheduledAdvice | None:
         if (
-            self._last_recommendation is None
-            or self._active_advice_until is None
-            or now >= self._active_advice_until
+            self.state._last_recommendation is None
+            or self.state._active_advice_until is None
+            or now >= self.state._active_advice_until
         ):
             return None
 
         return self._result_locked(
             status="active_advice",
-            decision_point=self.last_advice_type or decision_point,
-            recommendation=self._last_recommendation,
-            source=self._last_source,
-            llm_used=self._last_llm_used,
+            decision_point=self.state.last_advice_type or decision_point,
+            recommendation=self.state._last_recommendation,
+            source=self.state._last_source,
+            llm_used=self.state._last_llm_used,
             next_allowed=next_allowed,
             new_advice=False,
-            advice_mode=self._last_advice_mode,
+            advice_mode=self.state._last_advice_mode,
             suppressed_reason=suppressed_reason,
         )
 
@@ -1354,41 +1643,43 @@ class AdviceScheduler:
         now: datetime,
     ) -> None:
         duration = _active_advice_duration(decision_point, state)
-        self._active_advice_until = now + duration
-        self._is_pinned = decision_point in DEATH_REVIEW_DECISIONS or _is_dead_or_respawning(state)
+        self.state._active_advice_until = now + duration
+        self.state._is_pinned = decision_point in DEATH_REVIEW_DECISIONS or _is_dead_or_respawning(
+            state
+        )
 
     def _ensure_session_locked(self, now: datetime, minute: int, state: dict[str, Any]) -> None:
         session_id = _session_id_from_state(state)
-        if self.match_started_at is None:
-            self.match_started_at = now
-            self.match_session_id = session_id
-            self._last_seen_minute = minute
+        if self.state.match_started_at is None:
+            self.state.match_started_at = now
+            self.state.match_session_id = session_id
+            self.state._last_seen_minute = minute
             return
 
-        if session_id and self.match_session_id and session_id != self.match_session_id:
+        if session_id and self.state.match_session_id and session_id != self.state.match_session_id:
             self._reset_locked()
-            self.match_started_at = now
-            self.match_session_id = session_id
-            self._last_seen_minute = minute
+            self.state.match_started_at = now
+            self.state.match_session_id = session_id
+            self.state._last_seen_minute = minute
             return
 
-        if session_id and self.match_session_id is None:
-            self.match_session_id = session_id
+        if session_id and self.state.match_session_id is None:
+            self.state.match_session_id = session_id
 
-        if self._last_seen_minute is not None and minute < self._last_seen_minute - 5:
+        if self.state._last_seen_minute is not None and minute < self.state._last_seen_minute - 5:
             self._reset_locked()
-            self.match_started_at = now
-            self.match_session_id = session_id
+            self.state.match_started_at = now
+            self.state.match_session_id = session_id
 
-        self._last_seen_minute = minute
+        self.state._last_seen_minute = minute
 
     def _game_time_seconds_locked(self, state: dict[str, Any], now: datetime) -> float | None:
         explicit = _state_game_time_seconds(state)
         if explicit is not None:
             return explicit
-        if self.match_started_at is None:
+        if self.state.match_started_at is None:
             return None
-        return max(0.0, (now - self.match_started_at).total_seconds())
+        return max(0.0, (now - self.state.match_started_at).total_seconds())
 
     def _elapsed_since_locked(
         self,
@@ -1428,22 +1719,24 @@ class AdviceScheduler:
         category: str | None,
         game_time_seconds: float | None,
     ) -> tuple[int, float | None]:
-        if self._last_shown_game_time_seconds is None or game_time_seconds is None:
+        if self.state._last_shown_game_time_seconds is None or game_time_seconds is None:
             return 0, None
 
-        gap = max(0.0, game_time_seconds - self._last_shown_game_time_seconds)
+        gap = max(0.0, game_time_seconds - self.state._last_shown_game_time_seconds)
         if decision_point in {"LOW_HP", *DEATH_REVIEW_DECISIONS}:
             return 0, gap
 
         min_gap = 0
         normalized_category = str(category or decision_point or "").strip()
         action_hash = _action_hash(recommendation.action)
-        same_action = action_hash == self._last_shown_action_hash
-        same_category = normalized_category and normalized_category == self._last_shown_category
+        same_action = action_hash == self.state._last_shown_action_hash
+        same_category = (
+            normalized_category and normalized_category == self.state._last_shown_category
+        )
         post_laning = _to_int(state.get("minute"), 0) >= 10
 
         if decision_point in {"RECENT_DAMAGE_WARNING", "OVERSTAY_WARNING"}:
-            if self._last_shown_decision_point in {
+            if self.state._last_shown_decision_point in {
                 "LOW_HP",
                 "RECENT_DAMAGE_WARNING",
                 "OVERSTAY_WARNING",
@@ -1485,14 +1778,14 @@ class AdviceScheduler:
         ):
             return None
 
-        gap = max(0.0, game_time_seconds - (self._last_shown_game_time_seconds or 0.0))
+        gap = max(0.0, game_time_seconds - (self.state._last_shown_game_time_seconds or 0.0))
         if (
             category
-            and category == self._last_shown_category
-            and _action_hash(recommendation.action) == self._last_shown_action_hash
+            and category == self.state._last_shown_category
+            and _action_hash(recommendation.action) == self.state._last_shown_action_hash
             and gap < HEARTBEAT_DUPLICATE_WAIT_SECONDS
         ):
-            self.suppressed_heartbeat_duplicate_count += 1
+            self.state.suppressed_heartbeat_duplicate_count += 1
             return None
 
         if reason in {
@@ -1521,9 +1814,9 @@ class AdviceScheduler:
         state: dict[str, Any],
         game_time_seconds: float | None,
     ) -> bool:
-        if game_time_seconds is None or self._last_shown_game_time_seconds is None:
+        if game_time_seconds is None or self.state._last_shown_game_time_seconds is None:
             return False
-        if game_time_seconds - self._last_shown_game_time_seconds < HEARTBEAT_NUDGE_SECONDS:
+        if game_time_seconds - self.state._last_shown_game_time_seconds < HEARTBEAT_NUDGE_SECONDS:
             return False
         if _to_int(state.get("minute"), 0) < 10:
             return False
@@ -1536,10 +1829,10 @@ class AdviceScheduler:
             *DEATH_REVIEW_DECISIONS,
         }:
             return False
-        if _is_dead_or_respawning(state) or self._is_pinned:
+        if _is_dead_or_respawning(state) or self.state._is_pinned:
             return False
-        if self._last_shown_decision_point in {"LOW_HP", *DEATH_REVIEW_DECISIONS}:
-            recent_safety_gap = game_time_seconds - self._last_shown_game_time_seconds
+        if self.state._last_shown_decision_point in {"LOW_HP", *DEATH_REVIEW_DECISIONS}:
+            recent_safety_gap = game_time_seconds - self.state._last_shown_game_time_seconds
             if recent_safety_gap < POST_LANING_RECENT_SAFETY_WINDOW_SECONDS:
                 return False
         if not _heartbeat_context_is_confident(state):
@@ -1556,14 +1849,14 @@ class AdviceScheduler:
         game_time_seconds: float | None,
     ) -> float | None:
         gap = None
-        if self._last_shown_game_time_seconds is not None and game_time_seconds is not None:
-            gap = max(0.0, game_time_seconds - self._last_shown_game_time_seconds)
-            self._advice_game_time_gaps_seconds.append(round(gap, 1))
+        if self.state._last_shown_game_time_seconds is not None and game_time_seconds is not None:
+            gap = max(0.0, game_time_seconds - self.state._last_shown_game_time_seconds)
+            self.state._advice_game_time_gaps_seconds.append(round(gap, 1))
 
-        self._last_shown_game_time_seconds = game_time_seconds
-        self._last_shown_decision_point = decision_point
-        self._last_shown_category = str(category or decision_point or "").strip()
-        self._last_shown_action_hash = _action_hash(recommendation.action)
+        self.state._last_shown_game_time_seconds = game_time_seconds
+        self.state._last_shown_decision_point = decision_point
+        self.state._last_shown_category = str(category or decision_point or "").strip()
+        self.state._last_shown_action_hash = _action_hash(recommendation.action)
         return None if gap is None else round(gap, 1)
 
     def _result_locked(
@@ -1585,22 +1878,22 @@ class AdviceScheduler:
             status=status,
             decision_point=decision_point,
             recommendation=recommendation,
-            advice_count=self.advice_count,
+            advice_count=self.state.advice_count,
             llm_used=llm_used,
             source=source,
-            last_updated=self._last_updated,
+            last_updated=self.state._last_updated,
             next_allowed_advice_in_seconds=max(0, next_allowed),
             new_advice=new_advice,
             advice_mode=advice_mode,
             suppressed_reason=suppressed_reason,
-            active_advice_until=self._active_advice_until.isoformat()
-            if self._active_advice_until
+            active_advice_until=self.state._active_advice_until.isoformat()
+            if self.state._active_advice_until
             else None,
-            last_visible_advice=self._last_recommendation.model_dump()
-            if self._last_recommendation
+            last_visible_advice=self.state._last_recommendation.model_dump()
+            if self.state._last_recommendation
             else None,
-            is_pinned=self._is_pinned,
-            low_hp_episode_id=self._low_hp_episode_id if decision_point == "LOW_HP" else None,
+            is_pinned=self.state._is_pinned,
+            low_hp_episode_id=self.state._low_hp_episode_id if decision_point == "LOW_HP" else None,
             game_time_gap_since_previous_advice=game_time_gap_since_previous_advice,
             suppressed_by_game_time_spacing=suppressed_by_game_time_spacing,
         )
@@ -1611,7 +1904,7 @@ class AdviceScheduler:
         now: datetime,
         game_time_seconds: float | None,
     ) -> int:
-        if self.last_advice_at is None:
+        if self.state.last_advice_at is None:
             return 0
 
         if (
@@ -1623,14 +1916,14 @@ class AdviceScheduler:
                 "OVERSTAY_WARNING",
                 *DEATH_REVIEW_DECISIONS,
             }
-            and self.last_advice_type != decision_point
+            and self.state.last_advice_type != decision_point
         ):
             return 0
 
         cooldown = self._cooldown_for_type_locked(decision_point)
         elapsed = self._elapsed_since_time_locked(
-            at=self.last_advice_at,
-            game_time_at=self._last_shown_game_time_seconds,
+            at=self.state.last_advice_at,
+            game_time_at=self.state._last_shown_game_time_seconds,
             now=now,
             game_time_seconds=game_time_seconds,
         )
@@ -1641,12 +1934,12 @@ class AdviceScheduler:
         now: datetime,
         game_time_seconds: float | None,
     ) -> int:
-        if self.last_advice_at is None or self.last_advice_type is None:
+        if self.state.last_advice_at is None or self.state.last_advice_type is None:
             return 0
-        cooldown = self._cooldown_for_type_locked(self.last_advice_type)
+        cooldown = self._cooldown_for_type_locked(self.state.last_advice_type)
         elapsed = self._elapsed_since_time_locked(
-            at=self.last_advice_at,
-            game_time_at=self._last_shown_game_time_seconds,
+            at=self.state.last_advice_at,
+            game_time_at=self.state._last_shown_game_time_seconds,
             now=now,
             game_time_seconds=game_time_seconds,
         )
@@ -1664,9 +1957,9 @@ class AdviceScheduler:
         game_time_seconds: float | None,
     ) -> str | None:
         if (
-            self._last_recommendation is not None
-            and self._active_advice_until
-            and now < self._active_advice_until
+            self.state._last_recommendation is not None
+            and self.state._active_advice_until
+            and now < self.state._active_advice_until
         ):
             return "cooldown_keep_visible"
         remaining = self._cooldown_remaining_locked(decision_point, now, game_time_seconds)
@@ -1677,7 +1970,7 @@ class AdviceScheduler:
             return False
         if not self._llm_enabled():
             return False
-        if tactical_hash in self._pending_llm_tactical_hashes:
+        if tactical_hash in self.state._pending_llm_tactical_hashes:
             return False
         if decision_point in {
             "OBJECTIVE_FIGHT_CHECK",
@@ -1685,12 +1978,12 @@ class AdviceScheduler:
             "ITEM_TIMING",
             "HERO_SURVIVABILITY_RISK",
         }:
-            self._pending_llm_tactical_hashes.add(tactical_hash)
-            self.llm_call_count += 1
+            self.state._pending_llm_tactical_hashes.add(tactical_hash)
+            self.state.llm_call_count += 1
             return True
-        if self.advice_count % LLM_REFINEMENT_EVERY_N_ADVICES == 0:
-            self._pending_llm_tactical_hashes.add(tactical_hash)
-            self.llm_call_count += 1
+        if self.state.advice_count % LLM_REFINEMENT_EVERY_N_ADVICES == 0:
+            self.state._pending_llm_tactical_hashes.add(tactical_hash)
+            self.state.llm_call_count += 1
             return True
         return False
 
@@ -1725,11 +2018,11 @@ class AdviceScheduler:
         latency = time.perf_counter() - started
 
         with self._lock:
-            self._pending_llm_tactical_hashes.discard(tactical_hash)
-            self._llm_latencies.append(latency)
+            self.state._pending_llm_tactical_hashes.discard(tactical_hash)
+            self.state._llm_latencies.append(latency)
 
-            if self.last_tactical_state_hash != tactical_hash:
-                self.stale_llm_count += 1
+            if self.state.last_tactical_state_hash != tactical_hash:
+                self.state.stale_llm_count += 1
                 return
 
             if result.recommendation is None:
@@ -1746,130 +2039,20 @@ class AdviceScheduler:
             )
             if ux_result["recommendation"] is None:
                 if ux_result["suppressed_reason"] == "duplicate":
-                    self.duplicate_suppressed_count += 1
+                    self.state.duplicate_suppressed_count += 1
                 return
             recommendation = clean_recommendation_text(ux_result["recommendation"], decision_point)
             if not _is_safe_recommendation(recommendation, decision_point):
                 return
 
-            self._last_recommendation = recommendation
-            self._last_source = "llm"
-            self._last_llm_used = True
-            self.llm_applied_count += 1
-            self._last_updated = datetime.now(UTC).isoformat()
-            if self._advice_history:
-                self._advice_history[-1]["source"] = "llm"
-                self._advice_history[-1]["action"] = recommendation.action
-
-
-def build_state_hash(state: dict[str, Any], decision_point: str) -> str:
-    minute = _to_int(state.get("minute"), 0)
-    hp_percent = _to_int(state.get("hp_percent"), 100)
-    extra_context = (
-        state.get("extra_context") if isinstance(state.get("extra_context"), dict) else {}
-    )
-    payload = {
-        "hero": str(state.get("hero", "")).strip().lower(),
-        "minute_bucket": minute,
-        "hp_bucket": hp_percent // 10,
-        "items": sorted(str(item).strip().lower() for item in state.get("items", [])),
-        "game_state": str(state.get("game_state", "")).strip().lower(),
-        "team_status": str(state.get("team_status", "")).strip().lower(),
-        "decision_point": decision_point,
-        "death_event_id": extra_context.get("last_death_event_id")
-        if decision_point in DEATH_REVIEW_DECISIONS
-        else None,
-    }
-    raw = json.dumps(payload, sort_keys=True, separators=(",", ":"))
-    return hashlib.sha1(raw.encode("utf-8")).hexdigest()[:16]
-
-
-def build_tactical_state_hash(
-    state: dict[str, Any],
-    decision_point: str,
-    *,
-    action_type: str | None = None,
-) -> str:
-    if not action_type:
-        action_type = str(build_advice_policy(state, decision_point)["action_type"])
-    extra_context = (
-        state.get("extra_context") if isinstance(state.get("extra_context"), dict) else {}
-    )
-    payload = {
-        "hero": str(state.get("hero", "")).strip().lower(),
-        "decision_point": decision_point,
-        "action_type": action_type,
-        "game_phase": _game_phase(_to_int(state.get("minute"), 0)),
-        "hp_bucket": _hp_bucket(_to_int(state.get("hp_percent"), 100)),
-        "minute_bucket": _minute_bucket(_to_int(state.get("minute"), 0)),
-        "team_status": _simplify_team_status(state.get("team_status", "")),
-        "key_items": _key_item_signature(state.get("items", [])),
-        "death_event_id": extra_context.get("last_death_event_id")
-        if decision_point in DEATH_REVIEW_DECISIONS
-        else None,
-    }
-    raw = json.dumps(payload, sort_keys=True, separators=(",", ":"))
-    return hashlib.sha1(raw.encode("utf-8")).hexdigest()[:16]
-
-
-def _compact_recommendation(
-    recommendation: RecommendationResponse,
-    decision_point: str | None = None,
-) -> RecommendationResponse:
-    recommendation = clean_recommendation_text(recommendation, decision_point)
-    return RecommendationResponse(
-        action=_truncate(
-            _naturalize_action(recommendation.action, decision_point), MAX_ACTION_LENGTH
-        ),
-        reason=_truncate(recommendation.reason, MAX_REASON_LENGTH),
-        risk=recommendation.risk,
-        priority=recommendation.priority,
-        time_window=recommendation.time_window,
-        source=recommendation.source,
-    )
-
-
-def _naturalize_action(action: str, decision_point: str | None = None) -> str:
-    replacements = {
-        "keep_farming": "Keep farming safely and reassess in 60 seconds.",
-        "switch_to_safe_farm": "Avoid contesting pressure and move to safer farm.",
-        "play_back_and_regen": "Use regen or play back until your HP is safer.",
-        "stabilize_after_recent_damage": "Back up and stabilize before trading again.",
-        "stop_overstay_low_hp": "Do not overstay on low HP; reset or play behind creeps.",
-        "stabilize_lane_farm": "Focus on safe last hits before forcing trades.",
-        "respect_defensive_ability_cooldown": "Avoid risky trades until your defensive tool is ready.",
-        "retreat_reset": "Retreat and reset before rejoining.",
-        "avoid_bad_fight": "Avoid this fight and reset to safer farm.",
-        "join_only_if_objective_value": "Consider joining only if your team is ready and the fight is near the objective.",
-        "play_around_timing": "You reached a timing; reassess whether to pressure or keep farming safely.",
-        "conserve_mana_or_reset": "Conserve mana or reset before taking a fight.",
-        "wait_out_disable": "Wait out the disable and avoid forcing actions.",
-        "check_buyback_value": "Check buyback value only for base defense or a major objective.",
-        "prepare_next_move": "Use the respawn time to plan your next safe farming route.",
-        "stay_hidden_until_team_ready": "Stay hidden until your team is ready to make a move.",
-        "respect_hero_safety_window": "Respect your hero's safety window before forcing a fight.",
-        "plan_safer_respawn_route": "Use the respawn time to plan a safer next route.",
-        "break_repeated_death_pattern": "After respawn, reset your route and avoid repeating the same risky path.",
-        "respect_escape_cooldown_after_respawn": "After respawn, avoid committing forward until your escape is ready.",
-        "reset_before_resources_collapse": "After respawn, reset earlier when HP or key resources get low.",
-        "soft_status": "Monitoring lane - no urgent advice.",
-    }
-    key = action.strip().lower()
-    canonical_key = key.replace(" ", "_").replace("-", "_")
-    if canonical_key in replacements:
-        return replacements[canonical_key]
-    if "_" in key and len(action.strip().split()) == 1:
-        return key.replace("_", " ").capitalize() + "."
-    return clean_recommendation_text(
-        RecommendationResponse(
-            action=action,
-            reason="ok",
-            risk="ok",
-            priority="low",
-            time_window="reassess in 60 seconds",
-        ),
-        decision_point,
-    ).action
+            self.state._last_recommendation = recommendation
+            self.state._last_source = "llm"
+            self.state._last_llm_used = True
+            self.state.llm_applied_count += 1
+            self.state._last_updated = datetime.now(UTC).isoformat()
+            if self.state._advice_history:
+                self.state._advice_history[-1]["source"] = "llm"
+                self.state._advice_history[-1]["action"] = recommendation.action
 
 
 def _is_safe_recommendation(recommendation: RecommendationResponse, decision_point: str) -> bool:
@@ -1911,30 +2094,6 @@ def _is_safe_recommendation(recommendation: RecommendationResponse, decision_poi
     return not _suggests_fighting_without_safety(text)
 
 
-def _strong_laning_interrupt(previous: dict[str, Any], current: Any) -> bool:
-    previous_pressure = str(previous.get("pressure_state") or "")
-    if previous_pressure != current.pressure_state:
-        return True
-
-    previous_pressure_active = bool(previous.get("pressure_active"))
-    if previous_pressure_active != current.pressure_active:
-        return True
-
-    previous_position_risk = str(previous.get("position_risk") or "")
-    return previous_position_risk != "high" and current.position_risk == "high"
-
-
-def _strong_post_laning_interrupt(previous: dict[str, Any], current: Any) -> bool:
-    if current.category == "post_laning_low_hp_reset" or current.death_context:
-        return True
-
-    previous_position_risk = str(previous.get("position_risk") or "")
-    if previous_position_risk != "high" and current.position_risk == "high":
-        return True
-
-    return current.hp_pressure_state == "critical"
-
-
 def _is_lower_value_post_laning_advice(decision_point: str, category: str) -> bool:
     if decision_point in {"LOW_HP", *DEATH_REVIEW_DECISIONS}:
         return False
@@ -1944,184 +2103,6 @@ def _is_lower_value_post_laning_advice(decision_point: str, category: str) -> bo
         "post_laning_safe_farm_route",
         "post_laning_objective_caution",
     }
-
-
-def _post_laning_safety_suppression_exception(
-    state: dict[str, Any],
-    decision_point: str,
-    post_laning_advice: Any,
-) -> bool:
-    if _post_laning_new_death_or_severe_pressure(state):
-        return True
-    if post_laning_advice.position_risk == "high":
-        return True
-    if decision_point == "OBJECTIVE_FIGHT_CHECK" and _objective_context_changed_clearly(state):
-        return True
-    return False
-
-
-def _post_laning_item_timing_is_unsafe(state: dict[str, Any]) -> bool:
-    if _to_int(state.get("minute"), 0) < 10:
-        return False
-    hp_percent = _ctx_int(state, "hp_percent", _to_int(state.get("hp_percent"), 100))
-    return hp_percent < 35 or _hp_pressure_state(state) == "critical"
-
-
-def _post_laning_new_death_or_severe_pressure(state: dict[str, Any]) -> bool:
-    if _is_dead_or_respawning(state):
-        return True
-    if _ctx_value(state, "death_count_changed", False):
-        return True
-    if _ctx_value(state, "selected_player_death_nearby", False):
-        return True
-    if _ctx_value(state, "near_player_death", False):
-        return True
-    event_context = str(
-        state.get("event_context") or _ctx_value(state, "event_context", "") or ""
-    ).lower()
-    return "death" in event_context
-
-
-def _objective_context_changed_clearly(state: dict[str, Any]) -> bool:
-    objective_context = str(_ctx_value(state, "objective_context", "") or "").strip().lower()
-    objective_for_selected = _ctx_value(state, "objective_for_selected_team", None)
-    team_status = (
-        str(_ctx_value(state, "team_status", state.get("team_status", "")) or "").strip().lower()
-    )
-    selected_objective = (
-        objective_for_selected is True or str(objective_for_selected).lower() == "true"
-    )
-    friendly_objective = objective_context == "friendly_objective"
-    return (selected_objective or friendly_objective) and team_status in {"advantage", "even"}
-
-
-def _hp_pressure_state(state: dict[str, Any]) -> str:
-    return str(_ctx_value(state, "hp_pressure_state", "") or "").strip().lower()
-
-
-def _death_event_id(state: dict[str, Any]) -> str | None:
-    value = _ctx_value(state, "last_death_event_id", None)
-    if value is None:
-        return None
-    text = str(value).strip()
-    return text or None
-
-
-def _post_laning_int(state: dict[str, Any]) -> int:
-    return 1 if _to_int(state.get("minute"), 0) >= 10 else 0
-
-
-def _low_hp_severe_signature(state: dict[str, Any]) -> str | None:
-    extra_context = (
-        state.get("extra_context") if isinstance(state.get("extra_context"), dict) else {}
-    )
-    keys = (
-        "death_count_changed",
-        "near_player_death",
-        "selected_player_death_nearby",
-        "recent_damage_taken",
-        "overstay_warning",
-    )
-    active = [key for key in keys if _ctx_value(state, key, False)]
-    event_context = str(state.get("event_context") or extra_context.get("event_context") or "")
-    if "death" in event_context.lower():
-        active.append("death_context")
-    if not active:
-        return None
-    minute = _to_int(state.get("minute"), 0)
-    return f"{minute}:{'+'.join(sorted(set(active)))}"
-
-
-def _low_hp_pattern_recommendation() -> RecommendationResponse:
-    return RecommendationResponse(
-        action="Stop re-contesting the pressured lane until you reset HP.",
-        reason="Repeated low-HP returns can cost more than missing one wave.",
-        risk="High risk if you keep returning to pressure without resetting.",
-        priority="high",
-        time_window="next 60-90 seconds",
-        source="fallback",
-    )
-
-
-def _heartbeat_context_is_confident(state: dict[str, Any]) -> bool:
-    confidence = str(_ctx_value(state, "context_confidence", "high") or "high").strip().lower()
-    return confidence in {"high", "medium"}
-
-
-def _heartbeat_safe_category_available(state: dict[str, Any]) -> bool:
-    if _ctx_int(state, "hp_percent", _to_int(state.get("hp_percent"), 100)) < 35:
-        return False
-    if _hp_pressure_state(state) == "critical":
-        return False
-    if _is_dead_or_respawning(state):
-        return False
-    return True
-
-
-def _heartbeat_copy(state: dict[str, Any]) -> tuple[str, str, str]:
-    hp_percent = _ctx_int(state, "hp_percent", _to_int(state.get("hp_percent"), 100))
-    mana_percent = _ctx_int(state, "mana_percent", 100)
-    hp_pressure = _hp_pressure_state(state)
-    position_risk = str(_ctx_value(state, "position_risk", "") or "").strip().lower()
-    position_zone = str(_ctx_value(state, "position_zone", "") or "").strip().lower()
-    pressure_active = hp_pressure in {"pressured_but_stable", "risky"}
-    pressure_active = pressure_active or any(
-        token in str(state.get("game_state") or "").lower()
-        for token in ("pressure", "risk", "damage")
-    )
-
-    if hp_percent <= 55 or mana_percent <= 25:
-        return (
-            "Reset resources before showing on another lane.",
-            "A short reset keeps the next farming route safer without forcing a fight.",
-            "Medium risk if you keep showing while resources are low.",
-        )
-    if position_risk == "high" or position_zone == "deep_enemy_side":
-        return (
-            "Farm closer to a safer zone until enemy positions are clearer.",
-            "Enemy locations are not confirmed, so exposed farming is unnecessary risk.",
-            "Medium risk if you stay visible in an exposed area.",
-        )
-    if pressure_active:
-        return (
-            "Avoid the pressured lane and farm a safer wave or nearby camp.",
-            "Staying in pressure can cost HP and slow your recovery.",
-            "Medium risk if you keep farming the pressured area.",
-        )
-    return (
-        "Keep farming the safest wave-and-camp route and reassess soon.",
-        "Your farm route is the safest low-risk choice while enemy locations are uncertain.",
-        "Low risk if you keep farming without forcing uncertain fights.",
-    )
-
-
-def _is_heartbeat_recommendation(recommendation: RecommendationResponse) -> bool:
-    return (
-        recommendation.priority == "low"
-        and recommendation.time_window == "reassess in 60-90 seconds"
-    )
-
-
-def _suggests_fighting_without_safety(text: str) -> bool:
-    fight_terms = ("fight", "engage", "commit", "contest", "join", "attack", "initiate")
-    safety_terms = ("avoid", "retreat", "reset", "farm", "safe", "wait", "back", "skip", "only if")
-    suggests_fight = any(term in text for term in fight_terms)
-    has_safety = any(term in text for term in safety_terms)
-    return suggests_fight and not has_safety
-
-
-def _truncate(value: str, max_length: int) -> str:
-    if len(value) <= max_length:
-        return value
-    return value[: max_length - 3].rstrip() + "..."
-
-
-def _utcnow(value: datetime | None) -> datetime:
-    if value is None:
-        return datetime.now(UTC)
-    if value.tzinfo is None:
-        return value.replace(tzinfo=UTC)
-    return value
 
 
 def _active_advice_duration(decision_point: str, state: dict[str, Any]) -> timedelta:
@@ -2139,186 +2120,6 @@ def _active_advice_duration(decision_point: str, state: dict[str, Any]) -> timed
     }:
         return timedelta(seconds=10)
     return timedelta(seconds=8)
-
-
-def _is_dead_or_respawning(state: dict[str, Any]) -> bool:
-    alive = _ctx_value(state, "alive", True)
-    respawn_seconds = _ctx_int(state, "respawn_seconds", 0)
-    return (
-        alive is False or str(alive).strip().lower() in {"false", "0", "no"} or respawn_seconds > 0
-    )
-
-
-def _ctx_value(state: dict[str, Any], key: str, default: Any = None) -> Any:
-    if key in state:
-        return state.get(key)
-    extra_context = (
-        state.get("extra_context") if isinstance(state.get("extra_context"), dict) else {}
-    )
-    return extra_context.get(key, default)
-
-
-def _ctx_int(state: dict[str, Any], key: str, default: int) -> int:
-    return _to_int(_ctx_value(state, key), default)
-
-
-def _to_int(value: Any, default: int) -> int:
-    try:
-        return int(value)
-    except (TypeError, ValueError):
-        return default
-
-
-def _optional_float(value: Any) -> float | None:
-    try:
-        return float(value)
-    except (TypeError, ValueError):
-        return None
-
-
-def _state_game_time_seconds(state: dict[str, Any]) -> float | None:
-    extra_context = (
-        state.get("extra_context") if isinstance(state.get("extra_context"), dict) else {}
-    )
-    for key in (
-        "game_time",
-        "clock_time",
-        "timestamp_seconds",
-        "simulated_timestamp_seconds",
-        "demo_timestamp_seconds",
-    ):
-        value = extra_context.get(key) if key in extra_context else state.get(key)
-        parsed = _optional_float(value)
-        if parsed is not None:
-            return max(0.0, parsed)
-    return None
-
-
-def _action_hash(action: str) -> str:
-    normalized = " ".join(str(action or "").strip().lower().split())
-    if not normalized:
-        return ""
-    return hashlib.sha1(normalized.encode("utf-8")).hexdigest()[:12]
-
-
-def _game_phase(minute: int) -> str:
-    if minute < 10:
-        return "laning"
-    if minute < 20:
-        return "early_mid"
-    if minute < 35:
-        return "mid_game"
-    return "late_game"
-
-
-def _minute_bucket(minute: int) -> str:
-    if minute < 10:
-        return "0-10"
-    if minute < 20:
-        return "10-20"
-    if minute < 35:
-        return "20-35"
-    return "35+"
-
-
-def _hp_bucket(hp_percent: int) -> str:
-    if hp_percent <= 20:
-        return "0-20"
-    if hp_percent <= 35:
-        return "21-35"
-    if hp_percent <= 60:
-        return "36-60"
-    return "61-100"
-
-
-def _simplify_team_status(value: Any) -> str:
-    text = str(value or "").strip().lower().replace("_", " ")
-    if not text:
-        return "unknown"
-
-    categories = [
-        ("objective", ("objective", "roshan", "tower", "barracks", "push", "highground")),
-        ("pressure", ("pressure", "gank", "danger", "smoke", "under attack")),
-        ("bad_fight", ("bad fight", "dive", "chase", "skirmish", "brawl")),
-        ("fight", ("fight", "teamfight", "contest", "engage")),
-        ("safe_farm", ("farm", "farming", "calm", "safe", "jungle", "lane")),
-        ("dead_or_paused", ("dead", "paused", "disconnected")),
-    ]
-    matches = [
-        label for label, keywords in categories if any(keyword in text for keyword in keywords)
-    ]
-    return "+".join(matches) if matches else "generic"
-
-
-KEY_ITEMS = {
-    "battle fury",
-    "manta style",
-    "black king bar",
-    "bkb",
-    "butterfly",
-    "satanic",
-    "abyssal blade",
-    "eye of skadi",
-    "dragon lance",
-    "hurricane pike",
-    "silver edge",
-    "desolator",
-    "diffusal blade",
-}
-
-
-def _key_item_signature(items: Any) -> str:
-    if not isinstance(items, list):
-        return "none"
-    normalized = {
-        str(item).strip().lower().replace("_", " ").replace("-", " ")
-        for item in items
-        if str(item).strip()
-    }
-    key_items = sorted(item for item in normalized if item in KEY_ITEMS)
-    return "|".join(key_items) if key_items else "none"
-
-
-def _session_id_from_state(state: dict[str, Any]) -> str | None:
-    extra_context = (
-        state.get("extra_context") if isinstance(state.get("extra_context"), dict) else {}
-    )
-    value = extra_context.get("match_session_id") or extra_context.get("match_id")
-    if value in {None, ""}:
-        return None
-    return str(value)
-
-
-def _average(values: list[float]) -> float | None:
-    if not values:
-        return None
-    return round(mean(values), 3)
-
-
-def _minimum(values: list[float]) -> float | None:
-    if not values:
-        return None
-    return round(min(values), 3)
-
-
-def _maximum(values: list[float]) -> float | None:
-    if not values:
-        return None
-    return round(max(values), 3)
-
-
-def _p95(values: list[float]) -> float | None:
-    if not values:
-        return None
-    ordered = sorted(values)
-    index = max(0, min(len(ordered) - 1, int(round((len(ordered) - 1) * 0.95))))
-    return round(ordered[index], 3)
-
-
-def _rate(part: int, total: int) -> float:
-    if total <= 0:
-        return 0.0
-    return round(part / total, 3)
 
 
 ADVICE_SCHEDULER = AdviceScheduler()
