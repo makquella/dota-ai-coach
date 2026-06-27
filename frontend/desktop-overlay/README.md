@@ -37,7 +37,7 @@ You can run the overlay without Dota 2 by replaying existing GSI-like simulation
 Terminal A - backend:
 
 ```bash
-cd ~/Документы/dota-ai-coach/backend
+cd backend
 source .venv/bin/activate
 USE_LLM=false uvicorn app.main:app --reload
 ```
@@ -45,7 +45,7 @@ USE_LLM=false uvicorn app.main:app --reload
 Terminal B - this overlay:
 
 ```bash
-cd ~/Документы/dota-ai-coach/frontend/desktop-overlay
+cd frontend/desktop-overlay
 npm install
 npm run dev
 ```
@@ -53,7 +53,7 @@ npm run dev
 Terminal C - Phantom Lancer 20-30 macro/farming demo. Use `--speed 10` during a live defense so the advice is readable; use `--speed 20` only for quick testing.
 
 ```bash
-cd ~/Документы/dota-ai-coach/backend
+cd backend
 source .venv/bin/activate
 SIMULATION_USE_LLM=false \
 python3 scripts/run_overlay_demo.py \

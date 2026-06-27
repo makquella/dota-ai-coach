@@ -13,7 +13,7 @@ The replay demo can run without Dota 2.
 ## Backend
 
 ```bash
-cd ~/Документы/dota-ai-coach/backend
+cd backend
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
@@ -38,7 +38,7 @@ Useful endpoints:
 ## Launcher
 
 ```bash
-cd ~/Документы/dota-ai-coach/frontend/launcher
+cd frontend/launcher
 npm install
 npm run dev
 ```
@@ -56,7 +56,7 @@ The launcher is the preferred defense entry point. It can:
 Manual start:
 
 ```bash
-cd ~/Документы/dota-ai-coach/frontend/desktop-overlay
+cd frontend/desktop-overlay
 npm install
 npm run dev
 ```
@@ -64,7 +64,7 @@ npm run dev
 On Fedora/GNOME Wayland, normal `npm run dev` may not keep the overlay always-on-top. For more reliable overlay testing through X11/XWayland, use:
 
 ```bash
-cd ~/Документы/dota-ai-coach/frontend/desktop-overlay
+cd frontend/desktop-overlay
 npm run dev:x11
 ```
 
@@ -94,7 +94,7 @@ In the launcher, use `Install / Check Dota GSI` when available.
 Start backend and overlay, then run:
 
 ```bash
-cd ~/Документы/dota-ai-coach/backend
+cd backend
 source .venv/bin/activate
 SIMULATION_USE_LLM=false \
 python3 scripts/run_overlay_demo.py \
@@ -119,7 +119,8 @@ SIMULATION_USE_LLM=false
 Local llama.cpp wording test:
 
 ```bash
-cd ~/Study/llama.cpp
+# replace with the path to your local llama.cpp checkout
+cd <path-to-llama.cpp>
 ./build/bin/llama-server \
   -hf ggml-org/gpt-oss-20b-GGUF \
   --host 127.0.0.1 \

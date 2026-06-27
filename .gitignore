@@ -107,3 +107,14 @@ data/match_simulations/*.jsonl
 
 # Local coursework export artifacts
 /coursework_artifacts/
+
+# Secrets — never commit (defense in depth; .env/.env.* already covered above,
+# the *.env / *.env.local / *.key / *.pem patterns catch stray names too).
+*.env
+*.env.local
+*.env.*.local
+*.pem
+*.key
+secrets.*
+credentials.*
+*.token

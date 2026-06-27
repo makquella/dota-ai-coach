@@ -23,7 +23,7 @@ Recommended defense demo:
 ## Run Demo Playback
 
 ```bash
-cd ~/Документы/dota-ai-coach/backend
+cd backend
 source .venv/bin/activate
 SIMULATION_USE_LLM=false \
 python3 scripts/run_overlay_demo.py \

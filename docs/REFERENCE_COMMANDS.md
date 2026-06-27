@@ -5,7 +5,7 @@ This file keeps longer commands out of the main README.
 ## Backend
 
 ```bash
-cd ~/Документы/dota-ai-coach/backend
+cd backend
 source .venv/bin/activate
 USE_LLM=false uvicorn app.main:app --reload
 ```
@@ -19,14 +19,14 @@ python -m uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload --no-access
 ## Tests
 
 ```bash
-cd ~/Документы/dota-ai-coach/backend
+cd backend
 source .venv/bin/activate
 pytest -q
 python3 -m compileall -q app scripts packaging tests
 ```
 
 ```bash
-cd ~/Документы/dota-ai-coach
+# from repository root
 git diff --check
 node --check frontend/launcher/main.js
 node --check frontend/launcher/preload.js
@@ -39,7 +39,7 @@ node --check frontend/desktop-overlay/renderer/app.js
 ## Launcher
 
 ```bash
-cd ~/Документы/dota-ai-coach/frontend/launcher
+cd frontend/launcher
 npm install
 npm run dev
 ```
@@ -47,7 +47,7 @@ npm run dev
 ## Desktop Overlay
 
 ```bash
-cd ~/Документы/dota-ai-coach/frontend/desktop-overlay
+cd frontend/desktop-overlay
 npm install
 npm run dev
 ```
@@ -55,7 +55,7 @@ npm run dev
 ## Replay Demo
 
 ```bash
-cd ~/Документы/dota-ai-coach/backend
+cd backend
 source .venv/bin/activate
 SIMULATION_USE_LLM=false \
 python3 scripts/run_overlay_demo.py \
