@@ -42,6 +42,8 @@ const I18N = {
     heroNone: "—",
     heroSubIdle: "Shown once a match starts",
     stage: (s) => `Stage: ${s}`,
+    stages: { laning: "laning", "post-laning": "post-laning", macro: "mid/late game" },
+    modes: { "Live GSI": "Live GSI", "Replay Demo": "Replay demo" },
     timeSubIdle: "In-game clock",
     timeSubLive: "In-game clock, live",
     overlaySwitch: "Advice overlay",
@@ -166,6 +168,8 @@ const I18N = {
     heroNone: "—",
     heroSubIdle: "Появится, когда начнётся матч",
     stage: (s) => `Стадия: ${s}`,
+    stages: { laning: "лайнинг", "post-laning": "после лайнинга", macro: "середина/поздняя игра" },
+    modes: { "Live GSI": "Живой GSI", "Replay Demo": "Демо-повтор" },
     timeSubIdle: "Игровые часы",
     timeSubLive: "Игровые часы, в реальном времени",
     overlaySwitch: "Оверлей с подсказками",
@@ -510,6 +514,11 @@ function renderGsiTile(status) {
   }
 }
 
+function stageLabel(stage) {
+  const label = tr(`stages.${stage}`);
+  return label.startsWith("stages.") ? stage : label;
+}
+
 function formatClock(seconds) {
   if (!Number.isFinite(seconds)) {
     return "—";
@@ -523,7 +532,7 @@ function renderMatchTiles(status) {
   const live = status.live || {};
   const inMatch = Boolean(live.inMatch);
   if (inMatch && live.hero) {
-    const stage = live.stage && live.stage !== "unknown" ? tr("stage", live.stage) : "";
+    const stage = live.stage && live.stage !== "unknown" ? tr("stage", stageLabel(live.stage)) : "";
     setTile("hero", "good", live.hero, stage);
   } else {
     setTile("hero", "idle", tr("heroNone"), tr("heroSubIdle"));
@@ -566,7 +575,7 @@ function renderFacts(status) {
     : status.demo === "running" ? tr("running") : tr("stopped");
   factEls.recording.textContent = status.recording === "running" ? tr("running") : tr("stopped");
   factEls.gsi.textContent = tr(`gsiConfigStates.${status.gsiConfig || "unknown"}`);
-  factEls.mode.textContent = status.mode || "Live GSI";
+  factEls.mode.textContent = tr(`modes.${status.mode || "Live GSI"}`);
   factEls.llm.textContent = status.llm === "on" ? tr("on") : tr("off");
 }
 
@@ -633,7 +642,7 @@ function renderLiveStatus(status = {}) {
   setValue(liveEls.last, status.seconds_since_last_gsi == null ? "—" : `${status.seconds_since_last_gsi} s`);
   setValue(liveEls.hero, status.hero || "—");
   setValue(liveEls.time, Number.isFinite(status.clock_time) ? formatClock(status.clock_time) : String(status.game_time ?? "—"));
-  setValue(liveEls.stage, status.stage || "—");
+  setValue(liveEls.stage, status.stage ? stageLabel(status.stage) : "—");
   liveEls.advice.textContent = status.current_advice
     ? tr("liveAdvice", status.current_advice)
     : status.last_advice_time

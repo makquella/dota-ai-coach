@@ -145,6 +145,9 @@ dotaWatcher.on("change", (state) => {
     autoInstallGsiOnce().catch((error) => appendLog("gsi", error.message, { force: true }));
   }
   refreshPresence();
+  // The status screen shows the process/focus state itself, so push it even
+  // when overlay visibility and the tray status did not change.
+  updateStatus();
 });
 
 // ---------------------------------------------------------------------------
@@ -995,6 +998,9 @@ function refreshDotaInstall() {
       .then((result) => {
         const changed = result.dotaDir !== dotaInstall.dotaDir;
         dotaInstall = result;
+        if (changed) {
+          updateStatus();
+        }
         if (changed || !dotaInstallLogged) {
           dotaInstallLogged = true;
           appendLog(
