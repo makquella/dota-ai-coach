@@ -300,6 +300,16 @@ class PlayerStore:
             ).fetchone()
         return int(row["n"]) if row else 0
 
+    def source_counts(self, account_id: int) -> dict[str, int]:
+        """How many matches per parse status (problem report)."""
+        with self._lock:
+            rows = self._conn.execute(
+                "SELECT COALESCE(NULLIF(parse_status, ''), 'none') AS status, COUNT(*) AS n "
+                "FROM matches WHERE account_id = ? GROUP BY status",
+                (int(account_id),),
+            ).fetchall()
+        return {str(row["status"]): int(row["n"]) for row in rows}
+
     def get_match(self, account_id: int, match_id: int) -> dict[str, Any] | None:
         with self._lock:
             row = self._conn.execute(

@@ -14,10 +14,12 @@ const { spawn } = require("node:child_process");
 const fs = require("node:fs");
 const http = require("node:http");
 const net = require("node:net");
+const os = require("node:os");
 const path = require("node:path");
 
 const { createDotaWatcher } = require("./dota-watcher");
 const { createOverlayController, OVERLAY_DEFAULTS } = require("./overlay-window");
+const { buildReport, reportFileName } = require("./problem-report");
 const { DOTA_STATUS, dotaStatus, overlayVisibility } = require("./overlay-visibility");
 const { createSettingsStore } = require("./settings");
 const { dotaDirFromExecutable, gsiDirForDotaDir, locateDota } = require("./steam-locator");
@@ -221,7 +223,8 @@ const TRAY_TEXT = {
     updateReady: (version) => `Restart and update to ${version}`,
     updateAfterGame: (version) => `Update ${version} installs after you close Dota`,
     updated: (version) => `Updated to ${version}.`,
-    reviewReady: (score) => `Post-match review is ready${score ? `: score${score}` : ""}. Click to open it.`
+    reviewReady: (score) => `Post-match review is ready${score ? `: score${score}` : ""}. Click to open it.`,
+    problemReport: "Save a problem report"
   },
   ru: {
     open: "Открыть",
@@ -242,7 +245,8 @@ const TRAY_TEXT = {
     updateReady: (version) => `Перезапустить и обновить до ${version}`,
     updateAfterGame: (version) => `Обновление ${version} установится после выхода из Доты`,
     updated: (version) => `Обновлено до версии ${version}.`,
-    reviewReady: (score) => `Разбор матча готов${score ? `: оценка${score}` : ""}. Нажмите, чтобы открыть.`
+    reviewReady: (score) => `Разбор матча готов${score ? `: оценка${score}` : ""}. Нажмите, чтобы открыть.`,
+    problemReport: "Сохранить отчёт о проблеме"
   }
 };
 
@@ -1430,6 +1434,73 @@ function openPath(targetPath) {
   });
 }
 
+// ---------------------------------------------------------------------------
+// Problem report: one text file for the developer (keys removed)
+// ---------------------------------------------------------------------------
+
+function readLauncherLog() {
+  let text = "";
+  for (const file of [`${LAUNCHER_LOG_PATH}.old`, LAUNCHER_LOG_PATH]) {
+    try {
+      text += fs.readFileSync(file, "utf8");
+    } catch {
+      // Missing log file: nothing to add.
+    }
+  }
+  return text || logs;
+}
+
+function reportFolder() {
+  for (const name of ["downloads", "desktop", "documents"]) {
+    try {
+      const folder = app.getPath(name);
+      if (folder && fs.existsSync(folder)) {
+        return folder;
+      }
+    } catch {
+      // Try the next folder.
+    }
+  }
+  return USER_DATA_DIR;
+}
+
+async function saveProblemReport() {
+  let diagnostics = null;
+  let diagnosticsError = "";
+  try {
+    diagnostics = await requestBackendJson("/diagnostics", "GET", undefined, 5000);
+  } catch (error) {
+    diagnosticsError = error.message;
+  }
+  const { recentAdvice, ...status } = publicStatus();
+  const text = buildReport({
+    app: {
+      version: app.getVersion(),
+      packaged: IS_PACKAGED,
+      electron: process.versions.electron,
+      os: `${process.platform} ${os.release()} ${process.arch}`,
+      locale: app.getLocale(),
+      userData: USER_DATA_DIR
+    },
+    status: { ...status, recentAdviceCount: Array.isArray(recentAdvice) ? recentAdvice.length : 0 },
+    settings: settings.all(),
+    watcher: dotaWatcher.getState(),
+    diagnostics,
+    diagnosticsError,
+    launcherLog: readLauncherLog()
+  });
+  const filePath = path.join(reportFolder(), reportFileName());
+  try {
+    fs.writeFileSync(filePath, text, "utf8");
+  } catch (error) {
+    appendLog("launcher", `Could not save the problem report: ${error.message}`, { force: true });
+    return { ok: false, error: error.message };
+  }
+  appendLog("launcher", `Problem report saved: ${filePath}`, { force: true });
+  shell.showItemInFolder(filePath);
+  return { ok: true, path: filePath };
+}
+
 function setLogMode(nextMode = "clean") {
   logMode = nextMode === "verbose" ? "verbose" : "clean";
   appendLog(
@@ -1603,6 +1674,7 @@ function refreshTray() {
       },
       { type: "separator" },
       { label: backendLine, enabled: false },
+      { label: t("problemReport"), click: () => saveProblemReport() },
       { type: "separator" },
       { label: t("quit"), click: () => app.quit() }
     ])
@@ -1677,6 +1749,7 @@ function registerIpc() {
   ipcMain.handle("launcher:install-update", () => updater.install());
   ipcMain.handle("launcher:player", (_event, op, args) => playerRequest(String(op || ""), args || {}));
   ipcMain.handle("launcher:open-logs", () => openPath(LOGS_DIR));
+  ipcMain.handle("launcher:save-problem-report", () => saveProblemReport());
   ipcMain.handle("launcher:open-simulation-results", () => openPath(SIMULATION_RESULTS_DIR));
   ipcMain.handle("launcher:open-session-records", () => openPath(SESSION_RECORDS_DIR));
   ipcMain.handle("launcher:open-readme", () => shell.openPath(README_PATH));

@@ -2,6 +2,8 @@
 main.py — FastAPI application entry point for Dota AI Coach (MVP-1).
 """
 
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
 from datetime import UTC, datetime, timedelta
 
 from fastapi import FastAPI, Request
@@ -17,10 +19,15 @@ from app.config import (
     BACKEND_PORT,
     GSI_STALE_SECONDS,
     LIVE_CONSERVATIVE_MODE,
+    LLM_PROVIDER,
+    OPENDOTA_ENABLED,
+    PLAYER_DATA_DIR,
     RESOURCE_ROOT,
     USE_LLM,
+    WRITABLE_DIR,
 )
 from app.decision_points import detect_decision_point
+from app.diagnostics import recent_errors, record_error, runtime_info
 from app.gsi_state import (
     get_current_state,
     get_gsi_debug_fields,
@@ -30,7 +37,7 @@ from app.gsi_state import (
 )
 from app.live_session_recorder import LIVE_SESSION_RECORDER
 from app.llm_provider import generate_llm_recommendation, is_llm_provider_enabled
-from app.logger import log_recommendation
+from app.logger import log_recommendation, prune_logs
 from app.match_memory import MATCH_MEMORY
 from app.player_api import PLAYER_SERVICE
 from app.player_api import router as player_router
@@ -38,18 +45,22 @@ from app.rag import retrieve_context
 from app.recommender import generate_recommendation
 from app.schemas import GameSituationRequest, RecommendationResponse, is_supported_hero
 
+
+@asynccontextmanager
+async def _lifespan(_app: FastAPI) -> AsyncIterator[None]:
+    prune_logs()
+    yield
+    # Keeps an in-progress match timeline across a restart of the app.
+    PLAYER_SERVICE.shutdown()
+
+
 app = FastAPI(
+    lifespan=_lifespan,
     title="Dota AI Coach",
     description="MVP-1: rule-based carry coach with local knowledge-base RAG.",
     version="0.1.0",
 )
 app.include_router(player_router)
-
-
-@app.on_event("shutdown")
-def _save_player_state() -> None:
-    # Keeps an in-progress match timeline across a restart of the app.
-    PLAYER_SERVICE.shutdown()
 
 
 app.add_middleware(
@@ -211,6 +222,7 @@ async def receive_gsi(request: Request):
         PLAYER_SERVICE.observe_gsi(payload)
     except Exception as error:  # noqa: BLE001
         print(f"[player] GSI observe failed: {error}")
+        record_error("gsi-player", error)
     state = result.get("state")
     if isinstance(state, dict):
         LIVE_SESSION_RECORDER.record_gsi(payload, state)
@@ -505,6 +517,36 @@ def recent_advice(limit: int = 5, lang: str = "en"):
             ],
             normalize_lang(lang),
         )
+    }
+
+
+@app.get("/diagnostics", summary="State and recent errors for a problem report")
+def diagnostics():
+    """No keys and no raw GSI: what a tester can safely send to the developer."""
+    records = COACH_SESSION_HISTORY.records()[-10:]
+    return {
+        "generated_at": datetime.now(UTC).isoformat(timespec="seconds"),
+        "runtime": runtime_info(),
+        "config": {
+            "use_llm": USE_LLM,
+            "llm_provider": LLM_PROVIDER,
+            "live_conservative_mode": LIVE_CONSERVATIVE_MODE,
+            "gsi_stale_seconds": GSI_STALE_SECONDS,
+            "opendota_enabled": OPENDOTA_ENABLED,
+            "writable_dir": str(WRITABLE_DIR),
+            "player_data_dir": str(PLAYER_DATA_DIR),
+        },
+        "gsi": _gsi_status_response(),
+        "scheduler": ADVICE_SCHEDULER.stats(),
+        "recent_advice": [
+            {
+                key: record.get(key)
+                for key in ("timestamp", "game_time", "hero", "action", "priority", "advice_mode")
+            }
+            for record in reversed(records)
+        ],
+        "player": PLAYER_SERVICE.diagnostics(),
+        "errors": recent_errors(),
     }
 
 

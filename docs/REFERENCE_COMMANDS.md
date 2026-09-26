@@ -38,6 +38,7 @@ node --check frontend/launcher/overlay-visibility.js
 node --check frontend/launcher/dota-watcher.js
 node --check frontend/launcher/steam-locator.js
 node --check frontend/launcher/updater.js
+node --check frontend/launcher/problem-report.js
 node --check frontend/launcher/renderer/app.js
 node --check frontend/launcher/renderer/charts.js
 node --check frontend/launcher/renderer/matches.js

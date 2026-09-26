@@ -47,6 +47,7 @@ from app.coach_review import (
     review_career,
     review_match,
 )
+from app.diagnostics import record_error
 from app.dota_constants import REVIEWABLE_LOBBY_TYPES
 from app.draft_analysis import pool_heroes
 from app.match_facts import facts_from_opendota, facts_from_timeline, merge_facts
@@ -133,6 +134,17 @@ class JobQueue:
                 fn()
                 ran += 1
 
+    def run_due(self, *, until: float | None = None) -> int:
+        """Like run_pending, but a failing job is recorded for the problem report
+        and the next jobs still run (the worker thread must never die)."""
+        ran = 0
+        while True:
+            try:
+                return ran + self.run_pending(until=until)
+            except Exception as error:  # noqa: BLE001
+                record_error(self.name, error)
+                ran += 1
+
     def stop(self) -> None:
         with self._cond:
             self._stopped = True
@@ -155,9 +167,7 @@ class JobQueue:
                 if wait is None or wait > 0:
                     self._cond.wait(timeout=wait if wait is not None else 60)
                     continue
-            # A failing job must not kill the worker.
-            with contextlib.suppress(Exception):
-                self.run_pending()
+            self.run_due()
 
 
 def _now_iso() -> str:
@@ -246,6 +256,30 @@ class PlayerService:
 
     def check_stale(self) -> None:
         self.tracker.check_stale()
+
+    def diagnostics(self) -> dict[str, Any]:
+        """For the problem report: no key, no match data, just the state."""
+        status = self.status()
+        ai = self.ai_status()
+        with self._coach_lock:
+            coach_jobs = {key: dict(value) for key, value in self._coach_jobs.items()}
+        return {
+            "linked": status["linked"],
+            "account_id": status["account_id"],
+            "source": status["source"],
+            "opendota": status["opendota"],
+            "sync": status["sync"],
+            "matches": status["matches"],
+            "match_sources": self.store.source_counts(status["account_id"])
+            if status["account_id"]
+            else {},
+            "live_match": status["live_match"],
+            "jobs": self.jobs.pending(),
+            "ai_jobs": self.ai_jobs.pending(),
+            "coach_jobs": coach_jobs,
+            "ai": {key: ai.get(key) for key in ("configured", "provider", "model", "source")},
+            "analysis_version": ANALYSIS_VERSION,
+        }
 
     # --- account --------------------------------------------------------------
 
@@ -506,10 +540,12 @@ class PlayerService:
                     delay=COACH_BUSY_RETRY_SECONDS[attempt],
                 )
                 return
+            record_error("coach-ai", f"{kind} review: {error.code}", with_trace=False)
             with self._coach_lock:
                 self._coach_jobs[key] = {"state": "error", "hash": digest, "error": error.code}
             return
-        except Exception:  # noqa: BLE001 - a bad answer must not kill the worker
+        except Exception as error:  # noqa: BLE001 - a bad answer must not kill the worker
+            record_error("coach-ai", error)
             with self._coach_lock:
                 self._coach_jobs[key] = {"state": "error", "hash": digest, "error": "bad_response"}
             return
@@ -597,6 +633,7 @@ class PlayerService:
                 "fetched": len(recent),
             }
         except OpenDotaError as error:
+            record_error("sync", f"OpenDota: {error.code}", with_trace=False)
             self._sync = {
                 "state": "error",
                 "at": _now_iso(),
@@ -604,6 +641,7 @@ class PlayerService:
                 "error_code": error.code,
             }
         except Exception as error:  # noqa: BLE001 - never leave the UI stuck on "updating"
+            record_error("sync", error)
             self._sync = {
                 "state": "error",
                 "at": _now_iso(),

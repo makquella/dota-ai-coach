@@ -30,6 +30,9 @@ function createSettingsStore(filePath, defaults) {
     get(key) {
       return data[key];
     },
+    all() {
+      return structuredClone(data);
+    },
     set(key, value) {
       data[key] = value;
       save();

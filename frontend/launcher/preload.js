@@ -33,6 +33,7 @@ contextBridge.exposeInMainWorld("launcherApi", {
     ipcRenderer.on("launcher:player-event", (_event, payload) => callback(payload));
   },
   openLogs: () => ipcRenderer.invoke("launcher:open-logs"),
+  saveProblemReport: () => ipcRenderer.invoke("launcher:save-problem-report"),
   openSimulationResults: () => ipcRenderer.invoke("launcher:open-simulation-results"),
   openSessionRecords: () => ipcRenderer.invoke("launcher:open-session-records"),
   openReadme: () => ipcRenderer.invoke("launcher:open-readme"),

@@ -97,6 +97,12 @@ const I18N = {
       blocked: (v, next) => `Version ${next} is ready. It installs after you close Dota.`,
       error: (v) => `Version ${v} · could not check for updates`
     },
+    reportTitle: "Problem report",
+    reportHint: "Saves one file with logs for the developer, without keys",
+    reportSave: "Save",
+    reportSaving: "Collecting…",
+    reportSaved: (name) => `Saved: ${name}. Send this file to the developer.`,
+    reportFailed: "Could not save the file",
     devTitle: "For developers",
     devHint: "Service, GSI, replay demos, recordings, logs",
     factBackend: "Service",
@@ -256,6 +262,12 @@ const I18N = {
       blocked: (v, next) => `Версия ${next} загружена. Установится после выхода из Доты.`,
       error: (v) => `Версия ${v} · не удалось проверить обновления`
     },
+    reportTitle: "Отчёт о проблеме",
+    reportHint: "Сохранит файл с журналами для разработчика, без ключей",
+    reportSave: "Сохранить",
+    reportSaving: "Собираем…",
+    reportSaved: (name) => `Сохранено: ${name}. Отправьте этот файл разработчику.`,
+    reportFailed: "Не удалось сохранить файл",
     devTitle: "Для разработчика",
     devHint: "Сервис, GSI, демо-повторы, записи, логи",
     factBackend: "Сервис",
@@ -354,6 +366,8 @@ const els = {
   updateHint: $("#update-hint"),
   updateAction: $("#update-action"),
   updateLabel: $("#update-label"),
+  reportAction: $("#report-action"),
+  reportHint: $("#report-hint"),
   devTools: $("#dev-tools"),
   logs: $("#logs"),
   gsiPath: $("#gsi-path"),
@@ -499,6 +513,21 @@ async function init() {
         await window.launcherApi.installUpdate();
       } else {
         renderStatus(await window.launcherApi.checkForUpdates());
+      }
+    })
+  );
+  els.reportAction.addEventListener("click", () =>
+    run(async () => {
+      els.reportAction.disabled = true;
+      els.reportHint.textContent = tr("reportSaving");
+      try {
+        const result = await window.launcherApi.saveProblemReport();
+        els.reportHint.textContent = result && result.ok
+          ? tr("reportSaved", result.path.split(/[\\/]/).pop())
+          : tr("reportFailed");
+        els.reportHint.title = result && result.ok ? result.path : result?.error || "";
+      } finally {
+        els.reportAction.disabled = false;
       }
     })
   );
