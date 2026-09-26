@@ -5,7 +5,63 @@ const statusRow = document.querySelector("#status-row");
 const actionEl = document.querySelector("#action");
 const reasonEl = document.querySelector("#reason");
 
+// Short card texts in the system language; advice itself comes from the backend.
+const OVERLAY_TEXT = {
+  en: {
+    urgent: "Urgent",
+    tip: "Coach tip",
+    coach: "Coach",
+    demo: "Demo",
+    priority: { high: "High", urgent: "High", medium: "Medium", low: "Low", safe: "Safe" },
+    waitingBackend: "Waiting for the coach service…",
+    backendStopped: "The coach service is stopped.",
+    waitingGsi: "Waiting for Dota 2 game data…",
+    waitingGsiShort: "Waiting for game data…",
+    monitoring: "Watching the lane — no urgent advice.",
+    unsupportedHero: "This hero is not supported yet.",
+    invalidState: "Waiting for valid game data…",
+    listening: "Listening for advice…",
+    muted: "Advice muted for 5 minutes.",
+    mutedFor: (s) => `Advice muted (${s} s).`,
+    noNewAdvice: "No new advice.",
+    paused: "Advice paused to avoid overload.",
+    watching: "Watching…",
+    noUrgent: "No urgent advice.",
+    noAction: "No urgent advice"
+  },
+  ru: {
+    urgent: "Срочно",
+    tip: "Совет",
+    coach: "Тренер",
+    demo: "Демо",
+    priority: { high: "Высокий", urgent: "Высокий", medium: "Средний", low: "Низкий", safe: "Спокойно" },
+    waitingBackend: "Ждём сервис тренера…",
+    backendStopped: "Сервис тренера остановлен.",
+    waitingGsi: "Ждём данные из Dota 2…",
+    waitingGsiShort: "Ждём данные игры…",
+    monitoring: "Следим за линией — срочных советов нет.",
+    unsupportedHero: "Этот герой пока не поддерживается.",
+    invalidState: "Ждём корректные данные игры…",
+    listening: "Ждём следующий совет…",
+    muted: "Советы выключены на 5 минут.",
+    mutedFor: (s) => `Советы выключены (${s} с).`,
+    noNewAdvice: "Новых советов нет.",
+    paused: "Советы на паузе, чтобы не перегружать.",
+    watching: "Наблюдаем…",
+    noUrgent: "Срочных советов нет.",
+    noAction: "Срочных советов нет"
+  }
+};
+
+function tr(key, ...args) {
+  const table = OVERLAY_TEXT[config.locale] || OVERLAY_TEXT.en;
+  const value = key.split(".").reduce((node, part) => (node ? node[part] : undefined), table);
+  const resolved = value ?? key.split(".").reduce((node, part) => (node ? node[part] : undefined), OVERLAY_TEXT.en) ?? key;
+  return typeof resolved === "function" ? resolved(...args) : resolved;
+}
+
 let config = {
+  locale: "en",
   backendUrl: "",
   backendStatus: "starting",
   pollIntervalMs: 1000,
@@ -31,7 +87,7 @@ async function init() {
   });
   window.overlayApi.onMuted((timestamp) => {
     mutedUntil = Number(timestamp) || 0;
-    showStatus("Advice muted for 5 minutes.");
+    showStatus(tr("muted"));
   });
   window.overlayApi.onToggleDebug((visible) => {
     config.debugVisible = Boolean(visible);
@@ -54,13 +110,13 @@ function startPolling() {
 
 async function poll() {
   if (Date.now() < mutedUntil) {
-    showStatus(`Advice muted (${secondsUntil(mutedUntil)}s).`);
+    showStatus(tr("mutedFor", secondsUntil(mutedUntil)));
     return;
   }
 
   const result = await window.overlayApi.fetchRecommendation();
   if (!result.ok) {
-    showStatus(config.backendStatus === "stopped" ? "Backend is stopped." : "Waiting for backend...");
+    showStatus(config.backendStatus === "stopped" ? tr("backendStopped") : tr("waitingBackend"));
     return;
   }
 
@@ -74,29 +130,29 @@ function renderOverlay(data) {
   }
 
   if (data.status === "waiting_for_gsi") {
-    showStatus("Waiting for Dota 2 GSI...", data);
+    showStatus(tr("waitingGsi"), data);
     return;
   }
 
   if (data.status === "stale_gsi") {
     lastVisibleAdvice = null;
     lastAdviceKey = "";
-    showStatus(data.message || "Waiting for GSI...", data);
+    showStatus(data.message || tr("waitingGsiShort"), data);
     return;
   }
 
   if (data.status === "monitoring") {
-    showStatus(data.message || "Monitoring lane - no urgent advice.", data);
+    showStatus(data.message || tr("monitoring"), data);
     return;
   }
 
   if (data.status === "unsupported_hero") {
-    showStatus("Hero not supported yet", data);
+    showStatus(tr("unsupportedHero"), data);
     return;
   }
 
   if (data.status === "invalid_state") {
-    showStatus("Waiting for valid GSI state...", data);
+    showStatus(tr("invalidState"), data);
     return;
   }
 
@@ -136,7 +192,7 @@ function renderAdvice(data, options = { refreshTimer: true }) {
   ].filter(Boolean).join(" ");
   labelEl.textContent = labelText(adviceMode, data);
   priorityEl.textContent = priorityText(recommendation, data);
-  actionEl.textContent = recommendation.action || "No urgent advice";
+  actionEl.textContent = recommendation.action || tr("noAction");
   reasonEl.textContent = recommendation.reason || "";
   renderStatusRow(data);
   reveal();
@@ -152,7 +208,7 @@ function showStatus(message, data = {}) {
   clearTimeout(hideTimer);
   shell.className = "overlay-shell status";
   labelEl.textContent = statusLabel(data);
-  priorityEl.textContent = data.context_confidence || "";
+  priorityEl.textContent = "";
   actionEl.textContent = message;
   reasonEl.textContent = "";
   renderStatusRow(data);
@@ -176,21 +232,21 @@ function scheduleAutoHide(adviceMode, data = {}) {
     : Number(config.autoHideMs) || 8000;
   const visibleFor = Math.max(timeout, activeDuration);
   hideTimer = setTimeout(() => {
-    showStatus("Listening for advice...");
+    showStatus(tr("listening"));
   }, visibleFor);
 }
 
 function statusMessage(data) {
   if (data.suppressed_reason === "duplicate" || data.suppressed_reason === "duplicate_death_review") {
-    return "No new advice.";
+    return tr("noNewAdvice");
   }
   if (data.suppressed_reason === "rate_limit") {
-    return "Advice paused to avoid overload.";
+    return tr("paused");
   }
   if (data.suppressed_reason === "cooldown") {
-    return "Monitoring...";
+    return tr("watching");
   }
-  return data.message || "No urgent advice.";
+  return data.message || tr("noUrgent");
 }
 
 function renderStatusRow(data) {
@@ -225,6 +281,9 @@ function renderStatusRow(data) {
   if (data.context_confidence) {
     chips.push(`conf ${data.context_confidence}`);
   }
+  if (data.source && data.source !== "none") {
+    chips.push(data.source);
+  }
   if (Array.isArray(data.missing_signals) && data.missing_signals.length) {
     chips.push(`missing ${data.missing_signals.length}`);
   }
@@ -248,41 +307,21 @@ function secondsUntil(timestamp) {
   return Math.max(0, Math.ceil((timestamp - Date.now()) / 1000));
 }
 
+// Card title: what kind of card this is. Source and mode moved to the
+// debug line (Ctrl+Alt+D) to keep the card quiet during a game.
 function labelText(adviceMode, data) {
-  const parts = [adviceMode];
-  if (data.source && data.source !== "none") {
-    parts.push(data.source);
-  }
-  if (data.demo_mode) {
-    parts.push("DEMO REPLAY MODE");
-  } else if (data.current_mode === "live_gsi" || data.source_type === "live_gsi") {
-    parts.push("LIVE GSI MODE");
-  }
-  return parts.join(" · ");
+  const kind = adviceMode === "urgent" ? tr("urgent") : tr("tip");
+  return data.demo_mode ? `${kind} · ${tr("demo")}` : kind;
 }
 
 function statusLabel(data) {
-  if (data.demo_mode) {
-    return "Status · DEMO REPLAY MODE";
-  }
-  if (data.status === "waiting_for_gsi" || data.status === "stale_gsi") {
-    return "Status · WAITING FOR GSI";
-  }
-  if (data.current_mode === "live_gsi" || data.source_type === "live_gsi") {
-    return "Status · LIVE GSI MODE";
-  }
-  return "Status";
+  return data.demo_mode ? `${tr("coach")} · ${tr("demo")}` : tr("coach");
 }
 
-function priorityText(recommendation, data) {
-  const parts = [];
-  if (recommendation.priority) {
-    parts.push(recommendation.priority);
-  }
-  if (data.context_confidence) {
-    parts.push(data.context_confidence);
-  }
-  return parts.join(" · ");
+function priorityText(recommendation) {
+  const value = String(recommendation.priority || "").toLowerCase();
+  const label = value ? tr(`priority.${value}`) : "";
+  return label.startsWith("priority.") ? value : label;
 }
 
 function priorityClassName(priority) {

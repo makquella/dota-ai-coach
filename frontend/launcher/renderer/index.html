@@ -3,100 +3,169 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Dota 2 Coach</title>
+    <title>Dota AI Coach</title>
+    <link rel="stylesheet" href="../assets/fonts/fonts.css" />
     <link rel="stylesheet" href="./styles.css" />
   </head>
   <body>
-    <main class="shell">
-      <header class="topbar">
-        <div>
-          <p class="eyebrow">Live GSI Tool</p>
-          <h1>Dota 2 Coach</h1>
+    <main class="app">
+      <header class="masthead">
+        <img class="crest" src="../assets/icon.png" alt="" />
+        <div class="masthead-text">
+          <h1>Dota AI Coach</h1>
+          <p class="masthead-sub" data-i18n="tagline">Live advice for your Dota 2 matches</p>
         </div>
-        <div class="status-grid" aria-label="Launcher status">
-          <span class="chip" id="backend-status">Backend: unknown</span>
-          <span class="chip" id="dota-status">Dota: unknown</span>
-          <span class="chip" id="overlay-status">Overlay: unknown</span>
-          <span class="chip" id="demo-status">Demo: stopped</span>
-          <span class="chip" id="recording-status">Recording: stopped</span>
-          <span class="chip" id="gsi-status">GSI config: unknown</span>
-          <span class="chip" id="mode-status">Mode: Live GSI</span>
-          <span class="chip" id="llm-status">LLM: off</span>
+        <div class="backend-pill" id="backend-pill" data-state="stopped">
+          <span class="pip" aria-hidden="true"></span>
+          <span id="backend-pill-text">Backend</span>
         </div>
       </header>
 
-      <section class="panel">
-        <h2>Main controls</h2>
-        <p class="hint">The backend starts automatically on a free local port. The overlay appears only while Dota 2 is the active window and a match is sending GSI data. Closing this window keeps the coach running in the tray.</p>
-        <div class="button-grid">
-          <button id="start-backend">Start Backend</button>
-          <button id="restart-backend" class="secondary">Restart Backend</button>
-          <button id="stop-backend" class="secondary">Stop Backend</button>
-          <button id="start-overlay">Show Overlay</button>
-          <button id="stop-overlay" class="secondary">Hide Overlay</button>
-          <button id="install-gsi">Install / Check Dota GSI</button>
-          <button id="run-demo">Run Demo Replay</button>
-          <button id="stop-demo" class="secondary">Stop Demo</button>
-          <button id="open-logs" class="secondary">Open Logs</button>
+      <section class="banner frame" id="state-banner" data-state="not_found" aria-live="polite">
+        <div class="banner-sigil" aria-hidden="true"></div>
+        <div>
+          <p class="banner-title" id="state-title">Dota not found</p>
+          <p class="banner-detail" id="state-detail"></p>
         </div>
-        <label class="toggle-row" id="autostart-row">
-          <input id="autostart" type="checkbox" />
-          <span id="autostart-label">Start with Windows (in the tray)</span>
+      </section>
+
+      <section class="board" aria-label="Status">
+        <article class="tile frame" id="tile-dota" data-state="bad">
+          <p class="tile-label"><span class="pip" aria-hidden="true"></span><span data-i18n="tileDota">Dota 2</span></p>
+          <p class="tile-value" id="dota-value">—</p>
+          <p class="tile-sub" id="dota-sub"></p>
+        </article>
+        <article class="tile frame" id="tile-gsi" data-state="bad">
+          <p class="tile-label"><span class="pip" aria-hidden="true"></span><span data-i18n="tileGsi">Game data (GSI)</span></p>
+          <p class="tile-value" id="gsi-value">—</p>
+          <p class="tile-sub" id="gsi-sub"></p>
+          <button id="install-gsi" class="btn btn-primary tile-action hidden" data-i18n="installGsi">Install config</button>
+        </article>
+        <article class="tile frame" id="tile-hero" data-state="idle">
+          <p class="tile-label"><span class="pip" aria-hidden="true"></span><span data-i18n="tileHero">Hero</span></p>
+          <p class="tile-value" id="hero-value">—</p>
+          <p class="tile-sub" id="hero-sub"></p>
+        </article>
+        <article class="tile frame" id="tile-time" data-state="idle">
+          <p class="tile-label"><span class="pip" aria-hidden="true"></span><span data-i18n="tileTime">Match time</span></p>
+          <p class="tile-value tile-clock" id="time-value">—</p>
+          <p class="tile-sub" id="time-sub"></p>
+        </article>
+      </section>
+
+      <section class="switches frame">
+        <label class="switch-row">
+          <input id="overlay-toggle" type="checkbox" class="switch" />
+          <span class="switch-text">
+            <span class="switch-title" data-i18n="overlaySwitch">Advice overlay</span>
+            <span class="switch-sub" id="overlay-sub"></span>
+          </span>
+        </label>
+        <label class="switch-row" id="autostart-row">
+          <input id="autostart" type="checkbox" class="switch" />
+          <span class="switch-text">
+            <span class="switch-title" data-i18n="autostart">Start with Windows</span>
+            <span class="switch-sub" id="autostart-label"></span>
+          </span>
         </label>
       </section>
 
-      <section class="panel">
-        <h2>GSI config</h2>
-        <div class="path-row">
-          <input id="gsi-path" type="text" placeholder="Optional gamestate_integration folder path" />
-          <button id="choose-gsi" class="secondary">Choose Folder</button>
-          <button id="check-gsi" class="secondary">Check</button>
-        </div>
-        <p class="hint" id="gsi-detail">GSI endpoint: waiting for backend port...</p>
-      </section>
+      <details class="dev frame" id="dev-tools">
+        <summary>
+          <span class="dev-title" data-i18n="devTitle">For developers</span>
+          <span class="dev-hint" data-i18n="devHint">Backend, GSI details, replay demos, recordings and logs</span>
+        </summary>
 
-      <section class="panel">
-        <h2>Live GSI status</h2>
-        <div class="live-grid">
-          <span id="live-connection" class="chip">GSI: waiting</span>
-          <span id="live-last" class="chip">Last GSI: n/a</span>
-          <span id="live-hero" class="chip">Hero: unknown</span>
-          <span id="live-time" class="chip">Game time: unknown</span>
-          <span id="live-stage" class="chip">Stage: unknown</span>
-        </div>
-        <p class="hint" id="live-advice">Current advice: unknown</p>
-        <p class="hint" id="live-missing">Missing important fields: unknown</p>
-        <div class="button-grid live-actions">
-          <button id="check-live-gsi">Check Live GSI</button>
-          <button id="start-recording">Start Live Recording</button>
-          <button id="stop-recording" class="secondary">Stop Live Recording</button>
-          <button id="open-records" class="secondary">Open session_records folder</button>
-        </div>
-      </section>
-
-      <section class="panel">
-        <h2>Advanced presets</h2>
-        <div class="button-grid advanced">
-          <button id="preset-pl">Demo: Phantom Lancer 20-30 macro</button>
-          <button id="preset-jugg">Demo: Juggernaut 10-20 safety</button>
-          <button id="deep-review">Run Deep Replay Review</button>
-          <button id="open-results" class="secondary">Open simulation_results folder</button>
-          <button id="open-readme" class="secondary">Open README</button>
-        </div>
-      </section>
-
-      <section class="panel logs-panel">
-        <div class="logs-header">
-          <h2>Logs</h2>
-          <div class="logs-actions">
-            <button id="log-clean" class="secondary small active">Clean logs</button>
-            <button id="log-verbose" class="secondary small">Verbose logs</button>
-            <button id="copy-logs" class="secondary small">Copy logs</button>
-            <button id="clear-logs" class="secondary small">Clear logs</button>
+        <div class="dev-body">
+          <div class="facts" aria-label="Launcher status">
+            <span class="fact"><span class="fact-key" data-i18n="factBackend">Backend</span><span id="backend-status">—</span></span>
+            <span class="fact"><span class="fact-key" data-i18n="factDota">Dota</span><span id="dota-status">—</span></span>
+            <span class="fact"><span class="fact-key" data-i18n="factOverlay">Overlay</span><span id="overlay-status">—</span></span>
+            <span class="fact"><span class="fact-key" data-i18n="factDemo">Demo</span><span id="demo-status">—</span></span>
+            <span class="fact"><span class="fact-key" data-i18n="factRecording">Recording</span><span id="recording-status">—</span></span>
+            <span class="fact"><span class="fact-key" data-i18n="factGsiConfig">GSI config</span><span id="gsi-status">—</span></span>
+            <span class="fact"><span class="fact-key" data-i18n="factMode">Mode</span><span id="mode-status">—</span></span>
+            <span class="fact"><span class="fact-key">LLM</span><span id="llm-status">—</span></span>
           </div>
+
+          <div class="dev-grid">
+            <section class="group">
+              <h2 data-i18n="groupBackend">Backend</h2>
+              <div class="actions">
+                <button id="start-backend" class="btn" data-i18n="startBackend">Start</button>
+                <button id="restart-backend" class="btn" data-i18n="restartBackend">Restart</button>
+                <button id="stop-backend" class="btn" data-i18n="stopBackend">Stop</button>
+              </div>
+              <h2 data-i18n="groupOverlay">Overlay window</h2>
+              <div class="actions">
+                <button id="start-overlay" class="btn" data-i18n="showOverlay">Show</button>
+                <button id="stop-overlay" class="btn" data-i18n="hideOverlay">Hide</button>
+              </div>
+              <p class="hint" data-i18n="hotkeys">Ctrl+Alt+O on/off · Ctrl+Alt+L unlock to drag · Ctrl+Alt+M mute 5 min · Ctrl+Alt+1/2/3 position · Ctrl+Alt+D debug line</p>
+            </section>
+
+            <section class="group">
+              <h2 data-i18n="groupGsi">GSI config</h2>
+              <div class="path-row">
+                <input id="gsi-path" type="text" data-i18n-placeholder="gsiPathPlaceholder" placeholder="Custom gamestate_integration folder" />
+                <button id="choose-gsi" class="btn" data-i18n="chooseFolder">Choose</button>
+              </div>
+              <div class="actions">
+                <button id="check-gsi" class="btn" data-i18n="checkGsi">Check</button>
+                <button id="install-gsi-custom" class="btn" data-i18n="installGsiHere">Install here</button>
+              </div>
+              <p class="hint mono" id="gsi-detail"></p>
+            </section>
+
+            <section class="group">
+              <h2 data-i18n="groupLive">Live GSI</h2>
+              <dl class="kv">
+                <dt data-i18n="kvConnection">Connection</dt><dd id="live-connection">—</dd>
+                <dt data-i18n="kvLast">Last data</dt><dd id="live-last">—</dd>
+                <dt data-i18n="kvHero">Hero</dt><dd id="live-hero">—</dd>
+                <dt data-i18n="kvTime">Game time</dt><dd id="live-time">—</dd>
+                <dt data-i18n="kvStage">Stage</dt><dd id="live-stage">—</dd>
+              </dl>
+              <p class="hint" id="live-advice"></p>
+              <p class="hint" id="live-missing"></p>
+              <div class="actions">
+                <button id="check-live-gsi" class="btn" data-i18n="checkLive">Check live GSI</button>
+                <button id="start-recording" class="btn" data-i18n="startRecording">Start recording</button>
+                <button id="stop-recording" class="btn" data-i18n="stopRecording">Stop recording</button>
+                <button id="open-records" class="btn" data-i18n="openRecords">Recordings folder</button>
+              </div>
+            </section>
+
+            <section class="group">
+              <h2 data-i18n="groupDemo">Replay demo</h2>
+              <p class="hint" data-i18n="demoHint">Plays recorded match states into the backend; the overlay shows without Dota.</p>
+              <div class="actions">
+                <button id="run-demo" class="btn btn-primary" data-i18n="runDemo">Run demo</button>
+                <button id="preset-pl" class="btn" data-i18n="presetPl">Phantom Lancer 20–30</button>
+                <button id="preset-jugg" class="btn" data-i18n="presetJugg">Juggernaut 10–20</button>
+                <button id="deep-review" class="btn" data-i18n="deepReview">Deep Review</button>
+                <button id="stop-demo" class="btn" data-i18n="stopDemo">Stop demo</button>
+                <button id="open-results" class="btn" data-i18n="openResults">Results folder</button>
+              </div>
+            </section>
+          </div>
+
+          <section class="group logs-group">
+            <div class="logs-header">
+              <h2 data-i18n="groupLogs">Logs</h2>
+              <div class="actions">
+                <button id="log-clean" class="btn btn-small active" data-i18n="logClean">Clean</button>
+                <button id="log-verbose" class="btn btn-small" data-i18n="logVerbose">Verbose</button>
+                <button id="copy-logs" class="btn btn-small" data-i18n="copyLogs">Copy</button>
+                <button id="clear-logs" class="btn btn-small" data-i18n="clearLogs">Clear</button>
+                <button id="open-logs" class="btn btn-small" data-i18n="openLogs">Logs folder</button>
+                <button id="open-readme" class="btn btn-small">README</button>
+              </div>
+            </div>
+            <pre id="logs" aria-live="polite"></pre>
+          </section>
         </div>
-        <pre id="logs" aria-live="polite"></pre>
-      </section>
+      </details>
     </main>
     <script src="./app.js"></script>
   </body>

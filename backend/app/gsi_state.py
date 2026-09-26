@@ -405,6 +405,7 @@ def _normalize_extra_context(
         "is_demo_or_lobby": is_demo_or_lobby,
         "demo_values_detected": demo_values_detected,
         "game_time": _optional_int(map_block.get("game_time")),
+        "clock_time": _optional_int(map_block.get("clock_time")),
         "daytime": _optional_bool(map_block.get("daytime")),
         "paused": _optional_bool(map_block.get("paused")) or False,
         "has_abilities": has_abilities,

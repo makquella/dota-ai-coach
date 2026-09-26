@@ -110,8 +110,9 @@ let dotaInstall = { steamRoots: [], libraries: [], dotaDir: "", gsiDir: "", sour
 let dotaInstallLogged = false;
 let dotaLocatePromise = null;
 let autoInstallRunning = false;
-const live = { inMatch: false, pollTimer: null, polling: false };
-const presence = { status: DOTA_STATUS.NOT_FOUND, visible: false, reason: "" };
+const live = { inMatch: false, pollTimer: null, polling: false, details: emptyLiveDetails() };
+const presence = { status: DOTA_STATUS.NOT_FOUND, visible: false, reason: "", code: "" };
+let autostartEnabled = false;
 
 const BACKEND_NOISE_PATTERNS = [
   /GET\s+\/overlay\/recommendation\b/,
@@ -122,6 +123,7 @@ const BACKEND_NOISE_PATTERNS = [
 const overlay = createOverlayController({
   settings,
   getBackend: backendInfo,
+  getLocale: () => uiLocale(),
   onChange: () => {
     refreshPresence();
     updateStatus();
@@ -281,8 +283,26 @@ function gsiEndpoint() {
   return `http://${BACKEND_HOST}:${port}/gsi`;
 }
 
+function emptyLiveDetails() {
+  return { connected: false, inMatch: false, hero: null, clockTime: null, secondsSinceLastGsi: null, stage: "unknown" };
+}
+
+function uiLocale() {
+  try {
+    return app.getLocale().toLowerCase().startsWith("ru") ? "ru" : "en";
+  } catch {
+    return "en";
+  }
+}
+
 function publicStatus() {
+  const dota = dotaWatcher.getState();
   return {
+    locale: uiLocale(),
+    live: { ...live.details },
+    dotaRunning: dota.running,
+    dotaFocused: dota.focused,
+    overlayReasonCode: presence.code,
     backend: processStatus.backend,
     backendPort: backend.port,
     backendUrl: backendUrl(),
@@ -300,7 +320,7 @@ function publicStatus() {
     mode,
     llm: "off",
     logMode,
-    autostart: isAutostartEnabled(),
+    autostart: autostartEnabled,
     autostartSupported: isAutostartSupported()
   };
 }
@@ -328,6 +348,7 @@ function refreshPresence() {
   const statusChanged = status !== presence.status;
   presence.visible = decision.visible;
   presence.reason = decision.reason;
+  presence.code = decision.code;
   presence.status = status;
   if (visibilityChanged) {
     appendLog("overlay", `${decision.visible ? "Shown" : "Hidden"}: ${decision.reason}`);
@@ -361,20 +382,33 @@ async function pollGsiStatus() {
     return;
   }
   live.polling = true;
-  let inMatch = false;
+  let details = emptyLiveDetails();
   try {
     if (processStatus.backend === "running") {
       const status = await requestBackendJson("/gsi/status");
-      inMatch = Boolean(status.in_match);
+      details = {
+        connected: Boolean(status.gsi_connected),
+        inMatch: Boolean(status.in_match),
+        hero: status.hero && status.hero !== "Unknown" ? String(status.hero) : null,
+        clockTime: Number.isFinite(status.clock_time) ? status.clock_time : null,
+        secondsSinceLastGsi: Number.isFinite(status.seconds_since_last_gsi) ? status.seconds_since_last_gsi : null,
+        stage: status.stage || "unknown"
+      };
     }
   } catch {
-    inMatch = false;
+    details = emptyLiveDetails();
   } finally {
     live.polling = false;
   }
-  if (inMatch !== live.inMatch) {
-    live.inMatch = inMatch;
+  const detailsChanged = JSON.stringify(details) !== JSON.stringify(live.details);
+  live.details = details;
+  if (details.inMatch !== live.inMatch) {
+    live.inMatch = details.inMatch;
     refreshPresence();
+  }
+  if (detailsChanged) {
+    // Hero and match clock on the status screen.
+    updateStatus();
   }
 }
 
@@ -382,6 +416,7 @@ function setBackendStatus(status) {
   processStatus.backend = status;
   if (status !== "running") {
     live.inMatch = false;
+    live.details = emptyLiveDetails();
     refreshPresence();
   }
   updateStatus();
@@ -1141,9 +1176,9 @@ function appIcon() {
 function createMainWindow({ show = true } = {}) {
   mainWindow = new BrowserWindow({
     width: 980,
-    height: 720,
+    height: 600,
     minWidth: 860,
-    minHeight: 620,
+    minHeight: 520,
     title: APP_NAME,
     icon: appIcon(),
     backgroundColor: "#10131a",
@@ -1227,9 +1262,10 @@ function setAutostart(enabled) {
   }
   app.setLoginItemSettings({ ...loginItemOptions(), openAtLogin: Boolean(enabled) });
   appendLog("launcher", `Start with Windows: ${enabled ? "on" : "off"}.`, { force: true });
+  autostartEnabled = isAutostartEnabled();
   updateStatus();
   refreshTray();
-  return isAutostartEnabled();
+  return autostartEnabled;
 }
 
 function createTray() {
@@ -1264,7 +1300,7 @@ function refreshTray() {
       {
         label: process.platform === "win32" ? t("autostartWindows") : t("autostartLogin"),
         type: "checkbox",
-        checked: isAutostartEnabled(),
+        checked: autostartEnabled,
         enabled: isAutostartSupported(),
         click: (item) => setAutostart(item.checked)
       },
@@ -1409,6 +1445,18 @@ async function runSmokeTest(resultPath) {
 
     const started = await startBackend();
     step("backend /health", started && (await isBackendReady()), backendUrl());
+    // Both renderers must have drawn their UI from live status (catches
+    // script errors that a plain "page loaded" check would miss).
+    await delay(1500);
+    const stateTitle = await mainWindow.webContents.executeJavaScript(
+      "document.querySelector('#state-title')?.textContent || ''"
+    );
+    step("control panel rendered", Boolean(stateTitle.trim()), stateTitle);
+    const overlayLabel = await overlayWindow.webContents.executeJavaScript(
+      "document.querySelector('#label')?.textContent || ''"
+    );
+    step("overlay card rendered", Boolean(overlayLabel.trim()), overlayLabel);
+
     const recommendation = await fetchOverlayRecommendation();
     step(
       "overlay recommendation",
@@ -1455,6 +1503,7 @@ function bootstrap() {
     appendLog("launcher", `${APP_NAME} ${app.getVersion()} started (${IS_PACKAGED ? "packaged" : "dev"}).`, {
       force: true
     });
+    autostartEnabled = isAutostartEnabled();
     createTray();
     if (!START_HIDDEN) {
       createMainWindow();

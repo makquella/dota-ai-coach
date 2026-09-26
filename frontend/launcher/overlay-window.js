@@ -25,7 +25,7 @@ const OVERLAY_DEFAULTS = {
 // The window exists while the overlay is enabled; whether it is on screen is
 // decided separately (setVisible) from Dota focus + fresh GSI, see
 // overlay-visibility.js. The always-on-top timer only runs while it is shown.
-function createOverlayController({ settings, getBackend, onChange = () => {}, log = () => {} }) {
+function createOverlayController({ settings, getBackend, getLocale = () => "en", onChange = () => {}, log = () => {} }) {
   let overlayWindow = null;
   let alwaysOnTopTimer = null;
   let moveSaveTimer = null;
@@ -300,6 +300,7 @@ function createOverlayController({ settings, getBackend, onChange = () => {}, lo
     const current = config();
     const backend = getBackend();
     return {
+      locale: getLocale(),
       backendUrl: backend.url,
       backendPort: backend.port,
       backendStatus: backend.status,

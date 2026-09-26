@@ -39,7 +39,7 @@ Key files:
 Launcher:
 
 - `frontend/launcher/main.js` - app lifecycle: single-instance lock, tray, autostart, backend process (free port, health check, graceful stop, crash restart), replay demo, GSI config, IPC.
-- `frontend/launcher/preload.js`, `frontend/launcher/renderer/app.js` - control panel window.
+- `frontend/launcher/preload.js`, `frontend/launcher/renderer/app.js` - control panel window: status screen plus a collapsed developer section; ru/en texts.
 - `frontend/launcher/overlay-window.js` - the always-on-top overlay window and its hotkeys.
 - `frontend/launcher/overlay-preload.js`, `frontend/launcher/overlay/app.js` - overlay renderer.
 - `frontend/launcher/dota-watcher.js`, `steam-locator.js`, `overlay-visibility.js` - dota2.exe/foreground tracking, Steam library discovery, and the rules for when the overlay is on screen.

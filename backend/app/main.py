@@ -651,6 +651,7 @@ def _gsi_status_response() -> dict[str, object]:
             "seconds_since_last_gsi": None,
             "hero": demo_response.get("hero"),
             "game_time": demo_response.get("simulated_time_label") or demo_response.get("minute"),
+            "clock_time": None,
             "stage": demo_response.get("stage", "unknown"),
             "received_fields": [],
             "missing_important_fields": [],
@@ -676,6 +677,8 @@ def _gsi_status_response() -> dict[str, object]:
         "seconds_since_last_gsi": round(seconds_since, 2) if seconds_since is not None else None,
         "hero": state.get("hero"),
         "game_time": extra_context.get("game_time") or state.get("minute"),
+        # The in-game clock as the player sees it (negative before the horn).
+        "clock_time": extra_context.get("clock_time"),
         "stage": _stage_label(state) if state else "unknown",
         "received_fields": _received_gsi_fields(fields),
         "missing_important_fields": _missing_important_fields(state, fields),
