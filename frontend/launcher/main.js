@@ -14,11 +14,13 @@ const { spawn } = require("node:child_process");
 const fs = require("node:fs");
 const http = require("node:http");
 const net = require("node:net");
-const os = require("node:os");
 const path = require("node:path");
 
+const { createDotaWatcher } = require("./dota-watcher");
 const { createOverlayController, OVERLAY_DEFAULTS } = require("./overlay-window");
+const { DOTA_STATUS, dotaStatus, overlayVisibility } = require("./overlay-visibility");
 const { createSettingsStore } = require("./settings");
+const { dotaDirFromExecutable, locateDota } = require("./steam-locator");
 
 const APP_ID = "com.dotaai.coach";
 const APP_NAME = "Dota AI Coach";
@@ -49,6 +51,7 @@ const BACKEND_HEALTH_TIMEOUT_MS = 45000;
 const BACKEND_GRACEFUL_STOP_MS = 8000;
 const BACKEND_MAX_RESTARTS = 3;
 const BACKEND_RESTART_WINDOW_MS = 2 * 60 * 1000;
+const GSI_STATUS_POLL_MS = 1000;
 const GSI_CONFIG_NAME = "gamestate_integration_dota_ai_coach.cfg";
 
 const START_HIDDEN = process.argv.includes("--hidden");
@@ -69,6 +72,7 @@ const DEMO_PRESETS = {
 const settings = createSettingsStore(path.join(USER_DATA_DIR, "settings.json"), {
   backendPort: null,
   gsiConfigPath: "",
+  gsiAutoInstalled: false,
   trayHintShown: false,
   overlay: { ...OVERLAY_DEFAULTS }
 });
@@ -102,6 +106,12 @@ let hiddenBackendAccessLogs = 0;
 let currentDemoPreset = "";
 let recordingStatus = "stopped";
 let launcherLogStream = null;
+let dotaInstall = { steamRoots: [], libraries: [], dotaDir: "", gsiDir: "", source: "not searched" };
+let dotaInstallLogged = false;
+let dotaLocatePromise = null;
+let autoInstallRunning = false;
+const live = { inMatch: false, pollTimer: null, polling: false };
+const presence = { status: DOTA_STATUS.NOT_FOUND, visible: false, reason: "" };
 
 const BACKEND_NOISE_PATTERNS = [
   /GET\s+\/overlay\/recommendation\b/,
@@ -113,11 +123,70 @@ const overlay = createOverlayController({
   settings,
   getBackend: backendInfo,
   onChange: () => {
+    refreshPresence();
     updateStatus();
     refreshTray();
   },
   log: (message) => appendLog("overlay", message, { force: true })
 });
+
+const dotaWatcher = createDotaWatcher({
+  log: (message) => appendLog("dota", message, { force: true })
+});
+dotaWatcher.on("change", (state) => {
+  appendLog(
+    "dota",
+    state.running ? `dota2 running, ${state.focused ? "focused" : "in background"}` : "dota2 not running"
+  );
+  if (state.running && !dotaInstall.dotaDir && dotaDirFromExecutable(state.exePath)) {
+    // The running game tells us where it is installed, even outside known libraries.
+    autoInstallGsiOnce().catch((error) => appendLog("gsi", error.message, { force: true }));
+  }
+  refreshPresence();
+});
+
+// ---------------------------------------------------------------------------
+// Tray texts (Russian or English, by system locale)
+// ---------------------------------------------------------------------------
+
+const TRAY_TEXT = {
+  en: {
+    open: "Open",
+    overlay: "Overlay",
+    autostartWindows: "Start with Windows",
+    autostartLogin: "Start at login",
+    quit: "Quit",
+    backend: "Backend",
+    [DOTA_STATUS.NOT_FOUND]: "Dota not found",
+    [DOTA_STATUS.WAITING]: "Waiting for game",
+    [DOTA_STATUS.IN_GAME]: "In game",
+    gsiInstalled: "Dota 2 GSI config installed.",
+    restartDota: "Restart Dota 2 to connect."
+  },
+  ru: {
+    open: "Открыть",
+    overlay: "Оверлей",
+    autostartWindows: "Автозапуск с Windows",
+    autostartLogin: "Автозапуск при входе",
+    quit: "Выход",
+    backend: "Бэкенд",
+    [DOTA_STATUS.NOT_FOUND]: "Дота не найдена",
+    [DOTA_STATUS.WAITING]: "Ждём игру",
+    [DOTA_STATUS.IN_GAME]: "В игре",
+    gsiInstalled: "Конфиг GSI для Dota 2 установлен.",
+    restartDota: "Перезапустите Dota 2."
+  }
+};
+
+function t(key) {
+  let locale = "en";
+  try {
+    locale = app.getLocale().toLowerCase().startsWith("ru") ? "ru" : "en";
+  } catch {
+    // app.getLocale() is only available after "ready".
+  }
+  return TRAY_TEXT[locale][key] || TRAY_TEXT.en[key] || key;
+}
 
 function argValue(name) {
   for (const arg of process.argv) {
@@ -219,6 +288,10 @@ function publicStatus() {
     backendUrl: backendUrl(),
     gsiEndpoint: gsiEndpoint(),
     overlay: overlay.isEnabled() ? "running" : "stopped",
+    overlayVisible: presence.visible,
+    overlayReason: presence.reason,
+    dota: presence.status,
+    dotaDir: dotaInstall.dotaDir,
     demo: processStatus.demo,
     demoPreset: processStatus.demo !== "stopped" ? currentDemoPreset : "",
     recording: recordingStatus,
@@ -236,8 +309,81 @@ function updateStatus() {
   send("launcher:status", publicStatus());
 }
 
+// ---------------------------------------------------------------------------
+// Dota presence: overlay visibility + tray status
+// ---------------------------------------------------------------------------
+
+function refreshPresence() {
+  const dota = dotaWatcher.getState();
+  const decision = overlayVisibility({
+    enabled: overlay.isEnabled(),
+    unlocked: overlay.isUnlocked(),
+    demoRunning: processStatus.demo === "running",
+    dota,
+    inMatch: live.inMatch
+  });
+  overlay.setVisible(decision.visible);
+  const status = dotaStatus({ dota, inMatch: live.inMatch });
+  const visibilityChanged = decision.visible !== presence.visible || decision.reason !== presence.reason;
+  const statusChanged = status !== presence.status;
+  presence.visible = decision.visible;
+  presence.reason = decision.reason;
+  presence.status = status;
+  if (visibilityChanged) {
+    appendLog("overlay", `${decision.visible ? "Shown" : "Hidden"}: ${decision.reason}`);
+  }
+  if (statusChanged) {
+    appendLog("dota", `Status: ${TRAY_TEXT.en[status]}`, { force: true });
+  }
+  if (visibilityChanged || statusChanged) {
+    updateStatus();
+    refreshTray();
+  }
+}
+
+// The backend decides whether GSI is fresh and comes from a match
+// (/gsi/status -> in_match); poll it so the overlay hides within ~1 s.
+function startGsiPolling() {
+  if (live.pollTimer) {
+    return;
+  }
+  live.pollTimer = setInterval(pollGsiStatus, GSI_STATUS_POLL_MS);
+  live.pollTimer.unref?.();
+}
+
+function stopGsiPolling() {
+  clearInterval(live.pollTimer);
+  live.pollTimer = null;
+}
+
+async function pollGsiStatus() {
+  if (live.polling) {
+    return;
+  }
+  live.polling = true;
+  let inMatch = false;
+  try {
+    if (processStatus.backend === "running") {
+      const status = await requestBackendJson("/gsi/status");
+      inMatch = Boolean(status.in_match);
+    }
+  } catch {
+    inMatch = false;
+  } finally {
+    live.polling = false;
+  }
+  if (inMatch !== live.inMatch) {
+    live.inMatch = inMatch;
+    refreshPresence();
+  }
+}
+
 function setBackendStatus(status) {
   processStatus.backend = status;
+  if (status !== "running") {
+    live.inMatch = false;
+    refreshPresence();
+  }
   updateStatus();
   overlay.notifyBackendChanged();
   refreshTray();
@@ -484,7 +630,7 @@ async function launchBackend() {
     settings.set("backendPort", port);
   }
   if (!IS_SMOKE_TEST) {
-    syncGsiConfigPort();
+    autoInstallGsiOnce().catch((error) => appendLog("gsi", error.message, { force: true }));
   }
 
   const env = {
@@ -718,6 +864,7 @@ async function runDemo(presetName = "plMacro", includeDeepReview = false) {
       mode = "Live GSI";
       currentDemoPreset = "";
       appendLog("launcher", "Demo stopped.", { force: true });
+      refreshPresence();
       updateStatus();
     }
   });
@@ -727,6 +874,7 @@ async function runDemo(presetName = "plMacro", includeDeepReview = false) {
   processStatus.demo = "running";
   currentDemoPreset = preset.label;
   mode = "Replay Demo";
+  refreshPresence();
   appendLog("launcher", `Demo started: ${preset.label}`, { force: true });
   updateStatus();
   return true;
@@ -779,6 +927,8 @@ function formatLiveGsiStatus(status) {
   return `GSI ${connection}; last=${seconds}s; hero=${hero}; game_time=${time}; stage=${stage}; mode=${status.current_mode};${missing}`;
 }
 
+// "heartbeat" keeps a paused match fresh for the backend's staleness check
+// (GSI_STALE_SECONDS=5); otherwise the overlay would hide during pauses.
 function gsiConfigText() {
   return `"Dota AI Coach GSI"
 {
@@ -786,7 +936,7 @@ function gsiConfigText() {
   "timeout"       "5.0"
   "buffer"        "0.1"
   "throttle"      "0.1"
-  "heartbeat"     "30.0"
+  "heartbeat"     "2.0"
   "data"
   {
     "provider"    "1"
@@ -801,17 +951,36 @@ function gsiConfigText() {
 `;
 }
 
-function defaultGsiDirs() {
-  if (process.platform === "win32") {
-    return [
-      "C:\\Program Files (x86)\\Steam\\steamapps\\common\\dota 2 beta\\game\\dota\\cfg\\gamestate_integration",
-      "C:\\Program Files\\Steam\\steamapps\\common\\dota 2 beta\\game\\dota\\cfg\\gamestate_integration"
-    ];
+// Steam registry -> libraryfolders.vdf -> every library; the running
+// dota2.exe path (from the watcher) is used as an extra hint.
+function refreshDotaInstall() {
+  if (!dotaLocatePromise) {
+    const extraDotaDirs = [dotaDirFromExecutable(dotaWatcher.getState().exePath)].filter(Boolean);
+    dotaLocatePromise = locateDota({ extraDotaDirs })
+      .then((result) => {
+        const changed = result.dotaDir !== dotaInstall.dotaDir;
+        dotaInstall = result;
+        if (changed || !dotaInstallLogged) {
+          dotaInstallLogged = true;
+          appendLog(
+            "gsi",
+            result.dotaDir
+              ? `Dota 2 found: ${result.dotaDir}`
+              : `Dota 2 not found. Steam libraries checked: ${result.libraries.join(", ") || "none"}`,
+            { force: true }
+          );
+        }
+        return result;
+      })
+      .catch((error) => {
+        appendLog("gsi", `Dota 2 search failed: ${error.message}`, { force: true });
+        return dotaInstall;
+      })
+      .finally(() => {
+        dotaLocatePromise = null;
+      });
   }
-  return [
-    path.join(os.homedir(), ".steam", "steam", "steamapps", "common", "dota 2 beta", "game", "dota", "cfg", "gamestate_integration"),
-    path.join(os.homedir(), ".local", "share", "Steam", "steamapps", "common", "dota 2 beta", "game", "dota", "cfg", "gamestate_integration")
-  ];
+  return dotaLocatePromise;
 }
 
 function resolveGsiDir(customPath = "") {
@@ -823,7 +992,7 @@ function resolveGsiDir(customPath = "") {
   if (saved && fs.existsSync(path.dirname(saved))) {
     return path.dirname(saved);
   }
-  return defaultGsiDirs().find((candidate) => fs.existsSync(candidate)) || "";
+  return dotaInstall.gsiDir || "";
 }
 
 function checkGsiConfig(customPath = "") {
@@ -865,25 +1034,59 @@ function installGsiConfig(customPath = "") {
 }
 
 // The backend port can change between launches (e.g. 8000 taken by another
-// program). Keep an installed Dota GSI config pointing at the current port.
-function syncGsiConfigPort() {
+// program), and the config template can change between versions. Keep an
+// installed Dota GSI config identical to what this version would write.
+function syncGsiConfig() {
   const status = checkGsiConfig();
   if (status.status !== "installed") {
     return;
   }
   try {
-    const current = fs.readFileSync(status.path, "utf8");
-    if (current.includes(`"${gsiEndpoint()}"`)) {
+    if (fs.readFileSync(status.path, "utf8") === gsiConfigText()) {
       return;
     }
     fs.writeFileSync(status.path, gsiConfigText(), "utf8");
-    appendLog(
-      "gsi",
-      `Updated GSI config to ${gsiEndpoint()}. Restart Dota 2 if it is already running.`,
-      { force: true }
-    );
+    appendLog("gsi", `Updated GSI config (${gsiEndpoint()}). Restart Dota 2 if it is already running.`, {
+      force: true
+    });
   } catch (error) {
-    appendLog("gsi", `Could not update GSI config port: ${error.message}`, { force: true });
+    appendLog("gsi", `Could not update GSI config: ${error.message}`, { force: true });
+  }
+}
+
+// First run: install the GSI config as soon as Dota 2 is found. Once it has
+// been installed (or found installed) the app only keeps it in sync, so a
+// user who deletes it on purpose is not overridden.
+async function autoInstallGsiOnce() {
+  if (autoInstallRunning) {
+    return;
+  }
+  autoInstallRunning = true;
+  try {
+    await refreshDotaInstall();
+    if (settings.get("gsiAutoInstalled")) {
+      syncGsiConfig();
+      return;
+    }
+    if (checkGsiConfig().status === "installed") {
+      settings.set("gsiAutoInstalled", true);
+      syncGsiConfig();
+      return;
+    }
+    if (!resolveGsiDir()) {
+      appendLog("gsi", "Dota 2 not found yet; the GSI config will be installed as soon as it is.", {
+        force: true
+      });
+      return;
+    }
+    if (installGsiConfig().status === "installed") {
+      settings.set("gsiAutoInstalled", true);
+      const restartHint = dotaWatcher.getState().running ? " Restart Dota 2 to start receiving game data." : "";
+      appendLog("gsi", `GSI config installed automatically.${restartHint}`, { force: true });
+      showTrayBalloon(t("gsiInstalled") + (restartHint ? ` ${t("restartDota")}` : ""));
+    }
+  } finally {
+    autoInstallRunning = false;
   }
 }
 
@@ -1038,20 +1241,23 @@ function refreshTray() {
   if (!tray || tray.isDestroyed()) {
     return;
   }
-  const port = backend.port ? ` on :${backend.port}` : "";
-  const backendLine = `Backend: ${processStatus.backend}${processStatus.backend === "stopped" ? "" : port}`;
-  tray.setToolTip(`${APP_NAME}\n${backendLine}`);
+  const statusLine = t(presence.status);
+  const port = backend.port && processStatus.backend !== "stopped" ? ` :${backend.port}` : "";
+  const backendLine = `${t("backend")}: ${processStatus.backend}${port}`;
+  tray.setToolTip(`${APP_NAME} — ${statusLine}\n${backendLine}`);
   tray.setContextMenu(
     Menu.buildFromTemplate([
-      { label: "Open", click: showMainWindow },
+      { label: statusLine, enabled: false },
+      { type: "separator" },
+      { label: t("open"), click: showMainWindow },
       {
-        label: "Overlay",
+        label: t("overlay"),
         type: "checkbox",
         checked: overlay.isEnabled(),
         click: (item) => overlay.setEnabled(item.checked)
       },
       {
-        label: process.platform === "win32" ? "Start with Windows" : "Start at login",
+        label: process.platform === "win32" ? t("autostartWindows") : t("autostartLogin"),
         type: "checkbox",
         checked: isAutostartEnabled(),
         enabled: isAutostartSupported(),
@@ -1060,9 +1266,16 @@ function refreshTray() {
       { type: "separator" },
       { label: backendLine, enabled: false },
       { type: "separator" },
-      { label: "Quit", click: () => app.quit() }
+      { label: t("quit"), click: () => app.quit() }
     ])
   );
+}
+
+function showTrayBalloon(content) {
+  if (!tray || tray.isDestroyed() || process.platform !== "win32") {
+    return;
+  }
+  tray.displayBalloon({ iconType: "info", title: APP_NAME, content });
 }
 
 // ---------------------------------------------------------------------------
@@ -1095,8 +1308,14 @@ function registerIpc() {
   ipcMain.handle("launcher:check-live-gsi", () => checkLiveGsiStatus());
   ipcMain.handle("launcher:start-live-recording", () => setLiveRecording(true));
   ipcMain.handle("launcher:stop-live-recording", () => setLiveRecording(false));
-  ipcMain.handle("launcher:check-gsi", (_event, customPath) => checkGsiConfig(customPath));
-  ipcMain.handle("launcher:install-gsi", (_event, customPath) => installGsiConfig(customPath));
+  ipcMain.handle("launcher:check-gsi", async (_event, customPath) => {
+    await refreshDotaInstall();
+    return checkGsiConfig(customPath);
+  });
+  ipcMain.handle("launcher:install-gsi", async (_event, customPath) => {
+    await refreshDotaInstall();
+    return installGsiConfig(customPath);
+  });
   ipcMain.handle("launcher:choose-gsi-folder", () => chooseGsiFolder());
   ipcMain.handle("launcher:open-logs", () => openPath(LOGS_DIR));
   ipcMain.handle("launcher:open-simulation-results", () => openPath(SIMULATION_RESULTS_DIR));
@@ -1112,6 +1331,8 @@ function registerIpc() {
 // ---------------------------------------------------------------------------
 
 async function shutdownChildren() {
+  stopGsiPolling();
+  dotaWatcher.stop();
   overlay.dispose();
   if (processes.demo) {
     await stopManaged("demo");
@@ -1119,6 +1340,20 @@ async function shutdownChildren() {
   if (processes.backend) {
     await stopBackend();
   }
+}
+
+function waitForEvent(emitter, eventName, timeoutMs) {
+  return new Promise((resolve) => {
+    const onEvent = (value) => {
+      clearTimeout(timer);
+      resolve(value);
+    };
+    const timer = setTimeout(() => {
+      emitter.off(eventName, onEvent);
+      resolve(null);
+    }, timeoutMs);
+    emitter.once(eventName, onEvent);
+  });
 }
 
 function waitForLoad(webContents, timeoutMs = 20000) {
@@ -1152,6 +1387,21 @@ async function runSmokeTest(resultPath) {
     const overlayWindow = overlay.open();
     step("overlay window loaded", await waitForLoad(overlayWindow.webContents));
 
+    const install = await locateDota();
+    step("steam/dota locator", true, install.dotaDir || `Dota 2 not installed; libraries: ${install.libraries.join(", ") || "none"}`);
+
+    if (process.platform === "win32") {
+      // The real watcher (hidden PowerShell + user32) must report, and with no
+      // dota2.exe running the overlay must stay hidden.
+      const report = waitForEvent(dotaWatcher, "report", 30000);
+      dotaWatcher.start();
+      const state = await report;
+      step("dota watcher reports", Boolean(state && state.supported), JSON.stringify(state));
+      refreshPresence();
+      step("overlay hidden without Dota", !overlay.isVisible(), presence.reason);
+      dotaWatcher.stop();
+    }
+
     const started = await startBackend();
     step("backend /health", started && (await isBackendReady()), backendUrl());
     const recommendation = await fetchOverlayRecommendation();
@@ -1173,6 +1423,7 @@ async function runSmokeTest(resultPath) {
     fs.mkdirSync(path.dirname(path.resolve(resultPath)), { recursive: true });
     fs.writeFileSync(resultPath, `${JSON.stringify(result, null, 2)}\n`, "utf8");
   }
+  dotaWatcher.stop();
   overlay.dispose();
   app.exit(ok ? 0 : 1);
 }
@@ -1207,6 +1458,9 @@ function bootstrap() {
     if (overlay.isEnabled()) {
       overlay.open();
     }
+    dotaWatcher.start();
+    refreshPresence();
+    startGsiPolling();
     for (const eventName of ["display-added", "display-removed", "display-metrics-changed"]) {
       screen.on(eventName, overlay.enforceAlwaysOnTop);
     }

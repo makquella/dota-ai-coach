@@ -140,6 +140,34 @@ def update_latest_gsi(payload: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+# Dota game rules states in which a hero is picked and the match is on.
+_IN_MATCH_GAME_STATES = frozenset(
+    {
+        "DOTA_GAMERULES_STATE_STRATEGY_TIME",
+        "DOTA_GAMERULES_STATE_TEAM_SHOWCASE",
+        "DOTA_GAMERULES_STATE_WAIT_FOR_MAP_TO_LOAD",
+        "DOTA_GAMERULES_STATE_PRE_GAME",
+        "DOTA_GAMERULES_STATE_GAME_IN_PROGRESS",
+    }
+)
+
+
+def is_in_match() -> bool:
+    """True when the latest GSI payload comes from a running match with a picked hero.
+
+    Main-menu heartbeats and hero selection also post to /gsi, so freshness alone
+    does not mean the player is in a game.
+    """
+    if not _latest_raw_payload or not _latest_normalized_state:
+        return False
+    hero = str(_latest_normalized_state.get("hero") or "")
+    if not hero or hero == "Unknown":
+        return False
+    map_block = _latest_raw_payload.get("map")
+    game_state = map_block.get("game_state") if isinstance(map_block, dict) else None
+    return game_state is None or str(game_state) in _IN_MATCH_GAME_STATES
+
+
 def get_current_state() -> dict[str, Any]:
     if _latest_normalized_state is None:
         return {

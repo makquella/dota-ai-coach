@@ -15,6 +15,7 @@
         </div>
         <div class="status-grid" aria-label="Launcher status">
           <span class="chip" id="backend-status">Backend: unknown</span>
+          <span class="chip" id="dota-status">Dota: unknown</span>
           <span class="chip" id="overlay-status">Overlay: unknown</span>
           <span class="chip" id="demo-status">Demo: stopped</span>
           <span class="chip" id="recording-status">Recording: stopped</span>
@@ -26,7 +27,7 @@
 
       <section class="panel">
         <h2>Main controls</h2>
-        <p class="hint">The backend starts automatically on a free local port. Closing this window keeps the coach running in the tray.</p>
+        <p class="hint">The backend starts automatically on a free local port. The overlay appears only while Dota 2 is the active window and a match is sending GSI data. Closing this window keeps the coach running in the tray.</p>
         <div class="button-grid">
           <button id="start-backend">Start Backend</button>
           <button id="restart-backend" class="secondary">Restart Backend</button>

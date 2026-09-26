@@ -125,7 +125,23 @@ curl.exe http://127.0.0.1:8000/health
 
 ## Dota 2 GSI
 
-`Install / Check Dota GSI` in the control panel writes `gamestate_integration_dota_ai_coach.cfg` into Dota's `gamestate_integration` folder with `uri "http://127.0.0.1:<port>/gsi"`. The app reuses the last port between launches, so the config stays valid. If that port is taken by another program, the app picks another one and rewrites the installed config automatically; restart Dota 2 in that case, because Dota reads GSI configs only at start.
+Finding Dota: the Steam root comes from the registry (`HKCU\Software\Valve\Steam\SteamPath`, then `HKLM\SOFTWARE\WOW6432Node\Valve\Steam\InstallPath`), then every library listed in `steamapps\libraryfolders.vdf` is checked (libraries that list app 570 first), so Dota on `D:`, `E:` … is found. Dota's own uninstall key and the path of a running `dota2.exe` are extra hints.
+
+On first run the app installs `gamestate_integration_dota_ai_coach.cfg` into Dota's `game\dota\cfg\gamestate_integration` folder automatically (`uri "http://127.0.0.1:<port>/gsi"`, `heartbeat 2.0`). If Dota is not installed yet, it keeps trying on later launches and as soon as `dota2.exe` starts. After that it only keeps the file in sync with the current port/template, so deleting it on purpose sticks; `Install / Check Dota GSI` in the control panel installs it manually (also into a custom folder). Dota reads GSI configs only at start, so restart Dota 2 after the file is installed or changed.
+
+## When The Overlay Is On Screen
+
+The overlay window is shown only when all of these hold:
+
+1. the overlay is switched on (tray → **Overlay**, `Ctrl+Alt+O`);
+2. `dota2.exe` is running and its window is the active (foreground, not minimized) window;
+3. the backend reports fresh GSI from a match (`GET /gsi/status` → `in_match`: data younger than `GSI_STALE_SECONDS`, a hero picked, game state strategy time … game in progress).
+
+Alt-tab or minimizing Dota hides it within ~0.3 s; leaving the match or the main menu hides it within ~5 s. Exceptions: while a replay demo runs, and while the overlay is unlocked for dragging (`Ctrl+Alt+L`), it is shown regardless of Dota.
+
+Tray status (Russian texts on a Russian system): **Dota not found** / «Дота не найдена» (no `dota2.exe`), **Waiting for game** / «Ждём игру» (Dota running, no match data), **In game** / «В игре».
+
+Focus tracking uses one hidden PowerShell helper that calls `user32.dll` (`GetForegroundWindow`, `GetWindowThreadProcessId`, `IsIconic`) and prints a line only when something changes; it polls every 0.3 s while Dota runs and every 1.5 s otherwise, and exits when the app exits. If PowerShell is unavailable, the overlay simply follows the on/off switch.
 
 ## Development Mode
 
@@ -139,7 +155,7 @@ Open the control panel (tray → Open) and read the log panel, or `%APPDATA%\Dot
 
 ### Overlay does not show
 
-Check tray → **Overlay** is ticked, or press `Ctrl+Alt+O`. Dota 2 must run in *Borderless Window* or *Windowed Fullscreen*.
+Check tray → **Overlay** is ticked, or press `Ctrl+Alt+O`. The tray status must be **In game**: if it says **Waiting for game** while you are in a match, Dota is not sending GSI — check that the config exists (control panel → `Install / Check Dota GSI`) and restart Dota 2. The hover tooltip of the `Overlay` chip in the control panel says why it is hidden. Dota 2 must run in *Borderless Window* or *Windowed Fullscreen*.
 
 ### Autostart does not work
 

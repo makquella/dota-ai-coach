@@ -136,7 +136,7 @@ On Windows, install the app with the NSIS installer built by `scripts\build-wind
 
 ### Overlay
 
-The overlay is a transparent, click-through, always-on-top window of the launcher. It polls `/overlay/recommendation` on the backend port chosen by the launcher. Hotkeys: `Ctrl+Alt+O` toggle, `Ctrl+Alt+M` mute 5 min, `Ctrl+Alt+L` lock/unlock dragging, `Ctrl+Alt+1/2/3` position presets, `Ctrl+Alt+D` debug line.
+The overlay is a transparent, click-through window of the launcher. It is on screen only while Dota 2 is running, is the active window, and a match is sending fresh GSI data; alt-tab, minimizing Dota or going back to the menu hides it (replay demo and unlocked positioning mode show it anyway). The tray shows the state: *Dota not found* / *Waiting for game* / *In game* (Russian on a Russian system). On first run the app finds Dota through Steam (registry + `libraryfolders.vdf`, any drive) and installs the GSI config itself. It polls `/overlay/recommendation` on the backend port chosen by the launcher. Hotkeys: `Ctrl+Alt+O` toggle, `Ctrl+Alt+M` mute 5 min, `Ctrl+Alt+L` lock/unlock dragging, `Ctrl+Alt+1/2/3` position presets, `Ctrl+Alt+D` debug line.
 
 ### Defense Demo Without Dota 2
 
@@ -231,8 +231,12 @@ node --check frontend/launcher/preload.js
 node --check frontend/launcher/settings.js
 node --check frontend/launcher/overlay-window.js
 node --check frontend/launcher/overlay-preload.js
+node --check frontend/launcher/overlay-visibility.js
+node --check frontend/launcher/dota-watcher.js
+node --check frontend/launcher/steam-locator.js
 node --check frontend/launcher/renderer/app.js
 node --check frontend/launcher/overlay/app.js
+(cd frontend/launcher && npm test)   # node --test, no dependencies
 ```
 
 Repository hygiene:

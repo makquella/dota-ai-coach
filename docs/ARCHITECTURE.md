@@ -42,9 +42,10 @@ Launcher:
 - `frontend/launcher/preload.js`, `frontend/launcher/renderer/app.js` - control panel window.
 - `frontend/launcher/overlay-window.js` - the always-on-top overlay window and its hotkeys.
 - `frontend/launcher/overlay-preload.js`, `frontend/launcher/overlay/app.js` - overlay renderer.
+- `frontend/launcher/dota-watcher.js`, `steam-locator.js`, `overlay-visibility.js` - dota2.exe/foreground tracking, Steam library discovery, and the rules for when the overlay is on screen.
 - `frontend/launcher/settings.js` - JSON settings in the user data folder (`%APPDATA%\DotaAICoach\settings.json`).
 
-The launcher is the only Electron app. It starts the backend hidden on a free port and hands the port to both windows over IPC (renderers never build backend URLs themselves). The overlay is transparent, frameless, always-on-top, and polls the backend for advice through the main process. On quit the launcher writes `shutdown` to the backend's stdin and waits for a clean exit; the backend also exits by itself if the launcher dies (stdin EOF).
+The launcher is the only Electron app. It starts the backend hidden on a free port and hands the port to both windows over IPC (renderers never build backend URLs themselves). The overlay is transparent, frameless, always-on-top, and polls the backend for advice through the main process. It is on screen only while Dota 2 is running, is the active window, and the backend reports fresh GSI from a match (`/gsi/status` → `in_match`); alt-tab, minimizing Dota or leaving the match hides it. Exceptions: replay demo and unlocked (positioning) mode. On quit the launcher writes `shutdown` to the backend's stdin and waits for a clean exit; the backend also exits by itself if the launcher dies (stdin EOF).
 
 ## Replay And Simulation
 
