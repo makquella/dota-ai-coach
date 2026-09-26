@@ -12,6 +12,9 @@ POST   /player/matches/{id}/refresh   fetch again / ask OpenDota to parse the re
 GET    /player/career            statistics and advice over the recent matches
 POST   /player/matches/{id}/coach     (re)generate the AI coach review of a match
 POST   /player/career/coach           (re)generate the AI coach review of recent matches
+GET    /player/opendota          OpenDota key status (never returns the key)
+POST   /player/opendota          {"api_key": "..."}: faster, higher OpenDota limits
+DELETE /player/opendota          forget the OpenDota key
 GET    /player/ai                AI coach settings (never returns the key)
 POST   /player/ai                {"provider": "groq"|"openrouter", "api_key": "...", "model"?}
 DELETE /player/ai                forget the key
@@ -44,6 +47,10 @@ router = APIRouter(prefix="/player", tags=["player"])
 
 class LinkRequest(BaseModel):
     steam: str
+
+
+class OpenDotaKeyRequest(BaseModel):
+    api_key: str
 
 
 class AIRequest(BaseModel):
@@ -125,6 +132,26 @@ def coach_match(match_id: int, lang: str = "en"):
 @router.post("/career/coach", summary="(Re)generate the AI coach review of recent matches")
 def coach_career(lang: str = "en"):
     return PLAYER_SERVICE.career(normalize_lang(lang), force_coach=True).get("coach")
+
+
+@router.get("/opendota", summary="OpenDota key status (the key is never returned)")
+def opendota_settings():
+    return PLAYER_SERVICE.opendota_status()
+
+
+@router.post("/opendota", summary="Save an OpenDota API key")
+def set_opendota_settings(request: OpenDotaKeyRequest):
+    try:
+        return PLAYER_SERVICE.set_opendota_key(request.api_key)
+    except ValueError:
+        return JSONResponse(
+            status_code=400, content={"status": "error", "code": "bad_opendota_key"}
+        )
+
+
+@router.delete("/opendota", summary="Forget the OpenDota API key")
+def clear_opendota_settings():
+    return PLAYER_SERVICE.clear_opendota_key()
 
 
 @router.get("/ai", summary="AI coach settings (the key is never returned)")

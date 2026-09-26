@@ -27,6 +27,8 @@ from app.dota_constants import hero_name, hero_npc_name
 
 DEFAULT_TIMEOUT_SECONDS = 15
 MIN_REQUEST_INTERVAL_SECONDS = 1.1
+# With a (paid) API key OpenDota allows far more calls per minute.
+KEYED_REQUEST_INTERVAL_SECONDS = 0.25
 
 RECENT_MATCH_FIELDS = (
     "hero_id",
@@ -153,6 +155,13 @@ class OpenDotaClient:
         self.min_interval = min_interval
         self._lock = threading.Lock()
         self._last_request = 0.0
+
+    def set_api_key(self, api_key: str) -> None:
+        """Use (or stop using) a key; a key also lifts the free-tier pacing."""
+        self.api_key = api_key.strip()
+        self.min_interval = (
+            KEYED_REQUEST_INTERVAL_SECONDS if self.api_key else MIN_REQUEST_INTERVAL_SECONDS
+        )
 
     # --- endpoints ------------------------------------------------------------
 

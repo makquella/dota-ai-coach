@@ -11,6 +11,16 @@ const I18N = {
     tabProgress: "Progress",
     tabSettings: "Settings",
     adviceSettingsTitle: "Advice",
+    dataTitle: "Match data",
+    odTitle: "OpenDota key (optional)",
+    odPlaceholder: "API key",
+    odSave: "Save",
+    odGet: "Get a key on opendota.com",
+    odClear: "Remove key",
+    odHintOff: "Without a key OpenDota allows about 60 requests a minute, so history loads slower. The key stays on this computer.",
+    odHintOn: (hint) => `Key ${hint} saved: history and replays load faster.`,
+    odHintEnv: "The key from the .env file is used.",
+    odBad: "This does not look like an OpenDota key.",
     appTitle: "App",
     service: "Service",
     serviceStates: { running: "running", starting: "starting…", stopping: "stopping…", stopped: "stopped" },
@@ -212,6 +222,16 @@ const I18N = {
     tabProgress: "Прогресс",
     tabSettings: "Настройки",
     adviceSettingsTitle: "Советы",
+    dataTitle: "Данные матчей",
+    odTitle: "Ключ OpenDota (по желанию)",
+    odPlaceholder: "Ключ API",
+    odSave: "Сохранить",
+    odGet: "Получить ключ на opendota.com",
+    odClear: "Удалить ключ",
+    odHintOff: "Без ключа OpenDota даёт около 60 запросов в минуту, история загружается медленнее. Ключ хранится только на этом компьютере.",
+    odHintOn: (hint) => `Ключ ${hint} сохранён: история и разборы грузятся быстрее.`,
+    odHintEnv: "Используется ключ из файла .env.",
+    odBad: "Это не похоже на ключ OpenDota.",
     appTitle: "Приложение",
     service: "Сервис",
     serviceStates: { running: "работает", starting: "запускается…", stopping: "останавливается…", stopped: "остановлен" },
@@ -447,6 +467,12 @@ const els = {
   setupSteps: $("#setup-steps"),
   setupCount: $("#setup-count"),
   setupDismiss: $("#setup-dismiss"),
+  odHint: $("#od-hint"),
+  odForm: $("#od-form"),
+  odKey: $("#od-key"),
+  odSave: $("#od-save"),
+  odGet: $("#od-get"),
+  odClear: $("#od-clear"),
   reportAction: $("#report-action"),
   reportHint: $("#report-hint"),
   devTools: $("#dev-tools"),
@@ -493,6 +519,7 @@ let gsiEndpoint = "";
 let statusAction = null;
 let lastVoice = { mode: "off", volume: 1 };
 let voiceListChecked = false;
+let openDotaLoaded = false;
 const seenAdvice = new Set();
 
 init();
@@ -611,6 +638,20 @@ async function init() {
       }
     })
   );
+  els.odSave.addEventListener("click", () => run(saveOpenDotaKey));
+  els.odKey.addEventListener("keydown", (event) => {
+    if (event.key === "Enter") {
+      run(saveOpenDotaKey);
+    }
+  });
+  els.odGet.addEventListener("click", () => run(() => window.launcherApi.openAiKeyPage("opendota")));
+  els.odClear.addEventListener("click", () =>
+    run(async () => {
+      await window.launcherApi.player("odClear");
+      await refreshOpenDota();
+    })
+  );
+  document.querySelector("#tab-settings")?.addEventListener("click", () => run(refreshOpenDota));
   els.setupDismiss.addEventListener("click", () =>
     run(async () => renderStatus(await window.launcherApi.dismissSetup()))
   );
@@ -719,6 +760,10 @@ function renderStatus(status) {
   renderService(status);
   renderStatusLine(status);
   renderSetup(status);
+  if (status.backend === "running" && !openDotaLoaded) {
+    openDotaLoaded = true;
+    run(refreshOpenDota);
+  }
   renderMatch(status);
   renderAdvice(status);
   renderOverlaySettings(status);
@@ -728,6 +773,42 @@ function renderStatus(status) {
   updateGsiDetail({ status: status.gsiConfig, path: status.gsiPath });
   // Matches / Progress views (renderer/matches.js).
   window.PlayerViews?.onStatus(status);
+}
+
+// OpenDota key: the backend keeps it and only ever answers with a hint.
+async function refreshOpenDota() {
+  const result = await window.launcherApi.player("odStatus");
+  renderOpenDota(result && result.ok ? result.data : null);
+}
+
+function renderOpenDota(data) {
+  const configured = Boolean(data && data.configured);
+  els.odForm.classList.toggle("hidden", configured);
+  els.odClear.classList.toggle("hidden", !configured || data.source !== "app");
+  els.odHint.textContent = !configured
+    ? tr("odHintOff")
+    : data.source === "env"
+      ? tr("odHintEnv")
+      : tr("odHintOn", data.key_hint || "");
+}
+
+async function saveOpenDotaKey() {
+  const key = els.odKey.value.trim();
+  if (!key) {
+    return;
+  }
+  els.odSave.disabled = true;
+  try {
+    const result = await window.launcherApi.player("odSave", { apiKey: key });
+    if (result && result.ok) {
+      els.odKey.value = "";
+      renderOpenDota(result.data);
+    } else {
+      els.odHint.textContent = tr("odBad");
+    }
+  } finally {
+    els.odSave.disabled = false;
+  }
 }
 
 // First-run checklist: the required steps in order, then the optional AI coach.

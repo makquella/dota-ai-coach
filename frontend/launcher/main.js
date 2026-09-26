@@ -1021,6 +1021,10 @@ const PLAYER_OPS = {
     }
   ],
   aiClear: () => ["DELETE", "/player/ai"],
+  // Optional OpenDota key (faster sync, higher limits); never sent back either.
+  odStatus: () => ["GET", "/player/opendota"],
+  odSave: (args) => ["POST", "/player/opendota", { api_key: String(args.apiKey || "").trim().slice(0, 100) }],
+  odClear: () => ["DELETE", "/player/opendota"],
   // One real request to the provider: allow it time.
   aiCheck: () => ["POST", "/player/ai/check", undefined, 45000]
 };
@@ -1090,6 +1094,7 @@ async function pollPlayerStatus() {
     lastReview: review,
     reviewKey,
     aiConfigured: Boolean(status.ai && status.ai.configured),
+    opendotaKey: Boolean(status.opendota_key),
     liveMatch: status.live_match || null
   };
   if (!first && reviewKey && reviewKey !== previousKey) {
@@ -1852,8 +1857,9 @@ function registerIpc() {
   ipcMain.handle("launcher:open-session-records", () => openPath(SESSION_RECORDS_DIR));
   ipcMain.handle("launcher:open-readme", () => shell.openPath(README_PATH));
   ipcMain.handle("launcher:open-ai-key-page", (_event, provider) => {
-    const url = AI_KEY_PAGES[String(provider)];
-    return url && Object.hasOwn(AI_KEY_PAGES, String(provider)) ? shell.openExternal(url) : false;
+    const pages = { ...AI_KEY_PAGES, opendota: "https://www.opendota.com/api-keys" };
+    const url = pages[String(provider)];
+    return url && Object.hasOwn(pages, String(provider)) ? shell.openExternal(url) : false;
   });
 
   ipcMain.handle("overlay:get-config", () => overlay.publicConfig());

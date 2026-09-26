@@ -189,6 +189,26 @@
             </div>
           </div>
         </section>
+        <section class="card" id="data-card" aria-labelledby="data-card-heading">
+          <header class="card-head">
+            <i data-icon="history"></i>
+            <h2 id="data-card-heading" data-i18n="dataTitle">Match data</h2>
+          </header>
+          <div class="card-body settings">
+            <div class="setting setting-wrap">
+              <span class="setting-text">
+                <span class="setting-title" data-i18n="odTitle">OpenDota key (optional)</span>
+                <span class="setting-hint" id="od-hint"></span>
+              </span>
+              <div class="setting-controls" id="od-form">
+                <input id="od-key" class="input" type="password" autocomplete="off" spellcheck="false" data-i18n-placeholder="odPlaceholder" placeholder="API key" />
+                <button id="od-save" class="btn" type="button" data-i18n="odSave">Save</button>
+                <button id="od-get" class="btn btn-ghost btn-icon" type="button" data-i18n-title="odGet" title="Get a key"><i data-icon="external-link"></i></button>
+              </div>
+              <button id="od-clear" class="btn btn-ghost hidden" type="button"><i data-icon="trash-2"></i><span data-i18n="odClear">Remove key</span></button>
+            </div>
+          </div>
+        </section>
         <section class="card" id="app-card" aria-labelledby="app-card-heading">
           <header class="card-head">
             <i data-icon="settings"></i>

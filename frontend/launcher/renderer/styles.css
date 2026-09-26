@@ -395,6 +395,15 @@ label.setting {
   width: 32px;
 }
 
+.setting-wrap {
+  flex-wrap: wrap;
+}
+
+#od-form .input {
+  width: 220px;
+  height: 32px;
+}
+
 /* Controls ----------------------------------------------------------------- */
 
 .btn {

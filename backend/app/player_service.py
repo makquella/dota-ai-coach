@@ -29,6 +29,7 @@ import contextlib
 import heapq
 import itertools
 import json
+import re
 import threading
 import time
 from collections.abc import Callable
@@ -84,6 +85,9 @@ COACH_WAITS_FOR = {"waiting_opendota", "parsing"}
 COACH_MIN_CAREER_MATCHES = 3
 # "Overloaded" (HTTP 503 on every model) costs no quota: retry by itself later.
 COACH_BUSY_RETRY_SECONDS = (60, 120, 180)
+OPENDOTA_KEY_META = "opendota_api_key"
+# OpenDota keys are UUIDs; allow any similar token, never spaces or URL parts.
+OPENDOTA_KEY_RE = re.compile(r"[A-Za-z0-9-]{16,80}")
 
 
 class JobQueue:
@@ -210,6 +214,9 @@ class PlayerService:
         self.data_dir = Path(data_dir)
         self.client = client
         self.store = PlayerStore(self.data_dir / "coach.sqlite3")
+        # The key from .env (if any); a key entered in the launcher wins.
+        self._env_opendota_key = str(getattr(client, "api_key", "") or "")
+        self._apply_opendota_key()
         self.jobs = JobQueue(auto_start=auto_start)
         # Model calls take up to a couple of minutes: their own thread, so they
         # never hold back OpenDota syncs.
@@ -278,6 +285,9 @@ class PlayerService:
             "ai_jobs": self.ai_jobs.pending(),
             "coach_jobs": coach_jobs,
             "ai": {key: ai.get(key) for key in ("configured", "provider", "model", "source")},
+            "opendota_key": {
+                key: value for key, value in self.opendota_status().items() if key != "key_hint"
+            },
             "analysis_version": ANALYSIS_VERSION,
         }
 
@@ -300,6 +310,7 @@ class PlayerService:
             "last_review": self._last_review(),
             "pending_jobs": len(self.jobs.pending()),
             "ai": {"configured": self.ai_configured()},
+            "opendota_key": bool(self._opendota_key()[0]),
         }
 
     def link(self, value: Any) -> dict[str, Any]:
@@ -380,6 +391,44 @@ class PlayerService:
         ]
         result["coach"] = self._career_coach(primary, result, recent, lang, force=force_coach)
         return result
+
+    # --- OpenDota key --------------------------------------------------------------
+
+    def _opendota_key(self) -> tuple[str, str | None]:
+        stored = self.store.get_meta(OPENDOTA_KEY_META) or ""
+        if stored:
+            return stored, "app"
+        if self._env_opendota_key:
+            return self._env_opendota_key, "env"
+        return "", None
+
+    def _apply_opendota_key(self) -> None:
+        setter = getattr(self.client, "set_api_key", None)
+        if callable(setter):
+            setter(self._opendota_key()[0])
+
+    def opendota_status(self) -> dict[str, Any]:
+        """Never includes the key itself."""
+        key, source = self._opendota_key()
+        return {
+            "enabled": self.client is not None,
+            "configured": bool(key),
+            "source": source,
+            "key_hint": f"…{key[-4:]}" if len(key) >= 8 else "",
+        }
+
+    def set_opendota_key(self, api_key: str) -> dict[str, Any]:
+        key = str(api_key or "").strip()
+        if not OPENDOTA_KEY_RE.fullmatch(key):
+            raise ValueError("bad_opendota_key")
+        self.store.set_meta(OPENDOTA_KEY_META, key)
+        self._apply_opendota_key()
+        return self.opendota_status()
+
+    def clear_opendota_key(self) -> dict[str, Any]:
+        self.store.set_meta(OPENDOTA_KEY_META, None)
+        self._apply_opendota_key()
+        return self.opendota_status()
 
     # --- AI coach ----------------------------------------------------------------
 
