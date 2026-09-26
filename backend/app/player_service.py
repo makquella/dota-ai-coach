@@ -17,6 +17,10 @@ and the analyses:
 Network work runs on one background thread (JobQueue), never on the GSI path.
 Without internet (or with OPENDOTA_ENABLED=false) everything still works from
 the app's own GSI recordings.
+
+AI coach (optional, coach_review.py): with a Groq / OpenRouter key the rule
+based reviews get a coach's explanation on a second job thread; results are
+cached per match, language and facts, and rebuilt when the facts change.
 """
 
 from __future__ import annotations
@@ -24,6 +28,7 @@ from __future__ import annotations
 import contextlib
 import heapq
 import itertools
+import json
 import threading
 import time
 from collections.abc import Callable
@@ -33,10 +38,25 @@ from typing import Any
 
 from app.analysis_texts import render_analysis
 from app.career_analysis import analyze_career
+from app.coach_llm import PROVIDERS, AISettings, CoachLLM, CoachLLMError, settings_from
+from app.coach_review import (
+    career_facts,
+    facts_hash,
+    match_facts,
+    recent_match_line,
+    review_career,
+    review_match,
+)
 from app.dota_constants import REVIEWABLE_LOBBY_TYPES
 from app.match_facts import facts_from_opendota, facts_from_timeline, merge_facts
 from app.match_tracker import MatchTracker, account_from_gsi
-from app.opendota import OpenDotaClient, OpenDotaError, summary_from_match, trim_match
+from app.opendota import (
+    OpenDotaClient,
+    OpenDotaError,
+    my_player,
+    summary_from_match,
+    trim_match,
+)
 from app.player_store import PlayerStore
 from app.post_match_analysis import analyze_match
 from app.steam_ids import parse_account_id, steam64_from_account_id
@@ -47,15 +67,34 @@ REVIEW_RECENT_MATCHES = 12
 FIRST_FETCH_DELAY_SECONDS = 120
 PARSE_POLL_SECONDS = 90
 PARSE_POLL_ATTEMPTS = 12
+# OpenDota meta data cache (player_store cache table).
+ITEM_CONSTANTS_KEY = "opendota:items"
+POPULARITY_KEY = "opendota:item_popularity"
+TIMINGS_KEY = "opendota:item_timings"
+HERO_STATS_KEY = "opendota:hero_stats"
+META_TTL_SECONDS = 7 * 24 * 3600
+HERO_STATS_TTL_SECONDS = 24 * 3600
+# AI coach.
+AI_SETTINGS_KEY = "ai_settings"
+# The replay is still being parsed: wait for the full data before asking the model.
+COACH_WAITS_FOR = {"waiting_opendota", "parsing"}
+COACH_MIN_CAREER_MATCHES = 3
+# "Overloaded" (HTTP 503 on every model) costs no quota: retry by itself later.
+COACH_BUSY_RETRY_SECONDS = (60, 120, 180)
 
 
 class JobQueue:
     """Delayed, de-duplicated jobs on one daemon thread (or run by hand in tests)."""
 
     def __init__(
-        self, *, auto_start: bool = True, clock: Callable[[], float] = time.monotonic
+        self,
+        *,
+        auto_start: bool = True,
+        clock: Callable[[], float] = time.monotonic,
+        name: str = "player-jobs",
     ) -> None:
         self.auto_start = auto_start
+        self.name = name
         self._clock = clock
         self._heap: list[tuple[float, int, str]] = []
         self._jobs: dict[str, Callable[[], None]] = {}
@@ -100,7 +139,7 @@ class JobQueue:
     def _ensure_thread(self) -> None:
         if self._thread and self._thread.is_alive():
             return
-        self._thread = threading.Thread(target=self._loop, name="player-jobs", daemon=True)
+        self._thread = threading.Thread(target=self._loop, name=self.name, daemon=True)
         self._thread.start()
 
     def _loop(self) -> None:
@@ -130,8 +169,10 @@ class PlayerService:
         *,
         client: OpenDotaClient | None = None,
         auto_start: bool = True,
+        llm: Any = None,
+        env_ai: AISettings | None = None,
     ) -> None:
-        self.configure(data_dir, client=client, auto_start=auto_start)
+        self.configure(data_dir, client=client, auto_start=auto_start, llm=llm, env_ai=env_ai)
 
     def configure(
         self,
@@ -139,11 +180,18 @@ class PlayerService:
         *,
         client: OpenDotaClient | None = None,
         auto_start: bool = True,
+        llm: Any = None,
+        env_ai: AISettings | None = None,
     ) -> None:
-        """(Re)open the store in `data_dir`; used at startup and by tests."""
-        old_jobs = getattr(self, "jobs", None)
-        if old_jobs is not None:
-            old_jobs.stop()
+        """(Re)open the store in `data_dir`; used at startup and by tests.
+
+        `llm` replaces the configured AI client (tests); `env_ai` is the key
+        from .env used when the player has not entered one.
+        """
+        for name in ("jobs", "ai_jobs"):
+            old_jobs = getattr(self, name, None)
+            if old_jobs is not None:
+                old_jobs.stop()
         old_store = getattr(self, "store", None)
         if old_store is not None:
             old_store.close()
@@ -151,6 +199,13 @@ class PlayerService:
         self.client = client
         self.store = PlayerStore(self.data_dir / "coach.sqlite3")
         self.jobs = JobQueue(auto_start=auto_start)
+        # Model calls take up to a couple of minutes: their own thread, so they
+        # never hold back OpenDota syncs.
+        self.ai_jobs = JobQueue(auto_start=auto_start, name="coach-ai")
+        self.llm = llm
+        self.env_ai = env_ai
+        self._coach_lock = threading.Lock()
+        self._coach_jobs: dict[str, dict[str, Any]] = {}
         self.tracker = MatchTracker(
             self.data_dir / "live_match.json", on_finished=self._on_match_finished
         )
@@ -165,6 +220,7 @@ class PlayerService:
     def shutdown(self) -> None:
         self.tracker.flush()
         self.jobs.stop()
+        self.ai_jobs.stop()
 
     # --- GSI ------------------------------------------------------------------
 
@@ -207,6 +263,7 @@ class PlayerService:
             "live_match": self.tracker.current(),
             "last_review": self._last_review(),
             "pending_jobs": len(self.jobs.pending()),
+            "ai": {"configured": self.ai_configured()},
         }
 
     def link(self, value: Any) -> dict[str, Any]:
@@ -235,7 +292,9 @@ class PlayerService:
             "sync": dict(self._sync),
         }
 
-    def match_detail(self, match_id: int, lang: str) -> dict[str, Any] | None:
+    def match_detail(
+        self, match_id: int, lang: str, *, force_coach: bool = False
+    ) -> dict[str, Any] | None:
         primary = self.store.primary_account_id()
         if primary is None:
             return None
@@ -247,7 +306,7 @@ class PlayerService:
             analysis = self._rebuild_analysis(primary, match_id)
         if analysis is None and self.client is not None:
             self.fetch_match(match_id, request_parse=False)
-        return {
+        detail = {
             "match_id": match_id,
             "summary": {key: record.get(key) for key in _SUMMARY_KEYS},
             "sources": record.get("sources"),
@@ -256,16 +315,209 @@ class PlayerService:
             "scoreboard": _scoreboard(record.get("opendota")),
             "loading": analysis is None and self.client is not None,
         }
+        detail["coach"] = self._match_coach(primary, match_id, detail, lang, force=force_coach)
+        return detail
 
-    def career(self, lang: str) -> dict[str, Any]:
+    def career(self, lang: str, *, force_coach: bool = False) -> dict[str, Any]:
         primary = self.store.primary_account_id()
         if primary is None:
             return {"linked": False}
+        player = self.store.get_player(primary) or {}
+        matches = self.store.matches_for_career(primary, limit=RECENT_MATCHES_LIMIT)
         result = analyze_career(
-            self.store.matches_for_career(primary, limit=RECENT_MATCHES_LIMIT), lang
+            matches,
+            lang,
+            rank_tier=player.get("rank_tier"),
+            hero_stats=self.store.cache_get(HERO_STATS_KEY),
         )
         result["linked"] = True
+        recent = [
+            recent_match_line(render_analysis(m["analysis"], lang))
+            for m in matches
+            if m.get("analysis")
+        ]
+        result["coach"] = self._career_coach(primary, result, recent, lang, force=force_coach)
         return result
+
+    # --- AI coach ----------------------------------------------------------------
+
+    def ai_settings(self) -> AISettings | None:
+        raw = self.store.get_meta(AI_SETTINGS_KEY)
+        stored = None
+        if raw:
+            with contextlib.suppress(ValueError):
+                stored = settings_from(json.loads(raw), source="app")
+        return stored or self.env_ai
+
+    def ai_status(self) -> dict[str, Any]:
+        settings = self.ai_settings()
+        base = settings.public() if settings else {"configured": self.llm is not None}
+        return {
+            **base,
+            "providers": [
+                {"id": key, "label": value["label"], "model": value["model"]}
+                for key, value in PROVIDERS.items()
+            ],
+        }
+
+    def set_ai(self, provider: str, api_key: str, model: str | None = None) -> dict[str, Any]:
+        settings = settings_from(
+            {"provider": provider, "api_key": api_key, "model": model}, source="app"
+        )
+        if settings is None:
+            raise ValueError("bad_ai_settings")
+        self.store.set_meta(
+            AI_SETTINGS_KEY,
+            json.dumps(
+                {"provider": settings.provider, "api_key": settings.api_key, "model": model}
+            ),
+        )
+        with self._coach_lock:
+            # A new key may fix earlier errors (bad key, rate limit).
+            self._coach_jobs = {k: v for k, v in self._coach_jobs.items() if v["state"] != "error"}
+        return self.ai_status()
+
+    def clear_ai(self) -> dict[str, Any]:
+        self.store.set_meta(AI_SETTINGS_KEY, None)
+        return self.ai_status()
+
+    def check_ai(self) -> dict[str, Any]:
+        """One small request with the current settings (runs in the request thread)."""
+        client = self._coach_client(check=True)
+        if client is None:
+            return {"ok": False, "code": "no_key"}
+        try:
+            client.check()
+        except CoachLLMError as error:
+            return {"ok": False, "code": error.code}
+        return {"ok": True}
+
+    def ai_configured(self) -> bool:
+        return self.llm is not None or self.ai_settings() is not None
+
+    def _coach_client(self, *, check: bool = False) -> Any:
+        if self.llm is not None:
+            return self.llm
+        settings = self.ai_settings()
+        if settings is None:
+            return None
+        return CoachLLM(settings, timeout=30.0) if check else CoachLLM(settings)
+
+    def _known_items(self) -> list[str]:
+        constants = self.store.cache_get(ITEM_CONSTANTS_KEY) or {}
+        return [str(info.get("name")) for info in (constants.get("items") or {}).values()]
+
+    def _match_coach(
+        self,
+        account_id: int,
+        match_id: int,
+        detail: dict[str, Any],
+        lang: str,
+        *,
+        force: bool = False,
+    ) -> dict[str, Any]:
+        facts = match_facts(detail)
+        if facts is None:
+            return {"state": "none"}
+        waiting = detail.get("parse_status") in COACH_WAITS_FOR
+        return self._coach_state(
+            f"coach:match:{account_id}:{match_id}:{lang}",
+            facts,
+            lang,
+            kind="match",
+            force=force,
+            hold="waiting" if waiting and not force else None,
+        )
+
+    def _career_coach(
+        self,
+        account_id: int,
+        career: dict[str, Any],
+        recent: list[dict[str, Any]],
+        lang: str,
+        *,
+        force: bool = False,
+    ) -> dict[str, Any]:
+        facts = career_facts(career, recent)
+        if facts is None or len(recent) < COACH_MIN_CAREER_MATCHES:
+            return {"state": "not_enough", "need": COACH_MIN_CAREER_MATCHES}
+        return self._coach_state(
+            f"coach:career:{account_id}:{lang}", facts, lang, kind="career", force=force
+        )
+
+    def _coach_state(
+        self,
+        key: str,
+        facts: dict[str, Any],
+        lang: str,
+        *,
+        kind: str,
+        force: bool,
+        hold: str | None = None,
+    ) -> dict[str, Any]:
+        """Cached review, or queue a new one: off / waiting / pending / ready / error."""
+        digest = facts_hash(facts, lang)
+        cached = self.store.cache_get(key)
+        shown = _coach_public(cached, stale=bool(cached) and cached.get("hash") != digest)
+        if not self.ai_configured():
+            return {"state": "off", **shown}
+        if cached and cached.get("hash") == digest and not force:
+            return {"state": "ready", **shown}
+        with self._coach_lock:
+            job = self._coach_jobs.get(key)
+            if job and job["hash"] == digest:
+                if job["state"] == "pending":
+                    return {"state": "pending", **shown}
+                if job["state"] == "error" and not force:
+                    return {"state": "error", "error": job["error"], **shown}
+            if hold:
+                return {"state": "ready" if cached else hold, **shown}
+            self._coach_jobs[key] = {"state": "pending", "hash": digest}
+        self.ai_jobs.submit(
+            f"{key}:{digest}", lambda: self._job_coach(key, facts, digest, lang, kind)
+        )
+        return {"state": "pending", **shown}
+
+    def _job_coach(
+        self, key: str, facts: dict[str, Any], digest: str, lang: str, kind: str, attempt: int = 0
+    ) -> None:
+        client = self._coach_client()
+        if client is None:
+            with self._coach_lock:
+                self._coach_jobs.pop(key, None)
+            return
+        generate = review_match if kind == "match" else review_career
+        try:
+            result = generate(client, facts, lang, known_items=self._known_items())
+        except CoachLLMError as error:
+            if error.code == "busy" and attempt < len(COACH_BUSY_RETRY_SECONDS):
+                # Stays "pending" for the UI; the next try goes on the same AI thread.
+                self.ai_jobs.submit(
+                    f"{key}:{digest}:retry{attempt + 1}",
+                    lambda: self._job_coach(key, facts, digest, lang, kind, attempt + 1),
+                    delay=COACH_BUSY_RETRY_SECONDS[attempt],
+                )
+                return
+            with self._coach_lock:
+                self._coach_jobs[key] = {"state": "error", "hash": digest, "error": error.code}
+            return
+        except Exception:  # noqa: BLE001 - a bad answer must not kill the worker
+            with self._coach_lock:
+                self._coach_jobs[key] = {"state": "error", "hash": digest, "error": "bad_response"}
+            return
+        label = getattr(client, "label", {}) or {}
+        self.store.cache_set(
+            key,
+            {
+                "hash": digest,
+                "review": result["review"],
+                "provider": label.get("provider"),
+                "model": label.get("model"),
+                "generated_at": _now_iso(),
+            },
+        )
+        with self._coach_lock:
+            self._coach_jobs.pop(key, None)
 
     # --- jobs -------------------------------------------------------------------
 
@@ -295,6 +547,7 @@ class PlayerService:
             return
         self._sync = {**self._sync, "state": "running", "error": None, "error_code": None}
         try:
+            self._ensure_hero_stats()
             try:
                 profile = client.player(account_id)
                 self.store.upsert_player(
@@ -392,6 +645,8 @@ class PlayerService:
             opendota=trimmed,
             parse_status=status,
         )
+        me = my_player(trimmed) or {}
+        self._ensure_hero_meta(me.get("hero_id"))
         self._rebuild_analysis(account_id, match_id)
         if status == "parsing":
             self._retry(account_id, match_id, request_parse, attempt)
@@ -455,7 +710,9 @@ class PlayerService:
         facts = merge_facts(od, gsi)
         if facts is None:
             return None
-        analysis = analyze_match(facts)
+        analysis = analyze_match(
+            facts, meta=self._hero_meta(facts.get("hero_id")), opendota=record.get("opendota")
+        )
         lh_t = facts.get("lh_t") or []
         self.store.upsert_match(
             account_id,
@@ -468,6 +725,41 @@ class PlayerService:
             analysis=analysis,
         )
         return analysis
+
+    # --- OpenDota meta data (cached; fetched on the job thread only) -----------
+
+    def _hero_meta(self, hero_id: Any) -> dict[str, Any] | None:
+        """Cached build data for a hero (stale is fine: reviews must work offline)."""
+        constants = self.store.cache_get(ITEM_CONSTANTS_KEY)
+        if not constants or not hero_id:
+            return None
+        return {
+            "constants": constants,
+            "popularity": self.store.cache_get(f"{POPULARITY_KEY}:{int(hero_id)}"),
+            "timings": self.store.cache_get(f"{TIMINGS_KEY}:{int(hero_id)}"),
+        }
+
+    def _refresh(self, key: str, ttl: float, fetch: Callable[[], Any]) -> None:
+        if self.client is None or self.store.cache_get(key, max_age=ttl) is not None:
+            return
+        with contextlib.suppress(OpenDotaError):
+            self.store.cache_set(key, fetch())
+
+    def _ensure_hero_meta(self, hero_id: Any) -> None:
+        client = self.client
+        if client is None or not hero_id:
+            return
+        hero = int(hero_id)
+        self._refresh(ITEM_CONSTANTS_KEY, META_TTL_SECONDS, client.item_constants)
+        self._refresh(
+            f"{POPULARITY_KEY}:{hero}", META_TTL_SECONDS, lambda: client.item_popularity(hero)
+        )
+        self._refresh(f"{TIMINGS_KEY}:{hero}", META_TTL_SECONDS, lambda: client.item_timings(hero))
+
+    def _ensure_hero_stats(self) -> None:
+        client = self.client
+        if client is not None:
+            self._refresh(HERO_STATS_KEY, HERO_STATS_TTL_SECONDS, client.hero_stats)
 
     def rebuild_all(self) -> int:
         """Re-run analyses (after the rules changed)."""
@@ -526,6 +818,19 @@ def _public_player(player: dict[str, Any] | None, account_id: int | None) -> dic
         "persona_name": player.get("persona_name"),
         "avatar_url": player.get("avatar_url"),
         "rank_tier": player.get("rank_tier"),
+    }
+
+
+def _coach_public(cached: dict[str, Any] | None, *, stale: bool) -> dict[str, Any]:
+    if not cached or not cached.get("review"):
+        return {}
+    provider = cached.get("provider")
+    return {
+        "review": cached["review"],
+        "provider_label": PROVIDERS[provider]["label"] if provider in PROVIDERS else provider,
+        "model": cached.get("model"),
+        "generated_at": cached.get("generated_at"),
+        "stale": stale,
     }
 
 

@@ -14,7 +14,9 @@ from collections import Counter, defaultdict
 from statistics import mean
 from typing import Any
 
-from app.analysis_texts import FINDINGS, render_finding
+from app.analysis_texts import FINDINGS, PEER_ROLES, rank_label, render_finding
+from app.hero_meta import bracket_winrate, rank_bracket
+from app.peer_analysis import career_peers
 
 TREND_WINDOW = 10
 RECURRING_MIN_SHARE = 0.25
@@ -42,11 +44,23 @@ def _kda(match: dict[str, Any]) -> float | None:
     )
 
 
-def analyze_career(matches: list[dict[str, Any]], lang: str = "en") -> dict[str, Any]:
+def analyze_career(
+    matches: list[dict[str, Any]],
+    lang: str = "en",
+    *,
+    rank_tier: Any = None,
+    hero_stats: list[dict[str, Any]] | None = None,
+) -> dict[str, Any]:
+    """`rank_tier` of the player (OpenDota profile) and cached /heroStats are optional."""
     lang = "ru" if lang == "ru" else "en"
     decided = [m for m in matches if m.get("win") is not None]
     wins = sum(1 for m in decided if m["win"])
     analyzed = [m for m in matches if m.get("analysis")]
+    rank = career_peers([m["analysis"] for m in analyzed], rank_tier)
+    if rank:
+        rank["rank_label"] = rank_label(rank.get("rank_tier"), lang)
+        rank["role_label"] = PEER_ROLES.get(rank["role"], {}).get(lang)
+    bracket = rank["bracket"] if rank else rank_bracket(rank_tier)
     return {
         "matches": len(matches),
         "analyzed": len(analyzed),
@@ -56,7 +70,9 @@ def analyze_career(matches: list[dict[str, Any]], lang: str = "en") -> dict[str,
         "streak": _streak(decided),
         "averages": _averages(matches),
         "trend": _trend(matches),
-        "heroes": _heroes(matches),
+        "heroes": _heroes(matches, hero_stats, bracket),
+        "rank": rank,
+        "rank_bracket_label": rank_label(bracket * 10 if bracket else None, lang),
         "recurring": _recurring(analyzed, "improve", lang),
         "recurring_strengths": _recurring(analyzed, "strength", lang)[:3],
         "focus_plan": [item for item in _recurring(analyzed, "improve", lang) if item.get("drill")][
@@ -115,7 +131,11 @@ def _trend(matches: list[dict[str, Any]]) -> dict[str, Any]:
     return result
 
 
-def _heroes(matches: list[dict[str, Any]]) -> list[dict[str, Any]]:
+def _heroes(
+    matches: list[dict[str, Any]],
+    hero_stats: list[dict[str, Any]] | None = None,
+    bracket: int | None = None,
+) -> list[dict[str, Any]]:
     groups: dict[str, list[dict[str, Any]]] = defaultdict(list)
     for match in matches:
         if match.get("hero"):
@@ -134,6 +154,10 @@ def _heroes(matches: list[dict[str, Any]]) -> list[dict[str, Any]]:
                 "kda": _avg([_kda(g) for g in games]),
                 "gpm": _avg([g.get("gpm") for g in games]),
                 "score": _avg([_score(g) for g in games]),
+                # The hero's win rate among all players of the same rank bracket.
+                "bracket_winrate": (
+                    bracket_winrate(hero_stats, games[0].get("hero_id"), bracket) or {}
+                ).get("winrate"),
             }
         )
     return sorted(rows, key=lambda r: (-int(r["matches"]), -int(r["winrate"] or 0)))[:12]

@@ -36,6 +36,8 @@ Key files:
 - `backend/app/player_api.py`, `player_service.py`, `player_store.py`, `steam_ids.py` - linked Steam account (auto from GSI), SQLite match table, background OpenDota sync.
 - `backend/app/match_tracker.py` - whole-match timeline of the local player from live GSI (samples, deaths with unspent gold, items, buybacks).
 - `backend/app/opendota.py`, `match_facts.py`, `post_match_analysis.py`, `analysis_texts.py`, `career_analysis.py` - OpenDota client, merged match facts, post-match review (ru/en), statistics and advice over many matches.
+- `backend/app/hero_meta.py`, `build_analysis.py`, `peer_analysis.py` - cached OpenDota meta (items, item timings, pro builds, win rate per rank), build advice, comparison with same-role players of the player's rank.
+- `backend/app/coach_llm.py`, `coach_review.py` - optional AI coach: explains a match or the recent matches in plain words (Google Gemini Flash by default, or Groq / OpenRouter, all on free tiers), with every number, time, hero and item checked against the rule-based facts. `backend/scripts/compare_coach_models.py` compares models on the same match.
 - `backend/app/advice_i18n.py` - Russian wording of the visible advice text, applied only at the API edge (`lang=ru` on `/overlay/recommendation` and `/advice/recent`); the pipeline, logs and history stay English.
 
 ## Frontend
@@ -64,7 +66,9 @@ OpenDota (history, parsed replays) ─> opendota ─────┘             
                                                          career_analysis <─────────────────────┴─> /player/career
 ```
 
-The Steam account is taken from GSI (`player.steamid`) the first time the app sees a match, or linked by hand. After a live match the review is available immediately from the app's own recording; when OpenDota has parsed the replay (requested automatically) the review is rebuilt with per-minute data, benchmarks and kill logs. All network work runs on one background thread and never touches the live advice path.
+The Steam account is taken from GSI (`player.steamid`) the first time the app sees a match, or linked by hand. After a live match the review is available immediately from the app's own recording; when OpenDota has parsed the replay (requested automatically) the review is rebuilt with per-minute data, benchmarks and kill logs.
+
+Build advice compares the player's item timings with the hero's win rate per purchase time in public matches (target: the typical timing, not the luckiest early one) and with the pro build. Rank comparison uses the same-role players of the player's own matches, since matchmaking puts players of similar rank together; over many matches it becomes "you vs players of your rank", and hero win rates are shown for the player's rank bracket. The meta data is cached in SQLite, so all of this also works offline once it has been fetched. All network work runs on one background thread and never touches the live advice path.
 
 ## Replay And Simulation
 
@@ -81,6 +85,8 @@ Replay-derived states are called **GSI-like replay states**. They are useful for
 ## LLM Role
 
 LLM support is optional. It can improve wording during offline evaluation or controlled demos, but it does not own live safety decisions.
+
+After the match, where latency does not matter, the optional AI coach turns the rule-based review into a coach's explanation (what decided the game, turning points, main mistakes with fixes, goals for the next game; the same over the recent matches on the Progress tab). The model only receives facts the rules computed and its answer is checked against them before it is shown; without a key, or on any error, the rule-based review is shown as before.
 
 The backend keeps local authority over:
 

@@ -242,7 +242,7 @@
     }
     const width = Math.max(280, host.clientWidth || 560);
     const height = options.height || 180;
-    const pad = { top: 16, right: 12, bottom: 26, left: 32 };
+    const pad = { top: options.valueLabels ? 20 : 16, right: 12, bottom: options.xLabels ? 20 : 26, left: 32 };
     const innerW = width - pad.left - pad.right;
     const innerH = height - pad.top - pad.bottom;
     const yMax = options.yMax || niceMax(Math.max(...items.map((i) => i.value || 0)));
@@ -267,17 +267,26 @@
       if (item.value !== null && item.value !== undefined) {
         const left = cx - barW / 2;
         const d = `M${left},${y(0)} L${left},${top + r} Q${left},${top} ${left + r},${top} L${left + barW - r},${top} Q${left + barW},${top} ${left + barW},${top + r} L${left + barW},${y(0)} Z`;
-        el("path", { d, fill: options.color, class: "chart-bar" }, group);
+        // A muted column is context; the highlighted ones carry the series colour.
+        el("path", { d, fill: item.muted ? options.mutedColor || "var(--viz-muted)" : options.color, class: "chart-bar" }, group);
+        if (options.valueLabels) {
+          const value = el("text", { x: cx, y: top - 6, class: item.muted ? "chart-value" : "chart-value is-strong", "text-anchor": "middle" }, group);
+          value.textContent = `${formatNumber(item.value)}${options.valueSuffix || ""}`;
+        }
       }
       // Hit target: the whole band, taller than the bar.
       el("rect", { x: cx - band / 2, y: pad.top, width: band, height: innerH, fill: "transparent" }, group);
       if (item.key) {
         el("circle", { cx, cy: height - 12, r: 3, class: `chart-flag chart-flag-${item.key}` }, group);
       }
+      if (options.xLabels && item.label) {
+        const tick = el("text", { x: cx, y: height - 6, class: "chart-tick", "text-anchor": "middle" }, group);
+        tick.textContent = item.label;
+      }
       const show = () => {
         const box = svg.getBoundingClientRect();
         showTip(host, tip, (cx / width) * box.width, (top / height) * box.height, item.title || item.label, [
-          { label: options.valueLabel || "", value: item.value === null || item.value === undefined ? "—" : formatNumber(item.value), color: options.color, kind: "bar" },
+          { label: options.valueLabel || "", value: item.value === null || item.value === undefined ? "—" : `${formatNumber(item.value)}${options.valueSuffix || ""}`, color: options.color, kind: "bar" },
           ...(item.detail ? [{ label: item.detail, value: "", kind: "none" }] : [])
         ]);
         group.classList.add("is-active");

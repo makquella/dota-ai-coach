@@ -182,6 +182,82 @@ class OpenDotaClient:
     def request_parse(self, match_id: int) -> None:
         self._request("POST", f"/request/{int(match_id)}")
 
+    # --- meta data for build advice and rank comparison (cached by the caller) --
+
+    def item_constants(self) -> dict[str, Any]:
+        """/constants/items -> {"by_id": {id: key}, "items": {key: {name, cost, assembled}}}."""
+        data = self._get("/constants/items")
+        if not isinstance(data, dict):
+            raise OpenDotaError("bad_response", "Unexpected OpenDota response for items.")
+        by_id: dict[str, str] = {}
+        items: dict[str, dict[str, Any]] = {}
+        for key, item in data.items():
+            if not isinstance(item, dict):
+                continue
+            if item.get("id") is not None:
+                by_id[str(item["id"])] = key
+            items[key] = {
+                "name": item.get("dname") or key,
+                "cost": item.get("cost") or 0,
+                "assembled": bool(item.get("components")),
+            }
+        return {"by_id": by_id, "items": items}
+
+    def item_popularity(self, hero_id: int) -> dict[str, dict[str, int]]:
+        """/heroes/{id}/itemPopularity (professional matches): {phase: {item_id: count}}."""
+        data = self._get(f"/heroes/{int(hero_id)}/itemPopularity")
+        if not isinstance(data, dict):
+            raise OpenDotaError("bad_response", "Unexpected OpenDota response for item popularity.")
+        return {
+            phase: {str(k): int(v) for k, v in (data.get(phase) or {}).items()}
+            for phase in (
+                "start_game_items",
+                "early_game_items",
+                "mid_game_items",
+                "late_game_items",
+            )
+        }
+
+    def item_timings(self, hero_id: int) -> list[dict[str, Any]]:
+        """/scenarios/itemTimings (public matches): games/wins per item and time bucket."""
+        data = self._get("/scenarios/itemTimings", params=[("hero_id", int(hero_id))])
+        if not isinstance(data, list):
+            raise OpenDotaError("bad_response", "Unexpected OpenDota response for item timings.")
+        rows = []
+        for row in data:
+            try:
+                rows.append(
+                    {
+                        "item": str(row["item"]),
+                        "time": int(row["time"]),
+                        "games": int(row["games"]),
+                        "wins": int(row["wins"]),
+                    }
+                )
+            except (KeyError, TypeError, ValueError):
+                continue
+        return rows
+
+    def hero_stats(self) -> list[dict[str, Any]]:
+        """/heroStats: picks and wins per rank bracket 1 (Herald) .. 8 (Immortal)."""
+        data = self._get("/heroStats")
+        if not isinstance(data, list):
+            raise OpenDotaError("bad_response", "Unexpected OpenDota response for hero stats.")
+        rows = []
+        for hero in data:
+            if not isinstance(hero, dict) or hero.get("id") is None:
+                continue
+            rows.append(
+                {
+                    "hero_id": int(hero["id"]),
+                    "brackets": {
+                        str(b): [int(hero.get(f"{b}_pick") or 0), int(hero.get(f"{b}_win") or 0)]
+                        for b in range(1, 9)
+                    },
+                }
+            )
+        return rows
+
     # --- transport ------------------------------------------------------------
 
     def _get(self, path: str, params: list[tuple[str, Any]] | None = None) -> Any:
@@ -265,6 +341,11 @@ def trim_match(match: dict[str, Any], account_id: int) -> dict[str, Any]:
         entry["isRadiant"] = bool(
             player.get("isRadiant", is_radiant_slot(player.get("player_slot")))
         )
+        # Laning numbers for everyone (rank comparison); full series only for "me".
+        for key, series_key in (("lh_10", "lh_t"), ("dn_10", "dn_t"), ("gold_10", "gold_t")):
+            series = player.get(series_key)
+            if isinstance(series, list) and len(series) > 10:
+                entry[key] = series[10]
         if player is me:
             entry["me"] = True
             for key in _TIMELINE_FIELDS:

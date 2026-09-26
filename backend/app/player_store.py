@@ -18,6 +18,7 @@ from __future__ import annotations
 import json
 import sqlite3
 import threading
+import time
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
@@ -97,6 +98,11 @@ CREATE TABLE IF NOT EXISTS matches (
     PRIMARY KEY (account_id, match_id)
 );
 CREATE INDEX IF NOT EXISTS matches_by_time ON matches (account_id, start_time DESC);
+CREATE TABLE IF NOT EXISTS cache (
+    key TEXT PRIMARY KEY,
+    value TEXT,
+    fetched_at REAL
+);
 """
 
 
@@ -166,6 +172,30 @@ class PlayerStore:
     def set_meta(self, key: str, value: str | None) -> None:
         with self._lock:
             self._set_meta(key, value)
+            self._conn.commit()
+
+    # --- cache (OpenDota meta data: items, hero builds, bracket win rates) -----
+
+    def cache_get(self, key: str, *, max_age: float | None = None) -> Any:
+        """Cached JSON value, or None when missing or older than max_age seconds."""
+        with self._lock:
+            row = self._conn.execute(
+                "SELECT value, fetched_at FROM cache WHERE key = ?", (key,)
+            ).fetchone()
+        if row is None:
+            return None
+        if max_age is not None and time.time() - float(row["fetched_at"] or 0) > max_age:
+            return None
+        return json.loads(row["value"])
+
+    def cache_set(self, key: str, value: Any) -> None:
+        with self._lock:
+            self._conn.execute(
+                "INSERT INTO cache (key, value, fetched_at) VALUES (?, ?, ?) "
+                "ON CONFLICT(key) DO UPDATE SET value = excluded.value, "
+                "fetched_at = excluded.fetched_at",
+                (key, json.dumps(value, ensure_ascii=False), time.time()),
+            )
             self._conn.commit()
 
     # --- players ------------------------------------------------------------

@@ -922,7 +922,7 @@ function isBackendReady() {
   });
 }
 
-function requestBackendJson(endpointPath, method = "GET", body = undefined) {
+function requestBackendJson(endpointPath, method = "GET", body = undefined, timeoutMs = 2500) {
   return new Promise((resolve, reject) => {
     if (processStatus.backend !== "running") {
       reject(new Error("Backend is not running."));
@@ -933,7 +933,7 @@ function requestBackendJson(endpointPath, method = "GET", body = undefined) {
       url,
       {
         method,
-        timeout: 2500,
+        timeout: timeoutMs,
         headers: { "Content-Type": "application/json" }
       },
       (response) => {
@@ -987,8 +987,40 @@ const PLAYER_OPS = {
   ],
   match: (args) => ["GET", `/player/matches/${matchIdArg(args)}?lang=${uiLocale()}`],
   refreshMatch: (args) => ["POST", `/player/matches/${matchIdArg(args)}/refresh`],
-  career: () => ["GET", `/player/career?lang=${uiLocale()}`]
+  career: () => ["GET", `/player/career?lang=${uiLocale()}`],
+  // AI coach (optional; the key is kept by the backend and never sent back).
+  coachMatch: (args) => ["POST", `/player/matches/${matchIdArg(args)}/coach?lang=${uiLocale()}`],
+  coachCareer: () => ["POST", `/player/career/coach?lang=${uiLocale()}`],
+  aiStatus: () => ["GET", "/player/ai"],
+  aiSave: (args) => [
+    "POST",
+    "/player/ai",
+    {
+      provider: aiProviderArg(args),
+      api_key: String(args.apiKey || "").trim().slice(0, 300),
+      // Optional model id (e.g. stealth/space-bunny-alpha); empty = the service default.
+      model: /^[\w./:-]{1,100}$/.test(String(args.model || "")) ? String(args.model) : null
+    }
+  ],
+  aiClear: () => ["DELETE", "/player/ai"],
+  // One real request to the provider: allow it time.
+  aiCheck: () => ["POST", "/player/ai/check", undefined, 45000]
 };
+
+// Where a player gets a free key (opened in the browser).
+const AI_KEY_PAGES = {
+  gemini: "https://aistudio.google.com/apikey",
+  groq: "https://console.groq.com/keys",
+  openrouter: "https://openrouter.ai/settings/keys"
+};
+
+function aiProviderArg(args) {
+  const provider = String(args.provider || "");
+  if (!Object.hasOwn(AI_KEY_PAGES, provider)) {
+    throw new Error("Unknown AI provider.");
+  }
+  return provider;
+}
 
 function clampInt(value, min, max, fallback) {
   const number = Number.parseInt(value, 10);
@@ -1009,8 +1041,8 @@ async function playerRequest(op, args = {}) {
     return { ok: false, code: "unknown_op" };
   }
   try {
-    const [method, endpoint, body] = build(args || {});
-    return { ok: true, data: await requestBackendJson(endpoint, method, body) };
+    const [method, endpoint, body, timeoutMs] = build(args || {});
+    return { ok: true, data: await requestBackendJson(endpoint, method, body, timeoutMs) };
   } catch (error) {
     const payload = error.payload || {};
     return {
@@ -1648,6 +1680,10 @@ function registerIpc() {
   ipcMain.handle("launcher:open-simulation-results", () => openPath(SIMULATION_RESULTS_DIR));
   ipcMain.handle("launcher:open-session-records", () => openPath(SESSION_RECORDS_DIR));
   ipcMain.handle("launcher:open-readme", () => shell.openPath(README_PATH));
+  ipcMain.handle("launcher:open-ai-key-page", (_event, provider) => {
+    const url = AI_KEY_PAGES[String(provider)];
+    return url && Object.hasOwn(AI_KEY_PAGES, String(provider)) ? shell.openExternal(url) : false;
+  });
 
   ipcMain.handle("overlay:get-config", () => overlay.publicConfig());
   ipcMain.handle("overlay:fetch-recommendation", () => fetchOverlayRecommendation());

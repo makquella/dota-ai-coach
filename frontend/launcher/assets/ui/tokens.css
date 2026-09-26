@@ -38,6 +38,7 @@
   --viz-2: #d95926;
   --viz-grid: #232327;
   --viz-axis: #36363c;
+  --viz-muted: #3a3a42;
 
   /* Type: sizes 12/13/14/16/20/28, weights 400/500/600 */
   --font: "Inter", "Segoe UI", system-ui, -apple-system, sans-serif;

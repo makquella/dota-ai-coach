@@ -329,6 +329,131 @@ FINDINGS: dict[str, dict[str, dict[str, str]]] = {
     },
 }
 
+FINDINGS.update(
+    {
+        "build_timing_late": {
+            "ru": {
+                "title": "Поздний {item}",
+                "text": "{item} к {t_text}: с таким таймингом {hero} выигрывает {winrate}% игр. Обычно этот предмет покупают к {typical_t_text}, и тогда побед {typical_winrate}% (публичные матчи OpenDota).",
+                "drill": "Следующий матч на {hero}: цель — {item} к {typical_t_text}. Не отвлекайтесь на лишние предметы до него и фармите между драками.",
+            },
+            "en": {
+                "title": "Late {item}",
+                "text": "{item} at {t_text}: with that timing {hero} wins {winrate}% of games. It is usually bought by {typical_t_text}, which wins {typical_winrate}% (OpenDota public matches).",
+                "drill": "Next {hero} game: aim for {item} by {typical_t_text}. Skip extras before it and farm between fights.",
+            },
+        },
+        "build_timing_good": {
+            "ru": {
+                "title": "Хороший тайминг: {item}",
+                "text": "{item} к {t_text} — с таким таймингом {hero} выигрывает {winrate}% игр (в среднем {average}%).",
+            },
+            "en": {
+                "title": "Good timing: {item}",
+                "text": "{item} at {t_text} — with that timing {hero} wins {winrate}% of games (average {average}%).",
+            },
+        },
+        "build_off_meta": {
+            "ru": {
+                "title": "Нестандартная сборка",
+                "text": "Ни одного из самых частых предметов на {hero} ({popular}). Ваши предметы: {mine}.",
+                "drill": "Попробуйте стандартную сборку на {hero}: {popular}. Отступайте от неё, только когда понимаете, против чего собираете.",
+            },
+            "en": {
+                "title": "Unusual build",
+                "text": "None of the most common {hero} items ({popular}). Your items: {mine}.",
+                "drill": "Try the standard {hero} build: {popular}. Deviate only when you know what you are building against.",
+            },
+        },
+        "build_on_meta": {
+            "ru": {
+                "title": "Проверенная сборка",
+                "text": "Собрали ключевые предметы {hero}: {items}.",
+            },
+            "en": {"title": "Proven build", "text": "You built the key {hero} items: {items}."},
+        },
+        "peer_gpm_behind": {
+            "ru": {
+                "title": "Фарм ниже, чем у соперника",
+                "text": "{gpm} золота в минуту против {peer_gpm} у {role_label} в этом матче ({heroes}). Игра подбирает соперников вашего уровня, значит такой фарм вам по силам.",
+                "drill": "Сравните маршруты: пока нет драки, у кора всегда должна быть волна или лагерь. Смотрите, где фармит {heroes}, и не отдавайте ему свободные волны.",
+            },
+            "en": {
+                "title": "Farming less than your opponent",
+                "text": "{gpm} gold per minute vs {peer_gpm} for the {role_label} of this match ({heroes}). Matchmaking pairs you with players of your level, so that farm is within reach.",
+                "drill": "Compare routes: without a fight a core always has a wave or a camp. Watch where {heroes} farms and don't leave free waves to them.",
+            },
+        },
+        "peer_gpm_ahead": {
+            "ru": {
+                "title": "Перефармили соперника",
+                "text": "{gpm} золота в минуту против {peer_gpm} у {role_label} в этом матче ({heroes}).",
+            },
+            "en": {
+                "title": "Outfarmed your opponent",
+                "text": "{gpm} gold per minute vs {peer_gpm} for the {role_label} of this match ({heroes}).",
+            },
+        },
+        "peer_lh10_behind": {
+            "ru": {
+                "title": "Проиграли линию по добиваниям",
+                "text": "{lh10} добиваний к 10:00 против {peer_lh10} у {role_label} в этом матче ({heroes}).",
+                "drill": "На линии следите за HP крипов и бейте, когда хватит одного удара; держите соперника под давлением, когда он добивает.",
+            },
+            "en": {
+                "title": "Lost the last-hit race",
+                "text": "{lh10} last hits by 10:00 vs {peer_lh10} for the {role_label} of this match ({heroes}).",
+                "drill": "Watch creep HP and hit when one attack is enough; pressure your opponent when they go for last hits.",
+            },
+        },
+        "peer_deaths_more": {
+            "ru": {
+                "title": "Умирали чаще соперника",
+                "text": "{deaths} {deaths_word} против {peer_deaths} у {role_label} в этом матче ({heroes}).",
+                "drill": "Перед каждым рискованным выходом проверьте миникарту: сколько врагов не видно? Если трое и больше — фармите безопаснее.",
+            },
+            "en": {
+                "title": "Died more than your opponent",
+                "text": "{deaths} deaths vs {peer_deaths} for the {role_label} of this match ({heroes}).",
+                "drill": "Before every risky move check the minimap: how many enemies are missing? Three or more — farm safer.",
+            },
+        },
+    }
+)
+
+PEER_ROLES = {
+    "carry": {"ru": "керри", "en": "carry"},
+    "mid": {"ru": "мидера", "en": "mid"},
+    "offlane": {"ru": "хардлейнера", "en": "offlaner"},
+    "support": {"ru": "саппорта", "en": "support"},
+}
+
+RANK_MEDALS = {
+    1: {"ru": "Рекрут", "en": "Herald"},
+    2: {"ru": "Страж", "en": "Guardian"},
+    3: {"ru": "Рыцарь", "en": "Crusader"},
+    4: {"ru": "Герой", "en": "Archon"},
+    5: {"ru": "Легенда", "en": "Legend"},
+    6: {"ru": "Властелин", "en": "Ancient"},
+    7: {"ru": "Божество", "en": "Divine"},
+    8: {"ru": "Титан", "en": "Immortal"},
+}
+
+
+def rank_label(rank_tier: Any, lang: str) -> str | None:
+    """rank_tier 54 -> "Легенда 4" / "Legend 4"; 80 -> "Титан"."""
+    try:
+        tier = int(rank_tier)
+    except (TypeError, ValueError):
+        return None
+    medal = RANK_MEDALS.get(tier // 10)
+    if not medal:
+        return None
+    stars = tier % 10
+    name = medal["ru" if lang == "ru" else "en"]
+    return f"{name} {stars}" if 1 <= stars <= 5 and tier // 10 < 8 else name
+
+
 SECTIONS = {
     "laning": {"ru": "Линия", "en": "Laning"},
     "farm": {"ru": "Фарм", "en": "Farm"},
@@ -359,7 +484,9 @@ def _prepared_params(finding: dict[str, Any], lang: str) -> dict[str, Any]:
     params["from_"] = params.get("from")
     if "times" in params:
         params["times"] = _times(params["times"])
-    for key in ("t", "from", "to"):
+    if params.get("role") in PEER_ROLES:
+        params["role_label"] = PEER_ROLES[params["role"]]["ru" if lang == "ru" else "en"]
+    for key in ("t", "from", "to", "typical_t"):
         if key in params:
             params[f"{key}_text"] = clock(params[key])
     if "pct" in params and params["pct"] is not None:
@@ -424,6 +551,13 @@ def render_analysis(analysis: dict[str, Any], lang: str) -> dict[str, Any]:
     rendered["strengths"] = [render_finding(f, lang) for f in analysis.get("strengths") or []]
     rendered["improvements"] = [render_finding(f, lang) for f in analysis.get("improvements") or []]
     rendered["role_label"] = ROLES.get(analysis.get("role", ""), {}).get(lang)
+    peers = analysis.get("peers")
+    if peers:
+        rendered["peers"] = {
+            **peers,
+            "role_label": PEER_ROLES.get(peers.get("role", ""), {}).get(lang),
+            "lobby_rank_label": rank_label(peers.get("lobby_rank_tier"), lang),
+        }
     rendered["sections"] = {
         name: {**section, "label": SECTIONS.get(name, {}).get(lang, name)}
         for name, section in (analysis.get("sections") or {}).items()

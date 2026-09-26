@@ -10,6 +10,12 @@ GET    /player/matches           match table (newest first)
 GET    /player/matches/{id}      one match: summary, scoreboard, post-match review
 POST   /player/matches/{id}/refresh   fetch again / ask OpenDota to parse the replay
 GET    /player/career            statistics and advice over the recent matches
+POST   /player/matches/{id}/coach     (re)generate the AI coach review of a match
+POST   /player/career/coach           (re)generate the AI coach review of recent matches
+GET    /player/ai                AI coach settings (never returns the key)
+POST   /player/ai                {"provider": "groq"|"openrouter", "api_key": "...", "model"?}
+DELETE /player/ai                forget the key
+POST   /player/ai/check          one small request to validate the key
 
 All review texts follow `lang` (ru/en).
 """
@@ -21,6 +27,7 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
 from app.advice_i18n import normalize_lang
+from app.coach_llm import env_settings
 from app.config import OPENDOTA_API_KEY, OPENDOTA_API_URL, OPENDOTA_ENABLED, PLAYER_DATA_DIR
 from app.opendota import OpenDotaClient
 from app.player_service import PlayerService
@@ -29,6 +36,7 @@ from app.steam_ids import SteamIdError
 PLAYER_SERVICE = PlayerService(
     PLAYER_DATA_DIR,
     client=OpenDotaClient(OPENDOTA_API_URL, api_key=OPENDOTA_API_KEY) if OPENDOTA_ENABLED else None,
+    env_ai=env_settings(),
 )
 
 router = APIRouter(prefix="/player", tags=["player"])
@@ -36,6 +44,12 @@ router = APIRouter(prefix="/player", tags=["player"])
 
 class LinkRequest(BaseModel):
     steam: str
+
+
+class AIRequest(BaseModel):
+    provider: str
+    api_key: str
+    model: str | None = None
 
 
 @router.get("", summary="Linked player and sync status")
@@ -98,3 +112,39 @@ def refresh_match(match_id: int):
 @router.get("/career", summary="Statistics and advice over recent matches")
 def player_career(lang: str = "en"):
     return PLAYER_SERVICE.career(normalize_lang(lang))
+
+
+@router.post("/matches/{match_id}/coach", summary="(Re)generate the AI coach review of a match")
+def coach_match(match_id: int, lang: str = "en"):
+    detail = PLAYER_SERVICE.match_detail(match_id, normalize_lang(lang), force_coach=True)
+    if detail is None:
+        return JSONResponse(status_code=404, content={"status": "error", "code": "match_not_found"})
+    return detail["coach"]
+
+
+@router.post("/career/coach", summary="(Re)generate the AI coach review of recent matches")
+def coach_career(lang: str = "en"):
+    return PLAYER_SERVICE.career(normalize_lang(lang), force_coach=True).get("coach")
+
+
+@router.get("/ai", summary="AI coach settings (the key is never returned)")
+def ai_settings():
+    return PLAYER_SERVICE.ai_status()
+
+
+@router.post("/ai", summary="Save the AI coach provider and key")
+def set_ai_settings(request: AIRequest):
+    try:
+        return PLAYER_SERVICE.set_ai(request.provider, request.api_key, request.model)
+    except ValueError:
+        return JSONResponse(status_code=400, content={"status": "error", "code": "bad_ai_settings"})
+
+
+@router.delete("/ai", summary="Forget the AI coach key")
+def clear_ai_settings():
+    return PLAYER_SERVICE.clear_ai()
+
+
+@router.post("/ai/check", summary="Validate the AI coach key with one small request")
+def check_ai_settings():
+    return PLAYER_SERVICE.check_ai()
