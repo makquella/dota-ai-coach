@@ -542,6 +542,8 @@ async function launchBackend() {
 }
 
 function handleBackendExit({ code, wasStopping }) {
+  // Recording lives in the backend process; a new backend starts with it off.
+  recordingStatus = "stopped";
   setBackendStatus("stopped");
   if (wasStopping || isQuitting || IS_SMOKE_TEST) {
     return;
