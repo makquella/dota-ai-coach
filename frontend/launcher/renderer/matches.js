@@ -165,7 +165,54 @@
       rankCareerNote: (rank, role, n) => `${rank || "Your rank"} · ${role} · same-role players in your ${n} reviewed matches`,
       rankCareerEmpty: "Appears after a few matches reviewed with OpenDota data.",
       colBracket: "At your rank",
-      bracketHint: (rank) => `Hero win rate among all ${rank} players (OpenDota)`
+      bracketHint: (rank) => `Hero win rate among all ${rank} players (OpenDota)`,
+      coachTitle: "Coach's review",
+      coachCareerTitle: "Coach's review of your recent games",
+      coachTag: "AI",
+      coachPending: "The coach is writing the review. It takes up to a minute.",
+      coachCareerPending: "The coach is looking through your recent matches. It takes up to a minute.",
+      coachWaiting: "The coach will review the match when OpenDota has parsed the replay: then there is more data.",
+      coachNow: "Review now",
+      coachUpdating: "Updating with the new data…",
+      coachRetry: "Try again",
+      coachRewrite: "Rewrite",
+      coachNotEnough: (n) => `The coach needs at least ${n} reviewed matches.`,
+      coachTurning: "Turning points",
+      coachMistakes: "Main mistakes",
+      coachFix: "Next time",
+      coachStrengths: "What went well",
+      coachNextGame: "Goals for the next game",
+      coachPatterns: "Recurring problems",
+      coachTrain: "How to train it",
+      coachPlan: "Plan for the next games",
+      coachFooter: (provider, model) => `Written by AI (${provider} · ${model}) from the data of the review. Numbers, times, heroes and items are checked against it.`,
+      coachErrors: {
+        rate_limited: "The free limit of the AI service is used up for now. Try again in a few minutes.",
+        invalid_key: "The AI service rejected the key. Check it in the AI settings.",
+        timeout: "The AI service took too long to answer.",
+        offline: "No connection to the AI service.",
+        unverified: "The AI answer mentioned facts that are not in the data, so it was not shown. Try again.",
+        bad_response: "The AI service answered with an error.",
+        no_key: "No key yet."
+      },
+      aiOffTitle: "AI coach is off",
+      aiOffHint: "Explains the match in plain words, like a coach watching the replay. Free with a Groq or OpenRouter key.",
+      aiTurnOn: "Turn on",
+      aiSetupHint: "Get a free key (takes a minute, no card) and paste it here. The coach only explains: every number still comes from the review. The match data (without your Steam ID) is sent to the chosen service.",
+      aiService: "Service",
+      aiKey: "API key",
+      aiKeyPlaceholder: "Paste the key",
+      aiGetKey: "Get a free key",
+      aiSave: "Check and save",
+      aiChecking: "Checking the key…",
+      aiSaved: "The key works. The coach is on.",
+      aiSavedWarn: (reason) => `Key saved, but the check failed: ${reason}`,
+      aiSettings: "AI settings",
+      aiCurrent: (provider, model, hint) => `${provider} · ${model}${hint ? ` · key ${hint}` : ""}`,
+      aiEnvKey: "The key comes from the .env file.",
+      aiChangeKey: "Change key",
+      aiDisable: "Turn off",
+      aiCancel: "Cancel"
     },
     ru: {
       linkTitle: "Привяжите аккаунт Steam",
@@ -324,7 +371,54 @@
       rankCareerNote: (rank, role, n) => `${rank || "Ваш ранг"} · ${role} · игроки той же роли в ваших ${n} разобранных матчах`,
       rankCareerEmpty: "Появится после нескольких матчей, разобранных по данным OpenDota.",
       colBracket: "На вашем ранге",
-      bracketHint: (rank) => `Винрейт героя у всех игроков ранга ${rank} (OpenDota)`
+      bracketHint: (rank) => `Винрейт героя у всех игроков ранга ${rank} (OpenDota)`,
+      coachTitle: "Разбор тренера",
+      coachCareerTitle: "Разбор тренера по последним матчам",
+      coachTag: "ИИ",
+      coachPending: "Тренер пишет разбор. Это занимает до минуты.",
+      coachCareerPending: "Тренер смотрит ваши последние матчи. Это занимает до минуты.",
+      coachWaiting: "Тренер разберёт матч, когда OpenDota разберёт реплей: тогда данных больше.",
+      coachNow: "Разобрать сейчас",
+      coachUpdating: "Обновляется по новым данным…",
+      coachRetry: "Повторить",
+      coachRewrite: "Написать заново",
+      coachNotEnough: (n) => `Тренеру нужно хотя бы ${n} разобранных матча.`,
+      coachTurning: "Ключевые моменты",
+      coachMistakes: "Главные ошибки",
+      coachFix: "В следующий раз",
+      coachStrengths: "Что получилось",
+      coachNextGame: "Цели на следующую игру",
+      coachPatterns: "Повторяющиеся проблемы",
+      coachTrain: "Как тренировать",
+      coachPlan: "План на следующие игры",
+      coachFooter: (provider, model) => `Написано ИИ (${provider} · ${model}) по данным разбора. Числа, время, герои и предметы сверены с ними.`,
+      coachErrors: {
+        rate_limited: "Бесплатный лимит ИИ-сервиса пока исчерпан. Попробуйте через несколько минут.",
+        invalid_key: "ИИ-сервис не принял ключ. Проверьте его в настройках ИИ.",
+        timeout: "ИИ-сервис слишком долго отвечал.",
+        offline: "Нет связи с ИИ-сервисом.",
+        unverified: "В ответе ИИ были факты, которых нет в данных, поэтому он не показан. Попробуйте ещё раз.",
+        bad_response: "ИИ-сервис ответил ошибкой.",
+        no_key: "Ключ ещё не указан."
+      },
+      aiOffTitle: "ИИ-тренер выключен",
+      aiOffHint: "Объясняет матч простыми словами, как тренер, который смотрит реплей. Бесплатно с ключом Groq или OpenRouter.",
+      aiTurnOn: "Включить",
+      aiSetupHint: "Получите бесплатный ключ (минута, без карты) и вставьте его сюда. Тренер только объясняет: все числа по-прежнему берутся из разбора. Данные матча (без вашего Steam ID) отправляются в выбранный сервис.",
+      aiService: "Сервис",
+      aiKey: "API-ключ",
+      aiKeyPlaceholder: "Вставьте ключ",
+      aiGetKey: "Получить бесплатный ключ",
+      aiSave: "Проверить и сохранить",
+      aiChecking: "Проверяем ключ…",
+      aiSaved: "Ключ работает. Тренер включён.",
+      aiSavedWarn: (reason) => `Ключ сохранён, но проверка не прошла: ${reason}`,
+      aiSettings: "Настройки ИИ",
+      aiCurrent: (provider, model, hint) => `${provider} · ${model}${hint ? ` · ключ ${hint}` : ""}`,
+      aiEnvKey: "Ключ берётся из файла .env.",
+      aiChangeKey: "Сменить ключ",
+      aiDisable: "Отключить",
+      aiCancel: "Отмена"
     }
   };
 
@@ -348,7 +442,11 @@
     chartMetric: "lh",
     career: null,
     linkError: "",
-    lastPlayerRefresh: 0
+    lastPlayerRefresh: 0,
+    // AI coach settings panel: null (closed) | "form" | "info"
+    aiPanel: null,
+    ai: null,
+    aiMessage: null
   };
 
   function plural(n, one, few, many) {
@@ -494,6 +592,8 @@
 
   function setView(view, { remember = true } = {}) {
     state.view = view;
+    state.aiPanel = null;
+    state.aiMessage = null;
     const tabView = view === "match" ? "matches" : view;
     for (const tab of document.querySelectorAll(".tabs [data-view]")) {
       tab.setAttribute("aria-selected", String(tab.dataset.view === tabView));
@@ -850,11 +950,13 @@
     if (!detail || detail.error || state.matchId !== matchId || state.view !== "match") {
       return;
     }
-    const waiting = detail.loading || PENDING_PARSE.has(detail.parse_status);
+    const coachPending = detail.coach?.state === "pending";
+    const waiting = detail.loading || coachPending || PENDING_PARSE.has(detail.parse_status);
     if (!waiting) {
       return;
     }
-    matchRefreshTimer = setTimeout(() => openMatchQuietly(matchId), detail.loading ? 4000 : 30000);
+    const fast = detail.loading || coachPending;
+    matchRefreshTimer = setTimeout(() => openMatchQuietly(matchId), fast ? 4000 : 30000);
   }
 
   async function openMatchQuietly(matchId) {
@@ -865,7 +967,8 @@
     if (result.ok && state.matchId === matchId && state.view === "match") {
       const changed = JSON.stringify(result.data) !== JSON.stringify(state.match);
       state.match = result.data;
-      if (changed) {
+      // Don't wipe a key the player is typing.
+      if (changed && state.aiPanel !== "form") {
         renderMatch();
       }
     }
@@ -892,6 +995,10 @@
     if (!analysis) {
       parts.push(card(t("reviewLoading"), "hourglass", emptyState("hourglass", t("reviewPending"), tOptional(`parseStatus.${detail.parse_status}`) || "")));
     } else {
+      const coach = coachCard(detail.coach, "match");
+      if (coach) {
+        parts.push(coach);
+      }
       parts.push(focusCard(analysis));
       parts.push(sectionsCard(analysis));
       const build = buildCard(analysis);
@@ -1380,6 +1487,343 @@
     return card(t("scoreboardTitle"), "swords", h("div", { class: "teams" }, teams));
   }
 
+  // --- AI coach -------------------------------------------------------------------
+
+  function coachCard(coach, kind) {
+    if (!coach || coach.state === "none") {
+      return null;
+    }
+    const title = t(kind === "career" ? "coachCareerTitle" : "coachTitle");
+    if (coach.state === "not_enough") {
+      return card(title, "graduation-cap", h("p", { class: "muted", text: t("coachNotEnough", coach.need) }));
+    }
+    if (coach.state === "off" && !coach.review) {
+      return aiOffCard(title);
+    }
+    const body = [];
+    const review = coach.review;
+    if (review) {
+      body.push(kind === "career" ? careerReview(review) : matchReview(review));
+    } else if (coach.state === "pending") {
+      body.push(h("p", { class: "muted small", text: t(kind === "career" ? "coachCareerPending" : "coachPending") }), skeletonRows(4));
+    } else if (coach.state === "waiting") {
+      body.push(h("p", { class: "muted", text: t("coachWaiting") }));
+    }
+    const status = coachStatusLine(coach, kind);
+    if (status) {
+      body.push(status);
+    }
+    if (review) {
+      body.push(h("p", { class: "coach-footer muted small", text: t("coachFooter", coach.provider_label || "AI", coach.model || "") }));
+    }
+    const panel = aiPanel(kind);
+    if (panel) {
+      body.push(panel);
+    }
+    const settingsButton =
+      coach.state !== "off"
+        ? h(
+            "button",
+            {
+              class: "btn btn-ghost btn-sm",
+              type: "button",
+              "aria-expanded": String(Boolean(state.aiPanel)),
+              onclick: () => toggleAiPanel(kind, state.aiPanel ? null : "info")
+            },
+            icon("settings"),
+            h("span", { text: t("aiSettings") })
+          )
+        : null;
+    const head = h("span", { class: "coach-head" }, h("span", { class: "tag", text: t("coachTag") }), settingsButton);
+    return h("div", { class: "coach-card" }, card(title, "graduation-cap", body, head));
+  }
+
+  function coachStatusLine(coach, kind) {
+    const request = async (event) => {
+      event.currentTarget.disabled = true;
+      await requestCoach(kind);
+    };
+    if (coach.state === "pending" && coach.review) {
+      return h("p", { class: "coach-status muted small" }, h("span", { class: "skeleton skeleton-dot" }), h("span", { text: t("coachUpdating") }));
+    }
+    if (coach.state === "waiting") {
+      return h("div", { class: "coach-actions" }, h("button", { class: "btn btn-sm", type: "button", onclick: request }, icon("graduation-cap"), h("span", { text: t("coachNow") })));
+    }
+    if (coach.state === "error") {
+      return h(
+        "div",
+        { class: "coach-status coach-error", role: "status" },
+        icon("circle-alert"),
+        h("span", { text: tOptional(`coachErrors.${coach.error}`) || t("coachErrors.bad_response") }),
+        h("button", { class: "btn btn-sm", type: "button", onclick: request }, icon("refresh-cw"), h("span", { text: t("coachRetry") }))
+      );
+    }
+    if (coach.state === "ready" && coach.review) {
+      return h("div", { class: "coach-actions" }, h("button", { class: "btn btn-ghost btn-sm", type: "button", onclick: request }, icon("rotate-cw"), h("span", { text: t("coachRewrite") })));
+    }
+    return null;
+  }
+
+  function matchReview(review) {
+    const parts = [h("p", { class: "coach-summary", text: review.summary })];
+    if (review.turning_points?.length) {
+      parts.push(
+        coachSection(
+          t("coachTurning"),
+          h(
+            "ul",
+            { class: "coach-moments" },
+            review.turning_points.map((point) => h("li", {}, h("span", { class: "coach-time num", text: point.time }), h("span", { text: point.text })))
+          )
+        )
+      );
+    }
+    if (review.mistakes?.length) {
+      parts.push(coachSection(t("coachMistakes"), coachBlocks(review.mistakes, t("coachFix"))));
+    }
+    if (review.strengths?.length) {
+      parts.push(coachSection(t("coachStrengths"), coachList(review.strengths, "good")));
+    }
+    if (review.next_game?.length) {
+      parts.push(coachSection(t("coachNextGame"), coachGoals(review.next_game)));
+    }
+    return h("div", { class: "coach-review" }, parts);
+  }
+
+  function careerReview(review) {
+    const parts = [h("p", { class: "coach-summary", text: review.summary })];
+    if (review.patterns?.length) {
+      parts.push(coachSection(t("coachPatterns"), coachBlocks(review.patterns, t("coachTrain"))));
+    }
+    if (review.strengths?.length) {
+      parts.push(coachSection(t("coachStrengths"), coachList(review.strengths, "good")));
+    }
+    if (review.plan?.length) {
+      parts.push(coachSection(t("coachPlan"), coachGoals(review.plan)));
+    }
+    return h("div", { class: "coach-review" }, parts);
+  }
+
+  function coachSection(title, content) {
+    return h("div", { class: "coach-section" }, h("h3", { class: "coach-section-title", text: title }), content);
+  }
+
+  function coachBlocks(blocks, fixLabel) {
+    return h(
+      "ol",
+      { class: "findings" },
+      blocks.map((block, index) =>
+        h(
+          "li",
+          { class: "finding" },
+          h("span", { class: "finding-index num", text: String(index + 1) }),
+          h(
+            "div",
+            { class: "finding-body" },
+            h("p", { class: "finding-title", text: block.title }),
+            h("p", { class: "finding-text", text: block.detail }),
+            block.fix ? h("p", { class: "finding-drill" }, icon("lightbulb"), h("span", {}, h("strong", { text: `${fixLabel}: ` }), block.fix)) : null
+          )
+        )
+      )
+    );
+  }
+
+  function coachList(lines, tone) {
+    return h("ul", { class: "coach-list" }, lines.map((line) => h("li", {}, h("span", { class: "dot", "data-tone": tone }), h("span", { text: line }))));
+  }
+
+  function coachGoals(lines) {
+    return h("ol", { class: "coach-goals" }, lines.map((line, index) => h("li", {}, h("span", { class: "coach-goal-index num", text: String(index + 1) }), h("span", { text: line }))));
+  }
+
+  async function requestCoach(kind) {
+    if (kind === "career") {
+      await call("coachCareer");
+      await loadCareer();
+      return;
+    }
+    const matchId = state.matchId;
+    await call("coachMatch", { matchId });
+    await openMatchQuietly(matchId);
+  }
+
+  // Off: one compact row; the form opens in place.
+  function aiOffCard(title) {
+    const open = state.aiPanel === "form";
+    const row = h(
+      "div",
+      { class: "ai-off" },
+      h("div", { class: "ai-off-text" }, h("p", { class: "ai-off-title", text: t("aiOffTitle") }), h("p", { class: "muted small", text: t("aiOffHint") })),
+      open ? null : h("button", { class: "btn btn-primary btn-sm", type: "button", onclick: () => toggleAiPanel(currentKind(), "form") }, h("span", { text: t("aiTurnOn") }))
+    );
+    return h("div", { class: "coach-card" }, card(title, "graduation-cap", [row, aiPanel(currentKind())].filter(Boolean), h("span", { class: "tag", text: t("coachTag") })));
+  }
+
+  function currentKind() {
+    return state.view === "progress" ? "career" : "match";
+  }
+
+  async function toggleAiPanel(kind, panel) {
+    state.aiPanel = panel;
+    state.aiMessage = null;
+    if (panel && !state.ai) {
+      const result = await call("aiStatus");
+      state.ai = result.ok ? result.data : null;
+    }
+    rerender(kind);
+  }
+
+  function rerender(kind) {
+    if (kind === "career") {
+      renderCareer();
+    } else {
+      renderMatch();
+    }
+    const input = document.querySelector(".ai-form input");
+    if (state.aiPanel === "form" && input && !input.value) {
+      input.focus();
+    }
+  }
+
+  function aiPanel(kind) {
+    if (!state.aiPanel) {
+      return null;
+    }
+    const ai = state.ai || {};
+    const message = state.aiMessage ? h("p", { class: `ai-message ai-message-${state.aiMessage.tone}`, role: "status", text: state.aiMessage.text }) : null;
+    if (state.aiPanel === "info" && ai.configured) {
+      return h(
+        "div",
+        { class: "ai-panel" },
+        h("p", { class: "small", text: t("aiCurrent", ai.provider_label || "", ai.model || "", ai.key_hint || "") }),
+        ai.source === "env" ? h("p", { class: "muted small", text: t("aiEnvKey") }) : null,
+        message,
+        h(
+          "div",
+          { class: "ai-panel-actions" },
+          h("button", { class: "btn btn-sm", type: "button", onclick: () => toggleAiPanel(kind, "form") }, h("span", { text: t("aiChangeKey") })),
+          ai.source === "app"
+            ? h(
+                "button",
+                {
+                  class: "btn btn-ghost btn-sm",
+                  type: "button",
+                  onclick: async () => {
+                    const result = await call("aiClear");
+                    state.ai = result.ok ? result.data : state.ai;
+                    state.aiPanel = null;
+                    await reloadAfterAi(kind);
+                  }
+                },
+                h("span", { text: t("aiDisable") })
+              )
+            : null
+        )
+      );
+    }
+    return aiForm(kind, message);
+  }
+
+  function aiForm(kind, message) {
+    const providers = state.ai?.providers || [
+      { id: "groq", label: "Groq" },
+      { id: "openrouter", label: "OpenRouter" }
+    ];
+    let provider = state.ai?.provider && providers.some((p) => p.id === state.ai.provider) ? state.ai.provider : providers[0].id;
+    const choice = h(
+      "div",
+      { class: "segmented segmented-sm", role: "radiogroup", "aria-label": t("aiService") },
+      providers.map((item) =>
+        h("button", {
+          type: "button",
+          role: "radio",
+          "aria-checked": String(item.id === provider),
+          text: item.label,
+          onclick: (event) => {
+            provider = item.id;
+            for (const button of choice.querySelectorAll("button")) {
+              button.setAttribute("aria-checked", String(button === event.currentTarget));
+            }
+          }
+        })
+      )
+    );
+    const input = h("input", { class: "input", type: "password", placeholder: t("aiKeyPlaceholder"), "aria-label": t("aiKey"), autocomplete: "off", spellcheck: "false" });
+    const save = h("button", { class: "btn btn-primary btn-sm", type: "submit" }, h("span", { text: t("aiSave") }));
+    const status = h("p", { class: "ai-message", role: "status" });
+    const form = h(
+      "form",
+      {
+        class: "ai-form",
+        onsubmit: async (event) => {
+          event.preventDefault();
+          if (!input.value.trim()) {
+            input.focus();
+            return;
+          }
+          save.disabled = true;
+          input.disabled = true;
+          status.className = "ai-message muted";
+          status.textContent = t("aiChecking");
+          const saved = await call("aiSave", { provider, apiKey: input.value });
+          if (!saved.ok) {
+            save.disabled = false;
+            input.disabled = false;
+            status.className = "ai-message ai-message-bad";
+            status.textContent = saved.detail || t("coachErrors.bad_response");
+            return;
+          }
+          state.ai = saved.data;
+          const check = await call("aiCheck");
+          const code = check.ok ? (check.data.ok ? null : check.data.code) : "offline";
+          if (code === "invalid_key") {
+            // A wrong key is not kept.
+            const cleared = await call("aiClear");
+            state.ai = cleared.ok ? cleared.data : state.ai;
+            save.disabled = false;
+            input.disabled = false;
+            status.className = "ai-message ai-message-bad";
+            status.textContent = t("coachErrors.invalid_key");
+            return;
+          }
+          state.aiPanel = code ? "info" : null;
+          state.aiMessage = code ? { tone: "warn", text: t("aiSavedWarn", tOptional(`coachErrors.${code}`) || code) } : null;
+          await reloadAfterAi(kind);
+        }
+      },
+      h("div", { class: "ai-form-row" }, h("span", { class: "ai-label", text: t("aiService") }), choice),
+      h("div", { class: "ai-form-row" }, input, save),
+      h(
+        "button",
+        { class: "btn btn-ghost btn-sm ai-key-link", type: "button", onclick: () => api.openAiKeyPage?.(provider) },
+        icon("external-link"),
+        h("span", { text: t("aiGetKey") })
+      ),
+      status
+    );
+    if (message) {
+      form.append(message);
+    }
+    return h(
+      "div",
+      { class: "ai-panel" },
+      h("p", { class: "muted small", text: t("aiSetupHint") }),
+      form,
+      h("div", { class: "ai-panel-actions" }, h("button", { class: "btn btn-ghost btn-sm", type: "button", onclick: () => toggleAiPanel(kind, null) }, h("span", { text: t("aiCancel") })))
+    );
+  }
+
+  async function reloadAfterAi(kind) {
+    await refreshPlayer();
+    if (kind === "career") {
+      await loadCareer();
+    } else if (state.matchId) {
+      await openMatchQuietly(state.matchId);
+      renderMatch();
+    }
+  }
+
   // --- progress -------------------------------------------------------------------
 
   async function loadCareer() {
@@ -1400,6 +1844,31 @@
       state.career = result.data;
     }
     renderCareer();
+    scheduleCareerRefresh();
+  }
+
+  let careerRefreshTimer = null;
+
+  // While the coach writes the career review, ask again every few seconds.
+  function scheduleCareerRefresh() {
+    clearTimeout(careerRefreshTimer);
+    if (state.career?.coach?.state !== "pending" || state.view !== "progress") {
+      return;
+    }
+    careerRefreshTimer = setTimeout(async () => {
+      if (state.view !== "progress") {
+        return;
+      }
+      const result = await call("career");
+      if (result.ok) {
+        const changed = JSON.stringify(result.data) !== JSON.stringify(state.career);
+        state.career = result.data;
+        if (changed && state.aiPanel !== "form") {
+          renderCareer();
+        }
+      }
+      scheduleCareerRefresh();
+    }, 4000);
   }
 
   function trendDelta(trend, key, format = (v) => v) {
@@ -1540,6 +2009,7 @@
     root.replaceChildren(
       h("p", { class: "muted small progress-note", text: t("analyzed", career.analyzed, career.matches) }),
       tiles,
+      coachCard(career.coach, "career") || "",
       scoreCard,
       careerRankCard(career),
       planCard,

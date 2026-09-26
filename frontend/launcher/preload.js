@@ -36,6 +36,7 @@ contextBridge.exposeInMainWorld("launcherApi", {
   openSimulationResults: () => ipcRenderer.invoke("launcher:open-simulation-results"),
   openSessionRecords: () => ipcRenderer.invoke("launcher:open-session-records"),
   openReadme: () => ipcRenderer.invoke("launcher:open-readme"),
+  openAiKeyPage: (provider) => ipcRenderer.invoke("launcher:open-ai-key-page", provider),
   onStatus: (callback) => {
     ipcRenderer.on("launcher:status", (_event, status) => callback(status));
   },
