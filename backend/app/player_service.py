@@ -36,7 +36,13 @@ from app.career_analysis import analyze_career
 from app.dota_constants import REVIEWABLE_LOBBY_TYPES
 from app.match_facts import facts_from_opendota, facts_from_timeline, merge_facts
 from app.match_tracker import MatchTracker, account_from_gsi
-from app.opendota import OpenDotaClient, OpenDotaError, summary_from_match, trim_match
+from app.opendota import (
+    OpenDotaClient,
+    OpenDotaError,
+    my_player,
+    summary_from_match,
+    trim_match,
+)
 from app.player_store import PlayerStore
 from app.post_match_analysis import analyze_match
 from app.steam_ids import parse_account_id, steam64_from_account_id
@@ -47,6 +53,13 @@ REVIEW_RECENT_MATCHES = 12
 FIRST_FETCH_DELAY_SECONDS = 120
 PARSE_POLL_SECONDS = 90
 PARSE_POLL_ATTEMPTS = 12
+# OpenDota meta data cache (player_store cache table).
+ITEM_CONSTANTS_KEY = "opendota:items"
+POPULARITY_KEY = "opendota:item_popularity"
+TIMINGS_KEY = "opendota:item_timings"
+HERO_STATS_KEY = "opendota:hero_stats"
+META_TTL_SECONDS = 7 * 24 * 3600
+HERO_STATS_TTL_SECONDS = 24 * 3600
 
 
 class JobQueue:
@@ -261,8 +274,12 @@ class PlayerService:
         primary = self.store.primary_account_id()
         if primary is None:
             return {"linked": False}
+        player = self.store.get_player(primary) or {}
         result = analyze_career(
-            self.store.matches_for_career(primary, limit=RECENT_MATCHES_LIMIT), lang
+            self.store.matches_for_career(primary, limit=RECENT_MATCHES_LIMIT),
+            lang,
+            rank_tier=player.get("rank_tier"),
+            hero_stats=self.store.cache_get(HERO_STATS_KEY),
         )
         result["linked"] = True
         return result
@@ -295,6 +312,7 @@ class PlayerService:
             return
         self._sync = {**self._sync, "state": "running", "error": None, "error_code": None}
         try:
+            self._ensure_hero_stats()
             try:
                 profile = client.player(account_id)
                 self.store.upsert_player(
@@ -392,6 +410,8 @@ class PlayerService:
             opendota=trimmed,
             parse_status=status,
         )
+        me = my_player(trimmed) or {}
+        self._ensure_hero_meta(me.get("hero_id"))
         self._rebuild_analysis(account_id, match_id)
         if status == "parsing":
             self._retry(account_id, match_id, request_parse, attempt)
@@ -455,7 +475,9 @@ class PlayerService:
         facts = merge_facts(od, gsi)
         if facts is None:
             return None
-        analysis = analyze_match(facts)
+        analysis = analyze_match(
+            facts, meta=self._hero_meta(facts.get("hero_id")), opendota=record.get("opendota")
+        )
         lh_t = facts.get("lh_t") or []
         self.store.upsert_match(
             account_id,
@@ -468,6 +490,41 @@ class PlayerService:
             analysis=analysis,
         )
         return analysis
+
+    # --- OpenDota meta data (cached; fetched on the job thread only) -----------
+
+    def _hero_meta(self, hero_id: Any) -> dict[str, Any] | None:
+        """Cached build data for a hero (stale is fine: reviews must work offline)."""
+        constants = self.store.cache_get(ITEM_CONSTANTS_KEY)
+        if not constants or not hero_id:
+            return None
+        return {
+            "constants": constants,
+            "popularity": self.store.cache_get(f"{POPULARITY_KEY}:{int(hero_id)}"),
+            "timings": self.store.cache_get(f"{TIMINGS_KEY}:{int(hero_id)}"),
+        }
+
+    def _refresh(self, key: str, ttl: float, fetch: Callable[[], Any]) -> None:
+        if self.client is None or self.store.cache_get(key, max_age=ttl) is not None:
+            return
+        with contextlib.suppress(OpenDotaError):
+            self.store.cache_set(key, fetch())
+
+    def _ensure_hero_meta(self, hero_id: Any) -> None:
+        client = self.client
+        if client is None or not hero_id:
+            return
+        hero = int(hero_id)
+        self._refresh(ITEM_CONSTANTS_KEY, META_TTL_SECONDS, client.item_constants)
+        self._refresh(
+            f"{POPULARITY_KEY}:{hero}", META_TTL_SECONDS, lambda: client.item_popularity(hero)
+        )
+        self._refresh(f"{TIMINGS_KEY}:{hero}", META_TTL_SECONDS, lambda: client.item_timings(hero))
+
+    def _ensure_hero_stats(self) -> None:
+        client = self.client
+        if client is not None:
+            self._refresh(HERO_STATS_KEY, HERO_STATS_TTL_SECONDS, client.hero_stats)
 
     def rebuild_all(self) -> int:
         """Re-run analyses (after the rules changed)."""

@@ -1542,6 +1542,17 @@ label.setting:has(.switch:disabled) {
   font-variant-numeric: tabular-nums;
 }
 
+.chart-value {
+  fill: var(--text-3);
+  font: 11px var(--font);
+  font-variant-numeric: tabular-nums;
+}
+
+.chart-value.is-strong {
+  fill: var(--text);
+  font-weight: 600;
+}
+
 .chart-line {
   fill: none;
   stroke-width: 2;
@@ -1709,4 +1720,73 @@ label.setting:has(.switch:disabled) {
   .score-value {
     font-size: 40px;
   }
+}
+
+/* Build + rank cards */
+.build > * + * {
+  margin-top: var(--sp-4);
+}
+
+.build-item-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--sp-3);
+}
+
+.build-item-name {
+  font-weight: var(--fw-semibold);
+}
+
+.build-item-line {
+  margin-top: 2px;
+  color: var(--text-2);
+}
+
+.chart-mini {
+  margin-top: var(--sp-2);
+}
+
+.build-popular > * + * {
+  margin-top: var(--sp-2);
+}
+
+.build-phase {
+  display: grid;
+  grid-template-columns: 96px minmax(0, 1fr);
+  align-items: center;
+  gap: var(--sp-3);
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px var(--sp-2);
+  border: 1px solid var(--border-strong);
+  border-radius: 999px;
+  color: var(--text-2);
+  font-size: var(--fs-12);
+}
+
+.chip-on {
+  border-color: rgba(76, 195, 138, 0.35);
+  color: var(--text);
+}
+
+.chip-on .icon {
+  width: 14px;
+  height: 14px;
+  color: var(--ok);
+}
+
+.table-wrap-tight {
+  margin-top: var(--sp-2);
+  margin-bottom: calc(-1 * var(--sp-4));
 }

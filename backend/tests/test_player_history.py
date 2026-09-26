@@ -141,9 +141,21 @@ def test_tracker_ignores_demo_and_lobby_ids(tmp_path):
 # --- analysis ------------------------------------------------------------------------
 
 
-def _analysis(match, lang="en"):
-    facts = facts_from_opendota(trim_match(match, ME))
-    return render_analysis(analyze_match(facts), lang)
+def _meta():
+    fake = FakeOpenDota()
+    return {
+        "constants": fake.item_constants(),
+        "popularity": fake.item_popularity(8),
+        "timings": fake.item_timings(8),
+    }
+
+
+def _analysis(match, lang="en", *, with_meta=True):
+    trimmed = trim_match(match, ME)
+    facts = facts_from_opendota(trimmed)
+    if not with_meta:
+        return render_analysis(analyze_match(facts), lang)
+    return render_analysis(analyze_match(facts, meta=_meta(), opendota=trimmed), lang)
 
 
 def test_good_parsed_match_is_praised():
@@ -156,7 +168,7 @@ def test_good_parsed_match_is_praised():
 
 
 def test_bad_parsed_match_names_the_problems_with_numbers():
-    analysis = _analysis(opendota_match(good=False), lang="ru")
+    analysis = _analysis(opendota_match(good=False), lang="ru", with_meta=False)
     assert analysis["headline"]["grade"] == "D"
     ids = [f["id"] for f in analysis["improvements"]]
     assert "gpm_low" in ids
@@ -383,3 +395,130 @@ def test_player_endpoints_work_offline(client, tmp_path):
     assert client.post("/player/sync").json()["opendota"] is False
     assert client.get("/player/matches").json()["items"] == []
     assert client.get("/player/career").json()["matches"] == 0
+
+
+# --- build advice and rank comparison ------------------------------------------------
+
+
+def test_opendota_meta_endpoints_are_parsed():
+    fake = FakeOpenDota()
+    items = fake.item_constants()
+    assert items["by_id"]["145"] == "bfury"
+    assert items["items"]["bfury"] == {"name": "Battle Fury", "cost": 4100, "assembled": True}
+    assert items["items"]["demon_edge"]["assembled"] is False
+    timings = fake.item_timings(8)
+    assert {"item": "bfury", "time": 900, "games": 900, "wins": 513} in timings
+    popularity = fake.item_popularity(8)
+    assert popularity["mid_game_items"]["145"] == 700
+    stats = fake.hero_stats()
+    assert stats[0]["hero_id"] == 8 and stats[0]["brackets"]["5"] == [10000, 5150]
+
+
+def test_late_core_item_gets_a_winrate_backed_advice():
+    analysis = _analysis(opendota_match(good=False), lang="ru")
+    ids = [f["id"] for f in analysis["improvements"]]
+    late = next(f for f in analysis["improvements"] if f["id"] == "build_timing_late")
+    # Compared with the usual timing (20:00, 50%), not the lucky early bucket (15:00, 55%).
+    assert "Maelstrom к 26:00" in late["text"] and "40%" in late["text"] and "50%" in late["text"]
+    assert "к 20:00" in late["text"] and "55%" not in late["text"]
+    assert "к 20:00" in late["drill"]
+    # The generic "late first item" finding is replaced by the specific one.
+    assert "core_item_slow" not in ids
+    build = analysis["build"]
+    assert [item["name"] for item in build["items"]] == ["Maelstrom"]
+    assert build["items"][0]["timing"]["winrate"] == 40
+    assert [row["bought"] for row in build["popular"]["mid"]][:3] == [False, False, False]
+
+
+def test_standard_build_with_good_timings_is_recognised():
+    analysis = _analysis(opendota_match(good=True))
+    build = analysis["build"]
+    assert [item["key"] for item in build["items"]] == ["bfury", "manta", "black_king_bar"]
+    assert build["items"][0]["timing"] == {
+        **build["items"][0]["timing"],
+        "bucket": 900,
+        "winrate": 57,
+        "best_bucket": 600,
+        "best_winrate": 60,
+        "typical_bucket": 1200,
+        "typical_winrate": 52,
+    }
+    ids = {f["id"] for f in analysis["strengths"]}
+    assert "build_timing_good" in ids or "build_on_meta" in ids
+    assert not [f for f in analysis["improvements"] if f["id"].startswith("build_")]
+
+
+def test_rank_peers_compare_with_the_direct_opponent():
+    analysis = _analysis(opendota_match(good=False), lang="ru")
+    peers = analysis["peers"]
+    assert peers["role"] == "carry" and peers["role_label"] == "керри"
+    assert peers["lobby_rank_label"] == "Легенда 4"
+    assert [p["hero"] for p in peers["peers"]] == ["Anti-Mage"] and peers["peers"][0]["enemy"]
+    assert peers["me"]["gpm"] == 390 and peers["avg"]["gpm"] == 600
+    from app.peer_analysis import peer_findings
+
+    ids = {f["id"] for f in peer_findings(peers)}
+    assert {"peer_gpm_behind", "peer_lh10_behind", "peer_deaths_more"} <= ids
+    # The opponent comparison replaces the generic "GPM is low" in the review.
+    shown = [f["id"] for f in analysis["improvements"]]
+    assert "peer_gpm_behind" in shown and "gpm_low" not in shown
+    gpm = next(f for f in analysis["improvements"] if f["id"] == "peer_gpm_behind")
+    assert "Anti-Mage" in gpm["text"] and "600" in gpm["text"]
+    deaths = next(f for f in analysis["improvements"] if f["id"] == "peer_deaths_more")
+    assert "9 смертей против 5 у керри" in deaths["text"]
+    good = _analysis(opendota_match(good=True))
+    assert "peer_gpm_ahead" in {f["id"] for f in peer_findings(good["peers"])}
+
+
+def test_rank_labels():
+    from app.analysis_texts import rank_label
+
+    assert rank_label(54, "ru") == "Легенда 4"
+    assert rank_label(35, "en") == "Crusader 5"
+    assert rank_label(80, "ru") == "Титан"
+    assert rank_label(None, "ru") is None
+
+
+def test_career_rank_comparison_and_bracket_winrates(client, tmp_path):
+    recent = recent_matches(12)
+    fake = FakeOpenDota(
+        matches={
+            row["match_id"]: opendota_match(good=row["radiant_win"], match_id=row["match_id"])
+            for row in recent
+        },
+        recent=recent,
+    )
+    service = _service(tmp_path, fake)
+    client.post("/player/link", json={"steam": str(ME)})
+    service.jobs.run_pending(until=float("inf"))
+    career = client.get("/player/career?lang=ru").json()
+    rank = career["rank"]
+    assert rank["rank_label"] == "Легенда 4" and rank["role_label"] == "керри"
+    assert rank["matches"] == 12
+    gpm = next(row for row in rank["metrics"] if row["key"] == "gpm")
+    assert gpm["peers"] == 600.0
+    heroes = {row["hero"]: row for row in career["heroes"]}
+    assert heroes["Juggernaut"]["bracket_winrate"] == 51.5
+    assert career["rank_bracket_label"] == "Легенда"
+    # Meta data is fetched once and then served from the cache.
+    assert fake.calls.count("items") == 1 and fake.calls.count("popularity:8") == 1
+    assert fake.calls.count("herostats") == 1
+
+
+def test_build_advice_works_offline_from_the_cache(client, tmp_path):
+    fake = FakeOpenDota(matches={MATCH_ID: opendota_match(good=False)})
+    service = _service(tmp_path, fake)
+    client.post("/player/link", json={"steam": str(ME)})
+    service.fetch_match(MATCH_ID, request_parse=False)
+    service.jobs.run_pending(until=float("inf"))
+    # Internet gone: a new live match of the same hero still gets build advice.
+    service.client = None
+    for payload in gsi_match_stream(match_id=MATCH_ID + 1, win=False):
+        client.post("/gsi", json=payload)
+    detail = client.get(f"/player/matches/{MATCH_ID + 1}?lang=ru").json()
+    build = detail["analysis"]["build"]
+    assert [item["key"] for item in build["items"]] == ["bfury", "manta"]
+    assert build["items"][0]["timing"]["winrate"] == 57
+    # Manta at 21:00 is the usual timing for the hero: no "late item" advice.
+    ids = [f["id"] for f in detail["analysis"]["improvements"]]
+    assert "build_timing_late" not in ids

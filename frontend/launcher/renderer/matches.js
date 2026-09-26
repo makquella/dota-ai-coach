@@ -140,7 +140,32 @@
       heroesTitle: "Heroes",
       colMatches: "Matches",
       colWinrate: "Win rate",
-      analyzed: (a, n) => `${a} of ${n} matches reviewed in depth`
+      analyzed: (a, n) => `${a} of ${n} matches reviewed in depth`,
+      buildTitle: "Build",
+      buildTimingNote: "Win rate of the hero by purchase time (OpenDota public matches). Your timing is highlighted. The earliest timings mostly come from games that were already going well, so the target is the usual timing.",
+      buildNoTimings: "No timing data for these items yet.",
+      buildItemLine: (wr, t, typicalT, typicalWr) => `${wr}% wins when bought by ${t} · usually bought by ${typicalT} — ${typicalWr}%`,
+      buildItemTypical: (wr, t) => `${wr}% wins when bought by ${t} · the usual timing for the hero`,
+      buildBy: (t) => `by ${t}`,
+      buildPopular: "Common build (pro players)",
+      buildPhase: { early: "Early", mid: "Core", late: "Late" },
+      buildBought: "bought",
+      buildTimingTip: (t) => `Bought by ${t}`,
+      winrateLabel: "Win rate",
+      rankTitle: "You and your rank",
+      rankMatchNote: (rank, role, heroes) => `${rank ? `Match rank: ${rank} · ` : ""}compared with the ${role} of this match${heroes ? ` (${heroes})` : ""}`,
+      rankNoPeers: "No player of the same role in this match to compare with.",
+      colMetric: "Metric",
+      colYou: "You",
+      colOpponent: "Opponent",
+      colPeers: "Your rank",
+      colDiff: "Difference",
+      metrics: { gpm: "GPM", xpm: "XPM", lh_10: "LH at 10:00", lh_per_min: "LH per minute", deaths: "Deaths", kda: "KDA", damage_per_min: "Damage per minute", net_worth: "Net worth" },
+      rankCareerTitle: "You and players of your rank",
+      rankCareerNote: (rank, role, n) => `${rank || "Your rank"} · ${role} · same-role players in your ${n} reviewed matches`,
+      rankCareerEmpty: "Appears after a few matches reviewed with OpenDota data.",
+      colBracket: "At your rank",
+      bracketHint: (rank) => `Hero win rate among all ${rank} players (OpenDota)`
     },
     ru: {
       linkTitle: "Привяжите аккаунт Steam",
@@ -274,7 +299,32 @@
       heroesTitle: "Герои",
       colMatches: "Матчи",
       colWinrate: "Винрейт",
-      analyzed: (a, n) => `Подробно разобрано ${a} из ${n} матчей`
+      analyzed: (a, n) => `Подробно разобрано ${a} из ${n} матчей`,
+      buildTitle: "Сборка",
+      buildTimingNote: "Винрейт героя в зависимости от времени покупки (публичные матчи OpenDota). Ваш тайминг выделен. Самые ранние тайминги — чаще всего игры, которые и так шли хорошо, поэтому цель — обычный тайминг.",
+      buildNoTimings: "По этим предметам пока нет данных о таймингах.",
+      buildItemLine: (wr, t, typicalT, typicalWr) => `${wr}% побед при покупке к ${t} · обычно покупают к ${typicalT}: ${typicalWr}%`,
+      buildItemTypical: (wr, t) => `${wr}% побед при покупке к ${t} · обычный тайминг для героя`,
+      buildBy: (t) => `к ${t}`,
+      buildPopular: "Частая сборка (про-игроки)",
+      buildPhase: { early: "Начало", mid: "Основа", late: "Поздняя игра" },
+      buildBought: "куплено",
+      buildTimingTip: (t) => `Покупка к ${t}`,
+      winrateLabel: "Винрейт",
+      rankTitle: "Вы и ваш ранг",
+      rankMatchNote: (rank, role, heroes) => `${rank ? `Ранг матча: ${rank} · ` : ""}сравнение с ${role} этого матча${heroes ? ` (${heroes})` : ""}`,
+      rankNoPeers: "В этом матче нет игрока той же роли для сравнения.",
+      colMetric: "Показатель",
+      colYou: "Вы",
+      colOpponent: "Соперник",
+      colPeers: "Ваш ранг",
+      colDiff: "Разница",
+      metrics: { gpm: "GPM", xpm: "XPM", lh_10: "Добивания к 10:00", lh_per_min: "Добиваний в минуту", deaths: "Смерти", kda: "KDA", damage_per_min: "Урон в минуту", net_worth: "Ценность" },
+      rankCareerTitle: "Вы и игроки вашего ранга",
+      rankCareerNote: (rank, role, n) => `${rank || "Ваш ранг"} · ${role} · игроки той же роли в ваших ${n} разобранных матчах`,
+      rankCareerEmpty: "Появится после нескольких матчей, разобранных по данным OpenDota.",
+      colBracket: "На вашем ранге",
+      bracketHint: (rank) => `Винрейт героя у всех игроков ранга ${rank} (OpenDota)`
     }
   };
 
@@ -844,6 +894,14 @@
     } else {
       parts.push(focusCard(analysis));
       parts.push(sectionsCard(analysis));
+      const build = buildCard(analysis);
+      if (build) {
+        parts.push(build);
+      }
+      const rank = rankCard(analysis);
+      if (rank) {
+        parts.push(rank);
+      }
       const chart = chartCard(analysis);
       if (chart) {
         parts.push(chart);
@@ -864,7 +922,8 @@
     root.replaceChildren(...parts);
     hydrate(root);
     // Charts measure their container, so draw after insertion.
-    root.querySelectorAll("[data-chart]").forEach((host) => drawChart(host, analysis));
+    root.querySelectorAll("[data-chart='match']").forEach((host) => drawChart(host, analysis));
+    root.querySelectorAll("[data-chart='timing']").forEach((host) => drawTimingChart(host, analysis));
   }
 
   function reviewHeader(detail, analysis, summary) {
@@ -1042,6 +1101,213 @@
       ariaLabel: label,
       height: 210
     });
+  }
+
+  // --- build + rank (match) ---------------------------------------------------------
+
+  function buildCard(analysis) {
+    const build = analysis.build;
+    if (!build || !(build.items || []).length) {
+      return null;
+    }
+    const rows = build.items.map((item, index) => {
+      const timing = item.timing;
+      return h(
+        "div",
+        { class: "build-item" },
+        h(
+          "div",
+          { class: "build-item-head" },
+          h("span", { class: "build-item-name", text: item.name }),
+          h("span", { class: "muted num", text: t("buildBy", clock(item.t)) })
+        ),
+        timing
+          ? h(
+              "div",
+              {},
+              h("p", { class: "small build-item-line", text: timingLine(timing) }),
+              h("div", { class: "chart-host chart-mini", dataset: { chart: "timing", index: String(index) } })
+            )
+          : null
+      );
+    });
+    const popular = build.popular || {};
+    const phases = ["mid", "late", "early"].filter((phase) => (popular[phase] || []).length);
+    const popularBlock = phases.length
+      ? h(
+          "div",
+          { class: "build-popular" },
+          h("p", { class: "section-name", text: t("buildPopular") }),
+          phases.map((phase) =>
+            h(
+              "div",
+              { class: "build-phase" },
+              h("span", { class: "muted small build-phase-label", text: t(`buildPhase.${phase}`) }),
+              h(
+                "div",
+                { class: "chips" },
+                popular[phase].map((row) =>
+                  h(
+                    "span",
+                    { class: `chip ${row.bought ? "chip-on" : ""}`, title: row.bought ? t("buildBought") : "" },
+                    row.bought ? icon("circle-check") : null,
+                    h("span", { text: row.name })
+                  )
+                )
+              )
+            )
+          )
+        )
+      : null;
+    return card(
+      t("buildTitle"),
+      "coins",
+      h(
+        "div",
+        { class: "build" },
+        build.has_timings ? h("p", { class: "muted small", text: t("buildTimingNote") }) : h("p", { class: "muted small", text: t("buildNoTimings") }),
+        rows,
+        popularBlock
+      )
+    );
+  }
+
+  function timingLine(timing) {
+    if (timing.bucket === timing.typical_bucket) {
+      return t("buildItemTypical", timing.winrate, clock(timing.bucket));
+    }
+    return t("buildItemLine", timing.winrate, clock(timing.bucket), clock(timing.typical_bucket), timing.typical_winrate);
+  }
+
+  function drawTimingChart(host, analysis) {
+    const item = (analysis.build?.items || [])[Number(host.dataset.index)];
+    const timing = item && item.timing;
+    if (!timing) {
+      return;
+    }
+    window.LauncherCharts.columns(host, {
+      items: timing.buckets.map((bucket) => ({
+        label: clock(bucket.time),
+        value: bucket.winrate,
+        title: t("buildTimingTip", clock(bucket.time)),
+        detail: `${number(bucket.games)} ${state.locale === "ru" ? "игр" : "games"}`,
+        muted: bucket.time !== timing.bucket
+      })),
+      // 0-based columns, but no taller than needed so a 10-point gap is visible.
+      yMax: Math.min(100, Math.ceil((Math.max(...timing.buckets.map((b) => b.winrate)) + 10) / 20) * 20),
+      valueLabels: true,
+      valueSuffix: "%",
+      color: VIZ_1,
+      valueLabel: t("winrateLabel"),
+      ariaLabel: `${item.name}: ${t("winrateLabel")}`,
+      height: 130,
+      xLabels: true
+    });
+  }
+
+  const RANK_METRICS = ["gpm", "lh_10", "deaths", "kda", "damage_per_min", "net_worth"];
+  const LOWER_BETTER = new Set(["deaths"]);
+
+  function formatMetric(key, value) {
+    if (value === null || value === undefined) {
+      return "—";
+    }
+    if (key === "kda" || key === "lh_per_min") {
+      return Number(value).toFixed(1);
+    }
+    if (key === "deaths") {
+      return Number(value).toFixed(Number.isInteger(value) ? 0 : 1);
+    }
+    return number(value);
+  }
+
+  function diffCell(key, you, other, betterOverride) {
+    if (you === null || you === undefined || other === null || other === undefined) {
+      return h("td", { class: "num-col num muted", text: "—" });
+    }
+    const diff = you - other;
+    const threshold = Math.max(0.01, Math.abs(other) * 0.03);
+    const better = betterOverride !== undefined ? betterOverride : Math.abs(diff) <= threshold ? null : LOWER_BETTER.has(key) ? diff < 0 : diff > 0;
+    const tone = better === true ? "good" : better === false ? "bad" : "idle";
+    const sign = diff > 0 ? "+" : diff < 0 ? "−" : "";
+    return h("td", { class: `num-col num delta-${tone}`, text: `${sign}${formatMetric(key, Math.abs(diff))}` });
+  }
+
+  function rankCard(analysis) {
+    const peers = analysis.peers;
+    if (!peers) {
+      return null;
+    }
+    const heroes = (peers.peers || []).map((p) => p.hero).filter(Boolean).slice(0, 2).join(", ");
+    const note = h("p", { class: "muted small", text: t("rankMatchNote", peers.lobby_rank_label, peers.role_label || "", heroes) });
+    if (!(peers.peers || []).length) {
+      return card(t("rankTitle"), "swords", h("div", {}, note, h("p", { class: "muted", text: t("rankNoPeers") })));
+    }
+    const rows = RANK_METRICS.filter((key) => peers.me[key] !== null && peers.me[key] !== undefined).map((key) =>
+      h(
+        "tr",
+        {},
+        h("td", { text: t(`metrics.${key}`) }),
+        h("td", { class: "num-col num", text: formatMetric(key, peers.me[key]) }),
+        h("td", { class: "num-col num", text: formatMetric(key, peers.avg[key]) }),
+        diffCell(key, peers.me[key], peers.avg[key])
+      )
+    );
+    return card(
+      t("rankTitle"),
+      "swords",
+      h(
+        "div",
+        {},
+        note,
+        h(
+          "div",
+          { class: "table-wrap table-wrap-tight" },
+          h(
+            "table",
+            { class: "table" },
+            h("thead", {}, h("tr", {}, h("th", { text: t("colMetric") }), h("th", { class: "num-col", text: t("colYou") }), h("th", { class: "num-col", text: t("colOpponent") }), h("th", { class: "num-col", text: t("colDiff") }))),
+            h("tbody", {}, rows)
+          )
+        )
+      )
+    );
+  }
+
+  function careerRankCard(career) {
+    const rank = career.rank;
+    if (!rank || !(rank.metrics || []).length) {
+      return card(t("rankCareerTitle"), "swords", h("p", { class: "muted", text: t("rankCareerEmpty") }));
+    }
+    const rows = rank.metrics.map((row) =>
+      h(
+        "tr",
+        {},
+        h("td", { text: t(`metrics.${row.key}`) }),
+        h("td", { class: "num-col num", text: formatMetric(row.key, row.you) }),
+        h("td", { class: "num-col num", text: formatMetric(row.key, row.peers) }),
+        diffCell(row.key, row.you, row.peers, row.better)
+      )
+    );
+    return card(
+      t("rankCareerTitle"),
+      "swords",
+      h(
+        "div",
+        {},
+        h("p", { class: "muted small", text: t("rankCareerNote", rank.rank_label, rank.role_label || "", rank.matches) }),
+        h(
+          "div",
+          { class: "table-wrap table-wrap-tight" },
+          h(
+            "table",
+            { class: "table" },
+            h("thead", {}, h("tr", {}, h("th", { text: t("colMetric") }), h("th", { class: "num-col", text: t("colYou") }), h("th", { class: "num-col", text: t("colPeers") }), h("th", { class: "num-col", text: t("colDiff") }))),
+            h("tbody", {}, rows)
+          )
+        )
+      )
+    );
   }
 
   function momentsCard(analysis) {
@@ -1248,7 +1514,7 @@
             h(
               "table",
               { class: "table" },
-              h("thead", {}, h("tr", {}, h("th", { text: t("colHero") }), h("th", { class: "num-col", text: t("colMatches") }), h("th", { class: "num-col", text: t("colWinrate") }), h("th", { class: "num-col", text: "KDA" }), h("th", { class: "num-col hide-narrow", text: t("colGpm") }), h("th", { class: "num-col", text: t("colScore") }))),
+              h("thead", {}, h("tr", {}, h("th", { text: t("colHero") }), h("th", { class: "num-col", text: t("colMatches") }), h("th", { class: "num-col", text: t("colWinrate") }), h("th", { class: "num-col", text: t("colBracket"), title: career.rank_bracket_label ? t("bracketHint", career.rank_bracket_label) : "" }), h("th", { class: "num-col hide-narrow", text: "KDA" }), h("th", { class: "num-col hide-narrow", text: t("colGpm") }), h("th", { class: "num-col", text: t("colScore") }))),
               h(
                 "tbody",
                 {},
@@ -1259,7 +1525,8 @@
                     h("td", { class: "hero-cell", text: hero.hero }),
                     h("td", { class: "num-col num", text: String(hero.matches) }),
                     h("td", { class: "num-col num", text: hero.winrate == null ? "—" : `${hero.winrate}%` }),
-                    h("td", { class: "num-col num", text: hero.kda == null ? "—" : hero.kda.toFixed(1) }),
+                    h("td", { class: "num-col num muted", text: hero.bracket_winrate == null ? "—" : `${hero.bracket_winrate}%` }),
+                    h("td", { class: "num-col num hide-narrow", text: hero.kda == null ? "—" : hero.kda.toFixed(1) }),
                     h("td", { class: "num-col num hide-narrow", text: number(hero.gpm) }),
                     h("td", { class: "num-col num", text: hero.score == null ? "—" : String(Math.round(hero.score)) })
                   )
@@ -1274,6 +1541,7 @@
       h("p", { class: "muted small progress-note", text: t("analyzed", career.analyzed, career.matches) }),
       tiles,
       scoreCard,
+      careerRankCard(career),
       planCard,
       strengthsCard || "",
       heroesCard || ""

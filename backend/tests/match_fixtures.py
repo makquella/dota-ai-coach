@@ -29,6 +29,12 @@ LINEUP = [
 ]
 
 
+# OpenDota lane_role per LINEUP index (1 safe, 2 mid, 3 off); supports place wards.
+LANE_ROLES = [1, 2, 3, 3, 1, 1, 2, 3, 3, 1]
+SUPPORTS = {3, 4, 8, 9}
+ENEMY_CARRY = 5
+
+
 def _curve(per_minute: float, minutes: int, *, stall: tuple[int, int] | None = None) -> list[int]:
     values, total = [], 0.0
     for minute in range(minutes + 1):
@@ -66,16 +72,21 @@ def opendota_match(
             "kills": (11 if good else 3) if me else 4,
             "deaths": len(my_deaths) if me else 5,
             "assists": (14 if good else 6) if me else 8,
-            "last_hits": (330 if good else 160) if me else 150,
+            "last_hits": (330 if good else 160)
+            if me
+            else (40 if index in SUPPORTS else 250 if index == ENEMY_CARRY else 150),
             "denies": (14 if good else 3) if me else 4,
-            "gold_per_min": (690 if good else 390) if me else 450,
+            "gold_per_min": (690 if good else 390)
+            if me
+            else (600 if index == ENEMY_CARRY else 450),
             "xp_per_min": (720 if good else 430) if me else 500,
             "net_worth": (26000 if good else 11500) if me else 14000,
             "level": 25 if me else 20,
             "hero_damage": (32000 if good else 9000) if me else 15000,
             "tower_damage": (6000 if good else 300) if me else 1000,
             "hero_healing": 0,
-            "lane_role": 1 if me else 2,
+            "lane_role": LANE_ROLES[index],
+            "rank_tier": 54 if radiant else 55,
             "is_roaming": False,
             "item_0": "bfury" if good else "phase_boots",
             "benchmarks": {
@@ -87,7 +98,11 @@ def opendota_match(
             },
         }
         if parsed:
-            rate = (7.0 if good else 3.6) if me else 4.0
+            rate = (
+                (7.0 if good else 3.6)
+                if me
+                else (6.5 if index == ENEMY_CARRY else 1.0 if index in SUPPORTS else 4.0)
+            )
             stall = None if good or not me else (15, 22)
             player.update(
                 {
@@ -98,8 +113,8 @@ def opendota_match(
                     "xp_t": _curve(720, minutes),
                     "lane_efficiency_pct": (82 if good else 38) if me else 60,
                     "teamfight_participation": 0.7 if good else 0.35,
-                    "obs_placed": 0 if index < 3 else 12,
-                    "sen_placed": 0 if index < 3 else 6,
+                    "obs_placed": 12 if index in SUPPORTS else 0,
+                    "sen_placed": 6 if index in SUPPORTS else 0,
                     "camps_stacked": 1,
                     "life_state_dead": len(my_deaths) * 40 if me else 150,
                     "purchase_log": (
@@ -182,6 +197,83 @@ def recent_matches(count: int = 15, *, start_match_id: int = MATCH_ID) -> list[d
     return rows
 
 
+# /constants/items shape (subset): key -> {id, dname, cost, components}.
+RAW_ITEM_CONSTANTS = {
+    "tango": {"id": 44, "dname": "Tango", "cost": 90, "components": None},
+    "ward_observer": {"id": 42, "dname": "Observer Ward", "cost": 0, "components": None},
+    "demon_edge": {"id": 51, "dname": "Demon Edge", "cost": 2200, "components": None},
+    "power_treads": {"id": 63, "dname": "Power Treads", "cost": 1400, "components": ["boots"]},
+    "phase_boots": {"id": 50, "dname": "Phase Boots", "cost": 1500, "components": ["boots"]},
+    "bfury": {"id": 145, "dname": "Battle Fury", "cost": 4100, "components": ["quelling_blade"]},
+    "manta": {"id": 147, "dname": "Manta Style", "cost": 4650, "components": ["yasha"]},
+    "black_king_bar": {
+        "id": 116,
+        "dname": "Black King Bar",
+        "cost": 4050,
+        "components": ["ogre_axe"],
+    },
+    "maelstrom": {"id": 166, "dname": "Maelstrom", "cost": 2950, "components": ["javelin"]},
+    "butterfly": {"id": 139, "dname": "Butterfly", "cost": 5450, "components": ["eagle"]},
+    "abyssal_blade": {"id": 208, "dname": "Abyssal Blade", "cost": 6250, "components": ["basher"]},
+}
+
+# /heroes/8/itemPopularity shape: {phase: {item_id: count}}.
+JUGG_POPULARITY = {
+    "start_game_items": {"44": 900},
+    "early_game_items": {"63": 500, "50": 300, "44": 200},
+    "mid_game_items": {"145": 700, "147": 520, "116": 480, "166": 150, "51": 90},
+    "late_game_items": {"139": 400, "208": 300},
+}
+
+# /scenarios/itemTimings shape (hero 8): win rate falls with later purchases.
+JUGG_TIMINGS = [
+    {"hero_id": 8, "item": item, "time": time, "games": str(games), "wins": str(round(games * wr))}
+    for item, rows in {
+        "bfury": [
+            (600, 300, 0.60),
+            (900, 900, 0.57),
+            (1200, 900, 0.52),
+            (1500, 600, 0.47),
+            (1800, 300, 0.42),
+            (2100, 120, 0.38),
+        ],
+        "manta": [
+            (900, 200, 0.58),
+            (1200, 700, 0.55),
+            (1500, 800, 0.50),
+            (1800, 400, 0.45),
+            (2400, 150, 0.40),
+        ],
+        "black_king_bar": [
+            (1200, 300, 0.56),
+            (1500, 600, 0.52),
+            (1800, 500, 0.48),
+            (2400, 200, 0.43),
+        ],
+        "maelstrom": [
+            (900, 300, 0.55),
+            (1200, 500, 0.50),
+            (1500, 300, 0.45),
+            (1800, 150, 0.40),
+            (2100, 40, 0.35),
+        ],
+    }.items()
+    for time, games, wr in rows
+]
+
+
+# /heroStats shape (subset): picks/wins per bracket.
+def _hero_stats_row(hero_id: int, picks: int, base_wins: int, step: int) -> dict[str, Any]:
+    row: dict[str, Any] = {"id": hero_id}
+    for bracket in range(1, 9):
+        row[f"{bracket}_pick"] = picks
+        row[f"{bracket}_win"] = base_wins + step * bracket
+    return row
+
+
+RAW_HERO_STATS = [_hero_stats_row(8, 10000, 5000, 30), _hero_stats_row(1, 8000, 3800, 20)]
+
+
 class FakeOpenDota:
     """Stands in for OpenDotaClient in tests (same methods, no network)."""
 
@@ -222,6 +314,46 @@ class FakeOpenDota:
 
     def request_parse(self, match_id: int) -> None:
         self.parse_requests.append(match_id)
+
+    # Meta endpoints: parsed by the real client from the raw shapes above.
+    def _real(self, raw: Any) -> Any:
+        from app.opendota import OpenDotaClient
+
+        return OpenDotaClient(session=_StaticSession(raw), min_interval=0)
+
+    def item_constants(self) -> dict[str, Any]:
+        self.calls.append("items")
+        return self._real(RAW_ITEM_CONSTANTS).item_constants()
+
+    def item_popularity(self, hero_id: int) -> dict[str, dict[str, int]]:
+        self.calls.append(f"popularity:{hero_id}")
+        return self._real(JUGG_POPULARITY if hero_id == 8 else {}).item_popularity(hero_id)
+
+    def item_timings(self, hero_id: int) -> list[dict[str, Any]]:
+        self.calls.append(f"timings:{hero_id}")
+        return self._real(JUGG_TIMINGS if hero_id == 8 else []).item_timings(hero_id)
+
+    def hero_stats(self) -> list[dict[str, Any]]:
+        self.calls.append("herostats")
+        return self._real(RAW_HERO_STATS).hero_stats()
+
+
+class _StaticSession:
+    """requests.Session stand-in: every request returns the same JSON body."""
+
+    def __init__(self, body: Any):
+        self.body = body
+
+    def request(self, method: str, url: str, **kwargs: Any) -> Any:
+        body = self.body
+
+        class _Response:
+            status_code = 200
+
+            def json(self) -> Any:
+                return copy.deepcopy(body)
+
+        return _Response()
 
 
 def gsi_match_stream(

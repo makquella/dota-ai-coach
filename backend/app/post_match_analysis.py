@@ -21,7 +21,9 @@ from __future__ import annotations
 from datetime import UTC, datetime
 from typing import Any
 
+from app.build_analysis import analyze_build
 from app.item_timing import classify_item_timing, normalize_item_name
+from app.peer_analysis import match_peers, peer_findings
 
 ANALYSIS_VERSION = 1
 
@@ -74,7 +76,13 @@ def detect_role(facts: dict[str, Any]) -> str:
     return "core"
 
 
-def analyze_match(facts: dict[str, Any]) -> dict[str, Any]:
+def analyze_match(
+    facts: dict[str, Any],
+    *,
+    meta: dict[str, Any] | None = None,
+    opendota: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    """`meta`: cached hero meta (build advice); `opendota`: trimmed match (rank peers)."""
     role = detect_role(facts)
     targets = TARGETS[role]
     findings: list[dict[str, Any]] = []
@@ -84,6 +92,12 @@ def analyze_match(facts: dict[str, Any]) -> dict[str, Any]:
         section = builder(facts, role, targets, findings)
         if section is not None:
             sections[section.pop("name")] = section
+
+    build, build_findings = analyze_build(facts, meta, role)
+    findings.extend(build_findings)
+    peers = match_peers(opendota)
+    findings.extend(peer_findings(peers))
+    findings = _dedupe(findings)
 
     weights = SECTION_WEIGHTS[role]
     weighted = [
@@ -95,9 +109,11 @@ def analyze_match(facts: dict[str, Any]) -> dict[str, Any]:
     strengths = sorted(
         (f for f in findings if f["kind"] == "strength"), key=lambda f: -f.get("weight", 1)
     )
-    improvements = sorted(
-        (f for f in findings if f["kind"] == "improve"),
-        key=lambda f: (-f["severity"], -f.get("weight", 1)),
+    improvements = _per_section(
+        sorted(
+            (f for f in findings if f["kind"] == "improve"),
+            key=lambda f: (-f["severity"], -f.get("weight", 1)),
+        )
     )
     return {
         "version": ANALYSIS_VERSION,
@@ -124,12 +140,57 @@ def analyze_match(facts: dict[str, Any]) -> dict[str, Any]:
             "grade": _grade(score) if score is not None else None,
         },
         "sections": sections,
-        "strengths": strengths[:4],
-        "improvements": improvements[:5],
+        "strengths": strengths[:5],
+        "improvements": improvements[:6],
         "focus": [f["id"] for f in improvements[:3]],
         "series": _series(facts, targets),
         "moments": _moments(facts, findings),
+        "build": build,
+        "peers": peers,
     }
+
+
+def _per_section(findings: list[dict[str, Any]], limit: int = 2) -> list[dict[str, Any]]:
+    """Keep the order but at most `limit` findings per section, so one area can't fill the list."""
+    counts: dict[str, int] = {}
+    result = []
+    for finding in findings:
+        section = finding.get("section", "")
+        counts[section] = counts.get(section, 0) + 1
+        if counts[section] <= limit:
+            result.append(finding)
+    return result
+
+
+# A comparison with the same-role player of this match says the same as a
+# generic finding, with a concrete reference: it replaces it and keeps its priority.
+REPLACED_BY_PEER = {
+    "gpm_low": "peer_gpm_behind",
+    "gpm_low_static": "peer_gpm_behind",
+    "lh10_low": "peer_lh10_behind",
+    "deaths_high": "peer_deaths_more",
+}
+
+
+def _dedupe(findings: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Drop generic findings when a more specific one says the same thing."""
+    late_items = {f["params"].get("item") for f in findings if f["id"] == "build_timing_late"}
+    fast_items = {f["params"].get("item") for f in findings if f["id"] == "build_timing_good"}
+    by_id = {f["id"]: f for f in findings}
+    result = []
+    for finding in findings:
+        item = finding["params"].get("item")
+        if finding["id"] == "core_item_slow" and item in late_items:
+            continue
+        if finding["id"] == "core_item_fast" and item in fast_items:
+            continue
+        peer = by_id.get(REPLACED_BY_PEER.get(finding["id"], ""))
+        if peer is not None:
+            peer["severity"] = max(peer["severity"], finding["severity"])
+            peer["weight"] = max(peer.get("weight", 1), finding.get("weight", 1))
+            continue
+        result.append(finding)
+    return result
 
 
 def _finding(
