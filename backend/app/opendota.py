@@ -294,7 +294,9 @@ class OpenDotaClient:
                 method, f"{self.base_url}{path}", params=query, timeout=self.timeout
             )
         except requests.RequestException as error:
-            raise OpenDotaError("offline", f"OpenDota is unreachable: {error}") from error
+            # requests puts the full URL (with ?api_key=…) into its messages.
+            message = str(error).replace(self.api_key, "[key]") if self.api_key else str(error)
+            raise OpenDotaError("offline", f"OpenDota is unreachable: {message}") from error
         if response.status_code == 404:
             raise OpenDotaError("not_found", "OpenDota does not know this match or player.")
         if response.status_code == 429:

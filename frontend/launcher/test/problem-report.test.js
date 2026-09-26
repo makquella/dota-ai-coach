@@ -6,15 +6,17 @@ const { buildReport, redact, reportFileName, tail, LOG_TAIL_LINES } = require(".
 test("redact removes every provider key format", () => {
   const text = [
     "gemini AIzaSyA1234567890abcdefghijklmn",
-    "studio AQ.Ab8RN6IA45YlMUcYlW-JCtqm4g3rWXYG",
+    "studio AQ.Zz9TestKeyOnly0000-abcdefghijklm",
     "groq gsk_1234567890abcdefXYZ",
     "openrouter sk-or-v1-1234567890abcdef",
     "Authorization: Bearer abc.def-1234567890",
-    '{"api_key": "plain-secret-without-prefix", "provider": "gemini"}'
+    '{"api_key": "plain-secret-without-prefix", "provider": "gemini"}',
+    "url: /api/players/1?api_key=00000000-1111-2222-3333-444455556666&limit=5"
   ].join("\n");
   const result = redact(text);
-  assert.equal((result.match(/\[redacted\]/g) || []).length, 6);
-  assert.ok(!/1234567890|plain-secret|Ab8RN6/.test(result));
+  assert.equal((result.match(/\[redacted\]/g) || []).length, 7);
+  assert.ok(!result.includes("00000000-1111"));
+  assert.ok(!/1234567890|plain-secret|Zz9TestKey/.test(result));
   assert.match(result, /"provider": "gemini"/);
 });
 

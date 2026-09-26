@@ -82,7 +82,7 @@ def test_a_crashing_job_is_recorded_and_the_worker_goes_on():
 
 def test_redact_hides_every_provider_key_format():
     text = (
-        "gemini AIzaSyA1234567890abcdefghijklmn and AQ.Ab8RN6IA45YlMUcYlW-JCtqm "
+        "gemini AIzaSyA1234567890abcdefghijklmn and AQ.Zz9TestKeyOnly0000-abcdefg "
         "groq gsk_1234567890abcdefXYZ openrouter sk-or-v1-1234567890abcdef"
     )
     redacted = diagnostics.redact(text)
@@ -98,3 +98,23 @@ def test_old_recommendation_logs_are_pruned(tmp_path):
     names = sorted(path.name for path in tmp_path.glob("*.json"))
     assert len(names) == 5 and names[0].startswith("2026-09-17")
     assert (tmp_path / "notes.txt").exists()
+
+
+def test_opendota_key_is_not_in_offline_errors():
+    import requests
+
+    from app.opendota import OpenDotaClient, OpenDotaError
+
+    key = "00000000-1111-2222-3333-444455556666"
+
+    class _Session:
+        def request(self, method, url, params=None, timeout=None):
+            query = "&".join(f"{k}={v}" for k, v in params)
+            raise requests.ConnectionError(f"Max retries exceeded with url: {url}?{query}")
+
+    client = OpenDotaClient("https://api.example", api_key=key, session=_Session(), min_interval=0)
+    with pytest.raises(OpenDotaError) as caught:
+        client.player(1)
+    assert caught.value.code == "offline"
+    assert key not in str(caught.value) and "[key]" in str(caught.value)
+    assert key not in diagnostics.redact(f"GET /api/players/1?api_key={key}&x=1")

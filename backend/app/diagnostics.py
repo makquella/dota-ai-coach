@@ -22,9 +22,11 @@ from typing import Any
 MAX_ERRORS = 50
 STARTED_AT = time.time()
 
-# Gemini (AIza…, AQ.…), Groq (gsk_…), OpenRouter (sk-or-…) and bearer tokens.
+# Gemini (AIza…, AQ.…), Groq (gsk_…), OpenRouter (sk-or-…), bearer tokens and
+# ?api_key=… in URLs (OpenDota).
 _SECRET_RE = re.compile(
-    r"(AIza[\w-]{20,}|AQ\.[\w-]{20,}|gsk_[\w-]{16,}|sk-[\w-]{16,}|Bearer\s+[\w.-]{12,})"
+    r"(AIza[\w-]{20,}|AQ\.[\w-]{20,}|gsk_[\w-]{16,}|sk-[\w-]{16,}|Bearer\s+[\w.-]{12,}"
+    r"|(?<=api_key=)[^&\s'\"]+)"
 )
 
 _lock = threading.Lock()

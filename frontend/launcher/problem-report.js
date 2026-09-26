@@ -10,7 +10,8 @@ const SECRET_PATTERNS = [
   /AQ\.[\w-]{20,}/g, // Google AI Studio (new format)
   /gsk_[\w-]{16,}/g, // Groq
   /sk-[\w-]{16,}/g, // OpenRouter and other OpenAI-style keys
-  /Bearer\s+[\w.-]{12,}/g
+  /Bearer\s+[\w.-]{12,}/g,
+  /(?<=api_key=)[^&\s'"]+/g // OpenDota key in a URL
 ];
 const KEY_FIELD = /("api_?key"\s*:\s*")[^"]*"/gi;
 

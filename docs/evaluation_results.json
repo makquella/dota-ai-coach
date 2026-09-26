@@ -1,0 +1,253 @@
+{
+  "environment": {
+    "generated_at": "2026-09-26T23:43:42+00:00",
+    "commit": "eabe0b5",
+    "python": "3.11.15",
+    "platform": "Linux-6.18.44-fc-v42-x86_64-with-glibc2.39"
+  },
+  "latency": {
+    "payloads": 1971,
+    "game_minutes": 32,
+    "match_end_ms": 424.0,
+    "rows": [
+      {
+        "step": "POST /gsi",
+        "n": 1971,
+        "mean_ms": 3.11,
+        "p50_ms": 2.94,
+        "p95_ms": 3.78,
+        "p99_ms": 6.07,
+        "max_ms": 18.72
+      },
+      {
+        "step": "GET /overlay/recommendation",
+        "n": 1971,
+        "mean_ms": 4.19,
+        "p50_ms": 4.35,
+        "p95_ms": 5.3,
+        "p99_ms": 6.4,
+        "max_ms": 29.6
+      },
+      {
+        "step": "one tick (both)",
+        "n": 1971,
+        "mean_ms": 7.31,
+        "p50_ms": 7.3,
+        "p95_ms": 8.71,
+        "p99_ms": 13.72,
+        "max_ms": 32.41
+      }
+    ]
+  },
+  "replays": [
+    {
+      "match": "Phantom Lancer 20-30 min (match 8843382732)",
+      "states": 601,
+      "minutes": 10.0,
+      "advice_shown": 7,
+      "advice_per_10_min": 7.0,
+      "urgent": 1,
+      "coaching": 6,
+      "decision_points": {
+        "FARMING_PHASE_PRESSURE": 4,
+        "OBJECTIVE_FIGHT_CHECK": 1,
+        "RECENT_DAMAGE_WARNING": 1,
+        "LOW_HP": 1
+      },
+      "min_gap_s": 9.0,
+      "suppressed": {
+        "duplicate_suppressed_count": 338,
+        "repeated_post_laning_suppressed_count": 303,
+        "repeated_objective_suppressed_count": 16,
+        "post_laning_safety_suppressed_count": 95
+      },
+      "suppressed_total": 752,
+      "p95_ms": 5.09,
+      "examples": [
+        {
+          "t": "20:00",
+          "mode": "coaching",
+          "action": "Recover farm through the safest wave-and-camp route."
+        },
+        {
+          "t": "20:45",
+          "mode": "coaching",
+          "action": "Avoid the pressured lane and farm a safer wave or nearby camp."
+        },
+        {
+          "t": "21:55",
+          "mode": "coaching",
+          "action": "Only consider the objective if your team is already grouped nearby."
+        },
+        {
+          "t": "24:25",
+          "mode": "coaching",
+          "action": "Avoid the pressured lane and farm a safer wave or nearby camp."
+        }
+      ]
+    },
+    {
+      "match": "Juggernaut 10-20 min (match 8843471434)",
+      "states": 601,
+      "minutes": 10.0,
+      "advice_shown": 10,
+      "advice_per_10_min": 10.0,
+      "urgent": 3,
+      "coaching": 7,
+      "decision_points": {
+        "LOW_HP": 4,
+        "LANING_FARM_CHECK": 2,
+        "RECENT_DAMAGE_WARNING": 1,
+        "FARMING_PHASE_PRESSURE": 1,
+        "OBJECTIVE_FIGHT_CHECK": 1,
+        "REPEATED_DEATH_PATTERN": 1
+      },
+      "min_gap_s": 4.0,
+      "suppressed": {
+        "duplicate_suppressed_count": 368,
+        "repeated_post_laning_suppressed_count": 223,
+        "repeated_objective_suppressed_count": 51,
+        "post_laning_safety_suppressed_count": 154,
+        "death_route_suppressed_count": 12,
+        "repeated_low_hp_suppressed_count": 29
+      },
+      "suppressed_total": 837,
+      "p95_ms": 5.03,
+      "examples": [
+        {
+          "t": "10:00",
+          "mode": "coaching",
+          "action": "Recover farm through the safest wave-and-camp route."
+        },
+        {
+          "t": "10:45",
+          "mode": "coaching",
+          "action": "Avoid the pressured lane and farm a safer wave or nearby camp."
+        },
+        {
+          "t": "12:18",
+          "mode": "coaching",
+          "action": "Back up and stabilize before trading again."
+        },
+        {
+          "t": "12:22",
+          "mode": "urgent",
+          "action": "Reset HP before showing on another lane."
+        }
+      ]
+    }
+  ],
+  "reviews": {
+    "rows": [
+      {
+        "source": "OpenDota, parsed replay",
+        "score": 31,
+        "sections": [
+          "farm",
+          "fights",
+          "items",
+          "laning",
+          "survival"
+        ],
+        "improvements": 6,
+        "strengths": 0,
+        "blocks": [
+          "build",
+          "peers",
+          "draft"
+        ],
+        "series": [
+          "deaths",
+          "denies",
+          "gold",
+          "last_hits",
+          "last_hits_target",
+          "minutes",
+          "xp"
+        ],
+        "build_ms": 383.0
+      },
+      {
+        "source": "OpenDota, basic (not parsed)",
+        "score": 29,
+        "sections": [
+          "farm",
+          "fights",
+          "survival"
+        ],
+        "improvements": 3,
+        "strengths": 0,
+        "blocks": [
+          "peers",
+          "draft"
+        ],
+        "series": [],
+        "build_ms": 5.9
+      },
+      {
+        "source": "GSI only (the app's own recording)",
+        "score": 89,
+        "sections": [
+          "farm",
+          "fights",
+          "items",
+          "laning",
+          "survival"
+        ],
+        "improvements": 2,
+        "strengths": 4,
+        "blocks": [
+          "map"
+        ],
+        "series": [
+          "deaths",
+          "denies",
+          "gold",
+          "last_hits",
+          "last_hits_target",
+          "minutes"
+        ],
+        "build_ms": 403.6
+      }
+    ],
+    "career": {
+      "matches": 26,
+      "analyzed": 12,
+      "focus_plan": 3,
+      "self_compare": true,
+      "build_ms": 10.1
+    }
+  },
+  "fact_check": {
+    "clean_sentences": 68,
+    "clean_kept": 68,
+    "false_positive_examples": [],
+    "mutations": {
+      "hero": {
+        "n": 16,
+        "caught": 16,
+        "rate": 1.0
+      },
+      "item": {
+        "n": 8,
+        "caught": 8,
+        "rate": 1.0
+      },
+      "number": {
+        "n": 52,
+        "caught": 52,
+        "rate": 1.0
+      },
+      "small count 2-12": {
+        "n": 52,
+        "caught": 0,
+        "rate": 0.0
+      },
+      "time": {
+        "n": 42,
+        "caught": 42,
+        "rate": 1.0
+      }
+    }
+  }
+}
