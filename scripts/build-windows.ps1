@@ -10,6 +10,13 @@
        frontend\launcher\dist\DotaAICoach-Setup-<version>.exe
        frontend\launcher\dist\win-unpacked\DotaAICoach.exe
 
+  Code signing is optional and off unless configured by env (see
+  docs/PACKAGING_WINDOWS.md, "Code signing"):
+    Azure Artifact Signing: AZURE_TENANT_ID, AZURE_CLIENT_ID, AZURE_CLIENT_SECRET,
+      AZURE_SIGNING_ENDPOINT, AZURE_SIGNING_ACCOUNT, AZURE_SIGNING_PROFILE, SIGN_PUBLISHER_NAME
+    or a certificate for signtool: CSC_LINK (+ CSC_KEY_PASSWORD)
+  electron-builder then signs DotaAICoach.exe, the bundled backend exe and the installer.
+
 .PARAMETER Python
   Python 3.11+ used to create backend\.venv when it does not exist yet.
 
@@ -49,9 +56,26 @@ function Invoke-Native {
   }
 }
 
-if (-not $env:CSC_LINK) {
-  # No signing certificate configured: do not let electron-builder search for one.
+$SignArgs = @()
+$AzureSigning = $env:AZURE_SIGNING_ENDPOINT -and $env:AZURE_SIGNING_ACCOUNT -and `
+  $env:AZURE_SIGNING_PROFILE -and $env:SIGN_PUBLISHER_NAME
+if ($AzureSigning) {
+  # Azure Artifact Signing; Entra ID credentials come from AZURE_TENANT_ID/CLIENT_ID/CLIENT_SECRET.
+  $SignArgs = @(
+    "-c.win.azureSignOptions.endpoint=$($env:AZURE_SIGNING_ENDPOINT)",
+    "-c.win.azureSignOptions.codeSigningAccountName=$($env:AZURE_SIGNING_ACCOUNT)",
+    "-c.win.azureSignOptions.certificateProfileName=$($env:AZURE_SIGNING_PROFILE)",
+    "-c.win.azureSignOptions.publisherName=$($env:SIGN_PUBLISHER_NAME)"
+  )
+  Write-Host "Code signing: Azure Artifact Signing ($($env:SIGN_PUBLISHER_NAME))"
+}
+elseif ($env:CSC_LINK) {
+  Write-Host "Code signing: certificate from CSC_LINK"
+}
+else {
+  # No signing configured: do not let electron-builder search for a certificate.
   $env:CSC_IDENTITY_AUTO_DISCOVERY = "false"
+  Write-Host "Code signing: off (unsigned build)"
 }
 
 if (-not $SkipBackend) {
@@ -86,7 +110,7 @@ try {
   $targets = @("nsis")
   if ($Portable) { $targets += "portable" }
   Invoke-Native "Build Electron app + installer ($($targets -join ', '))" {
-    npx --no-install electron-builder --win @targets --publish never
+    npx --no-install electron-builder --win @targets --publish never @SignArgs
   }
 }
 finally {
