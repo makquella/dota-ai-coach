@@ -1,0 +1,87 @@
+name: Release
+
+# Push a tag "v<version>" (matching frontend/launcher/package.json) to build,
+# smoke-test and publish the Windows installer as a GitHub Release. Installed
+# apps update themselves from the latest release (electron-updater reads
+# latest.yml from it), see docs/PACKAGING_WINDOWS.md.
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  windows:
+    name: Build and publish Windows installer
+    runs-on: windows-latest
+    timeout-minutes: 45
+    defaults:
+      run:
+        shell: pwsh
+    env:
+      TAG: ${{ github.ref_name }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check the tag matches the app version
+        run: |
+          $version = (Get-Content frontend/launcher/package.json -Raw | ConvertFrom-Json).version
+          if ("v$version" -ne $env:TAG) {
+            throw "Tag $env:TAG does not match frontend/launcher/package.json version $version (expected v$version)."
+          }
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: |
+            backend/requirements.txt
+            backend/requirements-build.txt
+
+      - name: Set up Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: frontend/launcher/package-lock.json
+
+      - name: Build backend exe, Electron app and NSIS installer
+        run: ./scripts/build-windows.ps1
+
+      - name: Smoke test (backend /health, app, installer)
+        run: ./scripts/smoke-windows.ps1
+
+      - name: Publish GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $version = $env:TAG.Substring(1)
+          $dist = "frontend/launcher/dist"
+          # electron-updater needs all three: the feed, the installer and its blockmap.
+          $files = @(
+            "$dist/latest.yml",
+            "$dist/DotaAICoach-Setup-$version.exe",
+            "$dist/DotaAICoach-Setup-$version.exe.blockmap"
+          )
+          foreach ($file in $files) {
+            if (-not (Test-Path $file)) { throw "Missing release file: $file" }
+          }
+          gh release create $env:TAG @files --title "Dota AI Coach $version" --generate-notes
+          if ($LASTEXITCODE -ne 0) { throw "gh release create failed with exit code $LASTEXITCODE" }
+
+      - name: Upload logs on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-smoke-logs
+          path: |
+            ${{ runner.temp }}/smoke-*.json
+            ${{ runner.temp }}/launcher.log
+          if-no-files-found: ignore

@@ -21,6 +21,7 @@ const { createOverlayController, OVERLAY_DEFAULTS } = require("./overlay-window"
 const { DOTA_STATUS, dotaStatus, overlayVisibility } = require("./overlay-visibility");
 const { createSettingsStore } = require("./settings");
 const { dotaDirFromExecutable, gsiDirForDotaDir, locateDota } = require("./steam-locator");
+const { createUpdater, UPDATE_STATUS } = require("./updater");
 
 const APP_ID = "com.dotaai.coach";
 const APP_NAME = "Dota AI Coach";
@@ -74,6 +75,11 @@ const settings = createSettingsStore(path.join(USER_DATA_DIR, "settings.json"), 
   gsiConfigPath: "",
   gsiAutoInstalled: false,
   trayHintShown: false,
+  // "The overlay is visible for me" on the exclusive-fullscreen warning.
+  fullscreenWarningDismissed: false,
+  // Set before an update installs so the relaunched app returns the way it was.
+  startHiddenOnce: false,
+  updatedFrom: "",
   overlay: { ...OVERLAY_DEFAULTS }
 });
 
@@ -113,6 +119,8 @@ let autoInstallRunning = false;
 const live = { inMatch: false, pollTimer: null, polling: false, details: emptyLiveDetails(), recentAdvice: [], polls: 0 };
 const presence = { status: DOTA_STATUS.NOT_FOUND, visible: false, reason: "", code: "" };
 let autostartEnabled = false;
+let fullscreenBalloonShown = false;
+let fullscreenWarningShown = false;
 
 const BACKEND_NOISE_PATTERNS = [
   /GET\s+\/overlay\/recommendation\b/,
@@ -124,6 +132,7 @@ const overlay = createOverlayController({
   settings,
   getBackend: backendInfo,
   getLocale: () => uiLocale(),
+  getDotaRect: () => dotaWatcher.getState().windowRect,
   onChange: () => {
     refreshPresence();
     updateStatus();
@@ -144,10 +153,39 @@ dotaWatcher.on("change", (state) => {
     // The running game tells us where it is installed, even outside known libraries.
     autoInstallGsiOnce().catch((error) => appendLog("gsi", error.message, { force: true }));
   }
+  // Follow Dota to its monitor / window (no-op when nothing moved).
+  overlay.refreshPlacement();
+  noteExclusiveFullscreen(state);
   refreshPresence();
   // The status screen shows the process/focus state itself, so push it even
   // when overlay visibility and the tray status did not change.
   updateStatus();
+  if (fullscreenWarningActive() !== fullscreenWarningShown) {
+    fullscreenWarningShown = fullscreenWarningActive();
+    refreshTray();
+  }
+});
+
+const updater = createUpdater({
+  currentVersion: app.getVersion(),
+  // NSIS build only: the portable exe and dev runs are not updated.
+  supported: IS_PACKAGED && process.platform === "win32" && !process.env.PORTABLE_EXECUTABLE_DIR && !IS_SMOKE_TEST,
+  // Never while Dota runs or a match feeds GSI, nor under the user's eyes.
+  canInstallNow: () =>
+    !dotaWatcher.getState().running &&
+    !live.inMatch &&
+    processStatus.demo !== "running" &&
+    !(mainWindow && !mainWindow.isDestroyed() && mainWindow.isVisible()),
+  beforeInstall: ({ unattended }) => {
+    const panelOpen = Boolean(mainWindow && !mainWindow.isDestroyed() && mainWindow.isVisible());
+    settings.set("startHiddenOnce", unattended || !panelOpen);
+    settings.set("updatedFrom", app.getVersion());
+  },
+  log: (message) => appendLog("update", message, { force: true })
+});
+updater.on("change", () => {
+  updateStatus();
+  refreshTray();
 });
 
 // ---------------------------------------------------------------------------
@@ -166,7 +204,13 @@ const TRAY_TEXT = {
     [DOTA_STATUS.WAITING]: "Waiting for game",
     [DOTA_STATUS.IN_GAME]: "In game",
     gsiInstalled: "Dota 2 GSI config installed.",
-    restartDota: "Restart Dota 2 to connect."
+    restartDota: "Restart Dota 2 to connect.",
+    fullscreenMenu: "Overlay hidden by exclusive fullscreen",
+    fullscreenBalloon:
+      "Dota runs in exclusive fullscreen, so the overlay cannot be drawn over it. In Dota: Settings → Video → Display mode → Borderless window.",
+    updateDownloading: (version, percent) => `Downloading update ${version}… ${percent}%`,
+    updateReady: (version) => `Restart and update to ${version}`,
+    updated: (version) => `Updated to ${version}.`
   },
   ru: {
     open: "Открыть",
@@ -179,18 +223,25 @@ const TRAY_TEXT = {
     [DOTA_STATUS.WAITING]: "Ждём игру",
     [DOTA_STATUS.IN_GAME]: "В игре",
     gsiInstalled: "Конфиг GSI для Dota 2 установлен.",
-    restartDota: "Перезапустите Dota 2."
+    restartDota: "Перезапустите Dota 2.",
+    fullscreenMenu: "Оверлей не виден: полноэкранный режим",
+    fullscreenBalloon:
+      "Дота запущена в эксклюзивном полноэкранном режиме — поверх него оверлей не рисуется. В Доте: Настройки → Видео → режим экрана «Окно без рамки» (Borderless window).",
+    updateDownloading: (version, percent) => `Загружается обновление ${version}… ${percent}%`,
+    updateReady: (version) => `Перезапустить и обновить до ${version}`,
+    updated: (version) => `Обновлено до версии ${version}.`
   }
 };
 
-function t(key) {
+function t(key, ...args) {
   let locale = "en";
   try {
     locale = app.getLocale().toLowerCase().startsWith("ru") ? "ru" : "en";
   } catch {
     // app.getLocale() is only available after "ready".
   }
-  return TRAY_TEXT[locale][key] || TRAY_TEXT.en[key] || key;
+  const value = TRAY_TEXT[locale][key] || TRAY_TEXT.en[key] || key;
+  return typeof value === "function" ? value(...args) : value;
 }
 
 function argValue(name) {
@@ -308,6 +359,9 @@ function publicStatus() {
     overlayLocked: !overlay.isUnlocked(),
     dotaRunning: dota.running,
     dotaFocused: dota.focused,
+    dotaFullscreen: fullscreenWarningActive(),
+    appVersion: app.getVersion(),
+    update: updater.getState(),
     overlayReasonCode: presence.code,
     backend: processStatus.backend,
     backendPort: backend.port,
@@ -333,6 +387,32 @@ function publicStatus() {
 
 function updateStatus() {
   send("launcher:status", publicStatus());
+}
+
+// Exclusive fullscreen: Windows does not draw other windows over the game, so
+// the overlay is "shown" but invisible. Tell the user once per Dota run (tray
+// balloon) and keep a warning on the status screen and in the tray menu. The
+// user can dismiss it if the overlay is visible for them anyway.
+function fullscreenWarningActive() {
+  const dota = dotaWatcher.getState();
+  return Boolean(
+    dota.running && dota.exclusiveFullscreen && overlay.isEnabled() && !settings.get("fullscreenWarningDismissed")
+  );
+}
+
+function noteExclusiveFullscreen(state) {
+  if (!state.running) {
+    fullscreenBalloonShown = false;
+    return;
+  }
+  if (!state.exclusiveFullscreen || fullscreenBalloonShown) {
+    return;
+  }
+  fullscreenBalloonShown = true;
+  appendLog("overlay", "Dota runs in exclusive fullscreen; the overlay cannot be drawn over it.", { force: true });
+  if (fullscreenWarningActive()) {
+    showTrayBalloon(t("fullscreenBalloon"));
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -417,7 +497,7 @@ async function pollGsiStatus() {
   let recentChanged = false;
   if (processStatus.backend === "running" && live.polls % 3 === 1) {
     try {
-      const recent = await requestBackendJson("/advice/recent?limit=5");
+      const recent = await requestBackendJson(`/advice/recent?limit=5&lang=${uiLocale()}`);
       const items = Array.isArray(recent.items) ? recent.items : [];
       recentChanged = JSON.stringify(items) !== JSON.stringify(live.recentAdvice);
       live.recentAdvice = items;
@@ -864,7 +944,7 @@ function requestBackendJson(endpointPath, method = "GET") {
 
 async function fetchOverlayRecommendation() {
   try {
-    return { ok: true, data: await requestBackendJson("/overlay/recommendation") };
+    return { ok: true, data: await requestBackendJson(`/overlay/recommendation?lang=${uiLocale()}`) };
   } catch (error) {
     return { ok: false, error: error.message };
   }
@@ -1340,10 +1420,22 @@ function refreshTray() {
   const statusLine = t(presence.status);
   const port = backend.port && processStatus.backend !== "stopped" ? ` :${backend.port}` : "";
   const backendLine = `${t("backend")}: ${processStatus.backend}${port}`;
-  tray.setToolTip(`${APP_NAME} — ${statusLine}\n${backendLine}`);
+  const fullscreen = fullscreenWarningActive();
+  const update = updater.getState();
+  const tooltipLines = [`${APP_NAME} — ${statusLine}`, fullscreen ? t("fullscreenMenu") : "", backendLine];
+  tray.setToolTip(tooltipLines.filter(Boolean).join("\n"));
+  const topItems = [{ label: statusLine, enabled: false }];
+  if (fullscreen) {
+    topItems.push({ label: t("fullscreenMenu"), enabled: false });
+  }
+  if (update.status === UPDATE_STATUS.READY) {
+    topItems.push({ label: t("updateReady", update.version), click: () => updater.install() });
+  } else if (update.status === UPDATE_STATUS.DOWNLOADING) {
+    topItems.push({ label: t("updateDownloading", update.version, update.percent), enabled: false });
+  }
   tray.setContextMenu(
     Menu.buildFromTemplate([
-      { label: statusLine, enabled: false },
+      ...topItems,
       { type: "separator" },
       { label: t("open"), click: showMainWindow },
       {
@@ -1422,6 +1514,17 @@ function registerIpc() {
     overlay.setLocked(Boolean(locked));
     return publicStatus();
   });
+  ipcMain.handle("launcher:dismiss-fullscreen-warning", () => {
+    settings.set("fullscreenWarningDismissed", true);
+    updateStatus();
+    refreshTray();
+    return publicStatus();
+  });
+  ipcMain.handle("launcher:check-updates", async () => {
+    await updater.check();
+    return publicStatus();
+  });
+  ipcMain.handle("launcher:install-update", () => updater.install());
   ipcMain.handle("launcher:open-logs", () => openPath(LOGS_DIR));
   ipcMain.handle("launcher:open-simulation-results", () => openPath(SIMULATION_RESULTS_DIR));
   ipcMain.handle("launcher:open-session-records", () => openPath(SESSION_RECORDS_DIR));
@@ -1438,6 +1541,7 @@ function registerIpc() {
 async function shutdownChildren() {
   stopGsiPolling();
   dotaWatcher.stop();
+  updater.stop();
   overlay.dispose();
   if (processes.demo) {
     await stopManaged("demo");
@@ -1458,6 +1562,27 @@ function waitForEvent(emitter, eventName, timeoutMs) {
       resolve(null);
     }, timeoutMs);
     emitter.once(eventName, onEvent);
+  });
+}
+
+function waitForWatcherState(predicate, timeoutMs) {
+  return new Promise((resolve) => {
+    if (predicate(dotaWatcher.getState())) {
+      resolve(dotaWatcher.getState());
+      return;
+    }
+    const onReport = (state) => {
+      if (predicate(state)) {
+        clearTimeout(timer);
+        dotaWatcher.off("report", onReport);
+        resolve(state);
+      }
+    };
+    const timer = setTimeout(() => {
+      dotaWatcher.off("report", onReport);
+      resolve(null);
+    }, timeoutMs);
+    dotaWatcher.on("report", onReport);
   });
 }
 
@@ -1495,7 +1620,31 @@ async function runSmokeTest(resultPath) {
     const install = await locateDota();
     step("steam/dota locator", true, install.dotaDir || `Dota 2 not installed; libraries: ${install.libraries.join(", ") || "none"}`);
 
-    if (process.platform === "win32") {
+    if (process.platform === "win32" && process.env.DOTA_AI_SMOKE_FAKE_DOTA === "1") {
+      // scripts/smoke-windows.ps1 runs a plain window named dota2.exe: the
+      // helper must find its window rect and the overlay must move into it.
+      dotaWatcher.start();
+      const state = await waitForWatcherState((item) => item.running && item.windowRect, 30000);
+      step("dota watcher finds the dota2.exe window", Boolean(state), JSON.stringify(dotaWatcher.getState()));
+      step(
+        "no exclusive fullscreen for a normal window",
+        Boolean(state) && !state.exclusiveFullscreen,
+        JSON.stringify(dotaWatcher.getState())
+      );
+      overlay.refreshPlacement();
+      const bounds = overlayWindow.getBounds();
+      const rect = state ? state.windowRect : null;
+      step(
+        "overlay placed inside the Dota window",
+        Boolean(rect) &&
+          bounds.x >= rect.x &&
+          bounds.y >= rect.y &&
+          bounds.x + bounds.width <= rect.x + rect.width &&
+          bounds.y + bounds.height <= rect.y + rect.height,
+        JSON.stringify({ overlay: bounds, dota: rect })
+      );
+      dotaWatcher.stop();
+    } else if (process.platform === "win32") {
       // The real watcher (hidden PowerShell + user32) must report, and with no
       // dota2.exe running the overlay must stay hidden.
       const report = waitForEvent(dotaWatcher, "report", 30000);
@@ -1505,6 +1654,19 @@ async function runSmokeTest(resultPath) {
       refreshPresence();
       step("overlay hidden without Dota", !overlay.isVisible(), presence.reason);
       dotaWatcher.stop();
+    }
+
+    if (IS_PACKAGED && process.platform === "win32") {
+      // electron-builder writes app-update.yml only when "publish" is set.
+      let updaterDetail = path.join(process.resourcesPath, "app-update.yml");
+      let updaterOk = fs.existsSync(updaterDetail);
+      try {
+        require("electron-updater");
+      } catch (error) {
+        updaterOk = false;
+        updaterDetail = error.message;
+      }
+      step("auto-update configured", updaterOk, updaterDetail);
     }
 
     const started = await startBackend();
@@ -1574,8 +1736,22 @@ function bootstrap() {
     });
     autostartEnabled = isAutostartEnabled();
     createTray();
-    if (!START_HIDDEN) {
+    // After an update the app comes back the way it was: hidden in the tray
+    // when the update installed by itself or the window was closed. If the
+    // install did not happen (same version), start normally.
+    const updatedFrom = settings.get("updatedFrom");
+    const justUpdated = Boolean(updatedFrom) && updatedFrom !== app.getVersion();
+    const startHidden = START_HIDDEN || (justUpdated && Boolean(settings.get("startHiddenOnce")));
+    if (updatedFrom || settings.get("startHiddenOnce")) {
+      settings.set("updatedFrom", "");
+      settings.set("startHiddenOnce", false);
+    }
+    if (!startHidden) {
       createMainWindow();
+    }
+    if (justUpdated) {
+      appendLog("update", `Updated from ${updatedFrom} to ${app.getVersion()}.`, { force: true });
+      showTrayBalloon(t("updated", app.getVersion()));
     }
     overlay.registerGlobalShortcuts();
     if (overlay.isEnabled()) {
@@ -1585,9 +1761,13 @@ function bootstrap() {
     refreshPresence();
     startGsiPolling();
     for (const eventName of ["display-added", "display-removed", "display-metrics-changed"]) {
-      screen.on(eventName, overlay.enforceAlwaysOnTop);
+      screen.on(eventName, () => {
+        overlay.refreshPlacement();
+        overlay.enforceAlwaysOnTop();
+      });
     }
     startBackend();
+    updater.start();
     app.on("activate", showMainWindow);
   });
 

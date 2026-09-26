@@ -29,7 +29,7 @@ body {
 
 .overlay-shell {
   width: 100%;
-  max-height: 124px;
+  max-height: 160px;
   padding: var(--sp-3) var(--sp-4);
   overflow: hidden;
   border: 1px solid var(--border);
@@ -99,6 +99,10 @@ body:not(.locked) .overlay-shell {
   font-weight: var(--fw-semibold);
   line-height: 1.35;
   overflow-wrap: anywhere;
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
 }
 
 .reason {

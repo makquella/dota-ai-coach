@@ -32,10 +32,12 @@ node --check frontend/launcher/main.js
 node --check frontend/launcher/preload.js
 node --check frontend/launcher/settings.js
 node --check frontend/launcher/overlay-window.js
+node --check frontend/launcher/overlay-placement.js
 node --check frontend/launcher/overlay-preload.js
 node --check frontend/launcher/overlay-visibility.js
 node --check frontend/launcher/dota-watcher.js
 node --check frontend/launcher/steam-locator.js
+node --check frontend/launcher/updater.js
 node --check frontend/launcher/renderer/app.js
 node --check frontend/launcher/overlay/app.js
 node --check frontend/launcher/assets/icons/lucide.js
