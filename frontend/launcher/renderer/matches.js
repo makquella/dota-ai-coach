@@ -58,6 +58,9 @@
       more: "Show more",
       liveMatch: (hero) => `Recording the current match${hero ? ` (${hero})` : ""} — the review appears right after it ends.`,
       back: "Matches",
+      pdfSave: "Save PDF",
+      pdfSaved: (name) => `Saved: ${name}`,
+      pdfFailed: "Could not save the PDF",
       reviewLoading: "Loading the match…",
       reviewPending: "The review appears once the match data is loaded.",
       scoreOf: "of 100",
@@ -294,6 +297,9 @@
       more: "Показать ещё",
       liveMatch: (hero) => `Записываем текущий матч${hero ? ` (${hero})` : ""} — разбор появится сразу после него.`,
       back: "Матчи",
+      pdfSave: "Сохранить PDF",
+      pdfSaved: (name) => `Сохранено: ${name}`,
+      pdfFailed: "Не удалось сохранить PDF",
       reviewLoading: "Загружаем матч…",
       reviewPending: "Разбор появится, когда загрузятся данные матча.",
       scoreOf: "из 100",
@@ -1035,10 +1041,44 @@
     scheduleMatchRefresh(matchId);
   }
 
+  // Saves the current view as a PDF (light print theme, see @media print).
+  function pdfButton(kind) {
+    const note = h("span", { class: "muted small pdf-note" });
+    const button = h(
+      "button",
+      {
+        class: "btn btn-ghost btn-sm",
+        type: "button",
+        onclick: async () => {
+          button.disabled = true;
+          note.textContent = "";
+          const printDate = document.getElementById("print-date");
+          if (printDate) {
+            printDate.textContent = new Date().toLocaleDateString(state.locale === "ru" ? "ru-RU" : "en-GB");
+          }
+          try {
+            const result = await api.exportPdf(kind, kind === "match" ? String(state.matchId) : "");
+            if (result && result.ok) {
+              note.textContent = t("pdfSaved", result.path.split(/[\\/]/).pop());
+            } else if (result && !result.canceled) {
+              note.textContent = t("pdfFailed");
+            }
+          } finally {
+            button.disabled = false;
+          }
+        }
+      },
+      icon("printer"),
+      h("span", { text: t("pdfSave") })
+    );
+    return h("span", { class: "pdf-action" }, note, button);
+  }
+
   function renderMatch() {
     const root = document.getElementById("match-root");
-    const back = h("button", { class: "btn btn-ghost btn-sm back", type: "button", onclick: () => setView("matches") }, icon("chevron-left"), h("span", { text: t("back") }));
+    const backButton = h("button", { class: "btn btn-ghost btn-sm back", type: "button", onclick: () => setView("matches") }, icon("chevron-left"), h("span", { text: t("back") }));
     const detail = state.match;
+    const back = h("div", { class: "review-toolbar no-print" }, backButton, detail && detail.analysis ? pdfButton("match") : null);
     if (!detail) {
       root.replaceChildren(back, card(t("reviewLoading"), "activity", skeletonRows(6)));
       hydrate(root);
@@ -1883,7 +1923,7 @@
       h("div", { class: "ai-off-text" }, h("p", { class: "ai-off-title", text: t("aiOffTitle") }), h("p", { class: "muted small", text: t("aiOffHint") })),
       open ? null : h("button", { class: "btn btn-primary btn-sm", type: "button", onclick: () => toggleAiPanel(currentKind(), "form") }, h("span", { text: t("aiTurnOn") }))
     );
-    return h("div", { class: "coach-card" }, card(title, "graduation-cap", [row, aiPanel(currentKind())].filter(Boolean), h("span", { class: "tag", text: t("coachTag") })));
+    return h("div", { class: "coach-card no-print" }, card(title, "graduation-cap", [row, aiPanel(currentKind())].filter(Boolean), h("span", { class: "tag", text: t("coachTag") })));
   }
 
   function currentKind() {
@@ -2241,7 +2281,12 @@
       : null;
 
     root.replaceChildren(
-      h("p", { class: "muted small progress-note", text: t("analyzed", career.analyzed, career.matches) }),
+      h(
+        "div",
+        { class: "review-toolbar" },
+        h("p", { class: "muted small progress-note", text: t("analyzed", career.analyzed, career.matches) }),
+        h("span", { class: "no-print" }, pdfButton("career"))
+      ),
       tiles,
       coachCard(career.coach, "career") || "",
       scoreCard,

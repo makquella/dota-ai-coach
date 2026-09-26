@@ -33,6 +33,10 @@ dd {
   display: none !important;
 }
 
+.print-only {
+  display: none;
+}
+
 .num {
   font-variant-numeric: tabular-nums;
 }
@@ -1187,6 +1191,24 @@ label.setting:has(.switch:disabled) {
   margin-left: calc(-1 * var(--sp-2));
 }
 
+.review-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-3);
+}
+
+.pdf-action {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-2);
+  margin-left: auto;
+}
+
+.review-toolbar .progress-note {
+  margin-bottom: 0;
+}
+
 .review-head-body {
   display: flex;
   align-items: flex-start;
@@ -2096,4 +2118,71 @@ label.setting:has(.switch:disabled) {
   margin-top: 2px;
   font-size: var(--fs-12);
   font-weight: var(--fw-regular);
+}
+
+/* PDF export (Electron printToPDF of the current view) --------------------- */
+
+@media print {
+  html,
+  body {
+    min-height: 0;
+    background: var(--bg);
+  }
+
+  .page {
+    max-width: none;
+    padding: 0;
+  }
+
+  .top {
+    margin-bottom: var(--sp-4);
+  }
+
+  .print-only {
+    display: inline;
+  }
+
+  .print-date {
+    color: var(--text-3);
+    font-size: var(--fs-12);
+  }
+
+  .service,
+  .tabs,
+  .no-print,
+  button,
+  input,
+  select,
+  .coach-actions,
+  .coach-status,
+  .ai-panel,
+  .ai-form,
+  .chart-tip {
+    display: none !important;
+  }
+
+  /* Long cards may break across pages; their rows, charts and headings do not. */
+  .tile,
+  .finding,
+  .chart-host,
+  .review-head,
+  tr,
+  .coach-moments li,
+  .coach-goals li {
+    break-inside: avoid;
+  }
+
+  .card-head,
+  .coach-section-title {
+    break-after: avoid;
+  }
+
+  svg {
+    max-width: 100%;
+    height: auto;
+  }
+
+  .skeleton {
+    animation: none;
+  }
 }

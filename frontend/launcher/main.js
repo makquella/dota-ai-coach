@@ -56,6 +56,8 @@ const BACKEND_MAX_RESTARTS = 3;
 const BACKEND_RESTART_WINDOW_MS = 2 * 60 * 1000;
 const GSI_STATUS_POLL_MS = 1000;
 const GSI_CONFIG_NAME = "gamestate_integration_dota_ai_coach.cfg";
+// --bg in assets/ui/tokens.css
+const WINDOW_BACKGROUND = "#0b0b0c";
 
 const START_HIDDEN = process.argv.includes("--hidden");
 const SMOKE_TEST_RESULT = argValue("--smoke-test");
@@ -1502,6 +1504,51 @@ async function saveProblemReport() {
   return { ok: true, path: filePath };
 }
 
+// ---------------------------------------------------------------------------
+// PDF export of the match review / progress page (light print theme in CSS)
+// ---------------------------------------------------------------------------
+
+const PDF_FOOTER = `<div style="width:100%;padding:0 12mm;display:flex;justify-content:space-between;font:8px sans-serif;color:#71717a">
+<span>${APP_NAME}</span><span><span class="pageNumber"></span> / <span class="totalPages"></span></span></div>`;
+
+async function exportPdf(kind, id) {
+  if (!mainWindow || mainWindow.isDestroyed()) {
+    return { ok: false, error: "no window" };
+  }
+  const stamp = new Date().toISOString().slice(0, 10);
+  const fileName = kind === "match" && /^\d{1,20}$/.test(String(id))
+    ? `DotaAICoach-match-${id}.pdf`
+    : `DotaAICoach-progress-${stamp}.pdf`;
+  const { canceled, filePath } = await dialog.showSaveDialog(mainWindow, {
+    defaultPath: path.join(reportFolder(), fileName),
+    filters: [{ name: "PDF", extensions: ["pdf"] }]
+  });
+  if (canceled || !filePath) {
+    return { ok: false, canceled: true };
+  }
+  // The page margins are painted with the window background (dark): white while printing.
+  mainWindow.setBackgroundColor("#ffffff");
+  try {
+    const data = await mainWindow.webContents.printToPDF({
+      printBackground: true,
+      pageSize: "A4",
+      margins: { top: 0.4, bottom: 0.5, left: 0.4, right: 0.4 },
+      displayHeaderFooter: true,
+      headerTemplate: "<span></span>",
+      footerTemplate: PDF_FOOTER
+    });
+    fs.writeFileSync(filePath, data);
+  } catch (error) {
+    appendLog("launcher", `Could not save the PDF: ${error.message}`, { force: true });
+    return { ok: false, error: error.message };
+  } finally {
+    mainWindow.setBackgroundColor(WINDOW_BACKGROUND);
+  }
+  appendLog("launcher", `PDF saved: ${filePath}`, { force: true });
+  shell.showItemInFolder(filePath);
+  return { ok: true, path: filePath };
+}
+
 function setLogMode(nextMode = "clean") {
   logMode = nextMode === "verbose" ? "verbose" : "clean";
   appendLog(
@@ -1529,7 +1576,7 @@ function createMainWindow({ show = true } = {}) {
     minHeight: 560,
     title: APP_NAME,
     icon: appIcon(),
-    backgroundColor: "#0b0b0c",
+    backgroundColor: WINDOW_BACKGROUND,
     show,
     webPreferences: {
       preload: path.join(__dirname, "preload.js"),
@@ -1755,6 +1802,9 @@ function registerIpc() {
   ipcMain.handle("launcher:player", (_event, op, args) => playerRequest(String(op || ""), args || {}));
   ipcMain.handle("launcher:open-logs", () => openPath(LOGS_DIR));
   ipcMain.handle("launcher:save-problem-report", () => saveProblemReport());
+  ipcMain.handle("launcher:export-pdf", (_event, kind, id) =>
+    exportPdf(kind === "match" ? "match" : "career", String(id || ""))
+  );
   ipcMain.handle("launcher:open-simulation-results", () => openPath(SIMULATION_RESULTS_DIR));
   ipcMain.handle("launcher:open-session-records", () => openPath(SESSION_RECORDS_DIR));
   ipcMain.handle("launcher:open-readme", () => shell.openPath(README_PATH));

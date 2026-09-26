@@ -75,6 +75,27 @@
   --ease: cubic-bezier(0.16, 1, 0.3, 1);
 }
 
+/* Print (PDF export of a review): the same layout on a light page. The chart
+   series keep their hues (both read on white); grid lines get lighter. */
+@media print {
+  :root {
+    color-scheme: light;
+    --bg: #ffffff;
+    --surface-1: #ffffff;
+    --surface-2: #f4f4f5;
+    --surface-hover: #f4f4f5;
+    --border: #e4e4e7;
+    --border-strong: #d4d4d8;
+    --text: #18181b;
+    --text-2: #3f3f46;
+    --text-3: #71717a;
+    --accent-soft: rgba(79, 92, 230, 0.1);
+    --viz-grid: #ececef;
+    --viz-axis: #d4d4d8;
+    --viz-muted: #d4d4d8;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   :root {
     --dur-fast: 0ms;
