@@ -9,7 +9,8 @@ const readline = require("node:readline");
 //
 // Windows: one long-lived hidden PowerShell process calls user32
 // GetForegroundWindow/GetWindowThreadProcessId/IsIconic in a loop and prints a
-// JSON line whenever the state changes. No native Node modules are needed, and
+// JSON line whenever the state changes (plus a heartbeat line every ~20 polls
+// so the launcher can tell it is alive). No native Node modules are needed, and
 // the helper exits by itself when the launcher process disappears.
 // Linux (dev): /proc is scanned for a "dota2" process; focus is not tracked.
 
@@ -170,8 +171,12 @@ function createDotaWatcher({ platform = process.platform, log = () => {}, spawnI
       }
     });
     current.stderr.on("data", (chunk) => log(`Dota watcher: ${String(chunk).trim()}`));
-    current.on("error", (error) => log(`Dota watcher error: ${error.message}`));
-    current.on("exit", (code) => {
+    let ended = false;
+    const handleEnd = (code) => {
+      if (ended) {
+        return;
+      }
+      ended = true;
       if (child === current) {
         child = null;
       }
@@ -189,7 +194,15 @@ function createDotaWatcher({ platform = process.platform, log = () => {}, spawnI
       log(`Dota watcher exited (code ${code}); restarting.`);
       restartTimer = setTimeout(startWindows, 3000);
       restartTimer.unref?.();
+    };
+    current.on("error", (error) => {
+      log(`Dota watcher error: ${error.message}`);
+      if (!current.pid) {
+        // Spawn failed (e.g. PowerShell missing); "exit" will not follow.
+        handleEnd(null);
+      }
     });
+    current.on("exit", handleEnd);
   }
 
   function giveUp() {

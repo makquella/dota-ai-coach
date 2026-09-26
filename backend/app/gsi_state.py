@@ -165,7 +165,8 @@ def is_in_match() -> bool:
         return False
     map_block = _latest_raw_payload.get("map")
     game_state = map_block.get("game_state") if isinstance(map_block, dict) else None
-    return game_state is None or str(game_state) in _IN_MATCH_GAME_STATES
+    # The GSI config enables "map", so real match payloads always carry it.
+    return str(game_state) in _IN_MATCH_GAME_STATES
 
 
 def get_current_state() -> dict[str, Any]:

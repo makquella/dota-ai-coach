@@ -67,3 +67,9 @@ def test_stale_match_payload_is_not_in_match(client, repo_root, monkeypatch):
 
     assert status["gsi_connected"] is False
     assert status["in_match"] is False
+
+
+def test_payload_without_game_state_is_not_in_match(client):
+    client.post("/gsi", json={"hero": {"name": "npc_dota_hero_juggernaut"}, "map": {}})
+
+    assert _status(client)["in_match"] is False

@@ -34,3 +34,9 @@ test("tray status", () => {
   assert.equal(dotaStatus({ dota: { running: true }, inMatch: false }), DOTA_STATUS.WAITING);
   assert.equal(dotaStatus({ dota: { running: true }, inMatch: true }), DOTA_STATUS.IN_GAME);
 });
+
+test("a tracked but exited Dota is not reported in game while GSI is still fresh", () => {
+  assert.equal(dotaStatus({ dota: { supported: true, running: false }, inMatch: true }), DOTA_STATUS.NOT_FOUND);
+  // Without process tracking, fresh match data is trusted.
+  assert.equal(dotaStatus({ dota: { supported: false, running: false }, inMatch: true }), DOTA_STATUS.IN_GAME);
+});

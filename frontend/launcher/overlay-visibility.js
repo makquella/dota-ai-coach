@@ -42,8 +42,12 @@ function overlayVisibility({ enabled, unlocked, demoRunning, dota = {}, inMatch 
 }
 
 function dotaStatus({ dota = {}, inMatch }) {
+  if (dota.supported && !dota.running) {
+    // GSI stays "fresh" for a few seconds after Dota exits; the process wins.
+    return DOTA_STATUS.NOT_FOUND;
+  }
   if (inMatch) {
-    // Fresh match data proves Dota is running even where the process is not tracked.
+    // Without process tracking, fresh match data is the only proof Dota runs.
     return DOTA_STATUS.IN_GAME;
   }
   return dota.running ? DOTA_STATUS.WAITING : DOTA_STATUS.NOT_FOUND;

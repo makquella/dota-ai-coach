@@ -988,11 +988,16 @@ function resolveGsiDir(customPath = "") {
   if (trimmed) {
     return trimmed;
   }
+  // A detected install wins over the saved path, which may point at a
+  // folder Dota was moved away from.
+  if (dotaInstall.gsiDir) {
+    return dotaInstall.gsiDir;
+  }
   const saved = String(settings.get("gsiConfigPath") || "");
   if (saved && fs.existsSync(path.dirname(saved))) {
     return path.dirname(saved);
   }
-  return dotaInstall.gsiDir || "";
+  return "";
 }
 
 function checkGsiConfig(customPath = "") {
