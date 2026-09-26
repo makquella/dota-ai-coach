@@ -2101,6 +2101,7 @@ def _is_lower_value_post_laning_advice(decision_point: str, category: str) -> bo
         return False
     return category in {
         "post_laning_farm_recovery",
+        "post_laning_farm_stall",
         "post_laning_pressure_avoidance",
         "post_laning_safe_farm_route",
         "post_laning_objective_caution",
