@@ -2,7 +2,8 @@ const { contextBridge, ipcRenderer } = require("electron");
 
 contextBridge.exposeInMainWorld("overlayApi", {
   getConfig: () => ipcRenderer.invoke("overlay:get-config"),
-  fetchRecommendation: (backendUrl) => ipcRenderer.invoke("overlay:fetch-recommendation", backendUrl),
+  // The main process owns the backend port, so the renderer never builds URLs itself.
+  fetchRecommendation: () => ipcRenderer.invoke("overlay:fetch-recommendation"),
   onConfigUpdated: (callback) => {
     ipcRenderer.on("overlay-config-updated", (_event, config) => callback(config));
   },

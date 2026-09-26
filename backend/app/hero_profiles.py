@@ -11,8 +11,9 @@ import json
 import re
 from collections.abc import Mapping
 from functools import lru_cache
-from pathlib import Path
 from typing import Any
+
+from app.config import HERO_PROFILES_PATH
 
 DEFAULT_PROFILE = {
     "hero": "Unknown",
@@ -248,7 +249,7 @@ def _profiles_by_alias() -> dict[str, dict[str, Any]]:
 
 @lru_cache(maxsize=1)
 def _load_profiles() -> list[dict[str, Any]]:
-    path = Path(__file__).resolve().parents[2] / "data" / "heroes" / "hero_profiles.json"
+    path = HERO_PROFILES_PATH
     try:
         data = json.loads(path.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError):

@@ -26,16 +26,22 @@
 
       <section class="panel">
         <h2>Main controls</h2>
+        <p class="hint">The backend starts automatically on a free local port. Closing this window keeps the coach running in the tray.</p>
         <div class="button-grid">
           <button id="start-backend">Start Backend</button>
+          <button id="restart-backend" class="secondary">Restart Backend</button>
           <button id="stop-backend" class="secondary">Stop Backend</button>
-          <button id="start-overlay">Start Overlay</button>
-          <button id="stop-overlay" class="secondary">Stop Overlay</button>
+          <button id="start-overlay">Show Overlay</button>
+          <button id="stop-overlay" class="secondary">Hide Overlay</button>
           <button id="install-gsi">Install / Check Dota GSI</button>
           <button id="run-demo">Run Demo Replay</button>
           <button id="stop-demo" class="secondary">Stop Demo</button>
           <button id="open-logs" class="secondary">Open Logs</button>
         </div>
+        <label class="toggle-row" id="autostart-row">
+          <input id="autostart" type="checkbox" />
+          <span id="autostart-label">Start with Windows (in the tray)</span>
+        </label>
       </section>
 
       <section class="panel">
@@ -45,7 +51,7 @@
           <button id="choose-gsi" class="secondary">Choose Folder</button>
           <button id="check-gsi" class="secondary">Check</button>
         </div>
-        <p class="hint" id="gsi-detail">Default endpoint: http://127.0.0.1:8000/gsi</p>
+        <p class="hint" id="gsi-detail">GSI endpoint: waiting for backend port...</p>
       </section>
 
       <section class="panel">

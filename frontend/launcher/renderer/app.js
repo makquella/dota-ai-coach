@@ -8,6 +8,9 @@ const statusEls = {
   llm: document.querySelector("#llm-status")
 };
 const logsEl = document.querySelector("#logs");
+const autostartEl = document.querySelector("#autostart");
+const autostartLabelEl = document.querySelector("#autostart-label");
+let gsiEndpoint = "";
 const gsiPathEl = document.querySelector("#gsi-path");
 const gsiDetailEl = document.querySelector("#gsi-detail");
 const liveEls = {
@@ -31,6 +34,7 @@ const demoStartButtons = [
 ].filter(Boolean);
 const controlButtons = {
   startBackend: document.querySelector("#start-backend"),
+  restartBackend: document.querySelector("#restart-backend"),
   stopBackend: document.querySelector("#stop-backend"),
   startOverlay: document.querySelector("#start-overlay"),
   stopOverlay: document.querySelector("#stop-overlay"),
@@ -44,6 +48,7 @@ init();
 async function init() {
   bind("#start-backend", () => window.launcherApi.startBackend());
   bind("#stop-backend", () => window.launcherApi.stopBackend());
+  bind("#restart-backend", () => window.launcherApi.restartBackend());
   bind("#start-overlay", () => window.launcherApi.startOverlay());
   bind("#stop-overlay", () => window.launcherApi.stopOverlay());
   bind("#run-demo", () => window.launcherApi.runDemo("plMacro"));
@@ -65,6 +70,10 @@ async function init() {
   bind("#start-recording", startLiveRecording);
   bind("#stop-recording", stopLiveRecording);
   bind("#open-records", () => window.launcherApi.openSessionRecords());
+  autostartEl.addEventListener("change", async () => {
+    await window.launcherApi.setAutostart(autostartEl.checked);
+    renderStatus(await window.launcherApi.getStatus());
+  });
 
   window.launcherApi.onStatus(renderStatus);
   window.launcherApi.onLogs(renderLogs);
@@ -121,8 +130,17 @@ async function stopLiveRecording() {
 }
 
 function renderStatus(status) {
-  setChip(statusEls.backend, `Backend: ${status.backend || "unknown"}`, status.backend);
-  setChip(statusEls.overlay, `Overlay: ${status.overlay || "unknown"}`, status.overlay);
+  const backendText = status.backendPort && status.backend !== "stopped"
+    ? `Backend: ${status.backend} · :${status.backendPort}`
+    : `Backend: ${status.backend || "unknown"}`;
+  setChip(statusEls.backend, backendText, status.backend);
+  setChip(statusEls.overlay, `Overlay: ${status.overlay === "running" ? "shown" : "hidden"}`, status.overlay);
+  gsiEndpoint = status.gsiEndpoint || "";
+  autostartEl.checked = Boolean(status.autostart);
+  autostartEl.disabled = !status.autostartSupported;
+  autostartLabelEl.textContent = status.autostartSupported
+    ? "Start with Windows (in the tray)"
+    : "Start with Windows (installed build only)";
   const demoText = status.demo === "running" && status.demoPreset
     ? `Demo: running · ${status.demoPreset}`
     : `Demo: ${status.demo || "stopped"}`;
@@ -144,6 +162,7 @@ function renderControlButtons(status = {}) {
 
   setActionEnabled(controlButtons.startBackend, !backendRunning);
   setActionEnabled(controlButtons.stopBackend, backendRunning);
+  setActionEnabled(controlButtons.restartBackend, status.backend !== "starting" && status.backend !== "stopping");
   setActionEnabled(controlButtons.startOverlay, !overlayRunning);
   setActionEnabled(controlButtons.stopOverlay, overlayRunning);
   setActionEnabled(controlButtons.stopDemo, demoRunning);
@@ -195,11 +214,11 @@ function normalizeClass(value) {
 
 function updateGsiDetail(result = {}) {
   if (result.path) {
-    gsiDetailEl.textContent = `GSI config path: ${result.path}`;
+    gsiDetailEl.textContent = `GSI config path: ${result.path}${gsiEndpoint ? ` -> ${gsiEndpoint}` : ""}`;
   } else if (result.status === "not found") {
     gsiDetailEl.textContent = "GSI config not found. Enter or choose the gamestate_integration folder, then install.";
   } else {
-    gsiDetailEl.textContent = "Default endpoint: http://127.0.0.1:8000/gsi";
+    gsiDetailEl.textContent = gsiEndpoint ? `GSI endpoint: ${gsiEndpoint}` : "GSI endpoint: waiting for backend port...";
   }
 }
 

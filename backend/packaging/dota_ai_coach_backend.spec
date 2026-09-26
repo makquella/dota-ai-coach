@@ -54,9 +54,23 @@ a = Analysis(
 
 pyz = PYZ(a.pure, a.zipped_data, cipher=block_cipher)
 
+# a.scripts starts with PyInstaller's bootstrap and runtime hooks, followed by
+# the entry scripts. Each exe needs all of the former plus exactly one of the
+# latter; indexing a.scripts[0] would pick the bootstrap and the exe would exit
+# immediately without starting the server.
+ENTRY_SCRIPTS = ("backend_server", "demo_playback")
+runtime_scripts = [entry for entry in a.scripts if entry[0] not in ENTRY_SCRIPTS]
+
+
+def scripts_for(entry_name: str):
+    entry = [item for item in a.scripts if item[0] == entry_name]
+    assert len(entry) == 1, f"entry script {entry_name!r} not found in Analysis"
+    return runtime_scripts + entry
+
+
 backend_exe = EXE(
     pyz,
-    [a.scripts[0]],
+    scripts_for("backend_server"),
     [],
     exclude_binaries=True,
     name="dota-ai-coach-backend",
@@ -74,7 +88,7 @@ backend_exe = EXE(
 
 demo_exe = EXE(
     pyz,
-    [a.scripts[1]],
+    scripts_for("demo_playback"),
     [],
     exclude_binaries=True,
     name="dota-ai-coach-demo-playback",

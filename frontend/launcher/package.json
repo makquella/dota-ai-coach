@@ -1,43 +1,47 @@
 {
   "name": "dota-ai-coach-launcher",
+  "productName": "Dota AI Coach",
   "version": "0.1.0",
   "private": true,
-  "description": "Coursework defense launcher for Dota AI Coach.",
+  "description": "Dota AI Coach desktop app: tray launcher, local backend and always-on-top overlay.",
+  "author": "Dota AI Coach",
   "main": "main.js",
   "scripts": {
     "dev": "electron .",
+    "dev:x11": "ELECTRON_ENABLE_WAYLAND=0 ELECTRON_OZONE_PLATFORM_HINT=x11 electron . --ozone-platform=x11",
     "start": "electron .",
-    "pack": "electron-builder --dir",
-    "dist:unpacked": "electron-builder --dir",
-    "dist": "electron-builder --win portable"
+    "check": "node --check main.js && node --check preload.js && node --check settings.js && node --check overlay-window.js && node --check overlay-preload.js && node --check renderer/app.js && node --check overlay/app.js",
+    "pack": "electron-builder --dir --publish never",
+    "dist": "electron-builder --win nsis --publish never",
+    "dist:portable": "electron-builder --win portable --publish never"
   },
   "devDependencies": {
     "electron": "42.4.0",
     "electron-builder": "26.15.2"
   },
   "build": {
-    "appId": "com.dotaai.coach.launcher",
-    "productName": "Dota AI Coach Launcher",
+    "appId": "com.dotaai.coach",
+    "productName": "Dota AI Coach",
+    "executableName": "DotaAICoach",
     "directories": {
       "output": "dist"
     },
+    "publish": null,
     "files": [
       "main.js",
       "preload.js",
+      "settings.js",
+      "overlay-window.js",
+      "overlay-preload.js",
       "renderer/**/*",
+      "overlay/**/*",
+      "assets/**/*",
       "package.json"
     ],
     "extraResources": [
       {
         "from": "../../backend/dist/dota-ai-coach-backend",
         "to": "backend",
-        "filter": [
-          "**/*"
-        ]
-      },
-      {
-        "from": "../desktop-overlay/dist/win-unpacked",
-        "to": "desktop-overlay",
         "filter": [
           "**/*"
         ]
@@ -57,9 +61,24 @@
     ],
     "win": {
       "target": [
-        "portable"
+        "nsis"
       ],
-      "artifactName": "Dota AI Coach Launcher-${version}-portable.${ext}"
+      "icon": "assets/icon.ico"
+    },
+    "nsis": {
+      "oneClick": true,
+      "perMachine": false,
+      "runAfterFinish": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Dota AI Coach",
+      "deleteAppDataOnUninstall": false,
+      "installerIcon": "assets/icon.ico",
+      "uninstallerIcon": "assets/icon.ico",
+      "artifactName": "DotaAICoach-Setup-${version}.${ext}"
+    },
+    "portable": {
+      "artifactName": "DotaAICoach-${version}-portable.${ext}"
     }
   }
 }

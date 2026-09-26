@@ -1,24 +1,74 @@
 """
 config.py — paths and global settings for the application.
+
+Two runtime layouts are supported:
+
+* Source checkout: read-only data comes from ``<repo>/data`` and writable files
+  (logs, session records, GSI debug samples) live under ``backend/``.
+* Frozen PyInstaller build (``sys.frozen``): read-only data is bundled next to
+  the modules in ``sys._MEIPASS`` and writable files go to the per-user
+  ``%APPDATA%\\DotaAICoach`` folder, because the install directory may be
+  read-only.
 """
 
 import os
+import sys
 from pathlib import Path
 
 from dotenv import load_dotenv
+
+APP_DIR_NAME = "DotaAICoach"
+
+IS_FROZEN = bool(getattr(sys, "frozen", False))
 
 # Root of the repository (app/ -> backend/ -> dota-ai-coach/)
 REPO_ROOT = Path(__file__).resolve().parents[2]
 BACKEND_DIR = REPO_ROOT / "backend"
 
-load_dotenv(BACKEND_DIR / ".env", override=False)
-load_dotenv(REPO_ROOT / ".env", override=False)
+
+def _resource_root() -> Path:
+    """Directory that contains the read-only ``data/`` tree."""
+    if IS_FROZEN:
+        return Path(getattr(sys, "_MEIPASS", Path(sys.executable).resolve().parent))
+    return REPO_ROOT
+
+
+def _user_data_dir() -> Path:
+    """Writable per-user directory for the frozen app (``%APPDATA%\\DotaAICoach``)."""
+    appdata = os.getenv("APPDATA", "").strip()
+    base = Path(appdata) if appdata else Path.home() / ".config"
+    return base / APP_DIR_NAME
+
+
+RESOURCE_ROOT = _resource_root()
+DATA_DIR = RESOURCE_ROOT / "data"
+
+# Root for logs, recordings and other files the backend writes at runtime.
+WRITABLE_DIR = _user_data_dir() if IS_FROZEN else BACKEND_DIR
+
+if IS_FROZEN:
+    # Packaged users keep their optional LLM keys next to the logs.
+    load_dotenv(WRITABLE_DIR / ".env", override=False)
+else:
+    load_dotenv(BACKEND_DIR / ".env", override=False)
+    load_dotenv(REPO_ROOT / ".env", override=False)
 
 # Where Markdown knowledge-base files live
-KNOWLEDGE_BASE_DIR = REPO_ROOT / "data" / "knowledge_base"
+KNOWLEDGE_BASE_DIR = DATA_DIR / "knowledge_base"
+HERO_PROFILES_PATH = DATA_DIR / "heroes" / "hero_profiles.json"
+ITEM_TIMING_RULES_PATH = DATA_DIR / "meta" / "item_timing_rules.json"
 
 # Where per-request log files are written
-LOGS_DIR = Path(__file__).resolve().parents[1] / "logs"
+LOGS_DIR = WRITABLE_DIR / "logs"
+
+# HTTP server address. The desktop launcher picks a free port and passes it in.
+BACKEND_HOST = os.getenv("DOTA_AI_BACKEND_HOST", "127.0.0.1").strip() or "127.0.0.1"
+try:
+    BACKEND_PORT = int(os.getenv("DOTA_AI_BACKEND_PORT", "8000"))
+except ValueError:
+    BACKEND_PORT = 8000
+if not 0 < BACKEND_PORT < 65536:
+    BACKEND_PORT = 8000
 
 # How many RAG paragraphs to return
 RAG_TOP_K = 3
@@ -48,7 +98,7 @@ LLAMACPP_MODEL = os.getenv("LLAMACPP_MODEL", "local-gpt-oss-20b").strip()
 
 # Optional live GSI payload inspection. Raw samples can be noisy and should stay local.
 GSI_DEBUG_LOG = os.getenv("GSI_DEBUG_LOG", "false").strip().lower() == "true"
-GSI_DEBUG_SAMPLES_DIR = BACKEND_DIR / "gsi_debug_samples"
+GSI_DEBUG_SAMPLES_DIR = WRITABLE_DIR / "gsi_debug_samples"
 
 # Live Dota GSI readiness and recording.
 LIVE_CONSERVATIVE_MODE = os.getenv("LIVE_CONSERVATIVE_MODE", "true").strip().lower() != "false"
@@ -56,4 +106,4 @@ try:
     GSI_STALE_SECONDS = max(1.0, float(os.getenv("GSI_STALE_SECONDS", "5")))
 except ValueError:
     GSI_STALE_SECONDS = 5.0
-SESSION_RECORDS_DIR = Path(os.getenv("SESSION_RECORDS_DIR", str(BACKEND_DIR / "session_records")))
+SESSION_RECORDS_DIR = Path(os.getenv("SESSION_RECORDS_DIR", str(WRITABLE_DIR / "session_records")))

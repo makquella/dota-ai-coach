@@ -38,19 +38,13 @@ Key files:
 
 Launcher:
 
-- `frontend/launcher/main.js`
-- `frontend/launcher/preload.js`
-- `frontend/launcher/renderer/app.js`
+- `frontend/launcher/main.js` - app lifecycle: single-instance lock, tray, autostart, backend process (free port, health check, graceful stop, crash restart), replay demo, GSI config, IPC.
+- `frontend/launcher/preload.js`, `frontend/launcher/renderer/app.js` - control panel window.
+- `frontend/launcher/overlay-window.js` - the always-on-top overlay window and its hotkeys.
+- `frontend/launcher/overlay-preload.js`, `frontend/launcher/overlay/app.js` - overlay renderer.
+- `frontend/launcher/settings.js` - JSON settings in the user data folder (`%APPDATA%\DotaAICoach\settings.json`).
 
-The launcher starts and stops the backend, overlay, and replay demo presets. It also provides clean logs for coursework defense.
-
-Desktop overlay:
-
-- `frontend/desktop-overlay/main.js`
-- `frontend/desktop-overlay/preload.js`
-- `frontend/desktop-overlay/renderer/app.js`
-
-The overlay is transparent, frameless, always-on-top, and polls the backend for advice.
+The launcher is the only Electron app. It starts the backend hidden on a free port and hands the port to both windows over IPC (renderers never build backend URLs themselves). The overlay is transparent, frameless, always-on-top, and polls the backend for advice through the main process. On quit the launcher writes `shutdown` to the backend's stdin and waits for a clean exit; the backend also exits by itself if the launcher dies (stdin EOF).
 
 ## Replay And Simulation
 

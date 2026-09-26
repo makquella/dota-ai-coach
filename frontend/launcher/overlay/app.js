@@ -6,7 +6,8 @@ const actionEl = document.querySelector("#action");
 const reasonEl = document.querySelector("#reason");
 
 let config = {
-  backendUrl: "http://127.0.0.1:8000",
+  backendUrl: "",
+  backendStatus: "starting",
   pollIntervalMs: 1000,
   locked: true,
   autoHideMs: 8000,
@@ -57,9 +58,9 @@ async function poll() {
     return;
   }
 
-  const result = await window.overlayApi.fetchRecommendation(config.backendUrl);
+  const result = await window.overlayApi.fetchRecommendation();
   if (!result.ok) {
-    showStatus("Waiting for backend...");
+    showStatus(config.backendStatus === "stopped" ? "Backend is stopped." : "Waiting for backend...");
     return;
   }
 
