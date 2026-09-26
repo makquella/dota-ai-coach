@@ -21,6 +21,13 @@
         </span>
       </header>
 
+      <nav class="tabs" role="tablist" aria-label="Sections">
+        <button type="button" role="tab" id="tab-home" data-view="home" aria-selected="true"><i data-icon="house"></i><span data-i18n="tabHome">Home</span></button>
+        <button type="button" role="tab" id="tab-matches" data-view="matches" aria-selected="false"><i data-icon="history"></i><span data-i18n="tabMatches">Matches</span></button>
+        <button type="button" role="tab" id="tab-progress" data-view="progress" aria-selected="false"><i data-icon="chart-line"></i><span data-i18n="tabProgress">Progress</span></button>
+      </nav>
+
+      <div class="view" id="view-home" role="tabpanel" aria-labelledby="tab-home">
       <!-- One status line: what is going on and, if needed, what to do. -->
       <section class="status" id="status" data-state="loading" aria-live="polite">
         <div class="status-main">
@@ -34,6 +41,13 @@
           <i data-icon="play"></i><span id="status-action-label"></span>
         </button>
       </section>
+
+      <!-- Shown after a match: link to its post-match review. -->
+      <button type="button" class="review-banner hidden" id="review-banner">
+        <i data-icon="trophy"></i>
+        <span class="review-banner-text" id="review-banner-text"></span>
+        <i data-icon="chevron-right"></i>
+      </button>
 
       <div class="cards">
         <!-- Current match -->
@@ -235,8 +249,26 @@
           </section>
         </div>
       </details>
+      </div>
+
+      <!-- Matches: linked Steam account + match table. -->
+      <div class="view hidden" id="view-matches" role="tabpanel" aria-labelledby="tab-matches">
+        <div id="matches-root"></div>
+      </div>
+
+      <!-- One match: post-match review (opened from the table). -->
+      <div class="view hidden" id="view-match" role="tabpanel" aria-labelledby="tab-matches">
+        <div id="match-root"></div>
+      </div>
+
+      <!-- Progress: statistics and advice over many matches. -->
+      <div class="view hidden" id="view-progress" role="tabpanel" aria-labelledby="tab-progress">
+        <div id="progress-root"></div>
+      </div>
     </main>
     <script src="../assets/icons/lucide.js"></script>
+    <script src="./charts.js"></script>
     <script src="./app.js"></script>
+    <script src="./matches.js"></script>
   </body>
 </html>

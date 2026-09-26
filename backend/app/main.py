@@ -32,6 +32,8 @@ from app.live_session_recorder import LIVE_SESSION_RECORDER
 from app.llm_provider import generate_llm_recommendation, is_llm_provider_enabled
 from app.logger import log_recommendation
 from app.match_memory import MATCH_MEMORY
+from app.player_api import PLAYER_SERVICE
+from app.player_api import router as player_router
 from app.rag import retrieve_context
 from app.recommender import generate_recommendation
 from app.schemas import GameSituationRequest, RecommendationResponse, is_supported_hero
@@ -41,6 +43,15 @@ app = FastAPI(
     description="MVP-1: rule-based carry coach with local knowledge-base RAG.",
     version="0.1.0",
 )
+app.include_router(player_router)
+
+
+@app.on_event("shutdown")
+def _save_player_state() -> None:
+    # Keeps an in-progress match timeline across a restart of the app.
+    PLAYER_SERVICE.shutdown()
+
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
@@ -195,6 +206,11 @@ async def receive_gsi(request: Request):
         )
 
     result = update_latest_gsi(payload)
+    # Whole-match recording + Steam account detection (never breaks the live path).
+    try:
+        PLAYER_SERVICE.observe_gsi(payload)
+    except Exception as error:  # noqa: BLE001
+        print(f"[player] GSI observe failed: {error}")
     state = result.get("state")
     if isinstance(state, dict):
         LIVE_SESSION_RECORDER.record_gsi(payload, state)
@@ -239,6 +255,8 @@ def gsi_debug_fields():
 
 @app.get("/gsi/status", summary="Get live GSI readiness status")
 def gsi_status():
+    # Polled every second by the launcher: a cheap place to close a match whose GSI stopped.
+    PLAYER_SERVICE.check_stale()
     return _gsi_status_response()
 
 

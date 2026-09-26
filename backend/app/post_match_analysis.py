@@ -1,0 +1,643 @@
+"""
+post_match_analysis.py - deterministic post-match review of one player.
+
+Input: MatchFacts (match_facts.py). Output: a language-neutral review:
+
+- headline: hero, result, K/D/A, duration, overall score 0-100 and grade;
+- sections (laning, farm, survival, fights, items, vision): a 0-100 score and
+  the key numbers behind it;
+- findings: strengths and things to improve, each with an id, severity and
+  the numbers that prove it (texts come from analysis_texts.py, ru/en);
+- series for charts (last hits vs target, gold earned, XP per minute) and a
+  timeline of key moments (deaths, big items, buybacks, farm stalls).
+
+Rules only use what the sources really report; a section without data is
+left out instead of guessed. OpenDota benchmarks (percentile against other
+players of the same hero) are preferred over the static targets below.
+"""
+
+from __future__ import annotations
+
+from datetime import UTC, datetime
+from typing import Any
+
+from app.item_timing import classify_item_timing, normalize_item_name
+
+ANALYSIS_VERSION = 1
+
+# Static targets when OpenDota benchmarks are missing (GSI-only matches).
+TARGETS: dict[str, dict[str, float]] = {
+    "core": {"lh10_good": 55, "lh10_ok": 40, "gpm_good": 560, "gpm_ok": 430, "lh_rate": 5.5},
+    "offlane": {"lh10_good": 38, "lh10_ok": 25, "gpm_good": 460, "gpm_ok": 360, "lh_rate": 4.0},
+    "support": {"lh10_good": 12, "lh10_ok": 6, "gpm_good": 340, "gpm_ok": 260, "lh_rate": 1.0},
+}
+SECTION_WEIGHTS: dict[str, dict[str, float]] = {
+    "core": {"laning": 0.2, "farm": 0.3, "survival": 0.2, "fights": 0.15, "items": 0.15},
+    "offlane": {"laning": 0.2, "farm": 0.2, "survival": 0.2, "fights": 0.25, "items": 0.15},
+    "support": {"survival": 0.3, "fights": 0.3, "vision": 0.3, "farm": 0.1},
+}
+FARM_STALL_MINUTES = 4
+BIG_DEATH_GOLD = 1200
+
+
+def _clamp(value: float, low: float = 0, high: float = 100) -> int:
+    return int(round(max(low, min(high, value))))
+
+
+def _grade(score: int) -> str:
+    if score >= 80:
+        return "A"
+    if score >= 65:
+        return "B"
+    if score >= 50:
+        return "C"
+    return "D"
+
+
+def _rating(score: int) -> str:
+    return "good" if score >= 70 else "ok" if score >= 50 else "bad"
+
+
+def _at(series: list[int], minute: int) -> int | None:
+    return series[minute] if len(series) > minute else None
+
+
+def detect_role(facts: dict[str, Any]) -> str:
+    lane_role = facts.get("lane_role")
+    duration_min = max(1.0, (facts.get("duration") or 0) / 60)
+    lh_rate = (facts.get("last_hits") or 0) / duration_min
+    wards = (facts.get("obs_placed") or 0) + (facts.get("sen_placed") or 0)
+    if wards >= 8 or (lh_rate < 2.0 and duration_min >= 20):
+        return "support"
+    if lane_role == 3:
+        return "offlane"
+    return "core"
+
+
+def analyze_match(facts: dict[str, Any]) -> dict[str, Any]:
+    role = detect_role(facts)
+    targets = TARGETS[role]
+    findings: list[dict[str, Any]] = []
+    sections: dict[str, dict[str, Any]] = {}
+
+    for builder in (_laning, _farm, _survival, _fights, _items, _vision):
+        section = builder(facts, role, targets, findings)
+        if section is not None:
+            sections[section.pop("name")] = section
+
+    weights = SECTION_WEIGHTS[role]
+    weighted = [
+        (sections[name]["score"], weight) for name, weight in weights.items() if name in sections
+    ]
+    total_weight = sum(weight for _, weight in weighted)
+    score = _clamp(sum(s * w for s, w in weighted) / total_weight) if total_weight else None
+
+    strengths = sorted(
+        (f for f in findings if f["kind"] == "strength"), key=lambda f: -f.get("weight", 1)
+    )
+    improvements = sorted(
+        (f for f in findings if f["kind"] == "improve"),
+        key=lambda f: (-f["severity"], -f.get("weight", 1)),
+    )
+    return {
+        "version": ANALYSIS_VERSION,
+        "match_id": facts.get("match_id"),
+        "generated_at": datetime.now(UTC).isoformat(),
+        "sources": facts.get("sources", []),
+        "parsed": bool(facts.get("parsed")),
+        "role": role,
+        "headline": {
+            "hero": facts.get("hero"),
+            "hero_id": facts.get("hero_id"),
+            "win": facts.get("win"),
+            "duration": facts.get("duration"),
+            "kills": facts.get("kills"),
+            "deaths": facts.get("deaths"),
+            "assists": facts.get("assists"),
+            "gpm": facts.get("gpm"),
+            "xpm": facts.get("xpm"),
+            "last_hits": facts.get("last_hits"),
+            "denies": facts.get("denies"),
+            "net_worth": facts.get("net_worth"),
+            "hero_damage": facts.get("hero_damage"),
+            "score": score,
+            "grade": _grade(score) if score is not None else None,
+        },
+        "sections": sections,
+        "strengths": strengths[:4],
+        "improvements": improvements[:5],
+        "focus": [f["id"] for f in improvements[:3]],
+        "series": _series(facts, targets),
+        "moments": _moments(facts, findings),
+    }
+
+
+def _finding(
+    findings: list[dict[str, Any]],
+    finding_id: str,
+    kind: str,
+    section: str,
+    *,
+    severity: int = 1,
+    weight: float = 1.0,
+    **params: Any,
+) -> None:
+    findings.append(
+        {
+            "id": finding_id,
+            "kind": kind,
+            "section": section,
+            "severity": severity,
+            "weight": weight,
+            "params": params,
+        }
+    )
+
+
+# --- sections -------------------------------------------------------------------
+
+
+def _laning(facts, role, targets, findings) -> dict[str, Any] | None:
+    lh10 = _at(facts.get("lh_t") or [], 10)
+    dn10 = _at(facts.get("dn_t") or [], 10)
+    efficiency = facts.get("lane_efficiency_pct")
+    lane_deaths = [d for d in facts.get("deaths_log") or [] if (d.get("t") or 0) <= 600]
+    if lh10 is None and efficiency is None:
+        return None
+    scores = []
+    if lh10 is not None and role != "support":
+        scores.append(100 * min(1.0, lh10 / targets["lh10_good"]))
+        if lh10 >= targets["lh10_good"]:
+            _finding(
+                findings,
+                "lh10_great",
+                "strength",
+                "laning",
+                weight=2,
+                lh10=lh10,
+                target=int(targets["lh10_good"]),
+            )
+        elif lh10 < targets["lh10_ok"]:
+            gap = int(targets["lh10_good"]) - lh10
+            _finding(
+                findings,
+                "lh10_low",
+                "improve",
+                "laning",
+                severity=3 if lh10 < targets["lh10_ok"] * 0.7 else 2,
+                weight=gap / 10,
+                lh10=lh10,
+                target=int(targets["lh10_good"]),
+                gold_lost=gap * 40,
+            )
+    if efficiency is not None:
+        scores.append(efficiency)
+        if efficiency >= 70:
+            _finding(findings, "lane_eff_high", "strength", "laning", efficiency=round(efficiency))
+        elif efficiency < 45:
+            _finding(
+                findings,
+                "lane_eff_low",
+                "improve",
+                "laning",
+                severity=2,
+                efficiency=round(efficiency),
+            )
+    if dn10 is not None and dn10 >= 10 and role != "support":
+        _finding(findings, "denies_good", "strength", "laning", weight=0.5, denies=dn10)
+    if len(lane_deaths) >= 2:
+        _finding(
+            findings,
+            "lane_deaths",
+            "improve",
+            "laning",
+            severity=3 if len(lane_deaths) >= 3 else 2,
+            weight=len(lane_deaths),
+            count=len(lane_deaths),
+            times=[d["t"] for d in lane_deaths],
+        )
+    if not scores:
+        return None
+    score = _clamp(sum(scores) / len(scores) - 12 * max(0, len(lane_deaths) - 1))
+    return {
+        "name": "laning",
+        "score": score,
+        "rating": _rating(score),
+        "lh10": lh10,
+        "dn10": dn10,
+        "lane_efficiency": efficiency,
+        "lane_deaths": len(lane_deaths),
+    }
+
+
+def _farm(facts, role, targets, findings) -> dict[str, Any] | None:
+    gpm = facts.get("gpm")
+    if gpm is None:
+        return None
+    pct = (facts.get("benchmarks") or {}).get("gold_per_min")
+    hero = facts.get("hero")
+    if pct is not None:
+        score = _clamp(pct * 100)
+    else:
+        span = targets["gpm_good"] - targets["gpm_ok"]
+        score = _clamp(50 + 40 * (gpm - targets["gpm_ok"]) / span, 10, 100)
+    if pct is not None and pct >= 0.7:
+        _finding(
+            findings,
+            "gpm_high",
+            "strength",
+            "farm",
+            weight=2,
+            gpm=gpm,
+            pct=round(pct * 100),
+            hero=hero,
+        )
+    elif pct is None and gpm >= targets["gpm_good"]:
+        _finding(
+            findings,
+            "gpm_high_static",
+            "strength",
+            "farm",
+            weight=2,
+            gpm=gpm,
+            target=int(targets["gpm_good"]),
+        )
+    elif role != "support" and (
+        (pct is not None and pct < 0.35) or (pct is None and gpm < targets["gpm_ok"])
+    ):
+        _finding(
+            findings,
+            "gpm_low" if pct is not None else "gpm_low_static",
+            "improve",
+            "farm",
+            severity=3 if score < 30 else 2,
+            weight=2,
+            gpm=gpm,
+            pct=round(pct * 100) if pct is not None else None,
+            target=int(targets["gpm_good"]),
+            hero=hero,
+        )
+    stalls = _farm_stalls(facts.get("lh_t") or [], role)
+    for stall in stalls[:2]:
+        _finding(
+            findings,
+            "farm_stall",
+            "improve",
+            "farm",
+            severity=2,
+            weight=stall["to"] - stall["from"],
+            **stall,
+        )
+    lh_pct = (facts.get("benchmarks") or {}).get("last_hits_per_min")
+    return {
+        "name": "farm",
+        "score": score,
+        "rating": _rating(score),
+        "gpm": gpm,
+        "gpm_pct": pct,
+        "last_hits_pct": lh_pct,
+        "xpm": facts.get("xpm"),
+        "stalls": len(stalls),
+    }
+
+
+def _farm_stalls(lh_t: list[int], role: str) -> list[dict[str, Any]]:
+    """Stretches after minute 10 where a core took < 2 last hits a minute."""
+    if role == "support" or len(lh_t) < 14:
+        return []
+    stalls, start = [], None
+    for minute in range(11, len(lh_t)):
+        slow = lh_t[minute] - lh_t[minute - 1] < 2
+        if slow and start is None:
+            start = minute - 1
+        if (not slow or minute == len(lh_t) - 1) and start is not None:
+            end = minute if slow else minute - 1
+            if end - start >= FARM_STALL_MINUTES:
+                stalls.append({"from": start, "to": end, "last_hits": lh_t[end] - lh_t[start]})
+            start = None
+    return sorted(stalls, key=lambda s: s["from"] - s["to"])
+
+
+def _survival(facts, role, targets, findings) -> dict[str, Any] | None:
+    deaths = facts.get("deaths")
+    duration = facts.get("duration")
+    if deaths is None or not duration:
+        return None
+    per10 = deaths / max(1.0, duration / 600)
+    score = _clamp(100 - per10 * 22, 5, 100)
+    minutes = round(duration / 60)
+    time_dead = facts.get("time_dead")
+    if deaths <= 3 and minutes >= 25:
+        _finding(
+            findings,
+            "deaths_low",
+            "strength",
+            "survival",
+            weight=1.5,
+            deaths=deaths,
+            minutes=minutes,
+        )
+    elif per10 >= 2.2 or deaths >= 9:
+        _finding(
+            findings,
+            "deaths_high",
+            "improve",
+            "survival",
+            severity=3 if per10 >= 3 else 2,
+            weight=per10,
+            deaths=deaths,
+            minutes=minutes,
+            time_dead=time_dead,
+            dead_pct=round(100 * time_dead / duration) if time_dead else None,
+        )
+    deaths_log = facts.get("deaths_log") or []
+    rich = [d for d in deaths_log if (d.get("gold") or 0) >= BIG_DEATH_GOLD]
+    if rich:
+        worst = max(rich, key=lambda d: d["gold"])
+        _finding(
+            findings,
+            "death_with_gold",
+            "improve",
+            "survival",
+            severity=2,
+            weight=len(rich),
+            count=len(rich),
+            gold=worst["gold"],
+            t=worst["t"],
+        )
+    streak = _death_streak(deaths_log)
+    if streak:
+        _finding(
+            findings,
+            "death_streak",
+            "improve",
+            "survival",
+            severity=2,
+            weight=streak["count"],
+            **streak,
+        )
+    killed_by = facts.get("killed_by") or {}
+    if killed_by:
+        hero, count = max(killed_by.items(), key=lambda item: item[1])
+        if count >= 3 and deaths and count / deaths >= 0.4:
+            _finding(
+                findings,
+                "killed_by_one",
+                "improve",
+                "survival",
+                severity=1,
+                weight=count,
+                hero=hero,
+                count=count,
+                deaths=deaths,
+            )
+    return {
+        "name": "survival",
+        "score": score,
+        "rating": _rating(score),
+        "deaths": deaths,
+        "deaths_per_10": round(per10, 1),
+        "time_dead": time_dead,
+        "buybacks": len(facts.get("buybacks") or []),
+    }
+
+
+def _death_streak(deaths_log: list[dict[str, Any]]) -> dict[str, Any] | None:
+    times = sorted(d["t"] for d in deaths_log if d.get("t") is not None)
+    best = None
+    for i in range(len(times)):
+        j = i
+        while j + 1 < len(times) and times[j + 1] - times[i] <= 300:
+            j += 1
+        count = j - i + 1
+        if count >= 3 and (best is None or count > best["count"]):
+            best = {"count": count, "from": times[i], "to": times[j]}
+    return best
+
+
+def _fights(facts, role, targets, findings) -> dict[str, Any] | None:
+    kp = facts.get("kill_participation")
+    damage_pct = (facts.get("benchmarks") or {}).get("hero_damage_per_min")
+    tower_pct = (facts.get("benchmarks") or {}).get("tower_damage")
+    if kp is None and damage_pct is None:
+        return None
+    parts = []
+    minutes = round((facts.get("duration") or 0) / 60)
+    if kp is not None:
+        parts.append(min(100, kp * 125))
+        if kp >= 0.7:
+            _finding(findings, "kp_high", "strength", "fights", weight=1.5, kp=round(kp * 100))
+        elif kp < 0.4 and minutes >= 25:
+            _finding(
+                findings,
+                "kp_low",
+                "improve",
+                "fights",
+                severity=2,
+                weight=1.5,
+                kp=round(kp * 100),
+                team_kills=facts.get("team_kills"),
+            )
+    if damage_pct is not None:
+        parts.append(damage_pct * 100)
+        if damage_pct >= 0.75:
+            _finding(
+                findings,
+                "damage_high",
+                "strength",
+                "fights",
+                weight=1,
+                pct=round(damage_pct * 100),
+                damage=facts.get("hero_damage"),
+            )
+        elif damage_pct < 0.25 and role != "support":
+            _finding(
+                findings,
+                "damage_low",
+                "improve",
+                "fights",
+                severity=1,
+                weight=1,
+                pct=round(damage_pct * 100),
+                damage=facts.get("hero_damage"),
+            )
+    if tower_pct is not None and tower_pct >= 0.75 and role != "support":
+        _finding(
+            findings,
+            "towers_high",
+            "strength",
+            "fights",
+            weight=0.8,
+            pct=round(tower_pct * 100),
+            damage=facts.get("tower_damage"),
+        )
+    score = _clamp(sum(parts) / len(parts))
+    return {
+        "name": "fights",
+        "score": score,
+        "rating": _rating(score),
+        "kill_participation": round(kp * 100) if kp is not None else None,
+        "hero_damage": facts.get("hero_damage"),
+        "hero_damage_pct": damage_pct,
+        "tower_damage": facts.get("tower_damage"),
+    }
+
+
+def big_items(items_log: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Meaningful completed items (no components/consumables), first purchase each."""
+    seen, result = set(), []
+    for entry in sorted(items_log, key=lambda e: e.get("t") or 0):
+        info = classify_item_timing(entry.get("item"))
+        name = info["item"]
+        if not info["is_meaningful"] or name in seen or entry.get("t") is None:
+            continue
+        seen.add(name)
+        result.append(
+            {"t": entry["t"], "item": name, "category": info["category"], "cost": info["cost"]}
+        )
+    return result
+
+
+def _items(facts, role, targets, findings) -> dict[str, Any] | None:
+    if role == "support":
+        return None
+    duration = facts.get("duration") or 0
+    items = big_items(facts.get("items_log") or [])
+    if not facts.get("items_log"):
+        return None
+    first = items[0] if items else None
+    if first is None:
+        if duration < 20 * 60:
+            return None
+        score = 25
+        _finding(
+            findings,
+            "no_core_item",
+            "improve",
+            "items",
+            severity=3,
+            weight=2,
+            minutes=round(duration / 60),
+        )
+    else:
+        minute = first["t"] / 60
+        score = _clamp(100 - max(0.0, minute - 14) * 6, 15, 100)
+        if minute <= 14:
+            _finding(
+                findings,
+                "core_item_fast",
+                "strength",
+                "items",
+                weight=1.5,
+                item=first["item"],
+                t=first["t"],
+            )
+        elif minute >= 20:
+            _finding(
+                findings,
+                "core_item_slow",
+                "improve",
+                "items",
+                severity=2 if minute < 25 else 3,
+                weight=(minute - 20) / 3 + 1,
+                item=first["item"],
+                t=first["t"],
+            )
+    return {
+        "name": "items",
+        "score": score,
+        "rating": _rating(score),
+        "first_item": first,
+        "big_items": items[:8],
+    }
+
+
+def _vision(facts, role, targets, findings) -> dict[str, Any] | None:
+    obs = facts.get("obs_placed")
+    if role != "support" or obs is None:
+        return None
+    minutes = max(1.0, (facts.get("duration") or 0) / 60)
+    per10 = obs / (minutes / 10)
+    score = _clamp(per10 * 30, 10, 100)
+    if per10 >= 3:
+        _finding(
+            findings,
+            "wards_high",
+            "strength",
+            "vision",
+            weight=1.5,
+            obs=obs,
+            sen=facts.get("sen_placed") or 0,
+        )
+    elif per10 < 1.5:
+        _finding(
+            findings,
+            "wards_low",
+            "improve",
+            "vision",
+            severity=2,
+            weight=1.5,
+            obs=obs,
+            minutes=round(minutes),
+        )
+    if (facts.get("camps_stacked") or 0) >= 5:
+        _finding(
+            findings, "stacks_good", "strength", "vision", weight=0.7, stacks=facts["camps_stacked"]
+        )
+    return {
+        "name": "vision",
+        "score": score,
+        "rating": _rating(score),
+        "obs_placed": obs,
+        "sen_placed": facts.get("sen_placed"),
+        "camps_stacked": facts.get("camps_stacked"),
+    }
+
+
+# --- charts / timeline ------------------------------------------------------------
+
+
+def _series(facts: dict[str, Any], targets: dict[str, float]) -> dict[str, Any]:
+    lh_t = facts.get("lh_t") or []
+    minutes = list(range(len(lh_t) or len(facts.get("gold_t") or [])))
+    return {
+        "minutes": minutes,
+        "last_hits": lh_t,
+        "last_hits_target": [round(m * targets["lh_rate"]) for m in minutes],
+        "denies": facts.get("dn_t") or [],
+        "gold": facts.get("gold_t") or [],
+        "xp": facts.get("xp_t") or [],
+        "deaths": [d["t"] for d in facts.get("deaths_log") or [] if d.get("t") is not None],
+    }
+
+
+def _moments(facts: dict[str, Any], findings: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    moments: list[dict[str, Any]] = []
+    for death in facts.get("deaths_log") or []:
+        if death.get("t") is not None:
+            moments.append(
+                {
+                    "t": death["t"],
+                    "type": "death",
+                    "killer": death.get("killer"),
+                    "gold": death.get("gold"),
+                }
+            )
+    for item in big_items(facts.get("items_log") or [])[:8]:
+        moments.append({"t": item["t"], "type": "item", "item": item["item"]})
+    for t in facts.get("buybacks") or []:
+        moments.append({"t": t, "type": "buyback"})
+    for finding in findings:
+        if finding["id"] == "farm_stall":
+            moments.append(
+                {
+                    "t": finding["params"]["from"] * 60,
+                    "type": "farm_stall",
+                    "to": finding["params"]["to"] * 60,
+                }
+            )
+    return sorted(moments, key=lambda m: m["t"])
+
+
+def display_item(raw: Any) -> str:
+    return normalize_item_name(raw)

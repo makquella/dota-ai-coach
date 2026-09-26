@@ -118,3 +118,6 @@ data/match_simulations/*.jsonl
 secrets.*
 credentials.*
 *.token
+
+# Player profile / match history (local SQLite)
+backend/player_data/

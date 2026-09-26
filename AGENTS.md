@@ -51,6 +51,7 @@ The app keeps live state in module-level singletons, not a DB:
 - `COACH_SESSION_HISTORY` (`app.coach_summary`)
 - `LIVE_SESSION_RECORDER` (`app.live_session_recorder`)
 - `gsi_state` module globals (`_latest_raw_payload`, `_latest_normalized_state`, ...)
+- `PLAYER_SERVICE` (`app.player_api`): SQLite store, match tracker, job queue (reconfigured per test)
 
 `tests/conftest.py` has an **autouse** `reset_runtime_state` fixture that clears all of these before and after every test, and inserts `backend/` onto `sys.path` so `from app...` imports resolve. When writing tests, rely on this fixture. When reasoning about server behavior, remember these carry cross-request state. The `client` fixture returns a FastAPI `TestClient`.
 
@@ -58,13 +59,22 @@ The app keeps live state in module-level singletons, not a DB:
 
 `app/scheduler/` is a subpackage factored out of the large `advice_scheduler.py` (hashing, heartbeat, safety_predicates, state, types). Load the **advice-policy** skill before changing advice/scheduler/safety logic.
 
+## Player history and post-match reviews
+
+Separate from the live advice path (it never gates or changes live advice):
+- `app/player_service.py` (singleton `PLAYER_SERVICE` in `app/player_api.py`, routes under `/player`) links the Steam account (auto from GSI `player.steamid` the first time; manual via `app/steam_ids.py`: Friend ID, SteamID64, profile/OpenDota/Dotabuff URL, Steam2/3; vanity `/id/` URLs are rejected) and keeps the match table in SQLite (`app/player_store.py`, `PLAYER_DATA_DIR/coach.sqlite3`). A different account seen in GSI later is offered as `detected`, never switched silently.
+- `app/match_tracker.py` records the whole local-player match from raw GSI (`POST /gsi` → `PLAYER_SERVICE.observe_gsi`): a sample every 15 s of clock, deaths with unspent gold, buybacks, items by first appearance, team scores. Finishes on `POST_GAME`, a new match id, or 10 min without GSI (`check_stale`, called from `/gsi/status`); matches under 5 min are dropped; the in-progress timeline is saved to disk and survives a restart.
+- `app/opendota.py` (sync `requests`, 1.1 s between calls, `OpenDotaError.code`) + a one-thread `JobQueue` in the service: sync profile + last 50 matches, review the latest 12; after a live match, fetch it after 2 min and request a replay parse, re-polling every 90 s. Offline, everything works from the GSI timeline.
+- `app/match_facts.py` merges OpenDota (parsed or basic) and GSI into one facts dict → `app/post_match_analysis.py` (deterministic sections laning/farm/survival/fights/items/vision, 0-100 scores, findings with ids + params, series, moments; OpenDota benchmark percentiles preferred over static role targets) → `app/analysis_texts.py` renders ru/en titles/texts/drills (every finding id must exist in both languages; tested) → `app/career_analysis.py` (win rate, last-10-vs-previous-10 trends, heroes, recurring findings, focus plan).
+- Tests: `tests/test_player_history.py` with `tests/match_fixtures.py` (schema-faithful synthetic OpenDota matches, `FakeOpenDota`, whole-match GSI streams). `conftest.py` reconfigures `PLAYER_SERVICE` per test (tmp dir, no client, `auto_start=False`; run jobs with `service.jobs.run_pending(until=float("inf"))`).
+
 ## Local policy is authoritative; LLM is optional
 
 Default `USE_LLM=false`. LLM providers only reword advice or run offline review. The backend always owns `decision_point`, `priority`, `time_window`, safety gating, and anti-spam scheduling — never let LLM output override these, and don't add hard LLM dependencies to the live path.
 
 ## Frontend tooling
 
-No lint/typecheck. Verification is `node --check` on these thirteen files (CI runs exactly this; `npm run check` in `frontend/launcher/` does the same) plus dependency-free unit tests for the Electron-free modules (`npm test` = `node --test test/*.test.js`, also in CI):
+No lint/typecheck. Verification is `node --check` on these fifteen files (CI runs exactly this; `npm run check` in `frontend/launcher/` does the same) plus dependency-free unit tests for the Electron-free modules (`npm test` = `node --test test/*.test.js`, also in CI):
 ```bash
 node --check frontend/launcher/main.js
 node --check frontend/launcher/preload.js
@@ -77,6 +87,8 @@ node --check frontend/launcher/dota-watcher.js
 node --check frontend/launcher/steam-locator.js
 node --check frontend/launcher/updater.js
 node --check frontend/launcher/renderer/app.js
+node --check frontend/launcher/renderer/charts.js
+node --check frontend/launcher/renderer/matches.js
 node --check frontend/launcher/overlay/app.js
 node --check frontend/launcher/assets/icons/lucide.js
 ```
@@ -142,6 +154,8 @@ Config is loaded by `python-dotenv` + `os.getenv` in `app/config.py` — **not**
 | `SESSION_RECORDS_DIR` | `backend/session_records` | session record output dir |
 | `DOTA_AI_BACKEND_HOST` / `DOTA_AI_BACKEND_PORT` | `127.0.0.1` / `8000` | server address for `backend_server.py` / frozen exe |
 | `DOTA_AI_BACKEND_STDIN_CONTROL` | unset | `1` = stop gracefully on stdin `shutdown`/EOF (set by the launcher) |
+| `PLAYER_DATA_DIR` | `<WRITABLE_DIR>/player_data` | SQLite player/match store + in-progress match timeline |
+| `OPENDOTA_ENABLED` / `OPENDOTA_API_URL` / `OPENDOTA_API_KEY` | `true` / `https://api.opendota.com/api` / `""` | match history + replay parsing; tests force `OPENDOTA_ENABLED=false` |
 
 **Frozen (PyInstaller) paths** are decided in `app/config.py` from `sys.frozen`: read-only data from `sys._MEIPASS/data` (`DATA_DIR`), writable files (`LOGS_DIR`, `SESSION_RECORDS_DIR`, `GSI_DEBUG_SAMPLES_DIR`) under `%APPDATA%\DotaAICoach` (`WRITABLE_DIR`). In a source checkout: `data/` and `backend/`. Use `DATA_DIR`/`WRITABLE_DIR` from config for new paths — never `Path(__file__).parents[...]`, which breaks in the frozen build.
 
@@ -162,6 +176,7 @@ One Electron app, **`frontend/launcher/`** (product name "Dota AI Coach", exe `D
 - `dota-watcher.js` — Windows: one hidden long-lived PowerShell helper (user32 `GetForegroundWindow`/`GetWindowThreadProcessId`/`IsIconic`/`GetWindowRect`, shell32 `SHQueryUserNotificationState`) prints JSON on change: running, focused, exe path, `windowRect` (physical px, DPI-aware helper) and `exclusiveFullscreen` (D3D exclusive fullscreen, where no overlay can be drawn; sticky until Dota exits). Exclusive fullscreen shows a tray balloon once per run, a tray menu line and a status-line warning with a "I can see the advice" dismiss (`settings.fullscreenWarningDismissed`). Exits itself when the launcher dies. Linux dev: `/proc` scan, no focus tracking.
 - `steam-locator.js` — Steam root from the registry (`reg.exe query`) → `libraryfolders.vdf` → every library; Dota's uninstall key and the running `dota2.exe` path are extra hints. The GSI config is installed automatically once on first run (`settings.gsiAutoInstalled`) and afterwards kept identical to the template.
 - `settings.js` — `%APPDATA%\DotaAICoach\settings.json` (Electron `userData` is set to the same folder the frozen backend writes to).
+- Tabs «Главная / Матчи / Прогресс» (`renderer/matches.js`, `renderer/charts.js`): link Steam account, match table, post-match review (score, focus for next game with drills, section meters, last hits/gold/XP chart vs target pace with death markers, strengths/improvements, key moments, scoreboard), progress (tiles with trend vs previous 10, score-by-match columns, recurring problems + drills, heroes). The renderer calls `launcherApi.player(op, args)`; main maps ops to a fixed whitelist of `/player` paths (`PLAYER_OPS`), polls `/player` every ~5 s and shows a tray balloon «Разбор матча готов» (click opens the review). Charts are dependency-free SVG with hover/focus tooltips; chart colours are the `--viz-*` tokens (validated on `--surface-1`).
 
 (Legacy browser debug overlay: `frontend/overlay.html` + `script.js`.)
 

@@ -32,6 +32,13 @@
   --error: #eb6f6f;
   --idle: #52525b;
 
+  /* Charts (validated for CVD/contrast on --surface-1, see docs/ARCHITECTURE.md):
+     series 1 = the player, series 2 = a second series; grid/axis are hairlines. */
+  --viz-1: #3987e5;
+  --viz-2: #d95926;
+  --viz-grid: #232327;
+  --viz-axis: #36363c;
+
   /* Type: sizes 12/13/14/16/20/28, weights 400/500/600 */
   --font: "Inter", "Segoe UI", system-ui, -apple-system, sans-serif;
   --mono: "JetBrains Mono", Consolas, "Cascadia Mono", "DejaVu Sans Mono", monospace;

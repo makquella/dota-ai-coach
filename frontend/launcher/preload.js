@@ -27,6 +27,11 @@ contextBridge.exposeInMainWorld("launcherApi", {
   dismissFullscreenWarning: () => ipcRenderer.invoke("launcher:dismiss-fullscreen-warning"),
   checkForUpdates: () => ipcRenderer.invoke("launcher:check-updates"),
   installUpdate: () => ipcRenderer.invoke("launcher:install-update"),
+  // Linked player, match table, post-match review, career (see PLAYER_OPS in main.js).
+  player: (op, args) => ipcRenderer.invoke("launcher:player", op, args),
+  onPlayerEvent: (callback) => {
+    ipcRenderer.on("launcher:player-event", (_event, payload) => callback(payload));
+  },
   openLogs: () => ipcRenderer.invoke("launcher:open-logs"),
   openSimulationResults: () => ipcRenderer.invoke("launcher:open-simulation-results"),
   openSessionRecords: () => ipcRenderer.invoke("launcher:open-session-records"),

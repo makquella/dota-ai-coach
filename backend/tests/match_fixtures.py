@@ -1,0 +1,289 @@
+"""Synthetic but schema-faithful OpenDota matches and live GSI match streams.
+
+The field names follow OpenDota's /api/matches/{id} and
+/api/players/{id}/matches responses; values are generated so tests can shape
+a "good" or "bad" game on purpose.
+"""
+
+from __future__ import annotations
+
+import copy
+from typing import Any
+
+ME = 52079950
+ME_STEAM64 = str(76561197960265728 + ME)
+MATCH_ID = 8012345678
+
+# (hero_id, npc name, radiant?)
+LINEUP = [
+    (8, "npc_dota_hero_juggernaut", True),
+    (74, "npc_dota_hero_invoker", True),
+    (129, "npc_dota_hero_mars", True),
+    (26, "npc_dota_hero_lion", True),
+    (5, "npc_dota_hero_crystal_maiden", True),
+    (1, "npc_dota_hero_antimage", False),
+    (11, "npc_dota_hero_nevermore", False),
+    (2, "npc_dota_hero_axe", False),
+    (86, "npc_dota_hero_rubick", False),
+    (30, "npc_dota_hero_witch_doctor", False),
+]
+
+
+def _curve(per_minute: float, minutes: int, *, stall: tuple[int, int] | None = None) -> list[int]:
+    values, total = [], 0.0
+    for minute in range(minutes + 1):
+        values.append(int(total))
+        slow = stall and stall[0] <= minute < stall[1]
+        total += 0.5 if slow else per_minute
+    return values
+
+
+def opendota_match(
+    *,
+    good: bool = True,
+    parsed: bool = True,
+    duration: int = 38 * 60,
+    match_id: int = MATCH_ID,
+    my_deaths: list[int] | None = None,
+) -> dict[str, Any]:
+    minutes = duration // 60
+    my_deaths = (
+        my_deaths
+        if my_deaths is not None
+        else ([900, 1700] if good else [240, 420, 1300, 1420, 1500, 2000, 2100, 2200, 2250])
+    )
+    players = []
+    for index, (hero_id, _npc, radiant) in enumerate(LINEUP):
+        slot = index if radiant else 128 + index - 5
+        me = index == 0
+        player: dict[str, Any] = {
+            "account_id": ME if me else 100000 + index,
+            "player_slot": slot,
+            "hero_id": hero_id,
+            "personaname": "Me" if me else f"Player {index}",
+            "isRadiant": radiant,
+            "win": 1 if radiant == good else 0,
+            "kills": (11 if good else 3) if me else 4,
+            "deaths": len(my_deaths) if me else 5,
+            "assists": (14 if good else 6) if me else 8,
+            "last_hits": (330 if good else 160) if me else 150,
+            "denies": (14 if good else 3) if me else 4,
+            "gold_per_min": (690 if good else 390) if me else 450,
+            "xp_per_min": (720 if good else 430) if me else 500,
+            "net_worth": (26000 if good else 11500) if me else 14000,
+            "level": 25 if me else 20,
+            "hero_damage": (32000 if good else 9000) if me else 15000,
+            "tower_damage": (6000 if good else 300) if me else 1000,
+            "hero_healing": 0,
+            "lane_role": 1 if me else 2,
+            "is_roaming": False,
+            "item_0": "bfury" if good else "phase_boots",
+            "benchmarks": {
+                "gold_per_min": {"raw": 690 if good else 390, "pct": 0.86 if good else 0.12},
+                "xp_per_min": {"raw": 720, "pct": 0.8 if good else 0.2},
+                "last_hits_per_min": {"raw": 8.6, "pct": 0.83 if good else 0.1},
+                "hero_damage_per_min": {"raw": 840, "pct": 0.8 if good else 0.15},
+                "tower_damage": {"raw": 6000, "pct": 0.81 if good else 0.1},
+            },
+        }
+        if parsed:
+            rate = (7.0 if good else 3.6) if me else 4.0
+            stall = None if good or not me else (15, 22)
+            player.update(
+                {
+                    "times": [m * 60 for m in range(minutes + 1)],
+                    "lh_t": _curve(rate, minutes, stall=stall),
+                    "dn_t": _curve(1.5 if (me and good) else 0.3, minutes),
+                    "gold_t": _curve(690 if (me and good) else 400, minutes),
+                    "xp_t": _curve(720, minutes),
+                    "lane_efficiency_pct": (82 if good else 38) if me else 60,
+                    "teamfight_participation": 0.7 if good else 0.35,
+                    "obs_placed": 0 if index < 3 else 12,
+                    "sen_placed": 0 if index < 3 else 6,
+                    "camps_stacked": 1,
+                    "life_state_dead": len(my_deaths) * 40 if me else 150,
+                    "purchase_log": (
+                        [
+                            {"time": -80, "key": "tango"},
+                            {"time": 300, "key": "power_treads"},
+                            {"time": 720, "key": "bfury"},
+                            {"time": 1150, "key": "manta"},
+                            {"time": 1500, "key": "black_king_bar"},
+                        ]
+                        if good
+                        else [
+                            {"time": -80, "key": "tango"},
+                            {"time": 600, "key": "phase_boots"},
+                            {"time": 1560, "key": "maelstrom"},
+                        ]
+                    )
+                    if me
+                    else [],
+                    "kills_log": [],
+                    "buyback_log": [],
+                    "killed_by": {} if me else {},
+                }
+            )
+        players.append(player)
+    if parsed:
+        # Our deaths: the enemy mid (Shadow Fiend) takes most of them.
+        me_npc = LINEUP[0][1]
+        for n, t in enumerate(my_deaths):
+            killer = players[6] if n % 3 != 2 else players[7]
+            killer["kills_log"].append({"time": t, "key": me_npc})
+        players[0]["killed_by"] = {
+            "npc_dota_hero_nevermore": sum(1 for n in range(len(my_deaths)) if n % 3 != 2),
+            "npc_dota_hero_axe": sum(1 for n in range(len(my_deaths)) if n % 3 == 2),
+        }
+    return {
+        "match_id": match_id,
+        "start_time": 1790000000,
+        "duration": duration,
+        "radiant_win": good,
+        "radiant_score": 38 if good else 20,
+        "dire_score": 20 if good else 41,
+        "game_mode": 22,
+        "lobby_type": 7,
+        "version": 21 if parsed else None,
+        "patch": 58,
+        "region": 3,
+        "first_blood_time": 95,
+        "players": players,
+    }
+
+
+def recent_matches(count: int = 15, *, start_match_id: int = MATCH_ID) -> list[dict[str, Any]]:
+    rows = []
+    for index in range(count):
+        good = index % 3 != 0
+        rows.append(
+            {
+                "match_id": start_match_id - index,
+                "player_slot": 0,
+                "radiant_win": good,
+                "duration": 2100 + index * 30,
+                "game_mode": 22,
+                "lobby_type": 7,
+                "hero_id": 8 if index % 2 == 0 else 1,
+                "start_time": 1790000000 - index * 4000,
+                "version": 21 if index < 5 else None,
+                "kills": 9 if good else 2,
+                "deaths": 3 if good else 9,
+                "assists": 10,
+                "gold_per_min": 640 if good else 380,
+                "xp_per_min": 690,
+                "last_hits": 300 if good else 150,
+                "denies": 10,
+                "hero_damage": 25000,
+                "lane_role": 1,
+                "leaver_status": 0,
+            }
+        )
+    return rows
+
+
+class FakeOpenDota:
+    """Stands in for OpenDotaClient in tests (same methods, no network)."""
+
+    def __init__(
+        self,
+        matches: dict[int, dict[str, Any]] | None = None,
+        recent: list[dict[str, Any]] | None = None,
+    ):
+        from app.opendota import summary_from_recent
+
+        self.matches = matches or {}
+        self.recent = recent or []
+        self._summary = summary_from_recent
+        self.parse_requests: list[int] = []
+        self.calls: list[str] = []
+
+    def player(self, account_id: int) -> dict[str, Any]:
+        self.calls.append(f"player:{account_id}")
+        return {
+            "account_id": account_id,
+            "persona_name": "Me",
+            "avatar_url": None,
+            "steam_id64": ME_STEAM64,
+            "rank_tier": 54,
+        }
+
+    def recent_matches(self, account_id: int, *, limit: int = 30) -> list[dict[str, Any]]:
+        self.calls.append(f"recent:{account_id}")
+        return [self._summary(row) for row in self.recent[:limit]]
+
+    def match(self, match_id: int) -> dict[str, Any]:
+        from app.opendota import OpenDotaError
+
+        self.calls.append(f"match:{match_id}")
+        if match_id not in self.matches:
+            raise OpenDotaError("not_found", "no such match")
+        return copy.deepcopy(self.matches[match_id])
+
+    def request_parse(self, match_id: int) -> None:
+        self.parse_requests.append(match_id)
+
+
+def gsi_match_stream(
+    *,
+    match_id: int = MATCH_ID,
+    minutes: int = 32,
+    lh_per_minute: float = 6.0,
+    death_minutes: tuple[int, ...] = (7, 18, 19, 20),
+    win: bool = True,
+    step_seconds: int = 5,
+) -> list[dict[str, Any]]:
+    """Raw GSI payloads for a whole match of Juggernaut on Radiant."""
+    payloads = []
+    deaths = 0
+    items = {"slot0": {"name": "item_tango"}}
+    item_plan = {5 * 60: "item_power_treads", 13 * 60: "item_bfury", 21 * 60: "item_manta"}
+    for t in range(-60, minutes * 60 + 1, step_seconds):
+        minute = max(0, t) / 60
+        if t > 0 and int(t / 60) in death_minutes and t % 60 == 0:
+            deaths += 1
+        for at, item in item_plan.items():
+            if t >= at and item not in [v["name"] for v in items.values()]:
+                items[f"slot{len(items)}"] = {"name": item}
+        dead = any(t > 0 and m * 60 <= t < m * 60 + 20 for m in death_minutes)
+        payloads.append(
+            {
+                "provider": {"name": "Dota 2", "appid": 570},
+                "map": {
+                    "matchid": str(match_id),
+                    "clock_time": t,
+                    "game_time": t + 90,
+                    "game_state": "DOTA_GAMERULES_STATE_GAME_IN_PROGRESS",
+                    "radiant_score": int(minute * 1.1),
+                    "dire_score": int(minute * 0.8),
+                },
+                "player": {
+                    "steamid": ME_STEAM64,
+                    "accountid": str(ME),
+                    "name": "Me",
+                    "team_name": "radiant",
+                    "kills": int(minute / 4),
+                    "deaths": deaths,
+                    "assists": int(minute / 3),
+                    "last_hits": int(minute * lh_per_minute),
+                    "denies": int(minute),
+                    "gold": 1800 if dead else 400,
+                    "gpm": int(300 + minute * 12),
+                    "xpm": int(350 + minute * 12),
+                },
+                "hero": {
+                    "name": "npc_dota_hero_juggernaut",
+                    "level": min(30, 1 + int(minute / 1.5)),
+                    "health_percent": 0 if dead else 80,
+                    "alive": not dead,
+                    "respawn_seconds": 20 if dead else 0,
+                    "buyback_cooldown": 0,
+                },
+                "items": copy.deepcopy(items),
+            }
+        )
+    final = copy.deepcopy(payloads[-1])
+    final["map"]["game_state"] = "DOTA_GAMERULES_STATE_POST_GAME"
+    final["map"]["win_team"] = "radiant" if win else "dire"
+    payloads.append(final)
+    return payloads

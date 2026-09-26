@@ -107,3 +107,16 @@ try:
 except ValueError:
     GSI_STALE_SECONDS = 5.0
 SESSION_RECORDS_DIR = Path(os.getenv("SESSION_RECORDS_DIR", str(WRITABLE_DIR / "session_records")))
+
+
+def path_from_env(name: str, default: Path) -> Path:
+    """An empty value (e.g. `NAME=` copied from .env.example) means "use the default"."""
+    value = os.getenv(name, "").strip()
+    return Path(value) if value else default
+
+
+# Player profile, match history and post-match reviews (SQLite + OpenDota).
+PLAYER_DATA_DIR = path_from_env("PLAYER_DATA_DIR", WRITABLE_DIR / "player_data")
+OPENDOTA_ENABLED = os.getenv("OPENDOTA_ENABLED", "true").strip().lower() != "false"
+OPENDOTA_API_URL = os.getenv("OPENDOTA_API_URL", "https://api.opendota.com/api").strip().rstrip("/")
+OPENDOTA_API_KEY = os.getenv("OPENDOTA_API_KEY", "").strip()
