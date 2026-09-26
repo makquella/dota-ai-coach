@@ -62,13 +62,16 @@ Default `USE_LLM=false`. LLM providers only reword advice or run offline review.
 
 ## Frontend tooling
 
-No test runner, no lint/typecheck. Verification is syntax-only `node --check` on these seven files (CI runs exactly this; `npm run check` in `frontend/launcher/` does the same):
+No lint/typecheck. Verification is `node --check` on these ten files (CI runs exactly this; `npm run check` in `frontend/launcher/` does the same) plus dependency-free unit tests for the Electron-free modules (`npm test` = `node --test test/*.test.js`, also in CI):
 ```bash
 node --check frontend/launcher/main.js
 node --check frontend/launcher/preload.js
 node --check frontend/launcher/settings.js
 node --check frontend/launcher/overlay-window.js
 node --check frontend/launcher/overlay-preload.js
+node --check frontend/launcher/overlay-visibility.js
+node --check frontend/launcher/dota-watcher.js
+node --check frontend/launcher/steam-locator.js
 node --check frontend/launcher/renderer/app.js
 node --check frontend/launcher/overlay/app.js
 ```
@@ -146,7 +149,10 @@ Script-only env (not runtime): `SIMULATION_*`, `MATCH_SIMULATION_PATH` (`scripts
 One Electron app, **`frontend/launcher/`** (product name "Dota AI Coach", exe `DotaAICoach.exe`). The former separate `frontend/desktop-overlay/` app was merged into it.
 - `main.js` — single-instance lock, tray (Open / Overlay / Start with Windows / Quit), close-to-tray, autostart (`--hidden`), backend process (port pick, health wait, graceful stop, crash restart ×3), replay demo presets, GSI config, IPC, `--smoke-test`.
 - `renderer/` + `preload.js` — control panel window.
-- `overlay-window.js` + `overlay-preload.js` + `overlay/` — transparent frameless always-on-top window; its renderer asks the main process for `/overlay/recommendation` (1000 ms) and never builds backend URLs.
+- `overlay-window.js` + `overlay-preload.js` + `overlay/` — transparent frameless always-on-top window; its renderer asks the main process for `/overlay/recommendation` (1000 ms) and never builds backend URLs. The window exists while the overlay is enabled; `setVisible()` decides whether it is on screen, and the always-on-top timer runs only while shown.
+- `overlay-visibility.js` — pure rules: shown only when enabled AND (unlocked for dragging OR replay demo OR (dota2 running AND focused AND backend `/gsi/status` `in_match`)); on platforms without focus tracking it follows the switch. Also the tray status (not found / waiting for game / in game).
+- `dota-watcher.js` — Windows: one hidden long-lived PowerShell helper (user32 `GetForegroundWindow`/`GetWindowThreadProcessId`/`IsIconic`) prints JSON on change; exits itself when the launcher dies. Linux dev: `/proc` scan, no focus tracking.
+- `steam-locator.js` — Steam root from the registry (`reg.exe query`) → `libraryfolders.vdf` → every library; Dota's uninstall key and the running `dota2.exe` path are extra hints. The GSI config is installed automatically once on first run (`settings.gsiAutoInstalled`) and afterwards kept identical to the template.
 - `settings.js` — `%APPDATA%\DotaAICoach\settings.json` (Electron `userData` is set to the same folder the frozen backend writes to).
 
 (Legacy browser debug overlay: `frontend/overlay.html` + `script.js`.)

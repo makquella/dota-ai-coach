@@ -22,11 +22,15 @@ const OVERLAY_DEFAULTS = {
   urgentAutoHideMs: 12000
 };
 
+// The window exists while the overlay is enabled; whether it is on screen is
+// decided separately (setVisible) from Dota focus + fresh GSI, see
+// overlay-visibility.js. The always-on-top timer only runs while it is shown.
 function createOverlayController({ settings, getBackend, onChange = () => {}, log = () => {} }) {
   let overlayWindow = null;
   let alwaysOnTopTimer = null;
   let moveSaveTimer = null;
   let windowShortcutsRegistered = false;
+  let wantVisible = false;
 
   const windowShortcuts = [
     ["CommandOrControl+Alt+M", muteAdvice],
@@ -51,6 +55,28 @@ function createOverlayController({ settings, getBackend, onChange = () => {}, lo
 
   function isOpen() {
     return Boolean(overlayWindow && !overlayWindow.isDestroyed());
+  }
+
+  function isVisible() {
+    return isOpen() && overlayWindow.isVisible();
+  }
+
+  function isUnlocked() {
+    return !config().locked;
+  }
+
+  function setVisible(visible) {
+    wantVisible = Boolean(visible);
+    if (!isOpen()) {
+      return;
+    }
+    if (wantVisible && !overlayWindow.isVisible()) {
+      overlayWindow.showInactive();
+      enforceAlwaysOnTop();
+    } else if (!wantVisible && overlayWindow.isVisible()) {
+      overlayWindow.hide();
+    }
+    updateAlwaysOnTopTimer();
   }
 
   function setEnabled(enabled) {
@@ -103,15 +129,15 @@ function createOverlayController({ settings, getBackend, onChange = () => {}, lo
 
     overlayWindow.loadFile(path.join(__dirname, "overlay", "index.html"));
     overlayWindow.once("ready-to-show", () => {
-      if (!isOpen()) {
+      if (!isOpen() || !wantVisible) {
         return;
       }
       overlayWindow.showInactive();
       enforceAlwaysOnTop();
+      updateAlwaysOnTopTimer();
     });
 
     overlayWindow.on("show", enforceAlwaysOnTop);
-    overlayWindow.on("restore", enforceAlwaysOnTop);
     overlayWindow.on("closed", () => {
       overlayWindow = null;
       updateAlwaysOnTopTimer();
@@ -147,11 +173,8 @@ function createOverlayController({ settings, getBackend, onChange = () => {}, lo
   }
 
   function enforceAlwaysOnTop() {
-    if (!isOpen()) {
+    if (!isVisible()) {
       return;
-    }
-    if (overlayWindow.isMinimized()) {
-      overlayWindow.restore();
     }
     overlayWindow.setAlwaysOnTop(true, ALWAYS_ON_TOP_LEVEL);
     overlayWindow.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
@@ -161,7 +184,7 @@ function createOverlayController({ settings, getBackend, onChange = () => {}, lo
   function updateAlwaysOnTopTimer() {
     clearInterval(alwaysOnTopTimer);
     alwaysOnTopTimer = null;
-    if (!isOpen()) {
+    if (!isVisible()) {
       return;
     }
     alwaysOnTopTimer = setInterval(enforceAlwaysOnTop, ENFORCE_ALWAYS_ON_TOP_MS);
@@ -217,7 +240,8 @@ function createOverlayController({ settings, getBackend, onChange = () => {}, lo
   function toggleLocked() {
     updateConfig({ locked: !config().locked });
     applyLockedMode();
-    log(`Overlay ${config().locked ? "locked (click-through)" : "unlocked (draggable)"}.`);
+    log(`Overlay ${config().locked ? "locked (click-through)" : "unlocked (draggable, shown until locked again)"}.`);
+    onChange();
   }
 
   function muteAdvice() {
@@ -305,6 +329,9 @@ function createOverlayController({ settings, getBackend, onChange = () => {}, lo
     setEnabled,
     isEnabled,
     isOpen,
+    isVisible,
+    isUnlocked,
+    setVisible,
     window: () => (isOpen() ? overlayWindow : null),
     enforceAlwaysOnTop,
     publicConfig,

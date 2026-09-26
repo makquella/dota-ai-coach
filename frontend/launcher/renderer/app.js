@@ -1,5 +1,6 @@
 const statusEls = {
   backend: document.querySelector("#backend-status"),
+  dota: document.querySelector("#dota-status"),
   overlay: document.querySelector("#overlay-status"),
   demo: document.querySelector("#demo-status"),
   recording: document.querySelector("#recording-status"),
@@ -11,6 +12,16 @@ const logsEl = document.querySelector("#logs");
 const autostartEl = document.querySelector("#autostart");
 const autostartLabelEl = document.querySelector("#autostart-label");
 let gsiEndpoint = "";
+const DOTA_LABELS = {
+  not_found: "not found",
+  waiting: "waiting for game",
+  in_game: "in game"
+};
+const DOTA_CHIP_STATES = {
+  not_found: "stopped",
+  waiting: "active",
+  in_game: "running"
+};
 const gsiPathEl = document.querySelector("#gsi-path");
 const gsiDetailEl = document.querySelector("#gsi-detail");
 const liveEls = {
@@ -134,7 +145,13 @@ function renderStatus(status) {
     ? `Backend: ${status.backend} · :${status.backendPort}`
     : `Backend: ${status.backend || "unknown"}`;
   setChip(statusEls.backend, backendText, status.backend);
-  setChip(statusEls.overlay, `Overlay: ${status.overlay === "running" ? "shown" : "hidden"}`, status.overlay);
+  setChip(statusEls.dota, `Dota: ${DOTA_LABELS[status.dota] || "unknown"}`, DOTA_CHIP_STATES[status.dota]);
+  const overlayText = status.overlay !== "running"
+    ? "Overlay: off"
+    : `Overlay: ${status.overlayVisible ? "on screen" : "hidden"}`;
+  setChip(statusEls.overlay, overlayText, status.overlayVisible ? "running" : "stopped");
+  statusEls.overlay.title = status.overlayReason || "";
+  statusEls.dota.title = status.dotaDir ? `Dota 2: ${status.dotaDir}` : "Dota 2 install not found yet";
   gsiEndpoint = status.gsiEndpoint || "";
   autostartEl.checked = Boolean(status.autostart);
   autostartEl.disabled = !status.autostartSupported;

@@ -24,6 +24,7 @@ from app.gsi_state import (
     get_current_state,
     get_gsi_debug_fields,
     get_gsi_debug_latest,
+    is_in_match,
     update_latest_gsi,
 )
 from app.live_session_recorder import LIVE_SESSION_RECORDER
@@ -645,6 +646,7 @@ def _gsi_status_response() -> dict[str, object]:
     if demo_response is not None:
         return {
             "gsi_connected": False,
+            "in_match": False,
             "last_gsi_received_at": None,
             "seconds_since_last_gsi": None,
             "hero": demo_response.get("hero"),
@@ -669,6 +671,7 @@ def _gsi_status_response() -> dict[str, object]:
     )
     return {
         "gsi_connected": connected,
+        "in_match": connected and is_in_match(),
         "last_gsi_received_at": timestamp,
         "seconds_since_last_gsi": round(seconds_since, 2) if seconds_since is not None else None,
         "hero": state.get("hero"),
