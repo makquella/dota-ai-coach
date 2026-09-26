@@ -15,8 +15,9 @@ from match_fixtures import (
     recent_matches,
 )
 
-from app.analysis_texts import FINDINGS, render_analysis
+from app.analysis_texts import FINDINGS, render_analysis, render_finding
 from app.career_analysis import analyze_career
+from app.draft_analysis import analyze_draft
 from app.match_facts import facts_from_opendota, facts_from_timeline, merge_facts
 from app.match_tracker import MatchTracker
 from app.opendota import summary_from_match, trim_match
@@ -522,3 +523,99 @@ def test_build_advice_works_offline_from_the_cache(client, tmp_path):
     # Manta at 21:00 is the usual timing for the hero: no "late item" advice.
     ids = [f["id"] for f in detail["analysis"]["improvements"]]
     assert "build_timing_late" not in ids
+
+
+# --- draft ----------------------------------------------------------------------------
+
+
+def _draft_meta():
+    fake = FakeOpenDota()
+    return {
+        "matchups": {"8": fake.hero_matchups(8), "1": fake.hero_matchups(1)},
+        "pool": [1],
+        "constants": fake.item_constants(),
+    }
+
+
+def _draft_analysis(match, lang="ru"):
+    trimmed = trim_match(match, ME)
+    facts = facts_from_opendota(trimmed)
+    return render_analysis(analyze_match(facts, opendota=trimmed, draft=_draft_meta()), lang)
+
+
+def _with_enemy(match, index, hero_id):
+    match["players"][index]["hero_id"] = hero_id
+    return match
+
+
+def test_draft_matchups_and_a_better_pick_from_the_pool():
+    analysis = _draft_analysis(opendota_match(good=True))
+    draft = analysis["draft"]
+    assert [row["hero"] for row in draft["enemies"]][:2] == ["Anti-Mage", "Shadow Fiend"]
+    assert draft["enemies"][0]["winrate"] == 45.0 and draft["enemies"][0]["games"] == 400
+    # Juggernaut: mean(-5, -3, -1, 0, +2) = -1.4; Anti-Mage: mean(+5, +3, +2, +6) = +4.0.
+    assert [(row["hero"], row["edge"], row["picked"]) for row in draft["pool"]] == [
+        ("Anti-Mage", 4.0, False),
+        ("Juggernaut", -1.4, True),
+    ]
+    assert draft["better_pick"] == "Anti-Mage"
+    pick = next(f for f in analysis["improvements"] if f["id"] == "draft_better_pick")
+    assert "Anti-Mage: +4,0%" in pick["text"] and "-1,4% у Juggernaut" in pick["text"]
+    assert pick["section_label"] == "Драфт"
+
+
+def test_counter_item_missing_and_bought():
+    match = _with_enemy(opendota_match(good=True), 6, 44)  # Shadow Fiend -> Phantom Assassin
+    analysis = _draft_analysis(match)
+    counter = next(c for c in analysis["draft"]["counters"] if c["reason"] == "evasion")
+    assert counter["heroes"] == ["Phantom Assassin"] and counter["bought"] == []
+    missing = next(f for f in analysis["improvements"] if f["id"] == "counter_item_missing")
+    assert "Phantom Assassin (уклонение)" in missing["text"]
+    assert "Monkey King Bar" in missing["text"]
+
+    match = _with_enemy(opendota_match(good=True), 6, 44)
+    me = next(p for p in match["players"] if p.get("account_id") == ME)
+    me["purchase_log"].append({"time": 1900, "key": "monkey_king_bar"})
+    trimmed = trim_match(match, ME)
+    block, findings = analyze_draft(facts_from_opendota(trimmed), trimmed, _draft_meta(), "core")
+    assert block["counters"][0]["bought"] == ["Monkey King Bar"]
+    assert [f["id"] for f in findings if f["id"].startswith("counter")] == ["counter_item_bought"]
+    bought = render_finding(next(f for f in findings if f["id"] == "counter_item_bought"), "en")
+    assert bought["title"] == "Answer to Phantom Assassin: Monkey King Bar"
+    # A support is not told to buy Monkey King Bar.
+    _, support = analyze_draft(facts_from_opendota(trimmed), trimmed, _draft_meta(), "support")
+    assert not [f for f in support if f["id"].startswith("counter")]
+
+
+def test_no_draft_without_the_enemy_lineup(tmp_path):
+    finished = []
+    tracker = MatchTracker(tmp_path / "live.json", on_finished=finished.append)
+    for payload in gsi_match_stream():
+        tracker.observe(payload)
+    # GSI in player mode shows only your own hero.
+    assert analyze_match(facts_from_timeline(finished[0]))["draft"] is None
+
+
+def test_service_fetches_matchups_for_the_pool_and_rebuilds_old_reviews(client, tmp_path):
+    recent = recent_matches(12)
+    fake = FakeOpenDota(
+        matches={
+            row["match_id"]: opendota_match(good=row["radiant_win"], match_id=row["match_id"])
+            for row in recent
+        },
+        recent=recent,
+    )
+    service = PLAYER_SERVICE
+    service.configure(tmp_path / "svc", client=fake, auto_start=False)
+    client.post("/player/link", json={"steam": str(ME)})
+    service.jobs.run_pending(until=float("inf"))
+    assert {"matchups:8", "matchups:1"} <= set(fake.calls)
+    detail = client.get(f"/player/matches/{MATCH_ID}?lang=ru").json()
+    assert detail["analysis"]["draft"]["pool"]
+
+    # A review stored by an older version of the rules is rebuilt when read.
+    record = service.store.get_match(ME, MATCH_ID)
+    old = {**record["analysis"], "version": 1, "draft": None}
+    service.store.upsert_match(ME, MATCH_ID, source="opendota", analysis=old)
+    detail = client.get(f"/player/matches/{MATCH_ID}?lang=ru").json()
+    assert detail["analysis"]["version"] != 1 and detail["analysis"]["draft"]

@@ -331,6 +331,40 @@ FINDINGS: dict[str, dict[str, dict[str, str]]] = {
 
 FINDINGS.update(
     {
+        "draft_better_pick": {
+            "ru": {
+                "title": "Против этого состава лучше подходил {best}",
+                "text": "Из ваших частых героев против этой вражеской пятёрки лучше всего выглядит {best}: {best_edge_text} к винрейту против {edge_text} у {hero} (статистика матчапов OpenDota).",
+                "drill": "Перед пиком посмотрите на уже выбранных врагов: если ваш основной герой им проигрывает, возьмите героя из своего пула, у которого против них плюс.",
+            },
+            "en": {
+                "title": "{best} fit this lineup better",
+                "text": "Of your regular heroes, {best} looks best against this enemy five: {best_edge_text} win rate edge against {edge_text} for {hero} (OpenDota matchup statistics).",
+                "drill": "Before picking, look at the enemies already picked: if your main hero loses to them, take a hero from your pool that has an edge against them.",
+            },
+        },
+        "counter_item_missing": {
+            "ru": {
+                "title": "Нет предмета против {enemy}",
+                "text": "У врагов был {enemy} ({reason_label}). Против этого обычно покупают {items}, а в этом матче ни одного из них не было.",
+                "drill": "Когда видите в драфте {enemy}, заранее включите в сборку один из предметов: {items}.",
+            },
+            "en": {
+                "title": "No answer to {enemy}",
+                "text": "The enemy had {enemy} ({reason_label}). The usual answer is {items}, and none of them was bought this match.",
+                "drill": "When you see {enemy} in the draft, plan one of these into your build early: {items}.",
+            },
+        },
+        "counter_item_bought": {
+            "ru": {
+                "title": "Ответ на {enemy}: {item}",
+                "text": "{item} против {enemy} ({reason_label}) — правильный выбор под вражеский состав.",
+            },
+            "en": {
+                "title": "Answer to {enemy}: {item}",
+                "text": "{item} against {enemy} ({reason_label}) — the right call for the enemy lineup.",
+            },
+        },
         "build_timing_late": {
             "ru": {
                 "title": "Поздний {item}",
@@ -461,6 +495,15 @@ SECTIONS = {
     "fights": {"ru": "Драки", "en": "Fights"},
     "items": {"ru": "Предметы", "en": "Items"},
     "vision": {"ru": "Обзор", "en": "Vision"},
+    "draft": {"ru": "Драфт", "en": "Draft"},
+}
+
+# Why an enemy hero needs a counter item (draft_analysis.COUNTERS).
+COUNTER_REASONS = {
+    "evasion": {"ru": "уклонение", "en": "evasion"},
+    "illusions": {"ru": "иллюзии", "en": "illusions"},
+    "invisibility": {"ru": "невидимость", "en": "invisibility"},
+    "healing": {"ru": "лечение", "en": "healing"},
 }
 
 ROLES = {
@@ -489,6 +532,13 @@ def _prepared_params(finding: dict[str, Any], lang: str) -> dict[str, Any]:
     for key in ("t", "from", "to", "typical_t"):
         if key in params:
             params[f"{key}_text"] = clock(params[key])
+    if params.get("reason") in COUNTER_REASONS:
+        params["reason_label"] = COUNTER_REASONS[params["reason"]]["ru" if lang == "ru" else "en"]
+    for key in ("edge", "best_edge"):
+        if isinstance(params.get(key), (int, float)):
+            params[f"{key}_text"] = f"{params[key]:+.1f}%".replace(
+                ".", "," if lang == "ru" else "."
+            )
     if "pct" in params and params["pct"] is not None:
         params["pct_rest"] = 100 - int(params["pct"])
     if finding["id"] == "deaths_high":

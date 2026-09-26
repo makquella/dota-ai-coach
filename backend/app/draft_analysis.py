@@ -1,0 +1,199 @@
+"""
+draft_analysis.py - the draft of one match, seen from the player's side.
+
+Needs the enemy lineup, so only matches known to OpenDota (GSI in player mode
+shows only your own hero). Works on cached OpenDota matchups
+(/heroes/{id}/matchups: games and wins of a hero against every other hero):
+
+- your hero against each enemy hero (win rate);
+- which hero of your own pool fits this enemy lineup best (average edge over
+  50 % against the enemies with enough games);
+- counter items: a short curated list of well-known answers to enemy heroes
+  (evasion, illusions, invisibility, healing), checked against the purchases.
+"""
+
+from __future__ import annotations
+
+from statistics import mean
+from typing import Any
+
+from app.dota_constants import hero_name
+from app.hero_meta import item_key, item_name
+
+# A matchup needs this many games before its win rate is used.
+MIN_MATCHUP_GAMES = 20
+# Pool hero with this many more points of edge than the pick -> advice.
+BETTER_PICK_GAP = 3.0
+MIN_ENEMIES_WITH_DATA = 3
+# Counter-item advice only for games long enough to build it.
+COUNTER_MIN_DURATION = 25 * 60
+
+# reason -> (enemy heroes, counter items (OpenDota keys), roles that should buy them)
+COUNTERS: dict[str, tuple[set[str], list[str], set[str]]] = {
+    "evasion": (
+        {"Phantom Assassin", "Windranger"},
+        ["monkey_king_bar", "bloodthorn"],
+        {"core", "offlane"},
+    ),
+    "illusions": (
+        {"Phantom Lancer", "Naga Siren", "Terrorblade", "Chaos Knight"},
+        ["maelstrom", "mjollnir", "bfury", "radiance"],
+        {"core", "offlane"},
+    ),
+    "invisibility": (
+        {"Riki", "Bounty Hunter", "Clinkz", "Weaver", "Nyx Assassin"},
+        ["dust", "ward_sentry", "gem"],
+        {"support"},
+    ),
+    "healing": (
+        {"Alchemist", "Necrophos", "Huskar", "Oracle"},
+        ["spirit_vessel", "skadi"],
+        {"core", "offlane", "support"},
+    ),
+}
+
+
+def pool_heroes(matches: list[dict[str, Any]], *, limit: int = 5, min_games: int = 3) -> list[int]:
+    """Most played heroes of the player (hero ids)."""
+    counts: dict[int, int] = {}
+    for row in matches:
+        if row.get("hero_id"):
+            counts[int(row["hero_id"])] = counts.get(int(row["hero_id"]), 0) + 1
+    ranked = sorted(counts.items(), key=lambda kv: -kv[1])
+    return [hero for hero, games in ranked if games >= min_games][:limit]
+
+
+def _winrate(matchups: dict[str, list[int]] | None, enemy_id: int) -> dict[str, Any] | None:
+    games, wins = (matchups or {}).get(str(enemy_id), [0, 0])
+    if games < MIN_MATCHUP_GAMES:
+        return None
+    return {"winrate": round(100 * wins / games, 1), "games": games}
+
+
+def _edge(matchups: dict[str, list[int]] | None, enemy_ids: list[int]) -> float | None:
+    rows = [_winrate(matchups, enemy) for enemy in enemy_ids]
+    values = [row["winrate"] - 50 for row in rows if row]
+    return round(mean(values), 1) if len(values) >= MIN_ENEMIES_WITH_DATA else None
+
+
+def analyze_draft(
+    facts: dict[str, Any],
+    trimmed: dict[str, Any] | None,
+    draft_meta: dict[str, Any] | None,
+    role: str,
+) -> tuple[dict[str, Any] | None, list[dict[str, Any]]]:
+    """-> (block for the review, findings). None without an enemy lineup."""
+    findings: list[dict[str, Any]] = []
+    if not trimmed:
+        return None, findings
+    players = trimmed.get("players") or []
+    me = next((p for p in players if p.get("me")), None)
+    if not me or not me.get("hero_id"):
+        return None, findings
+    my_side = bool(me.get("isRadiant", True))
+    enemies = [p for p in players if bool(p.get("isRadiant", True)) != my_side and p.get("hero_id")]
+    if not enemies:
+        return None, findings
+    enemy_ids = [int(p["hero_id"]) for p in enemies]
+    my_id = int(me["hero_id"])
+    meta = draft_meta or {}
+    matchups = meta.get("matchups") or {}
+    constants = meta.get("constants")
+
+    enemy_rows = []
+    for player in enemies:
+        row = {"hero": player.get("hero"), "hero_id": int(player["hero_id"])}
+        wr = _winrate(matchups.get(str(my_id)), int(player["hero_id"]))
+        if wr:
+            row.update(wr)
+        enemy_rows.append(row)
+
+    pool = []
+    for hero_id in dict.fromkeys([my_id, *(meta.get("pool") or [])]):
+        edge = _edge(matchups.get(str(hero_id)), enemy_ids)
+        if edge is not None:
+            pool.append(
+                {
+                    "hero_id": hero_id,
+                    "hero": hero_name(hero_id),
+                    "edge": edge,
+                    "picked": hero_id == my_id,
+                }
+            )
+    pool.sort(key=lambda row: -row["edge"])
+    mine = next((row for row in pool if row["picked"]), None)
+    best = pool[0] if pool else None
+    if mine and best and not best["picked"] and best["edge"] - mine["edge"] >= BETTER_PICK_GAP:
+        findings.append(
+            _finding(
+                "draft_better_pick",
+                "improve",
+                severity=1,
+                weight=(best["edge"] - mine["edge"]) / 2,
+                hero=me.get("hero"),
+                best=best["hero"],
+                best_edge=best["edge"],
+                edge=mine["edge"],
+            )
+        )
+
+    bought = {item_key(entry.get("item")) for entry in facts.get("items_log") or []}
+    counters = []
+    long_game = (facts.get("duration") or 0) >= COUNTER_MIN_DURATION
+    for reason, (heroes, items, roles) in COUNTERS.items():
+        threats = [p.get("hero") for p in enemies if p.get("hero") in heroes]
+        if not threats:
+            continue
+        has = [key for key in items if key in bought]
+        names = [item_name(key, constants) for key in items]
+        counters.append(
+            {
+                "reason": reason,
+                "heroes": threats,
+                "items": names,
+                "bought": [item_name(key, constants) for key in has],
+                "for_role": role in roles,
+            }
+        )
+        if role not in roles or not long_game:
+            continue
+        params = {"reason": reason, "enemy": ", ".join(threats), "items": ", ".join(names)}
+        if has:
+            findings.append(
+                _finding(
+                    "counter_item_bought",
+                    "strength",
+                    weight=0.7,
+                    item=item_name(has[0], constants),
+                    **params,
+                )
+            )
+        else:
+            findings.append(
+                _finding("counter_item_missing", "improve", severity=2, weight=2.2, **params)
+            )
+
+    block = {
+        "hero": me.get("hero"),
+        "enemies": enemy_rows,
+        "pool": pool,
+        "counters": counters,
+        "has_matchups": any("winrate" in row for row in enemy_rows),
+        "better_pick": best["hero"]
+        if mine and best and not best["picked"] and best["edge"] - mine["edge"] >= BETTER_PICK_GAP
+        else None,
+    }
+    return block, findings
+
+
+def _finding(
+    finding_id: str, kind: str, *, severity: int = 1, weight: float = 1.0, **params: Any
+) -> dict[str, Any]:
+    return {
+        "id": finding_id,
+        "kind": kind,
+        "section": "draft",
+        "severity": severity,
+        "weight": weight,
+        "params": params,
+    }

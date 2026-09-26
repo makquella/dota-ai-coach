@@ -22,10 +22,12 @@ from datetime import UTC, datetime
 from typing import Any
 
 from app.build_analysis import analyze_build
+from app.draft_analysis import analyze_draft
 from app.item_timing import classify_item_timing, normalize_item_name
 from app.peer_analysis import match_peers, peer_findings
 
-ANALYSIS_VERSION = 1
+# Bump when the rules change: stored reviews of an older version are rebuilt on read.
+ANALYSIS_VERSION = 2
 
 # Static targets when OpenDota benchmarks are missing (GSI-only matches).
 TARGETS: dict[str, dict[str, float]] = {
@@ -81,8 +83,10 @@ def analyze_match(
     *,
     meta: dict[str, Any] | None = None,
     opendota: dict[str, Any] | None = None,
+    draft: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
-    """`meta`: cached hero meta (build advice); `opendota`: trimmed match (rank peers)."""
+    """`meta`: cached hero meta (build advice); `opendota`: trimmed match (rank peers,
+    enemy lineup); `draft`: cached matchups + the player's hero pool (draft advice)."""
     role = detect_role(facts)
     targets = TARGETS[role]
     findings: list[dict[str, Any]] = []
@@ -97,6 +101,8 @@ def analyze_match(
     findings.extend(build_findings)
     peers = match_peers(opendota)
     findings.extend(peer_findings(peers))
+    draft_block, draft_findings = analyze_draft(facts, opendota, draft, role)
+    findings.extend(draft_findings)
     findings = _dedupe(findings)
 
     weights = SECTION_WEIGHTS[role]
@@ -147,6 +153,7 @@ def analyze_match(
         "moments": _moments(facts, findings),
         "build": build,
         "peers": peers,
+        "draft": draft_block,
     }
 
 

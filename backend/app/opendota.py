@@ -238,6 +238,19 @@ class OpenDotaClient:
                 continue
         return rows
 
+    def hero_matchups(self, hero_id: int) -> dict[str, list[int]]:
+        """/heroes/{id}/matchups: {enemy hero id: [games, wins of hero_id]}."""
+        data = self._get(f"/heroes/{int(hero_id)}/matchups")
+        if not isinstance(data, list):
+            raise OpenDotaError("bad_response", "Unexpected OpenDota response for matchups.")
+        result: dict[str, list[int]] = {}
+        for row in data:
+            try:
+                result[str(int(row["hero_id"]))] = [int(row["games_played"]), int(row["wins"])]
+            except (KeyError, TypeError, ValueError):
+                continue
+        return result
+
     def hero_stats(self) -> list[dict[str, Any]]:
         """/heroStats: picks and wins per rank bracket 1 (Herald) .. 8 (Immortal)."""
         data = self._get("/heroStats")

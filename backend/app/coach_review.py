@@ -138,6 +138,27 @@ def match_facts(detail: dict[str, Any]) -> dict[str, Any] | None:
     build = analysis.get("build")
     if build:
         facts["build"] = _build_facts(build)
+    draft = analysis.get("draft")
+    if draft:
+        facts["draft"] = {
+            "your_hero_winrate_vs_enemy": {
+                row["hero"]: f"{row['winrate']}%"
+                for row in draft.get("enemies") or []
+                if row.get("winrate")
+            },
+            "your_heroes_edge_vs_this_lineup": {
+                row["hero"]: f"{row['edge']:+}%" for row in draft.get("pool") or []
+            },
+            "counter_items": [
+                {
+                    "enemy": ", ".join(c["heroes"]),
+                    "answer": ", ".join(c["items"]),
+                    "bought": ", ".join(c["bought"]) or "none",
+                }
+                for c in draft.get("counters") or []
+                if c.get("for_role")
+            ],
+        }
     scoreboard = detail.get("scoreboard")
     if scoreboard:
         mine = next((row for row in scoreboard if row.get("me")), None)
@@ -389,7 +410,7 @@ class FactChecker:
 # --- helpers ------------------------------------------------------------------------
 
 
-TIME_RE = re.compile(r"(?<![\d:])\d{1,2}:\d{2}(?![\d:])")
+TIME_RE = re.compile(r"(?<![\d:])\d{1,2}:\d{2}(?!\d|:\d)")
 THOUSANDS_RE = re.compile(r"(\d+(?:\.\d+)?)\s*(?:k|тыс\.?)(?!\w)", re.IGNORECASE)
 
 

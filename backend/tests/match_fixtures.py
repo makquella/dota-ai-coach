@@ -274,6 +274,22 @@ def _hero_stats_row(hero_id: int, picks: int, base_wins: int, step: int) -> dict
 RAW_HERO_STATS = [_hero_stats_row(8, 10000, 5000, 30), _hero_stats_row(1, 8000, 3800, 20)]
 
 
+# /heroes/{id}/matchups shape: games and wins of the hero against each enemy.
+def _matchups(winrates: dict[int, float], games: int = 400) -> list[dict[str, Any]]:
+    return [
+        {"hero_id": hero_id, "games_played": games, "wins": round(games * wr)}
+        for hero_id, wr in winrates.items()
+    ]
+
+
+# Juggernaut is slightly behind the default enemy five (Anti-Mage, Shadow Fiend,
+# Axe, Rubick, Witch Doctor); Anti-Mage (the player's other hero) is ahead.
+RAW_MATCHUPS = {
+    8: _matchups({1: 0.45, 11: 0.47, 2: 0.49, 86: 0.50, 30: 0.52, 44: 0.46}),
+    1: _matchups({11: 0.55, 2: 0.53, 86: 0.52, 30: 0.56, 44: 0.50}),
+}
+
+
 class FakeOpenDota:
     """Stands in for OpenDotaClient in tests (same methods, no network)."""
 
@@ -332,6 +348,10 @@ class FakeOpenDota:
     def item_timings(self, hero_id: int) -> list[dict[str, Any]]:
         self.calls.append(f"timings:{hero_id}")
         return self._real(JUGG_TIMINGS if hero_id == 8 else []).item_timings(hero_id)
+
+    def hero_matchups(self, hero_id: int) -> dict[str, list[int]]:
+        self.calls.append(f"matchups:{hero_id}")
+        return self._real(RAW_MATCHUPS.get(hero_id, [])).hero_matchups(hero_id)
 
     def hero_stats(self) -> list[dict[str, Any]]:
         self.calls.append("herostats")

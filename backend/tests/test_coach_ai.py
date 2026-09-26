@@ -433,6 +433,8 @@ def test_fact_checker_understands_number_formats():
     assert checker.problems("Ценность 11 500, лучше 12% игроков, KDA 2,4 к 26:00.") == []
     assert checker.problems("11.5k net worth, 3 deaths by minute 15.") == []
     assert checker.problems("Купите Black King Bar к 18:00.") == ["18:00", "Black King Bar"]
+    # A time followed by a colon is still a time.
+    assert checker.problems("Смерть к 26:00: после неё...") == []
     # Minute marks only as minutes: "50 last hits by minute 10" is not a fact.
     assert checker.problems("К 15-й минуте, за 20 минут, by minute 25.") == []
     assert checker.problems("Держите 50 добиваний к 10-й минуте.") == ["50"]

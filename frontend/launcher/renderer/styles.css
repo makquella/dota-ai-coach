@@ -2008,3 +2008,74 @@ label.setting:has(.switch:disabled) {
     flex-wrap: wrap;
   }
 }
+
+/* --- draft ------------------------------------------------------------------ */
+
+.draft {
+  display: grid;
+  gap: var(--sp-4);
+}
+
+.draft-block {
+  display: grid;
+  gap: var(--sp-2);
+}
+
+.draft .table-wrap-tight {
+  margin-bottom: 0;
+}
+
+.draft .num-col .dot,
+.draft-edge .dot {
+  display: inline-block;
+  margin-right: var(--sp-1);
+  vertical-align: middle;
+}
+
+.draft-pool,
+.draft-counters {
+  display: grid;
+  gap: var(--sp-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: var(--fs-13);
+}
+
+.draft-pool li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-3);
+  padding: var(--sp-2) var(--sp-3);
+  border-radius: var(--r-md);
+  background: var(--surface-2);
+}
+
+.draft-pool li.is-best {
+  box-shadow: inset 0 0 0 1px var(--border-strong);
+}
+
+.draft-pool-hero {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-2);
+  color: var(--text);
+}
+
+.draft-edge {
+  color: var(--text-2);
+}
+
+.draft-counters li {
+  display: grid;
+  gap: var(--sp-2);
+}
+
+.draft-counter-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sp-2);
+  color: var(--text);
+}

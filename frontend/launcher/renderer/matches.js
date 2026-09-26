@@ -166,6 +166,20 @@
       rankCareerEmpty: "Appears after a few matches reviewed with OpenDota data.",
       colBracket: "At your rank",
       bracketHint: (rank) => `Hero win rate among all ${rank} players (OpenDota)`,
+      draftTitle: "Draft",
+      draftNote: (hero) => `${hero}'s win rate against each enemy hero (OpenDota matchup statistics).`,
+      draftNoData: "No matchup statistics yet: they are loaded with the next OpenDota sync.",
+      draftEnemy: "Enemy",
+      draftWinrate: "Your win rate",
+      draftGames: "games",
+      draftPool: "Your heroes against this lineup",
+      draftPoolNote: "Average win rate edge over 50% against these five heroes.",
+      draftPicked: "your pick",
+      draftBetter: (hero) => `${hero} fit this lineup best.`,
+      draftCounters: "Answers to the enemy heroes",
+      draftReasons: { evasion: "evasion", illusions: "illusions", invisibility: "invisibility", healing: "healing" },
+      draftForSupports: "support's job",
+      draftBought: "bought",
       coachTitle: "Coach's review",
       coachCareerTitle: "Coach's review of your recent games",
       coachTag: "AI",
@@ -375,6 +389,20 @@
       rankCareerEmpty: "Появится после нескольких матчей, разобранных по данным OpenDota.",
       colBracket: "На вашем ранге",
       bracketHint: (rank) => `Винрейт героя у всех игроков ранга ${rank} (OpenDota)`,
+      draftTitle: "Драфт",
+      draftNote: (hero) => `Винрейт ${hero} против каждого вражеского героя (статистика матчапов OpenDota).`,
+      draftNoData: "Статистики матчапов пока нет: она загрузится при следующей синхронизации с OpenDota.",
+      draftEnemy: "Враг",
+      draftWinrate: "Ваш винрейт",
+      draftGames: "игр",
+      draftPool: "Ваши герои против этого состава",
+      draftPoolNote: "Средний перевес по винрейту над 50% против этих пяти героев.",
+      draftPicked: "ваш пик",
+      draftBetter: (hero) => `Лучше всего против этого состава подходил ${hero}.`,
+      draftCounters: "Ответы на вражеских героев",
+      draftReasons: { evasion: "уклонение", illusions: "иллюзии", invisibility: "невидимость", healing: "лечение" },
+      draftForSupports: "задача саппорта",
+      draftBought: "куплен",
       coachTitle: "Разбор тренера",
       coachCareerTitle: "Разбор тренера по последним матчам",
       coachTag: "ИИ",
@@ -1015,6 +1043,10 @@
       if (rank) {
         parts.push(rank);
       }
+      const draft = draftCard(analysis);
+      if (draft) {
+        parts.push(draft);
+      }
       const chart = chartCard(analysis);
       if (chart) {
         parts.push(chart);
@@ -1344,6 +1376,116 @@
     const tone = better === true ? "good" : better === false ? "bad" : "idle";
     const sign = diff > 0 ? "+" : diff < 0 ? "−" : "";
     return h("td", { class: `num-col num delta-${tone}`, text: `${sign}${formatMetric(key, Math.abs(diff))}` });
+  }
+
+  function percent1(value) {
+    const text = `${Number(value).toFixed(1)}%`;
+    return state.locale === "ru" ? text.replace(".", ",") : text;
+  }
+
+  function signedPercent(value) {
+    return `${value > 0 ? "+" : value < 0 ? "−" : ""}${percent1(Math.abs(value))}`;
+  }
+
+  function winrateTone(winrate) {
+    return winrate >= 52 ? "good" : winrate <= 48 ? "bad" : "idle";
+  }
+
+  function draftCard(analysis) {
+    const draft = analysis.draft;
+    if (!draft) {
+      return null;
+    }
+    const parts = [];
+    if (draft.has_matchups) {
+      parts.push(h("p", { class: "muted small", text: t("draftNote", draft.hero) }));
+      parts.push(
+        h(
+          "div",
+          { class: "table-wrap table-wrap-tight" },
+          h(
+            "table",
+            { class: "table" },
+            h("thead", {}, h("tr", {}, h("th", { text: t("draftEnemy") }), h("th", { class: "num-col", text: t("draftWinrate") }), h("th", { class: "num-col hide-narrow", text: t("draftGames") }))),
+            h(
+              "tbody",
+              {},
+              draft.enemies.map((row) =>
+                h(
+                  "tr",
+                  {},
+                  h("td", { class: "hero-cell", text: row.hero }),
+                  row.winrate == null
+                    ? h("td", { class: "num-col num muted", text: "—" })
+                    : h("td", { class: "num-col num" }, h("span", { class: "dot", "data-tone": winrateTone(row.winrate) }), percent1(row.winrate)),
+                  h("td", { class: "num-col num muted hide-narrow", text: row.games ? number(row.games) : "" })
+                )
+              )
+            )
+          )
+        )
+      );
+    } else {
+      parts.push(h("p", { class: "muted", text: t("draftNoData") }));
+    }
+    if ((draft.pool || []).length > 1) {
+      parts.push(
+        h(
+          "div",
+          { class: "draft-block" },
+          h("h3", { class: "coach-section-title", text: t("draftPool") }),
+          h("p", { class: "muted small", text: t("draftPoolNote") }),
+          h(
+            "ul",
+            { class: "draft-pool" },
+            draft.pool.map((row) =>
+              h(
+                "li",
+                { class: row.hero === draft.better_pick ? "is-best" : "" },
+                h("span", { class: "draft-pool-hero" }, h("span", { text: row.hero }), row.picked ? h("span", { class: "tag", text: t("draftPicked") }) : null),
+                h("span", { class: "num draft-edge" }, h("span", { class: "dot", "data-tone": row.edge >= 2 ? "good" : row.edge <= -2 ? "bad" : "idle" }), signedPercent(row.edge))
+              )
+            )
+          ),
+          draft.better_pick ? h("p", { class: "small", text: t("draftBetter", draft.better_pick) }) : null
+        )
+      );
+    }
+    if ((draft.counters || []).length) {
+      parts.push(
+        h(
+          "div",
+          { class: "draft-block" },
+          h("h3", { class: "coach-section-title", text: t("draftCounters") }),
+          h(
+            "ul",
+            { class: "draft-counters" },
+            draft.counters.map((counter) =>
+              h(
+                "li",
+                {},
+                h(
+                  "p",
+                  { class: "draft-counter-head" },
+                  h("span", { text: counter.heroes.join(", ") }),
+                  h("span", { class: "tag", text: t(`draftReasons.${counter.reason}`) }),
+                  counter.for_role ? null : h("span", { class: "muted small", text: t("draftForSupports") })
+                ),
+                h(
+                  "div",
+                  { class: "chips" },
+                  counter.items.map((item) => {
+                    const bought = counter.bought.includes(item);
+                    return h("span", { class: `chip ${bought ? "chip-on" : ""}`, title: bought ? t("draftBought") : "" }, bought ? icon("circle-check") : null, h("span", { text: item }));
+                  })
+                )
+              )
+            )
+          )
+        )
+      );
+    }
+    return card(t("draftTitle"), "shield", h("div", { class: "draft" }, parts));
   }
 
   function rankCard(analysis) {

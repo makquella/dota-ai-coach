@@ -48,6 +48,7 @@ from app.coach_review import (
     review_match,
 )
 from app.dota_constants import REVIEWABLE_LOBBY_TYPES
+from app.draft_analysis import pool_heroes
 from app.match_facts import facts_from_opendota, facts_from_timeline, merge_facts
 from app.match_tracker import MatchTracker, account_from_gsi
 from app.opendota import (
@@ -58,7 +59,7 @@ from app.opendota import (
     trim_match,
 )
 from app.player_store import PlayerStore
-from app.post_match_analysis import analyze_match
+from app.post_match_analysis import ANALYSIS_VERSION, analyze_match
 from app.steam_ids import parse_account_id, steam64_from_account_id
 
 RECENT_MATCHES_LIMIT = 50
@@ -72,6 +73,7 @@ ITEM_CONSTANTS_KEY = "opendota:items"
 POPULARITY_KEY = "opendota:item_popularity"
 TIMINGS_KEY = "opendota:item_timings"
 HERO_STATS_KEY = "opendota:hero_stats"
+MATCHUPS_KEY = "opendota:matchups"
 META_TTL_SECONDS = 7 * 24 * 3600
 HERO_STATS_TTL_SECONDS = 24 * 3600
 # AI coach.
@@ -302,6 +304,8 @@ class PlayerService:
         if record is None:
             return None
         analysis = record.get("analysis")
+        if analysis is not None and analysis.get("version") != ANALYSIS_VERSION:
+            analysis = None  # rules changed since it was stored
         if analysis is None and (record.get("opendota") or record.get("timeline")):
             analysis = self._rebuild_analysis(primary, match_id)
         if analysis is None and self.client is not None:
@@ -324,6 +328,10 @@ class PlayerService:
             return {"linked": False}
         player = self.store.get_player(primary) or {}
         matches = self.store.matches_for_career(primary, limit=RECENT_MATCHES_LIMIT)
+        for match in matches:
+            stale = match.get("analysis")
+            if stale is not None and stale.get("version") != ANALYSIS_VERSION:
+                match["analysis"] = self._rebuild_analysis(primary, match["match_id"])
         result = analyze_career(
             matches,
             lang,
@@ -647,6 +655,7 @@ class PlayerService:
         )
         me = my_player(trimmed) or {}
         self._ensure_hero_meta(me.get("hero_id"))
+        self._ensure_matchups([me.get("hero_id"), *self._pool(account_id)])
         self._rebuild_analysis(account_id, match_id)
         if status == "parsing":
             self._retry(account_id, match_id, request_parse, attempt)
@@ -711,7 +720,10 @@ class PlayerService:
         if facts is None:
             return None
         analysis = analyze_match(
-            facts, meta=self._hero_meta(facts.get("hero_id")), opendota=record.get("opendota")
+            facts,
+            meta=self._hero_meta(facts.get("hero_id")),
+            opendota=record.get("opendota"),
+            draft=self._draft_meta(account_id, facts.get("hero_id")),
         )
         lh_t = facts.get("lh_t") or []
         self.store.upsert_match(
@@ -744,6 +756,35 @@ class PlayerService:
             return
         with contextlib.suppress(OpenDotaError):
             self.store.cache_set(key, fetch())
+
+    def _pool(self, account_id: int) -> list[int]:
+        return pool_heroes(self.store.list_matches(account_id, limit=RECENT_MATCHES_LIMIT))
+
+    def _draft_meta(self, account_id: int, hero_id: Any) -> dict[str, Any] | None:
+        """Cached matchups of the played hero and the player's pool (stale is fine)."""
+        heroes = [int(hero_id)] if hero_id else []
+        heroes += [h for h in self._pool(account_id) if h not in heroes]
+        matchups = {}
+        for hero in heroes:
+            cached = self.store.cache_get(f"{MATCHUPS_KEY}:{hero}")
+            if cached:
+                matchups[str(hero)] = cached
+        return {
+            "matchups": matchups,
+            "pool": heroes[1:],
+            "constants": self.store.cache_get(ITEM_CONSTANTS_KEY),
+        }
+
+    def _ensure_matchups(self, hero_ids: list[Any]) -> None:
+        client = self.client
+        if client is None:
+            return
+        for hero_id in dict.fromkeys(int(h) for h in hero_ids if h):
+            self._refresh(
+                f"{MATCHUPS_KEY}:{hero_id}",
+                META_TTL_SECONDS,
+                lambda hero=hero_id: client.hero_matchups(hero),
+            )
 
     def _ensure_hero_meta(self, hero_id: Any) -> None:
         client = self.client
