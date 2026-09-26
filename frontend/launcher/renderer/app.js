@@ -91,6 +91,7 @@ const I18N = {
       "up-to-date": (v) => `Version ${v} · up to date`,
       downloading: (v, next, pct) => `Downloading ${next}… ${pct}%`,
       ready: (v, next) => `Version ${next} is ready. It installs by itself once Dota is closed.`,
+      blocked: (v, next) => `Version ${next} is ready. It installs after you close Dota.`,
       error: (v) => `Version ${v} · could not check for updates`
     },
     devTitle: "For developers",
@@ -246,6 +247,7 @@ const I18N = {
       "up-to-date": (v) => `Версия ${v} · последняя`,
       downloading: (v, next, pct) => `Загружается ${next}… ${pct}%`,
       ready: (v, next) => `Версия ${next} загружена. Установится сама, когда Дота будет закрыта.`,
+      blocked: (v, next) => `Версия ${next} загружена. Установится после выхода из Доты.`,
       error: (v) => `Версия ${v} · не удалось проверить обновления`
     },
     devTitle: "Для разработчика",
@@ -866,13 +868,16 @@ function renderUpdate(status) {
   const current = status.appVersion || update.currentVersion || "";
   const known = ["disabled", "idle", "checking", "up-to-date", "downloading", "ready", "error"];
   const state = known.includes(update.status) ? update.status : "idle";
-  els.updateHint.textContent = tr(`updateHint.${state}`, current, update.version || "", update.percent || 0);
+  // Installing restarts the app, so it is never offered while Dota runs.
+  const blocked = state === "ready" && Boolean(update.blockedByGame);
+  const hintKey = blocked ? "blocked" : state;
+  els.updateHint.textContent = tr(`updateHint.${hintKey}`, current, update.version || "", update.percent || 0);
   els.updateHint.title = state === "error" ? update.error || "" : "";
   const install = state === "ready";
   els.updateAction.dataset.mode = install ? "install" : "check";
   els.updateAction.classList.toggle("btn-primary", install);
   els.updateLabel.textContent = install ? tr("updateInstall") : tr("updateCheck");
-  els.updateAction.disabled = state === "disabled" || state === "checking" || state === "downloading";
+  els.updateAction.disabled = blocked || state === "disabled" || state === "checking" || state === "downloading";
 }
 
 function renderFacts(status) {

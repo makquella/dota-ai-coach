@@ -91,7 +91,7 @@ The `Release` workflow (`.github/workflows/release.yml`) checks that the tag mat
 In the app:
 
 - it checks 15 s after start and then every 4 hours, and downloads a new version in the background;
-- a downloaded update installs when the user picks **Restart and update** (tray menu or the **Updates** row in the control panel), when the app quits, or by itself once Dota has been closed for 5 minutes and the control panel is not open. Nothing is installed while Dota runs or a match feeds GSI;
+- a downloaded update installs when the user picks **Restart and update** (tray menu or the **Updates** row in the control panel), when the app quits, or by itself once Dota has been closed for 5 minutes and the control panel is not open. Nothing is installed while Dota runs or a match feeds GSI, manual installs included (the button and the tray item wait until Dota is closed);
 - the install is silent (same per-user NSIS installer, `/S --updated`), the app starts again afterwards — hidden in the tray if it was hidden before — and shows "Updated to x.y.z";
 - dev runs (`npm run dev`), the portable exe and `--smoke-test` runs never update. Logs: `[update]` lines in `launcher.log`.
 

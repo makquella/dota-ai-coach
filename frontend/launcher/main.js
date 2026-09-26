@@ -170,12 +170,11 @@ const updater = createUpdater({
   currentVersion: app.getVersion(),
   // NSIS build only: the portable exe and dev runs are not updated.
   supported: IS_PACKAGED && process.platform === "win32" && !process.env.PORTABLE_EXECUTABLE_DIR && !IS_SMOKE_TEST,
-  // Never while Dota runs or a match feeds GSI, nor under the user's eyes.
+  // Never while Dota runs or a match feeds GSI (manual installs included).
+  isGameRunning,
+  // The unattended install also waits for the demo and a hidden panel.
   canInstallNow: () =>
-    !dotaWatcher.getState().running &&
-    !live.inMatch &&
-    processStatus.demo !== "running" &&
-    !(mainWindow && !mainWindow.isDestroyed() && mainWindow.isVisible()),
+    processStatus.demo !== "running" && !(mainWindow && !mainWindow.isDestroyed() && mainWindow.isVisible()),
   beforeInstall: ({ unattended }) => {
     const panelOpen = Boolean(mainWindow && !mainWindow.isDestroyed() && mainWindow.isVisible());
     settings.set("startHiddenOnce", unattended || !panelOpen);
@@ -210,6 +209,7 @@ const TRAY_TEXT = {
       "Dota runs in exclusive fullscreen, so the overlay cannot be drawn over it. In Dota: Settings → Video → Display mode → Borderless window.",
     updateDownloading: (version, percent) => `Downloading update ${version}… ${percent}%`,
     updateReady: (version) => `Restart and update to ${version}`,
+    updateAfterGame: (version) => `Update ${version} installs after you close Dota`,
     updated: (version) => `Updated to ${version}.`
   },
   ru: {
@@ -229,6 +229,7 @@ const TRAY_TEXT = {
       "Дота запущена в эксклюзивном полноэкранном режиме — поверх него оверлей не рисуется. В Доте: Настройки → Видео → режим экрана «Окно без рамки» (Borderless window).",
     updateDownloading: (version, percent) => `Загружается обновление ${version}… ${percent}%`,
     updateReady: (version) => `Перезапустить и обновить до ${version}`,
+    updateAfterGame: (version) => `Обновление ${version} установится после выхода из Доты`,
     updated: (version) => `Обновлено до версии ${version}.`
   }
 };
@@ -361,7 +362,7 @@ function publicStatus() {
     dotaFocused: dota.focused,
     dotaFullscreen: fullscreenWarningActive(),
     appVersion: app.getVersion(),
-    update: updater.getState(),
+    update: { ...updater.getState(), blockedByGame: isGameRunning() },
     overlayReasonCode: presence.code,
     backend: processStatus.backend,
     backendPort: backend.port,
@@ -387,6 +388,10 @@ function publicStatus() {
 
 function updateStatus() {
   send("launcher:status", publicStatus());
+}
+
+function isGameRunning() {
+  return Boolean(dotaWatcher.getState().running || live.inMatch);
 }
 
 // Exclusive fullscreen: Windows does not draw other windows over the game, so
@@ -1428,7 +1433,9 @@ function refreshTray() {
   if (fullscreen) {
     topItems.push({ label: t("fullscreenMenu"), enabled: false });
   }
-  if (update.status === UPDATE_STATUS.READY) {
+  if (update.status === UPDATE_STATUS.READY && isGameRunning()) {
+    topItems.push({ label: t("updateAfterGame", update.version), enabled: false });
+  } else if (update.status === UPDATE_STATUS.READY) {
     topItems.push({ label: t("updateReady", update.version), click: () => updater.install() });
   } else if (update.status === UPDATE_STATUS.DOWNLOADING) {
     topItems.push({ label: t("updateDownloading", update.version, update.percent), enabled: false });

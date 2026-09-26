@@ -36,13 +36,15 @@ function defaultLoadAutoUpdater() {
  * @param {object} options
  * @param {string}   options.currentVersion  app.getVersion()
  * @param {boolean}  options.supported       packaged NSIS build on Windows
- * @param {Function} options.canInstallNow   () => boolean; false while Dota runs or the panel is open
+ * @param {Function} options.isGameRunning   () => boolean; blocks every install, manual ones too
+ * @param {Function} options.canInstallNow   () => boolean; extra condition for the unattended install (panel hidden…)
  * @param {Function} options.beforeInstall   ({ unattended }) => void; e.g. remember to restart hidden
  * @param {Function} options.loadAutoUpdater () => electron-updater autoUpdater (injectable for tests)
  */
 function createUpdater({
   currentVersion = "0.0.0",
   supported = false,
+  isGameRunning = () => false,
   canInstallNow = () => false,
   beforeInstall = () => {},
   loadAutoUpdater = defaultLoadAutoUpdater,
@@ -137,6 +139,11 @@ function createUpdater({
     if (!autoUpdater || state.status !== STATUS.READY || installing) {
       return false;
     }
+    if (isGameRunning()) {
+      // Installing restarts the app and stops the overlay: never mid-game.
+      log("Update install postponed: Dota is running.");
+      return false;
+    }
     installing = true;
     log(`Installing update ${state.version}${unattended ? " (Dota is closed, installing in the background)" : ""}.`);
     try {
@@ -154,7 +161,7 @@ function createUpdater({
       idleSince = null;
       return;
     }
-    if (!canInstallNow()) {
+    if (isGameRunning() || !canInstallNow()) {
       idleSince = null;
       return;
     }

@@ -131,3 +131,19 @@ test("unattended install waits until Dota has been closed for a while", () => {
   assert.equal(fake.installs.length, 1);
   assert.deepEqual(seen, [{ unattended: true }]);
 });
+
+test("no install while Dota runs, manual or unattended", () => {
+  let gameRunning = true;
+  const { updater, fake, advance } = started({ isGameRunning: () => gameRunning, canInstallNow: () => true });
+  fake.emit("update-downloaded", { version: "0.2.0" });
+
+  assert.equal(updater.install(), false, "manual install is refused mid-game");
+  updater.idleTick();
+  advance(IDLE_INSTALL_AFTER_MS * 2);
+  updater.idleTick();
+  assert.equal(fake.installs.length, 0);
+
+  gameRunning = false;
+  assert.equal(updater.install(), true);
+  assert.equal(fake.installs.length, 1);
+});
