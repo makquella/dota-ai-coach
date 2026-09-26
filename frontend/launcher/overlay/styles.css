@@ -1,19 +1,28 @@
+/*
+ * In-game advice card in the Dota 2 HUD style: dark translucent stone,
+ * thin bronze frame, gold title, priority shown by a side bar
+ * (Dire red = act now, gold = soon, Radiant green = calm). Small and quiet so
+ * it does not compete with the game.
+ */
 :root {
   color-scheme: dark;
-  --hud-bg: rgba(11, 12, 14, 0.65);
-  --hud-status-bg: rgba(11, 12, 14, 0.5);
-  --border: rgba(255, 255, 255, 0.08);
-  --text: #ffffff;
-  --reason: #e0e0e0;
-  --muted: #9ca3af;
-  --soft: rgba(255, 255, 255, 0.08);
-  --cyan: #00f0ff;
-  --purple: #6a1b9a;
-  --safe: #a3cf62;
-  --warning: #ff9800;
-  --danger: #ff3b30;
-  --stripe: var(--cyan);
-  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --card-top: rgba(30, 33, 35, 0.8);
+  --card-bottom: rgba(14, 16, 17, 0.72);
+  --frame: rgba(140, 109, 64, 0.7);
+  --frame-inner: rgba(0, 0, 0, 0.6);
+  --gold: #d2ae66;
+  --gold-soft: #b9995c;
+  --parchment: #efe6d2;
+  --reason: #c1b7a2;
+  --muted: #8f877a;
+  --radiant: #6aa338;
+  --radiant-text: #9ccb6c;
+  --dire: #b3382a;
+  --dire-text: #e46c5c;
+  --bar: var(--gold-soft);
+  --display: "Coach Display", "Palatino Linotype", Georgia, serif;
+  --body: "Segoe UI", system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif;
+  font-family: var(--body);
 }
 
 * {
@@ -32,12 +41,14 @@ body {
 body:not(.locked) .overlay-shell {
   -webkit-app-region: drag;
   cursor: move;
+  outline: 1px dashed rgba(210, 174, 102, 0.8);
+  outline-offset: 2px;
 }
 
 .overlay-root {
   width: 100%;
   height: 100%;
-  padding: 8px;
+  padding: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -46,138 +57,156 @@ body:not(.locked) .overlay-shell {
 .overlay-shell {
   position: relative;
   width: 100%;
-  min-height: 84px;
-  max-height: 124px;
-  padding: 11px 13px 11px 16px;
-  border: 1px solid var(--border);
-  border-radius: 7px;
-  background: var(--hud-bg);
-  color: var(--text);
-  opacity: 1;
+  max-height: 120px;
+  padding: 9px 14px 10px 17px;
+  border: 1px solid var(--frame);
+  border-radius: 2px;
+  background: linear-gradient(180deg, var(--card-top), var(--card-bottom));
+  box-shadow: 0 3px 12px rgba(0, 0, 0, 0.55), inset 0 0 0 1px var(--frame-inner),
+    inset 0 1px 0 rgba(230, 203, 142, 0.08);
+  color: var(--parchment);
   overflow: hidden;
-  transform: translateY(0);
-  transition: opacity 160ms ease, transform 160ms ease, border-color 160ms ease, background 160ms ease;
-  backdrop-filter: blur(8px);
-  box-shadow: 0 0 12px rgba(0, 240, 255, 0.08);
+  transition: opacity 160ms ease, transform 160ms ease;
 }
 
+/* Priority bar on the left. */
 .overlay-shell::before {
   content: "";
   position: absolute;
-  inset: 0 auto 0 0;
-  width: 3px;
-  background: var(--stripe);
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 4px;
+  background: linear-gradient(180deg, var(--bar), var(--bar) 60%, rgba(0, 0, 0, 0.4));
+  box-shadow: 1px 0 0 rgba(0, 0, 0, 0.6);
+}
+
+/* Thin gold rule under the top edge, like HUD panel headers. */
+.overlay-shell::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 12px;
+  right: 12px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(210, 174, 102, 0.55), transparent);
 }
 
 .overlay-shell.hidden {
   opacity: 0;
-  transform: translateY(5px);
-}
-
-.overlay-shell.status {
-  --stripe: var(--cyan);
-  min-height: 46px;
-  max-height: 70px;
-  background: var(--hud-status-bg);
-}
-
-.overlay-shell.coaching {
-  --stripe: var(--cyan);
-  border-color: rgba(0, 240, 255, 0.16);
+  transform: translateY(4px);
 }
 
 .overlay-shell.urgent,
 .overlay-shell.priority-high {
-  --stripe: var(--danger);
-  border-color: rgba(255, 59, 48, 0.38);
+  --bar: var(--dire);
 }
 
 .overlay-shell.priority-medium {
-  --stripe: var(--warning);
-  border-color: rgba(255, 152, 0, 0.28);
+  --bar: var(--gold);
 }
 
 .overlay-shell.priority-low,
 .overlay-shell.priority-safe {
-  --stripe: var(--safe);
-  border-color: rgba(163, 207, 98, 0.24);
+  --bar: var(--radiant);
+}
+
+/* Status cards (waiting, muted…) are smaller and dimmer than advice. */
+.overlay-shell.status {
+  --bar: rgba(143, 135, 122, 0.7);
+  width: auto;
+  max-width: 100%;
+  padding: 7px 14px 8px 16px;
+  opacity: 0.85;
 }
 
 .top-row {
   display: flex;
-  align-items: center;
+  align-items: baseline;
   justify-content: space-between;
   gap: 10px;
-  margin-bottom: 5px;
+  margin-bottom: 3px;
 }
 
-.label,
+.label {
+  color: var(--gold);
+  font-family: var(--display);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  text-shadow: 0 1px 0 #000;
+}
+
 .priority {
   color: var(--muted);
   font-size: 10px;
-  font-weight: 800;
-  line-height: 1.2;
-  letter-spacing: 0.04em;
+  font-weight: 600;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
 }
 
 .urgent .label,
-.urgent .priority,
-.priority-high .label,
 .priority-high .priority {
-  color: var(--danger);
+  color: var(--dire-text);
 }
 
-.priority-medium .label,
-.priority-medium .priority {
-  color: var(--warning);
-}
-
-.priority-low .label,
-.priority-safe .label,
 .priority-low .priority,
 .priority-safe .priority {
-  color: var(--safe);
+  color: var(--radiant-text);
 }
 
-.coaching:not(.priority-high):not(.priority-medium):not(.priority-low):not(.priority-safe) .label {
-  color: var(--cyan);
+.priority-medium .priority {
+  color: var(--gold);
 }
 
 .action {
   margin: 0;
-  color: var(--text);
-  font-size: 17px;
-  font-weight: 800;
-  line-height: 1.2;
-  letter-spacing: 0;
+  color: var(--parchment);
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.25;
+  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.8);
   overflow-wrap: anywhere;
+}
+
+.status .label {
+  color: var(--muted);
+  font-size: 10px;
 }
 
 .status .action {
-  color: var(--muted);
-  font-size: 13px;
-  font-weight: 700;
-}
-
-.reason {
-  margin: 6px 0 0;
   color: var(--reason);
   font-size: 12px;
   font-weight: 500;
-  line-height: 1.25;
+}
+
+.reason {
+  margin: 4px 0 0;
+  color: var(--reason);
+  font-size: 12px;
+  line-height: 1.3;
+  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.8);
   overflow-wrap: anywhere;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 .status .reason {
   display: none;
 }
 
+/* Debug line (Ctrl+Alt+D): plain dot-separated facts instead of chips. */
 .status-row {
   display: flex;
   flex-wrap: wrap;
-  gap: 4px;
-  margin: 0 0 6px;
+  gap: 0 8px;
+  margin: 0 0 4px;
+  color: var(--muted);
+  font-size: 10px;
+  line-height: 1.4;
 }
 
 .debug-hidden .status-row {
@@ -185,18 +214,16 @@ body:not(.locked) .overlay-shell {
 }
 
 .status-chip {
-  max-width: 132px;
-  padding: 2px 5px;
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  border-radius: 999px;
-  background: var(--soft);
-  color: var(--muted);
-  font-size: 9px;
-  font-weight: 800;
-  line-height: 1.25;
+  max-width: 140px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.status-chip + .status-chip::before {
+  content: "·";
+  margin-right: 8px;
+  color: rgba(210, 174, 102, 0.6);
 }
 
 .hidden {

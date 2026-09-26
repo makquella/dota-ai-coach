@@ -73,3 +73,22 @@ def test_payload_without_game_state_is_not_in_match(client):
     client.post("/gsi", json={"hero": {"name": "npc_dota_hero_juggernaut"}, "map": {}})
 
     assert _status(client)["in_match"] is False
+
+
+def test_gsi_status_reports_the_match_clock(client):
+    client.post(
+        "/gsi",
+        json={
+            "map": {
+                "game_state": "DOTA_GAMERULES_STATE_GAME_IN_PROGRESS",
+                "clock_time": 1207,
+                "game_time": 1297,
+            },
+            "hero": {"name": "npc_dota_hero_juggernaut"},
+        },
+    )
+
+    status = _status(client)
+
+    assert status["clock_time"] == 1207
+    assert status["hero"] == "Juggernaut"

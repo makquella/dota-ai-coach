@@ -14,31 +14,31 @@ const DOTA_STATUS = {
  * @param {boolean} input.demoRunning  replay demo is playing (no Dota needed)
  * @param {object}  input.dota         watcher state { supported, running, focused }
  * @param {boolean} input.inMatch      backend /gsi/status in_match (fresh GSI from a match)
- * @returns {{ visible: boolean, reason: string }}
+ * @returns {{ visible: boolean, reason: string, code: string }}
  */
 function overlayVisibility({ enabled, unlocked, demoRunning, dota = {}, inMatch }) {
   if (!enabled) {
-    return { visible: false, reason: "overlay switched off" };
+    return { visible: false, reason: "overlay switched off", code: "off" };
   }
   if (unlocked) {
-    return { visible: true, reason: "unlocked for positioning" };
+    return { visible: true, reason: "unlocked for positioning", code: "positioning" };
   }
   if (demoRunning) {
-    return { visible: true, reason: "replay demo" };
+    return { visible: true, reason: "replay demo", code: "demo" };
   }
   if (!dota.supported) {
-    return { visible: true, reason: "focus tracking unavailable" };
+    return { visible: true, reason: "focus tracking unavailable", code: "no_tracking" };
   }
   if (!dota.running) {
-    return { visible: false, reason: "Dota 2 is not running" };
+    return { visible: false, reason: "Dota 2 is not running", code: "dota_not_running" };
   }
   if (!dota.focused) {
-    return { visible: false, reason: "Dota 2 is not the active window" };
+    return { visible: false, reason: "Dota 2 is not the active window", code: "dota_not_focused" };
   }
   if (!inMatch) {
-    return { visible: false, reason: "no fresh GSI from a match" };
+    return { visible: false, reason: "no fresh GSI from a match", code: "no_match" };
   }
-  return { visible: true, reason: "in game" };
+  return { visible: true, reason: "in game", code: "in_game" };
 }
 
 function dotaStatus({ dota = {}, inMatch }) {
