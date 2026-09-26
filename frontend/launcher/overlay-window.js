@@ -17,7 +17,7 @@ const OVERLAY_DEFAULTS = {
   positionPreset: "right-center",
   locked: true,
   debugVisible: false,
-  opacity: 0.92,
+  opacity: 1,
   autoHideMs: 8000,
   urgentAutoHideMs: 12000
 };
@@ -36,13 +36,19 @@ function createOverlayController({ settings, getBackend, getLocale = () => "en",
     ["CommandOrControl+Alt+M", muteAdvice],
     ["CommandOrControl+Alt+L", toggleLocked],
     ["CommandOrControl+Alt+D", toggleDebugLine],
-    ["CommandOrControl+Alt+1", () => moveToPreset("top-left")],
-    ["CommandOrControl+Alt+2", () => moveToPreset("right-center")],
-    ["CommandOrControl+Alt+3", () => moveToPreset("bottom-center")]
+    ["CommandOrControl+Alt+1", () => setPosition("left-center")],
+    ["CommandOrControl+Alt+2", () => setPosition("right-center")],
+    ["CommandOrControl+Alt+3", () => setPosition("bottom-center")]
   ];
 
   function config() {
-    return { ...OVERLAY_DEFAULTS, ...(settings.get("overlay") || {}) };
+    const merged = { ...OVERLAY_DEFAULTS, ...(settings.get("overlay") || {}) };
+    // 0.92 was the old default window opacity; the card itself is now 85%
+    // opaque, so dimming the whole window on top of that hurts readability.
+    if (merged.opacity === 0.92) {
+      merged.opacity = 1;
+    }
+    return merged;
   }
 
   function updateConfig(patch) {
@@ -206,23 +212,25 @@ function createOverlayController({ settings, getBackend, getLocale = () => "en",
     send("overlay-config-updated", publicConfig());
   }
 
+  // Presets keep the card off the Dota HUD: the minimap and the hero panel
+  // take roughly the bottom 22% of the screen, the top bar the top ~8%.
   function moveToPreset(preset, persist = true) {
     if (!isOpen()) {
       return;
     }
+    preset = normalizePreset(preset);
     const current = config();
     const area = screen.getPrimaryDisplay().workArea;
-    const margin = 28;
-    const hudGap = 92;
+    const margin = 24;
+    const hudHeight = Math.round(area.height * 0.24);
     let x = area.x + area.width - WINDOW_WIDTH - margin;
     let y = area.y + Math.round((area.height - WINDOW_HEIGHT) / 2);
 
-    if (preset === "top-left") {
+    if (preset === "left-center") {
       x = area.x + margin;
-      y = area.y + margin;
     } else if (preset === "bottom-center") {
       x = area.x + Math.round((area.width - WINDOW_WIDTH) / 2);
-      y = area.y + area.height - WINDOW_HEIGHT - hudGap;
+      y = area.y + area.height - hudHeight - WINDOW_HEIGHT;
     } else if (preset === "custom" && current.customBounds) {
       x = Number(current.customBounds.x) || x;
       y = Number(current.customBounds.y) || y;
@@ -235,6 +243,35 @@ function createOverlayController({ settings, getBackend, getLocale = () => "en",
         customBounds: preset === "custom" ? current.customBounds : undefined
       });
     }
+  }
+
+  function normalizePreset(preset) {
+    // "top-left" was an older preset that sat on Dota's top-left menu.
+    return preset === "top-left" ? "left-center" : preset;
+  }
+
+  function setPosition(preset) {
+    const next = normalizePreset(preset);
+    if (!["left-center", "right-center", "bottom-center"].includes(next)) {
+      return;
+    }
+    if (isOpen()) {
+      moveToPreset(next);
+    } else {
+      updateConfig({ positionPreset: next, customBounds: undefined });
+    }
+    onChange();
+  }
+
+  function position() {
+    return normalizePreset(config().positionPreset || OVERLAY_DEFAULTS.positionPreset);
+  }
+
+  function setLocked(locked) {
+    if (Boolean(locked) === Boolean(config().locked)) {
+      return;
+    }
+    toggleLocked();
   }
 
   function toggleLocked() {
@@ -333,6 +370,9 @@ function createOverlayController({ settings, getBackend, getLocale = () => "en",
     isVisible,
     isUnlocked,
     setVisible,
+    setPosition,
+    position,
+    setLocked,
     window: () => (isOpen() ? overlayWindow : null),
     enforceAlwaysOnTop,
     publicConfig,

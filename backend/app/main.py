@@ -460,6 +460,27 @@ def demo_session_summary():
     return COACH_SESSION_HISTORY.build_summary(ADVICE_SCHEDULER.stats())
 
 
+@app.get("/advice/recent", summary="Get the most recent advice shown in this session")
+def recent_advice(limit: int = 5):
+    """Newest first; used by the launcher's "Recent advice" card."""
+    limit = max(1, min(int(limit), 20))
+    records = COACH_SESSION_HISTORY.records()[-limit:]
+    return {
+        "items": [
+            {
+                "timestamp": record.get("timestamp"),
+                "game_time": record.get("game_time") or None,
+                "hero": record.get("hero"),
+                "action": record.get("action"),
+                "reason": record.get("reason"),
+                "priority": record.get("priority"),
+                "advice_mode": record.get("advice_mode"),
+            }
+            for record in reversed(records)
+        ]
+    }
+
+
 @app.get("/overlay/stats", summary="Get overlay advice scheduler telemetry")
 def overlay_stats():
     return ADVICE_SCHEDULER.stats()

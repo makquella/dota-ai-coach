@@ -1,0 +1,76 @@
+/*
+ * Design tokens shared by the control panel and the overlay.
+ * Calm dark UI: flat surfaces, hairline borders, one restrained accent.
+ * Status colours are for small dots only; the accent is for the primary
+ * action and the active state only.
+ */
+:root {
+  color-scheme: dark;
+
+  /* Surfaces */
+  --bg: #0b0b0c;
+  --surface-1: #141416;
+  --surface-2: #1b1b1e;
+  --surface-hover: #202024;
+  --border: rgba(255, 255, 255, 0.06);
+  --border-strong: rgba(255, 255, 255, 0.1);
+
+  /* Text */
+  --text: #ededef;
+  --text-2: #a1a1aa;
+  --text-3: #71717a;
+
+  /* Accent (primary action + active state only) */
+  --accent: #7c8cff;
+  --accent-hover: #8d9bff;
+  --accent-soft: rgba(124, 140, 255, 0.14);
+  --accent-text: #0b0b0c;
+
+  /* Status (small dots) */
+  --ok: #4cc38a;
+  --warn: #e5b454;
+  --error: #eb6f6f;
+  --idle: #52525b;
+
+  /* Type: sizes 12/13/14/16/20/28, weights 400/500/600 */
+  --font: "Inter", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --mono: "JetBrains Mono", Consolas, "Cascadia Mono", "DejaVu Sans Mono", monospace;
+  --fs-12: 12px;
+  --fs-13: 13px;
+  --fs-14: 14px;
+  --fs-16: 16px;
+  --fs-20: 20px;
+  --fs-28: 28px;
+  --fw-regular: 400;
+  --fw-medium: 500;
+  --fw-semibold: 600;
+
+  /* Spacing: 4px grid */
+  --sp-1: 4px;
+  --sp-2: 8px;
+  --sp-3: 12px;
+  --sp-4: 16px;
+  --sp-5: 20px;
+  --sp-6: 24px;
+  --sp-8: 32px;
+  --sp-10: 40px;
+
+  /* Radii */
+  --r-sm: 6px;
+  --r-md: 8px;
+  --r-lg: 10px;
+
+  /* Motion: opacity and small offsets only */
+  --dur-fast: 120ms;
+  --dur: 160ms;
+  --dur-slow: 180ms;
+  --ease: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --dur-fast: 0ms;
+    --dur: 0ms;
+    --dur-slow: 0ms;
+  }
+}

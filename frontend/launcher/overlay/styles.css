@@ -1,30 +1,8 @@
 /*
- * In-game advice card in the Dota 2 HUD style: dark translucent stone,
- * thin bronze frame, gold title, priority shown by a side bar
- * (Dire red = act now, gold = soon, Radiant green = calm). Small and quiet so
- * it does not compete with the game.
+ * In-game advice card: one hint at a time, small, quiet and readable.
+ * Flat #0B0B0C at ~85% opacity, no glow, no blur, no decorative frames.
+ * Tokens come from ../assets/ui/tokens.css.
  */
-:root {
-  color-scheme: dark;
-  --card-top: rgba(30, 33, 35, 0.8);
-  --card-bottom: rgba(14, 16, 17, 0.72);
-  --frame: rgba(140, 109, 64, 0.7);
-  --frame-inner: rgba(0, 0, 0, 0.6);
-  --gold: #d2ae66;
-  --gold-soft: #b9995c;
-  --parchment: #efe6d2;
-  --reason: #c1b7a2;
-  --muted: #8f877a;
-  --radiant: #6aa338;
-  --radiant-text: #9ccb6c;
-  --dire: #b3382a;
-  --dire-text: #e46c5c;
-  --bar: var(--gold-soft);
-  --display: "Coach Display", "Palatino Linotype", Georgia, serif;
-  --body: "Segoe UI", system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif;
-  font-family: var(--body);
-}
-
 * {
   box-sizing: border-box;
 }
@@ -36,60 +14,29 @@ body {
   margin: 0;
   overflow: hidden;
   background: transparent;
-}
-
-body:not(.locked) .overlay-shell {
-  -webkit-app-region: drag;
-  cursor: move;
-  outline: 1px dashed rgba(210, 174, 102, 0.8);
-  outline-offset: 2px;
+  font-family: var(--font);
+  -webkit-font-smoothing: antialiased;
 }
 
 .overlay-root {
-  width: 100%;
-  height: 100%;
-  padding: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
+  width: 100%;
+  height: 100%;
+  padding: var(--sp-2);
 }
 
 .overlay-shell {
-  position: relative;
   width: 100%;
-  max-height: 120px;
-  padding: 9px 14px 10px 17px;
-  border: 1px solid var(--frame);
-  border-radius: 2px;
-  background: linear-gradient(180deg, var(--card-top), var(--card-bottom));
-  box-shadow: 0 3px 12px rgba(0, 0, 0, 0.55), inset 0 0 0 1px var(--frame-inner),
-    inset 0 1px 0 rgba(230, 203, 142, 0.08);
-  color: var(--parchment);
+  max-height: 124px;
+  padding: var(--sp-3) var(--sp-4);
   overflow: hidden;
-  transition: opacity 160ms ease, transform 160ms ease;
-}
-
-/* Priority bar on the left. */
-.overlay-shell::before {
-  content: "";
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  left: 0;
-  width: 4px;
-  background: linear-gradient(180deg, var(--bar), var(--bar) 60%, rgba(0, 0, 0, 0.4));
-  box-shadow: 1px 0 0 rgba(0, 0, 0, 0.6);
-}
-
-/* Thin gold rule under the top edge, like HUD panel headers. */
-.overlay-shell::after {
-  content: "";
-  position: absolute;
-  top: 0;
-  left: 12px;
-  right: 12px;
-  height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(210, 174, 102, 0.55), transparent);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  background: rgba(11, 11, 12, 0.85);
+  color: var(--text);
+  transition: opacity var(--dur) var(--ease), transform var(--dur) var(--ease);
 }
 
 .overlay-shell.hidden {
@@ -97,116 +44,117 @@ body:not(.locked) .overlay-shell {
   transform: translateY(4px);
 }
 
-.overlay-shell.urgent,
-.overlay-shell.priority-high {
-  --bar: var(--dire);
-}
-
-.overlay-shell.priority-medium {
-  --bar: var(--gold);
-}
-
-.overlay-shell.priority-low,
-.overlay-shell.priority-safe {
-  --bar: var(--radiant);
-}
-
-/* Status cards (waiting, muted…) are smaller and dimmer than advice. */
-.overlay-shell.status {
-  --bar: rgba(143, 135, 122, 0.7);
-  width: auto;
-  max-width: 100%;
-  padding: 7px 14px 8px 16px;
-  opacity: 0.85;
+/* Unlocked (Ctrl+Alt+L / "Move"): make it obvious the card can be dragged. */
+body:not(.locked) .overlay-shell {
+  -webkit-app-region: drag;
+  border-color: var(--accent);
+  cursor: move;
 }
 
 .top-row {
   display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 10px;
-  margin-bottom: 3px;
+  align-items: center;
+  gap: var(--sp-2);
+  margin-bottom: var(--sp-1);
+}
+
+.dot {
+  flex: none;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--idle);
+}
+
+.urgent .dot,
+.priority-high .dot {
+  background: var(--error);
+}
+
+.priority-medium .dot {
+  background: var(--warn);
+}
+
+.priority-low .dot,
+.priority-safe .dot {
+  background: var(--ok);
 }
 
 .label {
-  color: var(--gold);
-  font-family: var(--display);
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  text-shadow: 0 1px 0 #000;
+  color: var(--text-2);
+  font-size: var(--fs-12);
+  font-weight: var(--fw-medium);
 }
 
 .priority {
-  color: var(--muted);
-  font-size: 10px;
-  font-weight: 600;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-}
-
-.urgent .label,
-.priority-high .priority {
-  color: var(--dire-text);
-}
-
-.priority-low .priority,
-.priority-safe .priority {
-  color: var(--radiant-text);
-}
-
-.priority-medium .priority {
-  color: var(--gold);
+  margin-left: auto;
+  color: var(--text-3);
+  font-size: var(--fs-12);
 }
 
 .action {
   margin: 0;
-  color: var(--parchment);
-  font-size: 15px;
-  font-weight: 600;
-  line-height: 1.25;
-  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.8);
+  color: var(--text);
+  font-size: var(--fs-16);
+  font-weight: var(--fw-semibold);
+  line-height: 1.35;
   overflow-wrap: anywhere;
-}
-
-.status .label {
-  color: var(--muted);
-  font-size: 10px;
-}
-
-.status .action {
-  color: var(--reason);
-  font-size: 12px;
-  font-weight: 500;
 }
 
 .reason {
-  margin: 4px 0 0;
-  color: var(--reason);
-  font-size: 12px;
-  line-height: 1.3;
-  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.8);
-  overflow-wrap: anywhere;
   display: -webkit-box;
+  margin: var(--sp-1) 0 0;
+  overflow: hidden;
+  color: var(--text-2);
+  font-size: var(--fs-13);
+  line-height: 1.4;
+  overflow-wrap: anywhere;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
-  overflow: hidden;
+}
+
+/* Status cards (waiting, muted…): smaller and dimmer than advice. */
+.overlay-shell.status {
+  width: auto;
+  max-width: 100%;
+  padding: var(--sp-2) var(--sp-3);
+}
+
+.status .top-row {
+  display: none;
+}
+
+.status .action {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  color: var(--text-2);
+  font-size: var(--fs-13);
+  font-weight: var(--fw-medium);
+}
+
+.status .action::before {
+  content: "";
+  flex: none;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--idle);
 }
 
 .status .reason {
   display: none;
 }
 
-/* Debug line (Ctrl+Alt+D): plain dot-separated facts instead of chips. */
+/* Debug line (Ctrl+Alt+D): plain dot-separated facts. */
 .status-row {
   display: flex;
   flex-wrap: wrap;
-  gap: 0 8px;
-  margin: 0 0 4px;
-  color: var(--muted);
-  font-size: 10px;
-  line-height: 1.4;
+  gap: 0 var(--sp-2);
+  margin: 0 0 var(--sp-1);
+  color: var(--text-3);
+  font-size: var(--fs-12);
+  font-variant-numeric: tabular-nums;
 }
 
 .debug-hidden .status-row {
@@ -222,8 +170,7 @@ body:not(.locked) .overlay-shell {
 
 .status-chip + .status-chip::before {
   content: "·";
-  margin-right: 8px;
-  color: rgba(210, 174, 102, 0.6);
+  margin-right: var(--sp-2);
 }
 
 .hidden {
