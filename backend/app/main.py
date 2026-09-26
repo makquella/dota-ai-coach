@@ -10,7 +10,7 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
-from pydantic import ValidationError
+from pydantic import BaseModel, ValidationError
 
 from app.advice_i18n import localize_advice_items, localize_overlay_response, normalize_lang
 from app.advice_scheduler import ADVICE_SCHEDULER, ScheduledAdvice
@@ -43,6 +43,7 @@ from app.player_api import PLAYER_SERVICE
 from app.player_api import router as player_router
 from app.rag import retrieve_context
 from app.recommender import generate_recommendation
+from app.scheduler.frequency import FREQUENCIES
 from app.schemas import GameSituationRequest, RecommendationResponse, is_supported_hero
 
 
@@ -520,6 +521,23 @@ def recent_advice(limit: int = 5, lang: str = "en"):
     }
 
 
+class AdviceSettings(BaseModel):
+    frequency: str
+
+
+@app.get("/settings/advice", summary="Live advice preferences")
+def get_advice_settings():
+    return {"frequency": ADVICE_SCHEDULER.frequency, "options": list(FREQUENCIES)}
+
+
+@app.post("/settings/advice", summary="Change live advice preferences")
+def set_advice_settings(settings: AdviceSettings):
+    return {
+        "frequency": ADVICE_SCHEDULER.set_frequency(settings.frequency),
+        "options": list(FREQUENCIES),
+    }
+
+
 @app.get("/diagnostics", summary="State and recent errors for a problem report")
 def diagnostics():
     """No keys and no raw GSI: what a tester can safely send to the developer."""
@@ -537,7 +555,7 @@ def diagnostics():
             "player_data_dir": str(PLAYER_DATA_DIR),
         },
         "gsi": _gsi_status_response(),
-        "scheduler": ADVICE_SCHEDULER.stats(),
+        "scheduler": {**ADVICE_SCHEDULER.stats(), "frequency": ADVICE_SCHEDULER.frequency},
         "recent_advice": [
             {
                 key: record.get(key)

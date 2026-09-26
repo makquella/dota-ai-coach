@@ -87,6 +87,8 @@ const settings = createSettingsStore(path.join(USER_DATA_DIR, "settings.json"), 
   // First-run checklist on Home: the first GSI data seen, and "hide" pressed.
   gsiSeenAt: "",
   setupDismissed: false,
+  // How often coaching advice may appear: calm | normal | active (backend scheduler).
+  adviceFrequency: "normal",
   overlay: { ...OVERLAY_DEFAULTS }
 });
 
@@ -379,6 +381,7 @@ function publicStatus() {
     recentAdvice: live.recentAdvice,
     overlayPosition: overlay.position(),
     overlayVoice: overlay.voice(),
+    adviceFrequency: adviceFrequency(),
     overlayLocked: !overlay.isUnlocked(),
     dotaRunning: dota.running,
     dotaFocused: dota.focused,
@@ -813,6 +816,7 @@ async function launchBackend() {
     USE_LLM: "false",
     SIMULATION_USE_LLM: "false",
     LIVE_CONSERVATIVE_MODE: "true",
+    DOTA_AI_ADVICE_FREQUENCY: adviceFrequency(),
     PYTHONUNBUFFERED: "1",
     DOTA_AI_BACKEND_HOST: BACKEND_HOST,
     DOTA_AI_BACKEND_PORT: String(port),
@@ -1557,6 +1561,32 @@ async function exportPdf(kind, id) {
   return { ok: true, path: filePath };
 }
 
+// ---------------------------------------------------------------------------
+// Advice frequency (sent at backend start and on change)
+// ---------------------------------------------------------------------------
+
+const ADVICE_FREQUENCIES = ["calm", "normal", "active"];
+
+function adviceFrequency() {
+  const value = settings.get("adviceFrequency");
+  return ADVICE_FREQUENCIES.includes(value) ? value : "normal";
+}
+
+async function setAdviceFrequency(value) {
+  if (!ADVICE_FREQUENCIES.includes(value)) {
+    return publicStatus();
+  }
+  settings.set("adviceFrequency", value);
+  try {
+    await requestBackendJson("/settings/advice", "POST", { frequency: value });
+  } catch (error) {
+    // The backend reads the setting from its env at the next start.
+    appendLog("launcher", `Advice frequency saved; the service applies it on start (${error.message}).`, { force: true });
+  }
+  updateStatus();
+  return publicStatus();
+}
+
 function setLogMode(nextMode = "clean") {
   logMode = nextMode === "verbose" ? "verbose" : "clean";
   appendLog(
@@ -1788,6 +1818,7 @@ function registerIpc() {
     overlay.setPosition(String(preset || ""));
     return publicStatus();
   });
+  ipcMain.handle("launcher:set-advice-frequency", (_event, value) => setAdviceFrequency(String(value || "")));
   ipcMain.handle("launcher:set-overlay-voice", (_event, mode, volume) => {
     overlay.setVoice(String(mode || ""), volume);
     return publicStatus();

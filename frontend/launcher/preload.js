@@ -23,6 +23,7 @@ contextBridge.exposeInMainWorld("launcherApi", {
   chooseGsiFolder: () => ipcRenderer.invoke("launcher:choose-gsi-folder"),
   chooseDotaFolder: () => ipcRenderer.invoke("launcher:choose-dota-folder"),
   setOverlayPosition: (preset) => ipcRenderer.invoke("launcher:set-overlay-position", preset),
+  setAdviceFrequency: (value) => ipcRenderer.invoke("launcher:set-advice-frequency", value),
   setOverlayVoice: (mode, volume) => ipcRenderer.invoke("launcher:set-overlay-voice", mode, volume),
   setOverlayLocked: (locked) => ipcRenderer.invoke("launcher:set-overlay-locked", locked),
   dismissFullscreenWarning: () => ipcRenderer.invoke("launcher:dismiss-fullscreen-warning"),

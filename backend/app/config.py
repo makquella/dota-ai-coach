@@ -105,6 +105,9 @@ GSI_DEBUG_LOG = os.getenv("GSI_DEBUG_LOG", "false").strip().lower() == "true"
 GSI_DEBUG_SAMPLES_DIR = WRITABLE_DIR / "gsi_debug_samples"
 
 # Live Dota GSI readiness and recording.
+# How often coaching advice may appear: calm | normal | active (the launcher
+# passes the player's choice; see app/scheduler/frequency.py).
+ADVICE_FREQUENCY = os.getenv("DOTA_AI_ADVICE_FREQUENCY", "normal").strip().lower()
 LIVE_CONSERVATIVE_MODE = os.getenv("LIVE_CONSERVATIVE_MODE", "true").strip().lower() != "false"
 try:
     GSI_STALE_SECONDS = max(1.0, float(os.getenv("GSI_STALE_SECONDS", "5")))

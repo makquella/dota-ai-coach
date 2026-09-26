@@ -26,6 +26,7 @@
         <button type="button" role="tab" id="tab-home" data-view="home" aria-selected="true"><i data-icon="house"></i><span data-i18n="tabHome">Home</span></button>
         <button type="button" role="tab" id="tab-matches" data-view="matches" aria-selected="false"><i data-icon="history"></i><span data-i18n="tabMatches">Matches</span></button>
         <button type="button" role="tab" id="tab-progress" data-view="progress" aria-selected="false"><i data-icon="chart-line"></i><span data-i18n="tabProgress">Progress</span></button>
+        <button type="button" role="tab" id="tab-settings" data-view="settings" aria-selected="false"><i data-icon="settings"></i><span data-i18n="tabSettings">Settings</span></button>
       </nav>
 
       <div class="view" id="view-home" role="tabpanel" aria-labelledby="tab-home">
@@ -116,12 +117,16 @@
             </div>
           </div>
         </section>
+      </div>
+      </div>
 
-        <!-- Overlay settings -->
-        <section class="card" id="overlay-card" aria-labelledby="overlay-heading">
+      <!-- Settings: overlay, advice, app, and the developer tools. -->
+      <div class="view hidden" id="view-settings" role="tabpanel" aria-labelledby="tab-settings">
+      <div class="cards">
+        <section class="card" id="overlay-card" aria-labelledby="overlay-card-heading">
           <header class="card-head">
             <i data-icon="monitor"></i>
-            <h2 id="overlay-heading" data-i18n="overlayTitle">Overlay</h2>
+            <h2 id="overlay-card-heading" data-i18n="overlayTitle">Overlay</h2>
           </header>
           <div class="card-body settings">
             <label class="setting">
@@ -144,6 +149,32 @@
             </div>
             <div class="setting">
               <span class="setting-text">
+                <span class="setting-title" data-i18n="overlayMove">Move by hand</span>
+                <span class="setting-hint" id="move-hint" data-i18n="moveHint">Shows the card so you can drag it anywhere</span>
+              </span>
+              <button id="move-toggle" class="btn" type="button"><i data-icon="move"></i><span id="move-label" data-i18n="moveStart">Move</span></button>
+            </div>
+          </div>
+        </section>
+        <section class="card" id="advice-settings-card" aria-labelledby="advice-settings-card-heading">
+          <header class="card-head">
+            <i data-icon="lightbulb"></i>
+            <h2 id="advice-settings-card-heading" data-i18n="adviceSettingsTitle">Advice</h2>
+          </header>
+          <div class="card-body settings">
+            <div class="setting">
+              <span class="setting-text">
+                <span class="setting-title" id="frequency-title" data-i18n="frequencyTitle">How often</span>
+                <span class="setting-hint" id="frequency-hint"></span>
+              </span>
+              <div class="segmented" role="radiogroup" id="frequency-group" aria-labelledby="frequency-title">
+                <button type="button" role="radio" data-frequency="calm"><span data-i18n="frequencyCalm">Less</span></button>
+                <button type="button" role="radio" data-frequency="normal"><span data-i18n="frequencyNormal">Normal</span></button>
+                <button type="button" role="radio" data-frequency="active"><span data-i18n="frequencyActive">More</span></button>
+              </div>
+            </div>
+            <div class="setting">
+              <span class="setting-text">
                 <span class="setting-title" id="voice-title" data-i18n="voiceTitle">Voice</span>
                 <span class="setting-hint" id="voice-hint"></span>
               </span>
@@ -156,13 +187,14 @@
                 <button id="voice-test" class="btn btn-icon" type="button" data-i18n-title="voiceTest" title="Listen"><i data-icon="volume-2"></i></button>
               </div>
             </div>
-            <div class="setting">
-              <span class="setting-text">
-                <span class="setting-title" data-i18n="overlayMove">Move by hand</span>
-                <span class="setting-hint" id="move-hint" data-i18n="moveHint">Shows the card so you can drag it anywhere</span>
-              </span>
-              <button id="move-toggle" class="btn" type="button"><i data-icon="move"></i><span id="move-label" data-i18n="moveStart">Move</span></button>
-            </div>
+          </div>
+        </section>
+        <section class="card" id="app-card" aria-labelledby="app-card-heading">
+          <header class="card-head">
+            <i data-icon="settings"></i>
+            <h2 id="app-card-heading" data-i18n="appTitle">App</h2>
+          </header>
+          <div class="card-body settings">
             <label class="setting">
               <span class="setting-text">
                 <span class="setting-title" data-i18n="autostart">Start with Windows</span>

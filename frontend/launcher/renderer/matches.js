@@ -704,7 +704,7 @@
     for (const tab of document.querySelectorAll(".tabs [data-view]")) {
       tab.setAttribute("aria-selected", String(tab.dataset.view === tabView));
     }
-    for (const name of ["home", "matches", "match", "progress"]) {
+    for (const name of ["home", "matches", "match", "progress", "settings"]) {
       document.getElementById(`view-${name}`)?.classList.toggle("hidden", name !== view);
     }
     if (remember && view !== "match") {
@@ -2470,7 +2470,7 @@
     } catch {
       // Storage unavailable: start on Home.
     }
-    if (["matches", "progress"].includes(saved)) {
+    if (["matches", "progress", "settings"].includes(saved)) {
       setView(saved, { remember: false });
     }
     // Keep the table fresh while it is open (new matches, sync results).

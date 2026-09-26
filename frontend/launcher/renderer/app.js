@@ -9,6 +9,9 @@ const I18N = {
     tabHome: "Home",
     tabMatches: "Matches",
     tabProgress: "Progress",
+    tabSettings: "Settings",
+    adviceSettingsTitle: "Advice",
+    appTitle: "App",
     service: "Service",
     serviceStates: { running: "running", starting: "starting…", stopping: "stopping…", stopped: "stopped" },
     status: {
@@ -34,7 +37,7 @@ const I18N = {
       demoHint: "The overlay shows advice from a recorded match.",
       fullscreenTitle: "The overlay is hidden by fullscreen",
       fullscreenHint:
-        "Dota runs in exclusive fullscreen, where no window can be drawn on top. In Dota: Settings → Video → Display mode → Borderless window. Or turn on the voice below: it is heard in any mode."
+        "Dota runs in exclusive fullscreen, where no window can be drawn on top. In Dota: Settings → Video → Display mode → Borderless window. Or turn on the voice in Settings → Advice: it is heard in any mode."
     },
     actions: {
       start: "Start service",
@@ -75,6 +78,15 @@ const I18N = {
     posLeft: "Left",
     posRight: "Right",
     posBottom: "Bottom",
+    frequencyTitle: "How often",
+    frequencyCalm: "Less",
+    frequencyNormal: "Normal",
+    frequencyActive: "More",
+    frequencyHint: {
+      calm: "Twice the pause between tips; urgent advice is never delayed",
+      normal: "Balanced pauses between tips",
+      active: "Shorter pauses between tips; urgent advice as always"
+    },
     voiceTitle: "Voice",
     voiceOff: "Off",
     voiceUrgent: "Urgent",
@@ -113,7 +125,7 @@ const I18N = {
     setupHide: "Hide",
     setupCount: (done, total) => `${done} of ${total}`,
     setup: {
-      service: ["The coach service is running", "Starts with the app; restart it in «For developers» if it stopped."],
+      service: ["The coach service is running", "Starts with the app; restart it in Settings → «For developers» if it stopped."],
       dota: ["Dota 2 found", "Not in your Steam libraries: point to the game folder."],
       gsi: ["Game data config installed", "A small file in the Dota folder that lets the game share match data."],
       data: ["First data from Dota received", "Start Dota 2 (or restart it after installing the config) and open any match, bots are fine."],
@@ -198,6 +210,9 @@ const I18N = {
     tabHome: "Главная",
     tabMatches: "Матчи",
     tabProgress: "Прогресс",
+    tabSettings: "Настройки",
+    adviceSettingsTitle: "Советы",
+    appTitle: "Приложение",
     service: "Сервис",
     serviceStates: { running: "работает", starting: "запускается…", stopping: "останавливается…", stopped: "остановлен" },
     status: {
@@ -223,7 +238,7 @@ const I18N = {
       demoHint: "Оверлей показывает подсказки из записанного матча.",
       fullscreenTitle: "Оверлей не виден из-за полноэкранного режима",
       fullscreenHint:
-        "Дота запущена в эксклюзивном полноэкранном режиме — поверх него окна не рисуются. В Доте: Настройки → Видео → режим экрана «Окно без рамки» (Borderless window). Или включите голос ниже — его слышно в любом режиме."
+        "Дота запущена в эксклюзивном полноэкранном режиме — поверх него окна не рисуются. В Доте: Настройки → Видео → режим экрана «Окно без рамки» (Borderless window). Или включите голос в «Настройки → Советы» — его слышно в любом режиме."
     },
     actions: {
       start: "Запустить сервис",
@@ -264,6 +279,15 @@ const I18N = {
     posLeft: "Слева",
     posRight: "Справа",
     posBottom: "Снизу",
+    frequencyTitle: "Частота советов",
+    frequencyCalm: "Реже",
+    frequencyNormal: "Обычно",
+    frequencyActive: "Чаще",
+    frequencyHint: {
+      calm: "Вдвое больше пауза между советами; срочные не задерживаются",
+      normal: "Обычные паузы между советами",
+      active: "Короче паузы между советами; срочные как всегда"
+    },
     voiceTitle: "Голос",
     voiceOff: "Выкл",
     voiceUrgent: "Срочные",
@@ -302,7 +326,7 @@ const I18N = {
     setupHide: "Скрыть",
     setupCount: (done, total) => `${done} из ${total}`,
     setup: {
-      service: ["Сервис тренера запущен", "Запускается вместе с приложением; если остановился, перезапустите в разделе «Для разработчика»."],
+      service: ["Сервис тренера запущен", "Запускается вместе с приложением; если остановился, перезапустите в «Настройки → Для разработчика»."],
       dota: ["Dota 2 найдена", "Игры нет в библиотеках Steam — укажите папку игры."],
       gsi: ["Конфиг данных игры установлен", "Небольшой файл в папке Доты, через который игра передаёт данные матча."],
       data: ["Первые данные из Доты получены", "Запустите Dota 2 (или перезапустите после установки конфига) и зайдите в любой матч, можно с ботами."],
@@ -406,6 +430,8 @@ const els = {
   overlayHint: $("#overlay-hint"),
   positionButtons: [...document.querySelectorAll("#position-group [data-position]")],
   positionHint: $("#position-hint"),
+  frequencyButtons: [...document.querySelectorAll("#frequency-group [data-frequency]")],
+  frequencyHint: $("#frequency-hint"),
   voiceButtons: [...document.querySelectorAll("#voice-group [data-voice]")],
   voiceHint: $("#voice-hint"),
   voiceTest: $("#voice-test"),
@@ -555,6 +581,11 @@ async function init() {
   for (const button of els.positionButtons) {
     button.addEventListener("click", () =>
       run(async () => renderStatus(await window.launcherApi.setOverlayPosition(button.dataset.position)))
+    );
+  }
+  for (const button of els.frequencyButtons) {
+    button.addEventListener("click", () =>
+      run(async () => renderStatus(await window.launcherApi.setAdviceFrequency(button.dataset.frequency)))
     );
   }
   for (const button of els.voiceButtons) {
@@ -1019,6 +1050,12 @@ function renderOverlaySettings(status) {
     button.disabled = !enabled;
   }
   els.positionHint.textContent = position === "custom" ? tr("positionCustom") : tr("positionHint");
+
+  const frequency = status.adviceFrequency || "normal";
+  for (const button of els.frequencyButtons) {
+    button.setAttribute("aria-checked", String(button.dataset.frequency === frequency));
+  }
+  els.frequencyHint.textContent = tr(`frequencyHint.${frequency}`);
 
   lastVoice = status.overlayVoice || { mode: "off", volume: 1 };
   for (const button of els.voiceButtons) {
