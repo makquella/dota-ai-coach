@@ -1,56 +1,56 @@
-// Control panel: a simple status screen (Dota found, GSI connected, hero,
-// match clock) plus a collapsed "For developers" section with every tool the
-// launcher had before (backend, GSI config, live GSI, recordings, replay
-// demos, Deep Review, logs). Texts follow the system language (ru/en).
+// Control panel: one status line (what is going on + what to do), three
+// cards (current match, recent advice, overlay settings) and a collapsed
+// "For developers" section with every other tool (service, GSI config, live
+// GSI, recordings, replay demos, Deep Review, logs). Texts follow the system
+// language (ru/en) sent by the main process as status.locale.
 
 const I18N = {
   en: {
-    tagline: "Live advice for your Dota 2 matches",
-    backend: "Backend",
-    backendStates: { running: "running", starting: "starting…", stopping: "stopping…", stopped: "stopped" },
-    bannerTitle: {
-      in_game: "In game",
-      waiting: "Waiting for a match",
-      not_found: "Dota 2 is not running",
-      starting: "Starting…",
-      offline: "Backend is stopped"
+    service: "Service",
+    serviceStates: { running: "running", starting: "starting…", stopping: "stopping…", stopped: "stopped" },
+    status: {
+      loadingTitle: "Starting the service…",
+      loadingHint: "Usually takes a couple of seconds.",
+      backendDownTitle: "The service is not running",
+      backendDownHint: "Advice will not arrive while the local service is stopped.",
+      gsiErrorTitle: "Could not write the GSI config",
+      gsiErrorHint: "No access to the Dota folder. Point to the game folder manually.",
+      noDotaTitle: "Dota not found",
+      noDotaHint: "Dota 2 is not in your Steam libraries. Point to the game folder and the config is installed for you.",
+      noGsiTitle: "Connect Dota",
+      noGsiHint: "Install the GSI config: a small file in the game folder that lets Dota share match data.",
+      notRunningTitle: "Dota is not running",
+      notRunningHint: "Start Dota 2; the coach connects by itself. You can close this window.",
+      waitingTitle: "Ready, waiting for a match",
+      waitingHintConnected: "Advice starts as soon as a match with your hero begins.",
+      waitingHintNoData: "If a match is already on, restart Dota: it reads the GSI config at start.",
+      inGameTitle: (hero, clock) => `In game: ${[hero, clock].filter(Boolean).join(", ")}`,
+      inGameHint: "Advice appears over the game while Dota is the active window.",
+      inGameOverlayOff: "The overlay is off, advice shows only here.",
+      demoTitle: (preset) => `Replay demo${preset ? `: ${preset}` : ""}`,
+      demoHint: "The overlay shows advice from a recorded match."
     },
-    bannerDetail: {
-      in_game: "Advice appears over Dota while it is the active window.",
-      waiting: "Dota 2 is running. Advice starts once a match with your hero begins.",
-      not_found: "Start Dota 2 — the coach connects by itself. You can leave this window closed.",
-      starting: "Starting the local coach service…",
-      offline: "Open “For developers” below and press Start, or restart the app."
-    },
-    tileDota: "Dota 2",
-    tileGsi: "Game data (GSI)",
-    tileHero: "Hero",
-    tileTime: "Match time",
-    dotaRunningFocused: "Running",
-    dotaRunningBackground: "Running in background",
-    dotaInstalled: "Installed",
-    dotaNotFound: "Not found",
-    dotaNotFoundSub: "No Dota 2 in your Steam libraries. Install it or pick the folder under “For developers”.",
-    gsiConnected: "Connected",
-    gsiWaiting: "Waiting for data",
-    gsiNotInstalled: "Not set up",
-    gsiError: "Could not write config",
-    gsiLastData: (s) => `Last data ${s} s ago`,
-    gsiWaitingSub: "Dota sends data once it is running. Restart Dota if it was open while the config was installed.",
-    gsiNotInstalledSub: "Dota needs a small config file to share game data with the coach.",
-    installGsi: "Install config",
-    heroNone: "—",
-    heroSubIdle: "Shown once a match starts",
-    stage: (s) => `Stage: ${s}`,
-    stages: { laning: "laning", "post-laning": "post-laning", macro: "mid/late game" },
-    modes: { "Live GSI": "Live GSI", "Replay Demo": "Replay demo" },
-    timeSubIdle: "In-game clock",
-    timeSubLive: "In-game clock, live",
-    overlaySwitch: "Advice overlay",
-    overlayOnScreen: "On screen now",
-    overlayOff: "Off — no advice over the game",
+    actions: { start: "Start service", install: "Install config", chooseDota: "Choose Dota folder" },
+    matchTitle: "Current match",
+    statHero: "Hero",
+    statClock: "Match time",
+    statStage: "Stage",
+    statData: "Game data",
+    dataFresh: (s) => `${s} s ago`,
+    matchEmptyTitle: "No match right now",
+    matchEmptyHint: "Hero and time show up here when a match starts.",
+    offlineTitle: "No connection to the service",
+    offlineHint: "Start the service to see match data.",
+    adviceTitle: "Recent advice",
+    adviceEmptyTitle: "No advice yet",
+    adviceEmptyHint: "Advice shows up here as it appears over the game.",
+    priority: { high: "high priority", urgent: "high priority", medium: "medium priority", low: "low priority", safe: "calm" },
+    stages: { laning: "Laning", "post-laning": "After laning", macro: "Mid/late game" },
+    overlayTitle: "Overlay",
+    overlayShow: "Show advice over the game",
     overlayReason: {
-      positioning: "Unlocked for dragging — press Ctrl+Alt+L to lock",
+      off: "Off",
+      positioning: "Shown so you can move it",
       demo: "Showing the replay demo",
       no_tracking: "Always visible (focus tracking unavailable)",
       dota_not_running: "Appears in a match, over Dota",
@@ -58,35 +58,45 @@ const I18N = {
       no_match: "Appears when a match starts",
       in_game: "On screen now"
     },
+    overlayPosition: "Position",
+    positionHint: "Away from the minimap and the hero panel",
+    positionCustom: "Custom position, pick a preset to reset",
+    posLeft: "Left",
+    posRight: "Right",
+    posBottom: "Bottom",
+    overlayMove: "Move by hand",
+    moveHint: "Shows the card so you can drag it anywhere",
+    moveActiveHint: "Drag the card, then press Done",
+    moveStart: "Move",
+    moveDone: "Done",
     autostart: "Start with Windows",
     autostartOn: "Starts hidden in the tray",
-    autostartOff: "Start it yourself when you play",
+    autostartOff: "Start it yourself before playing",
     autostartUnavailable: "Available in the installed app",
     devTitle: "For developers",
-    devHint: "Backend, GSI details, replay demos, recordings and logs",
-    factBackend: "Backend",
+    devHint: "Service, GSI, replay demos, recordings, logs",
+    factBackend: "Service",
     factDota: "Dota",
     factOverlay: "Overlay",
     factDemo: "Demo",
     factRecording: "Recording",
     factGsiConfig: "GSI config",
     factMode: "Mode",
-    groupBackend: "Backend",
+    groupBackend: "Service",
     startBackend: "Start",
     restartBackend: "Restart",
     stopBackend: "Stop",
-    groupOverlay: "Overlay window",
-    showOverlay: "Show",
-    hideOverlay: "Hide",
-    hotkeys: "Ctrl+Alt+O on/off · Ctrl+Alt+L unlock to drag · Ctrl+Alt+M mute 5 min · Ctrl+Alt+1/2/3 position · Ctrl+Alt+D debug line",
+    showOverlay: "Show overlay",
+    hideOverlay: "Hide overlay",
+    hotkeys: "Ctrl+Alt+O on/off · Ctrl+Alt+L move · Ctrl+Alt+M mute 5 min · Ctrl+Alt+1/2/3 left/right/bottom · Ctrl+Alt+D debug line",
     groupGsi: "GSI config",
-    gsiPathPlaceholder: "Custom gamestate_integration folder",
+    gsiPathPlaceholder: "Custom gamestate_integration folder (optional)",
     chooseFolder: "Choose",
     checkGsi: "Check",
-    installGsiHere: "Install here",
-    gsiPath: (p, e) => `Config: ${p}${e ? ` → ${e}` : ""}`,
-    gsiPathMissing: "Config not found. Pick the gamestate_integration folder and install.",
-    gsiEndpoint: (e) => (e ? `Endpoint: ${e}` : "Endpoint: waiting for the backend port…"),
+    installGsi: "Install",
+    gsiPath: (p, e) => `Config: ${p}${e ? `\nEndpoint: ${e}` : ""}`,
+    gsiPathMissing: "Config not found. Choose the gamestate_integration folder and install.",
+    gsiEndpoint: (e) => (e ? `Endpoint: ${e}` : "Endpoint: waiting for the service port…"),
     groupLive: "Live GSI",
     kvConnection: "Connection",
     kvLast: "Last data",
@@ -95,25 +105,25 @@ const I18N = {
     kvStage: "Stage",
     liveConnected: "connected",
     liveWaiting: "waiting / stale",
-    liveUnavailable: "backend unavailable",
+    liveUnavailable: "service unavailable",
     liveAdvice: (a) => `Current advice: ${a}`,
     liveAdviceNone: "Current advice: none yet",
     liveAdviceLast: (t) => `Current advice: last shown at ${t}`,
     liveMissing: (m) => `Missing important fields: ${m}`,
     none: "none",
-    checkLive: "Check live GSI",
-    startRecording: "Start recording",
+    checkLive: "Check",
+    startRecording: "Record",
     stopRecording: "Stop recording",
-    openRecords: "Recordings folder",
+    openRecords: "Recordings",
     groupDemo: "Replay demo",
-    demoHint: "Plays recorded match states into the backend; the overlay shows without Dota.",
-    demoBusy: "A demo is already running. Stop it before starting another one.",
+    demoHint: "Plays recorded match states into the service; the overlay shows without Dota.",
+    demoBusy: "A demo is already running. Stop it first.",
     runDemo: "Run demo",
     presetPl: "Phantom Lancer 20–30",
     presetJugg: "Juggernaut 10–20",
     deepReview: "Deep Review",
-    stopDemo: "Stop demo",
-    openResults: "Results folder",
+    stopDemo: "Stop",
+    openResults: "Results",
     groupLogs: "Logs",
     logClean: "Clean",
     logVerbose: "Verbose",
@@ -122,61 +132,60 @@ const I18N = {
     openLogs: "Logs folder",
     dotaStates: { not_found: "not found", waiting: "waiting for a match", in_game: "in game" },
     gsiConfigStates: { installed: "installed", "not found": "not found", error: "error", unknown: "unknown" },
+    modes: { "Live GSI": "Live GSI", "Replay Demo": "Replay demo" },
     on: "on",
     off: "off",
     shown: "on screen",
     hidden: "hidden",
     running: "running",
-    stopped: "stopped",
-    unknown: "unknown"
+    stopped: "stopped"
   },
   ru: {
-    tagline: "Подсказки в реальном времени для матчей Dota 2",
-    backend: "Сервис",
-    backendStates: { running: "работает", starting: "запускается…", stopping: "останавливается…", stopped: "остановлен" },
-    bannerTitle: {
-      in_game: "В игре",
-      waiting: "Ждём игру",
-      not_found: "Дота не найдена",
-      starting: "Запуск…",
-      offline: "Сервис остановлен"
+    service: "Сервис",
+    serviceStates: { running: "работает", starting: "запускается…", stopping: "останавливается…", stopped: "остановлен" },
+    status: {
+      loadingTitle: "Запускаем сервис…",
+      loadingHint: "Обычно это пара секунд.",
+      backendDownTitle: "Сервис не запущен",
+      backendDownHint: "Подсказки не придут, пока локальный сервис остановлен.",
+      gsiErrorTitle: "Не удалось записать конфиг GSI",
+      gsiErrorHint: "Нет доступа к папке Доты. Укажите папку игры вручную.",
+      noDotaTitle: "Дота не найдена",
+      noDotaHint: "Dota 2 нет в библиотеках Steam. Укажите папку игры — конфиг установится сам.",
+      noGsiTitle: "Подключите Доту",
+      noGsiHint: "Установите конфиг GSI — небольшой файл в папке игры, через который Дота передаёт данные матча.",
+      notRunningTitle: "Дота не запущена",
+      notRunningHint: "Запустите Dota 2 — тренер подключится сам. Это окно можно закрыть.",
+      waitingTitle: "Готово, ждём матч",
+      waitingHintConnected: "Подсказки начнутся, как только стартует матч с вашим героем.",
+      waitingHintNoData: "Если матч уже идёт, перезапустите Доту: конфиг GSI читается при старте игры.",
+      inGameTitle: (hero, clock) => `В игре: ${[hero, clock].filter(Boolean).join(", ")}`,
+      inGameHint: "Подсказки появляются поверх игры, пока окно Доты активно.",
+      inGameOverlayOff: "Оверлей выключен — подсказки видны только здесь.",
+      demoTitle: (preset) => `Демо-повтор${preset ? `: ${preset}` : ""}`,
+      demoHint: "Оверлей показывает подсказки из записанного матча."
     },
-    bannerDetail: {
-      in_game: "Подсказки появляются поверх Доты, пока её окно активно.",
-      waiting: "Dota 2 запущена. Подсказки начнутся, когда стартует матч с вашим героем.",
-      not_found: "Запустите Dota 2 — тренер подключится сам. Это окно можно закрыть.",
-      starting: "Запускаем локальный сервис тренера…",
-      offline: "Откройте «Для разработчика» ниже и нажмите «Запустить» или перезапустите приложение."
-    },
-    tileDota: "Dota 2",
-    tileGsi: "Данные игры (GSI)",
-    tileHero: "Герой",
-    tileTime: "Время матча",
-    dotaRunningFocused: "Запущена",
-    dotaRunningBackground: "Запущена в фоне",
-    dotaInstalled: "Установлена",
-    dotaNotFound: "Не найдена",
-    dotaNotFoundSub: "Dota 2 нет в библиотеках Steam. Установите её или укажите папку в разделе «Для разработчика».",
-    gsiConnected: "Подключено",
-    gsiWaiting: "Ждём данные",
-    gsiNotInstalled: "Не настроено",
-    gsiError: "Не удалось записать конфиг",
-    gsiLastData: (s) => `Данные ${s} с назад`,
-    gsiWaitingSub: "Дота начнёт присылать данные после запуска. Если она была открыта во время установки конфига — перезапустите её.",
-    gsiNotInstalledSub: "Доте нужен небольшой конфиг, чтобы передавать данные игры тренеру.",
-    installGsi: "Установить конфиг",
-    heroNone: "—",
-    heroSubIdle: "Появится, когда начнётся матч",
-    stage: (s) => `Стадия: ${s}`,
-    stages: { laning: "лайнинг", "post-laning": "после лайнинга", macro: "середина/поздняя игра" },
-    modes: { "Live GSI": "Живой GSI", "Replay Demo": "Демо-повтор" },
-    timeSubIdle: "Игровые часы",
-    timeSubLive: "Игровые часы, в реальном времени",
-    overlaySwitch: "Оверлей с подсказками",
-    overlayOnScreen: "Сейчас на экране",
-    overlayOff: "Выключен — подсказок поверх игры нет",
+    actions: { start: "Запустить сервис", install: "Установить конфиг", chooseDota: "Указать папку Доты" },
+    matchTitle: "Текущий матч",
+    statHero: "Герой",
+    statClock: "Время матча",
+    statStage: "Стадия",
+    statData: "Данные игры",
+    dataFresh: (s) => `${s} с назад`,
+    matchEmptyTitle: "Матч не идёт",
+    matchEmptyHint: "Герой и время появятся здесь, когда начнётся матч.",
+    offlineTitle: "Нет связи с сервисом",
+    offlineHint: "Запустите сервис, чтобы видеть данные матча.",
+    adviceTitle: "Последние подсказки",
+    adviceEmptyTitle: "Подсказок пока нет",
+    adviceEmptyHint: "Здесь появятся подсказки, которые показывались поверх игры.",
+    priority: { high: "высокий приоритет", urgent: "высокий приоритет", medium: "средний приоритет", low: "низкий приоритет", safe: "спокойно" },
+    stages: { laning: "Лайнинг", "post-laning": "После лайнинга", macro: "Середина/поздняя игра" },
+    overlayTitle: "Оверлей",
+    overlayShow: "Показывать подсказки поверх игры",
     overlayReason: {
-      positioning: "Разблокирован для перетаскивания — Ctrl+Alt+L, чтобы закрепить",
+      off: "Выключено",
+      positioning: "Показан, чтобы его можно было переместить",
       demo: "Показывает демо-повтор",
       no_tracking: "Всегда виден (отслеживание фокуса недоступно)",
       dota_not_running: "Появится в матче поверх Доты",
@@ -184,12 +193,23 @@ const I18N = {
       no_match: "Появится, когда начнётся матч",
       in_game: "Сейчас на экране"
     },
+    overlayPosition: "Положение",
+    positionHint: "В стороне от миникарты и панели героя",
+    positionCustom: "Своё положение — выберите вариант, чтобы вернуть",
+    posLeft: "Слева",
+    posRight: "Справа",
+    posBottom: "Снизу",
+    overlayMove: "Переместить вручную",
+    moveHint: "Покажет карточку, чтобы её можно было перетащить",
+    moveActiveHint: "Перетащите карточку и нажмите «Готово»",
+    moveStart: "Переместить",
+    moveDone: "Готово",
     autostart: "Автозапуск с Windows",
     autostartOn: "Запускается скрыто в трее",
     autostartOff: "Запускайте сами перед игрой",
     autostartUnavailable: "Доступно в установленном приложении",
     devTitle: "Для разработчика",
-    devHint: "Сервис, детали GSI, демо-повторы, записи и логи",
+    devHint: "Сервис, GSI, демо-повторы, записи, логи",
     factBackend: "Сервис",
     factDota: "Дота",
     factOverlay: "Оверлей",
@@ -201,16 +221,15 @@ const I18N = {
     startBackend: "Запустить",
     restartBackend: "Перезапустить",
     stopBackend: "Остановить",
-    groupOverlay: "Окно оверлея",
-    showOverlay: "Показать",
-    hideOverlay: "Скрыть",
-    hotkeys: "Ctrl+Alt+O вкл/выкл · Ctrl+Alt+L разблокировать · Ctrl+Alt+M тишина 5 мин · Ctrl+Alt+1/2/3 позиция · Ctrl+Alt+D отладка",
+    showOverlay: "Показать оверлей",
+    hideOverlay: "Скрыть оверлей",
+    hotkeys: "Ctrl+Alt+O вкл/выкл · Ctrl+Alt+L переместить · Ctrl+Alt+M тишина 5 мин · Ctrl+Alt+1/2/3 слева/справа/снизу · Ctrl+Alt+D отладка",
     groupGsi: "Конфиг GSI",
-    gsiPathPlaceholder: "Своя папка gamestate_integration",
+    gsiPathPlaceholder: "Своя папка gamestate_integration (необязательно)",
     chooseFolder: "Выбрать",
     checkGsi: "Проверить",
-    installGsiHere: "Установить сюда",
-    gsiPath: (p, e) => `Конфиг: ${p}${e ? ` → ${e}` : ""}`,
+    installGsi: "Установить",
+    gsiPath: (p, e) => `Конфиг: ${p}${e ? `\nАдрес: ${e}` : ""}`,
     gsiPathMissing: "Конфиг не найден. Выберите папку gamestate_integration и установите.",
     gsiEndpoint: (e) => (e ? `Адрес: ${e}` : "Адрес: ждём порт сервиса…"),
     groupLive: "Живой GSI",
@@ -227,44 +246,68 @@ const I18N = {
     liveAdviceLast: (t) => `Текущий совет: последний в ${t}`,
     liveMissing: (m) => `Не хватает полей: ${m}`,
     none: "нет",
-    checkLive: "Проверить GSI",
-    startRecording: "Начать запись",
+    checkLive: "Проверить",
+    startRecording: "Записать",
     stopRecording: "Остановить запись",
-    openRecords: "Папка записей",
+    openRecords: "Записи",
     groupDemo: "Демо-повтор",
     demoHint: "Проигрывает записанные состояния матча в сервис; оверлей виден без Доты.",
-    demoBusy: "Демо уже идёт. Остановите его, чтобы запустить другое.",
+    demoBusy: "Демо уже идёт. Сначала остановите его.",
     runDemo: "Запустить демо",
     presetPl: "Phantom Lancer 20–30",
     presetJugg: "Juggernaut 10–20",
     deepReview: "Deep Review",
-    stopDemo: "Остановить демо",
-    openResults: "Папка результатов",
+    stopDemo: "Остановить",
+    openResults: "Результаты",
     groupLogs: "Логи",
     logClean: "Кратко",
     logVerbose: "Подробно",
     copyLogs: "Копировать",
     clearLogs: "Очистить",
     openLogs: "Папка логов",
-    dotaStates: { not_found: "не найдена", waiting: "ждём игру", in_game: "в игре" },
+    dotaStates: { not_found: "не найдена", waiting: "ждём матч", in_game: "в игре" },
     gsiConfigStates: { installed: "установлен", "not found": "не найден", error: "ошибка", unknown: "неизвестно" },
+    modes: { "Live GSI": "Живой GSI", "Replay Demo": "Демо-повтор" },
     on: "вкл",
     off: "выкл",
     shown: "на экране",
     hidden: "скрыт",
     running: "идёт",
-    stopped: "остановлено",
-    unknown: "неизвестно"
+    stopped: "остановлено"
   }
 };
 
 const $ = (selector) => document.querySelector(selector);
-const logsEl = $("#logs");
-const gsiPathEl = $("#gsi-path");
-const gsiDetailEl = $("#gsi-detail");
-const devToolsEl = $("#dev-tools");
-const overlayToggleEl = $("#overlay-toggle");
-const autostartEl = $("#autostart");
+const els = {
+  service: $("#service"),
+  serviceText: $("#service-text"),
+  status: $("#status"),
+  statusTitle: $("#status-title"),
+  statusHint: $("#status-hint"),
+  statusAction: $("#status-action"),
+  statusActionLabel: $("#status-action-label"),
+  matchStats: $("#match-body .stats"),
+  matchEmpty: $("#match-empty"),
+  statHero: $("#stat-hero"),
+  statClock: $("#stat-clock"),
+  statStage: $("#stat-stage"),
+  statData: $("#stat-data"),
+  adviceList: $("#advice-list"),
+  adviceEmpty: $("#advice-empty"),
+  overlayToggle: $("#overlay-toggle"),
+  overlayHint: $("#overlay-hint"),
+  positionButtons: [...document.querySelectorAll("#position-group [data-position]")],
+  positionHint: $("#position-hint"),
+  moveToggle: $("#move-toggle"),
+  moveLabel: $("#move-label"),
+  moveHint: $("#move-hint"),
+  autostart: $("#autostart"),
+  autostartHint: $("#autostart-hint"),
+  devTools: $("#dev-tools"),
+  logs: $("#logs"),
+  gsiPath: $("#gsi-path"),
+  gsiDetail: $("#gsi-detail")
+};
 const factEls = {
   backend: $("#backend-status"),
   dota: $("#dota-status"),
@@ -297,18 +340,32 @@ const controlButtons = {
   stopRecording: $("#stop-recording")
 };
 
+const DEV_OPEN_KEY = "dota-ai-coach.devToolsOpen";
 let locale = "en";
 let textsLocale = "";
 let gsiEndpoint = "";
-const DEV_OPEN_KEY = "dota-ai-coach.devToolsOpen";
+let statusAction = null;
+const seenAdvice = new Set();
 
 init();
 
+// ---------------------------------------------------------------------------
+// i18n
+// ---------------------------------------------------------------------------
+
+function lookup(table, key) {
+  return key.split(".").reduce((node, part) => (node ? node[part] : undefined), table);
+}
+
 function tr(key, ...args) {
-  const value = key.split(".").reduce((node, part) => (node ? node[part] : undefined), I18N[locale]);
-  const fallback = key.split(".").reduce((node, part) => (node ? node[part] : undefined), I18N.en);
-  const resolved = value ?? fallback ?? key;
+  const resolved = lookup(I18N[locale], key) ?? lookup(I18N.en, key) ?? key;
   return typeof resolved === "function" ? resolved(...args) : resolved;
+}
+
+// Like tr() for values that may be missing (backend-provided codes).
+function trOr(key, fallback) {
+  const value = lookup(I18N[locale], key) ?? lookup(I18N.en, key);
+  return typeof value === "string" ? value : fallback;
 }
 
 function applyStaticTexts() {
@@ -323,9 +380,19 @@ function applyStaticTexts() {
   for (const element of document.querySelectorAll("[data-i18n-placeholder]")) {
     element.placeholder = tr(element.dataset.i18nPlaceholder);
   }
+  for (const element of document.querySelectorAll("[data-i18n-title]")) {
+    element.title = tr(element.dataset.i18nTitle);
+    element.setAttribute("aria-label", element.title);
+  }
 }
 
+// ---------------------------------------------------------------------------
+// Wiring
+// ---------------------------------------------------------------------------
+
 async function init() {
+  window.LucideIcons?.hydrate(document);
+
   bind("#start-backend", () => window.launcherApi.startBackend());
   bind("#stop-backend", () => window.launcherApi.stopBackend());
   bind("#restart-backend", () => window.launcherApi.restartBackend());
@@ -344,33 +411,53 @@ async function init() {
   bind("#log-clean", () => window.launcherApi.setLogMode("clean"));
   bind("#log-verbose", () => window.launcherApi.setLogMode("verbose"));
   bind("#check-gsi", checkGsi);
-  bind("#install-gsi", () => installGsi(""));
-  bind("#install-gsi-custom", () => installGsi(gsiPathEl.value));
+  bind("#install-gsi", () => installGsi(els.gsiPath.value));
   bind("#choose-gsi", chooseGsiFolder);
   bind("#check-live-gsi", checkLiveGsi);
   bind("#start-recording", startLiveRecording);
   bind("#stop-recording", stopLiveRecording);
   bind("#open-records", () => window.launcherApi.openSessionRecords());
 
-  overlayToggleEl.addEventListener("change", () =>
-    run(() => (overlayToggleEl.checked ? window.launcherApi.startOverlay() : window.launcherApi.stopOverlay()))
+  els.statusAction.addEventListener("click", async () => {
+    if (!statusAction) {
+      return;
+    }
+    const action = statusAction;
+    els.statusAction.disabled = true;
+    await run(action.run);
+    els.statusAction.disabled = false;
+  });
+  els.overlayToggle.addEventListener("change", () =>
+    run(() => (els.overlayToggle.checked ? window.launcherApi.startOverlay() : window.launcherApi.stopOverlay()))
   );
-  autostartEl.addEventListener("change", () =>
+  for (const button of els.positionButtons) {
+    button.addEventListener("click", () =>
+      run(async () => renderStatus(await window.launcherApi.setOverlayPosition(button.dataset.position)))
+    );
+  }
+  els.moveToggle.addEventListener("click", () =>
     run(async () => {
-      await window.launcherApi.setAutostart(autostartEl.checked);
+      // Pressed = the card is unlocked for dragging; pressing again locks it.
+      const moving = els.moveToggle.getAttribute("aria-pressed") === "true";
+      renderStatus(await window.launcherApi.setOverlayLocked(moving));
+    })
+  );
+  els.autostart.addEventListener("change", () =>
+    run(async () => {
+      await window.launcherApi.setAutostart(els.autostart.checked);
       renderStatus(await window.launcherApi.getStatus());
     })
   );
 
   // Remember whether the developer section was open (per-user convenience).
   try {
-    devToolsEl.open = localStorage.getItem(DEV_OPEN_KEY) === "1";
+    els.devTools.open = localStorage.getItem(DEV_OPEN_KEY) === "1";
   } catch {
     // Storage unavailable: start collapsed.
   }
-  devToolsEl.addEventListener("toggle", () => {
+  els.devTools.addEventListener("toggle", () => {
     try {
-      localStorage.setItem(DEV_OPEN_KEY, devToolsEl.open ? "1" : "0");
+      localStorage.setItem(DEV_OPEN_KEY, els.devTools.open ? "1" : "0");
     } catch {
       // Ignore.
     }
@@ -379,15 +466,16 @@ async function init() {
   window.launcherApi.onStatus(renderStatus);
   window.launcherApi.onLogs(renderLogs);
 
-  renderStatus(await window.launcherApi.getStatus());
   renderLogs(await window.launcherApi.getLogs());
+  renderStatus(await window.launcherApi.getStatus());
 }
 
 async function run(handler) {
   try {
-    await handler();
+    return await handler();
   } catch (error) {
-    renderLogs(`${logsEl.textContent || ""}\n[renderer] ${error.message || error}\n`);
+    renderLogs(`${els.logs.textContent || ""}\n[renderer] ${error.message || error}\n`);
+    return undefined;
   }
 }
 
@@ -399,7 +487,7 @@ function bind(selector, handler) {
 }
 
 async function checkGsi() {
-  updateGsiDetail(await window.launcherApi.checkGsi(gsiPathEl.value));
+  updateGsiDetail(await window.launcherApi.checkGsi(els.gsiPath.value));
 }
 
 async function installGsi(customPath) {
@@ -409,7 +497,7 @@ async function installGsi(customPath) {
 async function chooseGsiFolder() {
   const folder = await window.launcherApi.chooseGsiFolder();
   if (folder) {
-    gsiPathEl.value = folder;
+    els.gsiPath.value = folder;
     await checkGsi();
   }
 }
@@ -429,135 +517,280 @@ async function stopLiveRecording() {
 }
 
 // ---------------------------------------------------------------------------
-// Status screen
+// Rendering
 // ---------------------------------------------------------------------------
 
-function renderStatus(status = {}) {
-  if (status.locale && status.locale !== locale) {
-    locale = I18N[status.locale] ? status.locale : "en";
+function renderStatus(status) {
+  if (!status) {
+    return;
   }
+  locale = I18N[status.locale] ? status.locale : "en";
   applyStaticTexts();
   gsiEndpoint = status.gsiEndpoint || "";
+  document.body.dataset.loading = String(isLoading(status));
 
-  renderBackendPill(status);
-  renderBanner(status);
-  renderDotaTile(status);
-  renderGsiTile(status);
-  renderMatchTiles(status);
-  renderSwitches(status);
+  renderService(status);
+  renderStatusLine(status);
+  renderMatch(status);
+  renderAdvice(status);
+  renderOverlaySettings(status);
   renderFacts(status);
   renderControlButtons(status);
   renderLogMode(status.logMode || "clean");
   updateGsiDetail({ status: status.gsiConfig, path: status.gsiPath });
 }
 
-function screenState(status) {
-  if (status.backend === "starting") {
-    return "starting";
-  }
-  if (status.backend !== "running") {
-    return "offline";
-  }
-  return ["in_game", "waiting", "not_found"].includes(status.dota) ? status.dota : "not_found";
+function isLoading(status) {
+  return status.backend === "starting";
 }
 
-function renderBackendPill(status) {
-  const pill = $("#backend-pill");
-  pill.dataset.state = status.backend || "stopped";
-  const port = status.backendPort && status.backend === "running" ? ` · 127.0.0.1:${status.backendPort}` : "";
-  $("#backend-pill-text").textContent = `${tr("backend")}: ${tr(`backendStates.${status.backend || "stopped"}`)}${port}`;
+function isOffline(status) {
+  return status.backend === "stopped" || status.backend === "stopping";
 }
 
-function renderBanner(status) {
-  const state = screenState(status);
-  $("#state-banner").dataset.state = state;
-  $("#state-title").textContent = tr(`bannerTitle.${state}`);
-  $("#state-detail").textContent = tr(`bannerDetail.${state}`);
-}
-
-function setTile(id, state, value, sub) {
-  const tile = $(`#tile-${id}`);
-  tile.dataset.state = state;
-  tile.querySelector(".tile-value").textContent = value;
-  tile.querySelector(".tile-sub").textContent = sub || "";
-}
-
-function renderDotaTile(status) {
-  if (status.dotaRunning) {
-    setTile(
-      "dota",
-      "good",
-      status.dotaFocused ? tr("dotaRunningFocused") : tr("dotaRunningBackground"),
-      status.dotaDir || ""
-    );
-  } else if (status.dotaDir) {
-    setTile("dota", "wait", tr("dotaInstalled"), status.dotaDir);
-  } else {
-    setTile("dota", "bad", tr("dotaNotFound"), tr("dotaNotFoundSub"));
-  }
-}
-
-function renderGsiTile(status) {
-  const live = status.live || {};
-  const installButton = $("#install-gsi");
-  const installed = status.gsiConfig === "installed";
-  installButton.classList.toggle("hidden", installed || live.connected);
-  if (live.connected) {
-    const seconds = Number.isFinite(live.secondsSinceLastGsi) ? live.secondsSinceLastGsi.toFixed(1) : "0";
-    setTile("gsi", "good", tr("gsiConnected"), tr("gsiLastData", seconds));
-  } else if (installed) {
-    setTile("gsi", "wait", tr("gsiWaiting"), tr("gsiWaitingSub"));
-  } else if (status.gsiConfig === "error") {
-    setTile("gsi", "bad", tr("gsiError"), status.gsiPath || "");
-  } else {
-    setTile("gsi", "bad", tr("gsiNotInstalled"), tr("gsiNotInstalledSub"));
-  }
-}
-
-function stageLabel(stage) {
-  const label = tr(`stages.${stage}`);
-  return label.startsWith("stages.") ? stage : label;
+function renderService(status) {
+  const state = status.backend || "stopped";
+  els.service.dataset.state = state;
+  const port = status.backendPort && state === "running" ? ` · :${status.backendPort}` : "";
+  els.serviceText.textContent = `${tr("service")} ${tr(`serviceStates.${state}`)}${port}`;
 }
 
 function formatClock(seconds) {
   if (!Number.isFinite(seconds)) {
-    return "—";
+    return "";
   }
-  const sign = seconds < 0 ? "-" : "";
+  const sign = seconds < 0 ? "−" : "";
   const total = Math.abs(Math.trunc(seconds));
   return `${sign}${Math.floor(total / 60)}:${String(total % 60).padStart(2, "0")}`;
 }
 
-function renderMatchTiles(status) {
+function stageLabel(stage) {
+  return trOr(`stages.${stage}`, stage);
+}
+
+// Decide the single status line and its one action.
+function resolveStatusLine(status) {
   const live = status.live || {};
-  const inMatch = Boolean(live.inMatch);
-  if (inMatch && live.hero) {
-    const stage = live.stage && live.stage !== "unknown" ? tr("stage", stageLabel(live.stage)) : "";
-    setTile("hero", "good", live.hero, stage);
-  } else {
-    setTile("hero", "idle", tr("heroNone"), tr("heroSubIdle"));
+  const api = window.launcherApi;
+  const actions = {
+    start: { label: tr("actions.start"), icon: "play", run: () => api.startBackend() },
+    install: { label: tr("actions.install"), icon: "download", run: () => installGsi("") },
+    chooseDota: { label: tr("actions.chooseDota"), icon: "folder-search", run: () => api.chooseDotaFolder() }
+  };
+
+  if (isLoading(status)) {
+    return { state: "loading", title: tr("status.loadingTitle"), hint: tr("status.loadingHint") };
   }
-  if (inMatch && Number.isFinite(live.clockTime)) {
-    setTile("time", "good", formatClock(live.clockTime), tr("timeSubLive"));
-  } else {
-    setTile("time", "idle", "—", tr("timeSubIdle"));
+  if (isOffline(status)) {
+    return { state: "error", title: tr("status.backendDownTitle"), hint: tr("status.backendDownHint"), action: actions.start };
+  }
+  if (status.demo === "running") {
+    return { state: "ok", title: tr("status.demoTitle", status.demoPreset), hint: tr("status.demoHint") };
+  }
+  if (status.gsiConfig === "error") {
+    return { state: "error", title: tr("status.gsiErrorTitle"), hint: tr("status.gsiErrorHint"), action: actions.chooseDota };
+  }
+  if (status.gsiConfig !== "installed") {
+    return status.dotaDir
+      ? { state: "warn", title: tr("status.noGsiTitle"), hint: tr("status.noGsiHint"), action: actions.install }
+      : { state: "error", title: tr("status.noDotaTitle"), hint: tr("status.noDotaHint"), action: actions.chooseDota };
+  }
+  if (live.inMatch) {
+    const hint = status.overlay === "running" ? tr("status.inGameHint") : tr("status.inGameOverlayOff");
+    return { state: "ok", title: tr("status.inGameTitle", live.hero, formatClock(live.clockTime)), hint };
+  }
+  if (!status.dotaRunning) {
+    return { state: "idle", title: tr("status.notRunningTitle"), hint: tr("status.notRunningHint") };
+  }
+  return {
+    state: "warn",
+    title: tr("status.waitingTitle"),
+    hint: live.connected ? tr("status.waitingHintConnected") : tr("status.waitingHintNoData")
+  };
+}
+
+function renderStatusLine(status) {
+  const line = resolveStatusLine(status);
+  els.status.dataset.state = line.state;
+  els.statusTitle.textContent = line.title;
+  els.statusHint.textContent = line.hint || "";
+  statusAction = line.action || null;
+  els.statusAction.classList.toggle("hidden", !statusAction);
+  if (statusAction) {
+    els.statusActionLabel.textContent = statusAction.label;
+    const icon = els.statusAction.querySelector("i[data-icon]");
+    icon.dataset.icon = statusAction.icon;
+    window.LucideIcons?.hydrate(els.statusAction);
   }
 }
 
-function renderSwitches(status) {
-  const enabled = status.overlay === "running";
-  overlayToggleEl.checked = enabled;
-  let overlaySub = tr("overlayOff");
-  if (enabled) {
-    overlaySub = status.overlayVisible
-      ? tr("overlayOnScreen")
-      : tr(`overlayReason.${status.overlayReasonCode || "no_match"}`);
-  }
-  $("#overlay-sub").textContent = overlaySub;
+function skeleton(widthClass) {
+  const span = document.createElement("span");
+  span.className = `skeleton skeleton-line ${widthClass}`;
+  return span;
+}
 
-  autostartEl.checked = Boolean(status.autostart);
-  autostartEl.disabled = !status.autostartSupported;
-  $("#autostart-label").textContent = !status.autostartSupported
+function setEmpty(container, visible, { title, hint, icon } = {}) {
+  container.classList.toggle("hidden", !visible);
+  if (!visible) {
+    return;
+  }
+  const iconEl = container.querySelector("i[data-icon]");
+  if (icon && iconEl && iconEl.dataset.icon !== icon) {
+    iconEl.dataset.icon = icon;
+    window.LucideIcons?.hydrate(container);
+  }
+  if (title !== undefined) {
+    container.querySelector(".empty-title").textContent = title;
+  }
+  if (hint !== undefined) {
+    container.querySelector(".empty-hint").textContent = hint;
+  }
+}
+
+function renderMatch(status) {
+  const live = status.live || {};
+  if (isLoading(status)) {
+    els.matchStats.classList.remove("hidden");
+    setEmpty(els.matchEmpty, false);
+    els.statHero.replaceChildren(skeleton("w-70"));
+    els.statClock.replaceChildren(skeleton("w-40"));
+    els.statStage.replaceChildren(skeleton("w-60"));
+    els.statData.replaceChildren(skeleton("w-50"));
+    return;
+  }
+  if (isOffline(status)) {
+    els.matchStats.classList.add("hidden");
+    setEmpty(els.matchEmpty, true, { title: tr("offlineTitle"), hint: tr("offlineHint"), icon: "wifi-off" });
+    return;
+  }
+  if (!live.inMatch) {
+    els.matchStats.classList.add("hidden");
+    setEmpty(els.matchEmpty, true, { title: tr("matchEmptyTitle"), hint: tr("matchEmptyHint"), icon: "clock" });
+    return;
+  }
+  els.matchStats.classList.remove("hidden");
+  setEmpty(els.matchEmpty, false);
+  els.statHero.textContent = live.hero || "—";
+  els.statClock.textContent = formatClock(live.clockTime) || "—";
+  els.statStage.textContent = live.stage && live.stage !== "unknown" ? stageLabel(live.stage) : "—";
+  const seconds = Number.isFinite(live.secondsSinceLastGsi) ? live.secondsSinceLastGsi.toFixed(1) : null;
+  const dot = document.createElement("span");
+  dot.className = "dot";
+  dot.dataset.tone = live.connected ? "ok" : "warn";
+  const text = document.createElement("span");
+  text.className = "num";
+  text.textContent = seconds === null ? "—" : tr("dataFresh", seconds);
+  els.statData.replaceChildren(dot, text);
+}
+
+function priorityTone(priority) {
+  const value = String(priority || "").toLowerCase();
+  if (value === "high" || value === "urgent") {
+    return "error";
+  }
+  if (value === "medium") {
+    return "warn";
+  }
+  if (value === "low" || value === "safe") {
+    return "ok";
+  }
+  return "";
+}
+
+function renderAdvice(status) {
+  if (isLoading(status)) {
+    els.adviceEmpty.classList.add("hidden");
+    els.adviceList.classList.remove("hidden");
+    els.adviceList.replaceChildren(
+      ...["w-80", "w-60", "w-70"].map((width) => {
+        const item = document.createElement("li");
+        item.className = "advice-item";
+        item.append(skeleton(width));
+        return item;
+      })
+    );
+    return;
+  }
+  const items = Array.isArray(status.recentAdvice) ? status.recentAdvice : [];
+  const offline = isOffline(status);
+  if (offline || !items.length) {
+    els.adviceList.classList.add("hidden");
+    els.adviceList.replaceChildren();
+    setEmpty(els.adviceEmpty, true, {
+      title: offline ? tr("offlineTitle") : tr("adviceEmptyTitle"),
+      hint: offline ? tr("offlineHint") : tr("adviceEmptyHint"),
+      icon: offline ? "wifi-off" : "sparkles"
+    });
+    return;
+  }
+  els.adviceEmpty.classList.add("hidden");
+  els.adviceList.classList.remove("hidden");
+  const firstRender = seenAdvice.size === 0;
+  els.adviceList.replaceChildren(
+    ...items.map((advice) => {
+      const key = `${advice.timestamp}|${advice.action}`;
+      const item = document.createElement("li");
+      item.className = "advice-item";
+      if (!firstRender && !seenAdvice.has(key)) {
+        item.classList.add("is-new");
+      }
+      seenAdvice.add(key);
+
+      const dot = document.createElement("span");
+      dot.className = "dot";
+      const tone = priorityTone(advice.priority);
+      if (tone) {
+        dot.dataset.tone = tone;
+      }
+      const priority = String(advice.priority || "").toLowerCase();
+      dot.title = trOr(`priority.${priority}`, priority);
+
+      const action = document.createElement("span");
+      action.className = "advice-action";
+      action.textContent = advice.action || "";
+      action.title = advice.action || "";
+
+      const time = document.createElement("span");
+      time.className = "advice-time";
+      time.textContent = advice.game_time || "";
+
+      const reason = document.createElement("span");
+      reason.className = "advice-reason";
+      reason.textContent = advice.reason || "";
+      reason.title = advice.reason || "";
+
+      item.append(dot, action, time, reason);
+      return item;
+    })
+  );
+}
+
+function renderOverlaySettings(status) {
+  const enabled = status.overlay === "running";
+  els.overlayToggle.checked = enabled;
+  els.overlayHint.textContent = !enabled
+    ? tr("overlayReason.off")
+    : status.overlayVisible
+      ? tr("overlayReason.in_game")
+      : tr(`overlayReason.${status.overlayReasonCode || "no_match"}`);
+
+  const position = status.overlayPosition || "right-center";
+  for (const button of els.positionButtons) {
+    button.setAttribute("aria-checked", String(button.dataset.position === position));
+    button.disabled = !enabled;
+  }
+  els.positionHint.textContent = position === "custom" ? tr("positionCustom") : tr("positionHint");
+
+  const moving = status.overlayLocked === false;
+  els.moveToggle.setAttribute("aria-pressed", String(moving));
+  els.moveToggle.disabled = !enabled;
+  els.moveLabel.textContent = moving ? tr("moveDone") : tr("moveStart");
+  els.moveHint.textContent = moving ? tr("moveActiveHint") : tr("moveHint");
+
+  els.autostart.checked = Boolean(status.autostart);
+  els.autostart.disabled = !status.autostartSupported;
+  els.autostartHint.textContent = !status.autostartSupported
     ? tr("autostartUnavailable")
     : status.autostart
       ? tr("autostartOn")
@@ -566,16 +799,16 @@ function renderSwitches(status) {
 
 function renderFacts(status) {
   const backendPort = status.backendPort && status.backend !== "stopped" ? ` · :${status.backendPort}` : "";
-  factEls.backend.textContent = `${tr(`backendStates.${status.backend || "stopped"}`)}${backendPort}`;
+  factEls.backend.textContent = `${tr(`serviceStates.${status.backend || "stopped"}`)}${backendPort}`;
   factEls.dota.textContent = tr(`dotaStates.${status.dota || "not_found"}`);
   factEls.overlay.textContent = status.overlay !== "running" ? tr("off") : status.overlayVisible ? tr("shown") : tr("hidden");
   factEls.overlay.title = status.overlayReason || "";
-  factEls.demo.textContent = status.demo === "running" && status.demoPreset
-    ? `${tr("running")} · ${status.demoPreset}`
-    : status.demo === "running" ? tr("running") : tr("stopped");
+  factEls.demo.textContent = status.demo === "running"
+    ? [tr("running"), status.demoPreset].filter(Boolean).join(" · ")
+    : tr("stopped");
   factEls.recording.textContent = status.recording === "running" ? tr("running") : tr("stopped");
   factEls.gsi.textContent = tr(`gsiConfigStates.${status.gsiConfig || "unknown"}`);
-  factEls.mode.textContent = tr(`modes.${status.mode || "Live GSI"}`);
+  factEls.mode.textContent = trOr(`modes.${status.mode || "Live GSI"}`, status.mode || "Live GSI");
   factEls.llm.textContent = status.llm === "on" ? tr("on") : tr("off");
 }
 
@@ -583,26 +816,20 @@ function isActiveProcess(state) {
   return state === "running" || state === "starting";
 }
 
-function setActionEnabled(button, enabled) {
-  if (button) {
-    button.disabled = !enabled;
-  }
-}
-
-function renderControlButtons(status = {}) {
+function renderControlButtons(status) {
   const backendRunning = isActiveProcess(status.backend);
   const overlayRunning = isActiveProcess(status.overlay);
   const demoRunning = isActiveProcess(status.demo);
   const recordingRunning = isActiveProcess(status.recording);
 
-  setActionEnabled(controlButtons.startBackend, !backendRunning);
-  setActionEnabled(controlButtons.restartBackend, status.backend !== "starting" && status.backend !== "stopping");
-  setActionEnabled(controlButtons.stopBackend, backendRunning);
-  setActionEnabled(controlButtons.startOverlay, !overlayRunning);
-  setActionEnabled(controlButtons.stopOverlay, overlayRunning);
-  setActionEnabled(controlButtons.stopDemo, demoRunning);
-  setActionEnabled(controlButtons.startRecording, !recordingRunning);
-  setActionEnabled(controlButtons.stopRecording, recordingRunning);
+  controlButtons.startBackend.disabled = backendRunning;
+  controlButtons.restartBackend.disabled = status.backend === "starting" || status.backend === "stopping";
+  controlButtons.stopBackend.disabled = !backendRunning;
+  controlButtons.startOverlay.disabled = overlayRunning;
+  controlButtons.stopOverlay.disabled = !overlayRunning;
+  controlButtons.stopDemo.disabled = !demoRunning;
+  controlButtons.startRecording.disabled = recordingRunning;
+  controlButtons.stopRecording.disabled = !recordingRunning;
   for (const button of demoStartButtons) {
     button.disabled = demoRunning;
     button.title = demoRunning ? tr("demoBusy") : "";
@@ -611,21 +838,18 @@ function renderControlButtons(status = {}) {
 
 function renderLogMode(mode) {
   for (const [name, button] of Object.entries(logModeButtons)) {
-    button?.classList.toggle("active", name === mode);
+    button?.setAttribute("aria-checked", String(name === mode));
   }
 }
 
 function updateGsiDetail(result = {}) {
-  const lines = [];
   if (result.path) {
-    lines.push(tr("gsiPath", result.path, gsiEndpoint));
+    els.gsiDetail.textContent = tr("gsiPath", result.path, gsiEndpoint);
   } else if (result.status === "not found") {
-    lines.push(tr("gsiPathMissing"));
+    els.gsiDetail.textContent = `${tr("gsiPathMissing")}\n${tr("gsiEndpoint", gsiEndpoint)}`;
+  } else {
+    els.gsiDetail.textContent = tr("gsiEndpoint", gsiEndpoint);
   }
-  if (!result.path) {
-    lines.push(tr("gsiEndpoint", gsiEndpoint));
-  }
-  gsiDetailEl.textContent = lines.join("\n");
 }
 
 function renderLiveStatus(status = {}) {
@@ -655,6 +879,6 @@ function renderLiveStatus(status = {}) {
 }
 
 function renderLogs(logs) {
-  logsEl.textContent = logs || "";
-  logsEl.scrollTop = logsEl.scrollHeight;
+  els.logs.textContent = logs || "";
+  els.logs.scrollTop = els.logs.scrollHeight;
 }

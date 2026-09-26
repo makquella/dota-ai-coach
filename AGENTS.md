@@ -62,7 +62,7 @@ Default `USE_LLM=false`. LLM providers only reword advice or run offline review.
 
 ## Frontend tooling
 
-No lint/typecheck. Verification is `node --check` on these ten files (CI runs exactly this; `npm run check` in `frontend/launcher/` does the same) plus dependency-free unit tests for the Electron-free modules (`npm test` = `node --test test/*.test.js`, also in CI):
+No lint/typecheck. Verification is `node --check` on these eleven files (CI runs exactly this; `npm run check` in `frontend/launcher/` does the same) plus dependency-free unit tests for the Electron-free modules (`npm test` = `node --test test/*.test.js`, also in CI):
 ```bash
 node --check frontend/launcher/main.js
 node --check frontend/launcher/preload.js
@@ -74,6 +74,7 @@ node --check frontend/launcher/dota-watcher.js
 node --check frontend/launcher/steam-locator.js
 node --check frontend/launcher/renderer/app.js
 node --check frontend/launcher/overlay/app.js
+node --check frontend/launcher/assets/icons/lucide.js
 ```
 Dev: `npm install && npm run dev` inside `frontend/launcher/`. On Wayland/GNOME use `npm run dev:x11` for the overlay to stay always-on-top. Electron is pinned at 42.4.0.
 
@@ -148,8 +149,8 @@ Script-only env (not runtime): `SIMULATION_*`, `MATCH_SIMULATION_PATH` (`scripts
 
 One Electron app, **`frontend/launcher/`** (product name "Dota AI Coach", exe `DotaAICoach.exe`). The former separate `frontend/desktop-overlay/` app was merged into it.
 - `main.js` — single-instance lock, tray (Open / Overlay / Start with Windows / Quit), close-to-tray, autostart (`--hidden`), backend process (port pick, health wait, graceful stop, crash restart ×3), replay demo presets, GSI config, IPC, `--smoke-test`.
-- `renderer/` + `preload.js` — control panel window: a status screen (Dota found, GSI connected, hero, match clock, overlay/autostart switches) plus a collapsed «For developers» section with every other tool (backend, GSI config, live GSI, recordings, replay demos, Deep Review, logs). Texts live in the `I18N` table in `renderer/app.js` (ru/en by system locale, sent by main as `status.locale`); keep both languages in sync when adding strings.
-- Look: Dota 2 HUD style — stone panels, bronze frames, gold accents, Radiant green / Dire red for states, no neon/glow. Tokens are CSS variables at the top of `renderer/styles.css` and `overlay/styles.css`. Heading font "Coach Display" = Cinzel (Latin) + Forum (Cyrillic), bundled in `assets/fonts/` (OFL, no CDN — the app must work offline). Screenshots: `docs/screenshots/ui-redesign/`.
+- `renderer/` + `preload.js` — control panel window: one status line with a single action (e.g. «Дота не найдена» → «Указать папку Доты»), three cards (current match, recent advice from backend `GET /advice/recent`, overlay settings: on/off, position preset, move by hand, autostart) plus a collapsed «For developers» section with every other tool (backend, GSI config, live GSI, recordings, replay demos, Deep Review, logs). Texts live in the `I18N` table in `renderer/app.js` (ru/en by system locale, sent by main as `status.locale`); keep both languages in sync when adding strings.
+- Look: calm, neutral dark UI (no game theming, no neon, glow, gradients, glassmorphism or emoji). Design tokens live in `assets/ui/tokens.css` (colours, type scale 12/13/14/16/20/28, weights 400/500/600, 4px spacing, radii 6–10px, 120–180ms ease-out motion) and are shared by both windows — add tokens there instead of hard-coding values. One accent (`--accent`) for the primary action and active state only; `--ok/--warn/--error` only as small status dots. Font: Inter, bundled in `assets/fonts/` (OFL, no CDN — the app must work offline); numbers/timers use `tabular-nums`. Icons: Lucide subset vendored in `assets/icons/lucide.js` (`<i data-icon="name">` + `LucideIcons.hydrate()`); add an icon by copying its SVG body from `lucide-static`. Loading states are skeletons (no spinners); every control needs hover, focus-visible and disabled styles. Screenshots: `docs/screenshots/ui-v3/`.
 - `overlay-window.js` + `overlay-preload.js` + `overlay/` — transparent frameless always-on-top window; its renderer asks the main process for `/overlay/recommendation` (1000 ms) and never builds backend URLs. The window exists while the overlay is enabled; `setVisible()` decides whether it is on screen, and the always-on-top timer runs only while shown.
 - `overlay-visibility.js` — pure rules: shown only when enabled AND (unlocked for dragging OR replay demo OR (dota2 running AND focused AND backend `/gsi/status` `in_match`)); on platforms without focus tracking it follows the switch. Also the tray status (not found / waiting for game / in game).
 - `dota-watcher.js` — Windows: one hidden long-lived PowerShell helper (user32 `GetForegroundWindow`/`GetWindowThreadProcessId`/`IsIconic`) prints JSON on change; exits itself when the launcher dies. Linux dev: `/proc` scan, no focus tracking.

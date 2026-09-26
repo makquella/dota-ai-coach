@@ -20,7 +20,7 @@ const { createDotaWatcher } = require("./dota-watcher");
 const { createOverlayController, OVERLAY_DEFAULTS } = require("./overlay-window");
 const { DOTA_STATUS, dotaStatus, overlayVisibility } = require("./overlay-visibility");
 const { createSettingsStore } = require("./settings");
-const { dotaDirFromExecutable, locateDota } = require("./steam-locator");
+const { dotaDirFromExecutable, gsiDirForDotaDir, locateDota } = require("./steam-locator");
 
 const APP_ID = "com.dotaai.coach";
 const APP_NAME = "Dota AI Coach";
@@ -110,7 +110,7 @@ let dotaInstall = { steamRoots: [], libraries: [], dotaDir: "", gsiDir: "", sour
 let dotaInstallLogged = false;
 let dotaLocatePromise = null;
 let autoInstallRunning = false;
-const live = { inMatch: false, pollTimer: null, polling: false, details: emptyLiveDetails() };
+const live = { inMatch: false, pollTimer: null, polling: false, details: emptyLiveDetails(), recentAdvice: [], polls: 0 };
 const presence = { status: DOTA_STATUS.NOT_FOUND, visible: false, reason: "", code: "" };
 let autostartEnabled = false;
 
@@ -303,6 +303,9 @@ function publicStatus() {
   return {
     locale: uiLocale(),
     live: { ...live.details },
+    recentAdvice: live.recentAdvice,
+    overlayPosition: overlay.position(),
+    overlayLocked: !overlay.isUnlocked(),
     dotaRunning: dota.running,
     dotaFocused: dota.focused,
     overlayReasonCode: presence.code,
@@ -397,13 +400,32 @@ async function pollGsiStatus() {
         secondsSinceLastGsi: Number.isFinite(status.seconds_since_last_gsi) ? status.seconds_since_last_gsi : null,
         stage: status.stage || "unknown"
       };
+      // Advice is evaluated when someone asks for /overlay/recommendation. The
+      // overlay window does that every second; when it is switched off, ask
+      // here so advice keeps being produced for the "Recent advice" card.
+      if (!overlay.isOpen()) {
+        await fetchOverlayRecommendation();
+      }
     }
   } catch {
     details = emptyLiveDetails();
   } finally {
     live.polling = false;
   }
-  const detailsChanged = JSON.stringify(details) !== JSON.stringify(live.details);
+  // Recent advice changes rarely; every third poll is enough.
+  live.polls += 1;
+  let recentChanged = false;
+  if (processStatus.backend === "running" && live.polls % 3 === 1) {
+    try {
+      const recent = await requestBackendJson("/advice/recent?limit=5");
+      const items = Array.isArray(recent.items) ? recent.items : [];
+      recentChanged = JSON.stringify(items) !== JSON.stringify(live.recentAdvice);
+      live.recentAdvice = items;
+    } catch {
+      // Keep the last list; the backend may be restarting.
+    }
+  }
+  const detailsChanged = recentChanged || JSON.stringify(details) !== JSON.stringify(live.details);
   live.details = details;
   if (details.inMatch !== live.inMatch) {
     live.inMatch = details.inMatch;
@@ -420,6 +442,7 @@ function setBackendStatus(status) {
   if (status !== "running") {
     live.inMatch = false;
     live.details = emptyLiveDetails();
+    live.recentAdvice = [];
     refreshPresence();
   }
   updateStatus();
@@ -1147,6 +1170,32 @@ async function chooseGsiFolder() {
   return result.filePaths[0];
 }
 
+// "Dota not found" action: let the user point at the Dota 2 folder itself
+// (…\dota 2 beta) and install the GSI config inside it.
+async function chooseDotaFolderAndInstall() {
+  const result = await dialog.showOpenDialog(mainWindow, {
+    title: "Choose the Dota 2 folder (dota 2 beta)",
+    properties: ["openDirectory"]
+  });
+  if (result.canceled || !result.filePaths.length) {
+    return { status: gsiStatus.status, path: gsiStatus.path, canceled: true };
+  }
+  const chosen = result.filePaths[0];
+  const candidates = [chosen, path.join(chosen, "steamapps", "common", "dota 2 beta")];
+  const dotaDir = candidates.find((dir) => fs.existsSync(path.join(dir, "game", "dota")));
+  if (!dotaDir) {
+    appendLog("gsi", `No Dota 2 install in ${chosen} (expected a "game\\dota" folder inside).`, { force: true });
+    return { status: "not found", path: "", error: "not_dota_folder" };
+  }
+  dotaInstall = { ...dotaInstall, dotaDir, gsiDir: gsiDirForDotaDir(dotaDir), source: "chosen" };
+  const status = installGsiConfig();
+  if (status.status === "installed") {
+    settings.set("gsiAutoInstalled", true);
+  }
+  updateStatus();
+  return status;
+}
+
 function openPath(targetPath) {
   try {
     fs.mkdirSync(targetPath, { recursive: true });
@@ -1181,13 +1230,13 @@ function appIcon() {
 
 function createMainWindow({ show = true } = {}) {
   mainWindow = new BrowserWindow({
-    width: 980,
-    height: 600,
-    minWidth: 860,
-    minHeight: 520,
+    width: 760,
+    height: 760,
+    minWidth: 560,
+    minHeight: 560,
     title: APP_NAME,
     icon: appIcon(),
-    backgroundColor: "#10131a",
+    backgroundColor: "#0b0b0c",
     show,
     webPreferences: {
       preload: path.join(__dirname, "preload.js"),
@@ -1364,6 +1413,15 @@ function registerIpc() {
     return installGsiConfig(customPath);
   });
   ipcMain.handle("launcher:choose-gsi-folder", () => chooseGsiFolder());
+  ipcMain.handle("launcher:choose-dota-folder", () => chooseDotaFolderAndInstall());
+  ipcMain.handle("launcher:set-overlay-position", (_event, preset) => {
+    overlay.setPosition(String(preset || ""));
+    return publicStatus();
+  });
+  ipcMain.handle("launcher:set-overlay-locked", (_event, locked) => {
+    overlay.setLocked(Boolean(locked));
+    return publicStatus();
+  });
   ipcMain.handle("launcher:open-logs", () => openPath(LOGS_DIR));
   ipcMain.handle("launcher:open-simulation-results", () => openPath(SIMULATION_RESULTS_DIR));
   ipcMain.handle("launcher:open-session-records", () => openPath(SESSION_RECORDS_DIR));
@@ -1453,10 +1511,10 @@ async function runSmokeTest(resultPath) {
     step("backend /health", started && (await isBackendReady()), backendUrl());
     // Both renderers must have drawn their UI from live data (catches script
     // errors that a plain "page loaded" check would miss). Only app.js sets
-    // these values: the static HTML has data-state="stopped" and an empty action.
+    // these values: the static HTML has data-state="starting", "—" and an empty action.
     await delay(1500);
     const panel = await mainWindow.webContents.executeJavaScript(
-      "({ state: document.querySelector('#backend-pill')?.dataset.state || '', text: document.querySelector('#backend-pill-text')?.textContent || '' })"
+      "({ state: document.querySelector('#service')?.dataset.state || '', text: document.querySelector('#service-text')?.textContent || '' })"
     );
     step(
       "control panel rendered",

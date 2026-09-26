@@ -5,161 +5,223 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Dota AI Coach</title>
     <link rel="stylesheet" href="../assets/fonts/fonts.css" />
+    <link rel="stylesheet" href="../assets/ui/tokens.css" />
     <link rel="stylesheet" href="./styles.css" />
   </head>
-  <body>
-    <main class="app">
-      <header class="masthead">
-        <img class="crest" src="../assets/icon.png" alt="" />
-        <div class="masthead-text">
+  <body data-loading="true">
+    <main class="page">
+      <header class="top">
+        <div class="brand">
+          <span class="brand-mark" aria-hidden="true"></span>
           <h1>Dota AI Coach</h1>
-          <p class="masthead-sub" data-i18n="tagline">Live advice for your Dota 2 matches</p>
         </div>
-        <div class="backend-pill" id="backend-pill" data-state="stopped">
-          <span class="pip" aria-hidden="true"></span>
-          <span id="backend-pill-text">Backend</span>
-        </div>
+        <span class="service" id="service" data-state="starting">
+          <span class="dot" aria-hidden="true"></span>
+          <span id="service-text">—</span>
+        </span>
       </header>
 
-      <section class="banner frame" id="state-banner" data-state="not_found" aria-live="polite">
-        <div class="banner-sigil" aria-hidden="true"></div>
-        <div>
-          <p class="banner-title" id="state-title">Dota not found</p>
-          <p class="banner-detail" id="state-detail"></p>
+      <!-- One status line: what is going on and, if needed, what to do. -->
+      <section class="status" id="status" data-state="loading" aria-live="polite">
+        <div class="status-main">
+          <span class="dot dot-lg" aria-hidden="true"></span>
+          <div class="status-text">
+            <p class="status-title" id="status-title"><span class="skeleton skeleton-line w-60"></span></p>
+            <p class="status-hint" id="status-hint"><span class="skeleton skeleton-line w-80"></span></p>
+          </div>
         </div>
+        <button id="status-action" class="btn btn-primary hidden" type="button">
+          <i data-icon="play"></i><span id="status-action-label"></span>
+        </button>
       </section>
 
-      <section class="board" aria-label="Status">
-        <article class="tile frame" id="tile-dota" data-state="bad">
-          <p class="tile-label"><span class="pip" aria-hidden="true"></span><span data-i18n="tileDota">Dota 2</span></p>
-          <p class="tile-value" id="dota-value">—</p>
-          <p class="tile-sub" id="dota-sub"></p>
-        </article>
-        <article class="tile frame" id="tile-gsi" data-state="bad">
-          <p class="tile-label"><span class="pip" aria-hidden="true"></span><span data-i18n="tileGsi">Game data (GSI)</span></p>
-          <p class="tile-value" id="gsi-value">—</p>
-          <p class="tile-sub" id="gsi-sub"></p>
-          <button id="install-gsi" class="btn btn-primary tile-action hidden" data-i18n="installGsi">Install config</button>
-        </article>
-        <article class="tile frame" id="tile-hero" data-state="idle">
-          <p class="tile-label"><span class="pip" aria-hidden="true"></span><span data-i18n="tileHero">Hero</span></p>
-          <p class="tile-value" id="hero-value">—</p>
-          <p class="tile-sub" id="hero-sub"></p>
-        </article>
-        <article class="tile frame" id="tile-time" data-state="idle">
-          <p class="tile-label"><span class="pip" aria-hidden="true"></span><span data-i18n="tileTime">Match time</span></p>
-          <p class="tile-value tile-clock" id="time-value">—</p>
-          <p class="tile-sub" id="time-sub"></p>
-        </article>
-      </section>
+      <div class="cards">
+        <!-- Current match -->
+        <section class="card" id="match-card" aria-labelledby="match-heading">
+          <header class="card-head">
+            <i data-icon="activity"></i>
+            <h2 id="match-heading" data-i18n="matchTitle">Current match</h2>
+          </header>
+          <div class="card-body" id="match-body">
+            <dl class="stats">
+              <div class="stat">
+                <dt data-i18n="statHero">Hero</dt>
+                <dd id="stat-hero"><span class="skeleton skeleton-line w-70"></span></dd>
+              </div>
+              <div class="stat">
+                <dt data-i18n="statClock">Match time</dt>
+                <dd id="stat-clock" class="num"><span class="skeleton skeleton-line w-40"></span></dd>
+              </div>
+              <div class="stat">
+                <dt data-i18n="statStage">Stage</dt>
+                <dd id="stat-stage"><span class="skeleton skeleton-line w-60"></span></dd>
+              </div>
+              <div class="stat">
+                <dt data-i18n="statData">Game data</dt>
+                <dd id="stat-data"><span class="skeleton skeleton-line w-50"></span></dd>
+              </div>
+            </dl>
+            <div class="empty hidden" id="match-empty">
+              <i data-icon="clock"></i>
+              <p class="empty-title" id="match-empty-title"></p>
+              <p class="empty-hint" id="match-empty-hint"></p>
+            </div>
+          </div>
+        </section>
 
-      <section class="switches frame">
-        <label class="switch-row">
-          <input id="overlay-toggle" type="checkbox" class="switch" />
-          <span class="switch-text">
-            <span class="switch-title" data-i18n="overlaySwitch">Advice overlay</span>
-            <span class="switch-sub" id="overlay-sub"></span>
-          </span>
-        </label>
-        <label class="switch-row" id="autostart-row">
-          <input id="autostart" type="checkbox" class="switch" />
-          <span class="switch-text">
-            <span class="switch-title" data-i18n="autostart">Start with Windows</span>
-            <span class="switch-sub" id="autostart-label"></span>
-          </span>
-        </label>
-      </section>
+        <!-- Recent advice -->
+        <section class="card" id="advice-card" aria-labelledby="advice-heading">
+          <header class="card-head">
+            <i data-icon="lightbulb"></i>
+            <h2 id="advice-heading" data-i18n="adviceTitle">Recent advice</h2>
+          </header>
+          <div class="card-body">
+            <ul class="advice-list" id="advice-list">
+              <li class="advice-item"><span class="skeleton skeleton-line w-80"></span></li>
+              <li class="advice-item"><span class="skeleton skeleton-line w-60"></span></li>
+              <li class="advice-item"><span class="skeleton skeleton-line w-70"></span></li>
+            </ul>
+            <div class="empty hidden" id="advice-empty">
+              <i data-icon="sparkles"></i>
+              <p class="empty-title" data-i18n="adviceEmptyTitle">No advice yet</p>
+              <p class="empty-hint" data-i18n="adviceEmptyHint">Advice shows up here as it appears over the game.</p>
+            </div>
+          </div>
+        </section>
 
-      <details class="dev frame" id="dev-tools">
+        <!-- Overlay settings -->
+        <section class="card" id="overlay-card" aria-labelledby="overlay-heading">
+          <header class="card-head">
+            <i data-icon="monitor"></i>
+            <h2 id="overlay-heading" data-i18n="overlayTitle">Overlay</h2>
+          </header>
+          <div class="card-body settings">
+            <label class="setting">
+              <span class="setting-text">
+                <span class="setting-title" data-i18n="overlayShow">Show advice over the game</span>
+                <span class="setting-hint" id="overlay-hint"></span>
+              </span>
+              <input id="overlay-toggle" type="checkbox" class="switch" role="switch" />
+            </label>
+            <div class="setting">
+              <span class="setting-text">
+                <span class="setting-title" id="position-title" data-i18n="overlayPosition">Position</span>
+                <span class="setting-hint" id="position-hint" data-i18n="positionHint">Away from the minimap and the hero panel</span>
+              </span>
+              <div class="segmented" role="radiogroup" id="position-group" aria-labelledby="position-title">
+                <button type="button" role="radio" data-position="left-center"><i data-icon="panel-left"></i><span data-i18n="posLeft">Left</span></button>
+                <button type="button" role="radio" data-position="right-center"><i data-icon="panel-right"></i><span data-i18n="posRight">Right</span></button>
+                <button type="button" role="radio" data-position="bottom-center"><i data-icon="panel-bottom"></i><span data-i18n="posBottom">Bottom</span></button>
+              </div>
+            </div>
+            <div class="setting">
+              <span class="setting-text">
+                <span class="setting-title" data-i18n="overlayMove">Move by hand</span>
+                <span class="setting-hint" id="move-hint" data-i18n="moveHint">Shows the card so you can drag it anywhere</span>
+              </span>
+              <button id="move-toggle" class="btn" type="button"><i data-icon="move"></i><span id="move-label" data-i18n="moveStart">Move</span></button>
+            </div>
+            <label class="setting">
+              <span class="setting-text">
+                <span class="setting-title" data-i18n="autostart">Start with Windows</span>
+                <span class="setting-hint" id="autostart-hint"></span>
+              </span>
+              <input id="autostart" type="checkbox" class="switch" role="switch" />
+            </label>
+          </div>
+        </section>
+      </div>
+
+      <!-- Everything technical, collapsed by default. -->
+      <details class="dev" id="dev-tools">
         <summary>
-          <span class="dev-title" data-i18n="devTitle">For developers</span>
-          <span class="dev-hint" data-i18n="devHint">Backend, GSI details, replay demos, recordings and logs</span>
+          <i data-icon="chevron-right" class="chevron"></i>
+          <span data-i18n="devTitle">For developers</span>
+          <span class="dev-hint" data-i18n="devHint">Service, GSI, replay demos, recordings, logs</span>
         </summary>
 
         <div class="dev-body">
-          <div class="facts" aria-label="Launcher status">
-            <span class="fact"><span class="fact-key" data-i18n="factBackend">Backend</span><span id="backend-status">—</span></span>
-            <span class="fact"><span class="fact-key" data-i18n="factDota">Dota</span><span id="dota-status">—</span></span>
-            <span class="fact"><span class="fact-key" data-i18n="factOverlay">Overlay</span><span id="overlay-status">—</span></span>
-            <span class="fact"><span class="fact-key" data-i18n="factDemo">Demo</span><span id="demo-status">—</span></span>
-            <span class="fact"><span class="fact-key" data-i18n="factRecording">Recording</span><span id="recording-status">—</span></span>
-            <span class="fact"><span class="fact-key" data-i18n="factGsiConfig">GSI config</span><span id="gsi-status">—</span></span>
-            <span class="fact"><span class="fact-key" data-i18n="factMode">Mode</span><span id="mode-status">—</span></span>
-            <span class="fact"><span class="fact-key">LLM</span><span id="llm-status">—</span></span>
-          </div>
+          <dl class="facts">
+            <div><dt data-i18n="factBackend">Service</dt><dd id="backend-status">—</dd></div>
+            <div><dt data-i18n="factDota">Dota</dt><dd id="dota-status">—</dd></div>
+            <div><dt data-i18n="factOverlay">Overlay</dt><dd id="overlay-status">—</dd></div>
+            <div><dt data-i18n="factDemo">Demo</dt><dd id="demo-status">—</dd></div>
+            <div><dt data-i18n="factRecording">Recording</dt><dd id="recording-status">—</dd></div>
+            <div><dt data-i18n="factGsiConfig">GSI config</dt><dd id="gsi-status">—</dd></div>
+            <div><dt data-i18n="factMode">Mode</dt><dd id="mode-status">—</dd></div>
+            <div><dt>LLM</dt><dd id="llm-status">—</dd></div>
+          </dl>
 
-          <div class="dev-grid">
-            <section class="group">
-              <h2 data-i18n="groupBackend">Backend</h2>
-              <div class="actions">
-                <button id="start-backend" class="btn" data-i18n="startBackend">Start</button>
-                <button id="restart-backend" class="btn" data-i18n="restartBackend">Restart</button>
-                <button id="stop-backend" class="btn" data-i18n="stopBackend">Stop</button>
-              </div>
-              <h2 data-i18n="groupOverlay">Overlay window</h2>
-              <div class="actions">
-                <button id="start-overlay" class="btn" data-i18n="showOverlay">Show</button>
-                <button id="stop-overlay" class="btn" data-i18n="hideOverlay">Hide</button>
-              </div>
-              <p class="hint" data-i18n="hotkeys">Ctrl+Alt+O on/off · Ctrl+Alt+L unlock to drag · Ctrl+Alt+M mute 5 min · Ctrl+Alt+1/2/3 position · Ctrl+Alt+D debug line</p>
-            </section>
+          <section class="dev-section">
+            <h3 data-i18n="groupBackend">Service</h3>
+            <div class="row">
+              <button id="start-backend" class="btn btn-sm" type="button"><i data-icon="play"></i><span data-i18n="startBackend">Start</span></button>
+              <button id="restart-backend" class="btn btn-sm" type="button"><i data-icon="rotate-cw"></i><span data-i18n="restartBackend">Restart</span></button>
+              <button id="stop-backend" class="btn btn-sm" type="button"><i data-icon="square"></i><span data-i18n="stopBackend">Stop</span></button>
+              <span class="row-sep" aria-hidden="true"></span>
+              <button id="start-overlay" class="btn btn-sm" type="button"><i data-icon="eye"></i><span data-i18n="showOverlay">Show overlay</span></button>
+              <button id="stop-overlay" class="btn btn-sm" type="button"><i data-icon="eye-off"></i><span data-i18n="hideOverlay">Hide overlay</span></button>
+            </div>
+            <p class="note" data-i18n="hotkeys">Ctrl+Alt+O on/off · Ctrl+Alt+L move · Ctrl+Alt+M mute 5 min · Ctrl+Alt+1/2/3 left/right/bottom · Ctrl+Alt+D debug line</p>
+          </section>
 
-            <section class="group">
-              <h2 data-i18n="groupGsi">GSI config</h2>
-              <div class="path-row">
-                <input id="gsi-path" type="text" data-i18n-placeholder="gsiPathPlaceholder" placeholder="Custom gamestate_integration folder" />
-                <button id="choose-gsi" class="btn" data-i18n="chooseFolder">Choose</button>
-              </div>
-              <div class="actions">
-                <button id="check-gsi" class="btn" data-i18n="checkGsi">Check</button>
-                <button id="install-gsi-custom" class="btn" data-i18n="installGsiHere">Install here</button>
-              </div>
-              <p class="hint mono" id="gsi-detail"></p>
-            </section>
+          <section class="dev-section">
+            <h3 data-i18n="groupGsi">GSI config</h3>
+            <div class="row">
+              <input id="gsi-path" class="input" type="text" data-i18n-placeholder="gsiPathPlaceholder" placeholder="Custom gamestate_integration folder" />
+              <button id="choose-gsi" class="btn btn-sm" type="button"><i data-icon="folder-search"></i><span data-i18n="chooseFolder">Choose</span></button>
+            </div>
+            <div class="row">
+              <button id="check-gsi" class="btn btn-sm" type="button"><i data-icon="scan-search"></i><span data-i18n="checkGsi">Check</span></button>
+              <button id="install-gsi" class="btn btn-sm" type="button"><i data-icon="download"></i><span data-i18n="installGsi">Install</span></button>
+            </div>
+            <p class="note mono" id="gsi-detail"></p>
+          </section>
 
-            <section class="group">
-              <h2 data-i18n="groupLive">Live GSI</h2>
-              <dl class="kv">
-                <dt data-i18n="kvConnection">Connection</dt><dd id="live-connection">—</dd>
-                <dt data-i18n="kvLast">Last data</dt><dd id="live-last">—</dd>
-                <dt data-i18n="kvHero">Hero</dt><dd id="live-hero">—</dd>
-                <dt data-i18n="kvTime">Game time</dt><dd id="live-time">—</dd>
-                <dt data-i18n="kvStage">Stage</dt><dd id="live-stage">—</dd>
-              </dl>
-              <p class="hint" id="live-advice"></p>
-              <p class="hint" id="live-missing"></p>
-              <div class="actions">
-                <button id="check-live-gsi" class="btn" data-i18n="checkLive">Check live GSI</button>
-                <button id="start-recording" class="btn" data-i18n="startRecording">Start recording</button>
-                <button id="stop-recording" class="btn" data-i18n="stopRecording">Stop recording</button>
-                <button id="open-records" class="btn" data-i18n="openRecords">Recordings folder</button>
-              </div>
-            </section>
+          <section class="dev-section">
+            <h3 data-i18n="groupLive">Live GSI</h3>
+            <dl class="facts facts-tight">
+              <div><dt data-i18n="kvConnection">Connection</dt><dd id="live-connection">—</dd></div>
+              <div><dt data-i18n="kvLast">Last data</dt><dd id="live-last">—</dd></div>
+              <div><dt data-i18n="kvHero">Hero</dt><dd id="live-hero">—</dd></div>
+              <div><dt data-i18n="kvTime">Game time</dt><dd id="live-time" class="num">—</dd></div>
+              <div><dt data-i18n="kvStage">Stage</dt><dd id="live-stage">—</dd></div>
+            </dl>
+            <p class="note" id="live-advice"></p>
+            <p class="note" id="live-missing"></p>
+            <div class="row">
+              <button id="check-live-gsi" class="btn btn-sm" type="button"><i data-icon="radio"></i><span data-i18n="checkLive">Check</span></button>
+              <button id="start-recording" class="btn btn-sm" type="button"><i data-icon="circle-dot"></i><span data-i18n="startRecording">Record</span></button>
+              <button id="stop-recording" class="btn btn-sm" type="button"><i data-icon="square"></i><span data-i18n="stopRecording">Stop recording</span></button>
+              <button id="open-records" class="btn btn-sm btn-ghost" type="button"><i data-icon="folder-open"></i><span data-i18n="openRecords">Recordings</span></button>
+            </div>
+          </section>
 
-            <section class="group">
-              <h2 data-i18n="groupDemo">Replay demo</h2>
-              <p class="hint" data-i18n="demoHint">Plays recorded match states into the backend; the overlay shows without Dota.</p>
-              <div class="actions">
-                <button id="run-demo" class="btn btn-primary" data-i18n="runDemo">Run demo</button>
-                <button id="preset-pl" class="btn" data-i18n="presetPl">Phantom Lancer 20–30</button>
-                <button id="preset-jugg" class="btn" data-i18n="presetJugg">Juggernaut 10–20</button>
-                <button id="deep-review" class="btn" data-i18n="deepReview">Deep Review</button>
-                <button id="stop-demo" class="btn" data-i18n="stopDemo">Stop demo</button>
-                <button id="open-results" class="btn" data-i18n="openResults">Results folder</button>
-              </div>
-            </section>
-          </div>
+          <section class="dev-section">
+            <h3 data-i18n="groupDemo">Replay demo</h3>
+            <p class="note" data-i18n="demoHint">Plays recorded match states into the service; the overlay shows without Dota.</p>
+            <div class="row">
+              <button id="run-demo" class="btn btn-sm" type="button"><i data-icon="film"></i><span data-i18n="runDemo">Run demo</span></button>
+              <button id="preset-pl" class="btn btn-sm" type="button"><span data-i18n="presetPl">Phantom Lancer 20–30</span></button>
+              <button id="preset-jugg" class="btn btn-sm" type="button"><span data-i18n="presetJugg">Juggernaut 10–20</span></button>
+              <button id="deep-review" class="btn btn-sm" type="button"><i data-icon="scan-search"></i><span data-i18n="deepReview">Deep Review</span></button>
+              <button id="stop-demo" class="btn btn-sm" type="button"><i data-icon="square"></i><span data-i18n="stopDemo">Stop</span></button>
+              <button id="open-results" class="btn btn-sm btn-ghost" type="button"><i data-icon="folder-open"></i><span data-i18n="openResults">Results</span></button>
+            </div>
+          </section>
 
-          <section class="group logs-group">
-            <div class="logs-header">
-              <h2 data-i18n="groupLogs">Logs</h2>
-              <div class="actions">
-                <button id="log-clean" class="btn btn-small active" data-i18n="logClean">Clean</button>
-                <button id="log-verbose" class="btn btn-small" data-i18n="logVerbose">Verbose</button>
-                <button id="copy-logs" class="btn btn-small" data-i18n="copyLogs">Copy</button>
-                <button id="clear-logs" class="btn btn-small" data-i18n="clearLogs">Clear</button>
-                <button id="open-logs" class="btn btn-small" data-i18n="openLogs">Logs folder</button>
-                <button id="open-readme" class="btn btn-small">README</button>
+          <section class="dev-section">
+            <div class="row row-between">
+              <h3 id="logs-title" data-i18n="groupLogs">Logs</h3>
+              <div class="row">
+                <div class="segmented segmented-sm" role="radiogroup" aria-labelledby="logs-title">
+                  <button id="log-clean" type="button" role="radio" data-i18n="logClean">Clean</button>
+                  <button id="log-verbose" type="button" role="radio" data-i18n="logVerbose">Verbose</button>
+                </div>
+                <button id="copy-logs" class="btn btn-sm btn-ghost btn-icon" type="button" data-i18n-title="copyLogs" title="Copy"><i data-icon="copy"></i></button>
+                <button id="clear-logs" class="btn btn-sm btn-ghost btn-icon" type="button" data-i18n-title="clearLogs" title="Clear"><i data-icon="trash-2"></i></button>
+                <button id="open-logs" class="btn btn-sm btn-ghost btn-icon" type="button" data-i18n-title="openLogs" title="Logs folder"><i data-icon="folder-open"></i></button>
+                <button id="open-readme" class="btn btn-sm btn-ghost btn-icon" type="button" title="README"><i data-icon="book-open"></i></button>
               </div>
             </div>
             <pre id="logs" aria-live="polite"></pre>
@@ -167,6 +229,7 @@
         </div>
       </details>
     </main>
+    <script src="../assets/icons/lucide.js"></script>
     <script src="./app.js"></script>
   </body>
 </html>

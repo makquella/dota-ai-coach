@@ -67,6 +67,7 @@ jobs:
           node --check frontend/launcher/steam-locator.js
           node --check frontend/launcher/renderer/app.js
           node --check frontend/launcher/overlay/app.js
+          node --check frontend/launcher/assets/icons/lucide.js
 
       - name: Unit tests (node --test, no dependencies)
         working-directory: frontend/launcher

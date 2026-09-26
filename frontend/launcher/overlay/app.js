@@ -9,10 +9,10 @@ const reasonEl = document.querySelector("#reason");
 const OVERLAY_TEXT = {
   en: {
     urgent: "Urgent",
-    tip: "Coach tip",
+    tip: "Tip",
     coach: "Coach",
     demo: "Demo",
-    priority: { high: "High", urgent: "High", medium: "Medium", low: "Low", safe: "Safe" },
+    priority: { high: "high priority", urgent: "high priority", medium: "medium priority", low: "low priority", safe: "calm" },
     waitingBackend: "Waiting for the coach service…",
     backendStopped: "The coach service is stopped.",
     waitingGsi: "Waiting for Dota 2 game data…",
@@ -34,7 +34,7 @@ const OVERLAY_TEXT = {
     tip: "Совет",
     coach: "Тренер",
     demo: "Демо",
-    priority: { high: "Высокий", urgent: "Высокий", medium: "Средний", low: "Низкий", safe: "Спокойно" },
+    priority: { high: "высокий приоритет", urgent: "высокий приоритет", medium: "средний приоритет", low: "низкий приоритет", safe: "спокойно" },
     waitingBackend: "Ждём сервис тренера…",
     backendStopped: "Сервис тренера остановлен.",
     waitingGsi: "Ждём данные из Dota 2…",

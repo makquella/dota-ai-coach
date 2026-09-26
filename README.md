@@ -134,13 +134,13 @@ Because the launcher runs its own backend, you do not need the manual `uvicorn` 
 
 On Windows, install the app with the NSIS installer built by `scripts\build-windows.ps1` (see [Windows Packaging](docs/PACKAGING_WINDOWS.md)).
 
-![Dota AI Coach status screen](docs/screenshots/ui-redesign/after-launcher-in-game-en.png)
+![Dota AI Coach status screen](docs/screenshots/ui-v3/after-launcher-in-game.png)
 
 ### Overlay
 
-![In-game advice card](docs/screenshots/ui-redesign/after-overlay-urgent-ru.png)
+![In-game advice card](docs/screenshots/ui-v3/after-overlay-urgent.png)
 
-The overlay is a transparent, click-through window of the launcher. It is on screen only while Dota 2 is running, is the active window, and a match is sending fresh GSI data; alt-tab, minimizing Dota or going back to the menu hides it (replay demo and unlocked positioning mode show it anyway). The tray shows the state: *Dota not found* / *Waiting for game* / *In game* (Russian on a Russian system). On first run the app finds Dota through Steam (registry + `libraryfolders.vdf`, any drive) and installs the GSI config itself. It polls `/overlay/recommendation` on the backend port chosen by the launcher. Hotkeys: `Ctrl+Alt+O` toggle, `Ctrl+Alt+M` mute 5 min, `Ctrl+Alt+L` lock/unlock dragging, `Ctrl+Alt+1/2/3` position presets, `Ctrl+Alt+D` debug line.
+The overlay is a transparent, click-through window of the launcher. It is on screen only while Dota 2 is running, is the active window, and a match is sending fresh GSI data; alt-tab, minimizing Dota or going back to the menu hides it (replay demo and unlocked positioning mode show it anyway). The tray shows the state: *Dota not found* / *Waiting for game* / *In game* (Russian on a Russian system). On first run the app finds Dota through Steam (registry + `libraryfolders.vdf`, any drive) and installs the GSI config itself. It polls `/overlay/recommendation` on the backend port chosen by the launcher. Hotkeys: `Ctrl+Alt+O` toggle, `Ctrl+Alt+M` mute 5 min, `Ctrl+Alt+L` lock/unlock dragging, `Ctrl+Alt+1/2/3` left / right / bottom position (all clear of the minimap and hero panel), `Ctrl+Alt+D` debug line.
 
 ### Defense Demo Without Dota 2
 
@@ -240,6 +240,7 @@ node --check frontend/launcher/dota-watcher.js
 node --check frontend/launcher/steam-locator.js
 node --check frontend/launcher/renderer/app.js
 node --check frontend/launcher/overlay/app.js
+node --check frontend/launcher/assets/icons/lucide.js
 (cd frontend/launcher && npm test)   # node --test, no dependencies
 ```
 
