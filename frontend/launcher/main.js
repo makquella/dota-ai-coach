@@ -529,9 +529,11 @@ async function launchBackend() {
   if (!healthy) {
     appendLog(
       "launcher",
-      `Backend did not answer ${backendUrl()}/health within ${BACKEND_HEALTH_TIMEOUT_MS / 1000}s. Check the backend log lines above.`,
+      `Backend did not answer ${backendUrl()}/health within ${BACKEND_HEALTH_TIMEOUT_MS / 1000}s; stopping it. Check the backend log lines above.`,
       { force: true }
     );
+    // Do not leave an unhealthy process holding the port and blocking Start/Restart.
+    await stopBackend();
     return false;
   }
   appendLog("launcher", `Backend is ready: ${backendUrl()}`, { force: true });

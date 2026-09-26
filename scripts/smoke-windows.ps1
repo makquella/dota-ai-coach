@@ -108,7 +108,10 @@ function Test-AppExe([string]$Exe, [string]$Label) {
   $proc = Start-Process -FilePath $Exe -ArgumentList "--smoke-test=`"$resultPath`"" -PassThru
   $null = $proc.Handle  # keeps ExitCode readable after exit
   if (-not $proc.WaitForExit($TimeoutSeconds * 1000)) {
+    # Clean up the app and the backend it owns so later steps start from a clean state.
     $proc.Kill()
+    $null = $proc.WaitForExit(10000)
+    Get-Process -Name "dota-ai-coach-backend" -ErrorAction SilentlyContinue | Stop-Process -Force
     throw "FAIL: $Label did not finish the smoke test within $TimeoutSeconds s"
   }
   Assert-True (Test-Path $resultPath) "$Label wrote $resultPath"
