@@ -400,6 +400,12 @@ async function pollGsiStatus() {
         secondsSinceLastGsi: Number.isFinite(status.seconds_since_last_gsi) ? status.seconds_since_last_gsi : null,
         stage: status.stage || "unknown"
       };
+      // Advice is evaluated when someone asks for /overlay/recommendation. The
+      // overlay window does that every second; when it is switched off, ask
+      // here so advice keeps being produced for the "Recent advice" card.
+      if (!overlay.isOpen()) {
+        await fetchOverlayRecommendation();
+      }
     }
   } catch {
     details = emptyLiveDetails();
