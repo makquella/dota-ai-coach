@@ -1445,17 +1445,22 @@ async function runSmokeTest(resultPath) {
 
     const started = await startBackend();
     step("backend /health", started && (await isBackendReady()), backendUrl());
-    // Both renderers must have drawn their UI from live status (catches
-    // script errors that a plain "page loaded" check would miss).
+    // Both renderers must have drawn their UI from live data (catches script
+    // errors that a plain "page loaded" check would miss). Only app.js sets
+    // these values: the static HTML has data-state="stopped" and an empty action.
     await delay(1500);
-    const stateTitle = await mainWindow.webContents.executeJavaScript(
-      "document.querySelector('#state-title')?.textContent || ''"
+    const panel = await mainWindow.webContents.executeJavaScript(
+      "({ state: document.querySelector('#backend-pill')?.dataset.state || '', text: document.querySelector('#backend-pill-text')?.textContent || '' })"
     );
-    step("control panel rendered", Boolean(stateTitle.trim()), stateTitle);
-    const overlayLabel = await overlayWindow.webContents.executeJavaScript(
-      "document.querySelector('#label')?.textContent || ''"
+    step(
+      "control panel rendered",
+      panel.state === "running" && panel.text.includes(String(backend.port)),
+      `${panel.state}: ${panel.text}`
     );
-    step("overlay card rendered", Boolean(overlayLabel.trim()), overlayLabel);
+    const overlayAction = await overlayWindow.webContents.executeJavaScript(
+      "document.querySelector('#action')?.textContent || ''"
+    );
+    step("overlay card rendered", Boolean(overlayAction.trim()), overlayAction);
 
     const recommendation = await fetchOverlayRecommendation();
     step(
