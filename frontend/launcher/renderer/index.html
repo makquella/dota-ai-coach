@@ -105,10 +105,10 @@
             </label>
             <div class="setting">
               <span class="setting-text">
-                <span class="setting-title" data-i18n="overlayPosition">Position</span>
+                <span class="setting-title" id="position-title" data-i18n="overlayPosition">Position</span>
                 <span class="setting-hint" id="position-hint" data-i18n="positionHint">Away from the minimap and the hero panel</span>
               </span>
-              <div class="segmented" role="radiogroup" id="position-group">
+              <div class="segmented" role="radiogroup" id="position-group" aria-labelledby="position-title">
                 <button type="button" role="radio" data-position="left-center"><i data-icon="panel-left"></i><span data-i18n="posLeft">Left</span></button>
                 <button type="button" role="radio" data-position="right-center"><i data-icon="panel-right"></i><span data-i18n="posRight">Right</span></button>
                 <button type="button" role="radio" data-position="bottom-center"><i data-icon="panel-bottom"></i><span data-i18n="posBottom">Bottom</span></button>
@@ -212,9 +212,9 @@
 
           <section class="dev-section">
             <div class="row row-between">
-              <h3 data-i18n="groupLogs">Logs</h3>
+              <h3 id="logs-title" data-i18n="groupLogs">Logs</h3>
               <div class="row">
-                <div class="segmented segmented-sm" role="radiogroup">
+                <div class="segmented segmented-sm" role="radiogroup" aria-labelledby="logs-title">
                   <button id="log-clean" type="button" role="radio" data-i18n="logClean">Clean</button>
                   <button id="log-verbose" type="button" role="radio" data-i18n="logVerbose">Verbose</button>
                 </div>
