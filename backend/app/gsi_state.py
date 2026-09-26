@@ -8,7 +8,7 @@ import json
 from datetime import UTC, datetime
 from typing import Any
 
-from app.advice_context import build_advice_context
+from app.advice_context import MAP_CENTER, build_advice_context
 from app.config import GSI_DEBUG_LOG, GSI_DEBUG_SAMPLES_DIR
 from app.hero_profiles import evaluate_laning_context
 from app.hero_safety import evaluate_hero_safety
@@ -308,6 +308,13 @@ def normalize_gsi_payload(
     return state
 
 
+def _map_coordinate(value: Any) -> float | int | None:
+    """Live GSI reports world coordinates (map centre 0, about ±8000); the replay-derived
+    states and advice_context.py use the replay's absolute ones (centre MAP_CENTER)."""
+    number = _optional_number(value)
+    return None if number is None else number + MAP_CENTER
+
+
 def _dict_value(value: Any) -> dict[str, Any]:
     return value if isinstance(value, dict) else {}
 
@@ -369,8 +376,8 @@ def _normalize_extra_context(
         "max_health": _optional_int(hero_block.get("max_health")),
         "alive": _optional_bool(hero_block.get("alive")),
         "respawn_seconds": _optional_int(hero_block.get("respawn_seconds")),
-        "xpos": _optional_number(hero_block.get("xpos")),
-        "ypos": _optional_number(hero_block.get("ypos")),
+        "xpos": _map_coordinate(hero_block.get("xpos")),
+        "ypos": _map_coordinate(hero_block.get("ypos")),
         "stunned": _optional_bool(hero_block.get("stunned")) or False,
         "silenced": _optional_bool(hero_block.get("silenced")) or False,
         "hexed": _optional_bool(hero_block.get("hexed")) or False,
