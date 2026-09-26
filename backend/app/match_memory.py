@@ -14,6 +14,8 @@ from collections.abc import Mapping
 from datetime import UTC, datetime
 from typing import Any
 
+from app.farm_tracker import FarmTracker
+
 DEATH_DECISION_POINTS = {
     "DEATH_REVIEW",
     "REPEATED_DEATH_PATTERN",
@@ -79,6 +81,7 @@ class MatchMemory:
         self.updated_at = now
         self._local_session_seed: str | None = None
         self._last_player_deaths: int | None = None
+        self.farm = FarmTracker()
 
     def observe_state(self, state: dict[str, Any]) -> dict[str, Any]:
         now_dt = datetime.now(UTC)
@@ -133,6 +136,12 @@ class MatchMemory:
 
         self._annotate_recent_damage(state, now_ts)
         self._last_player_deaths = current_deaths
+        self.farm.observe(
+            _game_clock(state),
+            _ctx_int_or_none(state, "last_hits"),
+            current_alive,
+            paused=_ctx_bool(state, "paused"),
+        )
         self.last_states.append(_copy_state(state))
         self._annotate_state(state)
         return state
@@ -303,6 +312,7 @@ class MatchMemory:
                 "death_review_available": bool(self.death_events),
                 "last_death_event_id": self.death_events[-1]["id"] if self.death_events else None,
                 "death_review_decision": self.death_review_decision(),
+                "farm_stall": self.farm.stall(),
             }
         )
 
@@ -342,6 +352,13 @@ class MatchMemory:
             raw = f"{hero}|{now}|{game_time}"
             self._local_session_seed = hashlib.sha1(raw.encode("utf-8")).hexdigest()[:12]
         return f"local_{self._local_session_seed}"
+
+
+def _game_clock(state: Mapping[str, Any]) -> int | None:
+    clock = _ctx_int_or_none(state, "clock_time")
+    if clock is None:
+        clock = _ctx_int_or_none(state, "game_time")
+    return clock
 
 
 def _death_context(patterns: list[str]) -> str:

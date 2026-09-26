@@ -53,7 +53,43 @@ jobs:
           cache-dependency-path: frontend/launcher/package-lock.json
 
       - name: Build backend exe, Electron app and NSIS installer
+        # Signing secrets are optional: without them the release is unsigned
+        # (see docs/PACKAGING_WINDOWS.md, "Code signing").
+        env:
+          CSC_LINK: ${{ secrets.CSC_LINK }}
+          CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
+          AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+          AZURE_SIGNING_ENDPOINT: ${{ secrets.AZURE_SIGNING_ENDPOINT }}
+          AZURE_SIGNING_ACCOUNT: ${{ secrets.AZURE_SIGNING_ACCOUNT }}
+          AZURE_SIGNING_PROFILE: ${{ secrets.AZURE_SIGNING_PROFILE }}
+          SIGN_PUBLISHER_NAME: ${{ secrets.SIGN_PUBLISHER_NAME }}
         run: ./scripts/build-windows.ps1
+
+      - name: Check code signatures
+        env:
+          SIGNING_CONFIGURED: ${{ secrets.CSC_LINK != '' || secrets.AZURE_SIGNING_ENDPOINT != '' }}
+        run: |
+          $version = $env:TAG.Substring(1)
+          $dist = "frontend/launcher/dist"
+          $files = @(
+            "$dist/DotaAICoach-Setup-$version.exe",
+            "$dist/win-unpacked/DotaAICoach.exe",
+            "$dist/win-unpacked/resources/backend/dota-ai-coach-backend.exe"
+          )
+          $unsigned = @()
+          foreach ($file in $files) {
+            $signature = Get-AuthenticodeSignature $file
+            Write-Host "$file : $($signature.Status) $($signature.SignerCertificate.Subject)"
+            if ($signature.Status -ne "Valid") { $unsigned += $file }
+          }
+          if ($env:SIGNING_CONFIGURED -eq "true" -and $unsigned) {
+            throw "Signing is configured but these files are not validly signed: $($unsigned -join ', ')"
+          }
+          if ($unsigned) {
+            Write-Host "::warning::The release is not code-signed: Windows SmartScreen will warn on install."
+          }
 
       - name: Smoke test (backend /health, app, installer)
         run: ./scripts/smoke-windows.ps1

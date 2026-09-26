@@ -207,9 +207,37 @@ Check `[update]` lines in `%APPDATA%\DotaAICoach\logs\launcher.log` and the **Up
 
 **Start with Windows** is available only in the installed/unpacked build (not `npm run dev`). It registers `DotaAICoach.exe --hidden`, which starts the app straight into the tray.
 
+## Code Signing
+
+Unsigned installers work, but Windows SmartScreen shows "Windows protected your PC" on the first install (the user clicks **More info → Run anyway**) and some antiviruses are more suspicious of unsigned executables. Signing is wired into the build and turns on as soon as its secrets exist; without them the build and the release stay unsigned.
+
+When signing is configured, electron-builder signs `DotaAICoach.exe`, the bundled `resources\backend\dota-ai-coach-backend.exe` and the installer; `release.yml` then checks all three with `Get-AuthenticodeSignature` and fails the release if any of them is not validly signed. Without signing it only prints a warning.
+
+Since 2023 code signing keys must live on hardware (token or cloud HSM), so a certificate can no longer be exported to a `.pfx` for CI. The practical options:
+
+| Option | Cost | Who can use it | In this pipeline |
+|---|---|---|---|
+| **SignPath Foundation** | free | open source projects: OSI licence (this repo is MIT), public repository, an already published release, maintained project; the publisher shown by Windows is "SignPath Foundation" | apply at signpath.org after the first release; needs a follow-up change to `release.yml` (SignPath's GitHub action signs the unpacked app and the installer, then `latest.yml` is regenerated for the signed installer) |
+| **Azure Artifact Signing** (formerly Trusted Signing) | from $9.99/month, paid Azure subscription | organisations in the US, Canada, EU, UK and some other countries; **individual developers only in the US and Canada** | supported now: set the secrets below |
+| Certificate from a CA (OV/EV) on a cloud HSM | roughly $100–400/year | anyone who passes the CA's identity check | via `CSC_LINK` only if the provider can hand a signing certificate to signtool in CI; most cloud HSMs need their own signing tool instead |
+
+Azure Artifact Signing secrets (repository **Settings → Secrets and variables → Actions**):
+
+| Secret | Value |
+|---|---|
+| `AZURE_TENANT_ID`, `AZURE_CLIENT_ID`, `AZURE_CLIENT_SECRET` | an Entra ID app registration with the *Artifact Signing Certificate Profile Signer* role on the signing account |
+| `AZURE_SIGNING_ENDPOINT` | the account's regional endpoint, e.g. `https://weu.codesigning.azure.net` |
+| `AZURE_SIGNING_ACCOUNT` | the Artifact Signing account name |
+| `AZURE_SIGNING_PROFILE` | the certificate profile name |
+| `SIGN_PUBLISHER_NAME` | the publisher name exactly as in the certificate (electron-updater also checks updates against it) |
+
+Certificate alternative: `CSC_LINK` (base64 or URL of a `.pfx`) and `CSC_KEY_PASSWORD`, used by electron-builder's signtool path.
+
+Once a release is signed, installed apps check the publisher of every update against `SIGN_PUBLISHER_NAME`; keep it stable between releases.
+
 ## Known Limitations
 
-- No code signing: SmartScreen may warn on the first install; updates are verified by checksum only.
+- Releases are unsigned until signing secrets are configured (see [Code Signing](#code-signing)): SmartScreen may warn on the first install; updates are verified by checksum only.
 - The optional portable exe (`-Portable`) unpacks itself on every start and is slower to launch than the installed app.
 - Optional LLM runtime is not bundled; the packaged app forces `USE_LLM=false`.
 - Replay demo presets use bundled GSI-like replay states, not live Dota 2.

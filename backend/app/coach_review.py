@@ -138,6 +138,27 @@ def match_facts(detail: dict[str, Any]) -> dict[str, Any] | None:
     build = analysis.get("build")
     if build:
         facts["build"] = _build_facts(build)
+    draft = analysis.get("draft")
+    if draft:
+        facts["draft"] = {
+            "your_hero_winrate_vs_enemy": {
+                row["hero"]: f"{row['winrate']}%"
+                for row in draft.get("enemies") or []
+                if row.get("winrate")
+            },
+            "your_heroes_edge_vs_this_lineup": {
+                row["hero"]: f"{row['edge']:+}%" for row in draft.get("pool") or []
+            },
+            "counter_items": [
+                {
+                    "enemy": ", ".join(c["heroes"]),
+                    "answer": ", ".join(c["items"]),
+                    "bought": ", ".join(c["bought"]) or "none",
+                }
+                for c in draft.get("counters") or []
+                if c.get("for_role")
+            ],
+        }
     scoreboard = detail.get("scoreboard")
     if scoreboard:
         mine = next((row for row in scoreboard if row.get("me")), None)
@@ -180,6 +201,17 @@ def career_facts(career: dict[str, Any], recent: list[dict[str, Any]]) -> dict[s
         ],
         "recent_matches": recent[:10],
     }
+    compare = career.get("self_compare")
+    if compare:
+        facts["your_best_vs_worst_games"] = {
+            "hero": compare["hero"],
+            "best": compare["best"],
+            "worst": compare["worst"],
+            "first_big_item": compare.get("first_items"),
+            "metrics": {
+                row["key"]: {"best": row["best"], "worst": row["worst"]} for row in compare["rows"]
+            },
+        }
     rank = career.get("rank")
     if rank:
         facts["rank"] = rank.get("rank_label")
@@ -389,7 +421,7 @@ class FactChecker:
 # --- helpers ------------------------------------------------------------------------
 
 
-TIME_RE = re.compile(r"(?<![\d:])\d{1,2}:\d{2}(?![\d:])")
+TIME_RE = re.compile(r"(?<![\d:])\d{1,2}:\d{2}(?!\d|:\d)")
 THOUSANDS_RE = re.compile(r"(\d+(?:\.\d+)?)\s*(?:k|тыс\.?)(?!\w)", re.IGNORECASE)
 
 

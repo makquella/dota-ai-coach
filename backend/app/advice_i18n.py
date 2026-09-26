@@ -136,6 +136,15 @@ _RU_EXACT: dict[str, str] = {
     "Only consider the objective if your team is already grouped nearby.": (
         "Идите к цели, только если команда уже собралась рядом."
     ),
+    "Go back to farming: take the nearest safe wave or camp now.": (
+        "Вернитесь к фарму: заберите ближайшую безопасную волну или лагерь."
+    ),
+    "You have taken almost no last hits lately; every minute without farm delays your next item.": (
+        "В последнее время почти нет добиваний: каждая минута без фарма отодвигает следующий предмет."
+    ),
+    "Medium risk if you keep walking around without farming.": (
+        "Средний риск, если продолжать ходить по карте без фарма."
+    ),
     "Recover farm through the safest wave-and-camp route.": (
         "Навёрстывайте фарм по самому безопасному маршруту из волн и лагерей."
     ),
@@ -425,6 +434,21 @@ _RU_PATTERNS: tuple[tuple[re.Pattern[str], str], ...] = (
     (
         re.compile(r"^(?P<name>.+) is unavailable, so your hero is easier to punish\.$"),
         "Без {name} вашего героя легче наказать.",
+    ),
+    (
+        re.compile(
+            r"^Only (?P<lh>\d+) last hits? in the last (?P<m>\d+) minutes; "
+            r"every minute without farm delays your next item\.$"
+        ),
+        "Добиваний за последние {m} мин: {lh}. Каждая минута без фарма отодвигает следующий предмет.",
+    ),
+    (
+        re.compile(
+            r"^You have (?P<lh>\d+) last hits at minute (?P<m>\d+); a good pace is (?P<low>\d+)\+, "
+            r"so rebuild farm before forcing fights\.$"
+        ),
+        "Добиваний к {m}-й минуте: {lh}, хороший темп — {low}+. "
+        "Сначала восстановите фарм, потом ищите драки.",
     ),
     (
         re.compile(r"^Low mana reduces (?P<name>.+)'s effective survivability\.$"),

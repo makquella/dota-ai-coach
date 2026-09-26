@@ -17,12 +17,15 @@ from typing import Any
 from app.analysis_texts import FINDINGS, PEER_ROLES, rank_label, render_finding
 from app.hero_meta import bracket_winrate, rank_bracket
 from app.peer_analysis import career_peers
+from app.self_compare import compare_best_worst
 
 TREND_WINDOW = 10
 RECURRING_MIN_SHARE = 0.25
 RECURRING_MIN_COUNT = 2
 # For these metrics a lower value is better.
 LOWER_IS_BETTER = {"deaths"}
+# Advice that depends on one match's enemy lineup, not a habit to train.
+NOT_RECURRING = {"draft_better_pick"}
 
 
 def _avg(values: list[Any]) -> float | None:
@@ -78,6 +81,7 @@ def analyze_career(
         "focus_plan": [item for item in _recurring(analyzed, "improve", lang) if item.get("drill")][
             :3
         ],
+        "self_compare": compare_best_worst(matches, lang),
         "series": _series(matches),
         "best_match": _best(matches),
     }
@@ -179,7 +183,12 @@ def _recurring(analyzed: list[dict[str, Any]], kind: str, lang: str) -> list[dic
     result = []
     for finding_id, count in counts.most_common():
         share = count / total
-        if count < RECURRING_MIN_COUNT or share < RECURRING_MIN_SHARE or finding_id not in FINDINGS:
+        if (
+            count < RECURRING_MIN_COUNT
+            or share < RECURRING_MIN_SHARE
+            or finding_id not in FINDINGS
+            or finding_id in NOT_RECURRING
+        ):
             continue
         rendered = render_finding(latest[finding_id], lang)
         result.append(

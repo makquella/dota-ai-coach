@@ -54,6 +54,7 @@ def build_post_laning_advice(
     death_context = _death_context(state, extra)
     objective_missing = objective_context_is_missing(extra)
     clear_context = _clear_pressure_context(state, extra)
+    farm_stall = extra.get("farm_stall") if isinstance(extra.get("farm_stall"), Mapping) else None
 
     category = _category_for_state(
         decision_point=decision_point,
@@ -64,11 +65,16 @@ def build_post_laning_advice(
         position_risk=position_risk,
         position_zone=position_zone,
         death_context=death_context,
+        farm_stall=farm_stall is not None,
     )
     if category is None:
         return None
 
     action, reason, risk = _copy_for_category(category, objective_missing)
+    if category == "post_laning_farm_stall" and farm_stall:
+        reason = _farm_stall_reason(farm_stall)
+    elif category == "post_laning_farm_recovery":
+        reason = _farm_pace_reason(state, extra) or reason
     repeat_key = ":".join(
         [
             category,
@@ -164,6 +170,7 @@ def _category_for_state(
     position_risk: str,
     position_zone: str,
     death_context: bool,
+    farm_stall: bool = False,
 ) -> str | None:
     # Phase 3 fix: death_route_reset is gated by the factual death_context (derived
     # from GSI state: alive/respawn_seconds/near_player_death/death_count_changed),
@@ -185,6 +192,11 @@ def _category_for_state(
 
     if position_risk == "high" or position_zone == "deep_enemy_side":
         return "post_laning_risky_showing"
+
+    # Almost no last hits for minutes while alive (farm_tracker.py): get back
+    # to farming. Under pressure the safety-first pressure advice wins.
+    if farm_stall and not pressure_active:
+        return "post_laning_farm_stall"
 
     farm_low = farm_quality in {"very_low", "low"}
     if farm_low and pressure_active:
@@ -217,6 +229,12 @@ def _copy_for_category(category: str, objective_missing: bool) -> tuple[str, str
             "You are behind on farm, so forcing fights before stabilizing can delay your next timing.",
             "Medium risk if you chase fights before rebuilding farm pace.",
         )
+    if category == "post_laning_farm_stall":
+        return (
+            "Go back to farming: take the nearest safe wave or camp now.",
+            "You have taken almost no last hits lately; every minute without farm delays your next item.",
+            "Medium risk if you keep walking around without farming.",
+        )
     if category == "post_laning_pressure_avoidance":
         return (
             "Avoid the pressured lane and farm a safer wave or nearby camp.",
@@ -244,6 +262,29 @@ def _copy_for_category(category: str, objective_missing: bool) -> tuple[str, str
         "Keep farming the safest wave-and-camp route and reassess soon.",
         "Your farm pace is stable now, so keep using safe routes instead of forcing uncertain fights.",
         "Low risk if you keep farming without showing in exposed areas.",
+    )
+
+
+def _farm_stall_reason(stall: Mapping[str, Any]) -> str:
+    last_hits = _to_int(stall.get("last_hits"), 0)
+    minutes = max(1, _to_int(stall.get("minutes"), 4))
+    noun = "last hit" if last_hits == 1 else "last hits"
+    return (
+        f"Only {last_hits} {noun} in the last {minutes} minutes; "
+        "every minute without farm delays your next item."
+    )
+
+
+def _farm_pace_reason(state: Mapping[str, Any], extra: Mapping[str, Any]) -> str | None:
+    """ "You have 38 last hits at minute 14; a good pace is 64+" when the numbers are known."""
+    expected = extra.get("expected_lh_range")
+    last_hits = extra.get("last_hits", state.get("last_hits"))
+    minute = _to_int(state.get("minute"), 0)
+    if not isinstance(expected, (list, tuple)) or not expected or last_hits is None or minute <= 0:
+        return None
+    return (
+        f"You have {_to_int(last_hits, 0)} last hits at minute {minute}; "
+        f"a good pace is {_to_int(expected[0], 0)}+, so rebuild farm before forcing fights."
     )
 
 
