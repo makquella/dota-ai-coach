@@ -43,6 +43,7 @@ node --check frontend/launcher/renderer/app.js
 node --check frontend/launcher/renderer/charts.js
 node --check frontend/launcher/renderer/matches.js
 node --check frontend/launcher/overlay/app.js
+node --check frontend/launcher/overlay/voice.js
 node --check frontend/launcher/assets/icons/lucide.js
 (cd frontend/launcher && npm test)   # node --test, no dependencies
 ```

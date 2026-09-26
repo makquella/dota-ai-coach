@@ -80,7 +80,7 @@ Default `USE_LLM=false`. LLM providers only reword advice or run offline review.
 
 ## Frontend tooling
 
-No lint/typecheck. Verification is `node --check` on these sixteen files (CI runs exactly this; `npm run check` in `frontend/launcher/` does the same) plus dependency-free unit tests for the Electron-free modules (`npm test` = `node --test test/*.test.js`, also in CI):
+No lint/typecheck. Verification is `node --check` on these seventeen files (CI runs exactly this; `npm run check` in `frontend/launcher/` does the same) plus dependency-free unit tests for the Electron-free modules (`npm test` = `node --test test/*.test.js`, also in CI):
 ```bash
 node --check frontend/launcher/main.js
 node --check frontend/launcher/preload.js
@@ -97,6 +97,7 @@ node --check frontend/launcher/renderer/app.js
 node --check frontend/launcher/renderer/charts.js
 node --check frontend/launcher/renderer/matches.js
 node --check frontend/launcher/overlay/app.js
+node --check frontend/launcher/overlay/voice.js
 node --check frontend/launcher/assets/icons/lucide.js
 ```
 Dev: `npm install && npm run dev` inside `frontend/launcher/`. On Wayland/GNOME use `npm run dev:x11` for the overlay to stay always-on-top. Electron is pinned at 42.4.0.
@@ -178,6 +179,9 @@ One Electron app, **`frontend/launcher/`** (product name "Dota AI Coach", exe `D
 - `renderer/` + `preload.js` — control panel window: one status line with a single action (e.g. «Дота не найдена» → «Указать папку Доты»), three cards (current match, recent advice from backend `GET /advice/recent`, overlay settings: on/off, position preset, move by hand, autostart) plus a collapsed «For developers» section with every other tool (backend, GSI config, live GSI, recordings, replay demos, Deep Review, logs). Texts live in the `I18N` table in `renderer/app.js` (ru/en by system locale, sent by main as `status.locale`); keep both languages in sync when adding strings.
 - Look: calm, neutral dark UI (no game theming, no neon, glow, gradients, glassmorphism or emoji). Design tokens live in `assets/ui/tokens.css` (colours, type scale 12/13/14/16/20/28, weights 400/500/600, 4px spacing, radii 6–10px, 120–180ms ease-out motion) and are shared by both windows — add tokens there instead of hard-coding values. One accent (`--accent`) for the primary action and active state only; `--ok/--warn/--error` only as small status dots. Font: Inter, bundled in `assets/fonts/` (OFL, no CDN — the app must work offline); numbers/timers use `tabular-nums`. Icons: Lucide subset vendored in `assets/icons/lucide.js` (`<i data-icon="name">` + `LucideIcons.hydrate()`); add an icon by copying its SVG body from `lucide-static`. Loading states are skeletons (no spinners); every control needs hover, focus-visible and disabled styles. Screenshots: `docs/screenshots/ui-v3/`.
 - `overlay-window.js` + `overlay-preload.js` + `overlay/` — transparent frameless always-on-top window; its renderer asks the main process for `/overlay/recommendation` (1000 ms) and never builds backend URLs. The window exists while the overlay is enabled; `setVisible()` decides whether it is on screen, and the always-on-top timer runs only while shown.
+- `overlay/voice.js` — optional spoken advice (`settings.overlay.voice`: `off | urgent | all`, the «Голос» row on Home): Chromium `speechSynthesis` with the system voices (Windows SAPI, offline), picks a local voice of the UI language, speaks only the action, once per advice; tips keep a 4 s gap and never talk over each other, urgent advice interrupts. It works in exclusive fullscreen, where the card cannot be drawn. Pure rules, tested in `test/voice.test.js`; loaded by the overlay and the control panel (voice check + sample).
+- `problem-report.js` — the «Отчёт о проблеме» row / tray item: one text file in Downloads with launcher status, settings, watcher state, backend `GET /diagnostics` (runtime, flags, GSI, scheduler, player/jobs, the last 50 background errors recorded by `app/diagnostics.py`) and the launcher log tail; every key is redacted (tested).
+- `test/i18n.test.js` cuts the text tables out of `renderer/app.js`, `renderer/matches.js`, `overlay/app.js` and fails when a key is missing in one language or a `data-i18n` key of `index.html` is undefined.
 - `overlay-placement.js` — pure geometry: presets are computed inside Dota's window (`watcher.windowRect`, physical px → `screen.screenToDipRect`), so the card follows Dota to its monitor and stays inside a windowed game; hand-placed positions fall back to a preset when their monitor is gone.
 - `updater.js` — `electron-updater` from GitHub Releases, packaged NSIS build only (never in dev, portable or `--smoke-test`). Downloads in the background; installs on "Restart and update" (tray / Updates row), on quit, or unattended once Dota has been closed for 5 min and the panel is hidden — never while Dota runs. `settings.startHiddenOnce` / `updatedFrom` bring the relaunched app back hidden and show "Updated to x".
 - `overlay-visibility.js` — pure rules: shown only when enabled AND (unlocked for dragging OR replay demo OR (dota2 running AND focused AND backend `/gsi/status` `in_match`)); on platforms without focus tracking it follows the switch. Also the tray status (not found / waiting for game / in game).

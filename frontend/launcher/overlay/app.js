@@ -68,13 +68,18 @@ let config = {
   locked: true,
   autoHideMs: 8000,
   urgentAutoHideMs: 12000,
-  debugVisible: false
+  debugVisible: false,
+  voice: "off",
+  voiceVolume: 1
 };
 let pollTimer = null;
 let hideTimer = null;
 let mutedUntil = 0;
 let lastAdviceKey = "";
 let lastVisibleAdvice = null;
+const speaker = window.OverlayVoice && window.speechSynthesis
+  ? window.OverlayVoice.createSpeaker({ synth: window.speechSynthesis, Utterance: window.SpeechSynthesisUtterance })
+  : null;
 
 init();
 
@@ -87,6 +92,7 @@ async function init() {
   });
   window.overlayApi.onMuted((timestamp) => {
     mutedUntil = Number(timestamp) || 0;
+    speaker?.reset();
     showStatus(tr("muted"));
   });
   window.overlayApi.onToggleDebug((visible) => {
@@ -198,6 +204,18 @@ function renderAdvice(data, options = { refreshTimer: true }) {
   reveal();
 
   lastVisibleAdvice = data;
+  // Spoken once per advice while it is still current (a tip skipped because
+  // another one was being spoken gets its turn on a later poll).
+  if (speaker && data.status === "active_advice") {
+    speaker.say({
+      key,
+      text: recommendation.action,
+      adviceMode,
+      mode: config.voice,
+      locale: config.locale,
+      volume: config.voiceVolume
+    });
+  }
   if (options.refreshTimer && key !== lastAdviceKey) {
     lastAdviceKey = key;
     scheduleAutoHide(adviceMode, data);

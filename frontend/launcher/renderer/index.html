@@ -130,6 +130,20 @@
             </div>
             <div class="setting">
               <span class="setting-text">
+                <span class="setting-title" id="voice-title" data-i18n="voiceTitle">Voice</span>
+                <span class="setting-hint" id="voice-hint"></span>
+              </span>
+              <div class="setting-controls">
+                <div class="segmented" role="radiogroup" id="voice-group" aria-labelledby="voice-title">
+                  <button type="button" role="radio" data-voice="off"><span data-i18n="voiceOff">Off</span></button>
+                  <button type="button" role="radio" data-voice="urgent"><span data-i18n="voiceUrgent">Urgent</span></button>
+                  <button type="button" role="radio" data-voice="all"><span data-i18n="voiceAll">All</span></button>
+                </div>
+                <button id="voice-test" class="btn btn-icon" type="button" data-i18n-title="voiceTest" title="Listen"><i data-icon="volume-2"></i></button>
+              </div>
+            </div>
+            <div class="setting">
+              <span class="setting-text">
                 <span class="setting-title" data-i18n="overlayMove">Move by hand</span>
                 <span class="setting-hint" id="move-hint" data-i18n="moveHint">Shows the card so you can drag it anywhere</span>
               </span>
@@ -274,6 +288,7 @@
       </div>
     </main>
     <script src="../assets/icons/lucide.js"></script>
+    <script src="../overlay/voice.js"></script>
     <script src="./charts.js"></script>
     <script src="./app.js"></script>
     <script src="./matches.js"></script>

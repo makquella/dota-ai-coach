@@ -10,11 +10,11 @@
     "dev": "electron .",
     "dev:x11": "ELECTRON_ENABLE_WAYLAND=0 ELECTRON_OZONE_PLATFORM_HINT=x11 electron . --ozone-platform=x11",
     "start": "electron .",
-    "check": "node --check main.js && node --check preload.js && node --check settings.js && node --check overlay-window.js && node --check overlay-placement.js && node --check overlay-preload.js && node --check overlay-visibility.js && node --check dota-watcher.js && node --check steam-locator.js && node --check updater.js && node --check problem-report.js && node --check renderer/app.js && node --check renderer/charts.js && node --check renderer/matches.js && node --check overlay/app.js && node --check assets/icons/lucide.js",
+    "check": "node --check main.js && node --check preload.js && node --check settings.js && node --check overlay-window.js && node --check overlay-placement.js && node --check overlay-preload.js && node --check overlay-visibility.js && node --check dota-watcher.js && node --check steam-locator.js && node --check updater.js && node --check problem-report.js && node --check renderer/app.js && node --check renderer/charts.js && node --check renderer/matches.js && node --check overlay/app.js && node --check overlay/voice.js && node --check assets/icons/lucide.js",
     "pack": "electron-builder --dir --publish never",
     "dist": "electron-builder --win nsis --publish never",
     "dist:portable": "electron-builder --win portable --publish never",
-    "test": "node --test test/steam-locator.test.js test/overlay-visibility.test.js test/overlay-placement.test.js test/dota-watcher.test.js test/updater.test.js test/problem-report.test.js"
+    "test": "node --test test/steam-locator.test.js test/overlay-visibility.test.js test/overlay-placement.test.js test/dota-watcher.test.js test/updater.test.js test/problem-report.test.js test/voice.test.js test/i18n.test.js"
   },
   "devDependencies": {
     "electron": "42.4.0",

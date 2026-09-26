@@ -22,8 +22,12 @@ const OVERLAY_DEFAULTS = {
   debugVisible: false,
   opacity: 1,
   autoHideMs: 8000,
-  urgentAutoHideMs: 12000
+  urgentAutoHideMs: 12000,
+  // Spoken advice: "off" | "urgent" | "all" (overlay/voice.js).
+  voice: "off",
+  voiceVolume: 1
 };
+const VOICE_MODES = ["off", "urgent", "all"];
 
 // The window exists while the overlay is enabled; whether it is on screen is
 // decided separately (setVisible) from Dota focus + fresh GSI, see
@@ -324,6 +328,27 @@ function createOverlayController({
     onChange();
   }
 
+  function setVoice(mode, volume) {
+    const patch = {};
+    if (VOICE_MODES.includes(mode)) {
+      patch.voice = mode;
+    }
+    if (Number.isFinite(Number(volume)) && volume !== undefined && volume !== null) {
+      patch.voiceVolume = Math.min(1, Math.max(0, Number(volume)));
+    }
+    updateConfig(patch);
+    send("overlay-config-updated", publicConfig());
+    onChange();
+  }
+
+  function voice() {
+    const current = config();
+    return {
+      mode: VOICE_MODES.includes(current.voice) ? current.voice : "off",
+      volume: Number.isFinite(Number(current.voiceVolume)) ? Number(current.voiceVolume) : 1
+    };
+  }
+
   function position() {
     return normalizePreset(config().positionPreset || OVERLAY_DEFAULTS.positionPreset);
   }
@@ -408,7 +433,9 @@ function createOverlayController({
       debugVisible: current.debugVisible,
       opacity: current.opacity,
       autoHideMs: current.autoHideMs,
-      urgentAutoHideMs: current.urgentAutoHideMs
+      urgentAutoHideMs: current.urgentAutoHideMs,
+      voice: voice().mode,
+      voiceVolume: voice().volume
     };
   }
 
@@ -433,6 +460,8 @@ function createOverlayController({
     setVisible,
     setPosition,
     position,
+    setVoice,
+    voice,
     refreshPlacement,
     setLocked,
     window: () => (isOpen() ? overlayWindow : null),

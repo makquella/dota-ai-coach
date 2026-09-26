@@ -218,7 +218,7 @@ const TRAY_TEXT = {
     restartDota: "Restart Dota 2 to connect.",
     fullscreenMenu: "Overlay hidden by exclusive fullscreen",
     fullscreenBalloon:
-      "Dota runs in exclusive fullscreen, so the overlay cannot be drawn over it. In Dota: Settings → Video → Display mode → Borderless window.",
+      "Dota runs in exclusive fullscreen, so the overlay cannot be drawn over it. In Dota: Settings → Video → Display mode → Borderless window. Or turn on spoken advice in the app.",
     updateDownloading: (version, percent) => `Downloading update ${version}… ${percent}%`,
     updateReady: (version) => `Restart and update to ${version}`,
     updateAfterGame: (version) => `Update ${version} installs after you close Dota`,
@@ -240,7 +240,7 @@ const TRAY_TEXT = {
     restartDota: "Перезапустите Dota 2.",
     fullscreenMenu: "Оверлей не виден: полноэкранный режим",
     fullscreenBalloon:
-      "Дота запущена в эксклюзивном полноэкранном режиме — поверх него оверлей не рисуется. В Доте: Настройки → Видео → режим экрана «Окно без рамки» (Borderless window).",
+      "Дота запущена в эксклюзивном полноэкранном режиме — поверх него оверлей не рисуется. В Доте: Настройки → Видео → режим экрана «Окно без рамки» (Borderless window). Или включите озвучку советов в приложении.",
     updateDownloading: (version, percent) => `Загружается обновление ${version}… ${percent}%`,
     updateReady: (version) => `Перезапустить и обновить до ${version}`,
     updateAfterGame: (version) => `Обновление ${version} установится после выхода из Доты`,
@@ -373,6 +373,7 @@ function publicStatus() {
     live: { ...live.details },
     recentAdvice: live.recentAdvice,
     overlayPosition: overlay.position(),
+    overlayVoice: overlay.voice(),
     overlayLocked: !overlay.isUnlocked(),
     dotaRunning: dota.running,
     dotaFocused: dota.focused,
@@ -1730,6 +1731,10 @@ function registerIpc() {
   ipcMain.handle("launcher:choose-dota-folder", () => chooseDotaFolderAndInstall());
   ipcMain.handle("launcher:set-overlay-position", (_event, preset) => {
     overlay.setPosition(String(preset || ""));
+    return publicStatus();
+  });
+  ipcMain.handle("launcher:set-overlay-voice", (_event, mode, volume) => {
+    overlay.setVoice(String(mode || ""), volume);
     return publicStatus();
   });
   ipcMain.handle("launcher:set-overlay-locked", (_event, locked) => {

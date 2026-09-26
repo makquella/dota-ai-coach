@@ -34,7 +34,7 @@ const I18N = {
       demoHint: "The overlay shows advice from a recorded match.",
       fullscreenTitle: "The overlay is hidden by fullscreen",
       fullscreenHint:
-        "Dota runs in exclusive fullscreen, where no window can be drawn on top. In Dota: Settings → Video → Display mode → Borderless window."
+        "Dota runs in exclusive fullscreen, where no window can be drawn on top. In Dota: Settings → Video → Display mode → Borderless window. Or turn on the voice below: it is heard in any mode."
     },
     actions: {
       start: "Start service",
@@ -75,6 +75,18 @@ const I18N = {
     posLeft: "Left",
     posRight: "Right",
     posBottom: "Bottom",
+    voiceTitle: "Voice",
+    voiceOff: "Off",
+    voiceUrgent: "Urgent",
+    voiceAll: "All",
+    voiceTest: "Listen",
+    voiceHint: {
+      off: "Advice is only shown, not spoken",
+      urgent: "Speaks urgent advice; heard even in exclusive fullscreen",
+      all: "Speaks every piece of advice; heard even in exclusive fullscreen"
+    },
+    voiceNoVoice: "No English voice in the system: Windows Settings → Time & language → Speech",
+    voiceSample: "Back off: the enemy is missing from the map.",
     overlayMove: "Move by hand",
     moveHint: "Shows the card so you can drag it anywhere",
     moveActiveHint: "Drag the card, then press Done",
@@ -199,7 +211,7 @@ const I18N = {
       demoHint: "Оверлей показывает подсказки из записанного матча.",
       fullscreenTitle: "Оверлей не виден из-за полноэкранного режима",
       fullscreenHint:
-        "Дота запущена в эксклюзивном полноэкранном режиме — поверх него окна не рисуются. В Доте: Настройки → Видео → режим экрана «Окно без рамки» (Borderless window)."
+        "Дота запущена в эксклюзивном полноэкранном режиме — поверх него окна не рисуются. В Доте: Настройки → Видео → режим экрана «Окно без рамки» (Borderless window). Или включите голос ниже — его слышно в любом режиме."
     },
     actions: {
       start: "Запустить сервис",
@@ -240,6 +252,18 @@ const I18N = {
     posLeft: "Слева",
     posRight: "Справа",
     posBottom: "Снизу",
+    voiceTitle: "Голос",
+    voiceOff: "Выкл",
+    voiceUrgent: "Срочные",
+    voiceAll: "Все",
+    voiceTest: "Прослушать",
+    voiceHint: {
+      off: "Советы только на экране, без озвучки",
+      urgent: "Озвучивает срочные советы; слышно даже в полноэкранном режиме",
+      all: "Озвучивает все советы; слышно даже в полноэкранном режиме"
+    },
+    voiceNoVoice: "В Windows нет русского голоса: Параметры → Время и язык → Речь → Добавить голоса",
+    voiceSample: "Отходите: противника не видно на карте.",
     overlayMove: "Переместить вручную",
     moveHint: "Покажет карточку, чтобы её можно было перетащить",
     moveActiveHint: "Перетащите карточку и нажмите «Готово»",
@@ -358,6 +382,9 @@ const els = {
   overlayHint: $("#overlay-hint"),
   positionButtons: [...document.querySelectorAll("#position-group [data-position]")],
   positionHint: $("#position-hint"),
+  voiceButtons: [...document.querySelectorAll("#voice-group [data-voice]")],
+  voiceHint: $("#voice-hint"),
+  voiceTest: $("#voice-test"),
   moveToggle: $("#move-toggle"),
   moveLabel: $("#move-label"),
   moveHint: $("#move-hint"),
@@ -410,6 +437,8 @@ let locale = "en";
 let textsLocale = "";
 let gsiEndpoint = "";
 let statusAction = null;
+let lastVoice = { mode: "off", volume: 1 };
+let voiceListChecked = false;
 const seenAdvice = new Set();
 
 init();
@@ -500,6 +529,13 @@ async function init() {
       run(async () => renderStatus(await window.launcherApi.setOverlayPosition(button.dataset.position)))
     );
   }
+  for (const button of els.voiceButtons) {
+    button.addEventListener("click", () =>
+      run(async () => renderStatus(await window.launcherApi.setOverlayVoice(button.dataset.voice)))
+    );
+  }
+  els.voiceTest.addEventListener("click", () => run(testVoice));
+  window.speechSynthesis?.addEventListener?.("voiceschanged", () => renderVoiceHint(lastVoice));
   els.moveToggle.addEventListener("click", () =>
     run(async () => {
       // Pressed = the card is unlocked for dragging; pressing again locks it.
@@ -883,6 +919,14 @@ function renderOverlaySettings(status) {
   }
   els.positionHint.textContent = position === "custom" ? tr("positionCustom") : tr("positionHint");
 
+  lastVoice = status.overlayVoice || { mode: "off", volume: 1 };
+  for (const button of els.voiceButtons) {
+    button.setAttribute("aria-checked", String(button.dataset.voice === lastVoice.mode));
+    button.disabled = !enabled;
+  }
+  els.voiceTest.disabled = !enabled;
+  renderVoiceHint(lastVoice);
+
   const moving = status.overlayLocked === false;
   els.moveToggle.setAttribute("aria-pressed", String(moving));
   els.moveToggle.disabled = !enabled;
@@ -898,6 +942,48 @@ function renderOverlaySettings(status) {
       : tr("autostartOff");
 
   renderUpdate(status);
+}
+
+// The overlay speaks with the system voices; the panel only checks that one
+// exists for the UI language and plays a sample.
+function systemVoice() {
+  return window.OverlayVoice && window.speechSynthesis
+    ? window.OverlayVoice.pickVoice(window.speechSynthesis.getVoices(), locale)
+    : null;
+}
+
+function renderVoiceHint(voice) {
+  const mode = voice?.mode || "off";
+  const found = systemVoice();
+  if (mode !== "off" && !found && voiceListLoaded()) {
+    els.voiceHint.textContent = tr("voiceNoVoice");
+    return;
+  }
+  els.voiceHint.textContent = [tr(`voiceHint.${mode}`), mode !== "off" && found ? found.name : ""]
+    .filter(Boolean)
+    .join(" · ");
+}
+
+// Chromium fills the voice list asynchronously: an empty list right after
+// start does not yet mean there are no voices.
+function voiceListLoaded() {
+  return (window.speechSynthesis?.getVoices() || []).length > 0 || voiceListChecked;
+}
+
+function testVoice() {
+  const voice = systemVoice();
+  if (!voice) {
+    voiceListChecked = true;
+    els.voiceHint.textContent = tr("voiceNoVoice");
+    return;
+  }
+  const utterance = new window.SpeechSynthesisUtterance(tr("voiceSample"));
+  utterance.voice = voice;
+  utterance.lang = voice.lang;
+  utterance.volume = Number(lastVoice.volume ?? 1);
+  utterance.rate = 1.05;
+  window.speechSynthesis.cancel();
+  window.speechSynthesis.speak(utterance);
 }
 
 function renderUpdate(status) {

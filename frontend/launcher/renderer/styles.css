@@ -380,6 +380,17 @@ label.setting {
   font-size: var(--fs-12);
 }
 
+.setting-controls {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: var(--sp-2);
+}
+
+.setting-controls .btn-icon {
+  width: 32px;
+}
+
 /* Controls ----------------------------------------------------------------- */
 
 .btn {
