@@ -3,7 +3,6 @@ main.py — FastAPI application entry point for Dota AI Coach (MVP-1).
 """
 
 from datetime import UTC, datetime, timedelta
-from pathlib import Path
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -13,7 +12,13 @@ from pydantic import ValidationError
 
 from app.advice_scheduler import ADVICE_SCHEDULER, ScheduledAdvice
 from app.coach_summary import COACH_SESSION_HISTORY
-from app.config import GSI_STALE_SECONDS, LIVE_CONSERVATIVE_MODE, USE_LLM
+from app.config import (
+    BACKEND_PORT,
+    GSI_STALE_SECONDS,
+    LIVE_CONSERVATIVE_MODE,
+    RESOURCE_ROOT,
+    USE_LLM,
+)
 from app.decision_points import detect_decision_point
 from app.gsi_state import (
     get_current_state,
@@ -37,6 +42,8 @@ app = FastAPI(
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
+        f"http://127.0.0.1:{BACKEND_PORT}",
+        f"http://localhost:{BACKEND_PORT}",
         "http://127.0.0.1:8000",
         "http://localhost:8000",
         "http://127.0.0.1:3000",
@@ -49,7 +56,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-FRONTEND_DIR = Path(__file__).resolve().parents[2] / "frontend"
+FRONTEND_DIR = RESOURCE_ROOT / "frontend"
 _DEMO_OVERLAY_RESPONSE: dict[str, object] | None = None
 _DEMO_OVERLAY_EXPIRES_AT: datetime | None = None
 _DEMO_CACHE_SECONDS = 8

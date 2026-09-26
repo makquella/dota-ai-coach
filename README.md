@@ -1,6 +1,6 @@
 # Dota AI Coach
 
-Dota AI Coach is a coursework MVP for a real-time Dota 2 carry coach. It receives live Dota 2 Game State Integration (GSI) updates, normalizes the state, applies deterministic coaching rules, filters advice through an anti-spam scheduler, and shows compact guidance in an Electron desktop overlay.
+Dota AI Coach is a coursework MVP for a real-time Dota 2 carry coach. It receives live Dota 2 Game State Integration (GSI) updates, normalizes the state, applies deterministic coaching rules, filters advice through an anti-spam scheduler, and shows compact guidance in an always-on-top overlay window of the Electron desktop app.
 
 The project is intentionally conservative. The local rule-based policy is authoritative for live advice. Optional LLM support is used only for wording and offline review workflows, not for overriding safety priority or timing.
 
@@ -10,16 +10,16 @@ The project is intentionally conservative. The local rule-based policy is author
 
 The current version is ready for coursework defense and local demonstration:
 
-- FastAPI backend runs locally on `127.0.0.1:8000`.
+- FastAPI backend runs locally on `127.0.0.1` (port 8000 by default; the desktop app picks a free port automatically).
 - Dota 2 GSI can post live game state to `/gsi`.
 - Rule-based recommender and scheduler produce compact carry advice.
-- Electron launcher starts the backend, overlay, and replay demo presets.
-- Electron overlay displays one small always-on-top advice card.
+- Electron desktop app (tray, single instance) starts the backend automatically and shows the overlay as its second window.
+- The overlay displays one small always-on-top advice card.
 - Replay demo playback works without launching Dota 2.
 - Live GSI session recording works for validation and post-session review.
 - Backend tests and Node syntax checks are available.
 - Windows live GSI validation was completed in Dota 2 Demo Hero mode.
-- Windows packaging is Phase 1 / partially validated: development launcher and live GSI are working, while the final portable package still needs final validation.
+- Windows packaging: one command (`scripts\build-windows.ps1`) builds the PyInstaller backend, the Electron app and an NSIS installer; CI builds it on `windows-latest` and smoke-tests `/health`.
 
 ## What Is Implemented
 
@@ -128,23 +128,15 @@ npm install
 npm run dev
 ```
 
-The launcher can start the backend, desktop overlay, and replay demo presets.
+The launcher is the whole desktop app: it starts the backend automatically (hidden, on a free local port — 8000 when it is free), shows the always-on-top advice overlay as its second window, and keeps running in the system tray when its window is closed. Tray menu: Open, Overlay on/off, Start with Windows, Quit. Quitting stops the backend gracefully.
 
-### Desktop Overlay
+Because the launcher runs its own backend, you do not need the manual `uvicorn` step above when using it.
 
-If starting the overlay manually:
+On Windows, install the app with the NSIS installer built by `scripts\build-windows.ps1` (see [Windows Packaging](docs/PACKAGING_WINDOWS.md)).
 
-```bash
-cd frontend/desktop-overlay
-npm install
-npm run dev
-```
+### Overlay
 
-The overlay reads:
-
-```text
-http://127.0.0.1:8000/overlay/recommendation
-```
+The overlay is a transparent, click-through, always-on-top window of the launcher. It polls `/overlay/recommendation` on the backend port chosen by the launcher. Hotkeys: `Ctrl+Alt+O` toggle, `Ctrl+Alt+M` mute 5 min, `Ctrl+Alt+L` lock/unlock dragging, `Ctrl+Alt+1/2/3` position presets, `Ctrl+Alt+D` debug line.
 
 ### Defense Demo Without Dota 2
 
@@ -236,10 +228,11 @@ Frontend syntax checks:
 # from repository root
 node --check frontend/launcher/main.js
 node --check frontend/launcher/preload.js
+node --check frontend/launcher/settings.js
+node --check frontend/launcher/overlay-window.js
+node --check frontend/launcher/overlay-preload.js
 node --check frontend/launcher/renderer/app.js
-node --check frontend/desktop-overlay/main.js
-node --check frontend/desktop-overlay/preload.js
-node --check frontend/desktop-overlay/renderer/app.js
+node --check frontend/launcher/overlay/app.js
 ```
 
 Repository hygiene:
@@ -258,8 +251,7 @@ git diff --check
 - [Reference Commands](docs/REFERENCE_COMMANDS.md)
 - [Roadmap](docs/ROADMAP.md)
 - [Advice Scheduler](docs/ADVICE_SCHEDULER.md)
-- [Windows Packaging Phase 1](docs/PACKAGING_WINDOWS.md)
-- [Desktop Overlay README](frontend/desktop-overlay/README.md)
+- [Windows Packaging](docs/PACKAGING_WINDOWS.md)
 - [Replay Tools README](backend/replay_tools/README.md)
 
 Diagrams:
@@ -275,7 +267,7 @@ Diagrams:
 - The minimal replay parser does not currently extract exact spendable gold or ability cooldowns.
 - Advice is intentionally conservative when required signals are missing.
 - Optional LLM usage is not required for live mode and is best treated as wording/review support.
-- Windows packaging is Phase 1 and still needs final portable-build validation.
+- The Windows build is unsigned (SmartScreen may warn on first run).
 
 ## Roadmap / Future Work
 
@@ -300,7 +292,7 @@ Implemented:
 
 Future work:
 
-- Improve and fully validate packaged Windows portable build.
+- Code-sign the Windows installer.
 - Run longer real-match validation beyond demo-hero testing.
 - Expand hero-specific safety rules and profiles.
 - Add optional semantic review/RAG mode for post-session analysis.

@@ -45,33 +45,22 @@ npm run dev
 
 The launcher is the preferred defense entry point. It can:
 
-- start/stop the backend;
-- start/stop the desktop overlay;
+- start the backend automatically (hidden, on a free local port; 8000 when free);
+- show/hide the always-on-top overlay (a second window of the same app);
+- keep running in the tray when the window is closed (tray: Open, Overlay, Start with Windows, Quit);
 - run bundled replay demo presets;
 - install/check the Dota 2 GSI config;
 - show clean or verbose logs.
 
-## Desktop Overlay
+## Overlay
 
-Manual start:
-
-```bash
-cd frontend/desktop-overlay
-npm install
-npm run dev
-```
+The overlay is part of the launcher; there is no separate overlay app anymore. It polls `/overlay/recommendation` on the port the launcher picked (shown in the `Backend` chip).
 
 On Fedora/GNOME Wayland, normal `npm run dev` may not keep the overlay always-on-top. For more reliable overlay testing through X11/XWayland, use:
 
 ```bash
-cd frontend/desktop-overlay
+cd frontend/launcher
 npm run dev:x11
-```
-
-The overlay polls:
-
-```text
-http://127.0.0.1:8000/overlay/recommendation
 ```
 
 ## Dota 2 Live GSI
@@ -81,13 +70,13 @@ Use Dota 2 display mode:
 - Borderless Window
 - Windowed Fullscreen
 
-The GSI config should post to:
+The GSI config should post to the backend port, e.g.:
 
 ```text
 http://127.0.0.1:8000/gsi
 ```
 
-In the launcher, use `Install / Check Dota GSI` when available.
+In the launcher, use `Install / Check Dota GSI`. The launcher reuses the last port between launches and rewrites an installed config if it ever has to move to another port (restart Dota 2 afterwards).
 
 ## Defense Demo Without Dota 2
 

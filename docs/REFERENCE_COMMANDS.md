@@ -30,10 +30,11 @@ python3 -m compileall -q app scripts packaging tests
 git diff --check
 node --check frontend/launcher/main.js
 node --check frontend/launcher/preload.js
+node --check frontend/launcher/settings.js
+node --check frontend/launcher/overlay-window.js
+node --check frontend/launcher/overlay-preload.js
 node --check frontend/launcher/renderer/app.js
-node --check frontend/desktop-overlay/main.js
-node --check frontend/desktop-overlay/preload.js
-node --check frontend/desktop-overlay/renderer/app.js
+node --check frontend/launcher/overlay/app.js
 ```
 
 ## Launcher
@@ -44,12 +45,14 @@ npm install
 npm run dev
 ```
 
-## Desktop Overlay
+The launcher starts its own backend (`backend/packaging/backend_server.py`) on a free port, so do not run `uvicorn` at the same time unless you need a standalone backend. `DOTA_AI_BACKEND_PORT=<port> npm run dev` forces a port.
 
-```bash
-cd frontend/desktop-overlay
-npm install
-npm run dev
+## Windows Build (one command)
+
+```powershell
+# from repository root, on Windows
+powershell -ExecutionPolicy Bypass -File scripts\build-windows.ps1
+powershell -ExecutionPolicy Bypass -File scripts\smoke-windows.ps1
 ```
 
 ## Replay Demo

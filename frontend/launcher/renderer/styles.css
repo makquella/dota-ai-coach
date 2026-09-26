@@ -336,3 +336,25 @@ pre::-webkit-scrollbar-thumb {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
+
+.toggle-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 14px;
+  color: var(--text-soft);
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.toggle-row input {
+  accent-color: var(--cyan);
+}
+
+.toggle-row input:disabled + span {
+  color: var(--muted-dim);
+}
+
+.panel > h2 + .hint {
+  margin: -6px 0 14px;
+}
