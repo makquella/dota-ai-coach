@@ -482,6 +482,9 @@ class PlayerService:
     ) -> dict[str, Any]:
         facts = career_facts(career, recent)
         if facts is None or len(recent) < COACH_MIN_CAREER_MATCHES:
+            # Off first: Progress is where a new player turns the AI coach on.
+            if not self.ai_configured():
+                return {"state": "off"}
             return {"state": "not_enough", "need": COACH_MIN_CAREER_MATCHES}
         return self._coach_state(
             f"coach:career:{account_id}:{lang}", facts, lang, kind="career", force=force

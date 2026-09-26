@@ -35,6 +35,7 @@ contextBridge.exposeInMainWorld("launcherApi", {
   },
   openLogs: () => ipcRenderer.invoke("launcher:open-logs"),
   exportPdf: (kind, id) => ipcRenderer.invoke("launcher:export-pdf", kind, id),
+  dismissSetup: () => ipcRenderer.invoke("launcher:dismiss-setup"),
   saveProblemReport: () => ipcRenderer.invoke("launcher:save-problem-report"),
   openSimulationResults: () => ipcRenderer.invoke("launcher:open-simulation-results"),
   openSessionRecords: () => ipcRenderer.invoke("launcher:open-session-records"),

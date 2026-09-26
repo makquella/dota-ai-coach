@@ -951,6 +951,63 @@ label.setting:has(.switch:disabled) {
 }
 
 /* Home: "your last match review is ready" */
+/* First-run checklist */
+.setup {
+  margin-bottom: var(--sp-3);
+}
+
+.setup-steps {
+  display: grid;
+  margin: 0;
+  padding: var(--sp-1) var(--sp-4);
+  list-style: none;
+}
+
+.setup-step {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  min-height: 48px;
+  padding: var(--sp-2) 0;
+  border-top: 1px solid var(--border);
+}
+
+.setup-step:first-child {
+  border-top: 0;
+}
+
+.setup-mark {
+  display: inline-flex;
+  flex: none;
+  color: var(--text-3);
+}
+
+.setup-step[data-done="true"] .setup-mark {
+  color: var(--ok);
+}
+
+.setup-text {
+  display: grid;
+  flex: 1;
+  gap: 2px;
+  min-width: 0;
+}
+
+.setup-step-title {
+  color: var(--text);
+  font-weight: var(--fw-medium);
+}
+
+.setup-step[data-done="true"] .setup-step-title {
+  color: var(--text-2);
+  font-weight: var(--fw-regular);
+}
+
+.setup-step-hint {
+  color: var(--text-3);
+  font-size: var(--fs-12);
+}
+
 .review-banner {
   display: flex;
   align-items: center;

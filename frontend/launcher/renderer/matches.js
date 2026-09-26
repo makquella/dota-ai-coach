@@ -2164,7 +2164,10 @@
     const root = document.getElementById("progress-root");
     const career = state.career;
     if (!career || !career.matches) {
-      root.replaceChildren(card(t("tiles.winrate"), "chart-line", emptyState("chart-line", t("progressEmptyTitle"), t("progressEmptyHint"))));
+      root.replaceChildren(
+        card(t("tiles.winrate"), "chart-line", emptyState("chart-line", t("progressEmptyTitle"), t("progressEmptyHint"))),
+        (career && coachCard(career.coach, "career")) || ""
+      );
       hydrate(root);
       return;
     }

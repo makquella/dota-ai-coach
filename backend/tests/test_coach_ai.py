@@ -89,7 +89,7 @@ def test_ai_is_off_without_a_key(client, tmp_path):
     detail = client.get(f"/player/matches/{MATCH_ID}?lang=ru").json()
     assert detail["coach"] == {"state": "off"}
     assert client.get("/player").json()["ai"] == {"configured": False}
-    assert client.get("/player/career?lang=ru").json()["coach"]["state"] in ("off", "not_enough")
+    assert client.get("/player/career?lang=ru").json()["coach"] == {"state": "off"}
 
 
 def test_match_review_is_generated_in_the_background_and_cached(client, tmp_path):

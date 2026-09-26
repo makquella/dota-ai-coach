@@ -109,6 +109,18 @@ const I18N = {
       blocked: (v, next) => `Version ${next} is ready. It installs after you close Dota.`,
       error: (v) => `Version ${v} · could not check for updates`
     },
+    setupTitle: "Getting started",
+    setupHide: "Hide",
+    setupCount: (done, total) => `${done} of ${total}`,
+    setup: {
+      service: ["The coach service is running", "Starts with the app; restart it in «For developers» if it stopped."],
+      dota: ["Dota 2 found", "Not in your Steam libraries: point to the game folder."],
+      gsi: ["Game data config installed", "A small file in the Dota folder that lets the game share match data."],
+      data: ["First data from Dota received", "Start Dota 2 (or restart it after installing the config) and open any match, bots are fine."],
+      account: ["Steam account linked", "Linked by itself in the first match, or enter it on the Matches tab."],
+      ai: ["AI coach (optional)", "A free Gemini key writes a coach review of every match."]
+    },
+    setupActions: { dota: "Choose folder", gsi: "Install", account: "Link", ai: "Set up" },
     reportTitle: "Problem report",
     reportHint: "Saves one file with logs for the developer, without keys",
     reportSave: "Save",
@@ -286,6 +298,18 @@ const I18N = {
       blocked: (v, next) => `Версия ${next} загружена. Установится после выхода из Доты.`,
       error: (v) => `Версия ${v} · не удалось проверить обновления`
     },
+    setupTitle: "Первый запуск",
+    setupHide: "Скрыть",
+    setupCount: (done, total) => `${done} из ${total}`,
+    setup: {
+      service: ["Сервис тренера запущен", "Запускается вместе с приложением; если остановился, перезапустите в разделе «Для разработчика»."],
+      dota: ["Dota 2 найдена", "Игры нет в библиотеках Steam — укажите папку игры."],
+      gsi: ["Конфиг данных игры установлен", "Небольшой файл в папке Доты, через который игра передаёт данные матча."],
+      data: ["Первые данные из Доты получены", "Запустите Dota 2 (или перезапустите после установки конфига) и зайдите в любой матч, можно с ботами."],
+      account: ["Аккаунт Steam привязан", "Привяжется сам в первом матче, или укажите его на вкладке «Матчи»."],
+      ai: ["ИИ-тренер (по желанию)", "Бесплатный ключ Gemini — и к каждому матчу будет разбор тренера."]
+    },
+    setupActions: { dota: "Указать папку", gsi: "Установить", account: "Привязать", ai: "Настроить" },
     reportTitle: "Отчёт о проблеме",
     reportHint: "Сохранит файл с журналами для разработчика, без ключей",
     reportSave: "Сохранить",
@@ -393,6 +417,10 @@ const els = {
   updateHint: $("#update-hint"),
   updateAction: $("#update-action"),
   updateLabel: $("#update-label"),
+  setupCard: $("#setup-card"),
+  setupSteps: $("#setup-steps"),
+  setupCount: $("#setup-count"),
+  setupDismiss: $("#setup-dismiss"),
   reportAction: $("#report-action"),
   reportHint: $("#report-hint"),
   devTools: $("#dev-tools"),
@@ -552,6 +580,9 @@ async function init() {
       }
     })
   );
+  els.setupDismiss.addEventListener("click", () =>
+    run(async () => renderStatus(await window.launcherApi.dismissSetup()))
+  );
   els.reportAction.addEventListener("click", () =>
     run(async () => {
       els.reportAction.disabled = true;
@@ -656,6 +687,7 @@ function renderStatus(status) {
 
   renderService(status);
   renderStatusLine(status);
+  renderSetup(status);
   renderMatch(status);
   renderAdvice(status);
   renderOverlaySettings(status);
@@ -665,6 +697,75 @@ function renderStatus(status) {
   updateGsiDetail({ status: status.gsiConfig, path: status.gsiPath });
   // Matches / Progress views (renderer/matches.js).
   window.PlayerViews?.onStatus(status);
+}
+
+// First-run checklist: the required steps in order, then the optional AI coach.
+// Hidden once the required steps are done or the player hides it.
+function setupSteps(status) {
+  const player = status.player || {};
+  // Data from the game proves Dota and the config work, wherever Dota lives.
+  const dataSeen = Boolean(status.setup?.gsiSeen || status.live?.connected);
+  return [
+    { id: "service", done: status.backend === "running" },
+    { id: "dota", done: Boolean(status.dotaDir || status.dotaRunning || dataSeen), action: () => window.launcherApi.chooseDotaFolder() },
+    { id: "gsi", done: status.gsiConfig === "installed" || dataSeen, action: () => window.launcherApi.installGsi("") },
+    { id: "data", done: dataSeen },
+    { id: "account", done: Boolean(player.linked), action: () => window.PlayerViews?.setView("matches") },
+    { id: "ai", done: Boolean(player.aiConfigured), optional: true, action: () => window.PlayerViews?.setView("progress") }
+  ];
+}
+
+function renderSetup(status) {
+  const steps = setupSteps(status);
+  const required = steps.filter((step) => !step.optional);
+  const doneCount = required.filter((step) => step.done).length;
+  const hide = isLoading(status) || status.setup?.dismissed || doneCount === required.length;
+  els.setupCard.classList.toggle("hidden", Boolean(hide));
+  if (hide) {
+    return;
+  }
+  els.setupCount.textContent = tr("setupCount", doneCount, required.length);
+  // The first open step gets the action; later ones wait for it.
+  const next = steps.find((step) => !step.done);
+  const signature = JSON.stringify([locale, steps.map((step) => step.done), next?.id]);
+  if (els.setupSteps.dataset.signature === signature) {
+    return;
+  }
+  els.setupSteps.dataset.signature = signature;
+  els.setupSteps.replaceChildren(
+    ...steps.map((step) => {
+      const [title, hint] = tr(`setup.${step.id}`);
+      const item = document.createElement("li");
+      item.className = "setup-step";
+      item.dataset.done = String(step.done);
+      const mark = document.createElement("i");
+      mark.className = "setup-mark";
+      mark.dataset.icon = step.done ? "circle-check" : "circle";
+      const text = document.createElement("span");
+      text.className = "setup-text";
+      const titleEl = document.createElement("span");
+      titleEl.className = "setup-step-title";
+      titleEl.textContent = title;
+      text.append(titleEl);
+      if (!step.done) {
+        const hintEl = document.createElement("span");
+        hintEl.className = "setup-step-hint";
+        hintEl.textContent = hint;
+        text.append(hintEl);
+      }
+      item.append(mark, text);
+      if (!step.done && step.action && (step === next || step.optional)) {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = step === next && !step.optional ? "btn btn-primary btn-sm" : "btn btn-sm";
+        button.textContent = tr(`setupActions.${step.id}`);
+        button.addEventListener("click", () => run(step.action));
+        item.append(button);
+      }
+      return item;
+    })
+  );
+  window.LucideIcons?.hydrate(els.setupSteps);
 }
 
 function isLoading(status) {

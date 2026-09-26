@@ -84,6 +84,9 @@ const settings = createSettingsStore(path.join(USER_DATA_DIR, "settings.json"), 
   // Set before an update installs so the relaunched app returns the way it was.
   startHiddenOnce: false,
   updatedFrom: "",
+  // First-run checklist on Home: the first GSI data seen, and "hide" pressed.
+  gsiSeenAt: "",
+  setupDismissed: false,
   overlay: { ...OVERLAY_DEFAULTS }
 });
 
@@ -383,6 +386,7 @@ function publicStatus() {
     appVersion: app.getVersion(),
     update: { ...updater.getState(), blockedByGame: isGameRunning() },
     player: live.player,
+    setup: { gsiSeen: Boolean(settings.get("gsiSeenAt")), dismissed: Boolean(settings.get("setupDismissed")) },
     overlayReasonCode: presence.code,
     backend: processStatus.backend,
     backendPort: backend.port,
@@ -532,6 +536,9 @@ async function pollGsiStatus() {
     } catch {
       // Keep the last list; the backend may be restarting.
     }
+  }
+  if (details.connected && !settings.get("gsiSeenAt")) {
+    settings.set("gsiSeenAt", new Date().toISOString());
   }
   const detailsChanged = recentChanged || JSON.stringify(details) !== JSON.stringify(live.details);
   live.details = details;
@@ -1078,6 +1085,7 @@ async function pollPlayerStatus() {
     accountId: status.account_id || null,
     lastReview: review,
     reviewKey,
+    aiConfigured: Boolean(status.ai && status.ai.configured),
     liveMatch: status.live_match || null
   };
   if (!first && reviewKey && reviewKey !== previousKey) {
@@ -1802,6 +1810,10 @@ function registerIpc() {
   ipcMain.handle("launcher:player", (_event, op, args) => playerRequest(String(op || ""), args || {}));
   ipcMain.handle("launcher:open-logs", () => openPath(LOGS_DIR));
   ipcMain.handle("launcher:save-problem-report", () => saveProblemReport());
+  ipcMain.handle("launcher:dismiss-setup", () => {
+    settings.set("setupDismissed", true);
+    return publicStatus();
+  });
   ipcMain.handle("launcher:export-pdf", (_event, kind, id) =>
     exportPdf(kind === "match" ? "match" : "career", String(id || ""))
   );
