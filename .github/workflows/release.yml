@@ -1,12 +1,15 @@
 name: Release
 
 # Push a tag "v<version>" (matching frontend/launcher/package.json) to build,
-# smoke-test and publish the Windows installer as a GitHub Release. Installed
-# apps update themselves from the latest release (electron-updater reads
-# latest.yml from it), see docs/PACKAGING_WINDOWS.md.
+# smoke-test and publish the Windows installer as a GitHub Release. Or run it
+# by hand on main (Actions -> Release -> Run workflow): it then releases the
+# version from package.json and creates the tag "v<version>" itself when it
+# publishes. Installed apps update themselves from the latest release
+# (electron-updater reads latest.yml from it), see docs/PACKAGING_WINDOWS.md.
 on:
   push:
     tags: ["v*"]
+  workflow_dispatch:
 
 permissions:
   contents: write
@@ -23,18 +26,31 @@ jobs:
     defaults:
       run:
         shell: pwsh
-    env:
-      TAG: ${{ github.ref_name }}
-
     steps:
       - uses: actions/checkout@v4
 
-      - name: Check the tag matches the app version
+      - name: Resolve the release tag
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           $version = (Get-Content frontend/launcher/package.json -Raw | ConvertFrom-Json).version
-          if ("v$version" -ne $env:TAG) {
-            throw "Tag $env:TAG does not match frontend/launcher/package.json version $version (expected v$version)."
+          if ($env:GITHUB_EVENT_NAME -eq "workflow_dispatch") {
+            if ($env:GITHUB_REF -ne "refs/heads/main") {
+              throw "Run the release by hand only on main (got $env:GITHUB_REF)."
+            }
+            $tag = "v$version"
+            gh api "repos/$env:GITHUB_REPOSITORY/git/matching-refs/tags/$tag" --jq '.[].ref' |
+              Where-Object { $_ -eq "refs/tags/$tag" } |
+              ForEach-Object { throw "Tag $tag already exists: bump the version in frontend/launcher/package.json first." }
+            if ($LASTEXITCODE -ne 0) { throw "Could not check existing tags (gh exit code $LASTEXITCODE)." }
+          } else {
+            $tag = $env:GITHUB_REF_NAME
+            if ("v$version" -ne $tag) {
+              throw "Tag $tag does not match frontend/launcher/package.json version $version (expected v$version)."
+            }
           }
+          "TAG=$tag" >> $env:GITHUB_ENV
+          Write-Host "Releasing $tag from $env:GITHUB_SHA"
 
       - name: Set up Python 3.11
         uses: actions/setup-python@v5
@@ -109,7 +125,9 @@ jobs:
           foreach ($file in $files) {
             if (-not (Test-Path $file)) { throw "Missing release file: $file" }
           }
-          gh release create $env:TAG @files --title "Dota AI Coach $version" --generate-notes
+          # --target only matters for a manual run: gh then creates the tag on
+          # the built commit. For a tag push the tag already exists.
+          gh release create $env:TAG @files --target $env:GITHUB_SHA --title "Dota AI Coach $version" --generate-notes
           if ($LASTEXITCODE -ne 0) { throw "gh release create failed with exit code $LASTEXITCODE" }
 
       - name: Upload logs on failure

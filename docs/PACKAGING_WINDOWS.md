@@ -84,7 +84,9 @@ Installed apps update themselves from GitHub Releases of `makquella/dota-ai-coac
 To release a version:
 
 1. bump `version` in `frontend/launcher/package.json` (and `package-lock.json`: `npm version <x.y.z> --no-git-tag-version` in `frontend/launcher`), merge to `main`;
-2. push a tag `v<x.y.z>` on that commit: `git tag v0.2.0 && git push origin v0.2.0`.
+2. push a tag `v<x.y.z>` on that commit: `git tag v0.2.0 && git push origin v0.2.0`, or, without git, open Actions -> Release -> Run workflow on `main`: the workflow takes the version from `package.json` and creates the tag `v<x.y.z>` itself when it publishes (it refuses to run if that tag already exists).
+
+Do not create the release with GitHub's "Draft a new release" form: it creates the release itself, and the workflow then fails at the publish step because the release already exists.
 
 The `Release` workflow (`.github/workflows/release.yml`) checks that the tag matches the version, builds and smoke-tests on `windows-latest` exactly like CI, then creates the GitHub Release with `latest.yml`, the installer and its `.blockmap`. All three are needed: the app reads `latest.yml` from the latest (non-draft, non-prerelease) release.
 
