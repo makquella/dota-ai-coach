@@ -1,10 +1,16 @@
 from __future__ import annotations
 
+import os
 import sys
+import tempfile
 from pathlib import Path
 
 import pytest
 from fastapi.testclient import TestClient
+
+# Tests never talk to OpenDota and never write into backend/player_data.
+os.environ["OPENDOTA_ENABLED"] = "false"
+os.environ.setdefault("PLAYER_DATA_DIR", tempfile.mkdtemp(prefix="dota-ai-coach-player-"))
 
 BACKEND_DIR = Path(__file__).resolve().parents[1]
 REPO_ROOT = BACKEND_DIR.parent
@@ -16,10 +22,13 @@ from app.advice_scheduler import ADVICE_SCHEDULER  # noqa: E402
 from app.coach_summary import COACH_SESSION_HISTORY  # noqa: E402
 from app.main import _clear_demo_overlay_response, app  # noqa: E402
 from app.match_memory import MATCH_MEMORY  # noqa: E402
+from app.player_api import PLAYER_SERVICE  # noqa: E402
 
 
 @pytest.fixture(autouse=True)
-def reset_runtime_state():
+def reset_runtime_state(tmp_path):
+    # Fresh player store per test; no background thread, no network.
+    PLAYER_SERVICE.configure(tmp_path / "player_data", client=None, auto_start=False)
     MATCH_MEMORY.reset()
     ADVICE_SCHEDULER.reset()
     COACH_SESSION_HISTORY.reset()

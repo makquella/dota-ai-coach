@@ -121,6 +121,8 @@ Writable files never go into the install directory:
 %APPDATA%\DotaAICoach\session_records\              <- live GSI recordings
 %APPDATA%\DotaAICoach\simulation_results\           <- deep replay reviews
 %APPDATA%\DotaAICoach\gsi_debug_samples\            <- only with GSI_DEBUG_LOG=true
+%APPDATA%\DotaAICoach\player_data\coach.sqlite3      <- linked account, match table, post-match reviews
+%APPDATA%\DotaAICoach\player_data\live_match.json    <- the match being recorded (deleted when it ends)
 %APPDATA%\DotaAICoach\.env                          <- optional backend settings (e.g. GSI_DEBUG_LOG=true)
 ```
 
@@ -192,6 +194,10 @@ Check tray → **Overlay** is ticked, or press `Ctrl+Alt+O`. The tray status mus
 ### Advice language
 
 Advice follows the system language: on a Russian Windows the app asks the backend for `lang=ru` and shows Russian text; otherwise English. Translations live in `backend/app/advice_i18n.py`; a text without a translation is shown in English.
+
+### Matches tab is empty
+
+The account is linked automatically when the app sees you in a match; otherwise link it on the **Matches** tab (Friend ID from the Dota profile, or a `steamcommunity.com/profiles/…` link). History older than the app comes from OpenDota: it needs internet and **Expose Public Match Data** enabled in Dota (Settings → Social). Matches played with the app running are always reviewed from its own recording, even offline; the full replay review follows a few minutes after the match when OpenDota has parsed it.
 
 ### Update does not arrive
 

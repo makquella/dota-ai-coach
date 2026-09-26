@@ -116,7 +116,17 @@ let dotaInstall = { steamRoots: [], libraries: [], dotaDir: "", gsiDir: "", sour
 let dotaInstallLogged = false;
 let dotaLocatePromise = null;
 let autoInstallRunning = false;
-const live = { inMatch: false, pollTimer: null, polling: false, details: emptyLiveDetails(), recentAdvice: [], polls: 0 };
+const live = {
+  inMatch: false,
+  pollTimer: null,
+  polling: false,
+  details: emptyLiveDetails(),
+  recentAdvice: [],
+  polls: 0,
+  player: null
+};
+// Match id of the last "review ready" balloon; a click on it opens that review.
+let pendingReviewOpen = null;
 const presence = { status: DOTA_STATUS.NOT_FOUND, visible: false, reason: "", code: "" };
 let autostartEnabled = false;
 let fullscreenBalloonShown = false;
@@ -210,7 +220,8 @@ const TRAY_TEXT = {
     updateDownloading: (version, percent) => `Downloading update ${version}… ${percent}%`,
     updateReady: (version) => `Restart and update to ${version}`,
     updateAfterGame: (version) => `Update ${version} installs after you close Dota`,
-    updated: (version) => `Updated to ${version}.`
+    updated: (version) => `Updated to ${version}.`,
+    reviewReady: (score) => `Post-match review is ready${score ? `: score${score}` : ""}. Click to open it.`
   },
   ru: {
     open: "Открыть",
@@ -230,7 +241,8 @@ const TRAY_TEXT = {
     updateDownloading: (version, percent) => `Загружается обновление ${version}… ${percent}%`,
     updateReady: (version) => `Перезапустить и обновить до ${version}`,
     updateAfterGame: (version) => `Обновление ${version} установится после выхода из Доты`,
-    updated: (version) => `Обновлено до версии ${version}.`
+    updated: (version) => `Обновлено до версии ${version}.`,
+    reviewReady: (score) => `Разбор матча готов${score ? `: оценка${score}` : ""}. Нажмите, чтобы открыть.`
   }
 };
 
@@ -363,6 +375,7 @@ function publicStatus() {
     dotaFullscreen: fullscreenWarningActive(),
     appVersion: app.getVersion(),
     update: { ...updater.getState(), blockedByGame: isGameRunning() },
+    player: live.player,
     overlayReasonCode: presence.code,
     backend: processStatus.backend,
     backendPort: backend.port,
@@ -499,6 +512,9 @@ async function pollGsiStatus() {
   }
   // Recent advice changes rarely; every third poll is enough.
   live.polls += 1;
+  if (processStatus.backend === "running" && live.polls % 5 === 2) {
+    pollPlayerStatus().catch(() => {});
+  }
   let recentChanged = false;
   if (processStatus.backend === "running" && live.polls % 3 === 1) {
     try {
@@ -906,7 +922,7 @@ function isBackendReady() {
   });
 }
 
-function requestBackendJson(endpointPath, method = "GET") {
+function requestBackendJson(endpointPath, method = "GET", body = undefined) {
   return new Promise((resolve, reject) => {
     if (processStatus.backend !== "running") {
       reject(new Error("Backend is not running."));
@@ -921,18 +937,25 @@ function requestBackendJson(endpointPath, method = "GET") {
         headers: { "Content-Type": "application/json" }
       },
       (response) => {
-        let body = "";
+        let responseBody = "";
         response.setEncoding("utf8");
         response.on("data", (chunk) => {
-          body += chunk;
+          responseBody += chunk;
         });
         response.on("end", () => {
           if (response.statusCode < 200 || response.statusCode >= 300) {
-            reject(new Error(`Backend returned HTTP ${response.statusCode}: ${body}`));
+            const error = new Error(`Backend returned HTTP ${response.statusCode}: ${responseBody}`);
+            error.status = response.statusCode;
+            try {
+              error.payload = JSON.parse(responseBody);
+            } catch {
+              error.payload = null;
+            }
+            reject(error);
             return;
           }
           try {
-            resolve(body ? JSON.parse(body) : {});
+            resolve(responseBody ? JSON.parse(responseBody) : {});
           } catch (error) {
             reject(new Error(`Backend returned invalid JSON: ${error.message}`));
           }
@@ -943,8 +966,89 @@ function requestBackendJson(endpointPath, method = "GET") {
       request.destroy(new Error("Backend request timed out."));
     });
     request.on("error", reject);
-    request.end();
+    request.end(body === undefined ? undefined : JSON.stringify(body));
   });
+}
+
+// ---------------------------------------------------------------------------
+// Player: linked Steam account, match history, post-match reviews
+// ---------------------------------------------------------------------------
+
+// The renderer asks by operation name; only these paths are ever requested.
+const PLAYER_OPS = {
+  status: () => ["GET", "/player"],
+  link: (args) => ["POST", "/player/link", { steam: String(args.steam || "").slice(0, 200) }],
+  linkDetected: () => ["POST", "/player/link-detected"],
+  unlink: () => ["DELETE", "/player"],
+  sync: () => ["POST", "/player/sync"],
+  matches: (args) => [
+    "GET",
+    `/player/matches?limit=${clampInt(args.limit, 1, 200, 30)}&offset=${clampInt(args.offset, 0, 100000, 0)}`
+  ],
+  match: (args) => ["GET", `/player/matches/${matchIdArg(args)}?lang=${uiLocale()}`],
+  refreshMatch: (args) => ["POST", `/player/matches/${matchIdArg(args)}/refresh`],
+  career: () => ["GET", `/player/career?lang=${uiLocale()}`]
+};
+
+function clampInt(value, min, max, fallback) {
+  const number = Number.parseInt(value, 10);
+  return Number.isFinite(number) ? Math.min(max, Math.max(min, number)) : fallback;
+}
+
+function matchIdArg(args) {
+  const id = String(args.matchId || "");
+  if (!/^\d{1,20}$/.test(id)) {
+    throw new Error("Invalid match id.");
+  }
+  return id;
+}
+
+async function playerRequest(op, args = {}) {
+  const build = PLAYER_OPS[op];
+  if (!build) {
+    return { ok: false, code: "unknown_op" };
+  }
+  try {
+    const [method, endpoint, body] = build(args || {});
+    return { ok: true, data: await requestBackendJson(endpoint, method, body) };
+  } catch (error) {
+    const payload = error.payload || {};
+    return {
+      ok: false,
+      status: error.status || 0,
+      code: payload.code || (processStatus.backend !== "running" ? "backend_down" : "request_failed"),
+      detail: payload.detail || error.message
+    };
+  }
+}
+
+// Every ~5 s: account + "a new post-match review is ready" (tray balloon).
+async function pollPlayerStatus() {
+  const result = await playerRequest("status");
+  if (!result.ok) {
+    return;
+  }
+  const status = result.data || {};
+  const review = status.last_review || null;
+  const reviewKey = review ? `${review.match_id}|${review.at}` : "";
+  const first = live.player === null;
+  const previousKey = live.player ? live.player.reviewKey : "";
+  live.player = {
+    linked: Boolean(status.linked),
+    name: status.player ? status.player.persona_name || null : null,
+    accountId: status.account_id || null,
+    lastReview: review,
+    reviewKey,
+    liveMatch: status.live_match || null
+  };
+  if (!first && reviewKey && reviewKey !== previousKey) {
+    const score = review.score !== null && review.score !== undefined ? ` ${review.score}/100` : "";
+    appendLog("player", `Post-match review ready for match ${review.match_id}${score}.`, { force: true });
+    pendingReviewOpen = review.match_id;
+    showTrayBalloon(t("reviewReady", score));
+    send("launcher:player-event", { type: "review-ready", matchId: review.match_id, score: review.score });
+  }
+  updateStatus();
 }
 
 async function fetchOverlayRecommendation() {
@@ -1415,6 +1519,13 @@ function createTray() {
   tray = new Tray(trayImage);
   tray.on("click", showMainWindow);
   tray.on("double-click", showMainWindow);
+  tray.on("balloon-click", () => {
+    showMainWindow();
+    if (pendingReviewOpen) {
+      send("launcher:player-event", { type: "open-match", matchId: pendingReviewOpen });
+      pendingReviewOpen = null;
+    }
+  });
   refreshTray();
 }
 
@@ -1532,6 +1643,7 @@ function registerIpc() {
     return publicStatus();
   });
   ipcMain.handle("launcher:install-update", () => updater.install());
+  ipcMain.handle("launcher:player", (_event, op, args) => playerRequest(String(op || ""), args || {}));
   ipcMain.handle("launcher:open-logs", () => openPath(LOGS_DIR));
   ipcMain.handle("launcher:open-simulation-results", () => openPath(SIMULATION_RESULTS_DIR));
   ipcMain.handle("launcher:open-session-records", () => openPath(SESSION_RECORDS_DIR));
@@ -1694,6 +1806,10 @@ async function runSmokeTest(resultPath) {
       "document.querySelector('#action')?.textContent || ''"
     );
     step("overlay card rendered", Boolean(overlayAction.trim()), overlayAction);
+
+    // Player history (SQLite store, match reviews) must work in the bundled backend.
+    const player = await playerRequest("status");
+    step("player API", player.ok && typeof player.data.linked === "boolean", JSON.stringify(player.ok ? player.data.sync : player));
 
     const recommendation = await fetchOverlayRecommendation();
     step(

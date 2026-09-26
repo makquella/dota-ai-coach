@@ -6,6 +6,9 @@
 
 const I18N = {
   en: {
+    tabHome: "Home",
+    tabMatches: "Matches",
+    tabProgress: "Progress",
     service: "Service",
     serviceStates: { running: "running", starting: "starting…", stopping: "stopping…", stopped: "stopped" },
     status: {
@@ -162,6 +165,9 @@ const I18N = {
     stopped: "stopped"
   },
   ru: {
+    tabHome: "Главная",
+    tabMatches: "Матчи",
+    tabProgress: "Прогресс",
     service: "Сервис",
     serviceStates: { running: "работает", starting: "запускается…", stopping: "останавливается…", stopped: "остановлен" },
     status: {
@@ -592,6 +598,8 @@ function renderStatus(status) {
   renderControlButtons(status);
   renderLogMode(status.logMode || "clean");
   updateGsiDetail({ status: status.gsiConfig, path: status.gsiPath });
+  // Matches / Progress views (renderer/matches.js).
+  window.PlayerViews?.onStatus(status);
 }
 
 function isLoading(status) {

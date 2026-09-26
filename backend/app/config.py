@@ -107,3 +107,9 @@ try:
 except ValueError:
     GSI_STALE_SECONDS = 5.0
 SESSION_RECORDS_DIR = Path(os.getenv("SESSION_RECORDS_DIR", str(WRITABLE_DIR / "session_records")))
+
+# Player profile, match history and post-match reviews (SQLite + OpenDota).
+PLAYER_DATA_DIR = Path(os.getenv("PLAYER_DATA_DIR", str(WRITABLE_DIR / "player_data")))
+OPENDOTA_ENABLED = os.getenv("OPENDOTA_ENABLED", "true").strip().lower() != "false"
+OPENDOTA_API_URL = os.getenv("OPENDOTA_API_URL", "https://api.opendota.com/api").strip().rstrip("/")
+OPENDOTA_API_KEY = os.getenv("OPENDOTA_API_KEY", "").strip()
