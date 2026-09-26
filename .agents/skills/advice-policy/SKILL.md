@@ -119,6 +119,13 @@ LOW_HP episode handling, death pinning.
 Новый decision point → добавить в `Literal` в `decision_points.py` И в `advice_scheduler.py`.
 Не создавать абстракции (no AdviceCategory enum), следовать существующему стилю.
 
+### Видимый текст → русский перевод
+Пайплайн пишет советы только по-английски; русский добавляется на границе API
+(`app/advice_i18n.py`, `lang=ru`). Новый или изменённый видимый текст
+(`action`, `reason`, `message`) → добавить перевод в `_RU_EXACT` (или шаблон в
+`_RU_PATTERNS`, если внутри имя героя/способности). `tests/test_advice_i18n.py`
+падает на любом видимом тексте без перевода.
+
 ### LLM-гейтинг
 - Все вызовы LLM за `USE_LLM` флагом
 - LLM формулирует текст, не определяет decision_point/priority/time_window

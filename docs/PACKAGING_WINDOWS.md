@@ -41,6 +41,8 @@ Output:
 
 ```text
 frontend\launcher\dist\DotaAICoach-Setup-0.1.0.exe        <- NSIS installer (give this to users)
+frontend\launcher\dist\DotaAICoach-Setup-0.1.0.exe.blockmap
+frontend\launcher\dist\latest.yml                         <- auto-update feed (published with a release)
 frontend\launcher\dist\win-unpacked\DotaAICoach.exe       <- unpacked app, runs without installing
 backend\dist\dota-ai-coach-backend\dota-ai-coach-backend.exe
 backend\dist\dota-ai-coach-backend\dota-ai-coach-demo-playback.exe
@@ -68,10 +70,32 @@ powershell -ExecutionPolicy Bypass -File scripts\smoke-windows.ps1
 It checks, in order:
 
 1. `dota-ai-coach-backend.exe` alone: starts on a free port via `DOTA_AI_BACKEND_PORT`, answers `/health` and `/overlay/recommendation`, writes session records under `%APPDATA%\DotaAICoach`, and exits with code 0 after `shutdown` on stdin;
-2. `win-unpacked\DotaAICoach.exe --smoke-test=<result.json>`: the real app starts its bundled backend hidden, loads both windows, checks `/health`, stops the backend gracefully and exits 0; no backend process may be left behind;
-3. the NSIS installer: silent install, then the same smoke test against the installed exe (`-SkipInstaller` skips this part).
+2. `win-unpacked\DotaAICoach.exe --smoke-test=<result.json>`: the real app starts its bundled backend hidden, loads both windows, checks `/health`, checks that `resources\app-update.yml` exists and `electron-updater` loads, stops the backend gracefully and exits 0; no backend process may be left behind;
+3. the same smoke test with a fake Dota: a plain window compiled as `dota2.exe` (with the `csc.exe` that ships with Windows) is started first; the Dota watcher must report its window rect, no exclusive fullscreen, and the overlay must be placed inside that window;
+4. `dist\latest.yml` names the installer and `app-update.yml` points at GitHub Releases;
+5. the NSIS installer: silent install, then the same smoke test against the installed exe (`-SkipInstaller` skips this part).
 
 CI runs `scripts\build-windows.ps1` and `scripts\smoke-windows.ps1` on `windows-latest` (job `windows-package` in `.github/workflows/ci.yml`) and uploads the installer as a build artifact.
+
+## Releases And Auto-Update
+
+Installed apps update themselves from GitHub Releases of `makquella/dota-ai-coach` (`electron-updater`, `publish` in `frontend/launcher/package.json`).
+
+To release a version:
+
+1. bump `version` in `frontend/launcher/package.json` (and `package-lock.json`: `npm version <x.y.z> --no-git-tag-version` in `frontend/launcher`), merge to `main`;
+2. push a tag `v<x.y.z>` on that commit: `git tag v0.2.0 && git push origin v0.2.0`.
+
+The `Release` workflow (`.github/workflows/release.yml`) checks that the tag matches the version, builds and smoke-tests on `windows-latest` exactly like CI, then creates the GitHub Release with `latest.yml`, the installer and its `.blockmap`. All three are needed: the app reads `latest.yml` from the latest (non-draft, non-prerelease) release.
+
+In the app:
+
+- it checks 15 s after start and then every 4 hours, and downloads a new version in the background;
+- a downloaded update installs when the user picks **Restart and update** (tray menu or the **Updates** row in the control panel), when the app quits, or by itself once Dota has been closed for 5 minutes and the control panel is not open. Nothing is installed while Dota runs or a match feeds GSI, manual installs included (the button and the tray item wait until Dota is closed);
+- the install is silent (same per-user NSIS installer, `/S --updated`), the app starts again afterwards — hidden in the tray if it was hidden before — and shows "Updated to x.y.z";
+- dev runs (`npm run dev`), the portable exe and `--smoke-test` runs never update. Logs: `[update]` lines in `launcher.log`.
+
+Without code signing electron-updater does not verify the publisher of the downloaded installer; it checks the SHA-512 from `latest.yml` over HTTPS from GitHub.
 
 ## Runtime Layout
 
@@ -141,7 +165,15 @@ Alt-tab or minimizing Dota hides it within ~0.3 s; leaving the match or the main
 
 Tray status (Russian texts on a Russian system): **Dota not found** / «Дота не найдена» (no `dota2.exe`), **Waiting for game** / «Ждём игру» (Dota running, no match data), **In game** / «В игре».
 
-Focus tracking uses one hidden PowerShell helper that calls `user32.dll` (`GetForegroundWindow`, `GetWindowThreadProcessId`, `IsIconic`) and prints a line only when something changes; it polls every 0.3 s while Dota runs and every 1.5 s otherwise, and exits when the app exits. If PowerShell is unavailable, the overlay simply follows the on/off switch.
+Focus tracking uses one hidden PowerShell helper that calls `user32.dll` (`GetForegroundWindow`, `GetWindowThreadProcessId`, `IsIconic`, `GetWindowRect`) and `shell32.dll` (`SHQueryUserNotificationState`) and prints a line only when something changes; it polls every 0.3 s while Dota runs and every 1.5 s otherwise, and exits when the app exits. If PowerShell is unavailable, the overlay simply follows the on/off switch.
+
+### Monitor And Position
+
+The position presets (left / right / bottom) are computed inside Dota's window, not on the primary monitor: with Dota on a second monitor the card is on that monitor, and in windowed mode it stays inside the game window (above the minimap/hero panel for **Bottom**). The helper reports the window in physical pixels (it is DPI aware); the app converts it with `screen.screenToDipRect`. While Dota is minimized or closed the card stays on the monitor Dota was last seen on. A hand-placed position (**Move**) is kept as is, unless its monitor is gone, then the **Right** preset is used. The card also re-places itself when monitors are added, removed or change resolution.
+
+### Exclusive Fullscreen
+
+Windows does not draw other windows over a game in *exclusive* fullscreen, so the overlay cannot be seen there. The helper reads `SHQueryUserNotificationState` while Dota is focused; `QUNS_RUNNING_D3D_FULL_SCREEN` means exclusive fullscreen. The app then shows a tray balloon once per Dota run, a warning in the tray menu/tooltip and the status line «Оверлей не виден из-за полноэкранного режима» with the fix: Dota → Settings → Video → Display mode → **Borderless window**. The flag is kept until Dota exits (alt-tab does not clear it). The detection covers Direct3D exclusive fullscreen (Dota's default renderer); if it fires although the overlay is visible (e.g. Windows' fullscreen optimizations), **I can see the advice** in the status line turns the warning off for good (`fullscreenWarningDismissed` in `settings.json`).
 
 ## Development Mode
 
@@ -155,7 +187,15 @@ Open the control panel (tray → Open) and read the log panel, or `%APPDATA%\Dot
 
 ### Overlay does not show
 
-Check tray → **Overlay** is ticked, or press `Ctrl+Alt+O`. The tray status must be **In game**: if it says **Waiting for game** while you are in a match, Dota is not sending GSI — check that the config exists (control panel → `Install / Check Dota GSI`) and restart Dota 2. The hover tooltip of the `Overlay` chip in the control panel says why it is hidden. Dota 2 must run in *Borderless Window* or *Windowed Fullscreen*.
+Check tray → **Overlay** is ticked, or press `Ctrl+Alt+O`. The tray status must be **In game**: if it says **Waiting for game** while you are in a match, Dota is not sending GSI — check that the config exists (control panel → `Install / Check Dota GSI`) and restart Dota 2. The hint under **Show advice over the game** in the control panel says why it is hidden. Dota 2 must run in *Borderless Window* or *Windowed*; exclusive fullscreen is detected and reported (see *Exclusive Fullscreen*).
+
+### Advice language
+
+Advice follows the system language: on a Russian Windows the app asks the backend for `lang=ru` and shows Russian text; otherwise English. Translations live in `backend/app/advice_i18n.py`; a text without a translation is shown in English.
+
+### Update does not arrive
+
+Check `[update]` lines in `%APPDATA%\DotaAICoach\logs\launcher.log` and the **Updates** row in the control panel (**Check** runs a check now). The release must be published (not a draft) and contain `latest.yml`.
 
 ### Autostart does not work
 
@@ -163,7 +203,7 @@ Check tray → **Overlay** is ticked, or press `Ctrl+Alt+O`. The tray status mus
 
 ## Known Limitations
 
-- No code signing.
+- No code signing: SmartScreen may warn on the first install; updates are verified by checksum only.
 - The optional portable exe (`-Portable`) unpacks itself on every start and is slower to launch than the installed app.
 - Optional LLM runtime is not bundled; the packaged app forces `USE_LLM=false`.
 - Replay demo presets use bundled GSI-like replay states, not live Dota 2.

@@ -4,14 +4,17 @@ const fs = require("node:fs");
 const path = require("node:path");
 const readline = require("node:readline");
 
-// Watches whether dota2.exe is running and whether its window is the active
-// (foreground, not minimized) window.
+// Watches whether dota2.exe is running, whether its window is the active
+// (foreground, not minimized) window, where that window is (so the overlay can
+// follow Dota to its monitor) and whether Dota runs in exclusive fullscreen,
+// where no other window can be drawn on top of it.
 //
 // Windows: one long-lived hidden PowerShell process calls user32
-// GetForegroundWindow/GetWindowThreadProcessId/IsIconic in a loop and prints a
-// JSON line whenever the state changes (plus a heartbeat line every ~20 polls
-// so the launcher can tell it is alive). No native Node modules are needed, and
-// the helper exits by itself when the launcher process disappears.
+// GetForegroundWindow/GetWindowThreadProcessId/IsIconic/GetWindowRect and
+// shell32 SHQueryUserNotificationState in a loop and prints a JSON line
+// whenever the state changes (plus a heartbeat line every ~20 polls so the
+// launcher can tell it is alive). No native Node modules are needed, and the
+// helper exits by itself when the launcher process disappears.
 // Linux (dev): /proc is scanned for a "dota2" process; focus is not tracked.
 
 const WINDOWS_POLL_RUNNING_MS = 300;
@@ -19,16 +22,28 @@ const WINDOWS_POLL_IDLE_MS = 1500;
 const LINUX_POLL_MS = 2000;
 const MAX_FAST_FAILURES = 5;
 
+// SHQueryUserNotificationState returns QUNS_RUNNING_D3D_FULL_SCREEN (3) while
+// a Direct3D exclusive-fullscreen app is in front. The flag is sampled while
+// Dota is focused and kept until Dota exits, so alt-tab does not clear it.
+// The helper is DPI aware: "rect" is in physical screen pixels.
 const WINDOWS_WATCH_SCRIPT = String.raw`
 $ErrorActionPreference = 'Stop'
 $parentPid = __PARENT_PID__
 Add-Type -Namespace DotaAICoach -Name Win32 -MemberDefinition @'
+[System.Runtime.InteropServices.StructLayout(System.Runtime.InteropServices.LayoutKind.Sequential)]
+public struct RECT { public int Left; public int Top; public int Right; public int Bottom; }
 [DllImport("user32.dll")] public static extern System.IntPtr GetForegroundWindow();
 [DllImport("user32.dll")] public static extern uint GetWindowThreadProcessId(System.IntPtr hWnd, out uint processId);
 [DllImport("user32.dll")] public static extern bool IsIconic(System.IntPtr hWnd);
+[DllImport("user32.dll")] public static extern bool GetWindowRect(System.IntPtr hWnd, out RECT rect);
+[DllImport("user32.dll")] public static extern bool SetProcessDPIAware();
+[DllImport("shell32.dll")] public static extern int SHQueryUserNotificationState(out int state);
 '@
+try { [void][DotaAICoach.Win32]::SetProcessDPIAware() } catch { }
 $last = ''
 $ticks = 0
+$fullscreen = $false
+$rect = $null
 while ($true) {
   try { $null = [System.Diagnostics.Process]::GetProcessById($parentPid) } catch { exit 0 }
   $running = $false
@@ -43,10 +58,27 @@ while ($true) {
     foreach ($p in $procs) {
       if ($p.Id -eq $fgPid -and -not [DotaAICoach.Win32]::IsIconic($hwnd)) { $focused = $true }
       if (-not $exe) { try { $exe = [string]$p.Path } catch { } }
+      $main = [System.IntPtr]::Zero
+      try { $main = $p.MainWindowHandle } catch { }
+      if ($main -ne [System.IntPtr]::Zero -and -not [DotaAICoach.Win32]::IsIconic($main)) {
+        $r = New-Object DotaAICoach.Win32+RECT
+        if ([DotaAICoach.Win32]::GetWindowRect($main, [ref]$r) -and $r.Right -gt $r.Left -and $r.Bottom -gt $r.Top) {
+          $rect = @($r.Left, $r.Top, $r.Right, $r.Bottom)
+        }
+      }
       $p.Dispose()
     }
+    if ($focused) {
+      [int]$quns = 0
+      try {
+        if ([DotaAICoach.Win32]::SHQueryUserNotificationState([ref]$quns) -eq 0) { $fullscreen = ($quns -eq 3) }
+      } catch { }
+    }
+  } else {
+    $fullscreen = $false
+    $rect = $null
   }
-  $line = [ordered]@{ running = $running; focused = $focused; path = $exe } | ConvertTo-Json -Compress
+  $line = [ordered]@{ running = $running; focused = $focused; path = $exe; fullscreen = $fullscreen; rect = $rect } | ConvertTo-Json -Compress
   $ticks++
   if ($line -ne $last -or $ticks -ge 20) {
     [Console]::Out.WriteLine($line)
@@ -74,14 +106,29 @@ function parseWatcherLine(line) {
     if (!data || typeof data !== "object") {
       return null;
     }
+    const running = Boolean(data.running);
     return {
-      running: Boolean(data.running),
-      focused: Boolean(data.running) && Boolean(data.focused),
-      exePath: typeof data.path === "string" ? data.path : ""
+      running,
+      focused: running && Boolean(data.focused),
+      exePath: typeof data.path === "string" ? data.path : "",
+      exclusiveFullscreen: running && Boolean(data.fullscreen),
+      windowRect: running ? parseRect(data.rect) : null
     };
   } catch {
     return null;
   }
+}
+
+// [left, top, right, bottom] in physical pixels -> { x, y, width, height }.
+function parseRect(value) {
+  if (!Array.isArray(value) || value.length !== 4 || !value.every(Number.isFinite)) {
+    return null;
+  }
+  const [left, top, right, bottom] = value;
+  if (right <= left || bottom <= top) {
+    return null;
+  }
+  return { x: left, y: top, width: right - left, height: bottom - top };
 }
 
 function powershellPath(env = process.env) {
@@ -113,13 +160,23 @@ function isDotaRunningOnLinux(procDir = "/proc") {
 }
 
 /**
- * state: { supported, running, focused, exePath }
- *   supported - focus tracking works on this platform (Windows only).
+ * state: { supported, running, focused, exePath, exclusiveFullscreen, windowRect }
+ *   supported           - focus tracking works on this platform (Windows only).
+ *   exclusiveFullscreen - Dota was last seen in exclusive fullscreen (no overlay
+ *                         can be drawn over it); reset when Dota exits.
+ *   windowRect          - Dota's window in physical pixels, or null.
  * Emits "change" with the new state.
  */
 function createDotaWatcher({ platform = process.platform, log = () => {}, spawnImpl = spawn, parentPid = process.pid } = {}) {
   const emitter = new EventEmitter();
-  let state = { supported: platform === "win32", running: false, focused: false, exePath: "" };
+  let state = {
+    supported: platform === "win32",
+    running: false,
+    focused: false,
+    exePath: "",
+    exclusiveFullscreen: false,
+    windowRect: null
+  };
   let child = null;
   let stopped = true;
   let restartTimer = null;
@@ -131,7 +188,9 @@ function createDotaWatcher({ platform = process.platform, log = () => {}, spawnI
     if (next.exePath === "" && state.exePath && next.running) {
       next.exePath = state.exePath;
     }
-    const changed = ["supported", "running", "focused", "exePath"].some((key) => next[key] !== state[key]);
+    const changed =
+      ["supported", "running", "focused", "exePath", "exclusiveFullscreen"].some((key) => next[key] !== state[key]) ||
+      JSON.stringify(next.windowRect) !== JSON.stringify(state.windowRect);
     state = next;
     if (changed) {
       emitter.emit("change", { ...state });
@@ -183,7 +242,7 @@ function createDotaWatcher({ platform = process.platform, log = () => {}, spawnI
       if (stopped) {
         return;
       }
-      update({ running: false, focused: false });
+      update({ running: false, focused: false, exclusiveFullscreen: false, windowRect: null });
       if (!sawOutput || Date.now() - startedAt < 5000) {
         fastFailures += 1;
       }
@@ -207,7 +266,7 @@ function createDotaWatcher({ platform = process.platform, log = () => {}, spawnI
 
   function giveUp() {
     log("Dota focus tracking is unavailable; the overlay will follow its on/off switch only.");
-    update({ supported: false, running: false, focused: false });
+    update({ supported: false, running: false, focused: false, exclusiveFullscreen: false, windowRect: null });
     emitter.emit("report", { ...state });
   }
 
@@ -252,4 +311,4 @@ function createDotaWatcher({ platform = process.platform, log = () => {}, spawnI
   return emitter;
 }
 
-module.exports = { createDotaWatcher, parseWatcherLine, windowsWatchScript, encodePowerShell };
+module.exports = { createDotaWatcher, parseWatcherLine, parseRect, windowsWatchScript, encodePowerShell };

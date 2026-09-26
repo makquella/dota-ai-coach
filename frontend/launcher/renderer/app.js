@@ -28,9 +28,17 @@ const I18N = {
       inGameHint: "Advice appears over the game while Dota is the active window.",
       inGameOverlayOff: "The overlay is off, advice shows only here.",
       demoTitle: (preset) => `Replay demo${preset ? `: ${preset}` : ""}`,
-      demoHint: "The overlay shows advice from a recorded match."
+      demoHint: "The overlay shows advice from a recorded match.",
+      fullscreenTitle: "The overlay is hidden by fullscreen",
+      fullscreenHint:
+        "Dota runs in exclusive fullscreen, where no window can be drawn on top. In Dota: Settings → Video → Display mode → Borderless window."
     },
-    actions: { start: "Start service", install: "Install config", chooseDota: "Choose Dota folder" },
+    actions: {
+      start: "Start service",
+      install: "Install config",
+      chooseDota: "Choose Dota folder",
+      fullscreenSeen: "I can see the advice"
+    },
     matchTitle: "Current match",
     statHero: "Hero",
     statClock: "Match time",
@@ -73,6 +81,19 @@ const I18N = {
     autostartOn: "Starts hidden in the tray",
     autostartOff: "Start it yourself before playing",
     autostartUnavailable: "Available in the installed app",
+    updates: "Updates",
+    updateCheck: "Check",
+    updateInstall: "Restart and update",
+    updateHint: {
+      disabled: (v) => `Version ${v} · updates work in the installed app`,
+      idle: (v) => `Version ${v} · updates install by themselves`,
+      checking: (v) => `Version ${v} · checking…`,
+      "up-to-date": (v) => `Version ${v} · up to date`,
+      downloading: (v, next, pct) => `Downloading ${next}… ${pct}%`,
+      ready: (v, next) => `Version ${next} is ready. It installs by itself once Dota is closed.`,
+      blocked: (v, next) => `Version ${next} is ready. It installs after you close Dota.`,
+      error: (v) => `Version ${v} · could not check for updates`
+    },
     devTitle: "For developers",
     devHint: "Service, GSI, replay demos, recordings, logs",
     factBackend: "Service",
@@ -163,9 +184,17 @@ const I18N = {
       inGameHint: "Подсказки появляются поверх игры, пока окно Доты активно.",
       inGameOverlayOff: "Оверлей выключен — подсказки видны только здесь.",
       demoTitle: (preset) => `Демо-повтор${preset ? `: ${preset}` : ""}`,
-      demoHint: "Оверлей показывает подсказки из записанного матча."
+      demoHint: "Оверлей показывает подсказки из записанного матча.",
+      fullscreenTitle: "Оверлей не виден из-за полноэкранного режима",
+      fullscreenHint:
+        "Дота запущена в эксклюзивном полноэкранном режиме — поверх него окна не рисуются. В Доте: Настройки → Видео → режим экрана «Окно без рамки» (Borderless window)."
     },
-    actions: { start: "Запустить сервис", install: "Установить конфиг", chooseDota: "Указать папку Доты" },
+    actions: {
+      start: "Запустить сервис",
+      install: "Установить конфиг",
+      chooseDota: "Указать папку Доты",
+      fullscreenSeen: "Подсказки видны"
+    },
     matchTitle: "Текущий матч",
     statHero: "Герой",
     statClock: "Время матча",
@@ -208,6 +237,19 @@ const I18N = {
     autostartOn: "Запускается скрыто в трее",
     autostartOff: "Запускайте сами перед игрой",
     autostartUnavailable: "Доступно в установленном приложении",
+    updates: "Обновления",
+    updateCheck: "Проверить",
+    updateInstall: "Перезапустить и обновить",
+    updateHint: {
+      disabled: (v) => `Версия ${v} · обновления работают в установленном приложении`,
+      idle: (v) => `Версия ${v} · обновляется само`,
+      checking: (v) => `Версия ${v} · проверяем…`,
+      "up-to-date": (v) => `Версия ${v} · последняя`,
+      downloading: (v, next, pct) => `Загружается ${next}… ${pct}%`,
+      ready: (v, next) => `Версия ${next} загружена. Установится сама, когда Дота будет закрыта.`,
+      blocked: (v, next) => `Версия ${next} загружена. Установится после выхода из Доты.`,
+      error: (v) => `Версия ${v} · не удалось проверить обновления`
+    },
     devTitle: "Для разработчика",
     devHint: "Сервис, GSI, демо-повторы, записи, логи",
     factBackend: "Сервис",
@@ -303,6 +345,9 @@ const els = {
   moveHint: $("#move-hint"),
   autostart: $("#autostart"),
   autostartHint: $("#autostart-hint"),
+  updateHint: $("#update-hint"),
+  updateAction: $("#update-action"),
+  updateLabel: $("#update-label"),
   devTools: $("#dev-tools"),
   logs: $("#logs"),
   gsiPath: $("#gsi-path"),
@@ -442,6 +487,15 @@ async function init() {
       renderStatus(await window.launcherApi.setOverlayLocked(moving));
     })
   );
+  els.updateAction.addEventListener("click", () =>
+    run(async () => {
+      if (els.updateAction.dataset.mode === "install") {
+        await window.launcherApi.installUpdate();
+      } else {
+        renderStatus(await window.launcherApi.checkForUpdates());
+      }
+    })
+  );
   els.autostart.addEventListener("change", () =>
     run(async () => {
       await window.launcherApi.setAutostart(els.autostart.checked);
@@ -575,7 +629,8 @@ function resolveStatusLine(status) {
   const actions = {
     start: { label: tr("actions.start"), icon: "play", run: () => api.startBackend() },
     install: { label: tr("actions.install"), icon: "download", run: () => installGsi("") },
-    chooseDota: { label: tr("actions.chooseDota"), icon: "folder-search", run: () => api.chooseDotaFolder() }
+    chooseDota: { label: tr("actions.chooseDota"), icon: "folder-search", run: () => api.chooseDotaFolder() },
+    fullscreenSeen: { label: tr("actions.fullscreenSeen"), icon: "eye", run: () => api.dismissFullscreenWarning() }
   };
 
   if (isLoading(status)) {
@@ -594,6 +649,15 @@ function resolveStatusLine(status) {
     return status.dotaDir
       ? { state: "warn", title: tr("status.noGsiTitle"), hint: tr("status.noGsiHint"), action: actions.install }
       : { state: "error", title: tr("status.noDotaTitle"), hint: tr("status.noDotaHint"), action: actions.chooseDota };
+  }
+  if (status.dotaFullscreen) {
+    // Sent only while Dota runs in exclusive fullscreen with the overlay on.
+    return {
+      state: "warn",
+      title: tr("status.fullscreenTitle"),
+      hint: tr("status.fullscreenHint"),
+      action: actions.fullscreenSeen
+    };
   }
   if (live.inMatch) {
     const hint = status.overlay === "running" ? tr("status.inGameHint") : tr("status.inGameOverlayOff");
@@ -795,6 +859,25 @@ function renderOverlaySettings(status) {
     : status.autostart
       ? tr("autostartOn")
       : tr("autostartOff");
+
+  renderUpdate(status);
+}
+
+function renderUpdate(status) {
+  const update = status.update || { status: "disabled" };
+  const current = status.appVersion || update.currentVersion || "";
+  const known = ["disabled", "idle", "checking", "up-to-date", "downloading", "ready", "error"];
+  const state = known.includes(update.status) ? update.status : "idle";
+  // Installing restarts the app, so it is never offered while Dota runs.
+  const blocked = state === "ready" && Boolean(update.blockedByGame);
+  const hintKey = blocked ? "blocked" : state;
+  els.updateHint.textContent = tr(`updateHint.${hintKey}`, current, update.version || "", update.percent || 0);
+  els.updateHint.title = state === "error" ? update.error || "" : "";
+  const install = state === "ready";
+  els.updateAction.dataset.mode = install ? "install" : "check";
+  els.updateAction.classList.toggle("btn-primary", install);
+  els.updateLabel.textContent = install ? tr("updateInstall") : tr("updateCheck");
+  els.updateAction.disabled = blocked || state === "disabled" || state === "checking" || state === "downloading";
 }
 
 function renderFacts(status) {

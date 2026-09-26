@@ -10,6 +10,7 @@ from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import ValidationError
 
+from app.advice_i18n import localize_advice_items, localize_overlay_response, normalize_lang
 from app.advice_scheduler import ADVICE_SCHEDULER, ScheduledAdvice
 from app.coach_summary import COACH_SESSION_HISTORY
 from app.config import (
@@ -257,7 +258,12 @@ def session_recording_status():
 
 
 @app.get("/overlay/recommendation", summary="Get overlay-friendly recommendation")
-def overlay_recommendation():
+def overlay_recommendation(lang: str = "en"):
+    """`lang=ru` returns the visible text in Russian (see app/advice_i18n.py)."""
+    return localize_overlay_response(_overlay_recommendation_payload(), normalize_lang(lang))
+
+
+def _overlay_recommendation_payload() -> dict[str, object]:
     demo_response = _get_demo_overlay_response()
     if demo_response is not None:
         return demo_response
@@ -461,23 +467,26 @@ def demo_session_summary():
 
 
 @app.get("/advice/recent", summary="Get the most recent advice shown in this session")
-def recent_advice(limit: int = 5):
+def recent_advice(limit: int = 5, lang: str = "en"):
     """Newest first; used by the launcher's "Recent advice" card."""
     limit = max(1, min(int(limit), 20))
     records = COACH_SESSION_HISTORY.records()[-limit:]
     return {
-        "items": [
-            {
-                "timestamp": record.get("timestamp"),
-                "game_time": record.get("game_time") or None,
-                "hero": record.get("hero"),
-                "action": record.get("action"),
-                "reason": record.get("reason"),
-                "priority": record.get("priority"),
-                "advice_mode": record.get("advice_mode"),
-            }
-            for record in reversed(records)
-        ]
+        "items": localize_advice_items(
+            [
+                {
+                    "timestamp": record.get("timestamp"),
+                    "game_time": record.get("game_time") or None,
+                    "hero": record.get("hero"),
+                    "action": record.get("action"),
+                    "reason": record.get("reason"),
+                    "priority": record.get("priority"),
+                    "advice_mode": record.get("advice_mode"),
+                }
+                for record in reversed(records)
+            ],
+            normalize_lang(lang),
+        )
     }
 
 

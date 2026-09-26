@@ -1,20 +1,40 @@
 const assert = require("node:assert/strict");
 const test = require("node:test");
 
-const { encodePowerShell, parseWatcherLine, windowsWatchScript } = require("../dota-watcher");
+const { encodePowerShell, parseRect, parseWatcherLine, windowsWatchScript } = require("../dota-watcher");
 
 test("parses watcher lines", () => {
   assert.deepEqual(parseWatcherLine('{"running":true,"focused":true,"path":"C:\\\\dota2.exe"}'), {
     running: true,
     focused: true,
-    exePath: "C:\\dota2.exe"
+    exePath: "C:\\dota2.exe",
+    exclusiveFullscreen: false,
+    windowRect: null
   });
-  assert.deepEqual(parseWatcherLine('{"running":false,"focused":true,"path":""}'), {
+  assert.deepEqual(parseWatcherLine('{"running":false,"focused":true,"path":"","fullscreen":true,"rect":[0,0,10,10]}'), {
     running: false,
     focused: false,
-    exePath: ""
+    exePath: "",
+    exclusiveFullscreen: false,
+    windowRect: null
   });
   assert.equal(parseWatcherLine("not json"), null);
+});
+
+test("parses exclusive fullscreen and the Dota window rect", () => {
+  const state = parseWatcherLine(
+    '{"running":true,"focused":true,"path":"","fullscreen":true,"rect":[1920,0,4480,1440]}'
+  );
+  assert.equal(state.exclusiveFullscreen, true);
+  assert.deepEqual(state.windowRect, { x: 1920, y: 0, width: 2560, height: 1440 });
+});
+
+test("rejects malformed window rects", () => {
+  assert.equal(parseRect(null), null);
+  assert.equal(parseRect([0, 0, 10]), null);
+  assert.equal(parseRect([0, 0, "10", 10]), null);
+  assert.equal(parseRect([10, 0, 0, 10]), null);
+  assert.deepEqual(parseRect([-1920, -200, 0, 880]), { x: -1920, y: -200, width: 1920, height: 1080 });
 });
 
 test("watch script embeds the parent pid and fits a command line", () => {

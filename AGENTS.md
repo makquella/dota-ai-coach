@@ -54,6 +54,8 @@ The app keeps live state in module-level singletons, not a DB:
 
 `tests/conftest.py` has an **autouse** `reset_runtime_state` fixture that clears all of these before and after every test, and inserts `backend/` onto `sys.path` so `from app...` imports resolve. When writing tests, rely on this fixture. When reasoning about server behavior, remember these carry cross-request state. The `client` fixture returns a FastAPI `TestClient`.
 
+**Advice language.** The pipeline produces English text only. `app/advice_i18n.py` translates the visible fields (`recommendation.action/reason`, `message`, `last_visible_advice`) at the API edge when the launcher asks with `lang=ru` (`/overlay/recommendation`, `/advice/recent`); history, logs and recordings stay English. When you add or change a visible advice string, add its Russian to `_RU_EXACT` (or `_RU_PATTERNS` for texts with a hero/ability name) — `tests/test_advice_i18n.py` replays the fixtures plus mutated live GSI and fails on any visible text without a translation. Unknown text falls back to English, never half-translated.
+
 `app/scheduler/` is a subpackage factored out of the large `advice_scheduler.py` (hashing, heartbeat, safety_predicates, state, types). Load the **advice-policy** skill before changing advice/scheduler/safety logic.
 
 ## Local policy is authoritative; LLM is optional
@@ -62,16 +64,18 @@ Default `USE_LLM=false`. LLM providers only reword advice or run offline review.
 
 ## Frontend tooling
 
-No lint/typecheck. Verification is `node --check` on these eleven files (CI runs exactly this; `npm run check` in `frontend/launcher/` does the same) plus dependency-free unit tests for the Electron-free modules (`npm test` = `node --test test/*.test.js`, also in CI):
+No lint/typecheck. Verification is `node --check` on these thirteen files (CI runs exactly this; `npm run check` in `frontend/launcher/` does the same) plus dependency-free unit tests for the Electron-free modules (`npm test` = `node --test test/*.test.js`, also in CI):
 ```bash
 node --check frontend/launcher/main.js
 node --check frontend/launcher/preload.js
 node --check frontend/launcher/settings.js
 node --check frontend/launcher/overlay-window.js
+node --check frontend/launcher/overlay-placement.js
 node --check frontend/launcher/overlay-preload.js
 node --check frontend/launcher/overlay-visibility.js
 node --check frontend/launcher/dota-watcher.js
 node --check frontend/launcher/steam-locator.js
+node --check frontend/launcher/updater.js
 node --check frontend/launcher/renderer/app.js
 node --check frontend/launcher/overlay/app.js
 node --check frontend/launcher/assets/icons/lucide.js
@@ -80,7 +84,7 @@ Dev: `npm install && npm run dev` inside `frontend/launcher/`. On Wayland/GNOME 
 
 Runtime check without a display server: `xvfb-run -a npx electron . --no-sandbox --smoke-test=/tmp/smoke.json` (from `frontend/launcher/`) starts the backend, loads both windows, checks `/health`, stops the backend gracefully and exits 0/1.
 
-Windows packaging: `scripts/build-windows.ps1` (PyInstaller backend + electron-builder NSIS installer) and `scripts/smoke-windows.ps1`; CI job `windows-package` runs both on `windows-latest`. Details: `docs/PACKAGING_WINDOWS.md`.
+Windows packaging: `scripts/build-windows.ps1` (PyInstaller backend + electron-builder NSIS installer) and `scripts/smoke-windows.ps1`; CI job `windows-package` runs both on `windows-latest` (including a fake `dota2.exe` window compiled with `csc.exe` to exercise the watcher and overlay placement). Releases: bump `version` in `frontend/launcher/package.json`, push tag `v<version>`; `.github/workflows/release.yml` builds, smoke-tests and publishes the GitHub Release (`latest.yml` + installer + blockmap) that installed apps auto-update from. Details: `docs/PACKAGING_WINDOWS.md`.
 
 ## Do not commit generated/local artifacts
 
@@ -152,8 +156,10 @@ One Electron app, **`frontend/launcher/`** (product name "Dota AI Coach", exe `D
 - `renderer/` + `preload.js` — control panel window: one status line with a single action (e.g. «Дота не найдена» → «Указать папку Доты»), three cards (current match, recent advice from backend `GET /advice/recent`, overlay settings: on/off, position preset, move by hand, autostart) plus a collapsed «For developers» section with every other tool (backend, GSI config, live GSI, recordings, replay demos, Deep Review, logs). Texts live in the `I18N` table in `renderer/app.js` (ru/en by system locale, sent by main as `status.locale`); keep both languages in sync when adding strings.
 - Look: calm, neutral dark UI (no game theming, no neon, glow, gradients, glassmorphism or emoji). Design tokens live in `assets/ui/tokens.css` (colours, type scale 12/13/14/16/20/28, weights 400/500/600, 4px spacing, radii 6–10px, 120–180ms ease-out motion) and are shared by both windows — add tokens there instead of hard-coding values. One accent (`--accent`) for the primary action and active state only; `--ok/--warn/--error` only as small status dots. Font: Inter, bundled in `assets/fonts/` (OFL, no CDN — the app must work offline); numbers/timers use `tabular-nums`. Icons: Lucide subset vendored in `assets/icons/lucide.js` (`<i data-icon="name">` + `LucideIcons.hydrate()`); add an icon by copying its SVG body from `lucide-static`. Loading states are skeletons (no spinners); every control needs hover, focus-visible and disabled styles. Screenshots: `docs/screenshots/ui-v3/`.
 - `overlay-window.js` + `overlay-preload.js` + `overlay/` — transparent frameless always-on-top window; its renderer asks the main process for `/overlay/recommendation` (1000 ms) and never builds backend URLs. The window exists while the overlay is enabled; `setVisible()` decides whether it is on screen, and the always-on-top timer runs only while shown.
+- `overlay-placement.js` — pure geometry: presets are computed inside Dota's window (`watcher.windowRect`, physical px → `screen.screenToDipRect`), so the card follows Dota to its monitor and stays inside a windowed game; hand-placed positions fall back to a preset when their monitor is gone.
+- `updater.js` — `electron-updater` from GitHub Releases, packaged NSIS build only (never in dev, portable or `--smoke-test`). Downloads in the background; installs on "Restart and update" (tray / Updates row), on quit, or unattended once Dota has been closed for 5 min and the panel is hidden — never while Dota runs. `settings.startHiddenOnce` / `updatedFrom` bring the relaunched app back hidden and show "Updated to x".
 - `overlay-visibility.js` — pure rules: shown only when enabled AND (unlocked for dragging OR replay demo OR (dota2 running AND focused AND backend `/gsi/status` `in_match`)); on platforms without focus tracking it follows the switch. Also the tray status (not found / waiting for game / in game).
-- `dota-watcher.js` — Windows: one hidden long-lived PowerShell helper (user32 `GetForegroundWindow`/`GetWindowThreadProcessId`/`IsIconic`) prints JSON on change; exits itself when the launcher dies. Linux dev: `/proc` scan, no focus tracking.
+- `dota-watcher.js` — Windows: one hidden long-lived PowerShell helper (user32 `GetForegroundWindow`/`GetWindowThreadProcessId`/`IsIconic`/`GetWindowRect`, shell32 `SHQueryUserNotificationState`) prints JSON on change: running, focused, exe path, `windowRect` (physical px, DPI-aware helper) and `exclusiveFullscreen` (D3D exclusive fullscreen, where no overlay can be drawn; sticky until Dota exits). Exclusive fullscreen shows a tray balloon once per run, a tray menu line and a status-line warning with a "I can see the advice" dismiss (`settings.fullscreenWarningDismissed`). Exits itself when the launcher dies. Linux dev: `/proc` scan, no focus tracking.
 - `steam-locator.js` — Steam root from the registry (`reg.exe query`) → `libraryfolders.vdf` → every library; Dota's uninstall key and the running `dota2.exe` path are extra hints. The GSI config is installed automatically once on first run (`settings.gsiAutoInstalled`) and afterwards kept identical to the template.
 - `settings.js` — `%APPDATA%\DotaAICoach\settings.json` (Electron `userData` is set to the same folder the frozen backend writes to).
 

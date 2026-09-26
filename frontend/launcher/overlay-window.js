@@ -1,12 +1,15 @@
 const { BrowserWindow, globalShortcut, screen } = require("electron");
 const path = require("node:path");
 
+const { anchorArea, isReachable, presetBounds, sameBounds } = require("./overlay-placement");
+
 // Always-on-top advice card. It used to be a separate Electron app
 // (frontend/desktop-overlay); now it is a second window of the launcher so the
 // whole coach runs as one process with one tray icon.
 
 const WINDOW_WIDTH = 420;
-const WINDOW_HEIGHT = 140;
+// Room for a 3-line action + 2-line reason (Russian text runs ~25% longer).
+const WINDOW_HEIGHT = 176;
 const ALWAYS_ON_TOP_LEVEL = "screen-saver";
 const ENFORCE_ALWAYS_ON_TOP_MS = 2500;
 const MUTE_MS = 5 * 60 * 1000;
@@ -25,12 +28,23 @@ const OVERLAY_DEFAULTS = {
 // The window exists while the overlay is enabled; whether it is on screen is
 // decided separately (setVisible) from Dota focus + fresh GSI, see
 // overlay-visibility.js. The always-on-top timer only runs while it is shown.
-function createOverlayController({ settings, getBackend, getLocale = () => "en", onChange = () => {}, log = () => {} }) {
+// getDotaRect() returns Dota's window in physical pixels (dota-watcher.js) or
+// null; the card follows it to its monitor, see overlay-placement.js.
+function createOverlayController({
+  settings,
+  getBackend,
+  getLocale = () => "en",
+  getDotaRect = () => null,
+  onChange = () => {},
+  log = () => {}
+}) {
   let overlayWindow = null;
   let alwaysOnTopTimer = null;
   let moveSaveTimer = null;
   let windowShortcutsRegistered = false;
   let wantVisible = false;
+  let ignoreMovesUntil = 0;
+  let lastDotaDisplayId = null;
 
   const windowShortcuts = [
     ["CommandOrControl+Alt+M", muteAdvice],
@@ -150,7 +164,8 @@ function createOverlayController({ settings, getBackend, getLocale = () => "en",
       unregisterWindowShortcuts();
     });
     overlayWindow.on("move", () => {
-      if (!isOpen() || config().locked) {
+      // Our own setBounds (presets, following Dota) is not a hand move.
+      if (!isOpen() || config().locked || Date.now() < ignoreMovesUntil) {
         return;
       }
       clearTimeout(moveSaveTimer);
@@ -212,37 +227,83 @@ function createOverlayController({ settings, getBackend, getLocale = () => "en",
     send("overlay-config-updated", publicConfig());
   }
 
-  // Presets keep the card off the Dota HUD: the minimap and the hero panel
-  // take roughly the bottom 22% of the screen, the top bar the top ~8%.
+  // Presets keep the card off the Dota HUD (minimap and hero panel at the
+  // bottom, top bar at the top) and are computed inside Dota's window.
   function moveToPreset(preset, persist = true) {
     if (!isOpen()) {
       return;
     }
     preset = normalizePreset(preset);
     const current = config();
-    const area = screen.getPrimaryDisplay().workArea;
-    const margin = 24;
-    const hudHeight = Math.round(area.height * 0.24);
-    let x = area.x + area.width - WINDOW_WIDTH - margin;
-    let y = area.y + Math.round((area.height - WINDOW_HEIGHT) / 2);
-
-    if (preset === "left-center") {
-      x = area.x + margin;
-    } else if (preset === "bottom-center") {
-      x = area.x + Math.round((area.width - WINDOW_WIDTH) / 2);
-      y = area.y + area.height - hudHeight - WINDOW_HEIGHT;
-    } else if (preset === "custom" && current.customBounds) {
-      x = Number(current.customBounds.x) || x;
-      y = Number(current.customBounds.y) || y;
+    const size = { width: WINDOW_WIDTH, height: WINDOW_HEIGHT };
+    let bounds = null;
+    if (preset === "custom" && current.customBounds) {
+      const custom = {
+        x: Number(current.customBounds.x) || 0,
+        y: Number(current.customBounds.y) || 0,
+        ...size
+      };
+      if (isReachable(custom, screen.getAllDisplays().map((display) => display.workArea))) {
+        bounds = custom;
+      } else {
+        log("The hand-placed overlay position is off-screen (monitor removed?); using the right preset.");
+      }
     }
-
-    overlayWindow.setBounds({ x, y, width: WINDOW_WIDTH, height: WINDOW_HEIGHT });
+    if (!bounds) {
+      bounds = presetBounds(preset === "custom" ? "right-center" : preset, targetArea(size), size);
+    }
+    applyBounds(bounds);
     if (persist) {
       updateConfig({
         positionPreset: preset,
         customBounds: preset === "custom" ? current.customBounds : undefined
       });
     }
+  }
+
+  function applyBounds(bounds) {
+    if (sameBounds(overlayWindow.getBounds(), bounds)) {
+      return;
+    }
+    ignoreMovesUntil = Date.now() + 500;
+    overlayWindow.setBounds(bounds);
+  }
+
+  function targetArea(size) {
+    const displays = screen.getAllDisplays();
+    const physical = getDotaRect();
+    let dotaRect = null;
+    let display = null;
+    if (physical) {
+      dotaRect = toDip(physical);
+      display = screen.getDisplayMatching(dotaRect);
+      lastDotaDisplayId = display ? display.id : null;
+    }
+    // Dota minimized or closed: stay on the monitor it was last seen on.
+    const lastDisplay = displays.find((item) => item.id === lastDotaDisplayId);
+    const fallbackArea = (lastDisplay || screen.getPrimaryDisplay()).workArea;
+    return anchorArea({ dotaRect, display, fallbackArea, size });
+  }
+
+  // The watcher reports physical pixels; Electron places windows in DIP.
+  function toDip(rect) {
+    if (process.platform === "win32" && typeof screen.screenToDipRect === "function") {
+      try {
+        return screen.screenToDipRect(null, rect);
+      } catch {
+        // Fall through to the raw rect.
+      }
+    }
+    return rect;
+  }
+
+  // Called when Dota's window moves to another monitor or displays change.
+  // Not while the user is dragging the card (unlocked).
+  function refreshPlacement() {
+    if (!isOpen() || !config().locked) {
+      return;
+    }
+    moveToPreset(config().positionPreset || OVERLAY_DEFAULTS.positionPreset, false);
   }
 
   function normalizePreset(preset) {
@@ -372,6 +433,7 @@ function createOverlayController({ settings, getBackend, getLocale = () => "en",
     setVisible,
     setPosition,
     position,
+    refreshPlacement,
     setLocked,
     window: () => (isOpen() ? overlayWindow : null),
     enforceAlwaysOnTop,
