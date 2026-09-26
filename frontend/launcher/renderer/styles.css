@@ -2079,3 +2079,10 @@ label.setting:has(.switch:disabled) {
   gap: var(--sp-2);
   color: var(--text);
 }
+
+.self-group {
+  display: block;
+  margin-top: 2px;
+  font-size: var(--fs-12);
+  font-weight: var(--fw-regular);
+}

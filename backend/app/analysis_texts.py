@@ -498,6 +498,26 @@ SECTIONS = {
     "draft": {"ru": "Драфт", "en": "Draft"},
 }
 
+# Best vs worst own matches (self_compare.py): one line per metric.
+SELF_COMPARE = {
+    "ru": {
+        "lh_10": "К 10:00 в лучших матчах у вас {best} добиваний, в худших — {worst}.",
+        "gpm": "Золото в минуту: {best} в лучших матчах против {worst} в худших.",
+        "deaths": "Смертей за матч: {best} в лучших против {worst} в худших.",
+        "lane_deaths": "Смертей на линии: {best} в лучших матчах против {worst} в худших.",
+        "kill_participation": "Участие в убийствах: {best} в лучших матчах против {worst} в худших.",
+        "first_item_t": "Первый большой предмет: {item_best} к {best} в лучших матчах, {item_worst} к {worst} в худших.",
+    },
+    "en": {
+        "lh_10": "By 10:00 you have {best} last hits in your best games and {worst} in your worst.",
+        "gpm": "Gold per minute: {best} in your best games against {worst} in your worst.",
+        "deaths": "Deaths per game: {best} in your best games against {worst} in your worst.",
+        "lane_deaths": "Lane deaths: {best} in your best games against {worst} in your worst.",
+        "kill_participation": "Kill participation: {best} in your best games against {worst} in your worst.",
+        "first_item_t": "First big item: {item_best} by {best} in your best games, {item_worst} by {worst} in your worst.",
+    },
+}
+
 # Why an enemy hero needs a counter item (draft_analysis.COUNTERS).
 COUNTER_REASONS = {
     "evasion": {"ru": "уклонение", "en": "evasion"},

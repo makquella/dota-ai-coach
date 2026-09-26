@@ -166,6 +166,19 @@
       rankCareerEmpty: "Appears after a few matches reviewed with OpenDota data.",
       colBracket: "At your rank",
       bracketHint: (rank) => `Hero win rate among all ${rank} players (OpenDota)`,
+      selfTitle: (hero) => `Your best vs your worst games on ${hero}`,
+      selfNote: (n) => `The best third of your last ${n} reviewed games on the hero against the worst third, by review score.`,
+      selfBest: "Best",
+      selfWorst: "Worst",
+      selfGroup: (count, wr) => `${count} games · ${wr}% wins`,
+      selfMetrics: {
+        lh_10: "LH at 10:00",
+        gpm: "GPM",
+        deaths: "Deaths",
+        lane_deaths: "Lane deaths",
+        kill_participation: "Kill participation",
+        first_item_t: "First big item"
+      },
       draftTitle: "Draft",
       draftNote: (hero) => `${hero}'s win rate against each enemy hero (OpenDota matchup statistics).`,
       draftNoData: "No matchup statistics yet: they are loaded with the next OpenDota sync.",
@@ -389,6 +402,19 @@
       rankCareerEmpty: "Появится после нескольких матчей, разобранных по данным OpenDota.",
       colBracket: "На вашем ранге",
       bracketHint: (rank) => `Винрейт героя у всех игроков ранга ${rank} (OpenDota)`,
+      selfTitle: (hero) => `Лучшие и худшие матчи на ${hero}`,
+      selfNote: (n) => `Лучшая треть из ${n} последних разобранных матчей на герое против худшей трети, по оценке разбора.`,
+      selfBest: "Лучшие",
+      selfWorst: "Худшие",
+      selfGroup: (count, wr) => `${count} матча · ${wr}% побед`,
+      selfMetrics: {
+        lh_10: "Добивания к 10:00",
+        gpm: "GPM",
+        deaths: "Смерти",
+        lane_deaths: "Смерти на линии",
+        kill_participation: "Участие в убийствах",
+        first_item_t: "Первый большой предмет"
+      },
       draftTitle: "Драфт",
       draftNote: (hero) => `Винрейт ${hero} против каждого вражеского героя (статистика матчапов OpenDota).`,
       draftNoData: "Статистики матчапов пока нет: она загрузится при следующей синхронизации с OpenDota.",
@@ -1391,6 +1417,58 @@
     return winrate >= 52 ? "good" : winrate <= 48 ? "bad" : "idle";
   }
 
+  function selfValue(key, value, item) {
+    if (key === "first_item_t") {
+      return item ? `${item} · ${clock(value)}` : clock(value);
+    }
+    if (key === "kill_participation") {
+      return `${Math.round(value)}%`;
+    }
+    if (key === "deaths" || key === "lane_deaths") {
+      return percent1(value).replace("%", "").replace(/[.,]0$/, "");
+    }
+    return number(value);
+  }
+
+  function selfCompareCard(compare) {
+    if (!compare) {
+      return null;
+    }
+    const groupHead = (label, group) => h("th", { class: "num-col" }, h("span", { text: label }), h("span", { class: "self-group muted", text: t("selfGroup", group.count, group.winrate ?? "—") }));
+    return card(
+      t("selfTitle", compare.hero),
+      "trophy",
+      h(
+        "div",
+        { class: "draft" },
+        h("p", { class: "muted small", text: t("selfNote", compare.matches) }),
+        compare.highlights.length ? coachList(compare.highlights, "idle") : null,
+        h(
+          "div",
+          { class: "table-wrap table-wrap-tight" },
+          h(
+            "table",
+            { class: "table" },
+            h("thead", {}, h("tr", {}, h("th", { text: t("colMetric") }), groupHead(t("selfBest"), compare.best), groupHead(t("selfWorst"), compare.worst))),
+            h(
+              "tbody",
+              {},
+              compare.rows.map((row) =>
+                h(
+                  "tr",
+                  {},
+                  h("td", { text: t(`selfMetrics.${row.key}`) }),
+                  h("td", { class: "num-col num", text: selfValue(row.key, row.best, compare.first_items?.best) }),
+                  h("td", { class: "num-col num muted", text: selfValue(row.key, row.worst, compare.first_items?.worst) })
+                )
+              )
+            )
+          )
+        )
+      )
+    );
+  }
+
   function draftCard(analysis) {
     const draft = analysis.draft;
     if (!draft) {
@@ -2168,6 +2246,7 @@
       coachCard(career.coach, "career") || "",
       scoreCard,
       careerRankCard(career),
+      selfCompareCard(career.self_compare) || "",
       planCard,
       strengthsCard || "",
       heroesCard || ""

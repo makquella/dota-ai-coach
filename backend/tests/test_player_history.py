@@ -619,3 +619,50 @@ def test_service_fetches_matchups_for_the_pool_and_rebuilds_old_reviews(client, 
     service.store.upsert_match(ME, MATCH_ID, source="opendota", analysis=old)
     detail = client.get(f"/player/matches/{MATCH_ID}?lang=ru").json()
     assert detail["analysis"]["version"] != 1 and detail["analysis"]["draft"]
+
+
+# --- best vs worst own matches -----------------------------------------------------------
+
+
+def test_best_matches_are_compared_with_the_worst(client, tmp_path):
+    recent = recent_matches(12)
+    fake = FakeOpenDota(
+        matches={
+            row["match_id"]: opendota_match(good=row["radiant_win"], match_id=row["match_id"])
+            for row in recent
+        },
+        recent=recent,
+    )
+    PLAYER_SERVICE.configure(tmp_path / "svc", client=fake, auto_start=False)
+    client.post("/player/link", json={"steam": str(ME)})
+    PLAYER_SERVICE.jobs.run_pending(until=float("inf"))
+    compare = client.get("/player/career?lang=ru").json()["self_compare"]
+    assert compare["hero"] == "Juggernaut" and compare["matches"] == 12
+    assert compare["best"]["winrate"] == 100 and compare["worst"]["winrate"] == 0
+    rows = {row["key"]: row for row in compare["rows"]}
+    assert rows["lh_10"]["best"] == 70 and rows["lh_10"]["worst"] == 36
+    assert all(row["best_is_better"] for row in compare["rows"])
+    assert (
+        "Первый большой предмет: Battle Fury к 12:00 в лучших матчах, Maelstrom к 26:00 в худших."
+        in compare["highlights"]
+    )
+    assert len(compare["highlights"]) == 3
+    # Pick advice depends on each lineup: not a recurring problem to train.
+    career = client.get("/player/career?lang=ru").json()
+    assert "draft_better_pick" not in {row["id"] for row in career["recurring"]}
+
+
+def test_best_vs_worst_needs_enough_matches():
+    from app.self_compare import compare_best_worst
+
+    rows = [
+        {
+            "hero": "Juggernaut",
+            "win": True,
+            "analysis": analyze_match(
+                facts_from_opendota(trim_match(opendota_match(good=True), ME))
+            ),
+        }
+        for _ in range(5)
+    ]
+    assert compare_best_worst(rows, "en") is None

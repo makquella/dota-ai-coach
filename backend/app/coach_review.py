@@ -201,6 +201,17 @@ def career_facts(career: dict[str, Any], recent: list[dict[str, Any]]) -> dict[s
         ],
         "recent_matches": recent[:10],
     }
+    compare = career.get("self_compare")
+    if compare:
+        facts["your_best_vs_worst_games"] = {
+            "hero": compare["hero"],
+            "best": compare["best"],
+            "worst": compare["worst"],
+            "first_big_item": compare.get("first_items"),
+            "metrics": {
+                row["key"]: {"best": row["best"], "worst": row["worst"]} for row in compare["rows"]
+            },
+        }
     rank = career.get("rank")
     if rank:
         facts["rank"] = rank.get("rank_label")
