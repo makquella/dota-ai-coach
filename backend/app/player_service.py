@@ -79,6 +79,8 @@ AI_SETTINGS_KEY = "ai_settings"
 # The replay is still being parsed: wait for the full data before asking the model.
 COACH_WAITS_FOR = {"waiting_opendota", "parsing"}
 COACH_MIN_CAREER_MATCHES = 3
+# "Overloaded" (HTTP 503 on every model) costs no quota: retry by itself later.
+COACH_BUSY_RETRY_SECONDS = (60, 120, 180)
 
 
 class JobQueue:
@@ -477,7 +479,7 @@ class PlayerService:
         return {"state": "pending", **shown}
 
     def _job_coach(
-        self, key: str, facts: dict[str, Any], digest: str, lang: str, kind: str
+        self, key: str, facts: dict[str, Any], digest: str, lang: str, kind: str, attempt: int = 0
     ) -> None:
         client = self._coach_client()
         if client is None:
@@ -488,6 +490,14 @@ class PlayerService:
         try:
             result = generate(client, facts, lang, known_items=self._known_items())
         except CoachLLMError as error:
+            if error.code == "busy" and attempt < len(COACH_BUSY_RETRY_SECONDS):
+                # Stays "pending" for the UI; the next try goes on the same AI thread.
+                self.ai_jobs.submit(
+                    f"{key}:{digest}:retry{attempt + 1}",
+                    lambda: self._job_coach(key, facts, digest, lang, kind, attempt + 1),
+                    delay=COACH_BUSY_RETRY_SECONDS[attempt],
+                )
+                return
             with self._coach_lock:
                 self._coach_jobs[key] = {"state": "error", "hash": digest, "error": error.code}
             return

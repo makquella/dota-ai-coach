@@ -197,6 +197,27 @@ GSI_MATCH_REVIEW = {
 }
 
 
+def test_overloaded_service_is_retried_in_the_background(client, tmp_path):
+    busy = CoachLLMError("busy")
+    llm = FakeLLM(busy, busy, GOOD_MATCH_REVIEW)
+    service = _reviewed_match(client, tmp_path, llm)
+    client.get(f"/player/matches/{MATCH_ID}?lang=ru")
+    service.ai_jobs.run_pending()  # first try now: busy
+    assert client.get(f"/player/matches/{MATCH_ID}?lang=ru").json()["coach"]["state"] == "pending"
+    assert any(key.endswith(":retry1") for key in service.ai_jobs.pending())
+    service.ai_jobs.run_pending(until=float("inf"))
+    coach = client.get(f"/player/matches/{MATCH_ID}?lang=ru").json()["coach"]
+    assert coach["state"] == "ready" and len(llm.calls) == 3
+
+    # Still busy after every retry: an error the player can retry by hand.
+    llm = FakeLLM(busy)
+    service = _reviewed_match(client, tmp_path / "again", llm)
+    client.get(f"/player/matches/{MATCH_ID}?lang=ru")
+    service.ai_jobs.run_pending(until=float("inf"))
+    coach = client.get(f"/player/matches/{MATCH_ID}?lang=ru").json()["coach"]
+    assert coach == {"state": "error", "error": "busy"} and len(llm.calls) == 4
+
+
 def test_live_match_waits_for_the_replay_and_refreshes_when_facts_change(client, tmp_path):
     llm = FakeLLM(GSI_MATCH_REVIEW)
     fake = FakeOpenDota(matches={MATCH_ID: opendota_match(good=False)})
@@ -315,7 +336,12 @@ def test_llm_client_request_and_errors():
     llm.complete([{"role": "user", "content": "hi"}])
     assert session.requests[0]["json"]["reasoning"]["effort"] == "medium"
 
-    for status, code in ((401, "invalid_key"), (429, "rate_limited"), (500, "bad_response")):
+    for status, code in (
+        (401, "invalid_key"),
+        (429, "rate_limited"),
+        (503, "busy"),
+        (418, "bad_response"),
+    ):
         llm, _ = _client("groq", _Response(status, {}))
         with pytest.raises(CoachLLMError) as error:
             llm.complete([{"role": "user", "content": "hi"}])
@@ -342,11 +368,73 @@ def test_llm_client_retries_without_optional_parameters_on_http_400():
     assert "reasoning_effort" not in session.payloads[1]
 
 
+class _ScriptedSession:
+    """Answers per model: {model: status}; records the models asked."""
+
+    def __init__(self, statuses: dict[str, int], body: Any = None) -> None:
+        self.statuses = statuses
+        self.body = body
+        self.models: list[str] = []
+        self.headers: list[dict[str, str]] = []
+
+    def post(self, url: str, **kwargs: Any) -> _Response:
+        model = kwargs["json"]["model"]
+        self.models.append(model)
+        self.headers.append(kwargs["headers"])
+        status = self.statuses.get(model, 200)
+        ok = {"choices": [{"message": {"content": "{}"}}]}
+        return _Response(status, ok if status == 200 else (self.body or {}))
+
+
+def test_gemini_is_the_default_and_uses_the_openai_compatible_endpoint(tmp_path):
+    PLAYER_SERVICE.configure(tmp_path / "svc", client=None, auto_start=False)
+    status = PLAYER_SERVICE.ai_status()
+    assert status["providers"][0]["id"] == "gemini"
+    assert status["providers"][0]["model"] == "gemini-3.8-flash"
+    settings = settings_from({"provider": "gemini", "api_key": "AQ.test-key-1234"}, source="app")
+    assert settings is not None
+    session = _ScriptedSession({})
+    llm = CoachLLM(settings, session=session)
+    assert llm.complete([{"role": "user", "content": "hi"}]) == "{}"
+    assert session.headers[0]["Authorization"] == "Bearer AQ.test-key-1234"
+    assert llm.label == {"provider": "gemini", "model": "gemini-3.8-flash"}
+
+
+def test_gemini_moves_to_the_next_flash_model_when_one_is_overloaded():
+    settings = settings_from({"provider": "gemini", "api_key": "AQ.test-key-1234"}, source="app")
+    assert settings is not None
+    session = _ScriptedSession({"gemini-3.8-flash": 503, "gemini-3.7-flash": 429})
+    llm = CoachLLM(settings, session=session)
+    llm.complete([{"role": "user", "content": "hi"}])
+    assert session.models == ["gemini-3.8-flash", "gemini-3.7-flash", "gemini-3.6-flash"]
+    # The review footer names the model that actually answered.
+    assert llm.label["model"] == "gemini-3.6-flash"
+
+    all_busy = {m: 503 for m in ("gemini-3.8-flash", "gemini-3.7-flash", "gemini-3.6-flash")}
+    all_busy |= {"gemini-3.5-flash": 503, "gemini-flash-latest": 503}
+    with pytest.raises(CoachLLMError) as error:
+        CoachLLM(settings, session=_ScriptedSession(all_busy)).complete([])
+    assert error.value.code == "busy"
+
+
+def test_google_bad_key_is_reported_as_invalid_key():
+    settings = settings_from({"provider": "gemini", "api_key": "AQ.wrong-key-1234"}, source="app")
+    assert settings is not None
+    body = [{"error": {"code": 400, "message": "Please pass a valid API key"}}]
+    session = _ScriptedSession({"gemini-3.8-flash": 400}, body=body)
+    with pytest.raises(CoachLLMError) as error:
+        CoachLLM(settings, session=session).complete([])
+    assert error.value.code == "invalid_key" and len(session.models) == 1
+
+
 def test_fact_checker_understands_number_formats():
     facts = json.dumps({"net_worth": 11500, "gpm_pct": 0.12, "kda": 2.4, "time": "26:00"})
     checker = FactChecker(facts, ["Black King Bar", "Maelstrom"])
     assert checker.problems("Ценность 11 500, лучше 12% игроков, KDA 2,4 к 26:00.") == []
     assert checker.problems("11.5k net worth, 3 deaths by minute 15.") == []
     assert checker.problems("Купите Black King Bar к 18:00.") == ["18:00", "Black King Bar"]
+    # Minute marks only as minutes: "50 last hits by minute 10" is not a fact.
+    assert checker.problems("К 15-й минуте, за 20 минут, by minute 25.") == []
+    assert checker.problems("Держите 50 добиваний к 10-й минуте.") == ["50"]
     # 14 000 net worth does not make "14 deaths" a fact.
     assert FactChecker(json.dumps({"nw": 14000}), []).problems("14 смертей, 14k золота") == ["14"]

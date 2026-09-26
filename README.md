@@ -39,7 +39,7 @@ Backend:
 - Coach session summary builder.
 - Offline replay conversion and simulation scripts.
 - Optional LLM providers for wording/review flows.
-- Optional post-match AI coach (free Groq / OpenRouter key entered in the launcher), fact-checked against the rule-based review.
+- Optional post-match AI coach (free Google Gemini, Groq or OpenRouter key entered in the launcher), fact-checked against the rule-based review.
 
 Frontend:
 

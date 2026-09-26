@@ -29,16 +29,23 @@ from app.dota_constants import HEROES
 COACH_VERSION = 1
 # Share of the text that may be dropped by the fact check before a retry.
 MAX_SCRUBBED_SHARE = 0.25
-# Counts ("3 deaths") and minute marks ("by minute 15") are always allowed.
-ALWAYS_ALLOWED_NUMBERS = {float(n) for n in range(13)} | {float(n) for n in range(15, 61, 5)}
-ALWAYS_ALLOWED_NUMBERS |= {100.0}
+# Small counts ("3 deaths") are always allowed; minute marks ("by minute 15",
+# "15:00") only as minutes, so "50 last hits" still has to come from the facts.
+ALWAYS_ALLOWED_NUMBERS = {float(n) for n in range(13)} | {100.0}
+MINUTE_RE = re.compile(
+    r"(?<![\d:.,])(\d{1,2})(?:-?(?:й|я|ю|ой|ей|th))?\s+(?:минут\w*|мин\b|minutes?\b|min\b)"
+    r"|\bminute\s+(\d{1,2})\b",
+    re.IGNORECASE,
+)
 
 HERO_NAMES = sorted({name for name, _ in HEROES.values()}, key=len, reverse=True)
 
 LANGUAGE_RULES = {
     "ru": (
         "Write in Russian. Address the player formally («вы»). Keep hero and item names "
-        "in English exactly as in the data."
+        "in English exactly as in the data; no other English words (use the Russian words "
+        "players use: фарм, линия, добивания, крипы, лес, тайминг, ценность for net worth; GPM "
+        "and XPM stay). Times as «к 26:00»."
     ),
     "en": "Write in English. Address the player as «you».",
 }
@@ -330,7 +337,8 @@ class FactChecker:
 
     def problems(self, text: str) -> list[str]:
         found = [t for t in TIME_RE.findall(text) if _plain_time(t) not in self.times]
-        for value in _numbers(TIME_RE.sub(" ", text)):
+        text = MINUTE_RE.sub(_minute_mark, TIME_RE.sub(" ", text))
+        for value in _numbers(text):
             if not any(abs(value - a) < 0.051 for a in self.allowed):
                 found.append(_format_number(value))
         if self._name_re:
@@ -383,6 +391,12 @@ class FactChecker:
 
 TIME_RE = re.compile(r"(?<![\d:])\d{1,2}:\d{2}(?![\d:])")
 THOUSANDS_RE = re.compile(r"(\d+(?:\.\d+)?)\s*(?:k|тыс\.?)(?!\w)", re.IGNORECASE)
+
+
+def _minute_mark(match: re.Match[str]) -> str:
+    """ "15-й минуте" / "by minute 20": a 5-minute mark needs no fact."""
+    minutes = int(match.group(1) or match.group(2))
+    return " " if minutes % 5 == 0 and minutes <= 90 else match.group(0)
 
 
 def _plain_time(value: str) -> str:
@@ -567,10 +581,17 @@ def _score_row(row: dict[str, Any]) -> dict[str, Any]:
 
 
 def _prune(value: Any) -> Any:
-    """Drop None / empty values so the prompt stays small."""
+    """Drop None / empty values and round numbers so the prompt stays small and readable."""
     if isinstance(value, dict):
         pruned = {k: _prune(v) for k, v in value.items()}
         return {k: v for k, v in pruned.items() if v not in (None, "", [], {})}
     if isinstance(value, list):
         return [_prune(v) for v in value if v not in (None, "", [], {})]
+    if isinstance(value, float):
+        # The model copies numbers as given: 590.0 -> 590, 640.33 -> 640, 2.35 -> 2.4.
+        # Shares below 1 (0.12 = 12 %) keep their precision.
+        if abs(value) < 1:
+            return round(value, 3)
+        tidy = round(value) if abs(value) >= 100 else round(value, 1)
+        return int(tidy) if tidy == int(tidy) else tidy
     return value

@@ -37,7 +37,7 @@ Key files:
 - `backend/app/match_tracker.py` - whole-match timeline of the local player from live GSI (samples, deaths with unspent gold, items, buybacks).
 - `backend/app/opendota.py`, `match_facts.py`, `post_match_analysis.py`, `analysis_texts.py`, `career_analysis.py` - OpenDota client, merged match facts, post-match review (ru/en), statistics and advice over many matches.
 - `backend/app/hero_meta.py`, `build_analysis.py`, `peer_analysis.py` - cached OpenDota meta (items, item timings, pro builds, win rate per rank), build advice, comparison with same-role players of the player's rank.
-- `backend/app/coach_llm.py`, `coach_review.py` - optional AI coach: explains a match or the recent matches in plain words (Groq / OpenRouter, free gpt-oss-120b), with every number, time, hero and item checked against the rule-based facts.
+- `backend/app/coach_llm.py`, `coach_review.py` - optional AI coach: explains a match or the recent matches in plain words (Google Gemini Flash by default, or Groq / OpenRouter, all on free tiers), with every number, time, hero and item checked against the rule-based facts. `backend/scripts/compare_coach_models.py` compares models on the same match.
 - `backend/app/advice_i18n.py` - Russian wording of the visible advice text, applied only at the API edge (`lang=ru` on `/overlay/recommendation` and `/advice/recent`); the pipeline, logs and history stay English.
 
 ## Frontend

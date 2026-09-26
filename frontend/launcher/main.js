@@ -995,7 +995,12 @@ const PLAYER_OPS = {
   aiSave: (args) => [
     "POST",
     "/player/ai",
-    { provider: aiProviderArg(args), api_key: String(args.apiKey || "").trim().slice(0, 300) }
+    {
+      provider: aiProviderArg(args),
+      api_key: String(args.apiKey || "").trim().slice(0, 300),
+      // Optional model id (e.g. stealth/space-bunny-alpha); empty = the service default.
+      model: /^[\w./:-]{1,100}$/.test(String(args.model || "")) ? String(args.model) : null
+    }
   ],
   aiClear: () => ["DELETE", "/player/ai"],
   // One real request to the provider: allow it time.
@@ -1004,6 +1009,7 @@ const PLAYER_OPS = {
 
 // Where a player gets a free key (opened in the browser).
 const AI_KEY_PAGES = {
+  gemini: "https://aistudio.google.com/apikey",
   groq: "https://console.groq.com/keys",
   openrouter: "https://openrouter.ai/settings/keys"
 };

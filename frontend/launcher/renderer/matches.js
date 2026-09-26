@@ -188,6 +188,7 @@
       coachFooter: (provider, model) => `Written by AI (${provider} · ${model}) from the data of the review. Numbers, times, heroes and items are checked against it.`,
       coachErrors: {
         rate_limited: "The free limit of the AI service is used up for now. Try again in a few minutes.",
+        busy: "The AI service is overloaded right now. Try again in a few minutes.",
         invalid_key: "The AI service rejected the key. Check it in the AI settings.",
         timeout: "The AI service took too long to answer.",
         offline: "No connection to the AI service.",
@@ -196,12 +197,14 @@
         no_key: "No key yet."
       },
       aiOffTitle: "AI coach is off",
-      aiOffHint: "Explains the match in plain words, like a coach watching the replay. Free with a Groq or OpenRouter key.",
+      aiOffHint: "Explains the match in plain words, like a coach watching the replay. Free with a Google Gemini, Groq or OpenRouter key.",
       aiTurnOn: "Turn on",
       aiSetupHint: "Get a free key (takes a minute, no card) and paste it here. The coach only explains: every number still comes from the review. The match data (without your Steam ID) is sent to the chosen service.",
       aiService: "Service",
       aiKey: "API key",
       aiKeyPlaceholder: "Paste the key",
+      aiModel: "Model",
+      aiModelHint: "optional",
       aiGetKey: "Get a free key",
       aiSave: "Check and save",
       aiChecking: "Checking the key…",
@@ -394,6 +397,7 @@
       coachFooter: (provider, model) => `Написано ИИ (${provider} · ${model}) по данным разбора. Числа, время, герои и предметы сверены с ними.`,
       coachErrors: {
         rate_limited: "Бесплатный лимит ИИ-сервиса пока исчерпан. Попробуйте через несколько минут.",
+        busy: "ИИ-сервис сейчас перегружен. Попробуйте через несколько минут.",
         invalid_key: "ИИ-сервис не принял ключ. Проверьте его в настройках ИИ.",
         timeout: "ИИ-сервис слишком долго отвечал.",
         offline: "Нет связи с ИИ-сервисом.",
@@ -402,12 +406,14 @@
         no_key: "Ключ ещё не указан."
       },
       aiOffTitle: "ИИ-тренер выключен",
-      aiOffHint: "Объясняет матч простыми словами, как тренер, который смотрит реплей. Бесплатно с ключом Groq или OpenRouter.",
+      aiOffHint: "Объясняет матч простыми словами, как тренер, который смотрит реплей. Бесплатно с ключом Google Gemini, Groq или OpenRouter.",
       aiTurnOn: "Включить",
       aiSetupHint: "Получите бесплатный ключ (минута, без карты) и вставьте его сюда. Тренер только объясняет: все числа по-прежнему берутся из разбора. Данные матча (без вашего Steam ID) отправляются в выбранный сервис.",
       aiService: "Сервис",
       aiKey: "API-ключ",
       aiKeyPlaceholder: "Вставьте ключ",
+      aiModel: "Модель",
+      aiModelHint: "необязательно",
       aiGetKey: "Получить бесплатный ключ",
       aiSave: "Проверить и сохранить",
       aiChecking: "Проверяем ключ…",
@@ -1680,7 +1686,7 @@
     } else {
       renderMatch();
     }
-    const input = document.querySelector(".ai-form input");
+    const input = document.querySelector(".ai-form input[type='password']");
     if (state.aiPanel === "form" && input && !input.value) {
       input.focus();
     }
@@ -1727,6 +1733,7 @@
 
   function aiForm(kind, message) {
     const providers = state.ai?.providers || [
+      { id: "gemini", label: "Gemini" },
       { id: "groq", label: "Groq" },
       { id: "openrouter", label: "OpenRouter" }
     ];
@@ -1742,6 +1749,7 @@
           text: item.label,
           onclick: (event) => {
             provider = item.id;
+            modelInput.placeholder = `${defaultModel(provider)} (${t("aiModelHint")})`;
             for (const button of choice.querySelectorAll("button")) {
               button.setAttribute("aria-checked", String(button === event.currentTarget));
             }
@@ -1750,6 +1758,8 @@
       )
     );
     const input = h("input", { class: "input", type: "password", placeholder: t("aiKeyPlaceholder"), "aria-label": t("aiKey"), autocomplete: "off", spellcheck: "false" });
+    const defaultModel = (id) => providers.find((p) => p.id === id)?.model || "";
+    const modelInput = h("input", { class: "input", type: "text", placeholder: `${defaultModel(provider)} (${t("aiModelHint")})`, "aria-label": t("aiModel"), autocomplete: "off", spellcheck: "false" });
     const save = h("button", { class: "btn btn-primary btn-sm", type: "submit" }, h("span", { text: t("aiSave") }));
     const status = h("p", { class: "ai-message", role: "status" });
     const form = h(
@@ -1764,12 +1774,14 @@
           }
           save.disabled = true;
           input.disabled = true;
+          modelInput.disabled = true;
           status.className = "ai-message muted";
           status.textContent = t("aiChecking");
-          const saved = await call("aiSave", { provider, apiKey: input.value });
+          const saved = await call("aiSave", { provider, apiKey: input.value, model: modelInput.value.trim() });
           if (!saved.ok) {
             save.disabled = false;
             input.disabled = false;
+            modelInput.disabled = false;
             status.className = "ai-message ai-message-bad";
             status.textContent = saved.detail || t("coachErrors.bad_response");
             return;
@@ -1783,6 +1795,7 @@
             state.ai = cleared.ok ? cleared.data : state.ai;
             save.disabled = false;
             input.disabled = false;
+            modelInput.disabled = false;
             status.className = "ai-message ai-message-bad";
             status.textContent = t("coachErrors.invalid_key");
             return;
@@ -1793,6 +1806,7 @@
         }
       },
       h("div", { class: "ai-form-row" }, h("span", { class: "ai-label", text: t("aiService") }), choice),
+      h("div", { class: "ai-form-row" }, h("span", { class: "ai-label", text: t("aiModel") }), modelInput),
       h("div", { class: "ai-form-row" }, input, save),
       h(
         "button",
