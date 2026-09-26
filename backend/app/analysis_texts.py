@@ -195,6 +195,18 @@ FINDINGS: dict[str, dict[str, dict[str, str]]] = {
             "drill": "After dying, look at the minimap and timers and pick a safe target — don't walk straight back to where you were caught.",
         },
     },
+    "deaths_enemy_half": {
+        "ru": {
+            "title": "Смерти на половине противника",
+            "text": "{count} из {total} смертей после 10-й минуты — на половине карты противника. Туда заходили, не зная, где враги.",
+            "drill": "Прежде чем фармить за рекой, найдите на карте хотя бы трёх героев противника. Не видно — фармите на своей половине.",
+        },
+        "en": {
+            "title": "Deaths on the enemy half",
+            "text": "{count} of {total} deaths after minute 10 were on the enemy half of the map, walked into without knowing where the enemies were.",
+            "drill": "Before farming across the river, find at least three enemy heroes on the map. If you can't, farm on your half.",
+        },
+    },
     "killed_by_one": {
         "ru": {
             "title": "Главная угроза: {hero}",

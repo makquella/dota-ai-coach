@@ -107,6 +107,10 @@ _TIMELINE_FIELDS = (
     "buyback_log",
     "killed_by",
     "damage_taken",
+    # Positions (parsed replays): wards placed and where the hero stood in the lane.
+    "obs_log",
+    "sen_log",
+    "lane_pos",
 )
 _MATCH_FIELDS = (
     "match_id",

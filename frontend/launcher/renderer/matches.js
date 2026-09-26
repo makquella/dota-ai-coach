@@ -84,6 +84,26 @@
       focusTitle: "Focus for the next game",
       sectionsTitle: "Breakdown",
       chartTitle: "Over the match",
+      mapTitle: "Match map",
+      mapHint: {
+        path: "Where your hero went (every 15 s, recorded by the app) and where you died.",
+        replay: "From the parsed replay: where you stood in the lane and where you placed wards.",
+        both: "Your path (recorded by the app), laning position, wards from the replay and where you died."
+      },
+      mapLabels: {
+        radiant: "Radiant",
+        dire: "Dire",
+        death: "Death",
+        observer: "Observer ward",
+        sentry: "Sentry ward",
+        path: "Your path",
+        lane: "Laning position"
+      },
+      mapDeaths: "Deaths",
+      killedBy: (hero) => `Killed by ${hero}`,
+      mapSide: { own: "on your half", river: "in the river", enemy: "on the enemy half" },
+      mapWards: "Wards placed",
+      mapWardsLine: (obs, sen) => `${obs} observer · ${sen} sentry`,
       chartLh: "Last hits",
       chartGold: "Gold earned",
       chartXp: "Experience",
@@ -323,6 +343,26 @@
       focusTitle: "Главное на следующую игру",
       sectionsTitle: "По разделам",
       chartTitle: "По ходу матча",
+      mapTitle: "Карта матча",
+      mapHint: {
+        path: "Где был ваш герой (каждые 15 с, записало приложение) и где вы умирали.",
+        replay: "По разобранному реплею: где вы стояли на линии и где ставили варды.",
+        both: "Ваш путь (записало приложение), позиция на линии и варды из реплея, места смертей."
+      },
+      mapLabels: {
+        radiant: "Силы Света",
+        dire: "Силы Тьмы",
+        death: "Смерть",
+        observer: "Обзорный вард",
+        sentry: "Сентри",
+        path: "Ваш путь",
+        lane: "Позиция на линии"
+      },
+      mapDeaths: "Смерти",
+      killedBy: (hero) => `Убил: ${hero}`,
+      mapSide: { own: "на своей половине", river: "у реки", enemy: "на половине противника" },
+      mapWards: "Поставлено вардов",
+      mapWardsLine: (obs, sen) => `${obs} обзорных · ${sen} сентри`,
       chartLh: "Добивания",
       chartGold: "Золото",
       chartXp: "Опыт",
@@ -1117,6 +1157,10 @@
       if (chart) {
         parts.push(chart);
       }
+      const gameMap = mapCard(analysis);
+      if (gameMap) {
+        parts.push(gameMap);
+      }
       parts.push(findingsCard(t("strengthsTitle"), "sparkles", analysis.strengths, t("nothingStrong"), false));
       const rest = (analysis.improvements || []).filter((f) => !(analysis.focus || []).includes(f.id));
       if (rest.length) {
@@ -1135,6 +1179,7 @@
     // Charts measure their container, so draw after insertion.
     root.querySelectorAll("[data-chart='match']").forEach((host) => drawChart(host, analysis));
     root.querySelectorAll("[data-chart='timing']").forEach((host) => drawTimingChart(host, analysis));
+    root.querySelectorAll("[data-chart='map']").forEach((host) => drawMap(host, analysis.map));
   }
 
   function reviewHeader(detail, analysis, summary) {
@@ -1260,6 +1305,55 @@
         );
       });
     return card(t("sectionsTitle"), "gauge", h("div", { class: "sections" }, rows));
+  }
+
+  // Schematic map: path and deaths from the app's own recording, laning
+  // position and wards from the parsed replay (either may be missing).
+  function mapCard(analysis) {
+    const data = analysis.map;
+    if (!data || !((data.deaths || []).length || (data.wards || []).length || (data.path || []).length > 1)) {
+      return null;
+    }
+    const hasPath = (data.path || []).length > 1;
+    const hasReplay = (data.wards || []).length > 0 || (data.lane || []).length > 0;
+    const hintKey = hasPath && hasReplay ? "both" : hasPath ? "path" : "replay";
+    const facts = [];
+    const deaths = data.deaths || [];
+    if (deaths.length) {
+      const bySide = data.deaths_by_side || {};
+      facts.push(h("p", { class: "fact-line" }, h("strong", { text: t("mapDeaths") }), h("span", { class: "num", text: String(deaths.length) })));
+      for (const side of ["own", "river", "enemy"]) {
+        if (bySide[side]) {
+          facts.push(h("p", { class: "fact-line muted small" }, h("span", { text: t(`mapSide.${side}`) }), h("span", { class: "num", text: String(bySide[side]) })));
+        }
+      }
+    }
+    const wards = data.wards || [];
+    if (wards.length) {
+      const obs = wards.filter((w) => w.kind === "obs").length;
+      facts.push(h("p", { class: "fact-line" }, h("strong", { text: t("mapWards") }), h("span", { class: "num", text: String(wards.length) })));
+      facts.push(h("p", { class: "muted small", text: t("mapWardsLine", obs, wards.length - obs) }));
+    }
+    const body = h(
+      "div",
+      {},
+      h("p", { class: "muted small chart-note", text: t(`mapHint.${hintKey}`) }),
+      h("div", { class: "map-layout" }, h("div", { class: "chart-host", dataset: { chart: "map" } }), facts.length ? h("div", { class: "map-facts" }, facts) : null)
+    );
+    return card(t("mapTitle"), "map", body);
+  }
+
+  function drawMap(host, data) {
+    window.LauncherCharts.map(host, {
+      bounds: data.bounds,
+      path: data.path,
+      lane: data.lane,
+      wards: data.wards,
+      deaths: (data.deaths || []).map((death) => ({ ...death, killer: death.killer ? t("killedBy", death.killer) : "" })),
+      labels: t("mapLabels"),
+      clock,
+      ariaLabel: t("mapTitle")
+    });
   }
 
   function chartCard(analysis) {

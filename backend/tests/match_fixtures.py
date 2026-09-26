@@ -376,6 +376,14 @@ class _StaticSession:
         return _Response()
 
 
+def _world_position(t: int) -> tuple[int, int]:
+    if t < 10 * 60:
+        return 2000 + (t % 120) * 10, -6300
+    if 17 * 60 <= t < 21 * 60:
+        return 3600, 3200
+    return -2500, -4000
+
+
 def gsi_match_stream(
     *,
     match_id: int = MATCH_ID,
@@ -384,8 +392,12 @@ def gsi_match_stream(
     death_minutes: tuple[int, ...] = (7, 18, 19, 20),
     win: bool = True,
     step_seconds: int = 5,
+    positions: bool = False,
 ) -> list[dict[str, Any]]:
-    """Raw GSI payloads for a whole match of Juggernaut on Radiant."""
+    """Raw GSI payloads for a whole match of Juggernaut on Radiant.
+
+    positions=True adds hero world coordinates: the bottom lane until 10:00,
+    the Dire jungle from 17:00 to 21:00 (the late deaths), Radiant jungle otherwise."""
     payloads = []
     deaths = 0
     items = {"slot0": {"name": "item_tango"}}
@@ -434,6 +446,9 @@ def gsi_match_stream(
                 "items": copy.deepcopy(items),
             }
         )
+        if positions:
+            x, y = _world_position(t)
+            payloads[-1]["hero"].update({"xpos": x, "ypos": y})
     final = copy.deepcopy(payloads[-1])
     final["map"]["game_state"] = "DOTA_GAMERULES_STATE_POST_GAME"
     final["map"]["win_team"] = "radiant" if win else "dire"

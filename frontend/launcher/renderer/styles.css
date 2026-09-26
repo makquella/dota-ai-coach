@@ -1757,6 +1757,36 @@ label.setting:has(.switch:disabled) {
   background: var(--key, var(--viz-1));
 }
 
+.chart-key-ring {
+  width: 8px;
+  height: 8px;
+  border: 1.5px solid var(--key, var(--viz-2));
+  border-radius: 50%;
+}
+
+.chart-key-cross {
+  position: relative;
+  width: 9px;
+  height: 9px;
+}
+
+.chart-key-cross::before,
+.chart-key-cross::after {
+  position: absolute;
+  top: 4px;
+  left: 0;
+  width: 9px;
+  height: 1.5px;
+  border-radius: 1px;
+  background: var(--key, var(--error));
+  content: "";
+  transform: rotate(45deg);
+}
+
+.chart-key-cross::after {
+  transform: rotate(-45deg);
+}
+
 .chart-key-bar {
   width: 8px;
   height: 8px;
@@ -2175,6 +2205,113 @@ label.setting:has(.switch:disabled) {
   margin-top: 2px;
   font-size: var(--fs-12);
   font-weight: var(--fw-regular);
+}
+
+/* Match map (schematic, charts.js map()) ------------------------------------ */
+
+.map-layout {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: var(--sp-4);
+}
+
+.map-chart {
+  flex: none;
+  width: min(100%, 360px);
+}
+
+.map-chart svg {
+  display: block;
+  max-width: 100%;
+  height: auto;
+}
+
+.map-ground {
+  fill: var(--surface-2);
+}
+
+.map-river {
+  fill: none;
+  stroke: var(--surface-hover);
+  stroke-linecap: round;
+}
+
+.map-lane {
+  fill: none;
+  stroke: var(--viz-axis);
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.map-base {
+  fill: var(--surface-hover);
+  stroke: var(--border-strong);
+}
+
+.map-heat circle {
+  fill: var(--viz-1);
+  opacity: 0.22;
+}
+
+.map-path {
+  fill: none;
+  stroke: var(--viz-1);
+  stroke-width: 1.5;
+  stroke-linejoin: round;
+  opacity: 0.55;
+}
+
+.map-ward circle:first-child {
+  stroke: var(--viz-2);
+  stroke-width: 1.5;
+}
+
+.map-ward-obs circle:first-child {
+  fill: var(--viz-2);
+}
+
+.map-ward-sen circle:first-child {
+  fill: var(--surface-2);
+}
+
+.map-death path {
+  stroke: var(--error);
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+
+.map-hit {
+  cursor: default;
+}
+
+.map-ward:focus-visible,
+.map-death:focus-visible {
+  outline: none;
+}
+
+.map-ward.is-active circle:first-child,
+.map-ward:focus-visible circle:first-child {
+  stroke-width: 3;
+}
+
+.map-death.is-active path,
+.map-death:focus-visible path {
+  stroke-width: 3;
+}
+
+.map-facts {
+  display: grid;
+  flex: 1;
+  gap: var(--sp-2);
+  min-width: 180px;
+}
+
+.map-facts .fact-line {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--sp-3);
+  color: var(--text-2);
 }
 
 /* PDF export (Electron printToPDF of the current view) --------------------- */

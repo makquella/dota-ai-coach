@@ -7,7 +7,9 @@ timeline of every match it sees, with no replay parser and no internet:
 - a sample every SAMPLE_EVERY_SECONDS of match clock (last hits, denies, gold,
   GPM/XPM, K/D/A, level, HP);
 - deaths (clock, unspent gold, level, respawn time), buybacks;
-- items, by the clock they first appeared in the inventory/stash.
+- items, by the clock they first appeared in the inventory/stash;
+- the hero's position in every sample and where each death happened (absolute
+  map coordinates, see map_position()).
 
 A match is finished when Dota reports POST_GAME (win/loss known), when GSI
 starts reporting another match id, or when no GSI arrived for STALE_AFTER
@@ -52,6 +54,19 @@ def _int(value: Any) -> int | None:
 
 def _dict(value: Any) -> dict[str, Any]:
     return value if isinstance(value, dict) else {}
+
+
+# GSI gives world coordinates (map centre 0); the timeline keeps the absolute
+# ones used by replays and advice_context.py (centre 16384), rounded to units.
+MAP_CENTER = 16384
+
+
+def map_position(hero: dict[str, Any]) -> tuple[int, int] | None:
+    try:
+        x, y = float(hero["xpos"]), float(hero["ypos"])
+    except (KeyError, TypeError, ValueError):
+        return None
+    return round(x) + MAP_CENTER, round(y) + MAP_CENTER
 
 
 def match_id_from_gsi(map_block: dict[str, Any]) -> int | None:
@@ -211,6 +226,9 @@ class MatchTracker:
             "hp": _int(hero.get("health_percent")),
             "alive": hero.get("alive") if isinstance(hero.get("alive"), bool) else None,
         }
+        position = map_position(hero)
+        if position is not None and snapshot["alive"] is not False:
+            snapshot["x"], snapshot["y"] = position
         last = current["_last"]
         self._track_deaths(current, snapshot, hero, last)
         self._track_buyback(current, clock, hero, last)
@@ -236,6 +254,9 @@ class MatchTracker:
             "deaths": snapshot["d"],
             "buyback_cooldown": _int(hero.get("buyback_cooldown")),
             "alive": snapshot["alive"],
+            # Where the hero last stood alive: the death position.
+            "x": snapshot.get("x", last.get("x")),
+            "y": snapshot.get("y", last.get("y")),
         }
 
     def _track_deaths(
@@ -255,6 +276,8 @@ class MatchTracker:
                     "level": snapshot["lvl"],
                     "respawn": _int(hero.get("respawn_seconds")),
                     "buyback_ready": _int(hero.get("buyback_cooldown")) == 0,
+                    "x": last.get("x"),
+                    "y": last.get("y"),
                 }
             )
             self._save_locked()
