@@ -178,5 +178,7 @@ def hero_name_from_npc(npc_name: object) -> str:
 # OpenDota lane_role: 1 safe lane, 2 mid, 3 off lane, 4 jungle.
 LANE_ROLES = {1: "safe", 2: "mid", 3: "off", 4: "jungle"}
 
-# Ranked / normal lobby types worth reviewing (bots, custom games are skipped).
-REVIEWABLE_LOBBY_TYPES = {0, 5, 6, 7}
+# OpenDota lobby_type values worth reviewing: normal 0, tournament 2, team/solo
+# ranked 5/6, ranked 7, Battle Cup 9. Practice 1, co-op bots 4 and 1v1 mid 8
+# are skipped.
+REVIEWABLE_LOBBY_TYPES = {0, 2, 5, 6, 7, 9}

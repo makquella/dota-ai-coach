@@ -786,17 +786,40 @@
     }
     state.match = result.ok ? result.data : { error: result.code };
     renderMatch();
-    if (state.match && state.match.loading) {
-      setTimeout(() => state.matchId === String(matchId) && state.view === "match" && openMatchQuietly(matchId), 3000);
+    scheduleMatchRefresh(String(matchId));
+  }
+
+  // While the review is loading (queued OpenDota fetch) or OpenDota is still
+  // parsing the replay, re-ask the backend; stops when the view changes.
+  const PENDING_PARSE = new Set(["waiting_opendota", "parsing"]);
+  let matchRefreshTimer = null;
+
+  function scheduleMatchRefresh(matchId) {
+    clearTimeout(matchRefreshTimer);
+    const detail = state.match;
+    if (!detail || detail.error || state.matchId !== matchId || state.view !== "match") {
+      return;
     }
+    const waiting = detail.loading || PENDING_PARSE.has(detail.parse_status);
+    if (!waiting) {
+      return;
+    }
+    matchRefreshTimer = setTimeout(() => openMatchQuietly(matchId), detail.loading ? 4000 : 30000);
   }
 
   async function openMatchQuietly(matchId) {
-    const result = await call("match", { matchId: String(matchId) });
-    if (result.ok && state.matchId === String(matchId)) {
-      state.match = result.data;
-      renderMatch();
+    if (state.matchId !== matchId || state.view !== "match") {
+      return;
     }
+    const result = await call("match", { matchId });
+    if (result.ok && state.matchId === matchId && state.view === "match") {
+      const changed = JSON.stringify(result.data) !== JSON.stringify(state.match);
+      state.match = result.data;
+      if (changed) {
+        renderMatch();
+      }
+    }
+    scheduleMatchRefresh(matchId);
   }
 
   function renderMatch() {

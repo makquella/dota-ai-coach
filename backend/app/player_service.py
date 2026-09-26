@@ -33,6 +33,7 @@ from typing import Any
 
 from app.analysis_texts import render_analysis
 from app.career_analysis import analyze_career
+from app.dota_constants import REVIEWABLE_LOBBY_TYPES
 from app.match_facts import facts_from_opendota, facts_from_timeline, merge_facts
 from app.match_tracker import MatchTracker, account_from_gsi
 from app.opendota import OpenDotaClient, OpenDotaError, summary_from_match, trim_match
@@ -307,7 +308,12 @@ class PlayerService:
             except OpenDotaError as error:
                 if error.code != "private":
                     raise
-            recent = client.recent_matches(account_id, limit=RECENT_MATCHES_LIMIT)
+            # Bot games, practice and custom lobbies would skew win rate and trends.
+            recent = [
+                row
+                for row in client.recent_matches(account_id, limit=RECENT_MATCHES_LIMIT)
+                if row.get("lobby_type") is None or row["lobby_type"] in REVIEWABLE_LOBBY_TYPES
+            ]
             for row in recent:
                 match_id = row.pop("match_id", None)
                 if match_id:
@@ -431,8 +437,10 @@ class PlayerService:
             parse_status="waiting_opendota" if self.client is not None else "gsi_only",
         )
         analysis = self._rebuild_analysis(account_id, match_id)
+        # Per account: a match of another (detected, not linked) account must not
+        # replace the linked player's "review ready" banner.
         self.store.set_meta(
-            "last_review",
+            f"last_review:{account_id}",
             f"{match_id}|{_now_iso()}|{(analysis or {}).get('headline', {}).get('score') or ''}",
         )
         if account_id == self.store.primary_account_id():
@@ -473,7 +481,10 @@ class PlayerService:
         return count
 
     def _last_review(self) -> dict[str, Any] | None:
-        raw = self.store.get_meta("last_review")
+        primary = self.store.primary_account_id()
+        if primary is None:
+            return None
+        raw = self.store.get_meta(f"last_review:{primary}")
         if not raw:
             return None
         match_id, at, score = (raw.split("|") + ["", "", ""])[:3]

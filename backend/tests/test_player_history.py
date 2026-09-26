@@ -344,6 +344,39 @@ def test_other_account_in_gsi_is_offered_not_switched(client, tmp_path):
     assert client.post("/player/link-detected").json()["account_id"] == ME
 
 
+def test_last_review_belongs_to_the_linked_account(client, tmp_path):
+    service = _service(tmp_path, None)
+    client.post("/player/link", json={"steam": "12345"})
+    # Someone else plays on this PC: their match is stored under their account.
+    for payload in gsi_match_stream():
+        client.post("/gsi", json=payload)
+    assert service.store.get_match(ME, MATCH_ID) is not None
+    assert client.get("/player").json()["last_review"] is None
+    client.post("/player/link-detected")
+    assert client.get("/player").json()["last_review"]["match_id"] == MATCH_ID
+
+
+def test_sync_skips_bot_practice_and_custom_lobbies(client, tmp_path):
+    recent = recent_matches(6)
+    recent[1]["lobby_type"] = 4  # bots
+    recent[2]["lobby_type"] = 1  # practice
+    recent[3]["lobby_type"] = 8  # 1v1 mid
+    service = _service(tmp_path, FakeOpenDota(recent=recent))
+    client.post("/player/link", json={"steam": str(ME)})
+    service.jobs.run_pending(until=float("inf"))
+    ids = {row["match_id"] for row in client.get("/player/matches").json()["items"]}
+    assert ids == {recent[0]["match_id"], recent[4]["match_id"], recent[5]["match_id"]}
+
+
+def test_empty_path_env_means_default(monkeypatch, tmp_path):
+    from app.config import path_from_env
+
+    monkeypatch.setenv("SOME_DIR", "  ")
+    assert path_from_env("SOME_DIR", tmp_path / "x") == tmp_path / "x"
+    monkeypatch.setenv("SOME_DIR", str(tmp_path / "y"))
+    assert path_from_env("SOME_DIR", tmp_path / "x") == tmp_path / "y"
+
+
 def test_player_endpoints_work_offline(client, tmp_path):
     _service(tmp_path, None)
     client.post("/player/link", json={"steam": str(ME)})
