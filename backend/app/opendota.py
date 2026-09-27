@@ -27,6 +27,8 @@ from app.dota_constants import hero_name, hero_npc_name
 
 DEFAULT_TIMEOUT_SECONDS = 15
 MIN_REQUEST_INTERVAL_SECONDS = 1.1
+# With a (paid) API key OpenDota allows far more calls per minute.
+KEYED_REQUEST_INTERVAL_SECONDS = 0.25
 
 RECENT_MATCH_FIELDS = (
     "hero_id",
@@ -107,6 +109,10 @@ _TIMELINE_FIELDS = (
     "buyback_log",
     "killed_by",
     "damage_taken",
+    # Positions (parsed replays): wards placed and where the hero stood in the lane.
+    "obs_log",
+    "sen_log",
+    "lane_pos",
 )
 _MATCH_FIELDS = (
     "match_id",
@@ -149,6 +155,13 @@ class OpenDotaClient:
         self.min_interval = min_interval
         self._lock = threading.Lock()
         self._last_request = 0.0
+
+    def set_api_key(self, api_key: str) -> None:
+        """Use (or stop using) a key; a key also lifts the free-tier pacing."""
+        self.api_key = api_key.strip()
+        self.min_interval = (
+            KEYED_REQUEST_INTERVAL_SECONDS if self.api_key else MIN_REQUEST_INTERVAL_SECONDS
+        )
 
     # --- endpoints ------------------------------------------------------------
 
@@ -290,7 +303,9 @@ class OpenDotaClient:
                 method, f"{self.base_url}{path}", params=query, timeout=self.timeout
             )
         except requests.RequestException as error:
-            raise OpenDotaError("offline", f"OpenDota is unreachable: {error}") from error
+            # requests puts the full URL (with ?api_key=…) into its messages.
+            message = str(error).replace(self.api_key, "[key]") if self.api_key else str(error)
+            raise OpenDotaError("offline", f"OpenDota is unreachable: {message}") from error
         if response.status_code == 404:
             raise OpenDotaError("not_found", "OpenDota does not know this match or player.")
         if response.status_code == 429:
@@ -342,7 +357,10 @@ def summary_from_recent(item: dict[str, Any]) -> dict[str, Any]:
 
 def trim_match(match: dict[str, Any], account_id: int) -> dict[str, Any]:
     """Keep the match header, a light scoreboard and the reviewed player's logs."""
-    players = [p for p in match.get("players") or [] if isinstance(p, dict)]
+    raw_players = match.get("players")
+    players = (
+        [p for p in raw_players if isinstance(p, dict)] if isinstance(raw_players, list) else []
+    )
     me = next((p for p in players if p.get("account_id") == int(account_id)), None)
     trimmed: dict[str, Any] = {key: match.get(key) for key in _MATCH_FIELDS}
     trimmed["parsed"] = match.get("version") is not None

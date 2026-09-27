@@ -14,7 +14,9 @@ from collections.abc import Mapping
 from datetime import UTC, datetime
 from typing import Any
 
+from app.buyback_tracker import BuybackTracker
 from app.farm_tracker import FarmTracker
+from app.tp_tracker import TpTracker
 
 DEATH_DECISION_POINTS = {
     "DEATH_REVIEW",
@@ -82,6 +84,8 @@ class MatchMemory:
         self._local_session_seed: str | None = None
         self._last_player_deaths: int | None = None
         self.farm = FarmTracker()
+        self.buyback = BuybackTracker()
+        self.tp = TpTracker()
 
     def observe_state(self, state: dict[str, Any]) -> dict[str, Any]:
         now_dt = datetime.now(UTC)
@@ -139,6 +143,20 @@ class MatchMemory:
         self.farm.observe(
             _game_clock(state),
             _ctx_int_or_none(state, "last_hits"),
+            current_alive,
+            paused=_ctx_bool(state, "paused"),
+        )
+        self.buyback.observe(
+            _game_clock(state),
+            _ctx_int_or_none(state, "gold"),
+            _ctx_int_or_none(state, "buyback_cost"),
+            _ctx_int_or_none(state, "buyback_cooldown"),
+            current_alive,
+        )
+        has_tp = _ctx_value(state, "has_tp")
+        self.tp.observe(
+            _game_clock(state),
+            has_tp if isinstance(has_tp, bool) else None,
             current_alive,
             paused=_ctx_bool(state, "paused"),
         )
@@ -313,6 +331,8 @@ class MatchMemory:
                 "last_death_event_id": self.death_events[-1]["id"] if self.death_events else None,
                 "death_review_decision": self.death_review_decision(),
                 "farm_stall": self.farm.stall(),
+                "buyback_spent": self.buyback.signal(),
+                "tp_missing": self.tp.signal(),
             }
         )
 

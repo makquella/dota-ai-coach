@@ -10,6 +10,9 @@ contextBridge.exposeInMainWorld("overlayApi", {
   onMuted: (callback) => {
     ipcRenderer.on("overlay-muted", (_event, mutedUntil) => callback(mutedUntil));
   },
+  onRepeat: (callback) => {
+    ipcRenderer.on("overlay-repeat", () => callback());
+  },
   onToggleDebug: (callback) => {
     ipcRenderer.on("overlay-toggle-debug", (_event, visible) => callback(visible));
   }

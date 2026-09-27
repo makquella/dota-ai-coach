@@ -27,7 +27,8 @@ const OVERLAY_TEXT = {
     paused: "Advice paused to avoid overload.",
     watching: "Watching…",
     noUrgent: "No urgent advice.",
-    noAction: "No urgent advice"
+    noAction: "No urgent advice",
+    plan: "Plan for this game"
   },
   ru: {
     urgent: "Срочно",
@@ -49,7 +50,8 @@ const OVERLAY_TEXT = {
     paused: "Советы на паузе, чтобы не перегружать.",
     watching: "Наблюдаем…",
     noUrgent: "Срочных советов нет.",
-    noAction: "Срочных советов нет"
+    noAction: "Срочных советов нет",
+    plan: "План на игру"
   }
 };
 
@@ -68,13 +70,18 @@ let config = {
   locked: true,
   autoHideMs: 8000,
   urgentAutoHideMs: 12000,
-  debugVisible: false
+  debugVisible: false,
+  voice: "off",
+  voiceVolume: 1
 };
 let pollTimer = null;
 let hideTimer = null;
 let mutedUntil = 0;
 let lastAdviceKey = "";
 let lastVisibleAdvice = null;
+const speaker = window.OverlayVoice && window.speechSynthesis
+  ? window.OverlayVoice.createSpeaker({ synth: window.speechSynthesis, Utterance: window.SpeechSynthesisUtterance })
+  : null;
 
 init();
 
@@ -87,7 +94,25 @@ async function init() {
   });
   window.overlayApi.onMuted((timestamp) => {
     mutedUntil = Number(timestamp) || 0;
+    speaker?.reset();
     showStatus(tr("muted"));
+  });
+  window.overlayApi.onRepeat?.(() => {
+    if (!lastVisibleAdvice?.recommendation) {
+      return;
+    }
+    const data = lastVisibleAdvice;
+    renderAdvice(data, { refreshTimer: false });
+    scheduleAutoHide(data.advice_mode || "coaching", { ...data, is_pinned: false });
+    speaker?.say({
+      key: lastAdviceKey,
+      text: data.recommendation.action,
+      adviceMode: data.advice_mode,
+      mode: config.voice,
+      locale: config.locale,
+      volume: config.voiceVolume,
+      repeat: true
+    });
   });
   window.overlayApi.onToggleDebug((visible) => {
     config.debugVisible = Boolean(visible);
@@ -126,6 +151,12 @@ async function poll() {
 function renderOverlay(data) {
   if (data.recommendation && (data.status === "active_advice" || data.status === "cooldown")) {
     renderAdvice(data, { refreshTimer: data.status !== "active_advice" });
+    return;
+  }
+
+  // From pick to 1:30, while there is no advice: the plan for this game.
+  if (data.game_plan && Array.isArray(data.game_plan.lines) && data.game_plan.lines.length && PLAN_STATUSES.has(data.status)) {
+    showPlan(data);
     return;
   }
 
@@ -198,9 +229,61 @@ function renderAdvice(data, options = { refreshTimer: true }) {
   reveal();
 
   lastVisibleAdvice = data;
+  // Spoken once per advice while it is still current (a tip skipped because
+  // another one was being spoken gets its turn on a later poll).
+  if (speaker && data.status === "active_advice") {
+    speaker.say({
+      key,
+      text: recommendation.action,
+      adviceMode,
+      mode: config.voice,
+      locale: config.locale,
+      volume: config.voiceVolume
+    });
+  }
   if (options.refreshTimer && key !== lastAdviceKey) {
     lastAdviceKey = key;
     scheduleAutoHide(adviceMode, data);
+  }
+}
+
+const PLAN_STATUSES = new Set(["no_advice", "monitoring", "unsupported_hero"]);
+const spokenPlans = new Set();
+
+function showPlan(data) {
+  clearTimeout(hideTimer);
+  const [first, ...rest] = data.game_plan.lines;
+  shell.className = "overlay-shell plan coaching";
+  labelEl.textContent = data.game_plan.title || tr("plan");
+  const heroName = data.game_plan.hero || "";
+  if (heroName && window.DotaIcons?.hero(heroName)) {
+    const name = document.createElement("span");
+    name.textContent = heroName;
+    priorityEl.replaceChildren(window.DotaIcons.heroPicture(document, heroName, "sm"), name);
+  } else {
+    priorityEl.textContent = heroName;
+  }
+  actionEl.textContent = first;
+  reasonEl.textContent = rest.join("\n");
+  renderStatusRow(data);
+  reveal();
+  // Heard once per plan when the voice reads every advice (fullscreen players
+  // never see the card).
+  const planKey = `plan|${data.game_plan.hero || ""}|${data.game_plan.lines.join("|")}`;
+  if (!speaker || spokenPlans.has(planKey)) {
+    return;
+  }
+  const spoken = speaker.say({
+    key: planKey,
+    text: data.game_plan.lines.join(". "),
+    adviceMode: "coaching",
+    mode: config.voice,
+    locale: config.locale,
+    volume: config.voiceVolume
+  });
+  // Once per plan, even when advice was spoken in between.
+  if (spoken === "spoken" || spoken === "off") {
+    spokenPlans.add(planKey);
   }
 }
 

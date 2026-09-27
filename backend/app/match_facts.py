@@ -11,6 +11,9 @@ Post-match analysis works on MatchFacts, built from:
 
 When both exist they are merged: OpenDota wins for totals, logs and
 benchmarks; GSI adds what OpenDota does not know (unspent gold at each death).
+
+Map positions use the absolute replay coordinates (centre 16384): GSI samples
+and deaths carry them already, OpenDota logs use 128-unit cells.
 """
 
 from __future__ import annotations
@@ -79,7 +82,42 @@ def empty_facts(match_id: int) -> dict[str, Any]:
         "buybacks": [],
         "killed_by": {},
         "final_items": [],
+        # Map: the hero every 15 s (GSI), wards placed and lane position (parsed replay).
+        "path": [],
+        "wards": [],
+        "lane_pos": [],
+        # Live advice the app showed during the match (GSI recording only).
+        "advice_log": [],
     }
+
+
+CELL = 128  # OpenDota position logs are in 128-unit cells
+
+
+def _wards(me: dict[str, Any]) -> list[dict[str, Any]]:
+    wards = []
+    for kind, key in (("obs", "obs_log"), ("sen", "sen_log")):
+        for entry in me.get(key) or []:
+            if not isinstance(entry, dict):
+                continue
+            t, x, y = _int(entry.get("time")), _num(entry.get("x")), _num(entry.get("y"))
+            if t is not None and x is not None and y is not None:
+                wards.append({"t": t, "x": round(x * CELL), "y": round(y * CELL), "kind": kind})
+    return sorted(wards, key=lambda ward: ward["t"])
+
+
+def _lane_pos(raw: Any) -> list[list[int]]:
+    """{"x": {"y": count}} in cells -> [[x, y, count]] in map units."""
+    points = []
+    if isinstance(raw, dict):
+        for x, column in raw.items():
+            if not isinstance(column, dict):
+                continue
+            for y, count in column.items():
+                cx, cy, n = _num(x), _num(y), _int(count)
+                if cx is not None and cy is not None and n:
+                    points.append([round(cx * CELL), round(cy * CELL), n])
+    return points
 
 
 def facts_from_opendota(trimmed: dict[str, Any]) -> dict[str, Any] | None:
@@ -132,7 +170,7 @@ def facts_from_opendota(trimmed: dict[str, Any]) -> dict[str, Any] | None:
             "xp_t": _series(me.get("xp_t")),
             "killed_by": {
                 hero_name_from_npc(npc): _int(count) or 0
-                for npc, count in (me.get("killed_by") or {}).items()
+                for npc, count in _dict(me.get("killed_by")).items()
                 if str(npc).startswith("npc_dota_hero_")
             },
             "final_items": [
@@ -145,15 +183,25 @@ def facts_from_opendota(trimmed: dict[str, Any]) -> dict[str, Any] | None:
     facts["deaths_log"] = _deaths_from_kill_logs(trimmed, me)
     facts["items_log"] = [
         {"t": _int(entry.get("time")), "item": str(entry.get("key"))}
-        for entry in me.get("purchase_log") or []
+        for entry in _list(me.get("purchase_log"))
         if isinstance(entry, dict) and entry.get("key") and _int(entry.get("time")) is not None
     ]
     facts["buybacks"] = [
         _int(entry.get("time"))
-        for entry in me.get("buyback_log") or []
+        for entry in _list(me.get("buyback_log"))
         if isinstance(entry, dict) and _int(entry.get("time")) is not None
     ]
+    facts["wards"] = _wards(me)
+    facts["lane_pos"] = _lane_pos(me.get("lane_pos"))
     return facts
+
+
+def _dict(value: Any) -> dict[str, Any]:
+    return value if isinstance(value, dict) else {}
+
+
+def _list(value: Any) -> list[Any]:
+    return value if isinstance(value, list) else []
 
 
 def _benchmarks(raw: Any) -> dict[str, float]:
@@ -181,7 +229,7 @@ def _deaths_from_kill_logs(trimmed: dict[str, Any], me: dict[str, Any]) -> list[
     for player in trimmed.get("players") or []:
         if player.get("me"):
             continue
-        for entry in player.get("kills_log") or []:
+        for entry in _list(player.get("kills_log")):
             if isinstance(entry, dict) and entry.get("key") == npc:
                 deaths.append({"t": _int(entry.get("time")), "killer": player.get("hero")})
     return sorted((d for d in deaths if d["t"] is not None), key=lambda d: d["t"])
@@ -220,9 +268,21 @@ def facts_from_timeline(timeline: dict[str, Any]) -> dict[str, Any]:
                     "gold": _int(death.get("gold")),
                     "respawn": _int(death.get("respawn")),
                     "level": _int(death.get("level")),
+                    "x": _int(death.get("x")),
+                    "y": _int(death.get("y")),
                 }
                 for death in timeline.get("deaths") or []
                 if isinstance(death, dict) and _int(death.get("t")) is not None
+            ],
+            "advice_log": [
+                {key: item.get(key) for key in ("t", "dp", "action", "reason", "mode")}
+                for item in timeline.get("advice") or []
+                if isinstance(item, dict) and _int(item.get("t")) is not None
+            ],
+            "path": [
+                {"t": s["t"], "x": s["x"], "y": s["y"]}
+                for s in samples
+                if s.get("t") is not None and s.get("x") is not None and s.get("y") is not None
             ],
             "items_log": [
                 {"t": _int(item.get("t")), "item": str(item.get("item"))}
@@ -308,7 +368,7 @@ def _merge_deaths(
         )
         entry = dict(death)
         if near and abs((near.get("t") or 0) - (death.get("t") or 0)) <= 20:
-            for key in ("gold", "respawn", "level"):
+            for key in ("gold", "respawn", "level", "x", "y"):
                 if entry.get(key) is None and near.get(key) is not None:
                     entry[key] = near[key]
         result.append(entry)

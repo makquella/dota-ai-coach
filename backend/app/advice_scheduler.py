@@ -38,7 +38,7 @@ from app.advice_text import clean_recommendation_text
 from app.advice_ux_policy import (
     apply_ux_policy,
 )
-from app.config import USE_LLM
+from app.config import ADVICE_FREQUENCY, USE_LLM
 from app.laning_coach import (
     REPEAT_WINDOW_SECONDS,
     build_laning_advice,
@@ -66,6 +66,12 @@ from app.scheduler.constants import (
     REGULAR_ADVICE_COOLDOWN_SECONDS,
     SAME_ACTION_GAME_TIME_GAP_SECONDS,
     URGENT_LOW_HP_COOLDOWN_SECONDS,
+)
+from app.scheduler.frequency import (
+    UNSCALED_DECISIONS,
+    heartbeat_enabled,
+    normalize_frequency,
+    scaled_seconds,
 )
 from app.scheduler.hashing import (
     _action_hash,
@@ -146,6 +152,8 @@ class AdviceScheduler:
         urgent_cooldown_seconds: int = URGENT_LOW_HP_COOLDOWN_SECONDS,
     ) -> None:
         self.enable_llm = enable_llm
+        # The player's preference; survives reset() (a new match keeps it).
+        self.frequency = normalize_frequency(ADVICE_FREQUENCY)
         self.regular_cooldown_seconds = regular_cooldown_seconds
         self.urgent_cooldown_seconds = urgent_cooldown_seconds
         self._lock = threading.Lock()
@@ -154,6 +162,11 @@ class AdviceScheduler:
     def reset(self) -> None:
         with self._lock:
             self._reset_locked()
+
+    def set_frequency(self, frequency: str) -> str:
+        with self._lock:
+            self.frequency = normalize_frequency(frequency)
+            return self.frequency
 
     def _reset_locked(self) -> None:
         # Phase 4: all 66 game/advice state fields now live in SchedulerState;
@@ -1744,9 +1757,11 @@ class AdviceScheduler:
                 min_gap = max(min_gap, RECENT_SAFETY_GAME_TIME_GAP_SECONDS)
 
         if same_action and same_category:
-            min_gap = max(min_gap, SAME_ACTION_GAME_TIME_GAP_SECONDS)
+            min_gap = max(
+                min_gap, scaled_seconds(SAME_ACTION_GAME_TIME_GAP_SECONDS, self.frequency)
+            )
         elif advice_mode == "coaching":
-            min_gap = max(min_gap, COACHING_GAME_TIME_GAP_SECONDS)
+            min_gap = max(min_gap, scaled_seconds(COACHING_GAME_TIME_GAP_SECONDS, self.frequency))
 
         if (
             post_laning
@@ -1754,7 +1769,9 @@ class AdviceScheduler:
             and str(recommendation.priority or "").lower() in {"medium", "high"}
             and same_category
         ):
-            min_gap = max(min_gap, POST_LANING_GAME_TIME_GAP_SECONDS)
+            min_gap = max(
+                min_gap, scaled_seconds(POST_LANING_GAME_TIME_GAP_SECONDS, self.frequency)
+            )
 
         if min_gap <= 0 or gap >= min_gap:
             return 0, gap
@@ -1818,7 +1835,11 @@ class AdviceScheduler:
     ) -> bool:
         if game_time_seconds is None or self.state._last_shown_game_time_seconds is None:
             return False
-        if game_time_seconds - self.state._last_shown_game_time_seconds < HEARTBEAT_NUDGE_SECONDS:
+        if not heartbeat_enabled(self.frequency):
+            return False
+        if game_time_seconds - self.state._last_shown_game_time_seconds < scaled_seconds(
+            HEARTBEAT_NUDGE_SECONDS, self.frequency
+        ):
             return False
         if _to_int(state.get("minute"), 0) < 10:
             return False
@@ -1950,7 +1971,9 @@ class AdviceScheduler:
     def _cooldown_for_type_locked(self, decision_point: str) -> int:
         if decision_point in {"LOW_HP", "DISABLED_STATUS", *DEATH_REVIEW_DECISIONS}:
             return self.urgent_cooldown_seconds
-        return self.regular_cooldown_seconds
+        if decision_point in UNSCALED_DECISIONS:
+            return self.regular_cooldown_seconds
+        return scaled_seconds(self.regular_cooldown_seconds, self.frequency)
 
     def _cooldown_reason_locked(
         self,
@@ -2102,6 +2125,7 @@ def _is_lower_value_post_laning_advice(decision_point: str, category: str) -> bo
     return category in {
         "post_laning_farm_recovery",
         "post_laning_farm_stall",
+        "post_laning_carry_tp",
         "post_laning_pressure_avoidance",
         "post_laning_safe_farm_route",
         "post_laning_objective_caution",

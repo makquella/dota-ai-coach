@@ -15,6 +15,7 @@
           <span class="brand-mark" aria-hidden="true"></span>
           <h1>Dota AI Coach</h1>
         </div>
+        <span class="print-only print-date num" id="print-date"></span>
         <span class="service" id="service" data-state="starting">
           <span class="dot" aria-hidden="true"></span>
           <span id="service-text">—</span>
@@ -25,6 +26,7 @@
         <button type="button" role="tab" id="tab-home" data-view="home" aria-selected="true"><i data-icon="house"></i><span data-i18n="tabHome">Home</span></button>
         <button type="button" role="tab" id="tab-matches" data-view="matches" aria-selected="false"><i data-icon="history"></i><span data-i18n="tabMatches">Matches</span></button>
         <button type="button" role="tab" id="tab-progress" data-view="progress" aria-selected="false"><i data-icon="chart-line"></i><span data-i18n="tabProgress">Progress</span></button>
+        <button type="button" role="tab" id="tab-settings" data-view="settings" aria-selected="false"><i data-icon="settings"></i><span data-i18n="tabSettings">Settings</span></button>
       </nav>
 
       <div class="view" id="view-home" role="tabpanel" aria-labelledby="tab-home">
@@ -42,12 +44,39 @@
         </button>
       </section>
 
+      <!-- First run: what is set up and what is left (hidden when done or dismissed). -->
+      <section class="card setup hidden" id="setup-card" aria-labelledby="setup-heading">
+        <header class="card-head">
+          <i data-icon="list-checks"></i>
+          <h2 id="setup-heading" data-i18n="setupTitle">Getting started</h2>
+          <span class="card-head-extra">
+            <span class="num" id="setup-count"></span>
+            <button id="setup-dismiss" class="btn btn-ghost btn-sm btn-icon" type="button" data-i18n-title="setupHide" title="Hide"><i data-icon="x"></i></button>
+          </span>
+        </header>
+        <ol class="setup-steps" id="setup-steps"></ol>
+      </section>
+
+      <!-- Once after an update: what the new version brings. -->
+      <section class="card whats-new hidden" id="whats-new-card" aria-labelledby="whats-new-heading">
+        <header class="card-head">
+          <i data-icon="sparkles"></i>
+          <h2 id="whats-new-heading"></h2>
+        </header>
+        <div class="card-body">
+          <ul class="whats-new-list" id="whats-new-list"></ul>
+          <button id="whats-new-dismiss" class="btn btn-sm" type="button" data-i18n="whatsNewOk">Got it</button>
+        </div>
+      </section>
+
       <!-- Shown after a match: link to its post-match review. -->
       <button type="button" class="review-banner hidden" id="review-banner">
         <i data-icon="trophy"></i>
         <span class="review-banner-text" id="review-banner-text"></span>
         <i data-icon="chevron-right"></i>
       </button>
+      <!-- Tonight's session: matches since midnight. -->
+      <p class="today-line num hidden" id="today-line"></p>
 
       <div class="cards">
         <!-- Current match -->
@@ -75,6 +104,7 @@
                 <dd id="stat-data"><span class="skeleton skeleton-line w-50"></span></dd>
               </div>
             </dl>
+            <p class="note coverage-note hidden" id="coverage-note" data-i18n="coverageSafety">Full advice (farm, items, objectives) is for carry heroes; this hero gets survival advice only.</p>
             <div class="empty hidden" id="match-empty">
               <i data-icon="clock"></i>
               <p class="empty-title" id="match-empty-title"></p>
@@ -102,12 +132,16 @@
             </div>
           </div>
         </section>
+      </div>
+      </div>
 
-        <!-- Overlay settings -->
-        <section class="card" id="overlay-card" aria-labelledby="overlay-heading">
+      <!-- Settings: overlay, advice, app, and the developer tools. -->
+      <div class="view hidden" id="view-settings" role="tabpanel" aria-labelledby="tab-settings">
+      <div class="cards">
+        <section class="card" id="overlay-card" aria-labelledby="overlay-card-heading">
           <header class="card-head">
             <i data-icon="monitor"></i>
-            <h2 id="overlay-heading" data-i18n="overlayTitle">Overlay</h2>
+            <h2 id="overlay-card-heading" data-i18n="overlayTitle">Overlay</h2>
           </header>
           <div class="card-body settings">
             <label class="setting">
@@ -130,10 +164,94 @@
             </div>
             <div class="setting">
               <span class="setting-text">
+                <span class="setting-title" id="size-title" data-i18n="overlaySize">Card size</span>
+                <span class="setting-hint" data-i18n="overlaySizeHint">Larger on big and high-resolution screens</span>
+              </span>
+              <div class="segmented" role="radiogroup" id="size-group" aria-labelledby="size-title">
+                <button type="button" role="radio" data-size="small"><span data-i18n="sizeSmall">Small</span></button>
+                <button type="button" role="radio" data-size="normal"><span data-i18n="sizeNormal">Normal</span></button>
+                <button type="button" role="radio" data-size="large"><span data-i18n="sizeLarge">Large</span></button>
+              </div>
+            </div>
+            <div class="setting">
+              <span class="setting-text">
                 <span class="setting-title" data-i18n="overlayMove">Move by hand</span>
                 <span class="setting-hint" id="move-hint" data-i18n="moveHint">Shows the card so you can drag it anywhere</span>
               </span>
               <button id="move-toggle" class="btn" type="button"><i data-icon="move"></i><span id="move-label" data-i18n="moveStart">Move</span></button>
+            </div>
+          </div>
+        </section>
+        <section class="card" id="advice-settings-card" aria-labelledby="advice-settings-card-heading">
+          <header class="card-head">
+            <i data-icon="lightbulb"></i>
+            <h2 id="advice-settings-card-heading" data-i18n="adviceSettingsTitle">Advice</h2>
+          </header>
+          <div class="card-body settings">
+            <div class="setting">
+              <span class="setting-text">
+                <span class="setting-title" id="frequency-title" data-i18n="frequencyTitle">How often</span>
+                <span class="setting-hint" id="frequency-hint"></span>
+              </span>
+              <div class="segmented" role="radiogroup" id="frequency-group" aria-labelledby="frequency-title">
+                <button type="button" role="radio" data-frequency="calm"><span data-i18n="frequencyCalm">Less</span></button>
+                <button type="button" role="radio" data-frequency="normal"><span data-i18n="frequencyNormal">Normal</span></button>
+                <button type="button" role="radio" data-frequency="active"><span data-i18n="frequencyActive">More</span></button>
+              </div>
+            </div>
+            <div class="setting">
+              <span class="setting-text">
+                <span class="setting-title" id="voice-title" data-i18n="voiceTitle">Voice</span>
+                <span class="setting-hint" id="voice-hint"></span>
+              </span>
+              <div class="setting-controls">
+                <div class="segmented" role="radiogroup" id="voice-group" aria-labelledby="voice-title">
+                  <button type="button" role="radio" data-voice="off"><span data-i18n="voiceOff">Off</span></button>
+                  <button type="button" role="radio" data-voice="urgent"><span data-i18n="voiceUrgent">Urgent</span></button>
+                  <button type="button" role="radio" data-voice="all"><span data-i18n="voiceAll">All</span></button>
+                </div>
+                <button id="voice-test" class="btn btn-icon" type="button" data-i18n-title="voiceTest" title="Listen"><i data-icon="volume-2"></i></button>
+              </div>
+            </div>
+          </div>
+        </section>
+        <section class="card" id="data-card" aria-labelledby="data-card-heading">
+          <header class="card-head">
+            <i data-icon="history"></i>
+            <h2 id="data-card-heading" data-i18n="dataTitle">Match data</h2>
+          </header>
+          <div class="card-body settings">
+            <div class="setting setting-wrap">
+              <span class="setting-text">
+                <span class="setting-title" data-i18n="odTitle">OpenDota key (optional)</span>
+                <span class="setting-hint" id="od-hint"></span>
+              </span>
+              <div class="setting-controls" id="od-form">
+                <input id="od-key" class="input" type="password" autocomplete="off" spellcheck="false" data-i18n-placeholder="odPlaceholder" placeholder="API key" />
+                <button id="od-save" class="btn" type="button" data-i18n="odSave">Save</button>
+                <button id="od-get" class="btn btn-ghost btn-icon" type="button" data-i18n-title="odGet" title="Get a key"><i data-icon="external-link"></i></button>
+              </div>
+              <button id="od-clear" class="btn btn-ghost hidden" type="button"><i data-icon="trash-2"></i><span data-i18n="odClear">Remove key</span></button>
+            </div>
+          </div>
+        </section>
+        <div id="ai-settings-root"></div>
+        <section class="card" id="app-card" aria-labelledby="app-card-heading">
+          <header class="card-head">
+            <i data-icon="settings"></i>
+            <h2 id="app-card-heading" data-i18n="appTitle">App</h2>
+          </header>
+          <div class="card-body settings">
+            <div class="setting">
+              <span class="setting-text">
+                <span class="setting-title" id="language-title" data-i18n="languageTitle">Language</span>
+                <span class="setting-hint" data-i18n="languageHint">Advice, reviews and the whole app</span>
+              </span>
+              <div class="segmented" role="radiogroup" id="language-group" aria-labelledby="language-title">
+                <button type="button" role="radio" data-language="auto"><span data-i18n="languageAuto">Auto</span></button>
+                <button type="button" role="radio" data-language="ru"><span>Русский</span></button>
+                <button type="button" role="radio" data-language="en"><span>English</span></button>
+              </div>
             </div>
             <label class="setting">
               <span class="setting-text">
@@ -148,6 +266,13 @@
                 <span class="setting-hint num" id="update-hint"></span>
               </span>
               <button id="update-action" class="btn" type="button" data-mode="check"><i data-icon="rotate-cw"></i><span id="update-label" data-i18n="updateCheck">Check</span></button>
+            </div>
+            <div class="setting">
+              <span class="setting-text">
+                <span class="setting-title" data-i18n="reportTitle">Problem report</span>
+                <span class="setting-hint" id="report-hint" data-i18n="reportHint">Saves one file with logs for the developer, without keys</span>
+              </span>
+              <button id="report-action" class="btn" type="button"><i data-icon="file-text"></i><span data-i18n="reportSave">Save</span></button>
             </div>
           </div>
         </section>
@@ -267,6 +392,9 @@
       </div>
     </main>
     <script src="../assets/icons/lucide.js"></script>
+    <script src="../overlay/voice.js"></script>
+    <script src="./dota-data.js"></script>
+    <script src="./dota-icons.js"></script>
     <script src="./charts.js"></script>
     <script src="./app.js"></script>
     <script src="./matches.js"></script>

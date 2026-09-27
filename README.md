@@ -1,25 +1,52 @@
 # Dota AI Coach
 
-Dota AI Coach is a coursework MVP for a real-time Dota 2 carry coach. It receives live Dota 2 Game State Integration (GSI) updates, normalizes the state, applies deterministic coaching rules, filters advice through an anti-spam scheduler, and shows compact guidance in an always-on-top overlay window of the Electron desktop app.
+A Dota 2 coach for Windows that watches your game with you: short advice over the game (and out loud) during the match, and an honest review after it — where the farm went, why you died, when your item came, what the player of your rank did. Free, local, open source.
 
-The project is intentionally conservative. The local rule-based policy is authoritative for live advice. Optional LLM support is used only for wording and offline review workflows, not for overriding safety priority or timing.
+**[Download the latest version](https://github.com/makquella/dota-ai-coach/releases/latest)** · [Website source](site/) · [Release notes](docs/release-notes/)
+
+Live advice comes from deterministic, tested rules on top of Valve's official Game State Integration (no memory reading, no inputs on your behalf). An optional AI coach (free Google Gemini key) writes the post-match review in plain words, and every number, time, hero and item it writes is checked against the match data.
+
+| Review with the AI coach | Match map | Build timing |
+|---|---|---|
+| ![AI coach review](site/assets/shots/en/coach.jpg) | ![Match map](site/assets/shots/en/map.jpg) | ![Item timing](site/assets/shots/en/build.jpg) |
+
+## Features
+
+During the match
+- Advice card over the game: urgent advice at once, tips with pauses; frequency Less / Normal / More.
+- Spoken advice with the Windows voices (heard even in exclusive fullscreen); `Ctrl+Alt+R` repeats the last one.
+- The full carry advisor for 21 carries (farm, items, objectives, hero abilities); survival advice (low HP, deaths, disables, mana, buyback) for every other hero.
+- A plan at the start of each match (until 1:30): last-hit target at 10:00 with your own average, the key item and when most players finish it, your focus.
+- Late-game reminders: farm stalls, the pace you should be at, keeping buyback gold; spend spare gold while dead.
+
+After the match
+- Score, the three things to fix next game with drills, section meters (laning, farm, survival, fights, items, vision).
+- You against the player of your role in the same match; item timings as win rate; draft (your win rate against each enemy, the best pick from your pool, counter items).
+- Match map (your path, deaths, wards, laning position), the advice given during the match and deaths right after urgent warnings.
+- This match against your usual numbers on the same hero.
+- AI coach review (optional, fact-checked) and «Ask the coach»: your own question about the match, answered from its data with the same fact check. PDF export.
+- Progress: trends over the last 10 games, recurring problems, heroes at your rank, best vs worst games; filter by hero.
+- Focus: pick one recurring problem; every next review says whether you avoided it, Progress keeps the score, the home screen shows tonight's session.
+- Turbo, bot games and special modes stay out of the history and trends.
+
+App
+- One-click installer, auto-update (never while Dota runs), tray, start with Windows.
+- Finds Dota and installs the GSI config itself; checks Steam's saved launch options for `-gamestateintegration` (Dota sends no game data without it) and says how to add it; a first-run checklist shows what is left.
+- Match history from the app's own recording plus OpenDota (optional API key for faster sync).
+- One-click problem report for bug reports (keys removed).
+- Russian and English.
+- Hero portraits and item icons (Valve's pictures from Valve's CDN, downloaded once at first use and kept on disk).
 
 ## Current Status
 
-**Coursework MVP / v0.1.0**
-
-The current version is ready for coursework defense and local demonstration:
+**v0.2.0** — see [release notes](docs/release-notes/v0.2.0.md).
 
 - FastAPI backend runs locally on `127.0.0.1` (port 8000 by default; the desktop app picks a free port automatically).
-- Dota 2 GSI can post live game state to `/gsi`.
-- Rule-based recommender and scheduler produce compact carry advice.
+- Dota 2 GSI posts live game state to `/gsi`; rule-based recommender and scheduler produce compact advice.
 - Electron desktop app (tray, single instance) starts the backend automatically and shows the overlay as its second window.
-- The overlay displays one small always-on-top advice card.
-- Replay demo playback works without launching Dota 2.
-- Live GSI session recording works for validation and post-session review.
-- Backend tests and Node syntax checks are available.
-- Windows live GSI validation was completed in Dota 2 Demo Hero mode.
-- Windows packaging: one command (`scripts\build-windows.ps1`) builds the PyInstaller backend, the Electron app and an NSIS installer; CI builds it on `windows-latest` and smoke-tests `/health`.
+- Player history, post-match reviews and progress in SQLite; OpenDota enrichment; optional AI coach.
+- Replay demo playback works without launching Dota 2; live GSI session recording for validation.
+- Backend tests, Node checks and unit tests run in CI; Windows packaging (PyInstaller backend + NSIS installer) is built and smoke-tested on `windows-latest`, and releases publish the auto-update feed.
 
 ## What Is Implemented
 
@@ -141,7 +168,7 @@ On Windows, install the app with the NSIS installer built by `scripts\build-wind
 
 ![In-game advice card](docs/screenshots/ui-v3/after-overlay-urgent.png)
 
-The overlay is a transparent, click-through window of the launcher. It is on screen only while Dota 2 is running, is the active window, and a match is sending fresh GSI data; alt-tab, minimizing Dota or going back to the menu hides it (replay demo and unlocked positioning mode show it anyway). The tray shows the state: *Dota not found* / *Waiting for game* / *In game* (Russian on a Russian system). On first run the app finds Dota through Steam (registry + `libraryfolders.vdf`, any drive) and installs the GSI config itself. It polls `/overlay/recommendation` on the backend port chosen by the launcher. Hotkeys: `Ctrl+Alt+O` toggle, `Ctrl+Alt+M` mute 5 min, `Ctrl+Alt+L` lock/unlock dragging, `Ctrl+Alt+1/2/3` left / right / bottom position (all clear of the minimap and hero panel), `Ctrl+Alt+D` debug line.
+The overlay is a transparent, click-through window of the launcher. It is on screen only while Dota 2 is running, is the active window, and a match is sending fresh GSI data; alt-tab, minimizing Dota or going back to the menu hides it (replay demo and unlocked positioning mode show it anyway). The tray shows the state: *Dota not found* / *Waiting for game* / *In game* (Russian on a Russian system). On first run the app finds Dota through Steam (registry + `libraryfolders.vdf`, any drive) and installs the GSI config itself. It polls `/overlay/recommendation` on the backend port chosen by the launcher. Hotkeys: `Ctrl+Alt+O` toggle, `Ctrl+Alt+M` mute 5 min, `Ctrl+Alt+R` repeat the last advice (shown and spoken again), `Ctrl+Alt+L` lock/unlock dragging, `Ctrl+Alt+1/2/3` left / right / bottom position (all clear of the minimap and hero panel), `Ctrl+Alt+D` debug line.
 
 ### Defense Demo Without Dota 2
 
@@ -241,10 +268,12 @@ node --check frontend/launcher/overlay-visibility.js
 node --check frontend/launcher/dota-watcher.js
 node --check frontend/launcher/steam-locator.js
 node --check frontend/launcher/updater.js
+node --check frontend/launcher/problem-report.js
 node --check frontend/launcher/renderer/app.js
 node --check frontend/launcher/renderer/charts.js
 node --check frontend/launcher/renderer/matches.js
 node --check frontend/launcher/overlay/app.js
+node --check frontend/launcher/overlay/voice.js
 node --check frontend/launcher/assets/icons/lucide.js
 (cd frontend/launcher && npm test)   # node --test, no dependencies
 ```

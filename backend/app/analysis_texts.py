@@ -11,6 +11,8 @@ from __future__ import annotations
 
 from typing import Any
 
+from app.advice_i18n import translate_ru
+
 
 def clock(seconds: Any) -> str:
     try:
@@ -193,6 +195,30 @@ FINDINGS: dict[str, dict[str, dict[str, str]]] = {
             "title": "Death streak",
             "text": "{count} deaths within 5 minutes ({from_text}–{to_text}). It is easy to repeat the same mistake right after dying.",
             "drill": "After dying, look at the minimap and timers and pick a safe target — don't walk straight back to where you were caught.",
+        },
+    },
+    "died_after_warning": {
+        "ru": {
+            "title": "Смерть после предупреждения",
+            "text": "{count} {count_times} вы погибли в течение {window} с после срочной подсказки (первый раз — {t_text}). Тренер предупредил вовремя, но отойти не успели.",
+            "drill": "Срочная подсказка — сигнал сразу развернуться к своим: сначала шаг назад, потом думать. Потренируйте это в следующей игре.",
+        },
+        "en": {
+            "title": "Died after a warning",
+            "text": "{count} times you died within {window} s of urgent advice (first at {t_text}). The warning came in time, but the retreat did not.",
+            "drill": "Treat urgent advice as a signal to turn back at once: step away first, think second. Practise it next game.",
+        },
+    },
+    "deaths_enemy_half": {
+        "ru": {
+            "title": "Смерти на половине противника",
+            "text": "{count} из {total} смертей после 10-й минуты — на половине карты противника. Туда заходили, не зная, где враги.",
+            "drill": "Прежде чем фармить за рекой, найдите на карте хотя бы трёх героев противника. Не видно — фармите на своей половине.",
+        },
+        "en": {
+            "title": "Deaths on the enemy half",
+            "text": "{count} of {total} deaths after minute 10 were on the enemy half of the map, walked into without knowing where the enemies were.",
+            "drill": "Before farming across the river, find at least three enemy heroes on the map. If you can't, farm on your half.",
         },
     },
     "killed_by_one": {
@@ -582,6 +608,7 @@ def _prepared_params(finding: dict[str, Any], lang: str) -> dict[str, Any]:
     if lang == "ru":
         if params.get("count") is not None:
             params["count_deaths"] = _plural_ru(params["count"], "смерть", "смерти", "смертей")
+            params["count_times"] = _plural_ru(params["count"], "раз", "раза", "раз")
         if params.get("deaths") is not None:
             params["deaths_word"] = _plural_ru(params["deaths"], "смерть", "смерти", "смертей")
         if params.get("last_hits") is not None:
@@ -596,6 +623,13 @@ def _prepared_params(finding: dict[str, Any], lang: str) -> dict[str, Any]:
 class _SafeDict(dict):
     def __missing__(self, key: str) -> str:
         return "—"
+
+
+def _advice_text(text: Any, lang: str) -> str:
+    value = str(text or "")
+    if lang != "ru" or not value:
+        return value
+    return translate_ru(value) or value
 
 
 def render_finding(finding: dict[str, Any], lang: str) -> dict[str, Any]:
@@ -628,6 +662,16 @@ def render_analysis(analysis: dict[str, Any], lang: str) -> dict[str, Any]:
             "role_label": PEER_ROLES.get(peers.get("role", ""), {}).get(lang),
             "lobby_rank_label": rank_label(peers.get("lobby_rank_tier"), lang),
         }
+    if analysis.get("advice"):
+        # Live advice is stored in English; translate it like the overlay does.
+        rendered["advice"] = [
+            {
+                **item,
+                "action": _advice_text(item.get("action"), lang),
+                "reason": _advice_text(item.get("reason"), lang),
+            }
+            for item in analysis["advice"]
+        ]
     rendered["sections"] = {
         name: {**section, "label": SECTIONS.get(name, {}).get(lang, name)}
         for name, section in (analysis.get("sections") or {}).items()

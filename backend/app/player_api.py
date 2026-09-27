@@ -6,12 +6,15 @@ POST   /player/link              {"steam": "<Steam ID / Friend ID / profile link
 POST   /player/link-detected     link the account currently seen in GSI
 DELETE /player                   forget the linked account (matches stay stored)
 POST   /player/sync              pull profile + recent matches from OpenDota
-GET    /player/matches           match table (newest first)
+GET    /player/matches           match table (newest first; ?hero_id=&result=win|loss)
 GET    /player/matches/{id}      one match: summary, scoreboard, post-match review
 POST   /player/matches/{id}/refresh   fetch again / ask OpenDota to parse the replay
 GET    /player/career            statistics and advice over the recent matches
 POST   /player/matches/{id}/coach     (re)generate the AI coach review of a match
 POST   /player/career/coach           (re)generate the AI coach review of recent matches
+GET    /player/opendota          OpenDota key status (never returns the key)
+POST   /player/opendota          {"api_key": "..."}: faster, higher OpenDota limits
+DELETE /player/opendota          forget the OpenDota key
 GET    /player/ai                AI coach settings (never returns the key)
 POST   /player/ai                {"provider": "groq"|"openrouter", "api_key": "...", "model"?}
 DELETE /player/ai                forget the key
@@ -22,7 +25,9 @@ All review texts follow `lang` (ru/en).
 
 from __future__ import annotations
 
-from fastapi import APIRouter
+from typing import Annotated
+
+from fastapi import APIRouter, Path, Query
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
@@ -41,9 +46,26 @@ PLAYER_SERVICE = PlayerService(
 
 router = APIRouter(prefix="/player", tags=["player"])
 
+# Match ids are stored as SQLite INTEGER (64-bit): bigger ids are a 422, not a 500.
+MatchId = Annotated[int, Path(ge=0, le=2**63 - 1)]
+HeroId = Annotated[int | None, Query(ge=0, le=100_000)]
+Offset = Annotated[int, Query(ge=0, le=10_000_000)]
+
 
 class LinkRequest(BaseModel):
     steam: str
+
+
+class OpenDotaKeyRequest(BaseModel):
+    api_key: str
+
+
+class AskRequest(BaseModel):
+    question: str
+
+
+class FocusRequest(BaseModel):
+    finding_id: str
 
 
 class AIRequest(BaseModel):
@@ -88,13 +110,19 @@ def sync_player():
 
 
 @router.get("/matches", summary="Match table of the linked player")
-def player_matches(limit: int = 50, offset: int = 0):
+def player_matches(
+    limit: int = 50, offset: Offset = 0, hero_id: HeroId = None, result: str | None = None
+):
+    """`hero_id` and `result` (win | loss) filter the table."""
     limit = max(1, min(int(limit), 200))
-    return PLAYER_SERVICE.list_matches(limit=limit, offset=max(0, int(offset)))
+    win = {"win": True, "loss": False}.get(str(result or "").lower())
+    return PLAYER_SERVICE.list_matches(
+        limit=limit, offset=max(0, int(offset)), hero_id=hero_id, win=win
+    )
 
 
 @router.get("/matches/{match_id}", summary="Post-match review")
-def player_match(match_id: int, lang: str = "en"):
+def player_match(match_id: MatchId, lang: str = "en"):
     detail = PLAYER_SERVICE.match_detail(match_id, normalize_lang(lang))
     if detail is None:
         return JSONResponse(status_code=404, content={"status": "error", "code": "match_not_found"})
@@ -104,18 +132,40 @@ def player_match(match_id: int, lang: str = "en"):
 @router.post(
     "/matches/{match_id}/refresh", summary="Fetch the match again and request a replay parse"
 )
-def refresh_match(match_id: int):
+def refresh_match(match_id: MatchId):
     PLAYER_SERVICE.fetch_match(match_id, request_parse=True)
     return {"status": "queued", "opendota": PLAYER_SERVICE.client is not None}
 
 
 @router.get("/career", summary="Statistics and advice over recent matches")
-def player_career(lang: str = "en"):
-    return PLAYER_SERVICE.career(normalize_lang(lang))
+def player_career(lang: str = "en", hero_id: HeroId = None):
+    """`hero_id` narrows the progress to one hero (no AI review then)."""
+    return PLAYER_SERVICE.career(normalize_lang(lang), hero_id=hero_id)
+
+
+@router.post("/matches/{match_id}/ask", summary="Ask the AI coach a question about a match")
+def ask_match(match_id: MatchId, request: AskRequest, lang: str = "en"):
+    """Answered synchronously (up to about a minute); the answer is fact-checked."""
+    return PLAYER_SERVICE.ask_match(match_id, request.question, normalize_lang(lang))
+
+
+@router.post("/focus", summary="Work on one recurring problem from now on")
+def set_focus(request: FocusRequest, lang: str = "en"):
+    try:
+        PLAYER_SERVICE.set_focus(request.finding_id)
+    except ValueError as error:
+        return JSONResponse(status_code=400, content={"status": "error", "code": str(error)})
+    return PLAYER_SERVICE.focus_status(normalize_lang(lang))
+
+
+@router.delete("/focus", summary="Stop tracking the focus problem")
+def clear_focus():
+    PLAYER_SERVICE.clear_focus()
+    return {"status": "ok"}
 
 
 @router.post("/matches/{match_id}/coach", summary="(Re)generate the AI coach review of a match")
-def coach_match(match_id: int, lang: str = "en"):
+def coach_match(match_id: MatchId, lang: str = "en"):
     detail = PLAYER_SERVICE.match_detail(match_id, normalize_lang(lang), force_coach=True)
     if detail is None:
         return JSONResponse(status_code=404, content={"status": "error", "code": "match_not_found"})
@@ -125,6 +175,26 @@ def coach_match(match_id: int, lang: str = "en"):
 @router.post("/career/coach", summary="(Re)generate the AI coach review of recent matches")
 def coach_career(lang: str = "en"):
     return PLAYER_SERVICE.career(normalize_lang(lang), force_coach=True).get("coach")
+
+
+@router.get("/opendota", summary="OpenDota key status (the key is never returned)")
+def opendota_settings():
+    return PLAYER_SERVICE.opendota_status()
+
+
+@router.post("/opendota", summary="Save an OpenDota API key")
+def set_opendota_settings(request: OpenDotaKeyRequest):
+    try:
+        return PLAYER_SERVICE.set_opendota_key(request.api_key)
+    except ValueError:
+        return JSONResponse(
+            status_code=400, content={"status": "error", "code": "bad_opendota_key"}
+        )
+
+
+@router.delete("/opendota", summary="Forget the OpenDota API key")
+def clear_opendota_settings():
+    return PLAYER_SERVICE.clear_opendota_key()
 
 
 @router.get("/ai", summary="AI coach settings (the key is never returned)")

@@ -84,8 +84,9 @@
     tip.style.top = `${Math.max(0, y - 8)}px`;
   }
 
-  function legend(host, items) {
-    if (items.length < 2) {
+  // A legend for 2+ series; the map names even a single layer (minItems 1).
+  function legend(host, items, minItems = 2) {
+    if (items.length < minItems) {
       return;
     }
     const list = document.createElement("ul");
@@ -325,5 +326,121 @@
     return track;
   }
 
-  window.LauncherCharts = { line, columns, meter, formatNumber };
+  /**
+   * Schematic Dota map (no game art): lanes, river and bases drawn from the
+   * real coordinates, with the match on top: the hero's path, laning
+   * position, wards and deaths. Radiant is bottom-left, Dire top-right.
+   * options: { bounds: [min, max], path, lane, wards, deaths, labels, clock(t), ariaLabel }
+   */
+  function map(host, options) {
+    host.replaceChildren();
+    host.classList.add("chart", "map-chart");
+    const [min, max] = options.bounds || [7000, 25800];
+    const size = Math.max(240, Math.min(360, host.clientWidth || 360));
+    const px = (x) => ((x - min) / (max - min)) * size;
+    const py = (y) => size - ((y - min) / (max - min)) * size;
+    const f = (value) => (value * size).toFixed(1);
+    const labels = options.labels || {};
+    const svg = el("svg", { viewBox: `0 0 ${size} ${size}`, width: size, height: size, role: "img", "aria-label": options.ariaLabel || "" });
+
+    // Terrain: lanes at x/y ≈ 0.16 and 0.84 of the map, mid on the diagonal,
+    // the river across it, bases around the fountains.
+    el("rect", { x: 0, y: 0, width: size, height: size, rx: 8, class: "map-ground" }, svg);
+    el("path", { d: `M${f(0.03)},${f(0.03)} L${f(0.97)},${f(0.97)}`, class: "map-river", "stroke-width": f(0.06) }, svg);
+    const lane = { class: "map-lane", "stroke-width": f(0.012) };
+    el("path", { d: `M${f(0.16)},${f(0.8)} L${f(0.16)},${f(0.2)} Q${f(0.16)},${f(0.16)} ${f(0.2)},${f(0.16)} L${f(0.8)},${f(0.16)}`, ...lane }, svg);
+    el("path", { d: `M${f(0.2)},${f(0.84)} L${f(0.8)},${f(0.84)} Q${f(0.84)},${f(0.84)} ${f(0.84)},${f(0.8)} L${f(0.84)},${f(0.2)}`, ...lane }, svg);
+    el("path", { d: `M${f(0.2)},${f(0.8)} L${f(0.8)},${f(0.2)}`, ...lane }, svg);
+    for (const [cx, cy, text, anchor] of [
+      [0.13, 0.87, labels.radiant, "start"],
+      [0.87, 0.13, labels.dire, "end"]
+    ]) {
+      el("rect", { x: f(cx - 0.07), y: f(cy - 0.07), width: f(0.14), height: f(0.14), rx: 6, class: "map-base" }, svg);
+      if (text) {
+        // Beside the base, along the map edge: Radiant under its base, Dire above.
+        const label = el("text", { x: f(anchor === "start" ? 0.22 : 0.78), y: f(cy > 0.5 ? 0.975 : 0.025), class: "chart-tick", "text-anchor": anchor, "dominant-baseline": cy > 0.5 ? "auto" : "hanging" }, svg);
+        label.textContent = text;
+      }
+    }
+
+    const tip = tooltip(host);
+    const marks = [];
+    const addMark = (group, x, y, title, rows) => {
+      group.setAttribute("tabindex", "0");
+      const show = () => {
+        const box = svg.getBoundingClientRect();
+        showTip(host, tip, (x / size) * box.width, (y / size) * box.height, title, rows);
+        group.classList.add("is-active");
+      };
+      const hide = () => {
+        tip.classList.add("hidden");
+        group.classList.remove("is-active");
+      };
+      group.addEventListener("pointerenter", show);
+      group.addEventListener("pointerleave", hide);
+      group.addEventListener("focus", show);
+      group.addEventListener("blur", hide);
+      marks.push(group);
+    };
+    const legendItems = [];
+
+    const lanePoints = options.lane || [];
+    if (lanePoints.length) {
+      const most = Math.max(...lanePoints.map((point) => point[2]));
+      const layer = el("g", { class: "map-heat" }, svg);
+      for (const [x, y, n] of lanePoints) {
+        el("circle", { cx: px(x), cy: py(y), r: (2 + 5 * Math.sqrt(n / most)).toFixed(1) }, layer);
+      }
+      legendItems.push({ label: labels.lane || "", color: "var(--viz-1)", kind: "dot" });
+    }
+
+    const path = options.path || [];
+    if (path.length > 1) {
+      // A gap of more than a minute (death, disconnect) starts a new segment.
+      let d = "";
+      path.forEach((point, index) => {
+        const jump = index === 0 || point.t - path[index - 1].t > 60;
+        d += `${jump ? "M" : "L"}${px(point.x).toFixed(1)},${py(point.y).toFixed(1)} `;
+      });
+      el("path", { d: d.trim(), class: "map-path" }, svg);
+      legendItems.push({ label: labels.path || "", color: "var(--viz-1)", kind: "line" });
+    }
+
+    const wards = options.wards || [];
+    for (const ward of wards) {
+      const x = px(ward.x);
+      const y = py(ward.y);
+      const group = el("g", { class: `map-ward map-ward-${ward.kind}` }, svg);
+      el("circle", { cx: x, cy: y, r: 4 }, group);
+      el("circle", { cx: x, cy: y, r: 9, fill: "transparent", class: "map-hit" }, group);
+      const kind = ward.kind === "sen" ? labels.sentry : labels.observer;
+      addMark(group, x, y, `${kind || ""} · ${options.clock ? options.clock(ward.t) : ward.t}`, []);
+    }
+    if (wards.some((ward) => ward.kind === "obs")) {
+      legendItems.push({ label: labels.observer || "", color: "var(--viz-2)", kind: "dot" });
+    }
+    if (wards.some((ward) => ward.kind === "sen")) {
+      legendItems.push({ label: labels.sentry || "", color: "var(--viz-2)", kind: "ring" });
+    }
+
+    const deaths = options.deaths || [];
+    for (const death of deaths) {
+      const x = px(death.x);
+      const y = py(death.y);
+      const group = el("g", { class: "map-death" }, svg);
+      el("path", { d: `M${x - 4},${y - 4} L${x + 4},${y + 4} M${x + 4},${y - 4} L${x - 4},${y + 4}` }, group);
+      el("circle", { cx: x, cy: y, r: 9, fill: "transparent", class: "map-hit" }, group);
+      const rows = death.killer ? [{ label: death.killer, value: "", kind: "none" }] : [];
+      addMark(group, x, y, `${labels.death || ""} · ${options.clock ? options.clock(death.t) : death.t}`, rows);
+    }
+    if (deaths.length) {
+      legendItems.push({ label: labels.death || "", color: "var(--error)", kind: "cross" });
+    }
+
+    host.appendChild(svg);
+    legend(host, legendItems, 1);
+    return marks.length;
+  }
+
+  window.LauncherCharts = { line, columns, meter, map, formatNumber };
 })();

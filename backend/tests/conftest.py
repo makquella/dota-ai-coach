@@ -31,6 +31,7 @@ def reset_runtime_state(tmp_path):
     PLAYER_SERVICE.configure(tmp_path / "player_data", client=None, auto_start=False)
     MATCH_MEMORY.reset()
     ADVICE_SCHEDULER.reset()
+    ADVICE_SCHEDULER.set_frequency("normal")
     COACH_SESSION_HISTORY.reset()
     _clear_demo_overlay_response()
     gsi_state._latest_raw_payload = None
@@ -40,6 +41,7 @@ def reset_runtime_state(tmp_path):
     yield
     MATCH_MEMORY.reset()
     ADVICE_SCHEDULER.reset()
+    ADVICE_SCHEDULER.set_frequency("normal")
     COACH_SESSION_HISTORY.reset()
     _clear_demo_overlay_response()
     gsi_state._latest_raw_payload = None

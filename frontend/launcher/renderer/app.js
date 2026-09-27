@@ -9,6 +9,22 @@ const I18N = {
     tabHome: "Home",
     tabMatches: "Matches",
     tabProgress: "Progress",
+    tabSettings: "Settings",
+    adviceSettingsTitle: "Advice",
+    languageTitle: "Language",
+    languageHint: "Advice, reviews and the whole app",
+    languageAuto: "Auto",
+    dataTitle: "Match data",
+    odTitle: "OpenDota key (optional)",
+    odPlaceholder: "API key",
+    odSave: "Save",
+    odGet: "Get a key on opendota.com",
+    odClear: "Remove key",
+    odHintOff: "Without a key OpenDota allows about 60 requests a minute, so history loads slower. The key stays on this computer.",
+    odHintOn: (hint) => `Key ${hint} saved: history and replays load faster.`,
+    odHintEnv: "The key from the .env file is used.",
+    odBad: "This does not look like an OpenDota key.",
+    appTitle: "App",
     service: "Service",
     serviceStates: { running: "running", starting: "starting…", stopping: "stopping…", stopped: "stopped" },
     status: {
@@ -27,6 +43,8 @@ const I18N = {
       waitingTitle: "Ready, waiting for a match",
       waitingHintConnected: "Advice starts as soon as a match with your hero begins.",
       waitingHintNoData: "If a match is already on, restart Dota: it reads the GSI config at start.",
+      launchOptionTitle: "Dota is not sending game data",
+      launchOptionHint: "Add -gamestateintegration to Dota 2 launch options (Steam → Dota 2 → Properties → Launch options), then restart the game.",
       inGameTitle: (hero, clock) => `In game: ${[hero, clock].filter(Boolean).join(", ")}`,
       inGameHint: "Advice appears over the game while Dota is the active window.",
       inGameOverlayOff: "The overlay is off, advice shows only here.",
@@ -34,15 +52,18 @@ const I18N = {
       demoHint: "The overlay shows advice from a recorded match.",
       fullscreenTitle: "The overlay is hidden by fullscreen",
       fullscreenHint:
-        "Dota runs in exclusive fullscreen, where no window can be drawn on top. In Dota: Settings → Video → Display mode → Borderless window."
+        "Dota runs in exclusive fullscreen, where no window can be drawn on top. In Dota: Settings → Video → Display mode → Borderless window. Or turn on the voice in Settings → Advice: it is heard in any mode."
     },
     actions: {
       start: "Start service",
       install: "Install config",
       chooseDota: "Choose Dota folder",
-      fullscreenSeen: "I can see the advice"
+      fullscreenSeen: "I can see the advice",
+      copyLaunchOption: "Copy option",
+      copied: "Copied"
     },
     matchTitle: "Current match",
+    coverageSafety: "Full advice (farm, items, objectives) is for carry heroes; this hero gets survival advice only.",
     statHero: "Hero",
     statClock: "Match time",
     statStage: "Stage",
@@ -75,6 +96,32 @@ const I18N = {
     posLeft: "Left",
     posRight: "Right",
     posBottom: "Bottom",
+    overlaySize: "Card size",
+    overlaySizeHint: "Larger on big and high-resolution screens",
+    sizeSmall: "Small",
+    sizeNormal: "Normal",
+    sizeLarge: "Large",
+    frequencyTitle: "How often",
+    frequencyCalm: "Less",
+    frequencyNormal: "Normal",
+    frequencyActive: "More",
+    frequencyHint: {
+      calm: "Twice the pause between tips; urgent advice is never delayed",
+      normal: "Balanced pauses between tips",
+      active: "Shorter pauses between tips; urgent advice as always"
+    },
+    voiceTitle: "Voice",
+    voiceOff: "Off",
+    voiceUrgent: "Urgent",
+    voiceAll: "All",
+    voiceTest: "Listen",
+    voiceHint: {
+      off: "Advice is only shown, not spoken",
+      urgent: "Speaks urgent advice; heard even in exclusive fullscreen. Ctrl+Alt+R repeats",
+      all: "Speaks every piece of advice; heard even in exclusive fullscreen. Ctrl+Alt+R repeats"
+    },
+    voiceNoVoice: "No English voice in the system: Windows Settings → Time & language → Speech",
+    voiceSample: "Back off: the enemy is missing from the map.",
     overlayMove: "Move by hand",
     moveHint: "Shows the card so you can drag it anywhere",
     moveActiveHint: "Drag the card, then press Done",
@@ -97,6 +144,36 @@ const I18N = {
       blocked: (v, next) => `Version ${next} is ready. It installs after you close Dota.`,
       error: (v) => `Version ${v} · could not check for updates`
     },
+    whatsNewTitle: (version) => `What's new in ${version}`,
+    whatsNewOk: "Got it",
+    whatsNew: {
+      "0.2.0": [
+        "A plan at the start of each match, and a focus: pick one mistake to work on — every review says whether you avoided it.",
+        "«Ask the coach»: your own question about a match, answered from its data.",
+        "Spoken advice, advice frequency, survival advice for every hero, reminders to carry a TP scroll and to spend gold while dead.",
+        "Match map, this match against your usual numbers, match filters and PDF export.",
+        "A check for Dota's -gamestateintegration launch option, without which no game data arrives."
+      ]
+    },
+    setupTitle: "Getting started",
+    setupHide: "Hide",
+    setupCount: (done, total) => `${done} of ${total}`,
+    setup: {
+      service: ["The coach service is running", "Starts with the app; restart it in Settings → «For developers» if it stopped."],
+      dota: ["Dota 2 found", "Not in your Steam libraries: point to the game folder."],
+      gsi: ["Game data config installed", "A small file in the Dota folder that lets the game share match data."],
+      launch: ["Launch option -gamestateintegration", "Without it Dota does not share game data. Steam → Dota 2 → Properties → Launch options: add -gamestateintegration."],
+      data: ["First data from Dota received", "Start Dota 2 (or restart it after installing the config) and open any match, bots are fine."],
+      account: ["Steam account linked", "Linked by itself in the first match, or enter it on the Matches tab."],
+      ai: ["AI coach (optional)", "A free Gemini key writes a coach review of every match."]
+    },
+    setupActions: { dota: "Choose folder", gsi: "Install", launch: "Copy", account: "Link", ai: "Set up" },
+    reportTitle: "Problem report",
+    reportHint: "Saves one file with logs for the developer, without keys",
+    reportSave: "Save",
+    reportSaving: "Collecting…",
+    reportSaved: (name) => `Saved: ${name}. Send this file to the developer.`,
+    reportFailed: "Could not save the file",
     devTitle: "For developers",
     devHint: "Service, GSI, replay demos, recordings, logs",
     factBackend: "Service",
@@ -112,7 +189,7 @@ const I18N = {
     stopBackend: "Stop",
     showOverlay: "Show overlay",
     hideOverlay: "Hide overlay",
-    hotkeys: "Ctrl+Alt+O on/off · Ctrl+Alt+L move · Ctrl+Alt+M mute 5 min · Ctrl+Alt+1/2/3 left/right/bottom · Ctrl+Alt+D debug line",
+    hotkeys: "Ctrl+Alt+O on/off · Ctrl+Alt+L move · Ctrl+Alt+M mute 5 min · Ctrl+Alt+R repeat advice · Ctrl+Alt+1/2/3 left/right/bottom · Ctrl+Alt+D debug line",
     groupGsi: "GSI config",
     gsiPathPlaceholder: "Custom gamestate_integration folder (optional)",
     chooseFolder: "Choose",
@@ -168,6 +245,22 @@ const I18N = {
     tabHome: "Главная",
     tabMatches: "Матчи",
     tabProgress: "Прогресс",
+    tabSettings: "Настройки",
+    adviceSettingsTitle: "Советы",
+    languageTitle: "Язык",
+    languageHint: "Советы, разборы и всё приложение",
+    languageAuto: "Как в системе",
+    dataTitle: "Данные матчей",
+    odTitle: "Ключ OpenDota (по желанию)",
+    odPlaceholder: "Ключ API",
+    odSave: "Сохранить",
+    odGet: "Получить ключ на opendota.com",
+    odClear: "Удалить ключ",
+    odHintOff: "Без ключа OpenDota даёт около 60 запросов в минуту, история загружается медленнее. Ключ хранится только на этом компьютере.",
+    odHintOn: (hint) => `Ключ ${hint} сохранён: история и разборы грузятся быстрее.`,
+    odHintEnv: "Используется ключ из файла .env.",
+    odBad: "Это не похоже на ключ OpenDota.",
+    appTitle: "Приложение",
     service: "Сервис",
     serviceStates: { running: "работает", starting: "запускается…", stopping: "останавливается…", stopped: "остановлен" },
     status: {
@@ -186,6 +279,8 @@ const I18N = {
       waitingTitle: "Готово, ждём матч",
       waitingHintConnected: "Подсказки начнутся, как только стартует матч с вашим героем.",
       waitingHintNoData: "Если матч уже идёт, перезапустите Доту: конфиг GSI читается при старте игры.",
+      launchOptionTitle: "Дота не передаёт данные игры",
+      launchOptionHint: "Добавьте -gamestateintegration в параметры запуска Dota 2 (Steam → Dota 2 → Свойства → Параметры запуска) и перезапустите игру.",
       inGameTitle: (hero, clock) => `В игре: ${[hero, clock].filter(Boolean).join(", ")}`,
       inGameHint: "Подсказки появляются поверх игры, пока окно Доты активно.",
       inGameOverlayOff: "Оверлей выключен — подсказки видны только здесь.",
@@ -193,15 +288,18 @@ const I18N = {
       demoHint: "Оверлей показывает подсказки из записанного матча.",
       fullscreenTitle: "Оверлей не виден из-за полноэкранного режима",
       fullscreenHint:
-        "Дота запущена в эксклюзивном полноэкранном режиме — поверх него окна не рисуются. В Доте: Настройки → Видео → режим экрана «Окно без рамки» (Borderless window)."
+        "Дота запущена в эксклюзивном полноэкранном режиме — поверх него окна не рисуются. В Доте: Настройки → Видео → режим экрана «Окно без рамки» (Borderless window). Или включите голос в «Настройки → Советы» — его слышно в любом режиме."
     },
     actions: {
       start: "Запустить сервис",
       install: "Установить конфиг",
       chooseDota: "Указать папку Доты",
-      fullscreenSeen: "Подсказки видны"
+      fullscreenSeen: "Подсказки видны",
+      copyLaunchOption: "Скопировать параметр",
+      copied: "Скопировано"
     },
     matchTitle: "Текущий матч",
+    coverageSafety: "Полные советы (фарм, предметы, цели) — для керри; на этом герое тренер подсказывает только по выживанию.",
     statHero: "Герой",
     statClock: "Время матча",
     statStage: "Стадия",
@@ -234,6 +332,32 @@ const I18N = {
     posLeft: "Слева",
     posRight: "Справа",
     posBottom: "Снизу",
+    overlaySize: "Размер карточки",
+    overlaySizeHint: "Крупнее — для больших экранов и высокого разрешения",
+    sizeSmall: "Мелкий",
+    sizeNormal: "Обычный",
+    sizeLarge: "Крупный",
+    frequencyTitle: "Частота советов",
+    frequencyCalm: "Реже",
+    frequencyNormal: "Обычно",
+    frequencyActive: "Чаще",
+    frequencyHint: {
+      calm: "Вдвое больше пауза между советами; срочные не задерживаются",
+      normal: "Обычные паузы между советами",
+      active: "Короче паузы между советами; срочные как всегда"
+    },
+    voiceTitle: "Голос",
+    voiceOff: "Выкл",
+    voiceUrgent: "Срочные",
+    voiceAll: "Все",
+    voiceTest: "Прослушать",
+    voiceHint: {
+      off: "Советы только на экране, без озвучки",
+      urgent: "Озвучивает срочные советы; слышно даже в полноэкранном режиме. Ctrl+Alt+R — повторить",
+      all: "Озвучивает все советы; слышно даже в полноэкранном режиме. Ctrl+Alt+R — повторить"
+    },
+    voiceNoVoice: "В Windows нет русского голоса: Параметры → Время и язык → Речь → Добавить голоса",
+    voiceSample: "Отходите: противника не видно на карте.",
     overlayMove: "Переместить вручную",
     moveHint: "Покажет карточку, чтобы её можно было перетащить",
     moveActiveHint: "Перетащите карточку и нажмите «Готово»",
@@ -256,6 +380,36 @@ const I18N = {
       blocked: (v, next) => `Версия ${next} загружена. Установится после выхода из Доты.`,
       error: (v) => `Версия ${v} · не удалось проверить обновления`
     },
+    whatsNewTitle: (version) => `Что нового в ${version}`,
+    whatsNewOk: "Понятно",
+    whatsNew: {
+      "0.2.0": [
+        "План на игру в начале матча и фокус: выберите одну ошибку — в каждом разборе видно, получилось ли её избежать.",
+        "«Спросить тренера»: свой вопрос о матче, ответ по его данным.",
+        "Голос, частота советов, советы по выживанию на любом герое, напоминания носить TP и тратить золото после смерти.",
+        "Карта матча, сравнение с вашими обычными цифрами, фильтры матчей и сохранение в PDF.",
+        "Проверка параметра запуска -gamestateintegration, без которого Дота не передаёт данные."
+      ]
+    },
+    setupTitle: "Первый запуск",
+    setupHide: "Скрыть",
+    setupCount: (done, total) => `${done} из ${total}`,
+    setup: {
+      service: ["Сервис тренера запущен", "Запускается вместе с приложением; если остановился, перезапустите в «Настройки → Для разработчика»."],
+      dota: ["Dota 2 найдена", "Игры нет в библиотеках Steam — укажите папку игры."],
+      gsi: ["Конфиг данных игры установлен", "Небольшой файл в папке Доты, через который игра передаёт данные матча."],
+      launch: ["Параметр запуска -gamestateintegration", "Без него Дота не передаёт данные. Steam → Dota 2 → Свойства → Параметры запуска: добавьте -gamestateintegration."],
+      data: ["Первые данные из Доты получены", "Запустите Dota 2 (или перезапустите после установки конфига) и зайдите в любой матч, можно с ботами."],
+      account: ["Аккаунт Steam привязан", "Привяжется сам в первом матче, или укажите его на вкладке «Матчи»."],
+      ai: ["ИИ-тренер (по желанию)", "Бесплатный ключ Gemini — и к каждому матчу будет разбор тренера."]
+    },
+    setupActions: { dota: "Указать папку", gsi: "Установить", launch: "Скопировать", account: "Привязать", ai: "Настроить" },
+    reportTitle: "Отчёт о проблеме",
+    reportHint: "Сохранит файл с журналами для разработчика, без ключей",
+    reportSave: "Сохранить",
+    reportSaving: "Собираем…",
+    reportSaved: (name) => `Сохранено: ${name}. Отправьте этот файл разработчику.`,
+    reportFailed: "Не удалось сохранить файл",
     devTitle: "Для разработчика",
     devHint: "Сервис, GSI, демо-повторы, записи, логи",
     factBackend: "Сервис",
@@ -271,7 +425,7 @@ const I18N = {
     stopBackend: "Остановить",
     showOverlay: "Показать оверлей",
     hideOverlay: "Скрыть оверлей",
-    hotkeys: "Ctrl+Alt+O вкл/выкл · Ctrl+Alt+L переместить · Ctrl+Alt+M тишина 5 мин · Ctrl+Alt+1/2/3 слева/справа/снизу · Ctrl+Alt+D отладка",
+    hotkeys: "Ctrl+Alt+O вкл/выкл · Ctrl+Alt+L переместить · Ctrl+Alt+M тишина 5 мин · Ctrl+Alt+R повторить совет · Ctrl+Alt+1/2/3 слева/справа/снизу · Ctrl+Alt+D отладка",
     groupGsi: "Конфиг GSI",
     gsiPathPlaceholder: "Своя папка gamestate_integration (необязательно)",
     chooseFolder: "Выбрать",
@@ -336,6 +490,7 @@ const els = {
   statusActionLabel: $("#status-action-label"),
   matchStats: $("#match-body .stats"),
   matchEmpty: $("#match-empty"),
+  coverageNote: $("#coverage-note"),
   statHero: $("#stat-hero"),
   statClock: $("#stat-clock"),
   statStage: $("#stat-stage"),
@@ -346,6 +501,13 @@ const els = {
   overlayHint: $("#overlay-hint"),
   positionButtons: [...document.querySelectorAll("#position-group [data-position]")],
   positionHint: $("#position-hint"),
+  sizeButtons: [...document.querySelectorAll("#size-group [data-size]")],
+  languageButtons: [...document.querySelectorAll("#language-group [data-language]")],
+  frequencyButtons: [...document.querySelectorAll("#frequency-group [data-frequency]")],
+  frequencyHint: $("#frequency-hint"),
+  voiceButtons: [...document.querySelectorAll("#voice-group [data-voice]")],
+  voiceHint: $("#voice-hint"),
+  voiceTest: $("#voice-test"),
   moveToggle: $("#move-toggle"),
   moveLabel: $("#move-label"),
   moveHint: $("#move-hint"),
@@ -354,6 +516,22 @@ const els = {
   updateHint: $("#update-hint"),
   updateAction: $("#update-action"),
   updateLabel: $("#update-label"),
+  whatsNewCard: $("#whats-new-card"),
+  whatsNewHeading: $("#whats-new-heading"),
+  whatsNewList: $("#whats-new-list"),
+  whatsNewDismiss: $("#whats-new-dismiss"),
+  setupCard: $("#setup-card"),
+  setupSteps: $("#setup-steps"),
+  setupCount: $("#setup-count"),
+  setupDismiss: $("#setup-dismiss"),
+  odHint: $("#od-hint"),
+  odForm: $("#od-form"),
+  odKey: $("#od-key"),
+  odSave: $("#od-save"),
+  odGet: $("#od-get"),
+  odClear: $("#od-clear"),
+  reportAction: $("#report-action"),
+  reportHint: $("#report-hint"),
   devTools: $("#dev-tools"),
   logs: $("#logs"),
   gsiPath: $("#gsi-path"),
@@ -396,6 +574,9 @@ let locale = "en";
 let textsLocale = "";
 let gsiEndpoint = "";
 let statusAction = null;
+let lastVoice = { mode: "off", volume: 1 };
+let voiceListChecked = false;
+let openDotaLoaded = false;
 const seenAdvice = new Set();
 
 init();
@@ -477,6 +658,9 @@ async function init() {
     els.statusAction.disabled = true;
     await run(action.run);
     els.statusAction.disabled = false;
+    if (action.doneLabel) {
+      flashLabel(els.statusActionLabel, action.doneLabel);
+    }
   });
   els.overlayToggle.addEventListener("change", () =>
     run(() => (els.overlayToggle.checked ? window.launcherApi.startOverlay() : window.launcherApi.stopOverlay()))
@@ -486,6 +670,28 @@ async function init() {
       run(async () => renderStatus(await window.launcherApi.setOverlayPosition(button.dataset.position)))
     );
   }
+  for (const button of els.languageButtons) {
+    button.addEventListener("click", () =>
+      run(async () => renderStatus(await window.launcherApi.setLanguage(button.dataset.language)))
+    );
+  }
+  for (const button of els.sizeButtons) {
+    button.addEventListener("click", () =>
+      run(async () => renderStatus(await window.launcherApi.setOverlaySize(button.dataset.size)))
+    );
+  }
+  for (const button of els.frequencyButtons) {
+    button.addEventListener("click", () =>
+      run(async () => renderStatus(await window.launcherApi.setAdviceFrequency(button.dataset.frequency)))
+    );
+  }
+  for (const button of els.voiceButtons) {
+    button.addEventListener("click", () =>
+      run(async () => renderStatus(await window.launcherApi.setOverlayVoice(button.dataset.voice)))
+    );
+  }
+  els.voiceTest.addEventListener("click", () => run(testVoice));
+  window.speechSynthesis?.addEventListener?.("voiceschanged", () => renderVoiceHint(lastVoice));
   els.moveToggle.addEventListener("click", () =>
     run(async () => {
       // Pressed = the card is unlocked for dragging; pressing again locks it.
@@ -499,6 +705,41 @@ async function init() {
         await window.launcherApi.installUpdate();
       } else {
         renderStatus(await window.launcherApi.checkForUpdates());
+      }
+    })
+  );
+  els.odSave.addEventListener("click", () => run(saveOpenDotaKey));
+  els.odKey.addEventListener("keydown", (event) => {
+    if (event.key === "Enter") {
+      run(saveOpenDotaKey);
+    }
+  });
+  els.odGet.addEventListener("click", () => run(() => window.launcherApi.openAiKeyPage("opendota")));
+  els.odClear.addEventListener("click", () =>
+    run(async () => {
+      await window.launcherApi.player("odClear");
+      await refreshOpenDota();
+    })
+  );
+  document.querySelector("#tab-settings")?.addEventListener("click", () => run(refreshOpenDota));
+  els.whatsNewDismiss.addEventListener("click", () =>
+    run(async () => renderStatus(await window.launcherApi.dismissWhatsNew()))
+  );
+  els.setupDismiss.addEventListener("click", () =>
+    run(async () => renderStatus(await window.launcherApi.dismissSetup()))
+  );
+  els.reportAction.addEventListener("click", () =>
+    run(async () => {
+      els.reportAction.disabled = true;
+      els.reportHint.textContent = tr("reportSaving");
+      try {
+        const result = await window.launcherApi.saveProblemReport();
+        els.reportHint.textContent = result && result.ok
+          ? tr("reportSaved", result.path.split(/[\\/]/).pop())
+          : tr("reportFailed");
+        els.reportHint.title = result && result.ok ? result.path : result?.error || "";
+      } finally {
+        els.reportAction.disabled = false;
       }
     })
   );
@@ -528,6 +769,17 @@ async function init() {
 
   renderLogs(await window.launcherApi.getLogs());
   renderStatus(await window.launcherApi.getStatus());
+}
+
+// "Copied" for a moment, then the label the next render gives it.
+function flashLabel(element, text) {
+  const previous = element.textContent;
+  element.textContent = text;
+  setTimeout(() => {
+    if (element.textContent === text) {
+      element.textContent = previous;
+    }
+  }, 1600);
 }
 
 async function run(handler) {
@@ -591,6 +843,12 @@ function renderStatus(status) {
 
   renderService(status);
   renderStatusLine(status);
+  renderSetup(status);
+  renderWhatsNew(status);
+  if (status.backend === "running" && !openDotaLoaded) {
+    openDotaLoaded = true;
+    run(refreshOpenDota);
+  }
   renderMatch(status);
   renderAdvice(status);
   renderOverlaySettings(status);
@@ -600,6 +858,148 @@ function renderStatus(status) {
   updateGsiDetail({ status: status.gsiConfig, path: status.gsiPath });
   // Matches / Progress views (renderer/matches.js).
   window.PlayerViews?.onStatus(status);
+}
+
+// OpenDota key: the backend keeps it and only ever answers with a hint.
+async function refreshOpenDota() {
+  const result = await window.launcherApi.player("odStatus");
+  renderOpenDota(result && result.ok ? result.data : null);
+}
+
+function renderOpenDota(data) {
+  const configured = Boolean(data && data.configured);
+  els.odForm.classList.toggle("hidden", configured);
+  els.odClear.classList.toggle("hidden", !configured || data.source !== "app");
+  els.odHint.textContent = !configured
+    ? tr("odHintOff")
+    : data.source === "env"
+      ? tr("odHintEnv")
+      : tr("odHintOn", data.key_hint || "");
+}
+
+async function saveOpenDotaKey() {
+  const key = els.odKey.value.trim();
+  if (!key) {
+    return;
+  }
+  els.odSave.disabled = true;
+  try {
+    const result = await window.launcherApi.player("odSave", { apiKey: key });
+    if (result && result.ok) {
+      els.odKey.value = "";
+      renderOpenDota(result.data);
+    } else {
+      els.odHint.textContent = tr("odBad");
+    }
+  } finally {
+    els.odSave.disabled = false;
+  }
+}
+
+// First-run checklist: the required steps in order, then the optional AI coach.
+// Hidden once the required steps are done or the player hides it.
+function setupSteps(status) {
+  const player = status.player || {};
+  // Data from the game proves Dota and the config work, wherever Dota lives.
+  const dataSeen = Boolean(status.setup?.gsiSeen || status.live?.connected);
+  return [
+    { id: "service", done: status.backend === "running" },
+    { id: "dota", done: Boolean(status.dotaDir || status.dotaRunning || dataSeen), action: () => window.launcherApi.chooseDotaFolder() },
+    { id: "gsi", done: status.gsiConfig === "installed" || dataSeen, action: () => window.launcherApi.installGsi("") },
+    // Shown only when Steam's saved settings could be read.
+    ...(status.launchOption === "ok" || status.launchOption === "missing"
+      ? [{ id: "launch", done: status.launchOption === "ok" || dataSeen, action: () => window.launcherApi.copyLaunchOption() }]
+      : []),
+    { id: "data", done: dataSeen },
+    { id: "account", done: Boolean(player.linked), action: () => window.PlayerViews?.setView("matches") },
+    {
+      id: "ai",
+      done: Boolean(player.aiConfigured),
+      optional: true,
+      action: () => {
+        window.PlayerViews?.setView("settings");
+        document.getElementById("ai-settings-root")?.scrollIntoView({ block: "start" });
+      }
+    }
+  ];
+}
+
+function renderWhatsNew(status) {
+  const version = String(status.whatsNew || "");
+  const table = (I18N[locale] || I18N.en).whatsNew || {};
+  const items = table[version];
+  const show = Boolean(version && Array.isArray(items) && items.length);
+  els.whatsNewCard.classList.toggle("hidden", !show);
+  if (!show || els.whatsNewList.dataset.signature === `${locale}|${version}`) {
+    return;
+  }
+  els.whatsNewList.dataset.signature = `${locale}|${version}`;
+  els.whatsNewHeading.textContent = tr("whatsNewTitle", version);
+  els.whatsNewList.replaceChildren(
+    ...items.map((text) => {
+      const item = document.createElement("li");
+      item.textContent = text;
+      return item;
+    })
+  );
+}
+
+function renderSetup(status) {
+  const steps = setupSteps(status);
+  const required = steps.filter((step) => !step.optional);
+  const doneCount = required.filter((step) => step.done).length;
+  const hide = isLoading(status) || status.setup?.dismissed || doneCount === required.length;
+  els.setupCard.classList.toggle("hidden", Boolean(hide));
+  if (hide) {
+    return;
+  }
+  els.setupCount.textContent = tr("setupCount", doneCount, required.length);
+  // The first open step gets the action; later ones wait for it.
+  const next = steps.find((step) => !step.done);
+  const signature = JSON.stringify([locale, steps.map((step) => step.done), next?.id]);
+  if (els.setupSteps.dataset.signature === signature) {
+    return;
+  }
+  els.setupSteps.dataset.signature = signature;
+  els.setupSteps.replaceChildren(
+    ...steps.map((step) => {
+      const [title, hint] = tr(`setup.${step.id}`);
+      const item = document.createElement("li");
+      item.className = "setup-step";
+      item.dataset.done = String(step.done);
+      const mark = document.createElement("i");
+      mark.className = "setup-mark";
+      mark.dataset.icon = step.done ? "circle-check" : "circle";
+      const text = document.createElement("span");
+      text.className = "setup-text";
+      const titleEl = document.createElement("span");
+      titleEl.className = "setup-step-title";
+      titleEl.textContent = title;
+      text.append(titleEl);
+      if (!step.done) {
+        const hintEl = document.createElement("span");
+        hintEl.className = "setup-step-hint";
+        hintEl.textContent = hint;
+        text.append(hintEl);
+      }
+      item.append(mark, text);
+      if (!step.done && step.action && (step === next || step.optional)) {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = step === next && !step.optional ? "btn btn-primary btn-sm" : "btn btn-sm";
+        button.textContent = tr(`setupActions.${step.id}`);
+        button.addEventListener("click", async () => {
+          await run(step.action);
+          if (step.id === "launch") {
+            flashLabel(button, tr("actions.copied"));
+          }
+        });
+        item.append(button);
+      }
+      return item;
+    })
+  );
+  window.LucideIcons?.hydrate(els.setupSteps);
 }
 
 function isLoading(status) {
@@ -638,7 +1038,8 @@ function resolveStatusLine(status) {
     start: { label: tr("actions.start"), icon: "play", run: () => api.startBackend() },
     install: { label: tr("actions.install"), icon: "download", run: () => installGsi("") },
     chooseDota: { label: tr("actions.chooseDota"), icon: "folder-search", run: () => api.chooseDotaFolder() },
-    fullscreenSeen: { label: tr("actions.fullscreenSeen"), icon: "eye", run: () => api.dismissFullscreenWarning() }
+    fullscreenSeen: { label: tr("actions.fullscreenSeen"), icon: "eye", run: () => api.dismissFullscreenWarning() },
+    copyLaunchOption: { label: tr("actions.copyLaunchOption"), icon: "copy", run: () => api.copyLaunchOption(), doneLabel: tr("actions.copied") }
   };
 
   if (isLoading(status)) {
@@ -673,6 +1074,10 @@ function resolveStatusLine(status) {
   }
   if (!status.dotaRunning) {
     return { state: "idle", title: tr("status.notRunningTitle"), hint: tr("status.notRunningHint") };
+  }
+  if (!live.connected && status.launchOption === "missing") {
+    // Dota runs, the config is there, but nothing arrives: the usual cause.
+    return { state: "warn", title: tr("status.launchOptionTitle"), hint: tr("status.launchOptionHint"), action: actions.copyLaunchOption };
   }
   return {
     state: "warn",
@@ -725,12 +1130,14 @@ function renderMatch(status) {
   if (isLoading(status)) {
     els.matchStats.classList.remove("hidden");
     setEmpty(els.matchEmpty, false);
+    delete els.statHero.dataset.hero;
     els.statHero.replaceChildren(skeleton("w-70"));
     els.statClock.replaceChildren(skeleton("w-40"));
     els.statStage.replaceChildren(skeleton("w-60"));
     els.statData.replaceChildren(skeleton("w-50"));
     return;
   }
+  els.coverageNote.classList.add("hidden");
   if (isOffline(status)) {
     els.matchStats.classList.add("hidden");
     setEmpty(els.matchEmpty, true, { title: tr("offlineTitle"), hint: tr("offlineHint"), icon: "wifi-off" });
@@ -743,7 +1150,22 @@ function renderMatch(status) {
   }
   els.matchStats.classList.remove("hidden");
   setEmpty(els.matchEmpty, false);
-  els.statHero.textContent = live.hero || "—";
+  els.coverageNote.classList.toggle("hidden", live.coverage !== "safety");
+  if (live.hero && window.DotaIcons?.hero(live.hero)) {
+    // Keep the element while the hero stays the same (no flicker every second).
+    if (els.statHero.dataset.hero !== live.hero) {
+      els.statHero.dataset.hero = live.hero;
+      const name = document.createElement("span");
+      name.textContent = live.hero;
+      const label = document.createElement("span");
+      label.className = "with-pic";
+      label.append(window.DotaIcons.heroPicture(document, live.hero, "sm"), name);
+      els.statHero.replaceChildren(label);
+    }
+  } else {
+    delete els.statHero.dataset.hero;
+    els.statHero.textContent = live.hero || "—";
+  }
   els.statClock.textContent = formatClock(live.clockTime) || "—";
   els.statStage.textContent = live.stage && live.stage !== "unknown" ? stageLabel(live.stage) : "—";
   const seconds = Number.isFinite(live.secondsSinceLastGsi) ? live.secondsSinceLastGsi.toFixed(1) : null;
@@ -854,6 +1276,31 @@ function renderOverlaySettings(status) {
   }
   els.positionHint.textContent = position === "custom" ? tr("positionCustom") : tr("positionHint");
 
+  const language = status.language || "auto";
+  for (const button of els.languageButtons) {
+    button.setAttribute("aria-checked", String(button.dataset.language === language));
+  }
+
+  const size = status.overlaySize || "normal";
+  for (const button of els.sizeButtons) {
+    button.setAttribute("aria-checked", String(button.dataset.size === size));
+    button.disabled = !enabled;
+  }
+
+  const frequency = status.adviceFrequency || "normal";
+  for (const button of els.frequencyButtons) {
+    button.setAttribute("aria-checked", String(button.dataset.frequency === frequency));
+  }
+  els.frequencyHint.textContent = tr(`frequencyHint.${frequency}`);
+
+  lastVoice = status.overlayVoice || { mode: "off", volume: 1 };
+  for (const button of els.voiceButtons) {
+    button.setAttribute("aria-checked", String(button.dataset.voice === lastVoice.mode));
+    button.disabled = !enabled;
+  }
+  els.voiceTest.disabled = !enabled;
+  renderVoiceHint(lastVoice);
+
   const moving = status.overlayLocked === false;
   els.moveToggle.setAttribute("aria-pressed", String(moving));
   els.moveToggle.disabled = !enabled;
@@ -869,6 +1316,48 @@ function renderOverlaySettings(status) {
       : tr("autostartOff");
 
   renderUpdate(status);
+}
+
+// The overlay speaks with the system voices; the panel only checks that one
+// exists for the UI language and plays a sample.
+function systemVoice() {
+  return window.OverlayVoice && window.speechSynthesis
+    ? window.OverlayVoice.pickVoice(window.speechSynthesis.getVoices(), locale)
+    : null;
+}
+
+function renderVoiceHint(voice) {
+  const mode = voice?.mode || "off";
+  const found = systemVoice();
+  if (mode !== "off" && !found && voiceListLoaded()) {
+    els.voiceHint.textContent = tr("voiceNoVoice");
+    return;
+  }
+  els.voiceHint.textContent = [tr(`voiceHint.${mode}`), mode !== "off" && found ? found.name : ""]
+    .filter(Boolean)
+    .join(" · ");
+}
+
+// Chromium fills the voice list asynchronously: an empty list right after
+// start does not yet mean there are no voices.
+function voiceListLoaded() {
+  return (window.speechSynthesis?.getVoices() || []).length > 0 || voiceListChecked;
+}
+
+function testVoice() {
+  const voice = systemVoice();
+  if (!voice) {
+    voiceListChecked = true;
+    els.voiceHint.textContent = tr("voiceNoVoice");
+    return;
+  }
+  const utterance = new window.SpeechSynthesisUtterance(tr("voiceSample"));
+  utterance.voice = voice;
+  utterance.lang = voice.lang;
+  utterance.volume = Number(lastVoice.volume ?? 1);
+  utterance.rate = 1.05;
+  window.speechSynthesis.cancel();
+  window.speechSynthesis.speak(utterance);
 }
 
 function renderUpdate(status) {

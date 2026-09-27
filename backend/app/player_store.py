@@ -279,26 +279,114 @@ class PlayerStore:
             )
             self._conn.commit()
 
+    @staticmethod
+    def _filter(
+        account_id: int, hero_id: int | None, win: bool | None
+    ) -> tuple[str, tuple[Any, ...]]:
+        """WHERE clause for the match table filters (hero, result)."""
+        where, params = ["account_id = ?"], [int(account_id)]
+        if hero_id is not None:
+            where.append("hero_id = ?")
+            params.append(int(hero_id))
+        if win is not None:
+            where.append("win = ?")
+            params.append(1 if win else 0)
+        return " AND ".join(where), tuple(params)
+
     def list_matches(
-        self, account_id: int, *, limit: int = 50, offset: int = 0
+        self,
+        account_id: int,
+        *,
+        limit: int = 50,
+        offset: int = 0,
+        hero_id: int | None = None,
+        win: bool | None = None,
     ) -> list[dict[str, Any]]:
         columns = ", ".join(("match_id", *MATCH_COLUMNS, "sources", "parse_status"))
+        where, params = self._filter(account_id, hero_id, win)
         with self._lock:
             rows = self._conn.execute(
                 f"SELECT {columns}, analysis_json IS NOT NULL AS has_analysis, "
-                "timeline_json IS NOT NULL AS has_timeline FROM matches "
-                "WHERE account_id = ? ORDER BY COALESCE(start_time, 0) DESC, match_id DESC "
-                "LIMIT ? OFFSET ?",
-                (int(account_id), int(limit), int(offset)),
+                f"timeline_json IS NOT NULL AS has_timeline FROM matches WHERE {where} "
+                "ORDER BY COALESCE(start_time, 0) DESC, match_id DESC LIMIT ? OFFSET ?",
+                (*params, int(limit), int(offset)),
             ).fetchall()
         return [_summary_row(row) for row in rows]
 
-    def count_matches(self, account_id: int) -> int:
+    def count_matches(
+        self, account_id: int, *, hero_id: int | None = None, win: bool | None = None
+    ) -> int:
+        where, params = self._filter(account_id, hero_id, win)
         with self._lock:
             row = self._conn.execute(
-                "SELECT COUNT(*) AS n FROM matches WHERE account_id = ?", (int(account_id),)
+                f"SELECT COUNT(*) AS n FROM matches WHERE {where}", params
             ).fetchone()
         return int(row["n"]) if row else 0
+
+    def match_stats(
+        self, account_id: int, *, hero_id: int | None = None, win: bool | None = None
+    ) -> dict[str, Any]:
+        """Games, wins (of those with a known result) and average score of a filter."""
+        where, params = self._filter(account_id, hero_id, win)
+        with self._lock:
+            row = self._conn.execute(
+                "SELECT COUNT(*) AS games, SUM(win = 1) AS wins, "
+                "SUM(win IS NOT NULL) AS decided, AVG(score) AS avg_score "
+                f"FROM matches WHERE {where}",
+                params,
+            ).fetchone()
+        decided = int(row["decided"] or 0)
+        return {
+            "games": int(row["games"] or 0),
+            "wins": int(row["wins"] or 0),
+            "winrate": round(100 * int(row["wins"] or 0) / decided) if decided else None,
+            "avg_score": round(row["avg_score"]) if row["avg_score"] is not None else None,
+        }
+
+    def hero_counts(self, account_id: int) -> list[dict[str, Any]]:
+        """Heroes of the stored matches, most played first (filter choices)."""
+        with self._lock:
+            rows = self._conn.execute(
+                "SELECT hero_id, MAX(hero) AS hero, COUNT(*) AS games FROM matches "
+                "WHERE account_id = ? AND hero_id IS NOT NULL GROUP BY hero_id "
+                "ORDER BY games DESC, hero",
+                (int(account_id),),
+            ).fetchall()
+        return [
+            {"hero_id": int(row["hero_id"]), "hero": row["hero"], "games": int(row["games"])}
+            for row in rows
+        ]
+
+    def source_counts(self, account_id: int) -> dict[str, int]:
+        """How many matches per parse status (problem report)."""
+        with self._lock:
+            rows = self._conn.execute(
+                "SELECT COALESCE(NULLIF(parse_status, ''), 'none') AS status, COUNT(*) AS n "
+                "FROM matches WHERE account_id = ? GROUP BY status",
+                (int(account_id),),
+            ).fetchall()
+        return {str(row["status"]): int(row["n"]) for row in rows}
+
+    def delete_matches(self, account_id: int, match_ids: list[int]) -> int:
+        if not match_ids:
+            return 0
+        marks = ", ".join("?" for _ in match_ids)
+        with self._lock:
+            cursor = self._conn.execute(
+                f"DELETE FROM matches WHERE account_id = ? AND match_id IN ({marks})",
+                (int(account_id), *(int(m) for m in match_ids)),
+            )
+            self._conn.commit()
+        return int(cursor.rowcount or 0)
+
+    def mode_rows(self, account_id: int) -> list[dict[str, Any]]:
+        """match_id, lobby_type and game_mode of every stored match."""
+        with self._lock:
+            rows = self._conn.execute(
+                "SELECT match_id, lobby_type, game_mode FROM matches WHERE account_id = ?",
+                (int(account_id),),
+            ).fetchall()
+        return [dict(row) for row in rows]
 
     def get_match(self, account_id: int, match_id: int) -> dict[str, Any] | None:
         with self._lock:
@@ -319,14 +407,17 @@ class PlayerStore:
         record["sources"] = [item for item in (record.get("sources") or "").split(",") if item]
         return record
 
-    def matches_for_career(self, account_id: int, *, limit: int = 50) -> list[dict[str, Any]]:
+    def matches_for_career(
+        self, account_id: int, *, limit: int = 50, hero_id: int | None = None
+    ) -> list[dict[str, Any]]:
         """Newest first, summary columns plus the stored analysis (for trends)."""
         columns = ", ".join(("match_id", *MATCH_COLUMNS, "sources"))
+        where, params = self._filter(account_id, hero_id, None)
         with self._lock:
             rows = self._conn.execute(
-                f"SELECT {columns}, analysis_json FROM matches WHERE account_id = ? "
+                f"SELECT {columns}, analysis_json FROM matches WHERE {where} "
                 "ORDER BY COALESCE(start_time, 0) DESC, match_id DESC LIMIT ?",
-                (int(account_id), int(limit)),
+                (*params, int(limit)),
             ).fetchall()
         result = []
         for row in rows:

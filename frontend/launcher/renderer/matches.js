@@ -58,6 +58,19 @@
       more: "Show more",
       liveMatch: (hero) => `Recording the current match${hero ? ` (${hero})` : ""} — the review appears right after it ends.`,
       back: "Matches",
+      filterResult: "Result",
+      filterResults: { all: "All", win: "Wins", loss: "Losses" },
+      filterHero: "Hero",
+      filterAllHeroes: "All heroes",
+      filterSummary: (games, winrate, score) =>
+        [`${games} ${games === 1 ? "match" : "matches"}`, winrate == null ? null : `${winrate}% wins`, score == null ? null : `average score ${score}`].filter(Boolean).join(" · "),
+      skippedModes: (count, turbo, of) =>
+        `${count} of your last ${of} games are not reviewed${turbo ? ` (Turbo: ${turbo})` : ""}: Turbo, bot games and special modes have different norms.`,
+      filterEmptyTitle: "No matches for this filter",
+      filterEmptyHint: "Pick another hero or result.",
+      pdfSave: "Save PDF",
+      pdfSaved: (name) => `Saved: ${name}`,
+      pdfFailed: "Could not save the PDF",
       reviewLoading: "Loading the match…",
       reviewPending: "The review appears once the match data is loaded.",
       scoreOf: "of 100",
@@ -70,7 +83,7 @@
         basic: "Replay not parsed: no minute-by-minute data.",
         not_parsed: "OpenDota could not parse the replay.",
         gsi_only: "Only the app's own recording is available (OpenDota is off).",
-        private: "This match is private on OpenDota.",
+        private: "This match is private on OpenDota. In Dota: Settings → Social → Expose Public Match Data (works for the next matches); the review uses the app's own recording meanwhile.",
         "error:not_found": "OpenDota doesn't have this match yet — try again in a few minutes.",
         "error:offline": "No internet — showing the app's own recording.",
         "error:rate_limited": "OpenDota is busy — try again in a minute.",
@@ -81,6 +94,26 @@
       focusTitle: "Focus for the next game",
       sectionsTitle: "Breakdown",
       chartTitle: "Over the match",
+      mapTitle: "Match map",
+      mapHint: {
+        path: "Where your hero went (every 15 s, recorded by the app) and where you died.",
+        replay: "From the parsed replay: where you stood in the lane and where you placed wards.",
+        both: "Your path (recorded by the app), laning position, wards from the replay and where you died."
+      },
+      mapLabels: {
+        radiant: "Radiant",
+        dire: "Dire",
+        death: "Death",
+        observer: "Observer ward",
+        sentry: "Sentry ward",
+        path: "Your path",
+        lane: "Laning position"
+      },
+      mapDeaths: "Deaths",
+      killedBy: (hero) => `Killed by ${hero}`,
+      mapSide: { own: "on your half", river: "in the river", enemy: "on the enemy half" },
+      mapWards: "Wards placed",
+      mapWardsLine: (obs, sen) => `${obs} observer · ${sen} sentry`,
       chartLh: "Last hits",
       chartGold: "Gold earned",
       chartXp: "Experience",
@@ -94,6 +127,10 @@
       nothingStrong: "Nothing stood out this time.",
       drill: "Drill",
       momentsTitle: "Key moments",
+      adviceLogTitle: "Advice during the match",
+      adviceLogHint: (n, urgent) => `${n} ${n === 1 ? "tip" : "tips"} over the game, ${urgent} urgent. Worth checking whether you followed them.`,
+      adviceLogMore: (n) => `Show all ${n}`,
+      adviceLogDeath: (time) => `Died at ${time}`,
       momentDeath: (killer) => (killer ? `Died to ${killer}` : "Died"),
       momentGold: (gold) => `${gold} gold on hand`,
       momentItem: (item) => item,
@@ -133,6 +170,23 @@
       scoreLabel: "Score",
       winKey: "win",
       lossKey: "loss",
+      baselineIntro: (games, hero) => `Against your ${games} other ${games === 1 ? "match" : "matches"} on ${hero}:`,
+      baselineLabels: { score: "score", gpm: "GPM", lh_10: "last hits at 10", deaths: "deaths" },
+      baselineSame: "as usual",
+      baselineTitle: (average) => `Your average: ${average}`,
+      goalTitle: "Your focus",
+      goalHint: "One problem at a time: every next match shows whether it came back.",
+      goalSince: (date) => `since ${date}`,
+      goalProgress: (met, total) => `Done in ${met} of ${total} ${total === 1 ? "match" : "matches"}`,
+      goalWaiting: "Play a match: after it you will see here whether it worked.",
+      goalStreak: (n) => `${n} matches in a row without it`,
+      goalClear: "Stop tracking",
+      goalSet: "Make it my focus",
+      goalSetFailed: "Could not save the focus, try again",
+      goalCurrent: "Focus",
+      goalMet: "done",
+      goalMissed: "happened again",
+      goalMatch: (title, met) => `Your focus «${title}»: ${met ? "done in this match" : "it happened again"}`,
       planTitle: "What to work on",
       planHint: "Problems that keep coming back in your recent matches, with one drill each.",
       planEmpty: "No repeated problems found — keep it up.",
@@ -217,12 +271,29 @@
         rate_limited: "The free limit of the AI service is used up for now. Try again in a few minutes.",
         busy: "The AI service is overloaded right now. Try again in a few minutes.",
         invalid_key: "The AI service rejected the key. Check it in the AI settings.",
+        region: "This AI service does not work from your country. Choose another service (OpenRouter, for example) or turn on a VPN; the key is kept.",
         timeout: "The AI service took too long to answer.",
         offline: "No connection to the AI service.",
         unverified: "The AI answer mentioned facts that are not in the data, so it was not shown. Try again.",
         bad_response: "The AI service answered with an error.",
         no_key: "No key yet."
       },
+      askTitle: "Ask the coach",
+      askHint: "A question about this match. The answer uses only this match's data and goes through the same fact check.",
+      askPlaceholder: "For example: why did I lose the lane?",
+      askButton: "Ask",
+      askThinking: "The coach is thinking…",
+      askSuggestions: ["What decided this game for me?", "What should I change in the lane?", "Was my build on time?"],
+      askErrors: {
+        unverified: "The coach could not answer this from the match data. Try asking differently.",
+        empty_question: "Type a question first.",
+        no_review: "The review of this match is not ready yet.",
+        off: "Turn the AI coach on in Settings first."
+      },
+      aiSettingsTitle: "AI coach",
+      aiOnTitle: "AI coach is on",
+      aiCheckNow: "Check key",
+      aiCheckOk: "The key works.",
       aiOffTitle: "AI coach is off",
       aiOffHint: "Explains the match in plain words, like a coach watching the replay. Free with a Google Gemini, Groq or OpenRouter key.",
       aiTurnOn: "Turn on",
@@ -272,7 +343,7 @@
       syncOffline: "OpenDota выключен — видны только матчи, записанные приложением.",
       syncError: {
         offline: "Нет интернета — показываем матчи, записанные приложением.",
-        private: "Данные матчей скрыты. В Доте: Настройки → Социальное → «Открыть публичную статистику матчей».",
+        private: "Данные матчей скрыты. В Доте: Настройки → Социальное → включите общий доступ к данным матчей (Expose Public Match Data).",
         rate_limited: "OpenDota перегружен, попробуйте через минуту.",
         not_found: "OpenDota пока не знает этот аккаунт.",
         bad_response: "OpenDota ответил ошибкой."
@@ -294,6 +365,19 @@
       more: "Показать ещё",
       liveMatch: (hero) => `Записываем текущий матч${hero ? ` (${hero})` : ""} — разбор появится сразу после него.`,
       back: "Матчи",
+      filterResult: "Результат",
+      filterResults: { all: "Все", win: "Победы", loss: "Поражения" },
+      filterHero: "Герой",
+      filterAllHeroes: "Все герои",
+      filterSummary: (games, winrate, score) =>
+        [`${games} ${plural(games, "матч", "матча", "матчей")}`, winrate == null ? null : `${winrate}% побед`, score == null ? null : `средняя оценка ${score}`].filter(Boolean).join(" · "),
+      skippedModes: (count, turbo, of) =>
+        `Не разбираем ${count} из ${of} последних игр${turbo ? ` (Турбо: ${turbo})` : ""}: в Турбо, играх с ботами и особых режимах другие нормы.`,
+      filterEmptyTitle: "Нет матчей под этот фильтр",
+      filterEmptyHint: "Выберите другого героя или результат.",
+      pdfSave: "Сохранить PDF",
+      pdfSaved: (name) => `Сохранено: ${name}`,
+      pdfFailed: "Не удалось сохранить PDF",
       reviewLoading: "Загружаем матч…",
       reviewPending: "Разбор появится, когда загрузятся данные матча.",
       scoreOf: "из 100",
@@ -306,7 +390,7 @@
         basic: "Реплей не разобран: нет данных по минутам.",
         not_parsed: "OpenDota не смог разобрать реплей.",
         gsi_only: "Есть только запись приложения (OpenDota выключен).",
-        private: "Матч скрыт в OpenDota.",
+        private: "Матч скрыт в OpenDota. В Доте: Настройки → Социальное → включите общий доступ к данным матчей (Expose Public Match Data) (сработает для следующих матчей); пока разбор строится по записи приложения.",
         "error:not_found": "OpenDota пока не знает этот матч — попробуйте через несколько минут.",
         "error:offline": "Нет интернета — показываем запись приложения.",
         "error:rate_limited": "OpenDota перегружен — попробуйте через минуту.",
@@ -317,6 +401,26 @@
       focusTitle: "Главное на следующую игру",
       sectionsTitle: "По разделам",
       chartTitle: "По ходу матча",
+      mapTitle: "Карта матча",
+      mapHint: {
+        path: "Где был ваш герой (каждые 15 с, записало приложение) и где вы умирали.",
+        replay: "По разобранному реплею: где вы стояли на линии и где ставили варды.",
+        both: "Ваш путь (записало приложение), позиция на линии и варды из реплея, места смертей."
+      },
+      mapLabels: {
+        radiant: "Силы Света",
+        dire: "Силы Тьмы",
+        death: "Смерть",
+        observer: "Обзорный вард",
+        sentry: "Сентри",
+        path: "Ваш путь",
+        lane: "Позиция на линии"
+      },
+      mapDeaths: "Смерти",
+      killedBy: (hero) => `Убил: ${hero}`,
+      mapSide: { own: "на своей половине", river: "у реки", enemy: "на половине противника" },
+      mapWards: "Поставлено вардов",
+      mapWardsLine: (obs, sen) => `${obs} обзорных · ${sen} сентри`,
       chartLh: "Добивания",
       chartGold: "Золото",
       chartXp: "Опыт",
@@ -330,6 +434,10 @@
       nothingStrong: "В этот раз ничего не выделилось.",
       drill: "Упражнение",
       momentsTitle: "Ключевые моменты",
+      adviceLogTitle: "Подсказки во время матча",
+      adviceLogHint: (n, urgent) => `${n} ${plural(n, "подсказка", "подсказки", "подсказок")} за игру, срочных — ${urgent}. Стоит проверить, получилось ли им следовать.`,
+      adviceLogMore: (n) => `Показать все (${n})`,
+      adviceLogDeath: (time) => `Смерть в ${time}`,
       momentDeath: (killer) => (killer ? `Смерть от ${killer}` : "Смерть"),
       momentGold: (gold) => `${gold} золота на руках`,
       momentItem: (item) => item,
@@ -369,6 +477,23 @@
       scoreLabel: "Оценка",
       winKey: "победа",
       lossKey: "поражение",
+      baselineIntro: (games, hero) => `Против ваших ${games} ${plural(games, "другого матча", "других матчей", "других матчей")} на ${hero}:`,
+      baselineLabels: { score: "оценка", gpm: "GPM", lh_10: "добиваний к 10", deaths: "смертей" },
+      baselineSame: "как обычно",
+      baselineTitle: (average) => `Ваш средний: ${average}`,
+      goalTitle: "Ваш фокус",
+      goalHint: "Одна проблема за раз: в каждом следующем матче видно, повторилась ли она.",
+      goalSince: (date) => `с ${date}`,
+      goalProgress: (met, total) => `Получилось в ${met} из ${total} ${plural(total, "матча", "матчей", "матчей")}`,
+      goalWaiting: "Сыграйте матч — после него здесь будет видно, получилось ли.",
+      goalStreak: (n) => `${n} ${plural(n, "матч", "матча", "матчей")} подряд без этой ошибки`,
+      goalClear: "Снять фокус",
+      goalSet: "Сделать фокусом",
+      goalSetFailed: "Не удалось сохранить фокус, попробуйте ещё раз",
+      goalCurrent: "Фокус",
+      goalMet: "получилось",
+      goalMissed: "повторилось",
+      goalMatch: (title, met) => `Ваш фокус «${title}»: ${met ? "в этом матче получилось" : "снова повторилось"}`,
       planTitle: "Над чем работать",
       planHint: "Ошибки, которые повторяются в последних матчах, и по одному упражнению на каждую.",
       planEmpty: "Повторяющихся ошибок не найдено — так держать.",
@@ -453,12 +578,29 @@
         rate_limited: "Бесплатный лимит ИИ-сервиса пока исчерпан. Попробуйте через несколько минут.",
         busy: "ИИ-сервис сейчас перегружен. Попробуйте через несколько минут.",
         invalid_key: "ИИ-сервис не принял ключ. Проверьте его в настройках ИИ.",
+        region: "Этот ИИ-сервис не работает из вашей страны. Выберите другой (например, OpenRouter) или включите VPN; ключ сохранён.",
         timeout: "ИИ-сервис слишком долго отвечал.",
         offline: "Нет связи с ИИ-сервисом.",
         unverified: "В ответе ИИ были факты, которых нет в данных, поэтому он не показан. Попробуйте ещё раз.",
         bad_response: "ИИ-сервис ответил ошибкой.",
         no_key: "Ключ ещё не указан."
       },
+      askTitle: "Спросить тренера",
+      askHint: "Вопрос об этом матче. Ответ строится только по данным матча и проходит ту же проверку фактов.",
+      askPlaceholder: "Например: почему я проиграл линию?",
+      askButton: "Спросить",
+      askThinking: "Тренер думает…",
+      askSuggestions: ["Что решило эту игру?", "Что изменить на линии?", "Вовремя ли я собрал предметы?"],
+      askErrors: {
+        unverified: "Тренер не смог ответить по данным этого матча. Попробуйте спросить иначе.",
+        empty_question: "Сначала напишите вопрос.",
+        no_review: "Разбор этого матча ещё не готов.",
+        off: "Сначала включите ИИ-тренера в настройках."
+      },
+      aiSettingsTitle: "ИИ-тренер",
+      aiOnTitle: "ИИ-тренер включён",
+      aiCheckNow: "Проверить ключ",
+      aiCheckOk: "Ключ работает.",
       aiOffTitle: "ИИ-тренер выключен",
       aiOffHint: "Объясняет матч простыми словами, как тренер, который смотрит реплей. Бесплатно с ключом Google Gemini, Groq или OpenRouter.",
       aiTurnOn: "Включить",
@@ -490,6 +632,11 @@
   const api = window.launcherApi;
 
   const state = {
+    filter: { heroId: null, result: "all" },
+    careerHero: null,
+    heroes: [],
+    matchesStats: null,
+    matchesSkipped: null,
     locale: "en",
     view: "home",
     status: null,
@@ -607,6 +754,24 @@
     window.LucideIcons?.hydrate(root);
   }
 
+  // A hero portrait / item icon next to its name (dota-icons.js); plain text
+  // when the icon module is missing.
+  function heroLabel(value, name, size = "sm") {
+    const text = name || window.DotaIcons?.hero(value)?.name || String(value ?? "—");
+    if (!window.DotaIcons || value === null || value === undefined || value === "") {
+      return h("span", { class: "hero-cell", text });
+    }
+    return h("span", { class: "hero-cell with-pic" }, window.DotaIcons.heroPicture(document, value, size), h("span", { text }));
+  }
+
+  function itemPic(value, size = "sm") {
+    return window.DotaIcons ? window.DotaIcons.itemPicture(document, value, size) : null;
+  }
+
+  function itemLabel(value, name, size = "sm") {
+    return h("span", { class: "item-label with-pic" }, itemPic(value, size), h("span", { text: name || String(value ?? "") }));
+  }
+
   function card(title, iconName, body, extraHead) {
     return h(
       "section",
@@ -658,7 +823,7 @@
     for (const tab of document.querySelectorAll(".tabs [data-view]")) {
       tab.setAttribute("aria-selected", String(tab.dataset.view === tabView));
     }
-    for (const name of ["home", "matches", "match", "progress"]) {
+    for (const name of ["home", "matches", "match", "progress", "settings"]) {
       document.getElementById(`view-${name}`)?.classList.toggle("hidden", name !== view);
     }
     if (remember && view !== "match") {
@@ -672,6 +837,8 @@
       loadMatches();
     } else if (view === "progress") {
       loadCareer();
+    } else if (view === "settings") {
+      renderAiSettings({ load: true });
     }
     window.scrollTo({ top: 0 });
   }
@@ -873,10 +1040,13 @@
       await refreshPlayer();
     }
     if (state.player?.linked) {
-      const result = await call("matches", { limit: Math.max(30, state.matches.length) });
+      const result = await call("matches", { limit: Math.max(30, state.matches.length), ...filterArgs() });
       if (result.ok) {
         state.matches = result.data.items || [];
         state.matchesTotal = result.data.total || 0;
+        state.matchesStats = result.data.stats || null;
+        state.matchesSkipped = result.data.skipped || null;
+        state.heroes = result.data.heroes || [];
         state.matchesLoaded = true;
       }
     }
@@ -900,8 +1070,11 @@
     const liveMatch = state.player.live_match;
     const liveNotice = liveMatch ? h("div", { class: "notice" }, h("span", { class: "dot dot-live", "data-tone": "good" }), h("span", { text: t("liveMatch", liveMatch.hero) })) : null;
     let body;
+    const filtered = state.filter.heroId !== null || state.filter.result !== "all";
     if (!state.matchesLoaded) {
       body = skeletonRows(5);
+    } else if (!state.matches.length && filtered) {
+      body = emptyState("history", t("filterEmptyTitle"), t("filterEmptyHint"));
     } else if (!state.matches.length) {
       body = emptyState("history", t("noMatchesTitle"), t("noMatchesHint"));
     } else {
@@ -917,7 +1090,7 @@
               class: "btn btn-ghost btn-block",
               type: "button",
               onclick: async () => {
-                const result = await call("matches", { limit: 30, offset: state.matches.length });
+                const result = await call("matches", { limit: 30, offset: state.matches.length, ...filterArgs() });
                 if (result.ok) {
                   state.matches = state.matches.concat(result.data.items || []);
                   renderMatches();
@@ -929,8 +1102,65 @@
         );
       }
     }
-    root.replaceChildren(playerBar(), liveNotice || "", card(t("matchesTitle"), "history", body, state.matchesTotal ? h("span", { class: "num", text: String(state.matchesTotal) }) : null));
+    const filters = state.matchesLoaded && (state.heroes.length > 1 || filtered) ? filterBar() : null;
+    const skipped = state.matchesLoaded && state.matchesSkipped
+      ? h("p", { class: "muted small skipped-note", text: t("skippedModes", state.matchesSkipped.count, state.matchesSkipped.turbo, state.matchesSkipped.of) })
+      : null;
+    root.replaceChildren(
+      playerBar(),
+      liveNotice || "",
+      card(t("matchesTitle"), "history", [filters, body, skipped].filter(Boolean), state.matchesTotal ? h("span", { class: "num", text: String(state.matchesTotal) }) : null)
+    );
     hydrate(root);
+  }
+
+  function filterArgs() {
+    return {
+      heroId: state.filter.heroId === null ? undefined : state.filter.heroId,
+      result: state.filter.result === "all" ? undefined : state.filter.result
+    };
+  }
+
+  function setFilter(patch) {
+    state.filter = { ...state.filter, ...patch };
+    state.matches = [];
+    loadMatches();
+  }
+
+  // Result + hero filter and what the filtered games add up to.
+  function filterBar() {
+    const results = h(
+      "div",
+      { class: "segmented segmented-sm", role: "radiogroup", "aria-label": t("filterResult") },
+      ["all", "win", "loss"].map((value) =>
+        h("button", {
+          type: "button",
+          role: "radio",
+          "aria-checked": String(state.filter.result === value),
+          text: t(`filterResults.${value}`),
+          onclick: () => setFilter({ result: value })
+        })
+      )
+    );
+    const select = h(
+      "select",
+      {
+        class: "input select",
+        "aria-label": t("filterHero"),
+        onchange: (event) => setFilter({ heroId: event.target.value === "" ? null : Number(event.target.value) })
+      },
+      h("option", { value: "", text: t("filterAllHeroes") }),
+      state.heroes.map((hero) => {
+        const option = h("option", { value: String(hero.hero_id), text: `${hero.hero || "—"} · ${hero.games}` });
+        option.selected = state.filter.heroId === hero.hero_id;
+        return option;
+      })
+    );
+    const stats = state.matchesStats;
+    const summary = stats && stats.games
+      ? h("p", { class: "muted small filter-summary num", text: t("filterSummary", stats.games, stats.winrate, stats.avg_score) })
+      : null;
+    return h("div", { class: "filter-bar" }, h("div", { class: "filter-controls" }, results, select), summary);
   }
 
   function matchesTable(rows) {
@@ -970,7 +1200,7 @@
             }
           },
           h("td", {}, resultBadge(row.win)),
-          h("td", { class: "hero-cell", text: row.hero || "—" }),
+          h("td", {}, heroLabel(row.hero_id || row.hero, row.hero || "—")),
           h("td", { class: "num-col num", text: row.kills == null ? "—" : `${row.kills} / ${row.deaths} / ${row.assists}` }),
           h("td", { class: "num-col num", text: number(row.gpm) }),
           h("td", { class: "num-col num hide-narrow", text: number(row.lh_10) }),
@@ -986,6 +1216,7 @@
   // --- match review -------------------------------------------------------------
 
   async function openMatch(matchId) {
+    state.adviceLogOpen = false;
     state.matchId = String(matchId);
     state.match = null;
     setView("match", { remember: false });
@@ -1027,18 +1258,53 @@
     if (result.ok && state.matchId === matchId && state.view === "match") {
       const changed = JSON.stringify(result.data) !== JSON.stringify(state.match);
       state.match = result.data;
-      // Don't wipe a key the player is typing.
-      if (changed && state.aiPanel !== "form") {
+      // Don't wipe a key or a question the player is typing, or a question on its way.
+      const asking = state.askBusy || Boolean(document.querySelector(".ask-input")?.value.trim());
+      if (changed && state.aiPanel !== "form" && !asking) {
         renderMatch();
       }
     }
     scheduleMatchRefresh(matchId);
   }
 
+  // Saves the current view as a PDF (light print theme, see @media print).
+  function pdfButton(kind) {
+    const note = h("span", { class: "muted small pdf-note" });
+    const button = h(
+      "button",
+      {
+        class: "btn btn-ghost btn-sm",
+        type: "button",
+        onclick: async () => {
+          button.disabled = true;
+          note.textContent = "";
+          const printDate = document.getElementById("print-date");
+          if (printDate) {
+            printDate.textContent = new Date().toLocaleDateString(state.locale === "ru" ? "ru-RU" : "en-GB");
+          }
+          try {
+            const result = await api.exportPdf(kind, kind === "match" ? String(state.matchId) : "");
+            if (result && result.ok) {
+              note.textContent = t("pdfSaved", result.path.split(/[\\/]/).pop());
+            } else if (result && !result.canceled) {
+              note.textContent = t("pdfFailed");
+            }
+          } finally {
+            button.disabled = false;
+          }
+        }
+      },
+      icon("printer"),
+      h("span", { text: t("pdfSave") })
+    );
+    return h("span", { class: "pdf-action" }, note, button);
+  }
+
   function renderMatch() {
     const root = document.getElementById("match-root");
-    const back = h("button", { class: "btn btn-ghost btn-sm back", type: "button", onclick: () => setView("matches") }, icon("chevron-left"), h("span", { text: t("back") }));
+    const backButton = h("button", { class: "btn btn-ghost btn-sm back", type: "button", onclick: () => setView("matches") }, icon("chevron-left"), h("span", { text: t("back") }));
     const detail = state.match;
+    const back = h("div", { class: "review-toolbar no-print" }, backButton, detail && detail.analysis ? pdfButton("match") : null);
     if (!detail) {
       root.replaceChildren(back, card(t("reviewLoading"), "activity", skeletonRows(6)));
       hydrate(root);
@@ -1059,7 +1325,11 @@
       if (coach) {
         parts.push(coach);
       }
-      parts.push(focusCard(analysis));
+      const ask = askCard(detail);
+      if (ask) {
+        parts.push(ask);
+      }
+      parts.push(focusCard(analysis, detail));
       parts.push(sectionsCard(analysis));
       const build = buildCard(analysis);
       if (build) {
@@ -1077,6 +1347,10 @@
       if (chart) {
         parts.push(chart);
       }
+      const gameMap = mapCard(analysis);
+      if (gameMap) {
+        parts.push(gameMap);
+      }
       parts.push(findingsCard(t("strengthsTitle"), "sparkles", analysis.strengths, t("nothingStrong"), false));
       const rest = (analysis.improvements || []).filter((f) => !(analysis.focus || []).includes(f.id));
       if (rest.length) {
@@ -1086,6 +1360,10 @@
       if (moments) {
         parts.push(moments);
       }
+      const adviceLog = adviceLogCard(analysis);
+      if (adviceLog) {
+        parts.push(adviceLog);
+      }
     }
     if (detail.scoreboard) {
       parts.push(scoreboardCard(detail.scoreboard));
@@ -1093,8 +1371,17 @@
     root.replaceChildren(...parts);
     hydrate(root);
     // Charts measure their container, so draw after insertion.
+    drawMatchCharts(root, analysis);
+  }
+
+  // Each chart host by its kind (also on window resize).
+  function drawMatchCharts(root, analysis) {
+    if (!root || !analysis) {
+      return;
+    }
     root.querySelectorAll("[data-chart='match']").forEach((host) => drawChart(host, analysis));
     root.querySelectorAll("[data-chart='timing']").forEach((host) => drawTimingChart(host, analysis));
+    root.querySelectorAll("[data-chart='map']").forEach((host) => drawMap(host, analysis.map));
   }
 
   function reviewHeader(detail, analysis, summary) {
@@ -1145,6 +1432,7 @@
       h(
         "div",
         { class: "card-body review-head-body" },
+        window.DotaIcons ? h("div", { class: "review-portrait" }, window.DotaIcons.heroPicture(document, summary.hero_id || headline.hero_id || headline.hero || summary.hero, "lg")) : null,
         h(
           "div",
           { class: "review-title" },
@@ -1152,6 +1440,15 @@
           h("p", { class: "review-meta" }, resultBadge(win), h("span", { class: "muted", text: `· ${relativeTime(summary.start_time)} · #${detail.match_id}` })),
           h("p", { class: "review-source" }, icon(analysis && analysis.parsed ? "circle-check" : "info"), h("span", { text: sourceText })),
           statusText ? h("p", { class: "muted small", text: statusText }) : null,
+          baselineLine(detail.baseline),
+          detail.focus
+            ? h(
+                "p",
+                { class: "review-goal", dataset: { met: String(detail.focus.met) } },
+                h("span", { class: "dot", "data-tone": detail.focus.met ? "good" : "bad" }),
+                h("span", { text: t("goalMatch", detail.focus.title, detail.focus.met) })
+              )
+            : null,
           requestButton ? h("div", { class: "row" }, requestButton, requestNote) : null
         ),
         score !== null && score !== undefined
@@ -1172,6 +1469,35 @@
     );
   }
 
+  // "Against your 8 other matches on Juggernaut: score +17 · GPM +94 · deaths −2".
+  function baselineLine(baseline) {
+    if (!baseline || !baseline.metrics || !baseline.metrics.length) {
+      return null;
+    }
+    const format = (key, value) => {
+      const rounded = key === "deaths" ? Math.round(value * 10) / 10 : Math.round(value);
+      const text = Math.abs(rounded).toLocaleString(state.locale);
+      return `${rounded > 0 ? "+" : rounded < 0 ? "−" : ""}${text}`;
+    };
+    return h(
+      "p",
+      { class: "review-baseline" },
+      h("span", { class: "muted", text: t("baselineIntro", baseline.games, baseline.hero || "—") }),
+      baseline.metrics.map((metric) =>
+        h(
+          "span",
+          {
+            class: "baseline-chip num",
+            dataset: { tone: metric.tone },
+            title: t("baselineTitle", metric.key === "deaths" ? metric.average.toLocaleString(state.locale) : Math.round(metric.average).toLocaleString(state.locale))
+          },
+          metric.tone === "same" ? null : h("span", { class: "dot", "data-tone": metric.tone }),
+          h("span", { text: `${t(`baselineLabels.${metric.key}`)} ${metric.tone === "same" ? t("baselineSame") : format(metric.key, metric.delta)}` })
+        )
+      )
+    );
+  }
+
   function findingItem(finding, index) {
     return h(
       "li",
@@ -1187,12 +1513,53 @@
     );
   }
 
-  function focusCard(analysis) {
+  function focusCard(analysis, detail) {
     const focus = (analysis.improvements || []).filter((f) => (analysis.focus || []).includes(f.id));
     if (!focus.length) {
       return card(t("focusTitle"), "target", emptyState("circle-check", t("nothingToImprove"), ""));
     }
-    return card(t("focusTitle"), "target", h("ol", { class: "findings" }, focus.map((f, i) => findingItem(f, i))));
+    const list = h("ol", { class: "findings" });
+    const render = () =>
+      list.replaceChildren(
+        ...focus.map((finding, index) => {
+          const item = findingItem(finding, index);
+          const body = item.querySelector(".finding-body");
+          if (detail && detail.focus_id === finding.id) {
+            item.querySelector(".finding-title").append(h("span", { class: "tag tag-accent", text: t("goalCurrent") }));
+          } else if (detail && (detail.focusable || []).includes(finding.id)) {
+            // Work on it from the next game (the Progress page tracks it).
+            body.append(
+              h(
+                "button",
+                {
+                  class: "btn btn-ghost btn-sm goal-set no-print",
+                  type: "button",
+                  onclick: async (event) => {
+                    event.currentTarget.disabled = true;
+                    const button = event.currentTarget;
+                    const result = await call("focusSet", { findingId: finding.id });
+                    if (!result.ok) {
+                      button.disabled = false;
+                      button.replaceChildren(icon("circle-alert"), h("span", { text: t("goalSetFailed") }));
+                      hydrate(button);
+                      return;
+                    }
+                    detail.focus_id = finding.id;
+                    state.career = null;
+                    render();
+                    hydrate(list);
+                  }
+                },
+                icon("target"),
+                h("span", { text: t("goalSet") })
+              )
+            );
+          }
+          return item;
+        })
+      );
+    render();
+    return card(t("focusTitle"), "target", list);
   }
 
   function findingsCard(title, iconName, findings, emptyText, improve) {
@@ -1220,6 +1587,55 @@
         );
       });
     return card(t("sectionsTitle"), "gauge", h("div", { class: "sections" }, rows));
+  }
+
+  // Schematic map: path and deaths from the app's own recording, laning
+  // position and wards from the parsed replay (either may be missing).
+  function mapCard(analysis) {
+    const data = analysis.map;
+    if (!data || !((data.deaths || []).length || (data.wards || []).length || (data.path || []).length > 1)) {
+      return null;
+    }
+    const hasPath = (data.path || []).length > 1;
+    const hasReplay = (data.wards || []).length > 0 || (data.lane || []).length > 0;
+    const hintKey = hasPath && hasReplay ? "both" : hasPath ? "path" : "replay";
+    const facts = [];
+    const deaths = data.deaths || [];
+    if (deaths.length) {
+      const bySide = data.deaths_by_side || {};
+      facts.push(h("p", { class: "fact-line" }, h("strong", { text: t("mapDeaths") }), h("span", { class: "num", text: String(deaths.length) })));
+      for (const side of ["own", "river", "enemy"]) {
+        if (bySide[side]) {
+          facts.push(h("p", { class: "fact-line muted small" }, h("span", { text: t(`mapSide.${side}`) }), h("span", { class: "num", text: String(bySide[side]) })));
+        }
+      }
+    }
+    const wards = data.wards || [];
+    if (wards.length) {
+      const obs = wards.filter((w) => w.kind === "obs").length;
+      facts.push(h("p", { class: "fact-line" }, h("strong", { text: t("mapWards") }), h("span", { class: "num", text: String(wards.length) })));
+      facts.push(h("p", { class: "muted small", text: t("mapWardsLine", obs, wards.length - obs) }));
+    }
+    const body = h(
+      "div",
+      {},
+      h("p", { class: "muted small chart-note", text: t(`mapHint.${hintKey}`) }),
+      h("div", { class: "map-layout" }, h("div", { class: "chart-host", dataset: { chart: "map" } }), facts.length ? h("div", { class: "map-facts" }, facts) : null)
+    );
+    return card(t("mapTitle"), "map", body);
+  }
+
+  function drawMap(host, data) {
+    window.LauncherCharts.map(host, {
+      bounds: data.bounds,
+      path: data.path,
+      lane: data.lane,
+      wards: data.wards,
+      deaths: (data.deaths || []).map((death) => ({ ...death, killer: death.killer ? t("killedBy", death.killer) : "" })),
+      labels: t("mapLabels"),
+      clock,
+      ariaLabel: t("mapTitle")
+    });
   }
 
   function chartCard(analysis) {
@@ -1289,7 +1705,7 @@
         h(
           "div",
           { class: "build-item-head" },
-          h("span", { class: "build-item-name", text: item.name }),
+          h("span", { class: "build-item-name with-pic" }, itemPic(item.key || item.name, "md"), h("span", { text: item.name })),
           h("span", { class: "muted num", text: t("buildBy", clock(item.t)) })
         ),
         timing
@@ -1321,8 +1737,9 @@
                   h(
                     "span",
                     { class: `chip ${row.bought ? "chip-on" : ""}`, title: row.bought ? t("buildBought") : "" },
-                    row.bought ? icon("circle-check") : null,
-                    h("span", { text: row.name })
+                    itemPic(row.key || row.name, "sm"),
+                    h("span", { text: row.name }),
+                    row.bought ? icon("circle-check") : null
                   )
                 )
               )
@@ -1492,7 +1909,7 @@
                 h(
                   "tr",
                   {},
-                  h("td", { class: "hero-cell", text: row.hero }),
+                  h("td", {}, heroLabel(row.hero_id || row.hero, row.hero)),
                   row.winrate == null
                     ? h("td", { class: "num-col num muted", text: "—" })
                     : h("td", { class: "num-col num" }, h("span", { class: "dot", "data-tone": winrateTone(row.winrate) }), percent1(row.winrate)),
@@ -1520,7 +1937,7 @@
               h(
                 "li",
                 { class: row.hero === draft.better_pick ? "is-best" : "" },
-                h("span", { class: "draft-pool-hero" }, h("span", { text: row.hero }), row.picked ? h("span", { class: "tag", text: t("draftPicked") }) : null),
+                h("span", { class: "draft-pool-hero" }, heroLabel(row.hero_id || row.hero, row.hero), row.picked ? h("span", { class: "tag", text: t("draftPicked") }) : null),
                 h("span", { class: "num draft-edge" }, h("span", { class: "dot", "data-tone": row.edge >= 2 ? "good" : row.edge <= -2 ? "bad" : "idle" }), signedPercent(row.edge))
               )
             )
@@ -1545,7 +1962,7 @@
                 h(
                   "p",
                   { class: "draft-counter-head" },
-                  h("span", { text: counter.heroes.join(", ") }),
+                  h("span", { class: "draft-counter-heroes" }, counter.heroes.map((heroName) => heroLabel(heroName, heroName))),
                   h("span", { class: "tag", text: t(`draftReasons.${counter.reason}`) }),
                   counter.for_role ? null : h("span", { class: "muted small", text: t("draftForSupports") })
                 ),
@@ -1554,7 +1971,7 @@
                   { class: "chips" },
                   counter.items.map((item) => {
                     const bought = counter.bought.includes(item);
-                    return h("span", { class: `chip ${bought ? "chip-on" : ""}`, title: bought ? t("draftBought") : "" }, bought ? icon("circle-check") : null, h("span", { text: item }));
+                    return h("span", { class: `chip ${bought ? "chip-on" : ""}`, title: bought ? t("draftBought") : "" }, itemPic(item, "sm"), h("span", { text: item }), bought ? icon("circle-check") : null);
                   })
                 )
               )
@@ -1677,6 +2094,58 @@
     return card(t("momentsTitle"), "clock", h("ol", { class: "moments" }, items));
   }
 
+  // What the coach said during this match (the app's own recording).
+  function adviceLogCard(analysis) {
+    const advice = analysis.advice || [];
+    if (!advice.length) {
+      return null;
+    }
+    const shown = state.adviceLogOpen ? advice : advice.slice(0, 8);
+    const follow = analysis.advice_follow || { ignored: [] };
+    const deathAfter = new Map((follow.ignored || []).map((item) => [item.t, item.death_t]));
+    const list = h(
+      "ol",
+      { class: "moments advice-log" },
+      shown.map((item) =>
+        h(
+          "li",
+          { class: "moment" },
+          h("span", { class: "moment-time num", text: clock(item.t) }),
+          h("span", { class: "moment-icon" }, h("span", { class: "dot", "data-tone": item.mode === "urgent" ? "bad" : "warn" })),
+          h(
+            "span",
+            { class: "moment-text" },
+            h("span", { text: item.action }),
+            item.reason ? h("span", { class: "muted advice-log-reason", text: item.reason }) : null,
+            deathAfter.has(item.t)
+              ? h("span", { class: "advice-log-death" }, icon("skull"), h("span", { text: t("adviceLogDeath", clock(deathAfter.get(item.t))) }))
+              : null
+          )
+        )
+      )
+    );
+    const more = advice.length > shown.length
+      ? h(
+          "button",
+          {
+            class: "btn btn-ghost btn-sm no-print",
+            type: "button",
+            onclick: () => {
+              state.adviceLogOpen = true;
+              renderMatch();
+            }
+          },
+          h("span", { text: t("adviceLogMore", advice.length) })
+        )
+      : null;
+    const urgent = advice.filter((item) => item.mode === "urgent").length;
+    return card(
+      t("adviceLogTitle"),
+      "lightbulb",
+      [h("p", { class: "muted small chart-note", text: t("adviceLogHint", advice.length, urgent) }), list, more].filter(Boolean)
+    );
+  }
+
   function scoreboardCard(rows) {
     const teams = [true, false].map((radiant) => {
       const players = rows.filter((row) => row.is_radiant === radiant);
@@ -1699,7 +2168,7 @@
               h(
                 "tr",
                 { class: row.me ? "is-me" : "" },
-                h("td", {}, h("span", { class: "hero-cell", text: row.hero || "—" }), row.name ? h("span", { class: "muted small player-sub", text: row.name }) : null),
+                h("td", {}, heroLabel(row.hero_id || row.hero, row.hero || "—"), row.name ? h("span", { class: "muted small player-sub", text: row.name }) : null),
                 h("td", { class: "num-col num", text: `${row.kills ?? "—"} / ${row.deaths ?? "—"} / ${row.assists ?? "—"}` }),
                 h("td", { class: "num-col num", text: number(row.net_worth) }),
                 h("td", { class: "num-col num hide-narrow", text: number(row.gpm) }),
@@ -1762,6 +2231,85 @@
         : null;
     const head = h("span", { class: "coach-head" }, h("span", { class: "tag", text: t("coachTag") }), settingsButton);
     return h("div", { class: "coach-card" }, card(title, "graduation-cap", body, head));
+  }
+
+  // "Ask the coach": a free question about this match, answered from its facts.
+  function askCard(detail) {
+    const coach = detail.coach;
+    if (!coach || coach.state === "off" || coach.state === "none") {
+      return null;
+    }
+    const history = h("div", { class: "ask-history" });
+    const renderHistory = () =>
+      history.replaceChildren(
+        ...(detail.questions || []).map((qa) =>
+          h("div", { class: "ask-item" }, h("p", { class: "ask-q", text: qa.question }), h("p", { class: "ask-a", text: qa.answer }))
+        )
+      );
+    renderHistory();
+    const input = h("input", { class: "input ask-input", type: "text", maxlength: "300", placeholder: t("askPlaceholder"), "aria-label": t("askTitle") });
+    const button = h("button", { class: "btn btn-primary btn-sm", type: "submit" }, icon("send"), h("span", { text: t("askButton") }));
+    const note = h("p", { class: "muted small ask-note", role: "status" });
+    const pending = h("div", { class: "ask-pending hidden" }, h("p", { class: "muted small", text: t("askThinking") }), skeletonRows(2));
+    const chips = h(
+      "div",
+      { class: "ask-chips" },
+      t("askSuggestions").map((question) =>
+        h("button", { class: "chip ask-chip", type: "button", text: question, onclick: () => submit(question) })
+      )
+    );
+    async function submit(question) {
+      const text = String(question || "").trim();
+      if (!text) {
+        note.textContent = t("askErrors.empty_question");
+        return;
+      }
+      input.value = text;
+      button.disabled = true;
+      input.disabled = true;
+      chips.querySelectorAll("button").forEach((chip) => {
+        chip.disabled = true;
+      });
+      note.textContent = "";
+      pending.classList.remove("hidden");
+      state.askBusy = true;
+      const result = await call("ask", { matchId: detail.match_id, question: text });
+      state.askBusy = false;
+      pending.classList.add("hidden");
+      button.disabled = false;
+      input.disabled = false;
+      chips.querySelectorAll("button").forEach((chip) => {
+        chip.disabled = false;
+      });
+      if (result.ok && result.data && result.data.ok) {
+        input.value = "";
+        detail.questions = result.data.history || [];
+        renderHistory();
+        return;
+      }
+      const code = (result.data && result.data.code) || (/time/i.test(result.detail || "") ? "timeout" : "bad_response");
+      note.textContent = tOptional(`askErrors.${code}`) || tOptional(`coachErrors.${code}`) || t("coachErrors.bad_response");
+    }
+    const form = h(
+      "form",
+      {
+        class: "ask-form no-print",
+        onsubmit: (event) => {
+          event.preventDefault();
+          submit(input.value);
+        }
+      },
+      input,
+      button
+    );
+    return card(t("askTitle"), "message-circle", [
+      h("p", { class: "muted small no-print", text: t("askHint") }),
+      form,
+      h("div", { class: "no-print" }, chips),
+      pending,
+      note,
+      history
+    ]);
   }
 
   function coachStatusLine(coach, kind) {
@@ -1883,11 +2431,74 @@
       h("div", { class: "ai-off-text" }, h("p", { class: "ai-off-title", text: t("aiOffTitle") }), h("p", { class: "muted small", text: t("aiOffHint") })),
       open ? null : h("button", { class: "btn btn-primary btn-sm", type: "button", onclick: () => toggleAiPanel(currentKind(), "form") }, h("span", { text: t("aiTurnOn") }))
     );
-    return h("div", { class: "coach-card" }, card(title, "graduation-cap", [row, aiPanel(currentKind())].filter(Boolean), h("span", { class: "tag", text: t("coachTag") })));
+    return h("div", { class: "coach-card no-print" }, card(title, "graduation-cap", [row, aiPanel(currentKind())].filter(Boolean), h("span", { class: "tag", text: t("coachTag") })));
   }
 
   function currentKind() {
-    return state.view === "progress" ? "career" : "match";
+    return state.view === "progress" ? "career" : state.view === "settings" ? "settings" : "match";
+  }
+
+  // Settings → AI coach: the same key form as in the reviews, in one place.
+  async function renderAiSettings({ load = false } = {}) {
+    const root = document.getElementById("ai-settings-root");
+    if (!root) {
+      return;
+    }
+    if (load || !state.ai) {
+      const result = await call("aiStatus");
+      state.ai = result.ok ? result.data : state.ai;
+    }
+    const ai = state.ai || {};
+    let body;
+    if (state.aiPanel && state.view === "settings") {
+      body = aiPanel("settings");
+    } else if (ai.configured) {
+      const note = h("p", { class: "ai-message", role: "status" });
+      body = h(
+        "div",
+        { class: "ai-off" },
+        h(
+          "div",
+          { class: "ai-off-text" },
+          h("p", { class: "ai-off-title", text: t("aiOnTitle") }),
+          h("p", { class: "muted small", text: t("aiCurrent", ai.provider_label || "", ai.model || "", ai.key_hint || "") }),
+          ai.source === "env" ? h("p", { class: "muted small", text: t("aiEnvKey") }) : null,
+          note
+        ),
+        h(
+          "div",
+          { class: "ai-panel-actions" },
+          h(
+            "button",
+            {
+              class: "btn btn-sm",
+              type: "button",
+              onclick: async (event) => {
+                event.currentTarget.disabled = true;
+                note.className = "ai-message muted";
+                note.textContent = t("aiChecking");
+                const check = await call("aiCheck");
+                const code = check.ok ? (check.data.ok ? null : check.data.code) : "offline";
+                note.className = `ai-message ${code ? "ai-message-bad" : "ai-message-ok"}`;
+                note.textContent = code ? tOptional(`coachErrors.${code}`) || code : t("aiCheckOk");
+                event.currentTarget.disabled = false;
+              }
+            },
+            h("span", { text: t("aiCheckNow") })
+          ),
+          h("button", { class: "btn btn-ghost btn-sm", type: "button", onclick: () => toggleAiPanel("settings", "info") }, icon("settings"), h("span", { text: t("aiChangeKey") }))
+        )
+      );
+    } else {
+      body = h(
+        "div",
+        { class: "ai-off" },
+        h("div", { class: "ai-off-text" }, h("p", { class: "ai-off-title", text: t("aiOffTitle") }), h("p", { class: "muted small", text: t("aiOffHint") })),
+        h("button", { class: "btn btn-primary btn-sm", type: "button", onclick: () => toggleAiPanel("settings", "form") }, h("span", { text: t("aiTurnOn") }))
+      );
+    }
+    root.replaceChildren(card(t("aiSettingsTitle"), "graduation-cap", body));
+    hydrate(root);
   }
 
   async function toggleAiPanel(kind, panel) {
@@ -1903,6 +2514,8 @@
   function rerender(kind) {
     if (kind === "career") {
       renderCareer();
+    } else if (kind === "settings") {
+      renderAiSettings();
     } else {
       renderMatch();
     }
@@ -2050,7 +2663,9 @@
 
   async function reloadAfterAi(kind) {
     await refreshPlayer();
-    if (kind === "career") {
+    if (kind === "settings") {
+      await renderAiSettings({ load: true });
+    } else if (kind === "career") {
       await loadCareer();
     } else if (state.matchId) {
       await openMatchQuietly(state.matchId);
@@ -2073,7 +2688,7 @@
       hydrate(root);
       return;
     }
-    const result = await call("career");
+    const result = await call("career", careerArgs());
     if (result.ok) {
       state.career = result.data;
     }
@@ -2093,7 +2708,7 @@
       if (state.view !== "progress") {
         return;
       }
-      const result = await call("career");
+      const result = await call("career", careerArgs());
       if (result.ok) {
         const changed = JSON.stringify(result.data) !== JSON.stringify(state.career);
         state.career = result.data;
@@ -2120,11 +2735,100 @@
     return h("div", { class: "tile" }, h("p", { class: "tile-label", text: label }), h("p", { class: "tile-value", text: value }), delta || null, sub ? h("p", { class: "tile-sub muted", text: sub }) : null);
   }
 
+  function careerArgs() {
+    return state.careerHero === null ? {} : { heroId: state.careerHero };
+  }
+
+  // "All heroes" or one hero for the whole Progress page.
+  function careerHeroSelect(career) {
+    const heroes = career.hero_choices || [];
+    if (heroes.length < 2 && state.careerHero === null) {
+      return null;
+    }
+    const select = h(
+      "select",
+      {
+        class: "input select",
+        "aria-label": t("filterHero"),
+        onchange: async (event) => {
+          state.careerHero = event.target.value === "" ? null : Number(event.target.value);
+          await loadCareer();
+        }
+      },
+      h("option", { value: "", text: t("filterAllHeroes") }),
+      heroes.map((hero) => {
+        const option = h("option", { value: String(hero.hero_id), text: `${hero.hero || "—"} · ${hero.games}` });
+        option.selected = state.careerHero === hero.hero_id;
+        return option;
+      })
+    );
+    return select;
+  }
+
+  async function setGoal(findingId, button) {
+    if (button) {
+      button.disabled = true;
+    }
+    const result = await call("focusSet", { findingId });
+    if (result.ok && state.career) {
+      state.career = { ...state.career, focus: result.data };
+      renderCareer();
+    } else if (button) {
+      button.disabled = false;
+    }
+  }
+
+  async function clearGoal() {
+    const result = await call("focusClear");
+    if (result.ok && state.career) {
+      state.career = { ...state.career, focus: null };
+      renderCareer();
+    }
+  }
+
+  // The problem the player chose to work on and how the matches since went.
+  function goalCard(focus) {
+    if (!focus) {
+      return null;
+    }
+    const since = focus.since ? new Date(focus.since).toLocaleDateString(state.locale === "ru" ? "ru-RU" : "en-GB", { day: "numeric", month: "long" }) : "";
+    const marks = (focus.results || []).map((result) =>
+      h("button", {
+        class: "goal-mark",
+        type: "button",
+        dataset: { met: String(result.met) },
+        title: `${result.hero || "—"}: ${result.met ? t("goalMet") : t("goalMissed")}`,
+        "aria-label": `${result.hero || "—"}: ${result.met ? t("goalMet") : t("goalMissed")}`,
+        onclick: () => openMatch(result.match_id)
+      })
+    );
+    const progress = focus.total
+      ? [t("goalProgress", focus.met, focus.total), focus.streak >= 2 ? t("goalStreak", focus.streak) : null].filter(Boolean).join(" · ")
+      : t("goalWaiting");
+    return card(
+      t("goalTitle"),
+      "target",
+      h(
+        "div",
+        { class: "goal" },
+        h("p", { class: "finding-title" }, h("span", { text: focus.title }), focus.section_label ? h("span", { class: "tag", text: focus.section_label }) : null),
+        focus.drill ? h("p", { class: "finding-drill" }, icon("lightbulb"), h("span", {}, h("strong", { text: `${t("drill")}: ` }), focus.drill)) : null,
+        marks.length ? h("div", { class: "goal-marks" }, marks) : null,
+        h("p", { class: "muted small num", text: since ? `${progress} · ${t("goalSince", since)}` : progress }),
+        h("div", { class: "row no-print" }, h("button", { class: "btn btn-ghost btn-sm", type: "button", onclick: clearGoal }, h("span", { text: t("goalClear") })))
+      ),
+      null
+    );
+  }
+
   function renderCareer() {
     const root = document.getElementById("progress-root");
     const career = state.career;
     if (!career || !career.matches) {
-      root.replaceChildren(card(t("tiles.winrate"), "chart-line", emptyState("chart-line", t("progressEmptyTitle"), t("progressEmptyHint"))));
+      root.replaceChildren(
+        card(t("tiles.winrate"), "chart-line", emptyState("chart-line", t("progressEmptyTitle"), t("progressEmptyHint"))),
+        (career && coachCard(career.coach, "career")) || ""
+      );
       hydrate(root);
       return;
     }
@@ -2180,9 +2884,23 @@
                   h(
                     "div",
                     { class: "finding-body" },
-                    h("p", { class: "finding-title" }, h("span", { text: item.title }), item.section_label ? h("span", { class: "tag", text: item.section_label }) : null),
+                    h(
+                      "p",
+                      { class: "finding-title" },
+                      h("span", { text: item.title }),
+                      item.section_label ? h("span", { class: "tag", text: item.section_label }) : null,
+                      career.focus && career.focus.id === item.id ? h("span", { class: "tag tag-accent", text: t("goalCurrent") }) : null
+                    ),
                     h("div", { class: "share" }, window.LauncherCharts.meter(item.share, item.share >= 50 ? "bad" : "ok"), h("span", { class: "muted small", text: item.text })),
-                    item.drill ? h("p", { class: "finding-drill" }, icon("lightbulb"), h("span", {}, h("strong", { text: `${t("drill")}: ` }), item.drill)) : null
+                    item.drill ? h("p", { class: "finding-drill" }, icon("lightbulb"), h("span", {}, h("strong", { text: `${t("drill")}: ` }), item.drill)) : null,
+                    career.focus && career.focus.id === item.id
+                      ? null
+                      : h(
+                          "button",
+                          { class: "btn btn-ghost btn-sm goal-set no-print", type: "button", onclick: (event) => setGoal(item.id, event.currentTarget) },
+                          icon("target"),
+                          h("span", { text: t("goalSet") })
+                        )
                   )
                 )
               )
@@ -2225,7 +2943,7 @@
                   h(
                     "tr",
                     {},
-                    h("td", { class: "hero-cell", text: hero.hero }),
+                    h("td", {}, heroLabel(hero.hero_id || hero.hero, hero.hero)),
                     h("td", { class: "num-col num", text: String(hero.matches) }),
                     h("td", { class: "num-col num", text: hero.winrate == null ? "—" : `${hero.winrate}%` }),
                     h("td", { class: "num-col num muted", text: hero.bracket_winrate == null ? "—" : `${hero.bracket_winrate}%` }),
@@ -2241,12 +2959,18 @@
       : null;
 
     root.replaceChildren(
-      h("p", { class: "muted small progress-note", text: t("analyzed", career.analyzed, career.matches) }),
+      h(
+        "div",
+        { class: "review-toolbar" },
+        h("p", { class: "muted small progress-note", text: t("analyzed", career.analyzed, career.matches) }),
+        h("span", { class: "toolbar-actions no-print" }, careerHeroSelect(career), pdfButton("career"))
+      ),
       tiles,
       coachCard(career.coach, "career") || "",
       scoreCard,
       careerRankCard(career),
       selfCompareCard(career.self_compare) || "",
+      goalCard(career.focus) || "",
       planCard,
       strengthsCard || "",
       heroesCard || ""
@@ -2285,16 +3009,42 @@
     }
   }
 
+  function renderToday(status) {
+    const line = document.getElementById("today-line");
+    const today = status.player && status.player.today;
+    line.classList.toggle("hidden", !today);
+    if (!today) {
+      return;
+    }
+    const ru = state.locale === "ru";
+    const parts = [
+      ru ? `Сегодня: ${today.games} ${plural(today.games, "матч", "матча", "матчей")}` : `Today: ${today.games} ${today.games === 1 ? "match" : "matches"}`,
+      ru
+        ? `${today.wins} ${plural(today.wins, "победа", "победы", "побед")}, ${today.losses} ${plural(today.losses, "поражение", "поражения", "поражений")}`
+        : `${today.wins} ${today.wins === 1 ? "win" : "wins"}, ${today.losses} ${today.losses === 1 ? "loss" : "losses"}`,
+      today.avg_score == null ? null : ru ? `средняя оценка ${today.avg_score}` : `average score ${today.avg_score}`,
+      today.focus_total ? (ru ? `фокус ${today.focus_met} из ${today.focus_total}` : `focus ${today.focus_met} of ${today.focus_total}`) : null
+    ];
+    line.textContent = parts.filter(Boolean).join(" · ");
+  }
+
   function onStatus(status) {
     const localeChanged = state.locale !== (status.locale === "ru" ? "ru" : "en");
     state.locale = status.locale === "ru" ? "ru" : "en";
     state.status = status;
     renderBanner(status);
+    renderToday(status);
     if (localeChanged) {
+      // Texts from the backend (reviews, progress) come in the new language only
+      // when asked again.
       if (state.view === "matches") {
         renderMatches();
       } else if (state.view === "progress") {
-        renderCareer();
+        loadCareer();
+      } else if (state.view === "match" && state.matchId) {
+        openMatchQuietly(state.matchId).then(() => renderMatch());
+      } else if (state.view === "settings") {
+        renderAiSettings();
       }
     }
   }
@@ -2328,7 +3078,7 @@
     } catch {
       // Storage unavailable: start on Home.
     }
-    if (["matches", "progress"].includes(saved)) {
+    if (["matches", "progress", "settings"].includes(saved)) {
       setView(saved, { remember: false });
     }
     // Keep the table fresh while it is open (new matches, sync results).
@@ -2342,7 +3092,7 @@
       clearTimeout(resizeTimer);
       resizeTimer = setTimeout(() => {
         if (state.view === "match" && state.match?.analysis) {
-          document.querySelectorAll("#match-root [data-chart]").forEach((host) => drawChart(host, state.match.analysis));
+          drawMatchCharts(document.getElementById("match-root"), state.match.analysis);
         } else if (state.view === "progress" && state.career) {
           renderCareer();
         }

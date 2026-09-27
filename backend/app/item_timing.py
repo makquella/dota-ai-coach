@@ -86,7 +86,13 @@ def normalize_item_name(raw_item: Any) -> str:
     raw = str(raw_item).strip()
     if not raw:
         return ""
+    return _normalize_item_name_cached(raw, id(load_item_timing_rules()))
 
+
+# The rules are loaded once (lru_cache), so names map the same way until they
+# are reloaded; the rules' id in the key drops stale entries after a reload.
+@lru_cache(maxsize=4096)
+def _normalize_item_name_cached(raw: str, _rules_id: int) -> str:
     rules = load_item_timing_rules()
     if raw.isdigit():
         item_from_id = rules.get("item_ids", {}).get(str(int(raw)))
@@ -95,11 +101,9 @@ def normalize_item_name(raw_item: Any) -> str:
         return f"Item {int(raw)}"
 
     key = normalize_item_key(raw)
-    aliases = _normalized_aliases(rules)
+    canonical, aliases = _name_maps(rules)
     if key in aliases:
         return aliases[key]
-
-    canonical = _canonical_names_by_key(rules)
     if key in canonical:
         return canonical[key]
 
@@ -107,6 +111,39 @@ def normalize_item_name(raw_item: Any) -> str:
         return "Recipe"
 
     return _title_from_key(key)
+
+
+_MAPS: dict[str, Any] = {"rules": None}
+
+
+def _name_maps(rules: dict[str, Any]) -> tuple[dict[str, str], dict[str, str]]:
+    """(canonical names by key, aliases by key), built once per rules object."""
+    if _MAPS["rules"] is not rules:
+        canonical = _canonical_names_by_key(rules)
+        aliases = {
+            normalize_item_key(key): canonical.get(
+                normalize_item_key(value), _title_from_key(normalize_item_key(value))
+            )
+            for key, value in rules.get("item_aliases", {}).items()
+        }
+        keys = {
+            "ignored": {normalize_item_key(item) for item in rules.get("ignore_items", [])},
+            "components": {normalize_item_key(item) for item in rules.get("component_items", [])},
+            "categories": {
+                category: {normalize_item_key(item) for item in items}
+                for category, items in rules.get("meaningful_items", {}).items()
+            },
+            "costs": {
+                normalize_item_key(item): cost for item, cost in rules.get("item_costs", {}).items()
+            },
+        }
+        _MAPS.update(rules=rules, canonical=canonical, aliases=aliases, keys=keys)
+    return _MAPS["canonical"], _MAPS["aliases"]
+
+
+def _rule_keys(rules: dict[str, Any]) -> dict[str, Any]:
+    _name_maps(rules)
+    return _MAPS["keys"]
 
 
 def normalize_item_key(raw_item: Any) -> str:
@@ -150,10 +187,9 @@ def item_timing_category(raw_item: Any) -> str | None:
         return None
 
     rules = load_item_timing_rules()
-    matches: list[str] = []
-    for category, items in rules.get("meaningful_items", {}).items():
-        if item_key in {normalize_item_key(item) for item in items}:
-            matches.append(category)
+    matches = [
+        category for category, keys in _rule_keys(rules)["categories"].items() if item_key in keys
+    ]
 
     if not matches:
         return None
@@ -166,14 +202,11 @@ def item_timing_category(raw_item: Any) -> str | None:
 
 def item_cost(raw_item: Any) -> int:
     item = normalize_item_name(raw_item)
-    key = normalize_item_key(item)
-    for configured_item, cost in load_item_timing_rules().get("item_costs", {}).items():
-        if normalize_item_key(configured_item) == key:
-            try:
-                return int(cost)
-            except (TypeError, ValueError):
-                return 0
-    return 0
+    cost = _rule_keys(load_item_timing_rules())["costs"].get(normalize_item_key(item))
+    try:
+        return int(cost) if cost is not None else 0
+    except (TypeError, ValueError):
+        return 0
 
 
 def is_ignored_item(raw_item: Any) -> bool:
@@ -192,10 +225,8 @@ def is_ignored_item(raw_item: Any) -> bool:
     if raw_key.startswith("neutral") or raw_key.startswith("item_neutral"):
         return True
 
-    rules = load_item_timing_rules()
-    ignored = {normalize_item_key(item) for item in rules.get("ignore_items", [])}
-    components = {normalize_item_key(item) for item in rules.get("component_items", [])}
-    return item_key in ignored or item_key in components
+    keys = _rule_keys(load_item_timing_rules())
+    return item_key in keys["ignored"] or item_key in keys["components"]
 
 
 def contains_meaningful_item_reference(text: str, items: list[Any] | None = None) -> bool:
@@ -242,11 +273,6 @@ def load_item_timing_rules() -> dict[str, Any]:
     return {**DEFAULT_RULES, **loaded}
 
 
-@lru_cache(maxsize=1)
-def _canonical_names_by_key_cached() -> dict[str, str]:
-    return _canonical_names_by_key(load_item_timing_rules())
-
-
 def _canonical_names_by_key(rules: dict[str, Any]) -> dict[str, str]:
     canonical: dict[str, str] = {}
     collections: list[Any] = [
@@ -264,16 +290,9 @@ def _canonical_names_by_key(rules: dict[str, Any]) -> dict[str, str]:
     return canonical
 
 
-def _normalized_aliases(rules: dict[str, Any]) -> dict[str, str]:
-    aliases: dict[str, str] = {}
-    for key, value in rules.get("item_aliases", {}).items():
-        aliases[normalize_item_key(key)] = normalize_item_name_without_alias(value, rules)
-    return aliases
-
-
 def normalize_item_name_without_alias(raw_item: Any, rules: dict[str, Any]) -> str:
     key = normalize_item_key(raw_item)
-    canonical = _canonical_names_by_key(rules)
+    canonical, _ = _name_maps(rules)
     if key in canonical:
         return canonical[key]
     return _title_from_key(key)

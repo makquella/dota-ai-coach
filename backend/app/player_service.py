@@ -29,6 +29,7 @@ import contextlib
 import heapq
 import itertools
 import json
+import re
 import threading
 import time
 from collections.abc import Callable
@@ -37,9 +38,11 @@ from pathlib import Path
 from typing import Any
 
 from app.analysis_texts import render_analysis
-from app.career_analysis import analyze_career
+from app.career_analysis import NOT_RECURRING, analyze_career
 from app.coach_llm import PROVIDERS, AISettings, CoachLLM, CoachLLMError, settings_from
 from app.coach_review import (
+    QUESTION_LIMIT,
+    answer_question,
     career_facts,
     facts_hash,
     match_facts,
@@ -47,8 +50,16 @@ from app.coach_review import (
     review_career,
     review_match,
 )
-from app.dota_constants import REVIEWABLE_LOBBY_TYPES
+from app.diagnostics import record_error
+from app.dota_constants import (
+    TURBO_GAME_MODE,
+    hero_id_from_name,
+    hero_name,
+    is_reviewable_match,
+)
 from app.draft_analysis import pool_heroes
+from app.focus_goal import can_focus, focus_summary, match_result, new_focus, played_after
+from app.game_plan import build_game_plan
 from app.match_facts import facts_from_opendota, facts_from_timeline, merge_facts
 from app.match_tracker import MatchTracker, account_from_gsi
 from app.opendota import (
@@ -58,6 +69,8 @@ from app.opendota import (
     summary_from_match,
     trim_match,
 )
+from app.personal_baseline import MAX_GAMES as MAX_BASELINE_GAMES
+from app.personal_baseline import personal_baseline
 from app.player_store import PlayerStore
 from app.post_match_analysis import ANALYSIS_VERSION, analyze_match
 from app.steam_ids import parse_account_id, steam64_from_account_id
@@ -76,6 +89,14 @@ HERO_STATS_KEY = "opendota:hero_stats"
 MATCHUPS_KEY = "opendota:matchups"
 META_TTL_SECONDS = 7 * 24 * 3600
 HERO_STATS_TTL_SECONDS = 24 * 3600
+GAME_PLAN_CACHE_SECONDS = 60
+SKIPPED_MODES_META = "skipped_modes"
+FOCUS_META = "focus"
+TODAY_MAX_MATCHES = 30
+# "Ask the coach": the last questions per match, and how long the player waits.
+ASK_CACHE_KEY = "coach:ask"
+ASK_HISTORY = 5
+ASK_TIMEOUT_SECONDS = 60.0
 # AI coach.
 AI_SETTINGS_KEY = "ai_settings"
 # The replay is still being parsed: wait for the full data before asking the model.
@@ -83,6 +104,9 @@ COACH_WAITS_FOR = {"waiting_opendota", "parsing"}
 COACH_MIN_CAREER_MATCHES = 3
 # "Overloaded" (HTTP 503 on every model) costs no quota: retry by itself later.
 COACH_BUSY_RETRY_SECONDS = (60, 120, 180)
+OPENDOTA_KEY_META = "opendota_api_key"
+# OpenDota keys are UUIDs; allow any similar token, never spaces or URL parts.
+OPENDOTA_KEY_RE = re.compile(r"[A-Za-z0-9-]{16,80}")
 
 
 class JobQueue:
@@ -133,6 +157,17 @@ class JobQueue:
                 fn()
                 ran += 1
 
+    def run_due(self, *, until: float | None = None) -> int:
+        """Like run_pending, but a failing job is recorded for the problem report
+        and the next jobs still run (the worker thread must never die)."""
+        ran = 0
+        while True:
+            try:
+                return ran + self.run_pending(until=until)
+            except Exception as error:  # noqa: BLE001
+                record_error(self.name, error)
+                ran += 1
+
     def stop(self) -> None:
         with self._cond:
             self._stopped = True
@@ -155,9 +190,7 @@ class JobQueue:
                 if wait is None or wait > 0:
                     self._cond.wait(timeout=wait if wait is not None else 60)
                     continue
-            # A failing job must not kill the worker.
-            with contextlib.suppress(Exception):
-                self.run_pending()
+            self.run_due()
 
 
 def _now_iso() -> str:
@@ -200,6 +233,9 @@ class PlayerService:
         self.data_dir = Path(data_dir)
         self.client = client
         self.store = PlayerStore(self.data_dir / "coach.sqlite3")
+        # The key from .env (if any); a key entered in the launcher wins.
+        self._env_opendota_key = str(getattr(client, "api_key", "") or "")
+        self._apply_opendota_key()
         self.jobs = JobQueue(auto_start=auto_start)
         # Model calls take up to a couple of minutes: their own thread, so they
         # never hold back OpenDota syncs.
@@ -212,6 +248,7 @@ class PlayerService:
             self.data_dir / "live_match.json", on_finished=self._on_match_finished
         )
         self._detected: dict[str, Any] | None = None
+        self._plans: dict[tuple[Any, ...], tuple[float, dict[str, Any] | None]] = {}
         self._sync: dict[str, Any] = {
             "state": "idle",
             "at": None,
@@ -244,8 +281,64 @@ class PlayerService:
             self.store.set_primary(account_id, source="gsi")
             self.request_sync()
 
+    def note_live_advice(
+        self, clock: Any, decision_point: str, action: str, reason: str, mode: str
+    ) -> None:
+        self.tracker.note_advice(clock, decision_point, action, reason, mode)
+
     def check_stale(self) -> None:
         self.tracker.check_stale()
+
+    def game_plan(self, hero: str, lang: str) -> dict[str, Any] | None:
+        """The overlay's plan for the first 1:30 (app/game_plan.py); polled every
+        second, so it is cached for a minute per account, hero and language."""
+        primary = self.store.primary_account_id()
+        hero_id = hero_id_from_name(hero)
+        if primary is None or hero_id is None:
+            return None
+        key = (primary, hero_id, lang)
+        cached = self._plans.get(key)
+        now = time.monotonic()
+        if cached is not None and now - cached[0] < GAME_PLAN_CACHE_SECONDS:
+            return cached[1]
+        focus = self._focus(primary)
+        plan = build_game_plan(
+            focus=focus_summary(focus, [], lang)["title"] if focus else None,
+            hero=hero_name(hero_id),
+            history=self.store.matches_for_career(primary, limit=20, hero_id=hero_id),
+            all_recent=self.store.matches_for_career(primary, limit=RECENT_MATCHES_LIMIT),
+            meta=self._hero_meta(hero_id),
+            lang=lang,
+        )
+        self._plans[key] = (now, plan)
+        return plan
+
+    def diagnostics(self) -> dict[str, Any]:
+        """For the problem report: no key, no match data, just the state."""
+        status = self.status()
+        ai = self.ai_status()
+        with self._coach_lock:
+            coach_jobs = {key: dict(value) for key, value in self._coach_jobs.items()}
+        return {
+            "linked": status["linked"],
+            "account_id": status["account_id"],
+            "source": status["source"],
+            "opendota": status["opendota"],
+            "sync": status["sync"],
+            "matches": status["matches"],
+            "match_sources": self.store.source_counts(status["account_id"])
+            if status["account_id"]
+            else {},
+            "live_match": status["live_match"],
+            "jobs": self.jobs.pending(),
+            "ai_jobs": self.ai_jobs.pending(),
+            "coach_jobs": coach_jobs,
+            "ai": {key: ai.get(key) for key in ("configured", "provider", "model", "source")},
+            "opendota_key": {
+                key: value for key, value in self.opendota_status().items() if key != "key_hint"
+            },
+            "analysis_version": ANALYSIS_VERSION,
+        }
 
     # --- account --------------------------------------------------------------
 
@@ -266,7 +359,43 @@ class PlayerService:
             "last_review": self._last_review(),
             "pending_jobs": len(self.jobs.pending()),
             "ai": {"configured": self.ai_configured()},
+            "opendota_key": bool(self._opendota_key()[0]),
+            "today": self._today(primary) if primary else None,
         }
+
+    def _today(self, account_id: int) -> dict[str, Any] | None:
+        """Tonight's session on the home screen: matches since local midnight."""
+        midnight = datetime.now().astimezone().replace(hour=0, minute=0, second=0, microsecond=0)
+        since = int(midnight.timestamp())
+        rows = [
+            m
+            for m in self.store.list_matches(account_id, limit=TODAY_MAX_MATCHES)
+            if (m.get("start_time") or 0) >= since
+        ]
+        if not rows:
+            return None
+        decided = [m for m in rows if m.get("win") is not None]
+        wins = sum(1 for m in decided if m["win"])
+        scores = [m["score"] for m in rows if isinstance(m.get("score"), (int, float))]
+        today: dict[str, Any] = {
+            "games": len(rows),
+            "wins": wins,
+            "losses": len(decided) - wins,
+            "avg_score": round(sum(scores) / len(scores)) if scores else None,
+        }
+        focus = self._focus(account_id)
+        if focus is not None:
+            # Only now the reviews are read (the status is polled every few seconds).
+            results = [
+                match_result(m.get("analysis"), focus)
+                for m in self.store.matches_for_career(account_id, limit=len(rows))
+                if (m.get("start_time") or 0) >= since and played_after(m, focus)
+            ]
+            results = [r for r in results if r is not None]
+            if results:
+                today["focus_met"] = sum(1 for r in results if r)
+                today["focus_total"] = len(results)
+        return today
 
     def link(self, value: Any) -> dict[str, Any]:
         account_id = parse_account_id(value)
@@ -283,15 +412,29 @@ class PlayerService:
 
     # --- history --------------------------------------------------------------
 
-    def list_matches(self, *, limit: int = 50, offset: int = 0) -> dict[str, Any]:
+    def list_matches(
+        self,
+        *,
+        limit: int = 50,
+        offset: int = 0,
+        hero_id: int | None = None,
+        win: bool | None = None,
+    ) -> dict[str, Any]:
+        """The match table; hero_id / win filter it (totals and stats follow the filter)."""
         primary = self.store.primary_account_id()
         if primary is None:
             return {"linked": False, "items": [], "total": 0}
         return {
             "linked": True,
-            "items": self.store.list_matches(primary, limit=limit, offset=offset),
-            "total": self.store.count_matches(primary),
+            "items": self.store.list_matches(
+                primary, limit=limit, offset=offset, hero_id=hero_id, win=win
+            ),
+            "total": self.store.count_matches(primary, hero_id=hero_id, win=win),
+            "stats": self.store.match_stats(primary, hero_id=hero_id, win=win),
+            "heroes": self.store.hero_counts(primary),
+            "filters": {"hero_id": hero_id, "win": win},
             "sync": dict(self._sync),
+            "skipped": self.skipped_modes(primary),
         }
 
     def match_detail(
@@ -319,15 +462,110 @@ class PlayerService:
             "scoreboard": _scoreboard(record.get("opendota")),
             "loading": analysis is None and self.client is not None,
         }
+        # Before the coach: the AI review mentions the player's focus when there is one.
+        detail["focus"] = self._match_focus(primary, record, analysis, lang)
         detail["coach"] = self._match_coach(primary, match_id, detail, lang, force=force_coach)
+        detail["baseline"] = self._baseline(primary, record, analysis)
+        detail["questions"] = self._questions(primary, match_id)
+        current = self._focus(primary)
+        detail["focus_id"] = current["id"] if current else None
+        # The review's top problems that can become the player's focus.
+        detail["focusable"] = [
+            finding_id
+            for finding_id in (analysis or {}).get("focus") or []
+            if can_focus(finding_id)
+        ]
         return detail
 
-    def career(self, lang: str, *, force_coach: bool = False) -> dict[str, Any]:
+    def _baseline(
+        self, account_id: int, record: dict[str, Any], analysis: dict[str, Any] | None
+    ) -> dict[str, Any] | None:
+        """This match against the player's other matches on the same hero."""
+        hero_id = record.get("hero_id")
+        if not hero_id:
+            return None
+        others = self.store.matches_for_career(
+            account_id, limit=MAX_BASELINE_GAMES + 1, hero_id=int(hero_id)
+        )
+        return personal_baseline({**record, "analysis": analysis}, others)
+
+    # --- focus goal (focus_goal.py) ---------------------------------------------------
+
+    def _focus(self, account_id: int) -> dict[str, Any] | None:
+        raw = self.store.get_meta(f"{FOCUS_META}:{account_id}")
+        if not raw:
+            return None
+        with contextlib.suppress(ValueError, TypeError):
+            focus = json.loads(raw)
+            if isinstance(focus, dict) and can_focus(str(focus.get("id"))):
+                return focus
+        return None
+
+    def set_focus(self, finding_id: str) -> dict[str, Any]:
+        """Work on one problem from now on; its wording comes from its latest occurrence."""
+        primary = self.store.primary_account_id()
+        if primary is None:
+            raise ValueError("not_linked")
+        finding_id = str(finding_id or "")
+        if not can_focus(finding_id) or finding_id in NOT_RECURRING:
+            raise ValueError("bad_focus")
+        latest: dict[str, Any] = {}
+        for match in self.store.matches_for_career(primary, limit=RECENT_MATCHES_LIMIT):
+            found = next(
+                (
+                    f
+                    for f in (match.get("analysis") or {}).get("improvements") or []
+                    if f.get("id") == finding_id
+                ),
+                None,
+            )
+            if found:
+                latest = found
+                break
+        focus = new_focus(finding_id, latest.get("section"), latest.get("params"))
+        self.store.set_meta(f"{FOCUS_META}:{primary}", json.dumps(focus))
+        self._plans.clear()
+        return focus
+
+    def focus_status(self, lang: str) -> dict[str, Any] | None:
+        primary = self.store.primary_account_id()
+        if primary is None:
+            return None
+        focus = self._focus(primary)
+        if focus is None:
+            return None
+        matches = self.store.matches_for_career(primary, limit=RECENT_MATCHES_LIMIT)
+        return focus_summary(focus, matches, lang)
+
+    def clear_focus(self) -> None:
+        primary = self.store.primary_account_id()
+        if primary is not None:
+            self.store.set_meta(f"{FOCUS_META}:{primary}", None)
+        self._plans.clear()
+
+    def _match_focus(
+        self, account_id: int, record: dict[str, Any], analysis: dict[str, Any] | None, lang: str
+    ) -> dict[str, Any] | None:
+        focus = self._focus(account_id)
+        if focus is None or not played_after(record, focus):
+            return None
+        met = match_result(analysis, focus)
+        if met is None:
+            return None
+        summary = focus_summary(focus, [], lang)
+        return {"id": focus["id"], "title": summary["title"], "met": met}
+
+    def career(
+        self, lang: str, *, force_coach: bool = False, hero_id: int | None = None
+    ) -> dict[str, Any]:
+        """Progress over the recent matches; `hero_id` narrows it to one hero."""
         primary = self.store.primary_account_id()
         if primary is None:
             return {"linked": False}
         player = self.store.get_player(primary) or {}
-        matches = self.store.matches_for_career(primary, limit=RECENT_MATCHES_LIMIT)
+        matches = self.store.matches_for_career(
+            primary, limit=RECENT_MATCHES_LIMIT, hero_id=hero_id
+        )
         for match in matches:
             stale = match.get("analysis")
             if stale is not None and stale.get("version") != ANALYSIS_VERSION:
@@ -339,6 +577,25 @@ class PlayerService:
             hero_stats=self.store.cache_get(HERO_STATS_KEY),
         )
         result["linked"] = True
+        result["hero_filter"] = hero_id
+        focus = self._focus(primary)
+        if focus is not None:
+            # The goal is the same on every hero: judged over all recent matches.
+            source = (
+                matches
+                if hero_id is None
+                else self.store.matches_for_career(primary, limit=RECENT_MATCHES_LIMIT)
+            )
+            result["focus"] = focus_summary(focus, source, lang)
+        else:
+            result["focus"] = None
+        # "heroes" is the career's own hero table; the filter's choices go apart.
+        result["hero_choices"] = self.store.hero_counts(primary)
+        if hero_id is not None:
+            # The AI career review covers all heroes; one per hero would spend
+            # the player's free quota on every switch.
+            result["coach"] = {"state": "none"}
+            return result
         recent = [
             recent_match_line(render_analysis(m["analysis"], lang))
             for m in matches
@@ -346,6 +603,44 @@ class PlayerService:
         ]
         result["coach"] = self._career_coach(primary, result, recent, lang, force=force_coach)
         return result
+
+    # --- OpenDota key --------------------------------------------------------------
+
+    def _opendota_key(self) -> tuple[str, str | None]:
+        stored = self.store.get_meta(OPENDOTA_KEY_META) or ""
+        if stored:
+            return stored, "app"
+        if self._env_opendota_key:
+            return self._env_opendota_key, "env"
+        return "", None
+
+    def _apply_opendota_key(self) -> None:
+        setter = getattr(self.client, "set_api_key", None)
+        if callable(setter):
+            setter(self._opendota_key()[0])
+
+    def opendota_status(self) -> dict[str, Any]:
+        """Never includes the key itself."""
+        key, source = self._opendota_key()
+        return {
+            "enabled": self.client is not None,
+            "configured": bool(key),
+            "source": source,
+            "key_hint": f"…{key[-4:]}" if len(key) >= 8 else "",
+        }
+
+    def set_opendota_key(self, api_key: str) -> dict[str, Any]:
+        key = str(api_key or "").strip()
+        if not OPENDOTA_KEY_RE.fullmatch(key):
+            raise ValueError("bad_opendota_key")
+        self.store.set_meta(OPENDOTA_KEY_META, key)
+        self._apply_opendota_key()
+        return self.opendota_status()
+
+    def clear_opendota_key(self) -> dict[str, Any]:
+        self.store.set_meta(OPENDOTA_KEY_META, None)
+        self._apply_opendota_key()
+        return self.opendota_status()
 
     # --- AI coach ----------------------------------------------------------------
 
@@ -411,6 +706,48 @@ class PlayerService:
             return None
         return CoachLLM(settings, timeout=30.0) if check else CoachLLM(settings)
 
+    def ask_match(self, match_id: int, question: str, lang: str) -> dict[str, Any]:
+        """A free question about one reviewed match, answered by the AI coach with the
+        same fact check as the reviews (synchronous: the player waits for it)."""
+        primary = self.store.primary_account_id()
+        if primary is None:
+            return {"ok": False, "code": "not_linked"}
+        if not self.ai_configured():
+            return {"ok": False, "code": "off"}
+        detail = self.match_detail(match_id, lang)
+        facts = match_facts(detail) if detail else None
+        if facts is None:
+            return {"ok": False, "code": "no_review"}
+        client = self.llm if self.llm is not None else self._coach_client_with(ASK_TIMEOUT_SECONDS)
+        if client is None:
+            return {"ok": False, "code": "off"}
+        try:
+            result = answer_question(client, facts, question, lang, known_items=self._known_items())
+        except CoachLLMError as error:
+            if error.code not in {"empty_question", "unverified"}:
+                record_error("coach-ai", f"question: {error.code}", with_trace=False)
+            return {"ok": False, "code": error.code}
+        except Exception as error:  # noqa: BLE001 - a bad answer must not become a 500
+            record_error("coach-ai", error)
+            return {"ok": False, "code": "bad_response"}
+        entry = {
+            "question": " ".join(str(question).split())[:QUESTION_LIMIT],
+            "answer": result["review"]["answer"],
+            "at": _now_iso(),
+            "lang": lang,
+        }
+        key = f"{ASK_CACHE_KEY}:{primary}:{match_id}"
+        history = [entry, *(self.store.cache_get(key) or [])][:ASK_HISTORY]
+        self.store.cache_set(key, history)
+        return {"ok": True, "answer": entry, "history": history}
+
+    def _questions(self, account_id: int, match_id: int) -> list[dict[str, Any]]:
+        return self.store.cache_get(f"{ASK_CACHE_KEY}:{account_id}:{match_id}") or []
+
+    def _coach_client_with(self, timeout: float) -> Any:
+        settings = self.ai_settings()
+        return CoachLLM(settings, timeout=timeout) if settings is not None else None
+
     def _known_items(self) -> list[str]:
         constants = self.store.cache_get(ITEM_CONSTANTS_KEY) or {}
         return [str(info.get("name")) for info in (constants.get("items") or {}).values()]
@@ -448,6 +785,9 @@ class PlayerService:
     ) -> dict[str, Any]:
         facts = career_facts(career, recent)
         if facts is None or len(recent) < COACH_MIN_CAREER_MATCHES:
+            # Off first: Progress is where a new player turns the AI coach on.
+            if not self.ai_configured():
+                return {"state": "off"}
             return {"state": "not_enough", "need": COACH_MIN_CAREER_MATCHES}
         return self._coach_state(
             f"coach:career:{account_id}:{lang}", facts, lang, kind="career", force=force
@@ -506,10 +846,12 @@ class PlayerService:
                     delay=COACH_BUSY_RETRY_SECONDS[attempt],
                 )
                 return
+            record_error("coach-ai", f"{kind} review: {error.code}", with_trace=False)
             with self._coach_lock:
                 self._coach_jobs[key] = {"state": "error", "hash": digest, "error": error.code}
             return
-        except Exception:  # noqa: BLE001 - a bad answer must not kill the worker
+        except Exception as error:  # noqa: BLE001 - a bad answer must not kill the worker
+            record_error("coach-ai", error)
             with self._coach_lock:
                 self._coach_jobs[key] = {"state": "error", "hash": digest, "error": "bad_response"}
             return
@@ -569,16 +911,26 @@ class PlayerService:
             except OpenDotaError as error:
                 if error.code != "private":
                     raise
-            # Bot games, practice and custom lobbies would skew win rate and trends.
-            recent = [
-                row
-                for row in client.recent_matches(account_id, limit=RECENT_MATCHES_LIMIT)
-                if row.get("lobby_type") is None or row["lobby_type"] in REVIEWABLE_LOBBY_TYPES
-            ]
+            # Bot games, practice, custom lobbies, Turbo and other modes with their
+            # own rules would skew win rate, trends and the norms of the reviews.
+            rows = client.recent_matches(account_id, limit=RECENT_MATCHES_LIMIT)
+            recent = [row for row in rows if is_reviewable_match(row)]
+            skipped = [row for row in rows if not is_reviewable_match(row)]
             for row in recent:
                 match_id = row.pop("match_id", None)
                 if match_id:
                     self.store.upsert_match(account_id, match_id, source="opendota", fields=row)
+            self._drop_unreviewable(account_id)
+            self.store.set_meta(
+                f"{SKIPPED_MODES_META}:{account_id}",
+                json.dumps(
+                    {
+                        "count": len(skipped),
+                        "turbo": sum(r.get("game_mode") == TURBO_GAME_MODE for r in skipped),
+                        "of": len(rows),
+                    }
+                ),
+            )
             # Review the latest matches (one request each, well under the rate limit).
             for row in self.store.list_matches(account_id, limit=REVIEW_RECENT_MATCHES):
                 if not row.get("has_analysis") or ("opendota" not in row["sources"]):
@@ -597,6 +949,7 @@ class PlayerService:
                 "fetched": len(recent),
             }
         except OpenDotaError as error:
+            record_error("sync", f"OpenDota: {error.code}", with_trace=False)
             self._sync = {
                 "state": "error",
                 "at": _now_iso(),
@@ -604,6 +957,7 @@ class PlayerService:
                 "error_code": error.code,
             }
         except Exception as error:  # noqa: BLE001 - never leave the UI stuck on "updating"
+            record_error("sync", error)
             self._sync = {
                 "state": "error",
                 "at": _now_iso(),
@@ -638,6 +992,15 @@ class PlayerService:
         if not trimmed.get("found_player"):
             self.store.upsert_match(account_id, match_id, source="opendota", parse_status="private")
             return
+        if not is_reviewable_match(trimmed):
+            # A live match recorded from GSI that turns out to be Turbo, a bot
+            # game or another mode with its own rules: not part of the history.
+            self.store.delete_matches(account_id, [match_id])
+            last = (self.store.get_meta(f"last_review:{account_id}") or "").split("|")[0]
+            if last == str(match_id):
+                # The "review ready" banner must not open a deleted match.
+                self.store.set_meta(f"last_review:{account_id}", None)
+            return
         parsed = bool(trimmed.get("parsed"))
         status = "parsed" if parsed else "basic"
         if not parsed and request_parse:
@@ -659,6 +1022,25 @@ class PlayerService:
         self._rebuild_analysis(account_id, match_id)
         if status == "parsing":
             self._retry(account_id, match_id, request_parse, attempt)
+
+    def _drop_unreviewable(self, account_id: int) -> None:
+        """Matches stored before a mode was excluded (older versions kept Turbo)."""
+        drop = [
+            row["match_id"]
+            for row in self.store.mode_rows(account_id)
+            if not is_reviewable_match(row)
+        ]
+        self.store.delete_matches(account_id, drop)
+
+    def skipped_modes(self, account_id: int) -> dict[str, int] | None:
+        raw = self.store.get_meta(f"{SKIPPED_MODES_META}:{account_id}")
+        if not raw:
+            return None
+        with contextlib.suppress(ValueError, TypeError):
+            data = json.loads(raw)
+            if isinstance(data, dict) and int(data.get("count") or 0) > 0:
+                return {key: int(data.get(key) or 0) for key in ("count", "turbo", "of")}
+        return None
 
     def _retry(self, account_id: int, match_id: int, request_parse: bool, attempt: int) -> None:
         self.jobs.submit(
@@ -703,9 +1085,16 @@ class PlayerService:
         analysis = self._rebuild_analysis(account_id, match_id)
         # Per account: a match of another (detected, not linked) account must not
         # replace the linked player's "review ready" banner.
+        focus = self._focus(account_id)
+        focus_met = (
+            match_result(analysis, focus)
+            if focus is not None and played_after({"start_time": fields["start_time"]}, focus)
+            else None
+        )
         self.store.set_meta(
             f"last_review:{account_id}",
-            f"{match_id}|{_now_iso()}|{(analysis or {}).get('headline', {}).get('score') or ''}",
+            f"{match_id}|{_now_iso()}|{(analysis or {}).get('headline', {}).get('score') or ''}"
+            f"|{'' if focus_met is None else int(focus_met)}",
         )
         if account_id == self.store.primary_account_id():
             self.fetch_match(match_id, request_parse=True, delay=FIRST_FETCH_DELAY_SECONDS)
@@ -820,8 +1209,14 @@ class PlayerService:
         raw = self.store.get_meta(f"last_review:{primary}")
         if not raw:
             return None
-        match_id, at, score = (raw.split("|") + ["", "", ""])[:3]
-        return {"match_id": int(match_id), "at": at, "score": int(score) if score else None}
+        match_id, at, score, focus_met = (raw.split("|") + ["", "", "", ""])[:4]
+        return {
+            "match_id": int(match_id),
+            "at": at,
+            "score": int(score) if score else None,
+            # Did the match avoid the player's focus problem (None: no focus / can't tell).
+            "focus_met": bool(int(focus_met)) if focus_met else None,
+        }
 
 
 _SUMMARY_KEYS = (

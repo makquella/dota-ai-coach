@@ -216,12 +216,13 @@ def has_disabled_status(state: Mapping[str, Any]) -> bool:
 
 
 def has_fight_pressure(state: Mapping[str, Any]) -> bool:
+    # Not `score_changed`: in live GSI that is the team score, so any kill anywhere
+    # on the map. It counts only together with a sign of a fight near the player.
     return (
         _to_bool(state.get("near_player_death"))
         or _to_bool(state.get("near_teamfight"))
         or _to_bool(state.get("near_objective"))
         or _ctx_bool(state, "death_count_changed")
-        or _ctx_bool(state, "score_changed")
         or has_pressure_signal(state)
         or has_bad_fight_risk_signal(state)
         or has_objective_fight_signal(state)

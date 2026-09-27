@@ -53,6 +53,10 @@ COUNTERS: dict[str, tuple[set[str], list[str], set[str]]] = {
 }
 
 
+def _hero_id(value: Any) -> int | None:
+    return value if isinstance(value, int) and not isinstance(value, bool) and value > 0 else None
+
+
 def pool_heroes(matches: list[dict[str, Any]], *, limit: int = 5, min_games: int = 3) -> list[int]:
     """Most played heroes of the player (hero ids)."""
     counts: dict[int, int] = {}
@@ -88,14 +92,18 @@ def analyze_draft(
         return None, findings
     players = trimmed.get("players") or []
     me = next((p for p in players if p.get("me")), None)
-    if not me or not me.get("hero_id"):
+    if not me or not _hero_id(me.get("hero_id")):
         return None, findings
     my_side = bool(me.get("isRadiant", True))
-    enemies = [p for p in players if bool(p.get("isRadiant", True)) != my_side and p.get("hero_id")]
+    enemies = [
+        p
+        for p in players
+        if bool(p.get("isRadiant", True)) != my_side and _hero_id(p.get("hero_id"))
+    ]
     if not enemies:
         return None, findings
-    enemy_ids = [int(p["hero_id"]) for p in enemies]
-    my_id = int(me["hero_id"])
+    enemy_ids = [_hero_id(p["hero_id"]) for p in enemies]
+    my_id = _hero_id(me["hero_id"])
     meta = draft_meta or {}
     matchups = meta.get("matchups") or {}
     constants = meta.get("constants")

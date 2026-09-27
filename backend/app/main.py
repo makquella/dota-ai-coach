@@ -2,13 +2,15 @@
 main.py — FastAPI application entry point for Dota AI Coach (MVP-1).
 """
 
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
 from datetime import UTC, datetime, timedelta
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
-from pydantic import ValidationError
+from pydantic import BaseModel, ValidationError
 
 from app.advice_i18n import localize_advice_items, localize_overlay_response, normalize_lang
 from app.advice_scheduler import ADVICE_SCHEDULER, ScheduledAdvice
@@ -17,10 +19,16 @@ from app.config import (
     BACKEND_PORT,
     GSI_STALE_SECONDS,
     LIVE_CONSERVATIVE_MODE,
+    LLM_PROVIDER,
+    OPENDOTA_ENABLED,
+    PLAYER_DATA_DIR,
     RESOURCE_ROOT,
     USE_LLM,
+    WRITABLE_DIR,
 )
 from app.decision_points import detect_decision_point
+from app.diagnostics import recent_errors, record_error, runtime_info
+from app.game_plan import SHOW_UNTIL_CLOCK as GAME_PLAN_SHOW_UNTIL_CLOCK
 from app.gsi_state import (
     get_current_state,
     get_gsi_debug_fields,
@@ -30,26 +38,31 @@ from app.gsi_state import (
 )
 from app.live_session_recorder import LIVE_SESSION_RECORDER
 from app.llm_provider import generate_llm_recommendation, is_llm_provider_enabled
-from app.logger import log_recommendation
+from app.logger import log_recommendation, prune_logs
 from app.match_memory import MATCH_MEMORY
 from app.player_api import PLAYER_SERVICE
 from app.player_api import router as player_router
 from app.rag import retrieve_context
 from app.recommender import generate_recommendation
-from app.schemas import GameSituationRequest, RecommendationResponse, is_supported_hero
-
-app = FastAPI(
-    title="Dota AI Coach",
-    description="MVP-1: rule-based carry coach with local knowledge-base RAG.",
-    version="0.1.0",
-)
-app.include_router(player_router)
+from app.scheduler.frequency import FREQUENCIES
+from app.schemas import GameSituationRequest, RecommendationResponse, hero_coverage
 
 
-@app.on_event("shutdown")
-def _save_player_state() -> None:
+@asynccontextmanager
+async def _lifespan(_app: FastAPI) -> AsyncIterator[None]:
+    prune_logs()
+    yield
     # Keeps an in-progress match timeline across a restart of the app.
     PLAYER_SERVICE.shutdown()
+
+
+app = FastAPI(
+    lifespan=_lifespan,
+    title="Dota AI Coach",
+    description="MVP-1: rule-based carry coach with local knowledge-base RAG.",
+    version="0.2.0",
+)
+app.include_router(player_router)
 
 
 app.add_middleware(
@@ -81,7 +94,7 @@ if FRONTEND_DIR.exists():
 @app.get("/", summary="Health check")
 def root():
     """Simple health-check endpoint."""
-    return {"status": "ok", "service": "Dota AI Coach", "version": "0.1.0"}
+    return {"status": "ok", "service": "Dota AI Coach", "version": "0.2.0"}
 
 
 @app.get("/health", summary="Health check")
@@ -211,12 +224,14 @@ async def receive_gsi(request: Request):
         PLAYER_SERVICE.observe_gsi(payload)
     except Exception as error:  # noqa: BLE001
         print(f"[player] GSI observe failed: {error}")
+        record_error("gsi-player", error)
     state = result.get("state")
     if isinstance(state, dict):
         LIVE_SESSION_RECORDER.record_gsi(payload, state)
         MATCH_MEMORY.observe_state(state)
-        if is_supported_hero(str(state.get("hero") or "")):
-            decision_point = detect_decision_point(state)
+        coverage = hero_coverage(str(state.get("hero") or ""))
+        if coverage:
+            decision_point = _covered_decision_point(detect_decision_point(state), coverage)
             MATCH_MEMORY.last_advice_type = decision_point
             ADVICE_SCHEDULER.observe_state(state, decision_point)
         else:
@@ -278,7 +293,34 @@ def session_recording_status():
 @app.get("/overlay/recommendation", summary="Get overlay-friendly recommendation")
 def overlay_recommendation(lang: str = "en"):
     """`lang=ru` returns the visible text in Russian (see app/advice_i18n.py)."""
-    return localize_overlay_response(_overlay_recommendation_payload(), normalize_lang(lang))
+    lang = normalize_lang(lang)
+    response = localize_overlay_response(_overlay_recommendation_payload(), lang)
+    plan = _game_plan_for_overlay(response, lang)
+    if plan is not None:
+        response = {**response, "game_plan": plan}
+    return response
+
+
+GAME_PLAN_STATUSES = {"no_advice", "monitoring", "unsupported_hero"}
+
+
+def _game_plan_for_overlay(response: dict[str, object], lang: str) -> dict[str, object] | None:
+    """The plan for this game while nothing else is on the card (pick to 1:30)."""
+    if response.get("status") not in GAME_PLAN_STATUSES or response.get("demo_mode"):
+        return None
+    current = get_current_state()
+    state = current.get("state") if isinstance(current.get("state"), dict) else {}
+    extra = state.get("extra_context") if isinstance(state.get("extra_context"), dict) else {}
+    if extra.get("source_type") != "live_gsi":
+        return None
+    clock = extra.get("clock_time")
+    if not isinstance(clock, int) or clock >= GAME_PLAN_SHOW_UNTIL_CLOCK:
+        return None
+    try:
+        return PLAYER_SERVICE.game_plan(str(state.get("hero") or ""), lang)
+    except Exception as error:  # noqa: BLE001 - never breaks the live path
+        record_error("game-plan", error)
+        return None
 
 
 def _overlay_recommendation_payload() -> dict[str, object]:
@@ -328,7 +370,8 @@ def _overlay_recommendation_payload() -> dict[str, object]:
         }
 
     state = current["state"] or {}
-    if not is_supported_hero(str(state.get("hero") or "")):
+    coverage = hero_coverage(str(state.get("hero") or ""))
+    if not coverage:
         ADVICE_SCHEDULER.observe_state(state, "NO_ADVICE")
         return {
             "status": "unsupported_hero",
@@ -348,7 +391,9 @@ def _overlay_recommendation_payload() -> dict[str, object]:
             **_overlay_live_context(state),
         }
 
-    decision_point = _live_conservative_decision_point(detect_decision_point(state), state)
+    decision_point = _covered_decision_point(
+        _live_conservative_decision_point(detect_decision_point(state), state), coverage
+    )
 
     if decision_point == "NO_ADVICE":
         ADVICE_SCHEDULER.observe_state(state, decision_point)
@@ -430,6 +475,20 @@ def _overlay_recommendation_payload() -> dict[str, object]:
             fallback_reason="overlay_fallback_first" if scheduled.source == "fallback" else None,
         )
         log_filename = log_path.name
+        # The post-match review lists the advice given in this match.
+        try:
+            extra = (
+                state.get("extra_context") if isinstance(state.get("extra_context"), dict) else {}
+            )
+            PLAYER_SERVICE.note_live_advice(
+                extra.get("clock_time"),
+                decision_point,
+                scheduled.recommendation.action,
+                scheduled.recommendation.reason,
+                scheduled.advice_mode,
+            )
+        except Exception as error:  # noqa: BLE001 - never breaks the live path
+            record_error("advice-note", error)
 
     return _overlay_response(scheduled, current["timestamp"], log_filename, state)
 
@@ -508,6 +567,53 @@ def recent_advice(limit: int = 5, lang: str = "en"):
     }
 
 
+class AdviceSettings(BaseModel):
+    frequency: str
+
+
+@app.get("/settings/advice", summary="Live advice preferences")
+def get_advice_settings():
+    return {"frequency": ADVICE_SCHEDULER.frequency, "options": list(FREQUENCIES)}
+
+
+@app.post("/settings/advice", summary="Change live advice preferences")
+def set_advice_settings(settings: AdviceSettings):
+    return {
+        "frequency": ADVICE_SCHEDULER.set_frequency(settings.frequency),
+        "options": list(FREQUENCIES),
+    }
+
+
+@app.get("/diagnostics", summary="State and recent errors for a problem report")
+def diagnostics():
+    """No keys and no raw GSI: what a tester can safely send to the developer."""
+    records = COACH_SESSION_HISTORY.records()[-10:]
+    return {
+        "generated_at": datetime.now(UTC).isoformat(timespec="seconds"),
+        "runtime": runtime_info(),
+        "config": {
+            "use_llm": USE_LLM,
+            "llm_provider": LLM_PROVIDER,
+            "live_conservative_mode": LIVE_CONSERVATIVE_MODE,
+            "gsi_stale_seconds": GSI_STALE_SECONDS,
+            "opendota_enabled": OPENDOTA_ENABLED,
+            "writable_dir": str(WRITABLE_DIR),
+            "player_data_dir": str(PLAYER_DATA_DIR),
+        },
+        "gsi": _gsi_status_response(),
+        "scheduler": {**ADVICE_SCHEDULER.stats(), "frequency": ADVICE_SCHEDULER.frequency},
+        "recent_advice": [
+            {
+                key: record.get(key)
+                for key in ("timestamp", "game_time", "hero", "action", "priority", "advice_mode")
+            }
+            for record in reversed(records)
+        ],
+        "player": PLAYER_SERVICE.diagnostics(),
+        "errors": recent_errors(),
+    }
+
+
 @app.get("/overlay/stats", summary="Get overlay advice scheduler telemetry")
 def overlay_stats():
     return ADVICE_SCHEDULER.stats()
@@ -572,7 +678,8 @@ def _overlay_response_for_state(
     timestamp: str | None,
     now: datetime | None = None,
 ) -> dict[str, object]:
-    if not is_supported_hero(str(state.get("hero") or "")):
+    coverage = hero_coverage(str(state.get("hero") or ""))
+    if not coverage:
         ADVICE_SCHEDULER.observe_state(state, "NO_ADVICE", now=now)
         return {
             "status": "unsupported_hero",
@@ -592,7 +699,7 @@ def _overlay_response_for_state(
             **_overlay_live_context(state),
         }
 
-    decision_point = detect_decision_point(state)
+    decision_point = _covered_decision_point(detect_decision_point(state), coverage)
 
     if decision_point == "NO_ADVICE":
         ADVICE_SCHEDULER.observe_state(state, decision_point, now=now)
@@ -724,6 +831,7 @@ def _gsi_status_response() -> dict[str, object]:
         "last_gsi_received_at": timestamp,
         "seconds_since_last_gsi": round(seconds_since, 2) if seconds_since is not None else None,
         "hero": state.get("hero"),
+        "hero_coverage": hero_coverage(str(state.get("hero") or "")) if state else None,
         "game_time": extra_context.get("game_time") or state.get("minute"),
         # The in-game clock as the player sees it (negative before the horn).
         "clock_time": extra_context.get("clock_time"),
@@ -822,6 +930,34 @@ def _live_conservative_decision_point(decision_point: str, state: dict[str, obje
     return decision_point
 
 
+# Heroes outside the carry advisor get only what is true for any hero: survival,
+# deaths, disables, mana, buyback. Farm, item, objective and hero-ability advice
+# assume a carry (or a hero profile) and stay off for them.
+SAFETY_ONLY_DECISIONS = {
+    "LOW_HP",
+    "LOW_HP_WARNING",
+    "RECENT_DAMAGE_WARNING",
+    "OVERSTAY_WARNING",
+    "DEATH_REVIEW",
+    "REPEATED_DEATH_PATTERN",
+    "DEATH_WITH_ESCAPE_ON_COOLDOWN",
+    "DEATH_LOW_RESOURCE",
+    "DISABLED_STATUS",
+    "DEAD_WAIT",
+    "LOW_MANA",
+    "BUYBACK_AVAILABLE",
+    "SMOKED_STATUS",
+    "NO_ADVICE",
+    "SOFT_STATUS",
+}
+
+
+def _covered_decision_point(decision_point: str, coverage: str | None) -> str:
+    if coverage == "safety" and decision_point not in SAFETY_ONLY_DECISIONS:
+        return "NO_ADVICE"
+    return decision_point
+
+
 def _overlay_live_context(state: dict[str, object]) -> dict[str, object]:
     extra_context = (
         state.get("extra_context") if isinstance(state.get("extra_context"), dict) else {}
@@ -836,6 +972,7 @@ def _overlay_live_context(state: dict[str, object]) -> dict[str, object]:
         "current_mode": "live_gsi" if extra_context.get("source_type") == "live_gsi" else "idle",
         "live_conservative_mode": LIVE_CONSERVATIVE_MODE,
         "hero": state.get("hero"),
+        "hero_coverage": hero_coverage(str(state.get("hero") or "")),
         "minute": state.get("minute"),
         "stage": _stage_label(state),
         "game_state": state.get("game_state"),

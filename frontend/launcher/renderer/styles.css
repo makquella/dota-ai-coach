@@ -33,6 +33,10 @@ dd {
   display: none !important;
 }
 
+.print-only {
+  display: none;
+}
+
 .num {
   font-variant-numeric: tabular-nums;
 }
@@ -378,6 +382,26 @@ label.setting {
 .setting-hint {
   color: var(--text-3);
   font-size: var(--fs-12);
+}
+
+.setting-controls {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: var(--sp-2);
+}
+
+.setting-controls .btn-icon {
+  width: 32px;
+}
+
+.setting-wrap {
+  flex-wrap: wrap;
+}
+
+#od-form .input {
+  width: 220px;
+  height: 32px;
 }
 
 /* Controls ----------------------------------------------------------------- */
@@ -936,6 +960,63 @@ label.setting:has(.switch:disabled) {
 }
 
 /* Home: "your last match review is ready" */
+/* First-run checklist */
+.setup {
+  margin-bottom: var(--sp-3);
+}
+
+.setup-steps {
+  display: grid;
+  margin: 0;
+  padding: var(--sp-1) var(--sp-4);
+  list-style: none;
+}
+
+.setup-step {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  min-height: 48px;
+  padding: var(--sp-2) 0;
+  border-top: 1px solid var(--border);
+}
+
+.setup-step:first-child {
+  border-top: 0;
+}
+
+.setup-mark {
+  display: inline-flex;
+  flex: none;
+  color: var(--text-3);
+}
+
+.setup-step[data-done="true"] .setup-mark {
+  color: var(--ok);
+}
+
+.setup-text {
+  display: grid;
+  flex: 1;
+  gap: 2px;
+  min-width: 0;
+}
+
+.setup-step-title {
+  color: var(--text);
+  font-weight: var(--fw-medium);
+}
+
+.setup-step[data-done="true"] .setup-step-title {
+  color: var(--text-2);
+  font-weight: var(--fw-regular);
+}
+
+.setup-step-hint {
+  color: var(--text-3);
+  font-size: var(--fs-12);
+}
+
 .review-banner {
   display: flex;
   align-items: center;
@@ -955,6 +1036,12 @@ label.setting:has(.switch:disabled) {
 
 .review-banner > .icon:first-child {
   color: var(--accent);
+}
+
+.today-line {
+  margin: 0 0 var(--sp-3);
+  color: var(--text-2);
+  font-size: var(--fs-13);
 }
 
 .review-banner-text {
@@ -1143,6 +1230,20 @@ label.setting:has(.switch:disabled) {
   font-weight: var(--fw-medium);
 }
 
+.with-pic {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-2);
+  min-width: 0;
+  vertical-align: middle;
+}
+
+.with-pic > span:last-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .player-sub {
   display: block;
   max-width: 140px;
@@ -1174,6 +1275,43 @@ label.setting:has(.switch:disabled) {
 /* Match review */
 .back {
   margin-left: calc(-1 * var(--sp-2));
+}
+
+.review-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-3);
+}
+
+.toolbar-actions {
+  display: inline-flex;
+  flex: none;
+  flex-wrap: nowrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--sp-2);
+}
+
+.toolbar-actions .pdf-action {
+  margin-left: 0;
+}
+
+.toolbar-actions .select {
+  flex: none;
+  width: 200px;
+}
+
+.pdf-action {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-2);
+  margin-left: auto;
+}
+
+.review-toolbar .progress-note {
+  margin-bottom: 0;
 }
 
 .review-head-body {
@@ -1426,6 +1564,38 @@ label.setting:has(.switch:disabled) {
   color: var(--error);
 }
 
+.advice-log .moment {
+  align-items: start;
+}
+
+.advice-log .moment-icon {
+  justify-content: center;
+  padding-top: 6px;
+}
+
+.advice-log .moment-text {
+  display: grid;
+  gap: 2px;
+}
+
+.advice-log-reason {
+  font-size: var(--fs-12);
+}
+
+.advice-log-death {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-1);
+  color: var(--text-2);
+  font-size: var(--fs-12);
+}
+
+.advice-log-death .icon {
+  width: 13px;
+  height: 13px;
+  color: var(--error);
+}
+
 .teams {
   display: grid;
   gap: var(--sp-4);
@@ -1665,6 +1835,36 @@ label.setting:has(.switch:disabled) {
   height: 6px;
   border-radius: 50%;
   background: var(--key, var(--viz-1));
+}
+
+.chart-key-ring {
+  width: 8px;
+  height: 8px;
+  border: 1.5px solid var(--key, var(--viz-2));
+  border-radius: 50%;
+}
+
+.chart-key-cross {
+  position: relative;
+  width: 9px;
+  height: 9px;
+}
+
+.chart-key-cross::before,
+.chart-key-cross::after {
+  position: absolute;
+  top: 4px;
+  left: 0;
+  width: 9px;
+  height: 1.5px;
+  border-radius: 1px;
+  background: var(--key, var(--error));
+  content: "";
+  transform: rotate(45deg);
+}
+
+.chart-key-cross::after {
+  transform: rotate(-45deg);
 }
 
 .chart-key-bar {
@@ -1972,7 +2172,8 @@ label.setting:has(.switch:disabled) {
 }
 
 .ai-message-bad,
-.ai-message-warn {
+.ai-message-warn,
+.ai-message-ok {
   display: flex;
   align-items: center;
   gap: var(--sp-2);
@@ -1980,7 +2181,8 @@ label.setting:has(.switch:disabled) {
 }
 
 .ai-message-bad::before,
-.ai-message-warn::before {
+.ai-message-warn::before,
+.ai-message-ok::before {
   content: "";
   flex: none;
   width: 6px;
@@ -1991,6 +2193,14 @@ label.setting:has(.switch:disabled) {
 
 .ai-message-warn::before {
   background: var(--warn);
+}
+
+.ai-message-ok::before {
+  background: var(--ok);
+}
+
+#ai-settings-root:empty {
+  display: none;
 }
 
 .ai-panel-actions {
@@ -2085,4 +2295,491 @@ label.setting:has(.switch:disabled) {
   margin-top: 2px;
   font-size: var(--fs-12);
   font-weight: var(--fw-regular);
+}
+
+/* Match table filters */
+
+.filter-bar {
+  display: grid;
+  gap: var(--sp-2);
+  margin-bottom: var(--sp-3);
+}
+
+.filter-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sp-2);
+}
+
+.select {
+  flex: 0 1 220px;
+  height: 30px;
+  padding-right: var(--sp-6);
+  appearance: none;
+  background-image: linear-gradient(45deg, transparent 50%, var(--text-3) 50%),
+    linear-gradient(135deg, var(--text-3) 50%, transparent 50%);
+  background-position: calc(100% - 14px) 50%, calc(100% - 10px) 50%;
+  background-size: 4px 4px;
+  background-repeat: no-repeat;
+  cursor: pointer;
+}
+
+.select option {
+  background: var(--surface-1);
+  color: var(--text);
+}
+
+/* Match map (schematic, charts.js map()) ------------------------------------ */
+
+.map-layout {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: var(--sp-4);
+}
+
+.map-chart {
+  flex: none;
+  width: min(100%, 360px);
+}
+
+.map-chart svg {
+  display: block;
+  max-width: 100%;
+  height: auto;
+}
+
+.map-ground {
+  fill: var(--surface-2);
+}
+
+.map-river {
+  fill: none;
+  stroke: var(--surface-hover);
+  stroke-linecap: round;
+}
+
+.map-lane {
+  fill: none;
+  stroke: var(--viz-axis);
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.map-base {
+  fill: var(--surface-hover);
+  stroke: var(--border-strong);
+}
+
+.map-heat circle {
+  fill: var(--viz-1);
+  opacity: 0.22;
+}
+
+.map-path {
+  fill: none;
+  stroke: var(--viz-1);
+  stroke-width: 1.5;
+  stroke-linejoin: round;
+  opacity: 0.55;
+}
+
+.map-ward circle:first-child {
+  stroke: var(--viz-2);
+  stroke-width: 1.5;
+}
+
+.map-ward-obs circle:first-child {
+  fill: var(--viz-2);
+}
+
+.map-ward-sen circle:first-child {
+  fill: var(--surface-2);
+}
+
+.map-death path {
+  stroke: var(--error);
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+
+.map-hit {
+  cursor: default;
+}
+
+.map-ward:focus-visible,
+.map-death:focus-visible {
+  outline: none;
+}
+
+.map-ward.is-active circle:first-child,
+.map-ward:focus-visible circle:first-child {
+  stroke-width: 3;
+}
+
+.map-death.is-active path,
+.map-death:focus-visible path {
+  stroke-width: 3;
+}
+
+.map-facts {
+  display: grid;
+  flex: 1;
+  gap: var(--sp-2);
+  min-width: 180px;
+}
+
+.map-facts .fact-line {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--sp-3);
+  color: var(--text-2);
+}
+
+/* PDF export (Electron printToPDF of the current view) --------------------- */
+
+@media print {
+  html,
+  body {
+    min-height: 0;
+    background: var(--bg);
+  }
+
+  .page {
+    max-width: none;
+    padding: 0;
+  }
+
+  .top {
+    margin-bottom: var(--sp-4);
+  }
+
+  .print-only {
+    display: inline;
+  }
+
+  .print-date {
+    color: var(--text-3);
+    font-size: var(--fs-12);
+  }
+
+  .service,
+  .tabs,
+  .no-print,
+  button,
+  input,
+  select,
+  .coach-actions,
+  .coach-status,
+  .ai-panel,
+  .ai-form,
+  .chart-tip {
+    display: none !important;
+  }
+
+  /* Long cards may break across pages; their rows, charts and headings do not. */
+  .tile,
+  .finding,
+  .chart-host,
+  .review-head,
+  tr,
+  .coach-moments li,
+  .coach-goals li {
+    break-inside: avoid;
+  }
+
+  .card-head,
+  .coach-section-title {
+    break-after: avoid;
+  }
+
+  svg {
+    max-width: 100%;
+    height: auto;
+  }
+
+  .skeleton {
+    animation: none;
+  }
+}
+
+.coverage-note {
+  margin-top: var(--sp-3);
+}
+
+.skipped-note {
+  margin: var(--sp-3) 0 0;
+}
+
+/* Focus goal: the one problem the player works on --------------------------- */
+.tag-accent {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.goal {
+  display: grid;
+  gap: var(--sp-2);
+}
+
+.goal .finding-drill {
+  margin: 0;
+}
+
+.goal-marks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-1);
+}
+
+.goal-mark {
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  border: 0;
+  border-radius: 4px;
+  background: var(--error);
+  cursor: pointer;
+  transition: transform var(--dur) var(--ease);
+}
+
+.goal-mark[data-met="true"] {
+  background: var(--ok);
+}
+
+.goal-mark:hover {
+  transform: translateY(-1px);
+}
+
+.goal-mark:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.goal-set {
+  justify-self: start;
+  margin-top: var(--sp-1);
+}
+
+.review-goal {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  margin: 0;
+  color: var(--text-2);
+  font-size: var(--fs-12);
+}
+
+@media print {
+  .goal-mark {
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+}
+
+/* This match against the player's own average on the hero. */
+.review-baseline {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sp-1) var(--sp-2);
+  margin: 0;
+  font-size: var(--fs-12);
+}
+
+.baseline-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 1px 6px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--r-sm);
+  color: var(--text-2);
+}
+
+/* Ask the coach ------------------------------------------------------------- */
+.ask-form {
+  display: flex;
+  gap: var(--sp-2);
+  margin-top: var(--sp-2);
+}
+
+.ask-input {
+  flex: 1;
+  min-width: 0;
+}
+
+.ask-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+  margin-top: var(--sp-2);
+}
+
+.ask-chip {
+  background: transparent;
+  cursor: pointer;
+  font: inherit;
+  font-size: var(--fs-12);
+  transition: border-color var(--dur-fast) var(--ease), color var(--dur-fast) var(--ease);
+}
+
+.ask-chip:hover:not(:disabled) {
+  border-color: var(--accent);
+  color: var(--text);
+}
+
+.ask-chip:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.ask-chip:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.ask-pending {
+  margin-top: var(--sp-3);
+}
+
+.ask-note:empty {
+  display: none;
+}
+
+.ask-note {
+  margin: var(--sp-2) 0 0;
+}
+
+.ask-history {
+  display: grid;
+  gap: var(--sp-3);
+  margin-top: var(--sp-3);
+}
+
+.ask-history:empty {
+  display: none;
+}
+
+.ask-item {
+  padding: var(--sp-3);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  background: var(--surface-2);
+}
+
+.ask-q {
+  margin: 0 0 var(--sp-1);
+  color: var(--text-2);
+  font-size: var(--fs-13);
+  font-weight: var(--fw-medium);
+}
+
+.ask-a {
+  margin: 0;
+  color: var(--text);
+  font-size: var(--fs-14);
+  line-height: 1.5;
+}
+
+/* What's new after an update --------------------------------------------------- */
+.whats-new {
+  margin-bottom: var(--sp-3);
+}
+
+.whats-new-list {
+  display: grid;
+  gap: var(--sp-2);
+  margin: 0 0 var(--sp-3);
+  padding-left: var(--sp-5);
+  color: var(--text-2);
+  font-size: var(--fs-13);
+  line-height: 1.45;
+}
+
+/* Hero portraits (16:9) and item icons from dota-asset:// (dota-icons.js); the
+   initials show until the picture loads or when it cannot be loaded. */
+.dota-pic {
+  position: relative;
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border-radius: var(--r-sm);
+  background: var(--surface-2);
+  color: var(--text-3);
+  font-size: 9px;
+  font-weight: var(--fw-semibold);
+  letter-spacing: 0.02em;
+  line-height: 1;
+  vertical-align: middle;
+}
+
+.dota-pic::before {
+  content: attr(data-fallback);
+}
+
+.dota-pic img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.dota-hero.dota-pic-sm {
+  width: 34px;
+  height: 19px;
+}
+
+.dota-hero.dota-pic-md {
+  width: 48px;
+  height: 27px;
+}
+
+.dota-hero.dota-pic-lg {
+  width: 112px;
+  height: 63px;
+  border-radius: var(--r-md);
+  font-size: var(--fs-16);
+}
+
+.dota-item.dota-pic-sm {
+  width: 24px;
+  height: 18px;
+}
+
+.dota-item.dota-pic-md {
+  width: 33px;
+  height: 24px;
+}
+
+.dota-item.dota-pic-lg {
+  width: 44px;
+  height: 32px;
+  font-size: var(--fs-12);
+}
+
+.draft-counter-heroes {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: var(--sp-1) var(--sp-3);
+}
+
+.chip .dota-item {
+  margin-left: -2px;
+  border-radius: 3px;
+}
+
+.review-portrait {
+  flex: none;
+  padding-top: 2px;
+}
+
+@media (max-width: 560px) {
+  .review-portrait {
+    display: none;
+  }
 }

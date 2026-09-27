@@ -67,10 +67,15 @@ jobs:
           node --check frontend/launcher/dota-watcher.js
           node --check frontend/launcher/steam-locator.js
           node --check frontend/launcher/updater.js
+          node --check frontend/launcher/problem-report.js
+          node --check frontend/launcher/dota-assets.js
           node --check frontend/launcher/renderer/app.js
           node --check frontend/launcher/renderer/charts.js
           node --check frontend/launcher/renderer/matches.js
+          node --check frontend/launcher/renderer/dota-icons.js
+          node --check frontend/launcher/renderer/dota-data.js
           node --check frontend/launcher/overlay/app.js
+          node --check frontend/launcher/overlay/voice.js
           node --check frontend/launcher/assets/icons/lucide.js
 
       - name: Unit tests (node --test, no dependencies)

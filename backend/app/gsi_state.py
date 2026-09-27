@@ -8,12 +8,13 @@ import json
 from datetime import UTC, datetime
 from typing import Any
 
-from app.advice_context import build_advice_context
+from app.advice_context import MAP_CENTER, build_advice_context
 from app.config import GSI_DEBUG_LOG, GSI_DEBUG_SAMPLES_DIR
 from app.hero_profiles import evaluate_laning_context
 from app.hero_safety import evaluate_hero_safety
 from app.item_timing import normalize_item_name
 from app.signal_capabilities import capability_summary, live_gsi_observed_capabilities
+from app.tp_tracker import has_teleport
 
 _latest_raw_payload: dict[str, Any] | None = None
 _latest_normalized_state: dict[str, Any] | None = None
@@ -308,6 +309,13 @@ def normalize_gsi_payload(
     return state
 
 
+def _map_coordinate(value: Any) -> float | int | None:
+    """Live GSI reports world coordinates (map centre 0, about ±8000); the replay-derived
+    states and advice_context.py use the replay's absolute ones (centre MAP_CENTER)."""
+    number = _optional_number(value)
+    return None if number is None else number + MAP_CENTER
+
+
 def _dict_value(value: Any) -> dict[str, Any]:
     return value if isinstance(value, dict) else {}
 
@@ -369,8 +377,8 @@ def _normalize_extra_context(
         "max_health": _optional_int(hero_block.get("max_health")),
         "alive": _optional_bool(hero_block.get("alive")),
         "respawn_seconds": _optional_int(hero_block.get("respawn_seconds")),
-        "xpos": _optional_number(hero_block.get("xpos")),
-        "ypos": _optional_number(hero_block.get("ypos")),
+        "xpos": _map_coordinate(hero_block.get("xpos")),
+        "ypos": _map_coordinate(hero_block.get("ypos")),
         "stunned": _optional_bool(hero_block.get("stunned")) or False,
         "silenced": _optional_bool(hero_block.get("silenced")) or False,
         "hexed": _optional_bool(hero_block.get("hexed")) or False,
@@ -410,14 +418,18 @@ def _normalize_extra_context(
         "paused": _optional_bool(map_block.get("paused")) or False,
         "has_abilities": has_abilities,
         "has_buildings": has_buildings,
+        # TP scroll in its slot or Boots of Travel (None: no items block).
+        "has_tp": has_teleport(payload.get("items")),
         "status_effects": status_effects,
         "abilities": abilities,
     }
 
-    context["death_count_changed"] = _value_changed(previous_for_deltas, context, "deaths")
-    context["score_changed"] = _value_changed(
+    # Deaths and team scores only grow within a match: a drop (reconnect, replay
+    # seek, a new match reusing the id) is not an event.
+    context["death_count_changed"] = _value_increased(previous_for_deltas, context, "deaths")
+    context["score_changed"] = _value_increased(
         previous_for_deltas, context, "radiant_score"
-    ) or _value_changed(previous_for_deltas, context, "dire_score")
+    ) or _value_increased(previous_for_deltas, context, "dire_score")
     context["farm_rate_state"] = _farm_rate_state(
         minute=minute,
         last_hits=context.get("last_hits"),
@@ -516,10 +528,11 @@ def _farm_threshold_missed(minute: int, last_hits: int | None) -> bool:
     )
 
 
-def _value_changed(previous: dict[str, Any] | None, current: dict[str, Any], key: str) -> bool:
-    if not previous or previous.get(key) is None or current.get(key) is None:
+def _value_increased(previous: dict[str, Any] | None, current: dict[str, Any], key: str) -> bool:
+    before, now = (previous or {}).get(key), current.get(key)
+    if not isinstance(before, int) or not isinstance(now, int):
         return False
-    return previous.get(key) != current.get(key)
+    return now > before
 
 
 def _optional_int(value: Any) -> int | None:

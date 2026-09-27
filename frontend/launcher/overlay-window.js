@@ -13,6 +13,8 @@ const WINDOW_HEIGHT = 176;
 const ALWAYS_ON_TOP_LEVEL = "screen-saver";
 const ENFORCE_ALWAYS_ON_TOP_MS = 2500;
 const MUTE_MS = 5 * 60 * 1000;
+// Card size presets (zoom of the whole card, window grows with it).
+const OVERLAY_SCALES = { small: 0.85, normal: 1, large: 1.25 };
 
 const OVERLAY_DEFAULTS = {
   enabled: true,
@@ -22,8 +24,13 @@ const OVERLAY_DEFAULTS = {
   debugVisible: false,
   opacity: 1,
   autoHideMs: 8000,
-  urgentAutoHideMs: 12000
+  urgentAutoHideMs: 12000,
+  // Spoken advice: "off" | "urgent" | "all" (overlay/voice.js).
+  voice: "off",
+  voiceVolume: 1,
+  size: "normal"
 };
+const VOICE_MODES = ["off", "urgent", "all"];
 
 // The window exists while the overlay is enabled; whether it is on screen is
 // decided separately (setVisible) from Dota focus + fresh GSI, see
@@ -48,6 +55,7 @@ function createOverlayController({
 
   const windowShortcuts = [
     ["CommandOrControl+Alt+M", muteAdvice],
+    ["CommandOrControl+Alt+R", repeatAdvice],
     ["CommandOrControl+Alt+L", toggleLocked],
     ["CommandOrControl+Alt+D", toggleDebugLine],
     ["CommandOrControl+Alt+1", () => setPosition("left-center")],
@@ -119,9 +127,10 @@ function createOverlayController({
       return overlayWindow;
     }
     const current = config();
+    const initialSize = windowSize();
     overlayWindow = new BrowserWindow({
-      width: WINDOW_WIDTH,
-      height: WINDOW_HEIGHT,
+      width: initialSize.width,
+      height: initialSize.height,
       title: "Dota AI Coach Overlay",
       frame: false,
       transparent: true,
@@ -148,6 +157,7 @@ function createOverlayController({
     applyLockedMode();
 
     overlayWindow.loadFile(path.join(__dirname, "overlay", "index.html"));
+    overlayWindow.webContents.on("did-finish-load", applyZoom);
     overlayWindow.once("ready-to-show", () => {
       if (!isOpen() || !wantVisible) {
         return;
@@ -235,7 +245,7 @@ function createOverlayController({
     }
     preset = normalizePreset(preset);
     const current = config();
-    const size = { width: WINDOW_WIDTH, height: WINDOW_HEIGHT };
+    const size = windowSize();
     let bounds = null;
     if (preset === "custom" && current.customBounds) {
       const custom = {
@@ -324,6 +334,55 @@ function createOverlayController({
     onChange();
   }
 
+  function setVoice(mode, volume) {
+    const patch = {};
+    if (VOICE_MODES.includes(mode)) {
+      patch.voice = mode;
+    }
+    if (Number.isFinite(Number(volume)) && volume !== undefined && volume !== null) {
+      patch.voiceVolume = Math.min(1, Math.max(0, Number(volume)));
+    }
+    updateConfig(patch);
+    send("overlay-config-updated", publicConfig());
+    onChange();
+  }
+
+  function voice() {
+    const current = config();
+    return {
+      mode: VOICE_MODES.includes(current.voice) ? current.voice : "off",
+      volume: Number.isFinite(Number(current.voiceVolume)) ? Number(current.voiceVolume) : 1
+    };
+  }
+
+  function sizeName() {
+    const value = config().size;
+    return Object.hasOwn(OVERLAY_SCALES, value) ? value : "normal";
+  }
+
+  function windowSize() {
+    const scale = OVERLAY_SCALES[sizeName()];
+    return { width: Math.round(WINDOW_WIDTH * scale), height: Math.round(WINDOW_HEIGHT * scale) };
+  }
+
+  function applyZoom() {
+    if (isOpen()) {
+      overlayWindow.webContents.setZoomFactor(OVERLAY_SCALES[sizeName()]);
+    }
+  }
+
+  function setSize(name) {
+    if (!Object.hasOwn(OVERLAY_SCALES, name)) {
+      return;
+    }
+    updateConfig({ size: name });
+    if (isOpen()) {
+      applyZoom();
+      moveToPreset(config().positionPreset || OVERLAY_DEFAULTS.positionPreset, false);
+    }
+    onChange();
+  }
+
   function position() {
     return normalizePreset(config().positionPreset || OVERLAY_DEFAULTS.positionPreset);
   }
@@ -344,6 +403,11 @@ function createOverlayController({
 
   function muteAdvice() {
     send("overlay-muted", Date.now() + MUTE_MS);
+  }
+
+  // Show (and speak, if the voice is on) the last advice again.
+  function repeatAdvice() {
+    send("overlay-repeat", Date.now());
   }
 
   function toggleDebugLine() {
@@ -408,7 +472,9 @@ function createOverlayController({
       debugVisible: current.debugVisible,
       opacity: current.opacity,
       autoHideMs: current.autoHideMs,
-      urgentAutoHideMs: current.urgentAutoHideMs
+      urgentAutoHideMs: current.urgentAutoHideMs,
+      voice: voice().mode,
+      voiceVolume: voice().volume
     };
   }
 
@@ -433,6 +499,10 @@ function createOverlayController({
     setVisible,
     setPosition,
     position,
+    setVoice,
+    voice,
+    setSize,
+    size: sizeName,
     refreshPlacement,
     setLocked,
     window: () => (isOpen() ? overlayWindow : null),

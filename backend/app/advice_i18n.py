@@ -145,6 +145,15 @@ _RU_EXACT: dict[str, str] = {
     "Medium risk if you keep walking around without farming.": (
         "Средний риск, если продолжать ходить по карте без фарма."
     ),
+    "Farm back your buyback gold before the next purchase.": (
+        "Нафармите золото на байбэк, прежде чем покупать дальше."
+    ),
+    "After minute 30 one death without buyback can decide the game.": (
+        "После 30-й минуты одна смерть без байбэка может решить игру."
+    ),
+    "High risk if you die before the buyback gold is back.": (
+        "Высокий риск, если умрёте раньше, чем вернёте золото на байбэк."
+    ),
     "Recover farm through the safest wave-and-camp route.": (
         "Навёрстывайте фарм по самому безопасному маршруту из волн и лагерей."
     ),
@@ -176,6 +185,20 @@ _RU_EXACT: dict[str, str] = {
     ),
     "Use regen or play back until your HP is safer.": (
         "Используйте реген или отойдите, пока HP не восстановится."
+    ),
+    "Unspent gold is partly lost on the next death; "
+    "then choose a safer route than the one you died on.": (
+        "Непотраченное золото частично теряется при следующей смерти. Потом выберите "
+        "маршрут безопаснее того, где вас поймали."
+    ),
+    "Keep a TP scroll in its slot: buy one now, the courier can bring it.": (
+        "Держите свиток телепортации в слоте: купите его сейчас, курьер принесёт."
+    ),
+    "Without a TP scroll you cannot join a fight or save a tower in time.": (
+        "Без свитка телепортации не успеете ни в драку, ни спасти башню."
+    ),
+    "Medium risk if a fight starts across the map while you have no TP.": (
+        "Средний риск, если драка начнётся на другом конце карты, а свитка телепортации нет."
     ),
     "Use the respawn time to choose a safer farming route.": (
         "Пока ждёте возрождения, выберите более безопасный маршрут фарма."
@@ -412,6 +435,27 @@ _RU_EXACT: dict[str, str] = {
 # Texts with a hero or ability name inside. The name is kept as sent.
 _RU_PATTERNS: tuple[tuple[re.Pattern[str], str], ...] = (
     (
+        re.compile(
+            r"^No TP scroll for (?P<minutes>\d+) minutes?: without it you cannot join a fight "
+            r"or save a tower in time\.$"
+        ),
+        "Без свитка телепортации уже {minutes} мин — не успеете ни в драку, ни спасти башню.",
+    ),
+    (
+        re.compile(
+            r"^Buy parts of your next item now with your (?P<gold>\d+) gold: "
+            r"they wait for you at the fountain\.$"
+        ),
+        "Купите части следующего предмета на {gold} золота сейчас — заберёте их у фонтана.",
+    ),
+    (
+        re.compile(
+            r"^Buy parts of your next item with (?P<spare>\d+) gold "
+            r"and keep (?P<cost>\d+) for buyback\.$"
+        ),
+        "Купите части следующего предмета на {spare} золота, а {cost} оставьте на байбэк.",
+    ),
+    (
         re.compile(r"^Avoid committing forward until (?P<name>.+) is ready\.$"),
         "Не лезьте вперёд до готовности {name}.",
     ),
@@ -444,6 +488,14 @@ _RU_PATTERNS: tuple[tuple[re.Pattern[str], str], ...] = (
     ),
     (
         re.compile(
+            r"^You have (?P<gold>\d+) gold and buyback costs (?P<cost>\d+); "
+            r"after minute 30 one death without buyback can decide the game\.$"
+        ),
+        "Золота {gold}, байбэк стоит {cost}. После 30-й минуты одна смерть без байбэка "
+        "может решить игру.",
+    ),
+    (
+        re.compile(
             r"^You have (?P<lh>\d+) last hits at minute (?P<m>\d+); a good pace is (?P<low>\d+)\+, "
             r"so rebuild farm before forcing fights\.$"
         ),
@@ -460,8 +512,9 @@ _RU_PATTERNS: tuple[tuple[re.Pattern[str], str], ...] = (
     ),
 )
 
-# advice_ux_policy rewords coaching-mode actions as "Consider <action>".
-_CONSIDER_PREFIX = re.compile(r"^Consider (?P<rest>.+)$")
+# advice_ux_policy rewords coaching-mode actions as "Consider: <action>" (older
+# logs and history have "Consider <action>").
+_CONSIDER_PREFIX = re.compile(r"^Consider:? (?P<rest>.+)$")
 _SENTENCE_SPLIT = re.compile(r"(?<=[.;!?])\s+(?=[A-Z])")
 _TRUNCATION = "..."
 

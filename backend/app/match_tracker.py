@@ -7,7 +7,9 @@ timeline of every match it sees, with no replay parser and no internet:
 - a sample every SAMPLE_EVERY_SECONDS of match clock (last hits, denies, gold,
   GPM/XPM, K/D/A, level, HP);
 - deaths (clock, unspent gold, level, respawn time), buybacks;
-- items, by the clock they first appeared in the inventory/stash.
+- items, by the clock they first appeared in the inventory/stash;
+- the hero's position in every sample and where each death happened (absolute
+  map coordinates, see map_position()).
 
 A match is finished when Dota reports POST_GAME (win/loss known), when GSI
 starts reporting another match id, or when no GSI arrived for STALE_AFTER
@@ -38,6 +40,7 @@ SAVE_EVERY_SAMPLES = 4
 STALE_AFTER_SECONDS = 10 * 60
 # Shorter games (abandoned in the first minutes) are not worth a review.
 MIN_REVIEW_CLOCK_SECONDS = 5 * 60
+MAX_ADVICE_NOTES = 80
 
 POST_GAME_STATE = "DOTA_GAMERULES_STATE_POST_GAME"
 _INVENTORY_PREFIXES = ("slot", "stash", "neutral", "teleport")
@@ -52,6 +55,29 @@ def _int(value: Any) -> int | None:
 
 def _dict(value: Any) -> dict[str, Any]:
     return value if isinstance(value, dict) else {}
+
+
+# GSI gives world coordinates (map centre 0); the timeline keeps the absolute
+# ones used by replays and advice_context.py (centre 16384), rounded to units.
+MAP_CENTER = 16384
+
+
+def map_position(hero: dict[str, Any]) -> tuple[int, int] | None:
+    try:
+        x, y = float(hero["xpos"]), float(hero["ypos"])
+    except (KeyError, TypeError, ValueError):
+        return None
+    return round(x) + MAP_CENTER, round(y) + MAP_CENTER
+
+
+def is_spectator_payload(payload: dict[str, Any]) -> bool:
+    """Watching a replay or a live game in the client: GSI then sends every
+    player and hero per team ("team2"/"team3") instead of the local player."""
+    return any(
+        key in _dict(payload.get(block))
+        for block in ("player", "hero")
+        for key in ("team2", "team3")
+    )
 
 
 def match_id_from_gsi(map_block: dict[str, Any]) -> int | None:
@@ -91,6 +117,9 @@ class MatchTracker:
 
     def observe(self, payload: dict[str, Any]) -> None:
         """Feed one raw GSI payload (called from POST /gsi)."""
+        if is_spectator_payload(payload):
+            # Someone else's game: never the player's history.
+            return
         map_block = _dict(payload.get("map"))
         player = _dict(payload.get("player"))
         match_id = match_id_from_gsi(map_block)
@@ -139,6 +168,28 @@ class MatchTracker:
                 "samples": len(self._current["samples"]),
             }
 
+    def note_advice(
+        self, clock: Any, decision_point: str, action: str, reason: str, mode: str
+    ) -> None:
+        """Remember a piece of live advice for the post-match review (capped)."""
+        clock = _int(clock)
+        with self._lock:
+            current = self._current
+            if current is None or clock is None or clock < 0 or not action:
+                return
+            advice = current.setdefault("advice", [])
+            if len(advice) >= MAX_ADVICE_NOTES:
+                return
+            advice.append(
+                {
+                    "t": clock,
+                    "dp": decision_point,
+                    "action": action[:200],
+                    "reason": (reason or "")[:300],
+                    "mode": mode,
+                }
+            )
+
     # --- recording ------------------------------------------------------------
 
     def _new_match(
@@ -165,6 +216,8 @@ class MatchTracker:
             "deaths": [],
             "buybacks": [],
             "items": [],
+            # Live advice shown during the match (English, as the pipeline wrote it).
+            "advice": [],
             "final": {},
             "scores": {},
             "_last": {},
@@ -211,6 +264,9 @@ class MatchTracker:
             "hp": _int(hero.get("health_percent")),
             "alive": hero.get("alive") if isinstance(hero.get("alive"), bool) else None,
         }
+        position = map_position(hero)
+        if position is not None and snapshot["alive"] is not False:
+            snapshot["x"], snapshot["y"] = position
         last = current["_last"]
         self._track_deaths(current, snapshot, hero, last)
         self._track_buyback(current, clock, hero, last)
@@ -236,6 +292,9 @@ class MatchTracker:
             "deaths": snapshot["d"],
             "buyback_cooldown": _int(hero.get("buyback_cooldown")),
             "alive": snapshot["alive"],
+            # Where the hero last stood alive: the death position.
+            "x": snapshot.get("x", last.get("x")),
+            "y": snapshot.get("y", last.get("y")),
         }
 
     def _track_deaths(
@@ -255,6 +314,8 @@ class MatchTracker:
                     "level": snapshot["lvl"],
                     "respawn": _int(hero.get("respawn_seconds")),
                     "buyback_ready": _int(hero.get("buyback_cooldown")) == 0,
+                    "x": last.get("x"),
+                    "y": last.get("y"),
                 }
             )
             self._save_locked()
@@ -299,6 +360,9 @@ class MatchTracker:
         current["ended_at"] = datetime.now(UTC).isoformat()
         current["duration"] = current.get("last_clock")
         if (current.get("last_clock") or 0) < MIN_REVIEW_CLOCK_SECONDS:
+            return None
+        if not current.get("hero"):
+            # No hero ever seen (not the player's own game): nothing to review.
             return None
         return current
 

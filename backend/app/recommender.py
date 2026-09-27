@@ -8,7 +8,7 @@ short, safe action/reason/risk text.
 from app.advice_policy import build_advice_policy
 from app.hero_profiles import evaluate_laning_context
 from app.laning_coach import build_laning_advice
-from app.post_laning_coach import build_post_laning_advice
+from app.post_laning_coach import build_post_laning_advice, spend_while_dead_sentence
 from app.schemas import GameSituationRequest, RecommendationResponse
 
 FALLBACK_TEXT = {
@@ -160,7 +160,26 @@ def _decision_point_from_request(req: GameSituationRequest) -> str:
     return detect_decision_point(req.model_dump())
 
 
+# Death reviews: with gold to spare, the reason says to buy while waiting.
+DEATH_ACTION_TYPES = {
+    "plan_safer_respawn_route",
+    "break_repeated_death_pattern",
+    "respect_escape_cooldown_after_respawn",
+    "reset_before_resources_collapse",
+    "prepare_next_move",
+}
+
+
 def _fallback_text(req: GameSituationRequest, action_type: str) -> dict[str, str]:
+    text = _base_fallback_text(req, action_type)
+    if action_type in DEATH_ACTION_TYPES and not text["action"].startswith("Buy parts"):
+        spend = spend_while_dead_sentence(req)
+        if spend is not None:
+            text = {**text, "reason": spend}
+    return text
+
+
+def _base_fallback_text(req: GameSituationRequest, action_type: str) -> dict[str, str]:
     post_laning_text = _post_laning_fallback_text(req, action_type)
     if post_laning_text is not None:
         return post_laning_text

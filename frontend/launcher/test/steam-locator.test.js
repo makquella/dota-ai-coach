@@ -144,3 +144,62 @@ test("uses the running game's folder when Steam knows nothing about it", async (
   });
   assert.equal(result.dotaDir, "F:\\dota 2 beta");
 });
+
+function localConfig(launchOptions) {
+  const app = launchOptions === null ? "" : `"570" { "LastPlayed" "1790000000" "LaunchOptions" "${launchOptions}" }`;
+  return `"UserLocalConfigStore"
+{
+	"Software" { "Valve" { "Steam" { "apps" { "440" { "LaunchOptions" "-novid" } ${app} } } } }
+}`;
+}
+
+function steamWithUsers(users) {
+  const fs = require("node:fs");
+  const os = require("node:os");
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "steam-"));
+  for (const [user, text, mtime] of users) {
+    const dir = path.join(root, "userdata", user, "config");
+    fs.mkdirSync(dir, { recursive: true });
+    fs.writeFileSync(path.join(dir, "localconfig.vdf"), text);
+    fs.utimesSync(path.join(dir, "localconfig.vdf"), mtime, mtime);
+  }
+  return root;
+}
+
+test("the GSI launch option is found among other options, in any case", () => {
+  const { dotaLaunchOptionsFromVdf, hasGsiLaunchOption } = require("../steam-locator");
+  assert.equal(dotaLaunchOptionsFromVdf(parseVdf(localConfig("-novid -gamestateintegration"))), "-novid -gamestateintegration");
+  assert.equal(dotaLaunchOptionsFromVdf(parseVdf(localConfig(null))), null);
+  assert.equal(hasGsiLaunchOption("-novid  -GameStateIntegration -high"), true);
+  assert.equal(hasGsiLaunchOption("-gamestateintegrationx"), false);
+  assert.equal(hasGsiLaunchOption(""), false);
+});
+
+test("launch options are read for the linked account, else the latest Steam user", () => {
+  const { checkLaunchOptions } = require("../steam-locator");
+  const root = steamWithUsers([
+    ["52079950", localConfig("-gamestateintegration"), 1000],
+    ["11111", localConfig("-novid"), 2000],
+    ["0", localConfig("-gamestateintegration"), 3000]
+  ]);
+  const opts = { steamRoots: [root], platform: "linux" };
+  assert.deepEqual(checkLaunchOptions({ ...opts, accountId: 52079950 }), { state: "ok", accountId: "52079950" });
+  assert.deepEqual(checkLaunchOptions(opts), { state: "missing", accountId: "11111" });
+  assert.deepEqual(checkLaunchOptions({ ...opts, accountId: 999 }), { state: "unknown", accountId: null });
+  assert.deepEqual(checkLaunchOptions({ steamRoots: ["/nonexistent"], platform: "linux" }).state, "unknown");
+  const noDota = steamWithUsers([["22", localConfig(null), 1000]]);
+  assert.equal(checkLaunchOptions({ steamRoots: [noDota], platform: "linux" }).state, "missing");
+  const broken = steamWithUsers([["22", "\"UserLocalConfigStore\" { \"Software\" ", 1000]]);
+  assert.equal(checkLaunchOptions({ steamRoots: [broken], platform: "linux" }).state, "missing");
+});
+
+test("the text scan agrees with the full parse and skips other 570 blocks", () => {
+  const { dotaLaunchOptionsFromText, dotaLaunchOptionsFromVdf } = require("../steam-locator");
+  for (const options of ["-novid -gamestateintegration", "", '-console \\"quoted\\" { braces }']) {
+    const text = localConfig(options);
+    assert.equal(dotaLaunchOptionsFromText(text), dotaLaunchOptionsFromVdf(parseVdf(text)));
+  }
+  assert.equal(dotaLaunchOptionsFromText(localConfig(null)), null);
+  const withCloud = `"UserLocalConfigStore" { "Apps" { "570" { "cloud" { "quota" "1" } } } ${localConfig("-gamestateintegration").slice(22)} }`;
+  assert.equal(dotaLaunchOptionsFromText(withCloud), "-gamestateintegration");
+});

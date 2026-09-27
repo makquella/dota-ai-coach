@@ -38,10 +38,12 @@ node --check frontend/launcher/overlay-visibility.js
 node --check frontend/launcher/dota-watcher.js
 node --check frontend/launcher/steam-locator.js
 node --check frontend/launcher/updater.js
+node --check frontend/launcher/problem-report.js
 node --check frontend/launcher/renderer/app.js
 node --check frontend/launcher/renderer/charts.js
 node --check frontend/launcher/renderer/matches.js
 node --check frontend/launcher/overlay/app.js
+node --check frontend/launcher/overlay/voice.js
 node --check frontend/launcher/assets/icons/lucide.js
 (cd frontend/launcher && npm test)   # node --test, no dependencies
 ```
@@ -155,3 +157,13 @@ backend/session_records/
 ```
 
 Generated runtime records are local artifacts and should not be committed unless explicitly needed for a sanitized report.
+
+## Live GSI simulation
+
+Replays raw GSI through the live endpoints on game time and prints the overlay advice (run from `backend/`):
+
+```bash
+python scripts/simulate_live_gsi.py --lang ru --reasons
+python scripts/simulate_live_gsi.py --deaths 7,18,19,33 --minutes 40
+python scripts/simulate_live_gsi.py --session session_records/<id>/raw_gsi_states.jsonl
+```

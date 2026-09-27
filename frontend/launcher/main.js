@@ -7,6 +7,8 @@ const {
   dialog,
   ipcMain,
   nativeImage,
+  net: electronNet,
+  protocol,
   screen,
   shell
 } = require("electron");
@@ -14,13 +16,22 @@ const { spawn } = require("node:child_process");
 const fs = require("node:fs");
 const http = require("node:http");
 const net = require("node:net");
+const os = require("node:os");
 const path = require("node:path");
 
+const { SCHEME: DOTA_ASSET_SCHEME, createAssetHandler } = require("./dota-assets");
 const { createDotaWatcher } = require("./dota-watcher");
 const { createOverlayController, OVERLAY_DEFAULTS } = require("./overlay-window");
+const { buildReport, reportFileName } = require("./problem-report");
 const { DOTA_STATUS, dotaStatus, overlayVisibility } = require("./overlay-visibility");
 const { createSettingsStore } = require("./settings");
-const { dotaDirFromExecutable, gsiDirForDotaDir, locateDota } = require("./steam-locator");
+const {
+  GSI_LAUNCH_OPTION,
+  checkLaunchOptions,
+  dotaDirFromExecutable,
+  gsiDirForDotaDir,
+  locateDota
+} = require("./steam-locator");
 const { createUpdater, UPDATE_STATUS } = require("./updater");
 
 const APP_ID = "com.dotaai.coach";
@@ -54,6 +65,8 @@ const BACKEND_MAX_RESTARTS = 3;
 const BACKEND_RESTART_WINDOW_MS = 2 * 60 * 1000;
 const GSI_STATUS_POLL_MS = 1000;
 const GSI_CONFIG_NAME = "gamestate_integration_dota_ai_coach.cfg";
+// --bg in assets/ui/tokens.css
+const WINDOW_BACKGROUND = "#0b0b0c";
 
 const START_HIDDEN = process.argv.includes("--hidden");
 const SMOKE_TEST_RESULT = argValue("--smoke-test");
@@ -80,6 +93,15 @@ const settings = createSettingsStore(path.join(USER_DATA_DIR, "settings.json"), 
   // Set before an update installs so the relaunched app returns the way it was.
   startHiddenOnce: false,
   updatedFrom: "",
+  // First-run checklist on Home: the first GSI data seen, and "hide" pressed.
+  gsiSeenAt: "",
+  setupDismissed: false,
+  // Version whose "What's new" card is still to be shown (set by an update).
+  whatsNewPending: "",
+  // How often coaching advice may appear: calm | normal | active (backend scheduler).
+  adviceFrequency: "normal",
+  // UI language: auto (system) | ru | en.
+  language: "auto",
   overlay: { ...OVERLAY_DEFAULTS }
 });
 
@@ -113,6 +135,8 @@ let currentDemoPreset = "";
 let recordingStatus = "stopped";
 let launcherLogStream = null;
 let dotaInstall = { steamRoots: [], libraries: [], dotaDir: "", gsiDir: "", source: "not searched" };
+// Does Dota start with -gamestateintegration (read from Steam's saved settings)?
+let launchOptions = { state: "unknown", accountId: null };
 let dotaInstallLogged = false;
 let dotaLocatePromise = null;
 let autoInstallRunning = false;
@@ -154,11 +178,17 @@ const overlay = createOverlayController({
 const dotaWatcher = createDotaWatcher({
   log: (message) => appendLog("dota", message, { force: true })
 });
+let dotaWasRunning = false;
 dotaWatcher.on("change", (state) => {
   appendLog(
     "dota",
     state.running ? `dota2 running, ${state.focused ? "focused" : "in background"}` : "dota2 not running"
   );
+  if (state.running && !dotaWasRunning) {
+    // The player may have just added the launch option in Steam.
+    refreshLaunchOptions();
+  }
+  dotaWasRunning = state.running;
   if (state.running && !dotaInstall.dotaDir && dotaDirFromExecutable(state.exePath)) {
     // The running game tells us where it is installed, even outside known libraries.
     autoInstallGsiOnce().catch((error) => appendLog("gsi", error.message, { force: true }));
@@ -216,12 +246,18 @@ const TRAY_TEXT = {
     restartDota: "Restart Dota 2 to connect.",
     fullscreenMenu: "Overlay hidden by exclusive fullscreen",
     fullscreenBalloon:
-      "Dota runs in exclusive fullscreen, so the overlay cannot be drawn over it. In Dota: Settings → Video → Display mode → Borderless window.",
+      "Dota runs in exclusive fullscreen, so the overlay cannot be drawn over it. In Dota: Settings → Video → Display mode → Borderless window. Or turn on spoken advice in the app.",
     updateDownloading: (version, percent) => `Downloading update ${version}… ${percent}%`,
     updateReady: (version) => `Restart and update to ${version}`,
     updateAfterGame: (version) => `Update ${version} installs after you close Dota`,
     updated: (version) => `Updated to ${version}.`,
-    reviewReady: (score) => `Post-match review is ready${score ? `: score${score}` : ""}. Click to open it.`
+    reviewReady: (score, focusMet) =>
+      `Post-match review is ready${score ? `: score${score}` : ""}.${focusMet === true ? " Your focus: done." : focusMet === false ? " Your focus: it happened again." : ""} Click to open it.`,
+    problemReport: "Save a problem report",
+    voice: "Voice",
+    voice_off: "Off",
+    voice_urgent: "Urgent advice",
+    voice_all: "All advice"
   },
   ru: {
     open: "Открыть",
@@ -237,22 +273,23 @@ const TRAY_TEXT = {
     restartDota: "Перезапустите Dota 2.",
     fullscreenMenu: "Оверлей не виден: полноэкранный режим",
     fullscreenBalloon:
-      "Дота запущена в эксклюзивном полноэкранном режиме — поверх него оверлей не рисуется. В Доте: Настройки → Видео → режим экрана «Окно без рамки» (Borderless window).",
+      "Дота запущена в эксклюзивном полноэкранном режиме — поверх него оверлей не рисуется. В Доте: Настройки → Видео → режим экрана «Окно без рамки» (Borderless window). Или включите озвучку советов в приложении.",
     updateDownloading: (version, percent) => `Загружается обновление ${version}… ${percent}%`,
     updateReady: (version) => `Перезапустить и обновить до ${version}`,
     updateAfterGame: (version) => `Обновление ${version} установится после выхода из Доты`,
     updated: (version) => `Обновлено до версии ${version}.`,
-    reviewReady: (score) => `Разбор матча готов${score ? `: оценка${score}` : ""}. Нажмите, чтобы открыть.`
+    reviewReady: (score, focusMet) =>
+      `Разбор матча готов${score ? `: оценка${score}` : ""}.${focusMet === true ? " Фокус: получилось." : focusMet === false ? " Фокус: снова повторилось." : ""} Нажмите, чтобы открыть.`,
+    problemReport: "Сохранить отчёт о проблеме",
+    voice: "Голос",
+    voice_off: "Выключен",
+    voice_urgent: "Срочные советы",
+    voice_all: "Все советы"
   }
 };
 
 function t(key, ...args) {
-  let locale = "en";
-  try {
-    locale = app.getLocale().toLowerCase().startsWith("ru") ? "ru" : "en";
-  } catch {
-    // app.getLocale() is only available after "ready".
-  }
+  const locale = uiLocale();
   const value = TRAY_TEXT[locale][key] || TRAY_TEXT.en[key] || key;
   return typeof value === "function" ? value(...args) : value;
 }
@@ -351,10 +388,15 @@ function gsiEndpoint() {
 }
 
 function emptyLiveDetails() {
-  return { connected: false, inMatch: false, hero: null, clockTime: null, secondsSinceLastGsi: null, stage: "unknown" };
+  return { connected: false, inMatch: false, hero: null, coverage: null, clockTime: null, secondsSinceLastGsi: null, stage: "unknown" };
 }
 
+// "auto" follows the system language; the player can pick one in Settings.
 function uiLocale() {
+  const chosen = settings.get("language");
+  if (chosen === "ru" || chosen === "en") {
+    return chosen;
+  }
   try {
     return app.getLocale().toLowerCase().startsWith("ru") ? "ru" : "en";
   } catch {
@@ -362,13 +404,25 @@ function uiLocale() {
   }
 }
 
+function setLanguage(value) {
+  settings.set("language", ["ru", "en"].includes(value) ? value : "auto");
+  overlay.notifyBackendChanged(); // re-sends the overlay config with the new locale
+  refreshTray();
+  updateStatus();
+  return publicStatus();
+}
+
 function publicStatus() {
   const dota = dotaWatcher.getState();
   return {
     locale: uiLocale(),
+    language: settings.get("language") || "auto",
     live: { ...live.details },
     recentAdvice: live.recentAdvice,
     overlayPosition: overlay.position(),
+    overlayVoice: overlay.voice(),
+    overlaySize: overlay.size(),
+    adviceFrequency: adviceFrequency(),
     overlayLocked: !overlay.isUnlocked(),
     dotaRunning: dota.running,
     dotaFocused: dota.focused,
@@ -376,6 +430,8 @@ function publicStatus() {
     appVersion: app.getVersion(),
     update: { ...updater.getState(), blockedByGame: isGameRunning() },
     player: live.player,
+    setup: { gsiSeen: Boolean(settings.get("gsiSeenAt")), dismissed: Boolean(settings.get("setupDismissed")) },
+    whatsNew: settings.get("whatsNewPending") === app.getVersion() ? app.getVersion() : "",
     overlayReasonCode: presence.code,
     backend: processStatus.backend,
     backendPort: backend.port,
@@ -386,6 +442,7 @@ function publicStatus() {
     overlayReason: presence.reason,
     dota: presence.status,
     dotaDir: dotaInstall.dotaDir,
+    launchOption: launchOptions.state,
     demo: processStatus.demo,
     demoPreset: processStatus.demo !== "stopped" ? currentDemoPreset : "",
     recording: recordingStatus,
@@ -494,6 +551,8 @@ async function pollGsiStatus() {
         connected: Boolean(status.gsi_connected),
         inMatch: Boolean(status.in_match),
         hero: status.hero && status.hero !== "Unknown" ? String(status.hero) : null,
+        // "full" carry advisor or "safety" (survival advice only) for this hero.
+        coverage: status.hero_coverage || null,
         clockTime: Number.isFinite(status.clock_time) ? status.clock_time : null,
         secondsSinceLastGsi: Number.isFinite(status.seconds_since_last_gsi) ? status.seconds_since_last_gsi : null,
         stage: status.stage || "unknown"
@@ -525,6 +584,9 @@ async function pollGsiStatus() {
     } catch {
       // Keep the last list; the backend may be restarting.
     }
+  }
+  if (details.connected && !settings.get("gsiSeenAt")) {
+    settings.set("gsiSeenAt", new Date().toISOString());
   }
   const detailsChanged = recentChanged || JSON.stringify(details) !== JSON.stringify(live.details);
   live.details = details;
@@ -799,6 +861,7 @@ async function launchBackend() {
     USE_LLM: "false",
     SIMULATION_USE_LLM: "false",
     LIVE_CONSERVATIVE_MODE: "true",
+    DOTA_AI_ADVICE_FREQUENCY: adviceFrequency(),
     PYTHONUNBUFFERED: "1",
     DOTA_AI_BACKEND_HOST: BACKEND_HOST,
     DOTA_AI_BACKEND_PORT: String(port),
@@ -983,13 +1046,29 @@ const PLAYER_OPS = {
   sync: () => ["POST", "/player/sync"],
   matches: (args) => [
     "GET",
-    `/player/matches?limit=${clampInt(args.limit, 1, 200, 30)}&offset=${clampInt(args.offset, 0, 100000, 0)}`
+    `/player/matches?limit=${clampInt(args.limit, 1, 200, 30)}&offset=${clampInt(args.offset, 0, 100000, 0)}` +
+      (/^\d{1,4}$/.test(String(args.heroId ?? "")) ? `&hero_id=${args.heroId}` : "") +
+      (["win", "loss"].includes(args.result) ? `&result=${args.result}` : "")
   ],
-  match: (args) => ["GET", `/player/matches/${matchIdArg(args)}?lang=${uiLocale()}`],
+  // Reviews may be rebuilt on read after an update (new analysis version): allow time.
+  match: (args) => ["GET", `/player/matches/${matchIdArg(args)}?lang=${uiLocale()}`, undefined, 15000],
   refreshMatch: (args) => ["POST", `/player/matches/${matchIdArg(args)}/refresh`],
-  career: () => ["GET", `/player/career?lang=${uiLocale()}`],
+  career: (args) => [
+    "GET",
+    `/player/career?lang=${uiLocale()}` + (/^\d{1,4}$/.test(String(args.heroId ?? "")) ? `&hero_id=${args.heroId}` : ""),
+    undefined,
+    15000
+  ],
   // AI coach (optional; the key is kept by the backend and never sent back).
   coachMatch: (args) => ["POST", `/player/matches/${matchIdArg(args)}/coach?lang=${uiLocale()}`],
+  // A free question about a match: the model answers synchronously, and a failed fact
+  // check asks once more (2 x 60 s in the backend): allow two and a half minutes.
+  ask: (args) => [
+    "POST",
+    `/player/matches/${matchIdArg(args)}/ask?lang=${uiLocale()}`,
+    { question: String(args.question || "").slice(0, 300) },
+    150000
+  ],
   coachCareer: () => ["POST", `/player/career/coach?lang=${uiLocale()}`],
   aiStatus: () => ["GET", "/player/ai"],
   aiSave: (args) => [
@@ -1003,6 +1082,17 @@ const PLAYER_OPS = {
     }
   ],
   aiClear: () => ["DELETE", "/player/ai"],
+  // Optional OpenDota key (faster sync, higher limits); never sent back either.
+  odStatus: () => ["GET", "/player/opendota"],
+  odSave: (args) => ["POST", "/player/opendota", { api_key: String(args.apiKey || "").trim().slice(0, 100) }],
+  odClear: () => ["DELETE", "/player/opendota"],
+  // The one recurring problem the player works on (checked in every next match).
+  focusSet: (args) => [
+    "POST",
+    `/player/focus?lang=${uiLocale()}`,
+    { finding_id: /^[a-z0-9_]{1,60}$/.test(String(args.findingId || "")) ? String(args.findingId) : "" }
+  ],
+  focusClear: () => ["DELETE", "/player/focus"],
   // One real request to the provider: allow it time.
   aiCheck: () => ["POST", "/player/ai/check", undefined, 45000]
 };
@@ -1065,19 +1155,32 @@ async function pollPlayerStatus() {
   const reviewKey = review ? `${review.match_id}|${review.at}` : "";
   const first = live.player === null;
   const previousKey = live.player ? live.player.reviewKey : "";
+  const previousAccount = live.player ? live.player.accountId : null;
+  // An account linked from GSI proves Dota already sent data (users updating
+  // from a version without the first-run checklist).
+  if (status.source === "gsi" && !settings.get("gsiSeenAt")) {
+    settings.set("gsiSeenAt", new Date().toISOString());
+  }
   live.player = {
     linked: Boolean(status.linked),
     name: status.player ? status.player.persona_name || null : null,
     accountId: status.account_id || null,
     lastReview: review,
     reviewKey,
-    liveMatch: status.live_match || null
+    aiConfigured: Boolean(status.ai && status.ai.configured),
+    opendotaKey: Boolean(status.opendota_key),
+    liveMatch: status.live_match || null,
+    today: status.today || null
   };
+  if (live.player.accountId !== previousAccount) {
+    // Launch options are per Steam account: check the linked one.
+    refreshLaunchOptions();
+  }
   if (!first && reviewKey && reviewKey !== previousKey) {
     const score = review.score !== null && review.score !== undefined ? ` ${review.score}/100` : "";
     appendLog("player", `Post-match review ready for match ${review.match_id}${score}.`, { force: true });
     pendingReviewOpen = review.match_id;
-    showTrayBalloon(t("reviewReady", score));
+    showTrayBalloon(t("reviewReady", score, review.focus_met));
     send("launcher:player-event", { type: "review-ready", matchId: review.match_id, score: review.score });
   }
   updateStatus();
@@ -1233,6 +1336,22 @@ function gsiConfigText() {
 `;
 }
 
+function refreshLaunchOptions() {
+  let next;
+  try {
+    next = checkLaunchOptions({ steamRoots: dotaInstall.steamRoots, accountId: live.player ? live.player.accountId : null });
+  } catch (error) {
+    next = { state: "unknown", accountId: null };
+    appendLog("gsi", `Launch options check failed: ${error.message}`, { force: true });
+  }
+  if (next.state !== launchOptions.state) {
+    appendLog("gsi", `Dota launch option ${GSI_LAUNCH_OPTION}: ${next.state}`, { force: true });
+    launchOptions = next;
+    updateStatus();
+  }
+  launchOptions = next;
+}
+
 // Steam registry -> libraryfolders.vdf -> every library; the running
 // dota2.exe path (from the watcher) is used as an extra hint.
 function refreshDotaInstall() {
@@ -1242,6 +1361,7 @@ function refreshDotaInstall() {
       .then((result) => {
         const changed = result.dotaDir !== dotaInstall.dotaDir;
         dotaInstall = result;
+        refreshLaunchOptions();
         if (changed) {
           updateStatus();
         }
@@ -1430,6 +1550,144 @@ function openPath(targetPath) {
   });
 }
 
+// ---------------------------------------------------------------------------
+// Problem report: one text file for the developer (keys removed)
+// ---------------------------------------------------------------------------
+
+function readLauncherLog() {
+  let text = "";
+  for (const file of [`${LAUNCHER_LOG_PATH}.old`, LAUNCHER_LOG_PATH]) {
+    try {
+      text += fs.readFileSync(file, "utf8");
+    } catch {
+      // Missing log file: nothing to add.
+    }
+  }
+  return text || logs;
+}
+
+function reportFolder() {
+  for (const name of ["downloads", "desktop", "documents"]) {
+    try {
+      const folder = app.getPath(name);
+      if (folder && fs.existsSync(folder)) {
+        return folder;
+      }
+    } catch {
+      // Try the next folder.
+    }
+  }
+  return USER_DATA_DIR;
+}
+
+async function saveProblemReport() {
+  let diagnostics = null;
+  let diagnosticsError = "";
+  try {
+    diagnostics = await requestBackendJson("/diagnostics", "GET", undefined, 5000);
+  } catch (error) {
+    diagnosticsError = error.message;
+  }
+  const { recentAdvice, ...status } = publicStatus();
+  const text = buildReport({
+    app: {
+      version: app.getVersion(),
+      packaged: IS_PACKAGED,
+      electron: process.versions.electron,
+      os: `${process.platform} ${os.release()} ${process.arch}`,
+      locale: app.getLocale(),
+      userData: USER_DATA_DIR
+    },
+    status: { ...status, recentAdviceCount: Array.isArray(recentAdvice) ? recentAdvice.length : 0 },
+    settings: settings.all(),
+    watcher: dotaWatcher.getState(),
+    diagnostics,
+    diagnosticsError,
+    launcherLog: readLauncherLog()
+  });
+  const filePath = path.join(reportFolder(), reportFileName());
+  try {
+    fs.writeFileSync(filePath, text, "utf8");
+  } catch (error) {
+    appendLog("launcher", `Could not save the problem report: ${error.message}`, { force: true });
+    return { ok: false, error: error.message };
+  }
+  appendLog("launcher", `Problem report saved: ${filePath}`, { force: true });
+  shell.showItemInFolder(filePath);
+  return { ok: true, path: filePath };
+}
+
+// ---------------------------------------------------------------------------
+// PDF export of the match review / progress page (light print theme in CSS)
+// ---------------------------------------------------------------------------
+
+const PDF_FOOTER = `<div style="width:100%;padding:0 12mm;display:flex;justify-content:space-between;font:8px sans-serif;color:#71717a">
+<span>${APP_NAME}</span><span><span class="pageNumber"></span> / <span class="totalPages"></span></span></div>`;
+
+async function exportPdf(kind, id) {
+  if (!mainWindow || mainWindow.isDestroyed()) {
+    return { ok: false, error: "no window" };
+  }
+  const stamp = new Date().toISOString().slice(0, 10);
+  const fileName = kind === "match" && /^\d{1,20}$/.test(String(id))
+    ? `DotaAICoach-match-${id}.pdf`
+    : `DotaAICoach-progress-${stamp}.pdf`;
+  const { canceled, filePath } = await dialog.showSaveDialog(mainWindow, {
+    defaultPath: path.join(reportFolder(), fileName),
+    filters: [{ name: "PDF", extensions: ["pdf"] }]
+  });
+  if (canceled || !filePath) {
+    return { ok: false, canceled: true };
+  }
+  // The page margins are painted with the window background (dark): white while printing.
+  mainWindow.setBackgroundColor("#ffffff");
+  try {
+    const data = await mainWindow.webContents.printToPDF({
+      printBackground: true,
+      pageSize: "A4",
+      margins: { top: 0.4, bottom: 0.5, left: 0.4, right: 0.4 },
+      displayHeaderFooter: true,
+      headerTemplate: "<span></span>",
+      footerTemplate: PDF_FOOTER
+    });
+    fs.writeFileSync(filePath, data);
+  } catch (error) {
+    appendLog("launcher", `Could not save the PDF: ${error.message}`, { force: true });
+    return { ok: false, error: error.message };
+  } finally {
+    mainWindow.setBackgroundColor(WINDOW_BACKGROUND);
+  }
+  appendLog("launcher", `PDF saved: ${filePath}`, { force: true });
+  shell.showItemInFolder(filePath);
+  return { ok: true, path: filePath };
+}
+
+// ---------------------------------------------------------------------------
+// Advice frequency (sent at backend start and on change)
+// ---------------------------------------------------------------------------
+
+const ADVICE_FREQUENCIES = ["calm", "normal", "active"];
+
+function adviceFrequency() {
+  const value = settings.get("adviceFrequency");
+  return ADVICE_FREQUENCIES.includes(value) ? value : "normal";
+}
+
+async function setAdviceFrequency(value) {
+  if (!ADVICE_FREQUENCIES.includes(value)) {
+    return publicStatus();
+  }
+  settings.set("adviceFrequency", value);
+  try {
+    await requestBackendJson("/settings/advice", "POST", { frequency: value });
+  } catch (error) {
+    // The backend reads the setting from its env at the next start.
+    appendLog("launcher", `Advice frequency saved; the service applies it on start (${error.message}).`, { force: true });
+  }
+  updateStatus();
+  return publicStatus();
+}
+
 function setLogMode(nextMode = "clean") {
   logMode = nextMode === "verbose" ? "verbose" : "clean";
   appendLog(
@@ -1457,7 +1715,7 @@ function createMainWindow({ show = true } = {}) {
     minHeight: 560,
     title: APP_NAME,
     icon: appIcon(),
-    backgroundColor: "#0b0b0c",
+    backgroundColor: WINDOW_BACKGROUND,
     show,
     webPreferences: {
       preload: path.join(__dirname, "preload.js"),
@@ -1595,6 +1853,16 @@ function refreshTray() {
         click: (item) => overlay.setEnabled(item.checked)
       },
       {
+        label: t("voice"),
+        submenu: ["off", "urgent", "all"].map((mode) => ({
+          label: t(`voice_${mode}`),
+          type: "radio",
+          checked: overlay.voice().mode === mode,
+          // setVoice notifies onChange, which refreshes the tray and the panel.
+          click: () => overlay.setVoice(mode)
+        }))
+      },
+      {
         label: process.platform === "win32" ? t("autostartWindows") : t("autostartLogin"),
         type: "checkbox",
         checked: autostartEnabled,
@@ -1603,6 +1871,7 @@ function refreshTray() {
       },
       { type: "separator" },
       { label: backendLine, enabled: false },
+      { label: t("problemReport"), click: () => saveProblemReport() },
       { type: "separator" },
       { label: t("quit"), click: () => app.quit() }
     ])
@@ -1628,6 +1897,10 @@ function registerIpc() {
     hiddenBackendAccessLogs = 0;
     send("launcher:logs", logs);
     return true;
+  });
+  ipcMain.handle("launcher:copy-launch-option", () => {
+    clipboard.writeText(GSI_LAUNCH_OPTION);
+    return { ok: true, text: GSI_LAUNCH_OPTION };
   });
   ipcMain.handle("launcher:copy-logs", () => {
     clipboard.writeText(logs);
@@ -1660,6 +1933,16 @@ function registerIpc() {
     overlay.setPosition(String(preset || ""));
     return publicStatus();
   });
+  ipcMain.handle("launcher:set-language", (_event, value) => setLanguage(String(value || "")));
+  ipcMain.handle("launcher:set-advice-frequency", (_event, value) => setAdviceFrequency(String(value || "")));
+  ipcMain.handle("launcher:set-overlay-size", (_event, name) => {
+    overlay.setSize(String(name || ""));
+    return publicStatus();
+  });
+  ipcMain.handle("launcher:set-overlay-voice", (_event, mode, volume) => {
+    overlay.setVoice(String(mode || ""), volume);
+    return publicStatus();
+  });
   ipcMain.handle("launcher:set-overlay-locked", (_event, locked) => {
     overlay.setLocked(Boolean(locked));
     return publicStatus();
@@ -1677,12 +1960,25 @@ function registerIpc() {
   ipcMain.handle("launcher:install-update", () => updater.install());
   ipcMain.handle("launcher:player", (_event, op, args) => playerRequest(String(op || ""), args || {}));
   ipcMain.handle("launcher:open-logs", () => openPath(LOGS_DIR));
+  ipcMain.handle("launcher:save-problem-report", () => saveProblemReport());
+  ipcMain.handle("launcher:dismiss-whats-new", () => {
+    settings.set("whatsNewPending", "");
+    return publicStatus();
+  });
+  ipcMain.handle("launcher:dismiss-setup", () => {
+    settings.set("setupDismissed", true);
+    return publicStatus();
+  });
+  ipcMain.handle("launcher:export-pdf", (_event, kind, id) =>
+    exportPdf(kind === "match" ? "match" : "career", String(id || ""))
+  );
   ipcMain.handle("launcher:open-simulation-results", () => openPath(SIMULATION_RESULTS_DIR));
   ipcMain.handle("launcher:open-session-records", () => openPath(SESSION_RECORDS_DIR));
   ipcMain.handle("launcher:open-readme", () => shell.openPath(README_PATH));
   ipcMain.handle("launcher:open-ai-key-page", (_event, provider) => {
-    const url = AI_KEY_PAGES[String(provider)];
-    return url && Object.hasOwn(AI_KEY_PAGES, String(provider)) ? shell.openExternal(url) : false;
+    const pages = { ...AI_KEY_PAGES, opendota: "https://www.opendota.com/api-keys" };
+    const url = pages[String(provider)];
+    return url && Object.hasOwn(pages, String(provider)) ? shell.openExternal(url) : false;
   });
 
   ipcMain.handle("overlay:get-config", () => overlay.publicConfig());
@@ -1871,6 +2167,22 @@ async function runSmokeTest(resultPath) {
   app.exit(ok ? 0 : 1);
 }
 
+// Hero portraits and item icons (dota-assets.js); must be declared before "ready".
+protocol.registerSchemesAsPrivileged([
+  { scheme: DOTA_ASSET_SCHEME, privileges: { standard: true, secure: true, supportFetchAPI: true } }
+]);
+
+function registerDotaAssets() {
+  protocol.handle(
+    DOTA_ASSET_SCHEME,
+    createAssetHandler({
+      root: path.join(USER_DATA_DIR, "dota-assets"),
+      fetchImpl: (url) => electronNet.fetch(url),
+      log: (message) => appendLog("assets", message)
+    })
+  );
+}
+
 function bootstrap() {
   if (process.platform === "win32") {
     app.setAppUserModelId(APP_ID);
@@ -1879,7 +2191,10 @@ function bootstrap() {
   registerIpc();
 
   if (IS_SMOKE_TEST) {
-    app.whenReady().then(() => runSmokeTest(SMOKE_TEST_RESULT));
+    app.whenReady().then(() => {
+      registerDotaAssets();
+      return runSmokeTest(SMOKE_TEST_RESULT);
+    });
     return;
   }
 
@@ -1890,6 +2205,7 @@ function bootstrap() {
   app.on("second-instance", showMainWindow);
 
   app.whenReady().then(() => {
+    registerDotaAssets();
     appendLog("launcher", `${APP_NAME} ${app.getVersion()} started (${IS_PACKAGED ? "packaged" : "dev"}).`, {
       force: true
     });
@@ -1909,6 +2225,7 @@ function bootstrap() {
       createMainWindow();
     }
     if (justUpdated) {
+      settings.set("whatsNewPending", app.getVersion());
       appendLog("update", `Updated from ${updatedFrom} to ${app.getVersion()}.`, { force: true });
       showTrayBalloon(t("updated", app.getVersion()));
     }

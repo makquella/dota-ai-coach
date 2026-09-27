@@ -55,17 +55,23 @@ def build_post_laning_advice(
     objective_missing = objective_context_is_missing(extra)
     clear_context = _clear_pressure_context(state, extra)
     farm_stall = extra.get("farm_stall") if isinstance(extra.get("farm_stall"), Mapping) else None
+    buyback_spent = (
+        extra.get("buyback_spent") if isinstance(extra.get("buyback_spent"), Mapping) else None
+    )
+    tp_missing = extra.get("tp_missing") if isinstance(extra.get("tp_missing"), Mapping) else None
 
     category = _category_for_state(
         decision_point=decision_point,
         hp_percent=hp_percent,
-        farm_quality=farm_quality,
+        farm_quality=_effective_farm_quality(state, extra, farm_quality),
         hp_pressure=hp_pressure,
         pressure_active=pressure_active,
         position_risk=position_risk,
         position_zone=position_zone,
         death_context=death_context,
         farm_stall=farm_stall is not None,
+        buyback_spent=buyback_spent is not None,
+        tp_missing=tp_missing is not None,
     )
     if category is None:
         return None
@@ -73,8 +79,18 @@ def build_post_laning_advice(
     action, reason, risk = _copy_for_category(category, objective_missing)
     if category == "post_laning_farm_stall" and farm_stall:
         reason = _farm_stall_reason(farm_stall)
+    elif category == "post_laning_buyback_reserve" and buyback_spent:
+        reason = _buyback_reason(buyback_spent)
+    elif category == "post_laning_carry_tp" and tp_missing:
+        reason = _tp_reason(tp_missing)
     elif category == "post_laning_farm_recovery":
         reason = _farm_pace_reason(state, extra) or reason
+    elif category == "post_laning_death_route_reset":
+        # Same category (one death review per death in the scheduler), but with
+        # gold to spend the first thing to do while dead is to buy.
+        spend = _spend_while_dead(state, extra)
+        if spend is not None:
+            action, reason = _spend_copy(spend)
     repeat_key = ":".join(
         [
             category,
@@ -171,6 +187,8 @@ def _category_for_state(
     position_zone: str,
     death_context: bool,
     farm_stall: bool = False,
+    buyback_spent: bool = False,
+    tp_missing: bool = False,
 ) -> str | None:
     # Phase 3 fix: death_route_reset is gated by the factual death_context (derived
     # from GSI state: alive/respawn_seconds/near_player_death/death_count_changed),
@@ -193,10 +211,20 @@ def _category_for_state(
     if position_risk == "high" or position_zone == "deep_enemy_side":
         return "post_laning_risky_showing"
 
+    # A purchase just took the gold below the buyback cost late in the game
+    # (buyback_tracker.py). Under pressure the safety-first advice wins.
+    if buyback_spent and not pressure_active:
+        return "post_laning_buyback_reserve"
+
     # Almost no last hits for minutes while alive (farm_tracker.py): get back
     # to farming. Under pressure the safety-first pressure advice wins.
     if farm_stall and not pressure_active:
         return "post_laning_farm_stall"
+
+    # No way to teleport for a minute or more (tp_tracker.py). Under pressure the
+    # safety-first advice wins; a farm stall matters more.
+    if tp_missing and not pressure_active:
+        return "post_laning_carry_tp"
 
     farm_low = farm_quality in {"very_low", "low"}
     if farm_low and pressure_active:
@@ -235,6 +263,18 @@ def _copy_for_category(category: str, objective_missing: bool) -> tuple[str, str
             "You have taken almost no last hits lately; every minute without farm delays your next item.",
             "Medium risk if you keep walking around without farming.",
         )
+    if category == "post_laning_carry_tp":
+        return (
+            "Keep a TP scroll in its slot: buy one now, the courier can bring it.",
+            "Without a TP scroll you cannot join a fight or save a tower in time.",
+            "Medium risk if a fight starts across the map while you have no TP.",
+        )
+    if category == "post_laning_buyback_reserve":
+        return (
+            "Farm back your buyback gold before the next purchase.",
+            "After minute 30 one death without buyback can decide the game.",
+            "High risk if you die before the buyback gold is back.",
+        )
     if category == "post_laning_pressure_avoidance":
         return (
             "Avoid the pressured lane and farm a safer wave or nearby camp.",
@@ -265,6 +305,78 @@ def _copy_for_category(category: str, objective_missing: bool) -> tuple[str, str
     )
 
 
+# Gold left over (after the buyback reserve late in the game) worth a component.
+SPEND_WHILE_DEAD_MIN_GOLD = 1000
+BUYBACK_RESERVE_MINUTE = 30
+
+
+def _spend_while_dead(state: Mapping[str, Any], extra: Mapping[str, Any]) -> dict[str, int] | None:
+    alive = extra.get("alive", state.get("alive", True))
+    dead = (
+        alive is False or _to_int(extra.get("respawn_seconds", state.get("respawn_seconds")), 0) > 0
+    )
+    if not dead:
+        return None
+    gold = extra.get("available_gold", state.get("gold"))
+    if gold is None:
+        return None
+    gold = _to_int(gold, 0)
+    reserve = 0
+    if _to_int(state.get("minute"), 0) >= BUYBACK_RESERVE_MINUTE:
+        cost = extra.get("buyback_cost")
+        if cost is None:
+            return None  # can't tell what to keep for buyback
+        reserve = _to_int(cost, 0)
+    spare = gold - reserve
+    if spare < SPEND_WHILE_DEAD_MIN_GOLD:
+        return None
+    return {"gold": gold, "spare": spare, "reserve": reserve}
+
+
+def spend_while_dead_sentence(game_state: Mapping[str, Any] | Any) -> str | None:
+    """ "Buy parts of your next item now..." when a dead hero has gold to spare, for the
+    other death reviews (repeated deaths, escape on cooldown...) to use as their reason."""
+    state = _as_mapping(game_state)
+    spend = _spend_while_dead(state, _extra_context(state))
+    return _spend_copy(spend)[0] if spend is not None else None
+
+
+def _spend_copy(spend: Mapping[str, int]) -> tuple[str, str]:
+    if spend["reserve"]:
+        action = (
+            f"Buy parts of your next item with {spend['spare']} gold "
+            f"and keep {spend['reserve']} for buyback."
+        )
+    else:
+        action = (
+            f"Buy parts of your next item now with your {spend['gold']} gold: "
+            "they wait for you at the fountain."
+        )
+    reason = (
+        "Unspent gold is partly lost on the next death; "
+        "then choose a safer route than the one you died on."
+    )
+    return action, reason
+
+
+def _buyback_reason(signal: Mapping[str, Any]) -> str:
+    gold = _to_int(signal.get("gold"), 0)
+    cost = _to_int(signal.get("cost"), 0)
+    return (
+        f"You have {gold} gold and buyback costs {cost}; "
+        "after minute 30 one death without buyback can decide the game."
+    )
+
+
+def _tp_reason(signal: Mapping[str, Any]) -> str:
+    minutes = max(1, _to_int(signal.get("minutes"), 1))
+    noun = "minute" if minutes == 1 else "minutes"
+    return (
+        f"No TP scroll for {minutes} {noun}: without it you cannot join a fight "
+        "or save a tower in time."
+    )
+
+
 def _farm_stall_reason(stall: Mapping[str, Any]) -> str:
     last_hits = _to_int(stall.get("last_hits"), 0)
     minutes = max(1, _to_int(stall.get("minutes"), 4))
@@ -273,6 +385,27 @@ def _farm_stall_reason(stall: Mapping[str, Any]) -> str:
         f"Only {last_hits} {noun} in the last {minutes} minutes; "
         "every minute without farm delays your next item."
     )
+
+
+# "Behind on farm" needs a real gap: 129 last hits against a 130+ pace is on pace.
+FARM_GAP_MIN_LAST_HITS = 8
+FARM_GAP_MIN_SHARE = 0.08
+
+
+def _effective_farm_quality(
+    state: Mapping[str, Any], extra: Mapping[str, Any], farm_quality: str
+) -> str:
+    if farm_quality != "low":
+        return farm_quality
+    expected = extra.get("expected_lh_range")
+    last_hits = extra.get("last_hits", state.get("last_hits"))
+    if not isinstance(expected, (list, tuple)) or not expected or last_hits is None:
+        return farm_quality
+    low = _to_int(expected[0], 0)
+    gap = low - _to_int(last_hits, 0)
+    if gap < max(FARM_GAP_MIN_LAST_HITS, FARM_GAP_MIN_SHARE * low):
+        return "okay"
+    return farm_quality
 
 
 def _farm_pace_reason(state: Mapping[str, Any], extra: Mapping[str, Any]) -> str | None:

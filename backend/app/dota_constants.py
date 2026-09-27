@@ -138,6 +138,7 @@ HEROES: dict[int, tuple[str, str]] = {
     137: ("Primal Beast", "npc_dota_hero_primal_beast"),
     138: ("Muerta", "npc_dota_hero_muerta"),
     145: ("Kez", "npc_dota_hero_kez"),
+    155: ("Largo", "npc_dota_hero_largo"),
 }
 
 HERO_ID_TO_NAME: dict[int, str] = {hero_id: names[0] for hero_id, names in HEROES.items()}
@@ -182,3 +183,18 @@ LANE_ROLES = {1: "safe", 2: "mid", 3: "off", 4: "jungle"}
 # ranked 5/6, ranked 7, Battle Cup 9. Practice 1, co-op bots 4 and 1v1 mid 8
 # are skipped.
 REVIEWABLE_LOBBY_TYPES = {0, 2, 5, 6, 7, 9}
+
+# OpenDota game_mode values reviewed against the usual norms: All Pick, Captains
+# Mode, Random Draft, Single Draft, All Random, Least Played, Captains Draft,
+# Ranked All Pick (0 = unknown). Turbo (23) gives far more gold and experience,
+# and Ability Draft, ARDM, Mutation and event modes play by other rules.
+REVIEWABLE_GAME_MODES = {0, 1, 2, 3, 4, 5, 12, 16, 22}
+TURBO_GAME_MODE = 23
+
+
+def is_reviewable_match(row: dict[str, Any]) -> bool:
+    """A match that belongs in the history (unknown lobby or mode counts as yes)."""
+    lobby, mode = row.get("lobby_type"), row.get("game_mode")
+    return (lobby is None or lobby in REVIEWABLE_LOBBY_TYPES) and (
+        mode is None or mode in REVIEWABLE_GAME_MODES
+    )
