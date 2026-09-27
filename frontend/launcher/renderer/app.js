@@ -1130,6 +1130,7 @@ function renderMatch(status) {
   if (isLoading(status)) {
     els.matchStats.classList.remove("hidden");
     setEmpty(els.matchEmpty, false);
+    delete els.statHero.dataset.hero;
     els.statHero.replaceChildren(skeleton("w-70"));
     els.statClock.replaceChildren(skeleton("w-40"));
     els.statStage.replaceChildren(skeleton("w-60"));
@@ -1150,7 +1151,21 @@ function renderMatch(status) {
   els.matchStats.classList.remove("hidden");
   setEmpty(els.matchEmpty, false);
   els.coverageNote.classList.toggle("hidden", live.coverage !== "safety");
-  els.statHero.textContent = live.hero || "—";
+  if (live.hero && window.DotaIcons?.hero(live.hero)) {
+    // Keep the element while the hero stays the same (no flicker every second).
+    if (els.statHero.dataset.hero !== live.hero) {
+      els.statHero.dataset.hero = live.hero;
+      const name = document.createElement("span");
+      name.textContent = live.hero;
+      const label = document.createElement("span");
+      label.className = "with-pic";
+      label.append(window.DotaIcons.heroPicture(document, live.hero, "sm"), name);
+      els.statHero.replaceChildren(label);
+    }
+  } else {
+    delete els.statHero.dataset.hero;
+    els.statHero.textContent = live.hero || "—";
+  }
   els.statClock.textContent = formatClock(live.clockTime) || "—";
   els.statStage.textContent = live.stage && live.stage !== "unknown" ? stageLabel(live.stage) : "—";
   const seconds = Number.isFinite(live.secondsSinceLastGsi) ? live.secondsSinceLastGsi.toFixed(1) : null;

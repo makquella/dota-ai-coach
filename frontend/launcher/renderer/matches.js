@@ -754,6 +754,24 @@
     window.LucideIcons?.hydrate(root);
   }
 
+  // A hero portrait / item icon next to its name (dota-icons.js); plain text
+  // when the icon module is missing.
+  function heroLabel(value, name, size = "sm") {
+    const text = name || window.DotaIcons?.hero(value)?.name || String(value ?? "—");
+    if (!window.DotaIcons || value === null || value === undefined || value === "") {
+      return h("span", { class: "hero-cell", text });
+    }
+    return h("span", { class: "hero-cell with-pic" }, window.DotaIcons.heroPicture(document, value, size), h("span", { text }));
+  }
+
+  function itemPic(value, size = "sm") {
+    return window.DotaIcons ? window.DotaIcons.itemPicture(document, value, size) : null;
+  }
+
+  function itemLabel(value, name, size = "sm") {
+    return h("span", { class: "item-label with-pic" }, itemPic(value, size), h("span", { text: name || String(value ?? "") }));
+  }
+
   function card(title, iconName, body, extraHead) {
     return h(
       "section",
@@ -1182,7 +1200,7 @@
             }
           },
           h("td", {}, resultBadge(row.win)),
-          h("td", { class: "hero-cell", text: row.hero || "—" }),
+          h("td", {}, heroLabel(row.hero_id || row.hero, row.hero || "—")),
           h("td", { class: "num-col num", text: row.kills == null ? "—" : `${row.kills} / ${row.deaths} / ${row.assists}` }),
           h("td", { class: "num-col num", text: number(row.gpm) }),
           h("td", { class: "num-col num hide-narrow", text: number(row.lh_10) }),
@@ -1353,6 +1371,14 @@
     root.replaceChildren(...parts);
     hydrate(root);
     // Charts measure their container, so draw after insertion.
+    drawMatchCharts(root, analysis);
+  }
+
+  // Each chart host by its kind (also on window resize).
+  function drawMatchCharts(root, analysis) {
+    if (!root || !analysis) {
+      return;
+    }
     root.querySelectorAll("[data-chart='match']").forEach((host) => drawChart(host, analysis));
     root.querySelectorAll("[data-chart='timing']").forEach((host) => drawTimingChart(host, analysis));
     root.querySelectorAll("[data-chart='map']").forEach((host) => drawMap(host, analysis.map));
@@ -1406,6 +1432,7 @@
       h(
         "div",
         { class: "card-body review-head-body" },
+        window.DotaIcons ? h("div", { class: "review-portrait" }, window.DotaIcons.heroPicture(document, summary.hero_id || headline.hero_id || headline.hero || summary.hero, "lg")) : null,
         h(
           "div",
           { class: "review-title" },
@@ -1678,7 +1705,7 @@
         h(
           "div",
           { class: "build-item-head" },
-          h("span", { class: "build-item-name", text: item.name }),
+          h("span", { class: "build-item-name with-pic" }, itemPic(item.key || item.name, "md"), h("span", { text: item.name })),
           h("span", { class: "muted num", text: t("buildBy", clock(item.t)) })
         ),
         timing
@@ -1710,8 +1737,9 @@
                   h(
                     "span",
                     { class: `chip ${row.bought ? "chip-on" : ""}`, title: row.bought ? t("buildBought") : "" },
-                    row.bought ? icon("circle-check") : null,
-                    h("span", { text: row.name })
+                    itemPic(row.key || row.name, "sm"),
+                    h("span", { text: row.name }),
+                    row.bought ? icon("circle-check") : null
                   )
                 )
               )
@@ -1881,7 +1909,7 @@
                 h(
                   "tr",
                   {},
-                  h("td", { class: "hero-cell", text: row.hero }),
+                  h("td", {}, heroLabel(row.hero_id || row.hero, row.hero)),
                   row.winrate == null
                     ? h("td", { class: "num-col num muted", text: "—" })
                     : h("td", { class: "num-col num" }, h("span", { class: "dot", "data-tone": winrateTone(row.winrate) }), percent1(row.winrate)),
@@ -1909,7 +1937,7 @@
               h(
                 "li",
                 { class: row.hero === draft.better_pick ? "is-best" : "" },
-                h("span", { class: "draft-pool-hero" }, h("span", { text: row.hero }), row.picked ? h("span", { class: "tag", text: t("draftPicked") }) : null),
+                h("span", { class: "draft-pool-hero" }, heroLabel(row.hero_id || row.hero, row.hero), row.picked ? h("span", { class: "tag", text: t("draftPicked") }) : null),
                 h("span", { class: "num draft-edge" }, h("span", { class: "dot", "data-tone": row.edge >= 2 ? "good" : row.edge <= -2 ? "bad" : "idle" }), signedPercent(row.edge))
               )
             )
@@ -1934,7 +1962,7 @@
                 h(
                   "p",
                   { class: "draft-counter-head" },
-                  h("span", { text: counter.heroes.join(", ") }),
+                  h("span", { class: "draft-counter-heroes" }, counter.heroes.map((heroName) => heroLabel(heroName, heroName))),
                   h("span", { class: "tag", text: t(`draftReasons.${counter.reason}`) }),
                   counter.for_role ? null : h("span", { class: "muted small", text: t("draftForSupports") })
                 ),
@@ -1943,7 +1971,7 @@
                   { class: "chips" },
                   counter.items.map((item) => {
                     const bought = counter.bought.includes(item);
-                    return h("span", { class: `chip ${bought ? "chip-on" : ""}`, title: bought ? t("draftBought") : "" }, bought ? icon("circle-check") : null, h("span", { text: item }));
+                    return h("span", { class: `chip ${bought ? "chip-on" : ""}`, title: bought ? t("draftBought") : "" }, itemPic(item, "sm"), h("span", { text: item }), bought ? icon("circle-check") : null);
                   })
                 )
               )
@@ -2140,7 +2168,7 @@
               h(
                 "tr",
                 { class: row.me ? "is-me" : "" },
-                h("td", {}, h("span", { class: "hero-cell", text: row.hero || "—" }), row.name ? h("span", { class: "muted small player-sub", text: row.name }) : null),
+                h("td", {}, heroLabel(row.hero_id || row.hero, row.hero || "—"), row.name ? h("span", { class: "muted small player-sub", text: row.name }) : null),
                 h("td", { class: "num-col num", text: `${row.kills ?? "—"} / ${row.deaths ?? "—"} / ${row.assists ?? "—"}` }),
                 h("td", { class: "num-col num", text: number(row.net_worth) }),
                 h("td", { class: "num-col num hide-narrow", text: number(row.gpm) }),
@@ -2915,7 +2943,7 @@
                   h(
                     "tr",
                     {},
-                    h("td", { class: "hero-cell", text: hero.hero }),
+                    h("td", {}, heroLabel(hero.hero_id || hero.hero, hero.hero)),
                     h("td", { class: "num-col num", text: String(hero.matches) }),
                     h("td", { class: "num-col num", text: hero.winrate == null ? "—" : `${hero.winrate}%` }),
                     h("td", { class: "num-col num muted", text: hero.bracket_winrate == null ? "—" : `${hero.bracket_winrate}%` }),
@@ -3064,7 +3092,7 @@
       clearTimeout(resizeTimer);
       resizeTimer = setTimeout(() => {
         if (state.view === "match" && state.match?.analysis) {
-          document.querySelectorAll("#match-root [data-chart]").forEach((host) => drawChart(host, state.match.analysis));
+          drawMatchCharts(document.getElementById("match-root"), state.match.analysis);
         } else if (state.view === "progress" && state.career) {
           renderCareer();
         }

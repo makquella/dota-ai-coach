@@ -35,6 +35,7 @@ App
 - Match history from the app's own recording plus OpenDota (optional API key for faster sync).
 - One-click problem report for bug reports (keys removed).
 - Russian and English.
+- Hero portraits and item icons (Valve's pictures from Valve's CDN, downloaded once at first use and kept on disk).
 
 ## Current Status
 

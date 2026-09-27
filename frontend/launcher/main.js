@@ -7,6 +7,8 @@ const {
   dialog,
   ipcMain,
   nativeImage,
+  net: electronNet,
+  protocol,
   screen,
   shell
 } = require("electron");
@@ -17,6 +19,7 @@ const net = require("node:net");
 const os = require("node:os");
 const path = require("node:path");
 
+const { SCHEME: DOTA_ASSET_SCHEME, createAssetHandler } = require("./dota-assets");
 const { createDotaWatcher } = require("./dota-watcher");
 const { createOverlayController, OVERLAY_DEFAULTS } = require("./overlay-window");
 const { buildReport, reportFileName } = require("./problem-report");
@@ -2164,6 +2167,22 @@ async function runSmokeTest(resultPath) {
   app.exit(ok ? 0 : 1);
 }
 
+// Hero portraits and item icons (dota-assets.js); must be declared before "ready".
+protocol.registerSchemesAsPrivileged([
+  { scheme: DOTA_ASSET_SCHEME, privileges: { standard: true, secure: true, supportFetchAPI: true } }
+]);
+
+function registerDotaAssets() {
+  protocol.handle(
+    DOTA_ASSET_SCHEME,
+    createAssetHandler({
+      root: path.join(USER_DATA_DIR, "dota-assets"),
+      fetchImpl: (url) => electronNet.fetch(url),
+      log: (message) => appendLog("assets", message)
+    })
+  );
+}
+
 function bootstrap() {
   if (process.platform === "win32") {
     app.setAppUserModelId(APP_ID);
@@ -2172,7 +2191,10 @@ function bootstrap() {
   registerIpc();
 
   if (IS_SMOKE_TEST) {
-    app.whenReady().then(() => runSmokeTest(SMOKE_TEST_RESULT));
+    app.whenReady().then(() => {
+      registerDotaAssets();
+      return runSmokeTest(SMOKE_TEST_RESULT);
+    });
     return;
   }
 
@@ -2183,6 +2205,7 @@ function bootstrap() {
   app.on("second-instance", showMainWindow);
 
   app.whenReady().then(() => {
+    registerDotaAssets();
     appendLog("launcher", `${APP_NAME} ${app.getVersion()} started (${IS_PACKAGED ? "packaged" : "dev"}).`, {
       force: true
     });

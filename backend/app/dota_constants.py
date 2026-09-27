@@ -138,6 +138,7 @@ HEROES: dict[int, tuple[str, str]] = {
     137: ("Primal Beast", "npc_dota_hero_primal_beast"),
     138: ("Muerta", "npc_dota_hero_muerta"),
     145: ("Kez", "npc_dota_hero_kez"),
+    155: ("Largo", "npc_dota_hero_largo"),
 }
 
 HERO_ID_TO_NAME: dict[int, str] = {hero_id: names[0] for hero_id, names in HEROES.items()}

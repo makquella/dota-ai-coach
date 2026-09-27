@@ -255,7 +255,14 @@ function showPlan(data) {
   const [first, ...rest] = data.game_plan.lines;
   shell.className = "overlay-shell plan coaching";
   labelEl.textContent = data.game_plan.title || tr("plan");
-  priorityEl.textContent = data.game_plan.hero || "";
+  const heroName = data.game_plan.hero || "";
+  if (heroName && window.DotaIcons?.hero(heroName)) {
+    const name = document.createElement("span");
+    name.textContent = heroName;
+    priorityEl.replaceChildren(window.DotaIcons.heroPicture(document, heroName, "sm"), name);
+  } else {
+    priorityEl.textContent = heroName;
+  }
   actionEl.textContent = first;
   reasonEl.textContent = rest.join("\n");
   renderStatusRow(data);

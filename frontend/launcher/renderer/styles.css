@@ -1230,6 +1230,20 @@ label.setting:has(.switch:disabled) {
   font-weight: var(--fw-medium);
 }
 
+.with-pic {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-2);
+  min-width: 0;
+  vertical-align: middle;
+}
+
+.with-pic > span:last-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .player-sub {
   display: block;
   max-width: 140px;
@@ -2682,4 +2696,90 @@ label.setting:has(.switch:disabled) {
   color: var(--text-2);
   font-size: var(--fs-13);
   line-height: 1.45;
+}
+
+/* Hero portraits (16:9) and item icons from dota-asset:// (dota-icons.js); the
+   initials show until the picture loads or when it cannot be loaded. */
+.dota-pic {
+  position: relative;
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border-radius: var(--r-sm);
+  background: var(--surface-2);
+  color: var(--text-3);
+  font-size: 9px;
+  font-weight: var(--fw-semibold);
+  letter-spacing: 0.02em;
+  line-height: 1;
+  vertical-align: middle;
+}
+
+.dota-pic::before {
+  content: attr(data-fallback);
+}
+
+.dota-pic img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.dota-hero.dota-pic-sm {
+  width: 34px;
+  height: 19px;
+}
+
+.dota-hero.dota-pic-md {
+  width: 48px;
+  height: 27px;
+}
+
+.dota-hero.dota-pic-lg {
+  width: 112px;
+  height: 63px;
+  border-radius: var(--r-md);
+  font-size: var(--fs-16);
+}
+
+.dota-item.dota-pic-sm {
+  width: 24px;
+  height: 18px;
+}
+
+.dota-item.dota-pic-md {
+  width: 33px;
+  height: 24px;
+}
+
+.dota-item.dota-pic-lg {
+  width: 44px;
+  height: 32px;
+  font-size: var(--fs-12);
+}
+
+.draft-counter-heroes {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: var(--sp-1) var(--sp-3);
+}
+
+.chip .dota-item {
+  margin-left: -2px;
+  border-radius: 3px;
+}
+
+.review-portrait {
+  flex: none;
+  padding-top: 2px;
+}
+
+@media (max-width: 560px) {
+  .review-portrait {
+    display: none;
+  }
 }
