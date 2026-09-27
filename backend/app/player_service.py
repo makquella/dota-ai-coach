@@ -1181,11 +1181,12 @@ class PlayerService:
             cached = self.store.cache_get(f"{MATCHUPS_KEY}:{hero}")
             if cached:
                 matchups[str(hero)] = cached
-        # The role the player plays each pool hero in (reviewed games), and
+        # The position (else review role) the player plays each pool hero in, and
         # OpenDota's role tags for the rest: the better pick keeps the role.
         played: dict[str, dict[str, int]] = {}
         for row in self.store.matches_for_career(account_id, limit=RECENT_MATCHES_LIMIT):
-            role = (row.get("analysis") or {}).get("role")
+            analysis = row.get("analysis") or {}
+            role = analysis.get("position") or analysis.get("role")
             if row.get("hero_id") and role:
                 counts = played.setdefault(str(int(row["hero_id"])), {})
                 counts[role] = counts.get(role, 0) + 1
