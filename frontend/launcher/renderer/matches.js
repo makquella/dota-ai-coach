@@ -96,6 +96,14 @@
       chartTitle: "Over the match",
       mapTitle: "Match map",
       deathsTitle: (count) => `Deaths · ${count}`,
+      weekGames: "Matches",
+      weekVsPrevious: "vs the week before",
+      weekBest: "Best match",
+      weekProblem: "Most often:",
+      weekProblemText: (title, count, of) => `${title} — in ${count} of ${of} matches`,
+      weekFocus: "Focus:",
+      weekPlanProgress: (met, played, plan) => `${met} of ${played} done · plan: ${plan} matches in a row`,
+      weekPlanNext: "Next match",
       deathsNoPattern: "No repeating cause across these deaths.",
       deathNoFacts: "Nothing else is known about this death.",
       deathGold: (gold) => `${gold} unspent gold`,
@@ -417,6 +425,14 @@
       chartTitle: "По ходу матча",
       mapTitle: "Карта матча",
       deathsTitle: (count) => `Смерти · ${count}`,
+      weekGames: "Матчи",
+      weekVsPrevious: "к прошлой неделе",
+      weekBest: "Лучший матч",
+      weekProblem: "Чаще всего:",
+      weekProblemText: (title, count, of) => `${title} — в ${count} из ${of} матчей`,
+      weekFocus: "Фокус:",
+      weekPlanProgress: (met, played, plan) => `получилось ${met} из ${played} · план: ${plan} матча подряд`,
+      weekPlanNext: "Следующий матч",
       deathsNoPattern: "Повторяющейся причины у этих смертей нет.",
       deathNoFacts: "Больше об этой смерти ничего не известно.",
       deathGold: (gold) => `${gold} непотраченного золота`,
@@ -3128,12 +3144,88 @@
     line.textContent = parts.filter(Boolean).join(" · ");
   }
 
+  // --- home: the last seven days ---------------------------------------------------
+
+  const WEEK_REFRESH_MS = 60 * 1000;
+
+  async function refreshWeek(status) {
+    const review = status.player && status.player.lastReview;
+    const key = `${state.locale}|${review ? review.match_id : ""}|${status.player && status.player.accountId}`;
+    if (state.weekKey === key && Date.now() - (state.weekAt || 0) < WEEK_REFRESH_MS) {
+      return;
+    }
+    state.weekKey = key;
+    state.weekAt = Date.now();
+    const result = await call("week");
+    renderWeek(result.ok ? result.data.week : null);
+  }
+
+  function renderWeek(week) {
+    const cardEl = document.getElementById("week-card");
+    const body = document.getElementById("week-body");
+    if (!cardEl || !body) {
+      return;
+    }
+    cardEl.classList.toggle("hidden", !week);
+    if (!week) {
+      body.replaceChildren();
+      return;
+    }
+    let change = null;
+    if (Number.isFinite(week.score_change)) {
+      const tone = week.score_change > 0 ? "good" : week.score_change < 0 ? "bad" : "idle";
+      const iconName = week.score_change > 0 ? "trending-up" : week.score_change < 0 ? "trending-down" : "minus";
+      change = h("span", { class: `delta delta-${tone}` }, icon(iconName), h("span", { class: "num", text: `${week.score_change > 0 ? "+" : ""}${week.score_change}` }), h("span", { class: "muted", text: ` ${t("weekVsPrevious")}` }));
+    }
+    const tiles = [
+      tile(t("weekGames"), String(week.games), null, t("recordLine", week.wins, week.losses, week.games)),
+      tile(t("tiles.score"), week.avg_score == null ? "—" : String(week.avg_score), change)
+    ];
+    if (week.best) {
+      const best = h(
+        "button",
+        { type: "button", class: "tile tile-link", onclick: () => openMatch(week.best.match_id) },
+        h("p", { class: "tile-label", text: t("weekBest") }),
+        h("p", { class: "tile-value with-pic" }, window.DotaIcons?.hero(week.best.hero) ? window.DotaIcons.heroPicture(document, week.best.hero, "sm") : null, h("span", { class: "num", text: String(week.best.score) })),
+        h("p", { class: "tile-sub muted", text: week.best.hero || "" })
+      );
+      tiles.push(best);
+    }
+    const lines = [];
+    if (week.top_problem) {
+      lines.push(h("p", { class: "week-line" }, h("span", { class: "muted", text: `${t("weekProblem")} ` }), h("span", { text: t("weekProblemText", week.top_problem.title, week.top_problem.count, week.top_problem.of) })));
+    }
+    if (week.focus) {
+      const plan = week.focus;
+      const marks = Array.from({ length: plan.plan }, (_, index) => {
+        const result = plan.results[index];
+        return h("span", { class: "goal-mark", dataset: { met: result ? String(result.met) : "none" }, title: result ? `${result.hero || "—"}: ${result.met ? t("goalMet") : t("goalMissed")}` : t("weekPlanNext") });
+      });
+      lines.push(
+        h(
+          "div",
+          { class: "week-plan" },
+          h("p", { class: "week-line" }, h("span", { class: "muted", text: `${t("weekFocus")} ` }), h("span", { text: plan.title || "" })),
+          h("div", { class: "week-plan-row" }, h("div", { class: "goal-marks" }, marks), h("span", { class: "muted small num", text: t("weekPlanProgress", plan.met, plan.results.length, plan.plan) })),
+          plan.drill ? h("p", { class: "muted small", text: plan.drill }) : null
+        )
+      );
+    }
+    body.replaceChildren(h("div", { class: "tiles week-tiles" }, tiles), ...lines);
+    hydrate(body);
+  }
+
   function onStatus(status) {
     const localeChanged = state.locale !== (status.locale === "ru" ? "ru" : "en");
     state.locale = status.locale === "ru" ? "ru" : "en";
     state.status = status;
     renderBanner(status);
     renderToday(status);
+    if (status.backend === "running" && status.player && status.player.linked) {
+      refreshWeek(status).catch(() => {});
+    } else {
+      renderWeek(null);
+    }
     if (localeChanged) {
       // Texts from the backend (reviews, progress) come in the new language only
       // when asked again.

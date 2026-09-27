@@ -77,6 +77,14 @@
       </button>
       <!-- Tonight's session: matches since midnight. -->
       <p class="today-line num hidden" id="today-line"></p>
+      <!-- The last seven days: games, score against the week before, best match, focus plan. -->
+      <section class="card week-card hidden" id="week-card" aria-labelledby="week-heading">
+        <header class="card-head">
+          <i data-icon="calendar"></i>
+          <h2 id="week-heading" data-i18n="weekTitle">This week</h2>
+        </header>
+        <div class="card-body" id="week-body"></div>
+      </section>
 
       <div class="cards">
         <!-- Current match -->

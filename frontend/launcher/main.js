@@ -1077,6 +1077,7 @@ const PLAYER_OPS = {
   // Reviews may be rebuilt on read after an update (new analysis version): allow time.
   match: (args) => ["GET", `/player/matches/${matchIdArg(args)}?lang=${uiLocale()}`, undefined, 15000],
   refreshMatch: (args) => ["POST", `/player/matches/${matchIdArg(args)}/refresh`],
+  week: () => ["GET", `/player/week?lang=${uiLocale()}`],
   career: (args) => [
     "GET",
     `/player/career?lang=${uiLocale()}` + (/^\d{1,4}$/.test(String(args.heroId ?? "")) ? `&hero_id=${args.heroId}` : ""),

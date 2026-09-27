@@ -77,6 +77,7 @@ from app.player_store import PlayerStore
 from app.post_match_analysis import ANALYSIS_VERSION, analyze_match
 from app.schemas import is_supported_hero
 from app.steam_ids import parse_account_id, steam64_from_account_id
+from app.weekly_summary import weekly_summary
 
 RECENT_MATCHES_LIMIT = 50
 REVIEW_RECENT_MATCHES = 12
@@ -320,6 +321,26 @@ class PlayerService:
         )
         self._plans[key] = (now, plan)
         return plan
+
+    def week(self, lang: str) -> dict[str, Any] | None:
+        """The home screen's last seven days (app/weekly_summary.py); cached a
+        minute like the game plan, since Home asks for it on every visit."""
+        primary = self.store.primary_account_id()
+        if primary is None:
+            return None
+        key = ("week", primary, lang)
+        cached = self._plans.get(key)
+        now = time.monotonic()
+        if cached is not None and now - cached[0] < GAME_PLAN_CACHE_SECONDS:
+            return cached[1]
+        summary = weekly_summary(
+            self.store.matches_for_career(primary, limit=RECENT_MATCHES_LIMIT),
+            time.time(),
+            lang,
+            focus=self._focus(primary),
+        )
+        self._plans[key] = (now, summary)
+        return summary
 
     def role_prior(self, hero: str) -> dict[str, Any] | None:
         """The position to assume before the lane is known (app/live_role.py): the
