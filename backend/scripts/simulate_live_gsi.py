@@ -44,7 +44,11 @@ def synthetic_stream(minutes: int, deaths: tuple[int, ...]) -> list[dict[str, An
     sys.path.insert(0, str(BACKEND_DIR / "tests"))
     from match_fixtures import gsi_match_stream
 
-    return gsi_match_stream(minutes=minutes, death_minutes=deaths, step_seconds=1, positions=True)
+    stream = gsi_match_stream(minutes=minutes, death_minutes=deaths, step_seconds=1, positions=True)
+    for payload in stream:
+        # Heroes normally carry a TP scroll (the fixture has no TP slot).
+        payload["items"]["teleport0"] = {"name": "item_tpscroll"}
+    return stream
 
 
 def session_stream(path: Path) -> Iterator[dict[str, Any]]:

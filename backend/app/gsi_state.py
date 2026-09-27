@@ -14,6 +14,7 @@ from app.hero_profiles import evaluate_laning_context
 from app.hero_safety import evaluate_hero_safety
 from app.item_timing import normalize_item_name
 from app.signal_capabilities import capability_summary, live_gsi_observed_capabilities
+from app.tp_tracker import has_teleport
 
 _latest_raw_payload: dict[str, Any] | None = None
 _latest_normalized_state: dict[str, Any] | None = None
@@ -417,6 +418,8 @@ def _normalize_extra_context(
         "paused": _optional_bool(map_block.get("paused")) or False,
         "has_abilities": has_abilities,
         "has_buildings": has_buildings,
+        # TP scroll in its slot or Boots of Travel (None: no items block).
+        "has_tp": has_teleport(payload.get("items")),
         "status_effects": status_effects,
         "abilities": abilities,
     }

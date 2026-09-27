@@ -58,6 +58,7 @@ def build_post_laning_advice(
     buyback_spent = (
         extra.get("buyback_spent") if isinstance(extra.get("buyback_spent"), Mapping) else None
     )
+    tp_missing = extra.get("tp_missing") if isinstance(extra.get("tp_missing"), Mapping) else None
 
     category = _category_for_state(
         decision_point=decision_point,
@@ -70,6 +71,7 @@ def build_post_laning_advice(
         death_context=death_context,
         farm_stall=farm_stall is not None,
         buyback_spent=buyback_spent is not None,
+        tp_missing=tp_missing is not None,
     )
     if category is None:
         return None
@@ -79,6 +81,8 @@ def build_post_laning_advice(
         reason = _farm_stall_reason(farm_stall)
     elif category == "post_laning_buyback_reserve" and buyback_spent:
         reason = _buyback_reason(buyback_spent)
+    elif category == "post_laning_carry_tp" and tp_missing:
+        reason = _tp_reason(tp_missing)
     elif category == "post_laning_farm_recovery":
         reason = _farm_pace_reason(state, extra) or reason
     elif category == "post_laning_death_route_reset":
@@ -184,6 +188,7 @@ def _category_for_state(
     death_context: bool,
     farm_stall: bool = False,
     buyback_spent: bool = False,
+    tp_missing: bool = False,
 ) -> str | None:
     # Phase 3 fix: death_route_reset is gated by the factual death_context (derived
     # from GSI state: alive/respawn_seconds/near_player_death/death_count_changed),
@@ -215,6 +220,11 @@ def _category_for_state(
     # to farming. Under pressure the safety-first pressure advice wins.
     if farm_stall and not pressure_active:
         return "post_laning_farm_stall"
+
+    # No way to teleport for a minute or more (tp_tracker.py). Under pressure the
+    # safety-first advice wins; a farm stall matters more.
+    if tp_missing and not pressure_active:
+        return "post_laning_carry_tp"
 
     farm_low = farm_quality in {"very_low", "low"}
     if farm_low and pressure_active:
@@ -252,6 +262,12 @@ def _copy_for_category(category: str, objective_missing: bool) -> tuple[str, str
             "Go back to farming: take the nearest safe wave or camp now.",
             "You have taken almost no last hits lately; every minute without farm delays your next item.",
             "Medium risk if you keep walking around without farming.",
+        )
+    if category == "post_laning_carry_tp":
+        return (
+            "Keep a TP scroll in its slot: buy one now, the courier can bring it.",
+            "Without a TP scroll you cannot join a fight or save a tower in time.",
+            "Medium risk if a fight starts across the map while you have no TP.",
         )
     if category == "post_laning_buyback_reserve":
         return (
@@ -349,6 +365,15 @@ def _buyback_reason(signal: Mapping[str, Any]) -> str:
     return (
         f"You have {gold} gold and buyback costs {cost}; "
         "after minute 30 one death without buyback can decide the game."
+    )
+
+
+def _tp_reason(signal: Mapping[str, Any]) -> str:
+    minutes = max(1, _to_int(signal.get("minutes"), 1))
+    noun = "minute" if minutes == 1 else "minutes"
+    return (
+        f"No TP scroll for {minutes} {noun}: without it you cannot join a fight "
+        "or save a tower in time."
     )
 
 

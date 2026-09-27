@@ -191,6 +191,15 @@ _RU_EXACT: dict[str, str] = {
         "Непотраченное золото частично теряется при следующей смерти. Потом выберите "
         "маршрут безопаснее того, где вас поймали."
     ),
+    "Keep a TP scroll in its slot: buy one now, the courier can bring it.": (
+        "Держите свиток телепортации в слоте: купите его сейчас, курьер принесёт."
+    ),
+    "Without a TP scroll you cannot join a fight or save a tower in time.": (
+        "Без свитка телепортации не успеете ни в драку, ни спасти башню."
+    ),
+    "Medium risk if a fight starts across the map while you have no TP.": (
+        "Средний риск, если драка начнётся на другом конце карты, а свитка телепортации нет."
+    ),
     "Use the respawn time to choose a safer farming route.": (
         "Пока ждёте возрождения, выберите более безопасный маршрут фарма."
     ),
@@ -425,6 +434,13 @@ _RU_EXACT: dict[str, str] = {
 
 # Texts with a hero or ability name inside. The name is kept as sent.
 _RU_PATTERNS: tuple[tuple[re.Pattern[str], str], ...] = (
+    (
+        re.compile(
+            r"^No TP scroll for (?P<minutes>\d+) minutes?: without it you cannot join a fight "
+            r"or save a tower in time\.$"
+        ),
+        "Без свитка телепортации уже {minutes} мин — не успеете ни в драку, ни спасти башню.",
+    ),
     (
         re.compile(
             r"^Buy parts of your next item now with your (?P<gold>\d+) gold: "

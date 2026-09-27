@@ -16,6 +16,7 @@ from typing import Any
 
 from app.buyback_tracker import BuybackTracker
 from app.farm_tracker import FarmTracker
+from app.tp_tracker import TpTracker
 
 DEATH_DECISION_POINTS = {
     "DEATH_REVIEW",
@@ -84,6 +85,7 @@ class MatchMemory:
         self._last_player_deaths: int | None = None
         self.farm = FarmTracker()
         self.buyback = BuybackTracker()
+        self.tp = TpTracker()
 
     def observe_state(self, state: dict[str, Any]) -> dict[str, Any]:
         now_dt = datetime.now(UTC)
@@ -150,6 +152,13 @@ class MatchMemory:
             _ctx_int_or_none(state, "buyback_cost"),
             _ctx_int_or_none(state, "buyback_cooldown"),
             current_alive,
+        )
+        has_tp = _ctx_value(state, "has_tp")
+        self.tp.observe(
+            _game_clock(state),
+            has_tp if isinstance(has_tp, bool) else None,
+            current_alive,
+            paused=_ctx_bool(state, "paused"),
         )
         self.last_states.append(_copy_state(state))
         self._annotate_state(state)
@@ -323,6 +332,7 @@ class MatchMemory:
                 "death_review_decision": self.death_review_decision(),
                 "farm_stall": self.farm.stall(),
                 "buyback_spent": self.buyback.signal(),
+                "tp_missing": self.tp.signal(),
             }
         )
 
