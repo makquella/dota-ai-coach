@@ -30,6 +30,8 @@ python -m compileall -q app scripts packaging tests
 ```
 After editing backend code, match the repo's Claude post-edit hook: `ruff check --fix . && ruff format .`.
 
+Fuzzing: `python scripts/fuzz_live_gsi.py --payloads 10000 --seed N` sends broken GSI (dropped fields, wrong types, huge numbers, clock jumps, spectator blocks) through `/gsi` → overlay → `/gsi/status` → `/player` and fails on any 5xx; `.github/workflows/fuzz.yml` runs it nightly with a new seed, `tests/test_fuzz_live_gsi.py` runs 250 payloads in CI. GSI numbers above `MAX_GSI_NUMBER` (10 000 000) or not finite count as missing (`gsi_state._optional_number`, `match_tracker._int`).
+
 Live pipeline check: `python scripts/simulate_live_gsi.py [--lang ru --reasons | --session <raw_gsi_states.jsonl>]` feeds raw GSI (synthetic match or a recorded session) through `POST /gsi` → `/overlay/recommendation` with the scheduler clock on game time and prints every advice card — use it after changing live advice logic (replay-state simulations skip GSI normalization, where live-only bugs hide).
 
 Run a focused test:

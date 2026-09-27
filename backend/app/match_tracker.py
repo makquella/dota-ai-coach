@@ -46,11 +46,17 @@ POST_GAME_STATE = "DOTA_GAMERULES_STATE_POST_GAME"
 _INVENTORY_PREFIXES = ("slot", "stash", "neutral", "teleport")
 
 
+# Larger numbers (and inf/nan) are broken GSI, not game values: kept out of the
+# timeline and SQLite (which stores 64-bit integers).
+MAX_GSI_NUMBER = 10_000_000
+
+
 def _int(value: Any) -> int | None:
     try:
-        return int(value)
-    except (TypeError, ValueError):
+        number = int(value)
+    except (TypeError, ValueError, OverflowError):
         return None
+    return number if abs(number) <= MAX_GSI_NUMBER else None
 
 
 def _dict(value: Any) -> dict[str, Any]:
