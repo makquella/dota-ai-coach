@@ -98,3 +98,15 @@ def test_focus_end_to_end(client, tmp_path):
     assert client.delete("/player/focus").json() == {"status": "ok"}
     assert client.get("/player/career").json()["focus"] is None
     assert client.get("/player").json()["account_id"] == ME
+
+
+def test_today_summary_on_the_home_screen(client, tmp_path):
+    PLAYER_SERVICE.configure(tmp_path / "svc", client=None, auto_start=False)
+    assert client.get("/player").json()["today"] is None
+    _play(client, MATCH_ID, (7, 18, 19, 20))
+    client.post("/player/focus", json={"finding_id": "death_streak"})
+    _play(client, MATCH_ID + 1, ())
+    today = client.get("/player").json()["today"]
+    assert today["games"] == 2 and today["wins"] == 2 and today["losses"] == 0
+    assert isinstance(today["avg_score"], int)
+    assert (today["focus_met"], today["focus_total"]) == (1, 1)

@@ -1038,6 +1038,12 @@ label.setting:has(.switch:disabled) {
   color: var(--accent);
 }
 
+.today-line {
+  margin: 0 0 var(--sp-3);
+  color: var(--text-2);
+  font-size: var(--fs-13);
+}
+
 .review-banner-text {
   flex: 1;
 }

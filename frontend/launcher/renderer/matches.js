@@ -2828,11 +2828,31 @@
     }
   }
 
+  function renderToday(status) {
+    const line = document.getElementById("today-line");
+    const today = status.player && status.player.today;
+    line.classList.toggle("hidden", !today);
+    if (!today) {
+      return;
+    }
+    const ru = state.locale === "ru";
+    const parts = [
+      ru ? `Сегодня: ${today.games} ${plural(today.games, "матч", "матча", "матчей")}` : `Today: ${today.games} ${today.games === 1 ? "match" : "matches"}`,
+      ru
+        ? `${today.wins} ${plural(today.wins, "победа", "победы", "побед")}, ${today.losses} ${plural(today.losses, "поражение", "поражения", "поражений")}`
+        : `${today.wins} ${today.wins === 1 ? "win" : "wins"}, ${today.losses} ${today.losses === 1 ? "loss" : "losses"}`,
+      today.avg_score == null ? null : ru ? `средняя оценка ${today.avg_score}` : `average score ${today.avg_score}`,
+      today.focus_total ? (ru ? `фокус ${today.focus_met} из ${today.focus_total}` : `focus ${today.focus_met} of ${today.focus_total}`) : null
+    ];
+    line.textContent = parts.filter(Boolean).join(" · ");
+  }
+
   function onStatus(status) {
     const localeChanged = state.locale !== (status.locale === "ru" ? "ru" : "en");
     state.locale = status.locale === "ru" ? "ru" : "en";
     state.status = status;
     renderBanner(status);
+    renderToday(status);
     if (localeChanged) {
       // Texts from the backend (reviews, progress) come in the new language only
       // when asked again.

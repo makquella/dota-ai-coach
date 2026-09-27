@@ -90,6 +90,7 @@ HERO_STATS_TTL_SECONDS = 24 * 3600
 GAME_PLAN_CACHE_SECONDS = 60
 SKIPPED_MODES_META = "skipped_modes"
 FOCUS_META = "focus"
+TODAY_MAX_MATCHES = 30
 # AI coach.
 AI_SETTINGS_KEY = "ai_settings"
 # The replay is still being parsed: wait for the full data before asking the model.
@@ -353,7 +354,42 @@ class PlayerService:
             "pending_jobs": len(self.jobs.pending()),
             "ai": {"configured": self.ai_configured()},
             "opendota_key": bool(self._opendota_key()[0]),
+            "today": self._today(primary) if primary else None,
         }
+
+    def _today(self, account_id: int) -> dict[str, Any] | None:
+        """Tonight's session on the home screen: matches since local midnight."""
+        midnight = datetime.now().astimezone().replace(hour=0, minute=0, second=0, microsecond=0)
+        since = int(midnight.timestamp())
+        rows = [
+            m
+            for m in self.store.list_matches(account_id, limit=TODAY_MAX_MATCHES)
+            if (m.get("start_time") or 0) >= since
+        ]
+        if not rows:
+            return None
+        decided = [m for m in rows if m.get("win") is not None]
+        wins = sum(1 for m in decided if m["win"])
+        scores = [m["score"] for m in rows if isinstance(m.get("score"), (int, float))]
+        today: dict[str, Any] = {
+            "games": len(rows),
+            "wins": wins,
+            "losses": len(decided) - wins,
+            "avg_score": round(sum(scores) / len(scores)) if scores else None,
+        }
+        focus = self._focus(account_id)
+        if focus is not None:
+            # Only now the reviews are read (the status is polled every few seconds).
+            results = [
+                match_result(m.get("analysis"), focus)
+                for m in self.store.matches_for_career(account_id, limit=len(rows))
+                if (m.get("start_time") or 0) >= since and played_after(m, focus)
+            ]
+            results = [r for r in results if r is not None]
+            if results:
+                today["focus_met"] = sum(1 for r in results if r)
+                today["focus_total"] = len(results)
+        return today
 
     def link(self, value: Any) -> dict[str, Any]:
         account_id = parse_account_id(value)
