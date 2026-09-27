@@ -652,6 +652,26 @@ def test_counter_item_missing_and_bought():
     assert not [f for f in support if f["id"].startswith("counter")]
 
 
+def test_reviews_are_rebuilt_once_the_role_history_is_known(client, tmp_path):
+    """Sync reviews the newest match first, before the older matches say which
+    role the player plays each pool hero in; the sync ends with a rebuild."""
+    recent = recent_matches(8)
+    matches = {}
+    for row in recent:
+        match = opendota_match(good=True, match_id=row["match_id"])
+        me = next(p for p in match["players"] if p.get("account_id") == ME)
+        me["hero_id"] = row["hero_id"]  # Juggernaut and Anti-Mage in turn
+        matches[row["match_id"]] = match
+    service = _service(tmp_path, FakeOpenDota(matches=matches, recent=recent))
+    client.post("/player/link", json={"steam": str(ME)})
+    service.jobs.run_pending(until=float("inf"))
+    newest = client.get(f"/player/matches/{recent[0]['match_id']}?lang=en").json()
+    # Anti-Mage has no role tags in the fixture: only the player's own core
+    # games on it let it into the pool of this core review.
+    pool = [row["hero"] for row in newest["analysis"]["draft"]["pool"]]
+    assert "Anti-Mage" in pool
+
+
 def test_counter_items_of_an_unparsed_match_come_from_the_inventory():
     """An unparsed match has no purchase log: the final inventory (item ids)
     decides, and with no items known there is no "missing" advice at all."""

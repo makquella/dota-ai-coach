@@ -955,6 +955,10 @@ class PlayerService:
                             account_id, mid, request_parse=parse, attempt=0
                         ),
                     )
+            # Reviews built above come newest first, before the older matches
+            # tell which role the player plays each pool hero in (the draft's
+            # better pick): rebuild them once all of these jobs have run.
+            self.jobs.submit(f"rebuild:{account_id}", lambda: self._rebuild_recent(account_id))
             self._sync = {
                 "state": "done",
                 "at": _now_iso(),
@@ -1036,6 +1040,11 @@ class PlayerService:
         self._rebuild_analysis(account_id, match_id)
         if status == "parsing":
             self._retry(account_id, match_id, request_parse, attempt)
+
+    def _rebuild_recent(self, account_id: int) -> None:
+        for row in self.store.list_matches(account_id, limit=REVIEW_RECENT_MATCHES):
+            if row.get("has_analysis"):
+                self._rebuild_analysis(account_id, row["match_id"])
 
     def _drop_unreviewable(self, account_id: int) -> None:
         """Matches stored before a mode was excluded (older versions kept Turbo)."""
