@@ -424,14 +424,15 @@ class PlayerService:
         primary = self.store.primary_account_id()
         if primary is None:
             return {"linked": False, "items": [], "total": 0}
-        filters = {"hero_id": hero_id, "win": win}
         return {
             "linked": True,
-            "items": self.store.list_matches(primary, limit=limit, offset=offset, **filters),
-            "total": self.store.count_matches(primary, **filters),
-            "stats": self.store.match_stats(primary, **filters),
+            "items": self.store.list_matches(
+                primary, limit=limit, offset=offset, hero_id=hero_id, win=win
+            ),
+            "total": self.store.count_matches(primary, hero_id=hero_id, win=win),
+            "stats": self.store.match_stats(primary, hero_id=hero_id, win=win),
             "heroes": self.store.hero_counts(primary),
-            "filters": filters,
+            "filters": {"hero_id": hero_id, "win": win},
             "sync": dict(self._sync),
             "skipped": self.skipped_modes(primary),
         }
@@ -522,7 +523,9 @@ class PlayerService:
 
     def focus_status(self, lang: str) -> dict[str, Any] | None:
         primary = self.store.primary_account_id()
-        focus = self._focus(primary) if primary is not None else None
+        if primary is None:
+            return None
+        focus = self._focus(primary)
         if focus is None:
             return None
         matches = self.store.matches_for_career(primary, limit=RECENT_MATCHES_LIMIT)
