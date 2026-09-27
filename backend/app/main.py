@@ -447,6 +447,20 @@ def _overlay_recommendation_payload() -> dict[str, object]:
             fallback_reason="overlay_fallback_first" if scheduled.source == "fallback" else None,
         )
         log_filename = log_path.name
+        # The post-match review lists the advice given in this match.
+        try:
+            extra = (
+                state.get("extra_context") if isinstance(state.get("extra_context"), dict) else {}
+            )
+            PLAYER_SERVICE.note_live_advice(
+                extra.get("clock_time"),
+                decision_point,
+                scheduled.recommendation.action,
+                scheduled.recommendation.reason,
+                scheduled.advice_mode,
+            )
+        except Exception as error:  # noqa: BLE001 - never breaks the live path
+            record_error("advice-note", error)
 
     return _overlay_response(scheduled, current["timestamp"], log_filename, state)
 

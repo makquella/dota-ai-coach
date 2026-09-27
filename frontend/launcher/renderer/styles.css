@@ -1544,6 +1544,24 @@ label.setting:has(.switch:disabled) {
   color: var(--error);
 }
 
+.advice-log .moment {
+  align-items: start;
+}
+
+.advice-log .moment-icon {
+  justify-content: center;
+  padding-top: 6px;
+}
+
+.advice-log .moment-text {
+  display: grid;
+  gap: 2px;
+}
+
+.advice-log-reason {
+  font-size: var(--fs-12);
+}
+
 .teams {
   display: grid;
   gap: var(--sp-4);

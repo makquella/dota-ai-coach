@@ -40,6 +40,7 @@ SAVE_EVERY_SAMPLES = 4
 STALE_AFTER_SECONDS = 10 * 60
 # Shorter games (abandoned in the first minutes) are not worth a review.
 MIN_REVIEW_CLOCK_SECONDS = 5 * 60
+MAX_ADVICE_NOTES = 80
 
 POST_GAME_STATE = "DOTA_GAMERULES_STATE_POST_GAME"
 _INVENTORY_PREFIXES = ("slot", "stash", "neutral", "teleport")
@@ -154,6 +155,28 @@ class MatchTracker:
                 "samples": len(self._current["samples"]),
             }
 
+    def note_advice(
+        self, clock: Any, decision_point: str, action: str, reason: str, mode: str
+    ) -> None:
+        """Remember a piece of live advice for the post-match review (capped)."""
+        clock = _int(clock)
+        with self._lock:
+            current = self._current
+            if current is None or clock is None or clock < 0 or not action:
+                return
+            advice = current.setdefault("advice", [])
+            if len(advice) >= MAX_ADVICE_NOTES:
+                return
+            advice.append(
+                {
+                    "t": clock,
+                    "dp": decision_point,
+                    "action": action[:200],
+                    "reason": (reason or "")[:300],
+                    "mode": mode,
+                }
+            )
+
     # --- recording ------------------------------------------------------------
 
     def _new_match(
@@ -180,6 +203,8 @@ class MatchTracker:
             "deaths": [],
             "buybacks": [],
             "items": [],
+            # Live advice shown during the match (English, as the pipeline wrote it).
+            "advice": [],
             "final": {},
             "scores": {},
             "_last": {},

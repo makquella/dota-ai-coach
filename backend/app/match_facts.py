@@ -86,6 +86,8 @@ def empty_facts(match_id: int) -> dict[str, Any]:
         "path": [],
         "wards": [],
         "lane_pos": [],
+        # Live advice the app showed during the match (GSI recording only).
+        "advice_log": [],
     }
 
 
@@ -263,6 +265,11 @@ def facts_from_timeline(timeline: dict[str, Any]) -> dict[str, Any]:
                 }
                 for death in timeline.get("deaths") or []
                 if isinstance(death, dict) and _int(death.get("t")) is not None
+            ],
+            "advice_log": [
+                {key: item.get(key) for key in ("t", "dp", "action", "reason", "mode")}
+                for item in timeline.get("advice") or []
+                if isinstance(item, dict) and _int(item.get("t")) is not None
             ],
             "path": [
                 {"t": s["t"], "x": s["x"], "y": s["y"]}

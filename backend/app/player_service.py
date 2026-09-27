@@ -261,6 +261,11 @@ class PlayerService:
             self.store.set_primary(account_id, source="gsi")
             self.request_sync()
 
+    def note_live_advice(
+        self, clock: Any, decision_point: str, action: str, reason: str, mode: str
+    ) -> None:
+        self.tracker.note_advice(clock, decision_point, action, reason, mode)
+
     def check_stale(self) -> None:
         self.tracker.check_stale()
 

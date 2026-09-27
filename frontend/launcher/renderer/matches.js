@@ -125,6 +125,9 @@
       nothingStrong: "Nothing stood out this time.",
       drill: "Drill",
       momentsTitle: "Key moments",
+      adviceLogTitle: "Advice during the match",
+      adviceLogHint: (n, urgent) => `${n} ${n === 1 ? "tip" : "tips"} over the game, ${urgent} urgent. Worth checking whether you followed them.`,
+      adviceLogMore: (n) => `Show all ${n}`,
       momentDeath: (killer) => (killer ? `Died to ${killer}` : "Died"),
       momentGold: (gold) => `${gold} gold on hand`,
       momentItem: (item) => item,
@@ -396,6 +399,9 @@
       nothingStrong: "В этот раз ничего не выделилось.",
       drill: "Упражнение",
       momentsTitle: "Ключевые моменты",
+      adviceLogTitle: "Подсказки во время матча",
+      adviceLogHint: (n, urgent) => `${n} ${plural(n, "подсказка", "подсказки", "подсказок")} за игру, срочных — ${urgent}. Стоит проверить, получилось ли им следовать.`,
+      adviceLogMore: (n) => `Показать все (${n})`,
       momentDeath: (killer) => (killer ? `Смерть от ${killer}` : "Смерть"),
       momentGold: (gold) => `${gold} золота на руках`,
       momentItem: (item) => item,
@@ -1121,6 +1127,7 @@
   // --- match review -------------------------------------------------------------
 
   async function openMatch(matchId) {
+    state.adviceLogOpen = false;
     state.matchId = String(matchId);
     state.match = null;
     setView("match", { remember: false });
@@ -1258,6 +1265,10 @@
       const moments = momentsCard(analysis);
       if (moments) {
         parts.push(moments);
+      }
+      const adviceLog = adviceLogCard(analysis);
+      if (adviceLog) {
+        parts.push(adviceLog);
       }
     }
     if (detail.scoreboard) {
@@ -1898,6 +1909,53 @@
       );
     });
     return card(t("momentsTitle"), "clock", h("ol", { class: "moments" }, items));
+  }
+
+  // What the coach said during this match (the app's own recording).
+  function adviceLogCard(analysis) {
+    const advice = analysis.advice || [];
+    if (!advice.length) {
+      return null;
+    }
+    const shown = state.adviceLogOpen ? advice : advice.slice(0, 8);
+    const list = h(
+      "ol",
+      { class: "moments advice-log" },
+      shown.map((item) =>
+        h(
+          "li",
+          { class: "moment" },
+          h("span", { class: "moment-time num", text: clock(item.t) }),
+          h("span", { class: "moment-icon" }, h("span", { class: "dot", "data-tone": item.mode === "urgent" ? "bad" : "warn" })),
+          h(
+            "span",
+            { class: "moment-text" },
+            h("span", { text: item.action }),
+            item.reason ? h("span", { class: "muted advice-log-reason", text: item.reason }) : null
+          )
+        )
+      )
+    );
+    const more = advice.length > shown.length
+      ? h(
+          "button",
+          {
+            class: "btn btn-ghost btn-sm no-print",
+            type: "button",
+            onclick: () => {
+              state.adviceLogOpen = true;
+              renderMatch();
+            }
+          },
+          h("span", { text: t("adviceLogMore", advice.length) })
+        )
+      : null;
+    const urgent = advice.filter((item) => item.mode === "urgent").length;
+    return card(
+      t("adviceLogTitle"),
+      "lightbulb",
+      [h("p", { class: "muted small chart-note", text: t("adviceLogHint", advice.length, urgent) }), list, more].filter(Boolean)
+    );
   }
 
   function scoreboardCard(rows) {

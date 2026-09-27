@@ -29,6 +29,7 @@ from app.peer_analysis import match_peers, peer_findings
 
 # Bump when the rules change: stored reviews of an older version are rebuilt on read.
 ANALYSIS_VERSION = 3
+MAX_ADVICE_SHOWN = 40
 
 # Static targets when OpenDota benchmarks are missing (GSI-only matches).
 TARGETS: dict[str, dict[str, float]] = {
@@ -158,6 +159,7 @@ def analyze_match(
         "peers": peers,
         "draft": draft_block,
         "map": map_block,
+        "advice": (facts.get("advice_log") or [])[:MAX_ADVICE_SHOWN],
     }
 
 

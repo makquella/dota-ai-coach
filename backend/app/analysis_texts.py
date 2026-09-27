@@ -11,6 +11,8 @@ from __future__ import annotations
 
 from typing import Any
 
+from app.advice_i18n import translate_ru
+
 
 def clock(seconds: Any) -> str:
     try:
@@ -610,6 +612,13 @@ class _SafeDict(dict):
         return "—"
 
 
+def _advice_text(text: Any, lang: str) -> str:
+    value = str(text or "")
+    if lang != "ru" or not value:
+        return value
+    return translate_ru(value) or value
+
+
 def render_finding(finding: dict[str, Any], lang: str) -> dict[str, Any]:
     lang = "ru" if lang == "ru" else "en"
     catalog = FINDINGS.get(finding["id"], {}).get(lang) or FINDINGS.get(finding["id"], {}).get("en")
@@ -640,6 +649,16 @@ def render_analysis(analysis: dict[str, Any], lang: str) -> dict[str, Any]:
             "role_label": PEER_ROLES.get(peers.get("role", ""), {}).get(lang),
             "lobby_rank_label": rank_label(peers.get("lobby_rank_tier"), lang),
         }
+    if analysis.get("advice"):
+        # Live advice is stored in English; translate it like the overlay does.
+        rendered["advice"] = [
+            {
+                **item,
+                "action": _advice_text(item.get("action"), lang),
+                "reason": _advice_text(item.get("reason"), lang),
+            }
+            for item in analysis["advice"]
+        ]
     rendered["sections"] = {
         name: {**section, "label": SECTIONS.get(name, {}).get(lang, name)}
         for name, section in (analysis.get("sections") or {}).items()
