@@ -427,6 +427,22 @@ def test_google_bad_key_is_reported_as_invalid_key():
     assert error.value.code == "invalid_key" and len(session.models) == 1
 
 
+@pytest.mark.parametrize(
+    ("provider", "status", "message"),
+    [
+        # Gemini from Russia and other unsupported countries.
+        ("gemini", 400, "User location is not supported for the API use."),
+        ("groq", 403, "Access denied: your country, region, or territory is not supported."),
+    ],
+)
+def test_region_block_is_not_a_bad_key(provider, status, message):
+    """A key that works elsewhere must not be reported as wrong (the UI clears wrong keys)."""
+    llm, _session = _client(provider, _Response(status, {"error": {"message": message}}))
+    with pytest.raises(CoachLLMError) as error:
+        llm.complete([{"role": "user", "content": "hi"}])
+    assert error.value.code == "region"
+
+
 def test_fact_checker_understands_number_formats():
     facts = json.dumps({"net_worth": 11500, "gpm_pct": 0.12, "kda": 2.4, "time": "26:00"})
     checker = FactChecker(facts, ["Black King Bar", "Maelstrom"])

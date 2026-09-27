@@ -59,7 +59,8 @@ CHECK_TIMEOUT = 30.0
 
 
 class CoachLLMError(Exception):
-    """code: no_key | invalid_key | rate_limited | busy | timeout | offline | bad_response."""
+    """code: no_key | invalid_key | region | rate_limited | busy | timeout | offline |
+    bad_response."""
 
     def __init__(self, code: str, message: str = "") -> None:
         super().__init__(message or code)
@@ -158,6 +159,10 @@ class CoachLLM:
         while getattr(response, "status_code", 0) in RETRY_NEXT_MODEL and fallbacks:
             payload["model"] = fallbacks.pop(0)
             response = self._post(headers, payload)
+        if _region_blocked(response):
+            # Gemini from Russia: HTTP 400 "User location is not supported"; Groq and
+            # others answer 403 for countries they do not serve. Not a key problem.
+            raise CoachLLMError("region")
         if getattr(response, "status_code", 0) == 400 and "api key" in _body(response).lower():
             # Google answers a wrong key with HTTP 400.
             raise CoachLLMError("invalid_key")
@@ -169,6 +174,8 @@ class CoachLLM:
             response = self._post(headers, payload)
         status = getattr(response, "status_code", 0)
         self.used_model = payload["model"]
+        if _region_blocked(response):
+            raise CoachLLMError("region")
         if status in (401, 403):
             raise CoachLLMError("invalid_key")
         if status == 429:
@@ -238,3 +245,21 @@ def _body(response: Any) -> str:
 
 def _redact(message: str, key: str) -> str:
     return (message.replace(key, "[key]") if key else message)[:300]
+
+
+REGION_MARKERS = (
+    "location is not supported",
+    "user location",
+    "unsupported_country",
+    "country, region, or territory",
+    "not available in your country",
+    "not available in your region",
+    "unsupported region",
+)
+
+
+def _region_blocked(response: Any) -> bool:
+    if getattr(response, "status_code", 0) not in (400, 403, 451):
+        return False
+    body = _body(response).lower()
+    return any(marker in body for marker in REGION_MARKERS)
