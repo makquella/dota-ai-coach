@@ -367,6 +367,27 @@ class PlayerStore:
             ).fetchall()
         return {str(row["status"]): int(row["n"]) for row in rows}
 
+    def delete_matches(self, account_id: int, match_ids: list[int]) -> int:
+        if not match_ids:
+            return 0
+        marks = ", ".join("?" for _ in match_ids)
+        with self._lock:
+            cursor = self._conn.execute(
+                f"DELETE FROM matches WHERE account_id = ? AND match_id IN ({marks})",
+                (int(account_id), *(int(m) for m in match_ids)),
+            )
+            self._conn.commit()
+        return int(cursor.rowcount or 0)
+
+    def mode_rows(self, account_id: int) -> list[dict[str, Any]]:
+        """match_id, lobby_type and game_mode of every stored match."""
+        with self._lock:
+            rows = self._conn.execute(
+                "SELECT match_id, lobby_type, game_mode FROM matches WHERE account_id = ?",
+                (int(account_id),),
+            ).fetchall()
+        return [dict(row) for row in rows]
+
     def get_match(self, account_id: int, match_id: int) -> dict[str, Any] | None:
         with self._lock:
             row = self._conn.execute(

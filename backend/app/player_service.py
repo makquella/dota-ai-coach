@@ -49,7 +49,12 @@ from app.coach_review import (
     review_match,
 )
 from app.diagnostics import record_error
-from app.dota_constants import REVIEWABLE_LOBBY_TYPES, hero_id_from_name, hero_name
+from app.dota_constants import (
+    TURBO_GAME_MODE,
+    hero_id_from_name,
+    hero_name,
+    is_reviewable_match,
+)
 from app.draft_analysis import pool_heroes
 from app.game_plan import build_game_plan
 from app.match_facts import facts_from_opendota, facts_from_timeline, merge_facts
@@ -80,6 +85,7 @@ MATCHUPS_KEY = "opendota:matchups"
 META_TTL_SECONDS = 7 * 24 * 3600
 HERO_STATS_TTL_SECONDS = 24 * 3600
 GAME_PLAN_CACHE_SECONDS = 60
+SKIPPED_MODES_META = "skipped_modes"
 # AI coach.
 AI_SETTINGS_KEY = "ai_settings"
 # The replay is still being parsed: wait for the full data before asking the model.
@@ -379,6 +385,7 @@ class PlayerService:
             "heroes": self.store.hero_counts(primary),
             "filters": filters,
             "sync": dict(self._sync),
+            "skipped": self.skipped_modes(primary),
         }
 
     def match_detail(
@@ -712,16 +719,26 @@ class PlayerService:
             except OpenDotaError as error:
                 if error.code != "private":
                     raise
-            # Bot games, practice and custom lobbies would skew win rate and trends.
-            recent = [
-                row
-                for row in client.recent_matches(account_id, limit=RECENT_MATCHES_LIMIT)
-                if row.get("lobby_type") is None or row["lobby_type"] in REVIEWABLE_LOBBY_TYPES
-            ]
+            # Bot games, practice, custom lobbies, Turbo and other modes with their
+            # own rules would skew win rate, trends and the norms of the reviews.
+            rows = client.recent_matches(account_id, limit=RECENT_MATCHES_LIMIT)
+            recent = [row for row in rows if is_reviewable_match(row)]
+            skipped = [row for row in rows if not is_reviewable_match(row)]
             for row in recent:
                 match_id = row.pop("match_id", None)
                 if match_id:
                     self.store.upsert_match(account_id, match_id, source="opendota", fields=row)
+            self._drop_unreviewable(account_id)
+            self.store.set_meta(
+                f"{SKIPPED_MODES_META}:{account_id}",
+                json.dumps(
+                    {
+                        "count": len(skipped),
+                        "turbo": sum(r.get("game_mode") == TURBO_GAME_MODE for r in skipped),
+                        "of": len(rows),
+                    }
+                ),
+            )
             # Review the latest matches (one request each, well under the rate limit).
             for row in self.store.list_matches(account_id, limit=REVIEW_RECENT_MATCHES):
                 if not row.get("has_analysis") or ("opendota" not in row["sources"]):
@@ -783,6 +800,11 @@ class PlayerService:
         if not trimmed.get("found_player"):
             self.store.upsert_match(account_id, match_id, source="opendota", parse_status="private")
             return
+        if not is_reviewable_match(trimmed):
+            # A live match recorded from GSI that turns out to be Turbo, a bot
+            # game or another mode with its own rules: not part of the history.
+            self.store.delete_matches(account_id, [match_id])
+            return
         parsed = bool(trimmed.get("parsed"))
         status = "parsed" if parsed else "basic"
         if not parsed and request_parse:
@@ -804,6 +826,25 @@ class PlayerService:
         self._rebuild_analysis(account_id, match_id)
         if status == "parsing":
             self._retry(account_id, match_id, request_parse, attempt)
+
+    def _drop_unreviewable(self, account_id: int) -> None:
+        """Matches stored before a mode was excluded (older versions kept Turbo)."""
+        drop = [
+            row["match_id"]
+            for row in self.store.mode_rows(account_id)
+            if not is_reviewable_match(row)
+        ]
+        self.store.delete_matches(account_id, drop)
+
+    def skipped_modes(self, account_id: int) -> dict[str, int] | None:
+        raw = self.store.get_meta(f"{SKIPPED_MODES_META}:{account_id}")
+        if not raw:
+            return None
+        with contextlib.suppress(ValueError, TypeError):
+            data = json.loads(raw)
+            if isinstance(data, dict) and int(data.get("count") or 0) > 0:
+                return {key: int(data.get(key) or 0) for key in ("count", "turbo", "of")}
+        return None
 
     def _retry(self, account_id: int, match_id: int, request_parse: bool, attempt: int) -> None:
         self.jobs.submit(

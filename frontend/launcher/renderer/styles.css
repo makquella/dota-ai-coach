@@ -2487,3 +2487,7 @@ label.setting:has(.switch:disabled) {
 .coverage-note {
   margin-top: var(--sp-3);
 }
+
+.skipped-note {
+  margin: var(--sp-3) 0 0;
+}

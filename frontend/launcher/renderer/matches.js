@@ -64,6 +64,8 @@
       filterAllHeroes: "All heroes",
       filterSummary: (games, winrate, score) =>
         [`${games} ${games === 1 ? "match" : "matches"}`, winrate == null ? null : `${winrate}% wins`, score == null ? null : `average score ${score}`].filter(Boolean).join(" · "),
+      skippedModes: (count, turbo, of) =>
+        `${count} of your last ${of} games are not reviewed: ${turbo ? `Turbo (${turbo}), ` : ""}bot games and modes with their own rules would skew the norms.`,
       filterEmptyTitle: "No matches for this filter",
       filterEmptyHint: "Pick another hero or result.",
       pdfSave: "Save PDF",
@@ -339,6 +341,8 @@
       filterAllHeroes: "Все герои",
       filterSummary: (games, winrate, score) =>
         [`${games} ${plural(games, "матч", "матча", "матчей")}`, winrate == null ? null : `${winrate}% побед`, score == null ? null : `средняя оценка ${score}`].filter(Boolean).join(" · "),
+      skippedModes: (count, turbo, of) =>
+        `Не разбираем ${count} из ${of} последних игр: ${turbo ? `Турбо (${turbo}), ` : ""}игры с ботами и режимы со своими правилами исказили бы нормы.`,
       filterEmptyTitle: "Нет матчей под этот фильтр",
       filterEmptyHint: "Выберите другого героя или результат.",
       pdfSave: "Сохранить PDF",
@@ -572,6 +576,7 @@
     careerHero: null,
     heroes: [],
     matchesStats: null,
+    matchesSkipped: null,
     locale: "en",
     view: "home",
     status: null,
@@ -962,6 +967,7 @@
         state.matches = result.data.items || [];
         state.matchesTotal = result.data.total || 0;
         state.matchesStats = result.data.stats || null;
+        state.matchesSkipped = result.data.skipped || null;
         state.heroes = result.data.heroes || [];
         state.matchesLoaded = true;
       }
@@ -1019,10 +1025,13 @@
       }
     }
     const filters = state.matchesLoaded && (state.heroes.length > 1 || filtered) ? filterBar() : null;
+    const skipped = state.matchesLoaded && state.matchesSkipped
+      ? h("p", { class: "muted small skipped-note", text: t("skippedModes", state.matchesSkipped.count, state.matchesSkipped.turbo, state.matchesSkipped.of) })
+      : null;
     root.replaceChildren(
       playerBar(),
       liveNotice || "",
-      card(t("matchesTitle"), "history", [filters, body].filter(Boolean), state.matchesTotal ? h("span", { class: "num", text: String(state.matchesTotal) }) : null)
+      card(t("matchesTitle"), "history", [filters, body, skipped].filter(Boolean), state.matchesTotal ? h("span", { class: "num", text: String(state.matchesTotal) }) : null)
     );
     hydrate(root);
   }
