@@ -55,6 +55,9 @@ def build_post_laning_advice(
     objective_missing = objective_context_is_missing(extra)
     clear_context = _clear_pressure_context(state, extra)
     farm_stall = extra.get("farm_stall") if isinstance(extra.get("farm_stall"), Mapping) else None
+    buyback_spent = (
+        extra.get("buyback_spent") if isinstance(extra.get("buyback_spent"), Mapping) else None
+    )
 
     category = _category_for_state(
         decision_point=decision_point,
@@ -66,6 +69,7 @@ def build_post_laning_advice(
         position_zone=position_zone,
         death_context=death_context,
         farm_stall=farm_stall is not None,
+        buyback_spent=buyback_spent is not None,
     )
     if category is None:
         return None
@@ -73,6 +77,8 @@ def build_post_laning_advice(
     action, reason, risk = _copy_for_category(category, objective_missing)
     if category == "post_laning_farm_stall" and farm_stall:
         reason = _farm_stall_reason(farm_stall)
+    elif category == "post_laning_buyback_reserve" and buyback_spent:
+        reason = _buyback_reason(buyback_spent)
     elif category == "post_laning_farm_recovery":
         reason = _farm_pace_reason(state, extra) or reason
     repeat_key = ":".join(
@@ -171,6 +177,7 @@ def _category_for_state(
     position_zone: str,
     death_context: bool,
     farm_stall: bool = False,
+    buyback_spent: bool = False,
 ) -> str | None:
     # Phase 3 fix: death_route_reset is gated by the factual death_context (derived
     # from GSI state: alive/respawn_seconds/near_player_death/death_count_changed),
@@ -192,6 +199,11 @@ def _category_for_state(
 
     if position_risk == "high" or position_zone == "deep_enemy_side":
         return "post_laning_risky_showing"
+
+    # A purchase just took the gold below the buyback cost late in the game
+    # (buyback_tracker.py). Under pressure the safety-first advice wins.
+    if buyback_spent and not pressure_active:
+        return "post_laning_buyback_reserve"
 
     # Almost no last hits for minutes while alive (farm_tracker.py): get back
     # to farming. Under pressure the safety-first pressure advice wins.
@@ -235,6 +247,12 @@ def _copy_for_category(category: str, objective_missing: bool) -> tuple[str, str
             "You have taken almost no last hits lately; every minute without farm delays your next item.",
             "Medium risk if you keep walking around without farming.",
         )
+    if category == "post_laning_buyback_reserve":
+        return (
+            "Farm back your buyback gold before the next purchase.",
+            "After minute 30 one death without buyback can decide the game.",
+            "High risk if you die before the buyback gold is back.",
+        )
     if category == "post_laning_pressure_avoidance":
         return (
             "Avoid the pressured lane and farm a safer wave or nearby camp.",
@@ -262,6 +280,15 @@ def _copy_for_category(category: str, objective_missing: bool) -> tuple[str, str
         "Keep farming the safest wave-and-camp route and reassess soon.",
         "Your farm pace is stable now, so keep using safe routes instead of forcing uncertain fights.",
         "Low risk if you keep farming without showing in exposed areas.",
+    )
+
+
+def _buyback_reason(signal: Mapping[str, Any]) -> str:
+    gold = _to_int(signal.get("gold"), 0)
+    cost = _to_int(signal.get("cost"), 0)
+    return (
+        f"You have {gold} gold and buyback costs {cost}; "
+        "after minute 30 one death without buyback can decide the game."
     )
 
 

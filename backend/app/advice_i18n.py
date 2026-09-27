@@ -145,6 +145,15 @@ _RU_EXACT: dict[str, str] = {
     "Medium risk if you keep walking around without farming.": (
         "Средний риск, если продолжать ходить по карте без фарма."
     ),
+    "Farm back your buyback gold before the next purchase.": (
+        "Нафармите золото на байбэк, прежде чем покупать дальше."
+    ),
+    "After minute 30 one death without buyback can decide the game.": (
+        "После 30-й минуты одна смерть без байбэка может решить игру."
+    ),
+    "High risk if you die before the buyback gold is back.": (
+        "Высокий риск, если умрёте раньше, чем вернёте золото на байбэк."
+    ),
     "Recover farm through the safest wave-and-camp route.": (
         "Навёрстывайте фарм по самому безопасному маршруту из волн и лагерей."
     ),
@@ -441,6 +450,14 @@ _RU_PATTERNS: tuple[tuple[re.Pattern[str], str], ...] = (
             r"every minute without farm delays your next item\.$"
         ),
         "Добиваний за последние {m} мин: {lh}. Каждая минута без фарма отодвигает следующий предмет.",
+    ),
+    (
+        re.compile(
+            r"^You have (?P<gold>\d+) gold and buyback costs (?P<cost>\d+); "
+            r"after minute 30 one death without buyback can decide the game\.$"
+        ),
+        "Золота {gold}, байбэк стоит {cost}. После 30-й минуты одна смерть без байбэка "
+        "может решить игру.",
     ),
     (
         re.compile(
