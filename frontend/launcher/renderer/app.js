@@ -144,6 +144,17 @@ const I18N = {
       blocked: (v, next) => `Version ${next} is ready. It installs after you close Dota.`,
       error: (v) => `Version ${v} · could not check for updates`
     },
+    whatsNewTitle: (version) => `What's new in ${version}`,
+    whatsNewOk: "Got it",
+    whatsNew: {
+      "0.2.0": [
+        "A plan at the start of each match, and a focus: pick one mistake to work on — every review says whether you avoided it.",
+        "«Ask the coach»: your own question about a match, answered from its data.",
+        "Spoken advice, advice frequency, survival advice for every hero, a reminder to spend gold while dead.",
+        "Match map, this match against your usual numbers, match filters and PDF export.",
+        "A check for Dota's -gamestateintegration launch option, without which no game data arrives."
+      ]
+    },
     setupTitle: "Getting started",
     setupHide: "Hide",
     setupCount: (done, total) => `${done} of ${total}`,
@@ -369,6 +380,17 @@ const I18N = {
       blocked: (v, next) => `Версия ${next} загружена. Установится после выхода из Доты.`,
       error: (v) => `Версия ${v} · не удалось проверить обновления`
     },
+    whatsNewTitle: (version) => `Что нового в ${version}`,
+    whatsNewOk: "Понятно",
+    whatsNew: {
+      "0.2.0": [
+        "План на игру в начале матча и фокус: выберите одну ошибку — в каждом разборе видно, получилось ли её избежать.",
+        "«Спросить тренера»: свой вопрос о матче, ответ по его данным.",
+        "Голос, частота советов, советы по выживанию на любом герое, подсказка потратить золото после смерти.",
+        "Карта матча, сравнение с вашими обычными цифрами, фильтры матчей и сохранение в PDF.",
+        "Проверка параметра запуска -gamestateintegration, без которого Дота не передаёт данные."
+      ]
+    },
     setupTitle: "Первый запуск",
     setupHide: "Скрыть",
     setupCount: (done, total) => `${done} из ${total}`,
@@ -494,6 +516,10 @@ const els = {
   updateHint: $("#update-hint"),
   updateAction: $("#update-action"),
   updateLabel: $("#update-label"),
+  whatsNewCard: $("#whats-new-card"),
+  whatsNewHeading: $("#whats-new-heading"),
+  whatsNewList: $("#whats-new-list"),
+  whatsNewDismiss: $("#whats-new-dismiss"),
   setupCard: $("#setup-card"),
   setupSteps: $("#setup-steps"),
   setupCount: $("#setup-count"),
@@ -696,6 +722,9 @@ async function init() {
     })
   );
   document.querySelector("#tab-settings")?.addEventListener("click", () => run(refreshOpenDota));
+  els.whatsNewDismiss.addEventListener("click", () =>
+    run(async () => renderStatus(await window.launcherApi.dismissWhatsNew()))
+  );
   els.setupDismiss.addEventListener("click", () =>
     run(async () => renderStatus(await window.launcherApi.dismissSetup()))
   );
@@ -815,6 +844,7 @@ function renderStatus(status) {
   renderService(status);
   renderStatusLine(status);
   renderSetup(status);
+  renderWhatsNew(status);
   if (status.backend === "running" && !openDotaLoaded) {
     openDotaLoaded = true;
     run(refreshOpenDota);
@@ -892,6 +922,26 @@ function setupSteps(status) {
       }
     }
   ];
+}
+
+function renderWhatsNew(status) {
+  const version = String(status.whatsNew || "");
+  const table = (I18N[locale] || I18N.en).whatsNew || {};
+  const items = table[version];
+  const show = Boolean(version && Array.isArray(items) && items.length);
+  els.whatsNewCard.classList.toggle("hidden", !show);
+  if (!show || els.whatsNewList.dataset.signature === `${locale}|${version}`) {
+    return;
+  }
+  els.whatsNewList.dataset.signature = `${locale}|${version}`;
+  els.whatsNewHeading.textContent = tr("whatsNewTitle", version);
+  els.whatsNewList.replaceChildren(
+    ...items.map((text) => {
+      const item = document.createElement("li");
+      item.textContent = text;
+      return item;
+    })
+  );
 }
 
 function renderSetup(status) {

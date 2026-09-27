@@ -93,6 +93,8 @@ const settings = createSettingsStore(path.join(USER_DATA_DIR, "settings.json"), 
   // First-run checklist on Home: the first GSI data seen, and "hide" pressed.
   gsiSeenAt: "",
   setupDismissed: false,
+  // Version whose "What's new" card is still to be shown (set by an update).
+  whatsNewPending: "",
   // How often coaching advice may appear: calm | normal | active (backend scheduler).
   adviceFrequency: "normal",
   // UI language: auto (system) | ru | en.
@@ -426,6 +428,7 @@ function publicStatus() {
     update: { ...updater.getState(), blockedByGame: isGameRunning() },
     player: live.player,
     setup: { gsiSeen: Boolean(settings.get("gsiSeenAt")), dismissed: Boolean(settings.get("setupDismissed")) },
+    whatsNew: settings.get("whatsNewPending") === app.getVersion() ? app.getVersion() : "",
     overlayReasonCode: presence.code,
     backend: processStatus.backend,
     backendPort: backend.port,
@@ -1954,6 +1957,10 @@ function registerIpc() {
   ipcMain.handle("launcher:player", (_event, op, args) => playerRequest(String(op || ""), args || {}));
   ipcMain.handle("launcher:open-logs", () => openPath(LOGS_DIR));
   ipcMain.handle("launcher:save-problem-report", () => saveProblemReport());
+  ipcMain.handle("launcher:dismiss-whats-new", () => {
+    settings.set("whatsNewPending", "");
+    return publicStatus();
+  });
   ipcMain.handle("launcher:dismiss-setup", () => {
     settings.set("setupDismissed", true);
     return publicStatus();
@@ -2194,6 +2201,7 @@ function bootstrap() {
       createMainWindow();
     }
     if (justUpdated) {
+      settings.set("whatsNewPending", app.getVersion());
       appendLog("update", `Updated from ${updatedFrom} to ${app.getVersion()}.`, { force: true });
       showTrayBalloon(t("updated", app.getVersion()));
     }
