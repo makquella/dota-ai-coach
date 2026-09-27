@@ -39,3 +39,22 @@ def test_first_blood_elsewhere_gives_no_fight_warning(client):
         client.post("/gsi", json=payload)
         state = get_current_state()["state"]
         assert detect_decision_point(state) != "BAD_FIGHT_RISK", payload["map"]["clock_time"]
+
+
+def test_counters_that_go_down_are_not_events(client):
+    first = copy.deepcopy(gsi_match_stream(minutes=1, death_minutes=())[-2])
+    first["player"]["deaths"] = 3
+    first["map"]["radiant_score"] = 12
+    client.post("/gsi", json=first)
+    second = copy.deepcopy(first)
+    second["map"]["clock_time"] += 1
+    second["player"]["deaths"] = 0  # reconnect / replay seek
+    second["map"]["radiant_score"] = 4
+    client.post("/gsi", json=second)
+    extra = get_current_state()["state"]["extra_context"]
+    assert extra["death_count_changed"] is False and extra["score_changed"] is False
+    third = copy.deepcopy(second)
+    third["map"]["clock_time"] += 1
+    third["player"]["deaths"] = 1
+    client.post("/gsi", json=third)
+    assert get_current_state()["state"]["extra_context"]["death_count_changed"] is True

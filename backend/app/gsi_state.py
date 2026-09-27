@@ -421,10 +421,12 @@ def _normalize_extra_context(
         "abilities": abilities,
     }
 
-    context["death_count_changed"] = _value_changed(previous_for_deltas, context, "deaths")
-    context["score_changed"] = _value_changed(
+    # Deaths and team scores only grow within a match: a drop (reconnect, replay
+    # seek, a new match reusing the id) is not an event.
+    context["death_count_changed"] = _value_increased(previous_for_deltas, context, "deaths")
+    context["score_changed"] = _value_increased(
         previous_for_deltas, context, "radiant_score"
-    ) or _value_changed(previous_for_deltas, context, "dire_score")
+    ) or _value_increased(previous_for_deltas, context, "dire_score")
     context["farm_rate_state"] = _farm_rate_state(
         minute=minute,
         last_hits=context.get("last_hits"),
@@ -523,10 +525,11 @@ def _farm_threshold_missed(minute: int, last_hits: int | None) -> bool:
     )
 
 
-def _value_changed(previous: dict[str, Any] | None, current: dict[str, Any], key: str) -> bool:
-    if not previous or previous.get(key) is None or current.get(key) is None:
+def _value_increased(previous: dict[str, Any] | None, current: dict[str, Any], key: str) -> bool:
+    before, now = (previous or {}).get(key), current.get(key)
+    if not isinstance(before, int) or not isinstance(now, int):
         return False
-    return previous.get(key) != current.get(key)
+    return now > before
 
 
 def _optional_int(value: Any) -> int | None:
