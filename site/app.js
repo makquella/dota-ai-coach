@@ -10,6 +10,7 @@
     skip: "Skip to content",
     navLabel: "Sections",
     navFeatures: "Features",
+    navIngame: "In game",
     navHow: "How it works",
     navReview: "Review",
     navFaq: "FAQ",
@@ -78,6 +79,34 @@
     m7: "Focus: pick one mistake — every next review shows whether you avoided it",
     m8: "A plan at the start of each match: last-hit target, key item and your focus",
     m9: "Turbo and bot games do not skew your stats and trends",
+    ovKicker: "Right in the game",
+    ovTitle: "Dota is hard. The coach makes it clearer",
+    ovTip: "Tip",
+    ovGold: "Gold",
+    ovBuyback: "Buyback",
+    ov1Label: "Plan for this game",
+    ov1Line1: "55 last hits by 10:00 (your average: 59)",
+    ov1Line2: "Battle Fury by 20:00, like most players: 52% wins",
+    ov1Line3: "Your focus: death streak",
+    ov1Title: "A plan for every game",
+    ov1Text: "Until 1:30: the last-hit target, the key item with its usual timing and the mistake you are working on.",
+    ov2Slot: "TP slot is empty",
+    ov2Action: "Keep a TP scroll in its slot: buy one now, the courier can bring it.",
+    ov2Title: "No TP scroll",
+    ov2Text: "A minute without a TP after minute 10 and the coach reminds you: without it you miss fights and towers.",
+    ov3Action: "Buy parts of your next item now with your 1800 gold: they wait for you at the fountain.",
+    ov3Title: "Gold after a death",
+    ov3Text: "While you wait to respawn, buy parts of your next item. After minute 30 the coach keeps the buyback cost aside.",
+    ov4Action: "Consider: farm back your buyback gold before the next purchase.",
+    ov4Title: "Buyback in reserve",
+    ov4Text: "When a purchase after minute 30 leaves less gold than buyback costs — with the exact numbers.",
+    ov5Focus: "Focus: death streak",
+    ov5Score: "Done in 4 of 6 matches · 2 in a row",
+    ov5Title: "Focus on one mistake",
+    ov5Text: "Choose what to work on. Every next review says whether it worked, and the game plan reminds you of it.",
+    ov6Answer: "Answer to evasion:",
+    ov6Title: "Draft after the match",
+    ov6Text: "Your win rate on the hero against each enemy, the best pick from your pool and the items you were missing.",
     howKicker: "Three steps",
     howTitle: "Install it and forget it until the match starts",
     s1Title: "Install",
@@ -188,7 +217,8 @@
     });
     for (const [attr, name] of [
       ["i18nAria", "aria-label"],
-      ["i18nAlt", "alt"]
+      ["i18nAlt", "alt"],
+      ["i18nTitle", "title"]
     ]) {
       document.querySelectorAll(`[data-${attr.replace(/[A-Z]/g, (c) => `-${c.toLowerCase()}`)}]`).forEach((el) => {
         const key = el.dataset[attr];
@@ -275,6 +305,38 @@
     }
   }
 
+  // --- hero portraits and item icons ------------------------------------------------
+  // Valve's CDN (the same pictures dota2.com and OpenDota show). Until a picture
+  // loads, or if it cannot load, the element shows the initials.
+
+  const CDN = "https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react";
+
+  function initials(key) {
+    const words = String(key || "").split("_").filter(Boolean);
+    return (words.length > 1 ? words[0][0] + words[1][0] : (words[0] || "?").slice(0, 2)).toUpperCase();
+  }
+
+  function fillPictures(root) {
+    root.querySelectorAll(".pic[data-hero], .pic[data-item]").forEach((el) => {
+      if (el.dataset.filled) {
+        return;
+      }
+      el.dataset.filled = "1";
+      const hero = el.dataset.hero;
+      const key = hero || el.dataset.item;
+      el.dataset.fallback = el.dataset.fallback || initials(key);
+      const img = new Image();
+      img.alt = "";
+      img.decoding = "async";
+      img.referrerPolicy = "no-referrer";
+      img.addEventListener("error", () => img.remove());
+      img.src = hero ? `${CDN}/heroes/${key}.png` : `${CDN}/items/${key}.png`;
+      el.append(img);
+    });
+  }
+
+  fillPictures(document);
+
   // --- hero: the living advice card ------------------------------------------------
 
   const card = document.getElementById("advice");
@@ -283,6 +345,8 @@
   const reasonEl = document.getElementById("advice-reason");
   const hpEl = document.getElementById("scene-hp");
   const clockEl = document.getElementById("scene-clock");
+  const hpTextEl = document.getElementById("scene-hp-text");
+  const MAX_HP = 1800;
   let adviceIndex = 0;
   let seconds = 14 * 60 + 32;
 
@@ -295,6 +359,9 @@
       actionEl.textContent = item.action;
       reasonEl.textContent = item.reason;
       hpEl.style.width = `${item.hp}%`;
+      if (hpTextEl) {
+        hpTextEl.textContent = `${Math.round((MAX_HP * item.hp) / 100)} / ${MAX_HP}`;
+      }
       card.classList.remove("is-leaving");
     };
     if (instant || reducedMotion) {

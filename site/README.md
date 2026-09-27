@@ -45,3 +45,7 @@ Telegram, Discord и VK.
 Скриншоты в `assets/shots/{ru,en}/` сняты с настоящего приложения на демо-данных
 (2x, JPEG). Если интерфейс поменяется, их стоит переснять тем же способом и
 сохранить под теми же именами.
+
+## Hero and item pictures
+
+The hero scene and the «В игре» cards load hero portraits and item icons from Valve's CDN (`cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/...`, the same files dota2.com and OpenDota show) at view time; `app.js` fills every `.pic[data-hero]` / `.pic[data-item]`, and without a picture the initials show. Dota 2 and its artwork are Valve's.

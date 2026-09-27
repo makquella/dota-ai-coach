@@ -33,6 +33,7 @@
         </a>
         <nav class="nav-links" aria-label="Разделы" data-i18n-aria="navLabel">
           <a href="#features" data-i18n="navFeatures">Возможности</a>
+          <a href="#ingame" data-i18n="navIngame">В игре</a>
           <a href="#how" data-i18n="navHow">Как работает</a>
           <a href="#review" data-i18n="navReview">Разбор</a>
           <a href="#faq" data-i18n="navFaq">Вопросы</a>
@@ -82,26 +83,62 @@
             <div class="scene-glow" aria-hidden="true"></div>
             <div class="scene-screen" aria-hidden="true">
               <div class="scene-terrain"></div>
-              <div class="scene-clock num"><span class="team team-r">24</span><span id="scene-clock">14:32</span><span class="team team-d">19</span></div>
+              <!-- Dota's top bar: both teams, kills and the clock. -->
+              <div class="topbar">
+                <div class="topbar-team">
+                  <span class="pic pic-top" data-hero="juggernaut"></span>
+                  <span class="pic pic-top" data-hero="crystal_maiden"></span>
+                  <span class="pic pic-top" data-hero="invoker"></span>
+                  <span class="pic pic-top" data-hero="mars"></span>
+                  <span class="pic pic-top" data-hero="lion"></span>
+                </div>
+                <div class="topbar-clock num"><span class="team team-r">24</span><span id="scene-clock">14:32</span><span class="team team-d">19</span></div>
+                <div class="topbar-team">
+                  <span class="pic pic-top" data-hero="antimage"></span>
+                  <span class="pic pic-top" data-hero="nevermore"></span>
+                  <span class="pic pic-top" data-hero="axe"></span>
+                  <span class="pic pic-top" data-hero="rubick"></span>
+                  <span class="pic pic-top" data-hero="witch_doctor"></span>
+                </div>
+              </div>
               <div class="scene-minimap">
                 <svg viewBox="0 0 100 100">
-                  <rect x="0" y="0" width="100" height="100" rx="6" class="mm-ground" />
-                  <path d="M3,3 L97,97" class="mm-river" />
-                  <path d="M16,80 L16,20 Q16,16 20,16 L80,16" class="mm-lane" />
-                  <path d="M20,84 L80,84 Q84,84 84,80 L84,20" class="mm-lane" />
-                  <path d="M20,80 L80,20" class="mm-lane" />
-                  <circle cx="58" cy="84" r="3.2" class="mm-me" />
-                  <circle cx="70" cy="80" r="2.4" class="mm-enemy" />
-                  <circle cx="44" cy="44" r="2.4" class="mm-enemy" />
+                  <rect x="0" y="0" width="100" height="100" rx="4" class="mm-ground" />
+                  <path d="M0,100 L0,72 Q30,60 44,44 Q60,30 72,0 L100,0 L100,26 Q70,42 56,56 Q42,70 26,100 Z" class="mm-green" />
+                  <path d="M4,96 L96,4" class="mm-river" />
+                  <path d="M12,88 L12,14 Q12,12 14,12 L88,12" class="mm-lane" />
+                  <path d="M12,88 L86,88 Q88,88 88,86 L88,12" class="mm-lane" />
+                  <path d="M14,86 L86,14" class="mm-lane" />
+                  <g class="mm-towers mm-radiant"><rect x="10" y="60" width="4" height="4" /><rect x="10" y="36" width="4" height="4" /><rect x="36" y="86" width="4" height="4" /><rect x="60" y="86" width="4" height="4" /><rect x="30" y="68" width="4" height="4" /></g>
+                  <g class="mm-towers mm-dire"><rect x="86" y="36" width="4" height="4" /><rect x="86" y="60" width="4" height="4" /><rect x="36" y="10" width="4" height="4" /><rect x="60" y="10" width="4" height="4" /><rect x="66" y="28" width="4" height="4" /></g>
                 </svg>
+                <span class="mm-hero is-me" style="left: 58%; top: 84%"><span class="pic pic-round" data-hero="juggernaut"></span></span>
+                <span class="mm-hero is-enemy" style="left: 72%; top: 78%"><span class="pic pic-round" data-hero="axe"></span></span>
+                <span class="mm-hero is-enemy" style="left: 45%; top: 46%"><span class="pic pic-round" data-hero="nevermore"></span></span>
+                <span class="mm-hero" style="left: 24%; top: 70%"><span class="pic pic-round" data-hero="lion"></span></span>
               </div>
+              <!-- Dota's bottom panel: portrait, level, health and mana, items, gold. -->
               <div class="scene-hud">
-                <div class="hud-portrait"></div>
-                <div class="hud-bars">
-                  <div class="hud-bar hud-hp"><span id="scene-hp" style="width: 34%"></span></div>
-                  <div class="hud-bar hud-mp"><span style="width: 62%"></span></div>
+                <div class="hud-portrait">
+                  <span class="pic pic-portrait" data-hero="juggernaut"></span>
+                  <span class="hud-level num">11</span>
                 </div>
-                <div class="hud-items"><i></i><i></i><i></i><i></i><i></i><i></i></div>
+                <div class="hud-bars">
+                  <div class="hud-bar hud-hp"><span id="scene-hp" style="width: 34%"></span><b class="num" id="scene-hp-text">612 / 1800</b></div>
+                  <div class="hud-bar hud-mp"><span style="width: 62%"></span><b class="num">380 / 612</b></div>
+                </div>
+                <div class="hud-items">
+                  <span class="pic pic-item" data-item="power_treads"></span>
+                  <span class="pic pic-item" data-item="bfury"></span>
+                  <span class="pic pic-item" data-item="magic_wand"></span>
+                  <span class="pic pic-item" data-item="wraith_band"></span>
+                  <span class="pic pic-item" data-item="tango"></span>
+                  <span class="pic pic-item is-empty"></span>
+                </div>
+                <div class="hud-side">
+                  <span class="pic pic-item pic-tp" data-item="tpscroll"></span>
+                  <span class="hud-gold num">1 240</span>
+                </div>
               </div>
             </div>
             <div class="advice" id="advice" data-mode="urgent">
@@ -241,7 +278,121 @@
       </section>
 
       <!-- How it works -->
-      <section class="section section-alt" id="how">
+      <section class="section section-alt" id="ingame">
+        <div class="wrap">
+          <header class="section-head">
+            <p class="kicker" data-i18n="ovKicker">Прямо в игре</p>
+            <h2 data-i18n="ovTitle">Дота сложная. Тренер делает её понятнее</h2>
+          </header>
+          <div class="ov-grid">
+            <article class="ov-card">
+              <div class="ov-visual">
+                <div class="ov-overlay">
+                  <p class="ov-overlay-top"><span class="dot dot-idle"></span><span data-i18n="ov1Label">План на игру</span><span class="ov-overlay-hero"><span class="pic pic-hero-sm" data-hero="juggernaut"></span>Juggernaut</span></p>
+                  <p class="ov-overlay-action" data-i18n="ov1Line1">К 10:00 — 55 добиваний (ваш средний: 59)</p>
+                  <p class="ov-plan-line"><span class="pic pic-item-sm" data-item="bfury"></span><span data-i18n="ov1Line2">Battle Fury к 20:00, как у большинства: побед 52%</span></p>
+                  <p class="ov-plan-line"><span class="ov-focus-dot"></span><span data-i18n="ov1Line3">Ваш фокус: серия смертей</span></p>
+                </div>
+              </div>
+              <h3 data-i18n="ov1Title">План на игру</h3>
+              <p data-i18n="ov1Text">До 1:30 — цель по добиваниям, ключевой предмет с его обычным таймингом и ошибка, над которой ты работаешь.</p>
+            </article>
+
+            <article class="ov-card">
+              <div class="ov-visual">
+                <div class="ov-slots">
+                  <span class="pic pic-item" data-item="power_treads"></span>
+                  <span class="pic pic-item" data-item="bfury"></span>
+                  <span class="pic pic-item" data-item="magic_wand"></span>
+                  <span class="pic pic-item" data-item="wraith_band"></span>
+                  <span class="pic pic-item" data-item="yasha"></span>
+                  <span class="pic pic-item is-empty"></span>
+                  <span class="ov-tp-slot" data-i18n-title="ov2Slot" title="Слот TP пуст"><span>TP</span></span>
+                </div>
+                <div class="ov-overlay ov-overlay-sm">
+                  <p class="ov-overlay-top"><span class="dot dot-warn"></span><span data-i18n="ovTip">Совет</span></p>
+                  <p class="ov-overlay-action" data-i18n="ov2Action">Держите свиток телепортации в слоте: купите его сейчас, курьер принесёт.</p>
+                </div>
+              </div>
+              <h3 data-i18n="ov2Title">Без свитка телепортации</h3>
+              <p data-i18n="ov2Text">Минута без TP после 10-й — и тренер напомнит: без него не успеть ни в драку, ни на защиту башни.</p>
+            </article>
+
+            <article class="ov-card">
+              <div class="ov-visual">
+                <div class="ov-death">
+                  <span class="pic pic-hero-md is-dead" data-hero="juggernaut"></span>
+                  <div class="ov-death-info">
+                    <p class="ov-respawn num">0:24</p>
+                    <p class="ov-gold num">1 800</p>
+                  </div>
+                  <div class="ov-parts">
+                    <span class="pic pic-item-md" data-item="demon_edge"></span>
+                    <span class="pic pic-item-md" data-item="quelling_blade"></span>
+                  </div>
+                </div>
+                <div class="ov-overlay ov-overlay-sm">
+                  <p class="ov-overlay-action" data-i18n="ov3Action">Купите части следующего предмета на 1800 золота сейчас — заберёте их у фонтана.</p>
+                </div>
+              </div>
+              <h3 data-i18n="ov3Title">Золото после смерти</h3>
+              <p data-i18n="ov3Text">Пока ждёшь возрождения — купи части следующего предмета. После 30-й минуты тренер оставит в резерве стоимость байбэка.</p>
+            </article>
+
+            <article class="ov-card">
+              <div class="ov-visual">
+                <div class="ov-buyback">
+                  <p class="ov-bb-row"><span data-i18n="ovGold">Золото</span><b class="num">700</b></p>
+                  <div class="ov-bb-bar"><span style="width: 26%"></span><i style="left: 100%"></i></div>
+                  <p class="ov-bb-row muted"><span data-i18n="ovBuyback">Байбэк</span><b class="num">2 740</b></p>
+                </div>
+                <div class="ov-overlay ov-overlay-sm">
+                  <p class="ov-overlay-top"><span class="dot dot-warn"></span><span data-i18n="ovTip">Совет</span></p>
+                  <p class="ov-overlay-action" data-i18n="ov4Action">Подумайте: нафармите золото на байбэк, прежде чем покупать дальше.</p>
+                </div>
+              </div>
+              <h3 data-i18n="ov4Title">Байбэк в резерве</h3>
+              <p data-i18n="ov4Text">Если после 30-й минуты покупка оставила меньше золота, чем стоит байбэк, — с точными цифрами.</p>
+            </article>
+
+            <article class="ov-card">
+              <div class="ov-visual">
+                <div class="ov-focus">
+                  <p class="ov-focus-title" data-i18n="ov5Focus">Фокус: серия смертей</p>
+                  <div class="ov-focus-marks">
+                    <span class="ov-mark is-bad"><span class="pic pic-hero-sm" data-hero="juggernaut"></span></span>
+                    <span class="ov-mark is-good"><span class="pic pic-hero-sm" data-hero="antimage"></span></span>
+                    <span class="ov-mark is-good"><span class="pic pic-hero-sm" data-hero="juggernaut"></span></span>
+                    <span class="ov-mark is-bad"><span class="pic pic-hero-sm" data-hero="phantom_assassin"></span></span>
+                    <span class="ov-mark is-good"><span class="pic pic-hero-sm" data-hero="juggernaut"></span></span>
+                    <span class="ov-mark is-good"><span class="pic pic-hero-sm" data-hero="antimage"></span></span>
+                  </div>
+                  <p class="ov-focus-score num" data-i18n="ov5Score">Получилось в 4 из 6 матчей · 2 подряд</p>
+                </div>
+              </div>
+              <h3 data-i18n="ov5Title">Фокус на одной ошибке</h3>
+              <p data-i18n="ov5Text">Выбери, над чем работать. Каждый следующий разбор скажет, получилось ли, а план на игру напомнит о ней.</p>
+            </article>
+
+            <article class="ov-card">
+              <div class="ov-visual">
+                <div class="ov-draft">
+                  <div class="ov-draft-row"><span class="pic pic-hero-sm" data-hero="antimage"></span><span>Anti-Mage</span><b class="num is-bad">45%</b></div>
+                  <div class="ov-draft-row"><span class="pic pic-hero-sm" data-hero="nevermore"></span><span>Shadow Fiend</span><b class="num is-bad">47%</b></div>
+                  <div class="ov-draft-row"><span class="pic pic-hero-sm" data-hero="axe"></span><span>Axe</span><b class="num">49%</b></div>
+                  <div class="ov-draft-row"><span class="pic pic-hero-sm" data-hero="phantom_assassin"></span><span>Phantom Assassin</span><b class="num is-bad">46%</b></div>
+                  <div class="ov-draft-row"><span class="pic pic-hero-sm" data-hero="witch_doctor"></span><span>Witch Doctor</span><b class="num is-good">52%</b></div>
+                  <p class="ov-counter"><span data-i18n="ov6Answer">Ответ на уклонение:</span><span class="pic pic-item-sm" data-item="monkey_king_bar"></span><span class="pic pic-item-sm" data-item="bloodthorn"></span></p>
+                </div>
+              </div>
+              <h3 data-i18n="ov6Title">Драфт после матча</h3>
+              <p data-i18n="ov6Text">Твой винрейт на герое против каждого врага, лучший пик из твоего пула и предметы, которых не хватало.</p>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <section class="section" id="how">
         <div class="wrap">
           <header class="section-head">
             <p class="kicker" data-i18n="howKicker">Три шага</p>
@@ -268,7 +419,7 @@
       </section>
 
       <!-- Showcase -->
-      <section class="section" id="review">
+      <section class="section section-alt" id="review">
         <div class="wrap">
           <header class="section-head">
             <p class="kicker" data-i18n="reviewKicker">После матча</p>
@@ -300,7 +451,7 @@
       </section>
 
       <!-- Trust -->
-      <section class="section section-alt">
+      <section class="section">
         <div class="wrap trust">
           <header class="section-head">
             <p class="kicker" data-i18n="trustKicker">Честно</p>
@@ -327,7 +478,7 @@
       </section>
 
       <!-- FAQ -->
-      <section class="section" id="faq">
+      <section class="section section-alt" id="faq">
         <div class="wrap faq-wrap">
           <header class="section-head">
             <p class="kicker" data-i18n="faqKicker">Вопросы</p>
