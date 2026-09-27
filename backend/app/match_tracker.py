@@ -59,6 +59,15 @@ def _int(value: Any) -> int | None:
     return number if abs(number) <= MAX_GSI_NUMBER else None
 
 
+def _id(value: Any) -> int | None:
+    """Match, Steam and account ids: positive and within SQLite's 64-bit integers."""
+    try:
+        number = int(value)
+    except (TypeError, ValueError, OverflowError):
+        return None
+    return number if 0 < number < 2**63 else None
+
+
 def _dict(value: Any) -> dict[str, Any]:
     return value if isinstance(value, dict) else {}
 
@@ -87,14 +96,14 @@ def is_spectator_payload(payload: dict[str, Any]) -> bool:
 
 
 def match_id_from_gsi(map_block: dict[str, Any]) -> int | None:
-    match_id = _int(map_block.get("matchid") or map_block.get("match_id"))
+    match_id = _id(map_block.get("matchid") or map_block.get("match_id"))
     return match_id if match_id and match_id > 0 else None
 
 
 def account_from_gsi(player_block: dict[str, Any]) -> tuple[int | None, str | None]:
     """(account id, 64-bit steam id) of the player at the keyboard."""
-    steam64 = _int(player_block.get("steamid"))
-    account_id = _int(player_block.get("accountid"))
+    steam64 = _id(player_block.get("steamid"))
+    account_id = _id(player_block.get("accountid"))
     if steam64 and steam64 > STEAM64_BASE:
         return (account_id or steam64 - STEAM64_BASE), str(steam64)
     if account_id and account_id > 0:
