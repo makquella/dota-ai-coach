@@ -40,6 +40,15 @@ contextBridge.exposeInMainWorld("launcherApi", {
   },
   openLogs: () => ipcRenderer.invoke("launcher:open-logs"),
   exportPdf: (kind, id) => ipcRenderer.invoke("launcher:export-pdf", kind, id),
+  // History backup: save to a file / merge a file back (dialogs in the main process).
+  // Share a review by link (the delete token never leaves the main process).
+  shareStatus: (matchId) => ipcRenderer.invoke("launcher:share-status", matchId),
+  shareCreate: (matchId, withCoach) => ipcRenderer.invoke("launcher:share-create", matchId, withCoach),
+  shareDelete: (matchId) => ipcRenderer.invoke("launcher:share-delete", matchId),
+  shareCopy: (matchId) => ipcRenderer.invoke("launcher:share-copy", matchId),
+  shareOpen: (matchId) => ipcRenderer.invoke("launcher:share-open", matchId),
+  exportHistory: () => ipcRenderer.invoke("launcher:backup-export"),
+  importHistory: () => ipcRenderer.invoke("launcher:backup-import"),
   dismissSetup: () => ipcRenderer.invoke("launcher:dismiss-setup"),
   dismissWhatsNew: () => ipcRenderer.invoke("launcher:dismiss-whats-new"),
   saveProblemReport: () => ipcRenderer.invoke("launcher:save-problem-report"),

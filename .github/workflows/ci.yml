@@ -119,8 +119,8 @@ jobs:
         if: success()
         uses: actions/upload-artifact@v4
         with:
-          name: DotaAICoach-windows-installer
-          path: frontend/launcher/dist/DotaAICoach-Setup-*.exe
+          name: Wardly-windows-installer
+          path: frontend/launcher/dist/Wardly-Setup-*.exe
           if-no-files-found: error
           retention-days: 14
 

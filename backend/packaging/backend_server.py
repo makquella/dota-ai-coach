@@ -1,5 +1,5 @@
 """
-Packaged backend entry point for Dota AI Coach.
+Packaged backend entry point for Wardly.
 
 This module is intentionally small: it starts the existing FastAPI app without
 changing recommendation, scheduler, parser, GSI, or overlay behavior.
@@ -73,7 +73,7 @@ def main() -> int:
     from app.config import BACKEND_HOST, BACKEND_PORT, DATA_DIR, WRITABLE_DIR
     from app.main import app  # noqa: WPS433
 
-    _log(f"[backend] Starting Dota AI Coach backend on http://{BACKEND_HOST}:{BACKEND_PORT}")
+    _log(f"[backend] Starting Wardly backend on http://{BACKEND_HOST}:{BACKEND_PORT}")
     _log(f"[backend] Runtime directory: {runtime_dir}")
     _log(f"[backend] Data directory: {DATA_DIR}")
     _log(f"[backend] Writable directory: {WRITABLE_DIR}")

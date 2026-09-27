@@ -19,6 +19,7 @@ const http = require("node:http");
 const net = require("node:net");
 const os = require("node:os");
 const path = require("node:path");
+const zlib = require("node:zlib");
 
 const { SCHEME: DOTA_ASSET_SCHEME, createAssetHandler } = require("./dota-assets");
 const { createDotaWatcher } = require("./dota-watcher");
@@ -45,7 +46,7 @@ const {
 const { createUpdater, UPDATE_STATUS } = require("./updater");
 
 const APP_ID = "com.dotaai.coach";
-const APP_NAME = "Dota AI Coach";
+const APP_NAME = "Wardly";
 // Shared with the frozen backend (backend/app/config.py -> %APPDATA%\DotaAICoach).
 const APP_DATA_DIR_NAME = "DotaAICoach";
 
@@ -1078,6 +1079,11 @@ const PLAYER_OPS = {
   match: (args) => ["GET", `/player/matches/${matchIdArg(args)}?lang=${uiLocale()}`, undefined, 15000],
   refreshMatch: (args) => ["POST", `/player/matches/${matchIdArg(args)}/refresh`],
   week: () => ["GET", `/player/week?lang=${uiLocale()}`],
+  // Compare with a friend (their public OpenDota matches, fetched by the backend).
+  friend: (args) => ["GET", `/player/friend?lang=${uiLocale()}&group=${friendGroupArg(args)}`],
+  friendSet: (args) => ["POST", `/player/friend?lang=${uiLocale()}`, { steam: String(args.steam || "").slice(0, 200) }],
+  friendRefresh: () => ["POST", `/player/friend/refresh?lang=${uiLocale()}`],
+  friendRemove: () => ["DELETE", "/player/friend"],
   career: (args) => [
     "GET",
     `/player/career?lang=${uiLocale()}` + (/^\d{1,4}$/.test(String(args.heroId ?? "")) ? `&hero_id=${args.heroId}` : ""),
@@ -1121,6 +1127,10 @@ const PLAYER_OPS = {
   // One real request to the provider: allow it time.
   aiCheck: () => ["POST", "/player/ai/check", undefined, 45000]
 };
+
+function friendGroupArg(args) {
+  return ["all", "core", "support"].includes(args.group) ? args.group : "all";
+}
 
 // Where a player gets a free key (opened in the browser).
 const AI_KEY_PAGES = {
@@ -1340,7 +1350,7 @@ function formatLiveGsiStatus(status) {
 // "heartbeat" keeps a paused match fresh for the backend's staleness check
 // (GSI_STALE_SECONDS=5); otherwise the overlay would hide during pauses.
 function gsiConfigText() {
-  return `"Dota AI Coach GSI"
+  return `"Wardly GSI"
 {
   "uri"           "${gsiEndpoint()}"
   "timeout"       "5.0"
@@ -1820,8 +1830,8 @@ async function exportPdf(kind, id) {
   }
   const stamp = new Date().toISOString().slice(0, 10);
   const fileName = kind === "match" && /^\d{1,20}$/.test(String(id))
-    ? `DotaAICoach-match-${id}.pdf`
-    : `DotaAICoach-progress-${stamp}.pdf`;
+    ? `Wardly-match-${id}.pdf`
+    : `Wardly-progress-${stamp}.pdf`;
   const { canceled, filePath } = await dialog.showSaveDialog(mainWindow, {
     defaultPath: path.join(reportFolder(), fileName),
     filters: [{ name: "PDF", extensions: ["pdf"] }]
@@ -1850,6 +1860,179 @@ async function exportPdf(kind, id) {
   appendLog("launcher", `PDF saved: ${filePath}`, { force: true });
   shell.showItemInFolder(filePath);
   return { ok: true, path: filePath };
+}
+
+// ---------------------------------------------------------------------------
+// Share a review: the public part (backend share_review.py) goes to the API,
+// which answers with a link; the delete token stays in settings.shares.
+// ---------------------------------------------------------------------------
+
+const SHARE_TIMEOUT_MS = 30_000;
+
+function shareRecords() {
+  const stored = settings.get("shares");
+  const now = Date.now();
+  const records = stored && typeof stored === "object" ? stored : {};
+  // Links past their 90 days are gone on the server too.
+  return Object.fromEntries(Object.entries(records).filter(([, record]) => record && Number(record.expiresAt) > now));
+}
+
+function publicShare(record) {
+  return record ? { url: record.url, expiresAt: record.expiresAt, withCoach: Boolean(record.withCoach) } : null;
+}
+
+function shareStatus(matchId) {
+  return { ok: true, share: publicShare(shareRecords()[matchId]) };
+}
+
+async function createShare(matchId, withCoach) {
+  let review;
+  try {
+    const payload = await requestBackendJson(
+      `/player/matches/${matchId}/share?lang=${uiLocale()}&coach=${withCoach ? "true" : "false"}`,
+      "GET",
+      undefined,
+      15000
+    );
+    review = payload.review;
+  } catch (error) {
+    return { ok: false, code: (error.payload && error.payload.code) || "backend_down" };
+  }
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), SHARE_TIMEOUT_MS);
+  try {
+    const response = await electronNet.fetch(`${apiUrl()}/v1/share`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ install_id: installId(), version: app.getVersion(), review }),
+      signal: controller.signal
+    });
+    let answer = {};
+    try {
+      answer = await response.json();
+    } catch {
+      // Not JSON: the status decides.
+    }
+    if (!response.ok || !answer.url || !answer.delete_token) {
+      return { ok: false, code: answer.code || `http_${response.status}` };
+    }
+    const record = {
+      id: String(answer.id),
+      url: String(answer.url),
+      token: String(answer.delete_token),
+      expiresAt: Number(answer.expires_at),
+      withCoach: Boolean(withCoach)
+    };
+    settings.set("shares", { ...shareRecords(), [matchId]: record });
+    appendLog("launcher", `Review of match ${matchId} shared: ${record.url}`, { force: true });
+    return { ok: true, share: publicShare(record) };
+  } catch (error) {
+    return { ok: false, code: "offline", error: error.message };
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+async function deleteShareLink(matchId) {
+  const records = shareRecords();
+  const record = records[matchId];
+  if (!record) {
+    return { ok: true, share: null };
+  }
+  try {
+    const response = await electronNet.fetch(`${apiUrl()}/v1/share/${encodeURIComponent(record.id)}`, {
+      method: "DELETE",
+      headers: { "x-delete-token": record.token }
+    });
+    // 404: already gone (expired or deleted elsewhere).
+    if (!response.ok && response.status !== 404) {
+      return { ok: false, code: `http_${response.status}` };
+    }
+  } catch (error) {
+    return { ok: false, code: "offline", error: error.message };
+  }
+  delete records[matchId];
+  settings.set("shares", records);
+  appendLog("launcher", `Shared review of match ${matchId} deleted.`, { force: true });
+  return { ok: true, share: null };
+}
+
+function shareMatchArg(value) {
+  const text = String(value || "");
+  return /^\d{1,20}$/.test(text) ? text : null;
+}
+
+// ---------------------------------------------------------------------------
+// History backup: the backend's whole history (no keys) in one gzipped file
+// ---------------------------------------------------------------------------
+
+const BACKUP_TIMEOUT_MS = 180000;
+const BACKUP_MAX_BYTES = 512 * 1024 * 1024;
+
+function backupFailure(error) {
+  const payload = error.payload || {};
+  return {
+    ok: false,
+    code: payload.code || (processStatus.backend !== "running" ? "backend_down" : "failed"),
+    error: payload.detail || error.message
+  };
+}
+
+async function exportHistory() {
+  if (!mainWindow || mainWindow.isDestroyed()) {
+    return { ok: false, code: "no_window" };
+  }
+  const stamp = new Date().toISOString().slice(0, 10);
+  const { canceled, filePath } = await dialog.showSaveDialog(mainWindow, {
+    defaultPath: path.join(reportFolder(), `Wardly-backup-${stamp}.json.gz`),
+    filters: [{ name: "Wardly backup", extensions: ["gz", "json"] }]
+  });
+  if (canceled || !filePath) {
+    return { ok: false, canceled: true };
+  }
+  try {
+    const data = await requestBackendJson("/player/backup", "GET", undefined, BACKUP_TIMEOUT_MS);
+    const text = JSON.stringify(data);
+    fs.writeFileSync(filePath, filePath.toLowerCase().endsWith(".json") ? text : zlib.gzipSync(text));
+    appendLog("launcher", `History backup saved: ${filePath}`, { force: true });
+    shell.showItemInFolder(filePath);
+    return { ok: true, path: filePath, matches: (data.counts && data.counts.matches) || 0 };
+  } catch (error) {
+    appendLog("launcher", `History backup failed: ${error.message}`, { force: true });
+    return backupFailure(error);
+  }
+}
+
+async function importHistory() {
+  if (!mainWindow || mainWindow.isDestroyed()) {
+    return { ok: false, code: "no_window" };
+  }
+  const { canceled, filePaths } = await dialog.showOpenDialog(mainWindow, {
+    defaultPath: reportFolder(),
+    properties: ["openFile"],
+    filters: [{ name: "Wardly backup", extensions: ["gz", "json"] }]
+  });
+  if (canceled || !filePaths || !filePaths[0]) {
+    return { ok: false, canceled: true };
+  }
+  let data;
+  try {
+    let raw = fs.readFileSync(filePaths[0]);
+    if (raw[0] === 0x1f && raw[1] === 0x8b) {
+      raw = zlib.gunzipSync(raw, { maxOutputLength: BACKUP_MAX_BYTES });
+    }
+    data = JSON.parse(raw.toString("utf8"));
+  } catch (error) {
+    return { ok: false, code: "not_backup", error: error.message };
+  }
+  try {
+    const result = await requestBackendJson("/player/backup", "POST", data, BACKUP_TIMEOUT_MS);
+    appendLog("launcher", `History backup loaded: ${filePaths[0]}`, { force: true });
+    return { ok: true, ...result };
+  } catch (error) {
+    appendLog("launcher", `Loading the history backup failed: ${error.message}`, { force: true });
+    return backupFailure(error);
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -1996,6 +2179,31 @@ function showTrayHintOnce() {
 
 function isAutostartSupported() {
   return IS_PACKAGED && (process.platform === "win32" || process.platform === "darwin");
+}
+
+// Before 0.5 the app was DotaAICoach.exe in the same folder. Its Start with
+// Windows entry (same registry name: the AppUserModelId) still points at that
+// file, which the update removed: point it at this exe. Electron lists only the
+// run entries of the path it is asked about, so ask about the old exe.
+const OLD_EXECUTABLES = ["DotaAICoach.exe"];
+
+function migrateAutostartPath() {
+  if (!isAutostartSupported() || process.platform !== "win32") {
+    return;
+  }
+  try {
+    const folder = path.dirname(process.execPath);
+    const stale = OLD_EXECUTABLES.some((name) => {
+      const old = app.getLoginItemSettings({ path: path.join(folder, name), args: ["--hidden"] });
+      return Boolean(old.openAtLogin) || (old.launchItems || []).some((item) => item.enabled !== false);
+    });
+    if (stale && !isAutostartEnabled()) {
+      app.setLoginItemSettings({ ...loginItemOptions(), openAtLogin: true });
+      appendLog("launcher", "Start with Windows now starts the renamed app.", { force: true });
+    }
+  } catch (error) {
+    appendLog("launcher", `Start with Windows migration failed: ${error.message}`, { force: true });
+  }
 }
 
 function loginItemOptions() {
@@ -2199,6 +2407,28 @@ function registerIpc() {
     settings.set("setupDismissed", true);
     return publicStatus();
   });
+  ipcMain.handle("launcher:share-status", (_event, matchId) =>
+    shareMatchArg(matchId) ? shareStatus(shareMatchArg(matchId)) : { ok: false, code: "bad_match" }
+  );
+  ipcMain.handle("launcher:share-create", (_event, matchId, withCoach) =>
+    shareMatchArg(matchId) ? createShare(shareMatchArg(matchId), Boolean(withCoach)) : { ok: false, code: "bad_match" }
+  );
+  ipcMain.handle("launcher:share-delete", (_event, matchId) =>
+    shareMatchArg(matchId) ? deleteShareLink(shareMatchArg(matchId)) : { ok: false, code: "bad_match" }
+  );
+  ipcMain.handle("launcher:share-copy", (_event, matchId) => {
+    const record = shareMatchArg(matchId) ? shareRecords()[shareMatchArg(matchId)] : null;
+    if (record) {
+      clipboard.writeText(record.url);
+    }
+    return Boolean(record);
+  });
+  ipcMain.handle("launcher:share-open", (_event, matchId) => {
+    const record = shareMatchArg(matchId) ? shareRecords()[shareMatchArg(matchId)] : null;
+    return record && record.url.startsWith(`${apiUrl()}/r/`) ? shell.openExternal(record.url) : false;
+  });
+  ipcMain.handle("launcher:backup-export", () => exportHistory());
+  ipcMain.handle("launcher:backup-import", () => importHistory());
   ipcMain.handle("launcher:export-pdf", (_event, kind, id) =>
     exportPdf(kind === "match" ? "match" : "career", String(id || ""))
   );
@@ -2439,6 +2669,7 @@ function bootstrap() {
     appendLog("launcher", `${APP_NAME} ${app.getVersion()} started (${IS_PACKAGED ? "packaged" : "dev"}).`, {
       force: true
     });
+    migrateAutostartPath();
     autostartEnabled = isAutostartEnabled();
     createTray();
     // After an update the app comes back the way it was: hidden in the tray

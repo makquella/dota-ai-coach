@@ -25,7 +25,7 @@ from match_fixtures import ME, FakeOpenDota, gsi_match_stream, recent_matches  #
 
 from app.main import app  # noqa: E402
 from app.player_api import PLAYER_SERVICE  # noqa: E402
-from demo_data import DemoLLM, vary, with_route  # noqa: E402
+from demo_data import DemoLLM, friend_row, vary, with_route  # noqa: E402
 
 
 def main() -> None:
@@ -37,6 +37,20 @@ def main() -> None:
         **profile(account_id),
         "persona_name": "farm_or_die",
     }
+    # A friend to compare with (made-up account): other heroes, less farm, more deaths.
+    friend_id = 900001
+    recent_of = fake.recent_matches
+    fake.recent_matches = lambda account_id, *, limit=30: (
+        [friend_row(row, i) for i, row in enumerate(recent_of(account_id, limit=limit))]
+        if account_id == friend_id
+        else recent_of(account_id, limit=limit)
+    )
+    player_of = fake.player
+    fake.player = lambda account_id: (
+        {**player_of(account_id), "persona_name": "mid_or_feed", "rank_tier": 55}
+        if account_id == friend_id
+        else player_of(account_id)
+    )
     data = Path(tempfile.mkdtemp(prefix="site-shots-"))
     PLAYER_SERVICE.configure(data / "svc", client=fake, auto_start=False, llm=DemoLLM())
     with TestClient(app) as client:
@@ -47,6 +61,8 @@ def main() -> None:
             gsi_match_stream(match_id=first, minutes=38, win=False, death_minutes=())
         ):
             client.post("/gsi", json=payload)
+        PLAYER_SERVICE.jobs.run_pending(until=float("inf"))
+        client.post("/player/friend", json={"steam": str(friend_id)})
         PLAYER_SERVICE.jobs.run_pending(until=float("inf"))
         for lang in ("ru", "en"):
             for path in (

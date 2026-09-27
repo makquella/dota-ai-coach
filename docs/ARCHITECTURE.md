@@ -1,6 +1,6 @@
 # Architecture
 
-Dota AI Coach is a local-first coursework MVP. It combines live Dota 2 GSI, deterministic advice rules, an anti-spam scheduler, and a small Electron overlay.
+Wardly is a local-first coursework MVP. It combines live Dota 2 GSI, deterministic advice rules, an anti-spam scheduler, and a small Electron overlay.
 
 ## Main Components
 

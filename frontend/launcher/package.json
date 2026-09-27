@@ -1,10 +1,10 @@
 {
   "name": "dota-ai-coach-launcher",
-  "productName": "Dota AI Coach",
-  "version": "0.4.0",
+  "productName": "Wardly",
+  "version": "0.5.0",
   "private": true,
-  "description": "Dota AI Coach desktop app: tray launcher, local backend and always-on-top overlay.",
-  "author": "Dota AI Coach",
+  "description": "Wardly, a Dota 2 coach: tray launcher, local backend and always-on-top overlay.",
+  "author": "Wardly",
   "main": "main.js",
   "scripts": {
     "dev": "electron .",
@@ -22,8 +22,8 @@
   },
   "build": {
     "appId": "com.dotaai.coach",
-    "productName": "Dota AI Coach",
-    "executableName": "DotaAICoach",
+    "productName": "Wardly",
+    "executableName": "Wardly",
     "directories": {
       "output": "dist"
     },
@@ -86,14 +86,14 @@
       "runAfterFinish": true,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
-      "shortcutName": "Dota AI Coach",
+      "shortcutName": "Wardly",
       "deleteAppDataOnUninstall": false,
       "installerIcon": "assets/icon.ico",
       "uninstallerIcon": "assets/icon.ico",
-      "artifactName": "DotaAICoach-Setup-${version}.${ext}"
+      "artifactName": "Wardly-Setup-${version}.${ext}"
     },
     "portable": {
-      "artifactName": "DotaAICoach-${version}-portable.${ext}"
+      "artifactName": "Wardly-${version}-portable.${ext}"
     }
   },
   "dependencies": {

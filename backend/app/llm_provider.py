@@ -207,7 +207,7 @@ class OpenRouterProvider(BaseLLMProvider):
             chat_url=OPENROUTER_CHAT_URL,
             extra_headers={
                 "HTTP-Referer": "http://127.0.0.1:8000",
-                "X-Title": "Dota AI Coach MVP",
+                "X-Title": "Wardly",
             },
         )
 

@@ -1,6 +1,6 @@
 # Quickstart
 
-This guide starts Dota AI Coach in development mode.
+This guide starts Wardly in development mode.
 
 ## Requirements
 

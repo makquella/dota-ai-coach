@@ -1,13 +1,17 @@
-// Dota AI Coach API (Cloudflare Worker). Stage 1 of docs/DATA_PLAN.md:
+// Wardly API (Cloudflare Worker). Stage 1 of docs/DATA_PLAN.md:
 // problem reports sent from the launcher on the player's request.
 //
 //   GET    /health                  -> { ok }
 //   GET    /v1/config               -> which uploads are switched on (a kill switch without a release)
 //   POST   /v1/report               -> stores the report (R2 + a D1 row), answers { id: "R-XXXXXX" }
 //   DELETE /v1/device/<install id>  -> deletes every report of that installation
+//   POST   /v1/share                -> publishes a review (src/share.js), answers { id, url, delete_token }
+//   GET    /v1/share/<id>           -> the shared review as JSON
+//   DELETE /v1/share/<id>           -> deletes it (header x-delete-token)
+//   GET    /r/<id>                  -> the shared review as a page (with an Open Graph preview)
 //   GET    /v1/admin/reports        -> latest reports (Bearer ADMIN_TOKEN; off without the secret)
 //   GET    /v1/admin/report/<id>    -> one report as text (same)
-//   cron                            -> deletes reports older than RETENTION_DAYS, old rate counters
+//   cron                            -> deletes reports older than RETENTION_DAYS, expired shares, old rate counters
 //
 // Bindings: DB (D1), REPORTS (R2, optional: without it the gzipped report is
 // kept in the D1 row, which is enough for the free tier's 5 GB). Secrets (optional): TELEGRAM_BOT_TOKEN,
@@ -24,8 +28,26 @@ import {
   telegramCaption,
   validateReport
 } from "./report.js";
+import {
+  SHARE_DAYS,
+  SHARE_LIMITS,
+  SHARE_RATE_PER_HOUR,
+  isShareId,
+  renderMissingPage,
+  renderSharePage,
+  shareId,
+  validateShare
+} from "./share.js";
 
 const JSON_HEADERS = { "content-type": "application/json; charset=utf-8", "cache-control": "no-store" };
+const HTML_HEADERS = {
+  "content-type": "text/html; charset=utf-8",
+  "x-content-type-options": "nosniff",
+  "referrer-policy": "no-referrer",
+  // Styles are inline; images come from the site and Valve's CDN; no scripts at all.
+  "content-security-policy":
+    "default-src 'none'; style-src 'unsafe-inline'; img-src https://luhovyimvp.dev https://cdn.cloudflare.steamstatic.com; base-uri 'none'; form-action 'none'; frame-ancestors 'none'"
+};
 
 function json(data, status = 200) {
   return new Response(JSON.stringify(data), { status, headers: JSON_HEADERS });
@@ -41,6 +63,8 @@ function flag(value, fallback) {
 export function config(env) {
   return {
     reports: flag(env.REPORTS_ENABLED, true),
+    shares: flag(env.SHARES_ENABLED, true),
+    share_days: SHARE_DAYS,
     stats: false,
     sessions: false,
     retention_days: RETENTION_DAYS
@@ -160,6 +184,77 @@ export async function handleReport(request, env, ctx, now = Date.now()) {
   return json({ ok: true, id, retention_days: RETENTION_DAYS }, 201);
 }
 
+async function readShare(env, id, now) {
+  const row = await env.DB.prepare("SELECT body, expires_at, lang FROM shares WHERE id = ?1").bind(id).first();
+  if (!row || Number(row.expires_at) <= now) {
+    return null;
+  }
+  const text = await gunzipText(new Blob([new Uint8Array(row.body)]).stream());
+  return { review: JSON.parse(text), expiresAt: Number(row.expires_at) };
+}
+
+export async function handleShare(request, env, now = Date.now()) {
+  if (!config(env).shares) {
+    return json({ ok: false, code: "disabled" }, 503);
+  }
+  const raw = await request.text();
+  if (raw.length > SHARE_LIMITS.bodyBytes) {
+    return json({ ok: false, code: "too_large" }, 413);
+  }
+  let body;
+  try {
+    body = JSON.parse(raw);
+  } catch {
+    return json({ ok: false, code: "bad_json" }, 400);
+  }
+  const checked = validateShare(body);
+  if (!checked.ok) {
+    return json({ ok: false, code: checked.code }, checked.status);
+  }
+  const { installId, version, review } = checked.share;
+  const address = await sha256(`dac-rate:${request.headers.get("cf-connecting-ip") || "unknown"}`);
+  const underLimit =
+    (await allow(env, `share:install:${installId}`, SHARE_RATE_PER_HOUR.install, now)) &&
+    (await allow(env, `share:address:${address}`, SHARE_RATE_PER_HOUR.address, now));
+  if (!underLimit) {
+    return json({ ok: false, code: "rate_limited" }, 429);
+  }
+  const id = shareId(crypto.getRandomValues(new Uint8Array(10)));
+  const token = [...crypto.getRandomValues(new Uint8Array(24))].map((b) => b.toString(16).padStart(2, "0")).join("");
+  const expiresAt = now + SHARE_DAYS * 24 * 3_600_000;
+  await env.DB.prepare(
+    "INSERT INTO shares (id, created_at, expires_at, install_id, delete_hash, lang, version, body) " +
+      "VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)"
+  )
+    .bind(id, now, expiresAt, installId, await sha256(`dac-share:${token}`), review.lang, version, await gzip(JSON.stringify(review)))
+    .run();
+  const url = `${new URL(request.url).origin}/r/${id}`;
+  return json({ ok: true, id, url, delete_token: token, expires_at: expiresAt }, 201);
+}
+
+export async function deleteShare(request, id, env) {
+  const token = request.headers.get("x-delete-token") || "";
+  const row = await env.DB.prepare("SELECT delete_hash FROM shares WHERE id = ?1").bind(id).first();
+  if (!row) {
+    return json({ ok: false, code: "not_found" }, 404);
+  }
+  if (!token || (await sha256(`dac-share:${token}`)) !== row.delete_hash) {
+    return json({ ok: false, code: "forbidden" }, 403);
+  }
+  await env.DB.prepare("DELETE FROM shares WHERE id = ?1").bind(id).run();
+  return json({ ok: true });
+}
+
+export async function sharePage(request, id, env, now = Date.now()) {
+  const shared = isShareId(id) ? await readShare(env, id, now) : null;
+  const lang = (request.headers.get("accept-language") || "").toLowerCase().startsWith("ru") ? "ru" : "en";
+  if (!shared) {
+    return new Response(renderMissingPage(lang), { status: 404, headers: { ...HTML_HEADERS, "cache-control": "no-store" } });
+  }
+  const html = renderSharePage(shared.review, { url: request.url, expiresAt: shared.expiresAt });
+  return new Response(html, { headers: { ...HTML_HEADERS, "cache-control": "public, max-age=300" } });
+}
+
 export async function deleteDevice(installId, env) {
   const id = String(installId || "").toLowerCase();
   if (!/^[a-z0-9-]{8,64}$/.test(id)) {
@@ -169,6 +264,7 @@ export async function deleteDevice(installId, env) {
   const rows = results || [];
   await deleteObjects(env, rows);
   await env.DB.prepare("DELETE FROM reports WHERE install_id = ?1").bind(id).run();
+  await env.DB.prepare("DELETE FROM shares WHERE install_id = ?1").bind(id).run();
   return json({ ok: true, deleted: rows.length });
 }
 
@@ -229,6 +325,7 @@ export async function cleanup(env, now = Date.now()) {
       break;
     }
   }
+  await env.DB.prepare("DELETE FROM shares WHERE expires_at < ?1").bind(now).run();
   await env.DB.prepare("DELETE FROM rate WHERE hour < ?1").bind(hourWindow(now) - 48).run();
   return removed;
 }
@@ -246,6 +343,23 @@ export default {
       }
       if (request.method === "POST" && path === "/v1/report") {
         return await handleReport(request, env, ctx);
+      }
+      if (request.method === "POST" && path === "/v1/share") {
+        return await handleShare(request, env);
+      }
+      const share = path.match(/^\/v1\/share\/([a-z0-9]{1,20})$/);
+      if (share && request.method === "DELETE") {
+        return await deleteShare(request, share[1], env);
+      }
+      if (share && request.method === "GET") {
+        const shared = isShareId(share[1]) ? await readShare(env, share[1], Date.now()) : null;
+        return shared
+          ? json({ ok: true, review: shared.review, expires_at: shared.expiresAt })
+          : json({ ok: false, code: "not_found" }, 404);
+      }
+      const pageMatch = path.match(/^\/r\/([^/]{1,40})$/);
+      if (pageMatch && (request.method === "GET" || request.method === "HEAD")) {
+        return await sharePage(request, pageMatch[1], env);
       }
       const device = path.match(/^\/v1\/device\/([^/]+)$/);
       if (request.method === "DELETE" && device) {

@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Dota AI Coach</title>
+    <title>Wardly</title>
     <link rel="stylesheet" href="../assets/fonts/fonts.css" />
     <link rel="stylesheet" href="../assets/ui/tokens.css" />
     <link rel="stylesheet" href="./styles.css" />
@@ -12,8 +12,9 @@
     <main class="page">
       <header class="top">
         <div class="brand">
-          <span class="brand-mark" aria-hidden="true"></span>
-          <h1>Dota AI Coach</h1>
+          <img class="brand-mark no-print" src="../assets/brand/wardly-mark.png" alt="" width="24" height="24" />
+          <img class="brand-mark print-only" src="../assets/brand/wardly-logo.png" alt="" width="24" height="24" />
+          <h1>Wardly</h1>
         </div>
         <span class="print-only print-date num" id="print-date"></span>
         <span class="service" id="service" data-state="starting">
@@ -295,6 +296,16 @@
                 <span class="setting-hint num" id="update-hint"></span>
               </span>
               <button id="update-action" class="btn" type="button" data-mode="check"><i data-icon="rotate-cw"></i><span id="update-label" data-i18n="updateCheck">Check</span></button>
+            </div>
+            <div class="setting setting-wrap backup-row">
+              <span class="setting-text">
+                <span class="setting-title" data-i18n="backupTitle">Match history</span>
+                <span class="setting-hint" id="backup-hint" aria-live="polite"></span>
+              </span>
+              <div class="setting-controls">
+                <button id="backup-export" class="btn" type="button"><i data-icon="download"></i><span data-i18n="backupExport">Save to file</span></button>
+                <button id="backup-import" class="btn btn-ghost" type="button"><i data-icon="upload"></i><span data-i18n="backupImport">Load from file</span></button>
+              </div>
             </div>
             <div class="setting setting-wrap report-row">
               <span class="setting-text">

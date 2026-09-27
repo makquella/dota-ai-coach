@@ -7,7 +7,7 @@
      app does), checks /health and /overlay/recommendation, checks that
      writable files land in %APPDATA%\DotaAICoach, then stops it gracefully via
      stdin and expects exit code 0.
-  2. App exe: runs DotaAICoach.exe --smoke-test (the app starts its bundled
+  2. App exe: runs Wardly.exe --smoke-test (the app starts its bundled
      backend hidden, checks /health, stops it gracefully and exits).
   3. Fake Dota: compiles a plain window named dota2.exe, starts it and repeats
      step 2; the Dota watcher must find that window and the overlay must be
@@ -27,7 +27,7 @@ Set-StrictMode -Version Latest
 $RepoRoot = Split-Path -Parent $PSScriptRoot
 $BackendExe = Join-Path $RepoRoot "backend\dist\dota-ai-coach-backend\dota-ai-coach-backend.exe"
 $DistDir = Join-Path $RepoRoot "frontend\launcher\dist"
-$AppExe = Join-Path $DistDir "win-unpacked\DotaAICoach.exe"
+$AppExe = Join-Path $DistDir "win-unpacked\Wardly.exe"
 $WorkDir = if ($env:RUNNER_TEMP) { $env:RUNNER_TEMP } else { $env:TEMP }
 $UserDataDir = Join-Path $env:APPDATA "DotaAICoach"
 
@@ -186,7 +186,7 @@ function Test-UpdateFiles {
   $latest = Join-Path $DistDir "latest.yml"
   Assert-True (Test-Path $latest) "dist\latest.yml exists (electron-updater feed)"
   $feed = Get-Content $latest -Raw
-  $installer = Get-ChildItem $DistDir -Filter "DotaAICoach-Setup-*.exe" | Select-Object -First 1
+  $installer = Get-ChildItem $DistDir -Filter "Wardly-Setup-*.exe" | Select-Object -First 1
   Assert-True ($feed.Contains($installer.Name)) "latest.yml points at $($installer.Name)"
   $appUpdate = Join-Path $DistDir "win-unpacked\resources\app-update.yml"
   Assert-True (Test-Path $appUpdate) "resources\app-update.yml exists"
@@ -195,17 +195,17 @@ function Test-UpdateFiles {
 }
 
 function Test-Installer {
-  $installer = Get-ChildItem $DistDir -Filter "DotaAICoach-Setup-*.exe" | Select-Object -First 1
+  $installer = Get-ChildItem $DistDir -Filter "Wardly-Setup-*.exe" | Select-Object -First 1
   Assert-True ($null -ne $installer) "NSIS installer exists in $DistDir"
   Write-Host "`n==> Silent install: $($installer.FullName)" -ForegroundColor Cyan
   $proc = Start-Process -FilePath $installer.FullName -ArgumentList "/S" -PassThru -Wait
   Assert-True ($proc.ExitCode -eq 0) "installer exit code is 0 (got $($proc.ExitCode))"
 
-  $installed = Get-ChildItem (Join-Path $env:LOCALAPPDATA "Programs") -Recurse -Filter "DotaAICoach.exe" -ErrorAction SilentlyContinue |
+  $installed = Get-ChildItem (Join-Path $env:LOCALAPPDATA "Programs") -Recurse -Filter "Wardly.exe" -ErrorAction SilentlyContinue |
     Select-Object -First 1
-  Assert-True ($null -ne $installed) "installed DotaAICoach.exe found under %LOCALAPPDATA%\Programs"
+  Assert-True ($null -ne $installed) "installed Wardly.exe found under %LOCALAPPDATA%\Programs"
   # The one-click installer may start the app itself; stop it before the smoke run.
-  Get-Process -Name "DotaAICoach" -ErrorAction SilentlyContinue | Stop-Process -Force
+  Get-Process -Name "Wardly" -ErrorAction SilentlyContinue | Stop-Process -Force
   Test-AppExe $installed.FullName "installed"
 }
 

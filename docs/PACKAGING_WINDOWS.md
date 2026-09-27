@@ -1,6 +1,6 @@
 # Windows Packaging
 
-Dota AI Coach ships on Windows as **one desktop app** that works on an "open and forget" basis:
+Wardly ships on Windows as **one desktop app** that works on an "open and forget" basis:
 
 - one Electron process with two windows: the control panel and the always-on-top advice overlay;
 - the bundled PyInstaller backend is started automatically and hidden (no console window);
@@ -40,10 +40,10 @@ Options: `-Portable` also builds the optional single-file portable exe; `-SkipBa
 Output:
 
 ```text
-frontend\launcher\dist\DotaAICoach-Setup-0.1.0.exe        <- NSIS installer (give this to users)
-frontend\launcher\dist\DotaAICoach-Setup-0.1.0.exe.blockmap
+frontend\launcher\dist\Wardly-Setup-0.1.0.exe        <- NSIS installer (give this to users)
+frontend\launcher\dist\Wardly-Setup-0.1.0.exe.blockmap
 frontend\launcher\dist\latest.yml                         <- auto-update feed (published with a release)
-frontend\launcher\dist\win-unpacked\DotaAICoach.exe       <- unpacked app, runs without installing
+frontend\launcher\dist\win-unpacked\Wardly.exe       <- unpacked app, runs without installing
 backend\dist\dota-ai-coach-backend\dota-ai-coach-backend.exe
 backend\dist\dota-ai-coach-backend\dota-ai-coach-demo-playback.exe
 ```
@@ -54,12 +54,12 @@ No code-signing certificate is configured, so the build sets `CSC_IDENTITY_AUTO_
 
 The NSIS installer is a one-click, per-user install (no admin rights):
 
-- installs to `%LOCALAPPDATA%\Programs\<app>\DotaAICoach.exe`;
-- creates Start menu and desktop shortcuts named **Dota AI Coach**;
+- installs to `%LOCALAPPDATA%\Programs\<app>\Wardly.exe`;
+- creates Start menu and desktop shortcuts named **Wardly**;
 - starts the app when installation finishes;
 - keeps `%APPDATA%\DotaAICoach` (settings, logs, recordings) on uninstall.
 
-Silent install: `DotaAICoach-Setup-0.1.0.exe /S`.
+Silent install: `Wardly-Setup-0.1.0.exe /S`.
 
 ## Smoke Test
 
@@ -70,7 +70,7 @@ powershell -ExecutionPolicy Bypass -File scripts\smoke-windows.ps1
 It checks, in order:
 
 1. `dota-ai-coach-backend.exe` alone: starts on a free port via `DOTA_AI_BACKEND_PORT`, answers `/health` and `/overlay/recommendation`, writes session records under `%APPDATA%\DotaAICoach`, and exits with code 0 after `shutdown` on stdin;
-2. `win-unpacked\DotaAICoach.exe --smoke-test=<result.json>`: the real app starts its bundled backend hidden, loads both windows, checks `/health`, checks that `resources\app-update.yml` exists and `electron-updater` loads, stops the backend gracefully and exits 0; no backend process may be left behind;
+2. `win-unpacked\Wardly.exe --smoke-test=<result.json>`: the real app starts its bundled backend hidden, loads both windows, checks `/health`, checks that `resources\app-update.yml` exists and `electron-updater` loads, stops the backend gracefully and exits 0; no backend process may be left behind;
 3. the same smoke test with a fake Dota: a plain window compiled as `dota2.exe` (with the `csc.exe` that ships with Windows) is started first; the Dota watcher must report its window rect, no exclusive fullscreen, and the overlay must be placed inside that window;
 4. `dist\latest.yml` names the installer and `app-update.yml` points at GitHub Releases;
 5. the NSIS installer: silent install, then the same smoke test against the installed exe (`-SkipInstaller` skips this part).
@@ -104,7 +104,7 @@ Without code signing electron-updater does not verify the publisher of the downl
 Packaged app (`process.resourcesPath` = `resources\`):
 
 ```text
-DotaAICoach.exe
+Wardly.exe
 resources\app.asar                                  <- launcher + overlay windows
 resources\backend\dota-ai-coach-backend.exe
 resources\backend\dota-ai-coach-demo-playback.exe

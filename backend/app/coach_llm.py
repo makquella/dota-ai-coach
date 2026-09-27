@@ -151,7 +151,7 @@ class CoachLLM:
             "Content-Type": "application/json",
         }
         if settings.provider == "openrouter":
-            headers["X-Title"] = "Dota AI Coach"
+            headers["X-Title"] = "Wardly"
         response = self._post(headers, payload)
         fallbacks = [m for m in FALLBACK_MODELS.get(settings.provider, []) if m != settings.model]
         if not self.fallbacks:

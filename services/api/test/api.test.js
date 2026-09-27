@@ -7,6 +7,7 @@ import { RATE_PER_HOUR, redact, reportId, summarize, validateReport } from "../s
 // In-memory stand-ins for the D1 and R2 bindings, for the statements the Worker uses.
 function fakeEnv(vars = {}, { r2 = true } = {}) {
   const reports = [];
+  const shares = [];
   const rate = new Map();
   const objects = new Map();
   const DB = {
@@ -26,6 +27,9 @@ function fakeEnv(vars = {}, { r2 = true } = {}) {
           if (sql.startsWith("SELECT r2_key, body FROM reports WHERE id")) {
             return reports.find((r) => r.id === args[0]) || null;
           }
+          if (sql.startsWith("SELECT body, expires_at, lang FROM shares WHERE id") || sql.startsWith("SELECT delete_hash FROM shares WHERE id")) {
+            return shares.find((r) => r.id === args[0]) || null;
+          }
           throw new Error(`unexpected first(): ${sql}`);
         },
         async all() {
@@ -42,7 +46,16 @@ function fakeEnv(vars = {}, { r2 = true } = {}) {
           throw new Error(`unexpected all(): ${sql}`);
         },
         async run() {
-          if (sql.startsWith("INSERT INTO reports")) {
+          if (sql.startsWith("INSERT INTO shares")) {
+            const [id, created_at, expires_at, install_id, delete_hash, lang, version, body] = args;
+            shares.push({ id, created_at, expires_at, install_id, delete_hash, lang, version, body: [...body] });
+          } else if (sql.startsWith("DELETE FROM shares WHERE id")) {
+            shares.splice(0, shares.length, ...shares.filter((r) => r.id !== args[0]));
+          } else if (sql.startsWith("DELETE FROM shares WHERE install_id")) {
+            shares.splice(0, shares.length, ...shares.filter((r) => r.install_id !== args[0]));
+          } else if (sql.startsWith("DELETE FROM shares WHERE expires_at")) {
+            shares.splice(0, shares.length, ...shares.filter((r) => r.expires_at >= args[0]));
+          } else if (sql.startsWith("INSERT INTO reports")) {
             const [id, created_at, install_id, version, os, lang, size, summary, r2_key, body] = args;
             // D1 returns a BLOB as an array of bytes.
             const blob = body ? [...body] : null;
@@ -76,7 +89,7 @@ function fakeEnv(vars = {}, { r2 = true } = {}) {
       for (const key of [].concat(keys)) objects.delete(key);
     }
   };
-  return { env: { DB, ...(r2 ? { REPORTS } : {}), ...vars }, reports, objects };
+  return { env: { DB, ...(r2 ? { REPORTS } : {}), ...vars }, reports, shares, objects };
 }
 
 const ctx = { waitUntil: (promise) => promise };
@@ -156,7 +169,7 @@ test("bad bodies, rate limits and the kill switch", async () => {
   assert.equal(config(off.env).reports, false);
   assert.equal((await worker.fetch(upload(REPORT), off.env, ctx)).status, 503);
   const answer = await (await worker.fetch(new Request("https://api.example/v1/config"), off.env, ctx)).json();
-  assert.deepEqual(answer, { reports: false, stats: false, sessions: false, retention_days: 180 });
+  assert.deepEqual(answer, { reports: false, shares: true, share_days: 90, stats: false, sessions: false, retention_days: 180 });
 });
 
 test("a player can delete their reports; old ones expire", async () => {
@@ -220,4 +233,95 @@ test("without an R2 bucket the report is kept in D1", async () => {
   await worker.fetch(upload(REPORT), env, ctx);
   const gone = await worker.fetch(new Request(`https://api.example/v1/device/${REPORT.install_id}`, { method: "DELETE" }), env, ctx);
   assert.deepEqual(await gone.json(), { ok: true, deleted: 1 });
+});
+
+// --- «Поделиться разбором» ------------------------------------------------------------
+
+const REVIEW = {
+  lang: "ru",
+  hero: "Juggernaut",
+  hero_key: "juggernaut",
+  win: false,
+  duration: 2280,
+  played_on: "2026-09-21",
+  score: 31,
+  grade: "D",
+  role: "кор",
+  parsed: true,
+  stats: { kills: 3, deaths: 9, assists: 6, gpm: 390, xpm: 430, last_hits: 160, denies: 3, net_worth: 11500, hero_damage: 9000 },
+  sections: [{ label: "Линия", score: 20 }],
+  strengths: [],
+  improvements: [{ title: "Проиграна линия <script>alert(1)</script>", text: "36 добиваний к 10:00", drill: "Добивайте под вышкой" }],
+  deaths: { count: 9, enemy_half: 5, unspent_gold: 2 },
+  coach: "Матч решила линия. Steam 76561198000000001"
+};
+
+function shareRequest(body, ip = "198.51.100.7") {
+  return new Request("https://api.example/v1/share", {
+    method: "POST",
+    headers: { "content-type": "application/json", "cf-connecting-ip": ip },
+    body: JSON.stringify(body)
+  });
+}
+
+test("a shared review is published, shown as a page and deleted by its author", async () => {
+  const { env, shares } = fakeEnv();
+  const response = await worker.fetch(
+    shareRequest({ install_id: REPORT.install_id, version: "0.5.0", review: { ...REVIEW, match_id: 8012345678, extra: "x" } }),
+    env,
+    ctx
+  );
+  assert.equal(response.status, 201);
+  const answer = await response.json();
+  assert.match(answer.id, /^[2-9a-z]{10}$/);
+  assert.equal(answer.url, `https://api.example/r/${answer.id}`);
+  assert.equal(shares.length, 1);
+
+  const json = await (await worker.fetch(new Request(`https://api.example/v1/share/${answer.id}`), env, ctx)).json();
+  assert.equal(json.review.hero, "Juggernaut");
+  assert.ok(!("match_id" in json.review) && !("extra" in json.review));
+  assert.ok(!json.review.coach.includes("76561198000000001"), "Steam IDs are cut out");
+
+  const page = await worker.fetch(new Request(`https://api.example/r/${answer.id}`), env, ctx);
+  assert.equal(page.status, 200);
+  assert.match(page.headers.get("content-security-policy"), /default-src 'none'/);
+  const html = await page.text();
+  assert.match(html, /<meta property="og:title" content="Juggernaut · поражение · оценка 31"/);
+  assert.match(html, /heroes\/juggernaut\.png/);
+  assert.ok(!html.includes("<script>alert(1)</script>"), "texts are escaped");
+  assert.ok(html.includes("&lt;script&gt;"));
+
+  const noToken = await worker.fetch(new Request(`https://api.example/v1/share/${answer.id}`, { method: "DELETE" }), env, ctx);
+  assert.equal(noToken.status, 403);
+  const deleted = await worker.fetch(
+    new Request(`https://api.example/v1/share/${answer.id}`, { method: "DELETE", headers: { "x-delete-token": answer.delete_token } }),
+    env,
+    ctx
+  );
+  assert.equal(deleted.status, 200);
+  const gone = await worker.fetch(new Request(`https://api.example/r/${answer.id}`, { headers: { "accept-language": "ru-RU" } }), env, ctx);
+  assert.equal(gone.status, 404);
+  assert.match(await gone.text(), /Разбор не найден/);
+});
+
+test("shares are checked, limited, expire and go with the installation", async () => {
+  const { env, shares } = fakeEnv();
+  const bad = await worker.fetch(shareRequest({ install_id: REPORT.install_id, review: { hero: "" } }), env, ctx);
+  assert.equal(bad.status, 400);
+  const off = await worker.fetch(shareRequest({ install_id: REPORT.install_id, review: REVIEW }), { ...env, SHARES_ENABLED: "false" }, ctx);
+  assert.equal(off.status, 503);
+  const now = Date.now();
+  for (let i = 0; i < 20; i += 1) {
+    const ok = await worker.fetch(shareRequest({ install_id: REPORT.install_id, review: REVIEW }), env, ctx);
+    assert.equal(ok.status, 201);
+  }
+  const limited = await worker.fetch(shareRequest({ install_id: REPORT.install_id, review: REVIEW }), env, ctx);
+  assert.equal(limited.status, 429);
+  // 90 days later the cron removes them all.
+  await cleanup(env, now + 91 * 24 * 3_600_000);
+  assert.equal(shares.length, 0);
+  await worker.fetch(shareRequest({ install_id: REPORT.install_id, review: REVIEW }, "198.51.100.8"), env, ctx);
+  await worker.fetch(new Request(`https://api.example/v1/device/${REPORT.install_id}`, { method: "DELETE" }), env, ctx);
+  assert.equal(shares.length, 0);
+  assert.equal((await worker.fetch(new Request("https://api.example/r/not-an-id!"), env, ctx)).status, 404);
 });

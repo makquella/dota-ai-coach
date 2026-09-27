@@ -78,20 +78,9 @@ dd {
 }
 
 .brand-mark {
-  position: relative;
-  width: 20px;
-  height: 20px;
-  border: 1px solid var(--border-strong);
-  border-radius: var(--r-sm);
-  background: var(--surface-2);
-}
-
-.brand-mark::after {
-  content: "";
-  position: absolute;
-  inset: 6px;
-  border-radius: 50%;
-  background: var(--accent);
+  width: 24px;
+  height: 24px;
+  flex: none;
 }
 
 h1 {
@@ -2394,6 +2383,102 @@ label.setting:has(.switch:disabled) {
   margin-top: 2px;
   font-size: var(--fs-12);
   font-weight: var(--fw-regular);
+}
+
+/* Share a review */
+
+.share-body {
+  display: grid;
+  gap: var(--sp-3);
+}
+
+.share-link {
+  flex: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.share-check {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  font-size: var(--fs-13);
+  cursor: pointer;
+}
+
+.share-check input {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--accent);
+}
+
+.share-note:empty {
+  display: none;
+}
+
+/* Compare with a friend */
+
+.friend {
+  display: grid;
+  gap: var(--sp-3);
+}
+
+.friend-form {
+  margin-top: var(--sp-2);
+}
+
+.friend-form .input {
+  flex: 1;
+}
+
+.friend-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-2);
+}
+
+.friend-name {
+  font-weight: var(--fw-semibold);
+}
+
+.friend-better {
+  color: var(--text);
+  font-weight: var(--fw-semibold);
+}
+
+.friend-card td.num-col:not(.friend-better) {
+  color: var(--text-2);
+}
+
+.friend-sub {
+  margin-bottom: var(--sp-1);
+  color: var(--text-2);
+  font-size: var(--fs-13);
+}
+
+.friend-heroes {
+  display: grid;
+  gap: var(--sp-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.friend .table-wrap {
+  margin-bottom: var(--sp-2);
+}
+
+.friend-hero {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-3);
+  font-size: var(--fs-13);
+}
+
+.friend-hero .muted {
+  white-space: pre;
 }
 
 /* Match table filters */

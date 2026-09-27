@@ -1,4 +1,4 @@
-# Dota AI Coach API — see docs/DATA_PLAN.md. Deployed by .github/workflows/api.yml,
+# Wardly API — see docs/DATA_PLAN.md. Deployed by .github/workflows/api.yml,
 # which creates the D1 database and the R2 bucket when they are missing and puts
 # the real database id in place of the zero id below.
 name = "dota-ai-coach-api"

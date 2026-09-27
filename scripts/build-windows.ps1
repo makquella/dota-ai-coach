@@ -1,21 +1,21 @@
 <#
 .SYNOPSIS
-  One-command Windows build of Dota AI Coach.
+  One-command Windows build of Wardly.
 
 .DESCRIPTION
   1. Creates backend\.venv (if missing) and installs backend\requirements-build.txt.
   2. Builds the backend with PyInstaller (backend\dist\dota-ai-coach-backend\).
   3. Installs the Electron app dependencies (npm ci) in frontend\launcher.
   4. Packs the Electron app with electron-builder and produces the NSIS installer:
-       frontend\launcher\dist\DotaAICoach-Setup-<version>.exe
-       frontend\launcher\dist\win-unpacked\DotaAICoach.exe
+       frontend\launcher\dist\Wardly-Setup-<version>.exe
+       frontend\launcher\dist\win-unpacked\Wardly.exe
 
   Code signing is optional and off unless configured by env (see
   docs/PACKAGING_WINDOWS.md, "Code signing"):
     Azure Artifact Signing: AZURE_TENANT_ID, AZURE_CLIENT_ID, AZURE_CLIENT_SECRET,
       AZURE_SIGNING_ENDPOINT, AZURE_SIGNING_ACCOUNT, AZURE_SIGNING_PROFILE, SIGN_PUBLISHER_NAME
     or a certificate for signtool: CSC_LINK (+ CSC_KEY_PASSWORD)
-  electron-builder then signs DotaAICoach.exe, the bundled backend exe and the installer.
+  electron-builder then signs Wardly.exe, the bundled backend exe and the installer.
 
 .PARAMETER Python
   Python 3.11+ used to create backend\.venv when it does not exist yet.
@@ -121,4 +121,4 @@ $dist = Join-Path $LauncherDir "dist"
 Write-Host ""
 Write-Host "Build finished:" -ForegroundColor Green
 Get-ChildItem $dist -Filter *.exe | ForEach-Object { Write-Host "  installer: $($_.FullName)" }
-Write-Host "  app:       $(Join-Path $dist 'win-unpacked\DotaAICoach.exe')"
+Write-Host "  app:       $(Join-Path $dist 'win-unpacked\Wardly.exe')"

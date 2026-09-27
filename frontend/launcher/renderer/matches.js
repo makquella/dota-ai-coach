@@ -244,6 +244,46 @@
       rankCareerEmpty: "Appears after a few matches reviewed with OpenDota data.",
       colBracket: "At your rank",
       bracketHint: (rank) => `Hero win rate among all ${rank} players (OpenDota)`,
+      shareButton: "Share",
+      shareTitle: "Share this review",
+      shareWhat: "A page with this review: hero, result, score, the match numbers, the areas and what to improve. Anyone with the link can open it.",
+      shareNot: "Not published: the match number, your Steam ID, nickname and the other players. The link works for 90 days, and you can delete it at any time.",
+      shareCoach: "Add the AI coach's summary",
+      shareCreate: "Create a link",
+      shareCreating: "Creating the link…",
+      shareLink: "Link to the review",
+      shareCopy: "Copy",
+      shareCopied: "Copied.",
+      shareOpen: "Open",
+      shareDelete: "Delete the link",
+      shareDeleted: "The link is deleted.",
+      shareExpires: (date) => `Works until ${date}.`,
+      shareWithCoach: "With the AI coach's summary.",
+      shareFailed: (code) => `Could not do it${code ? ` (${code})` : ""}: check the internet and try again.`,
+      friendTitle: "Compare with a friend",
+      friendHint: "A friend's Friend ID, Steam ID or profile link (steamcommunity.com/profiles/…). Their public OpenDota matches are compared with yours: the last 20 games of each.",
+      friendPlaceholder: "Friend ID, Steam ID or profile link",
+      friendCompare: "Compare",
+      friendSelf: "That is your own account.",
+      friendFailed: "Could not save the friend.",
+      friendLoading: (name) => `Loading the matches of ${name} from OpenDota…`,
+      friendPrivate: (name) => `${name} hides their match data.`,
+      friendPrivateHint: "They can allow it in Dota 2: Settings → Social → «Expose Public Match Data». Then press Refresh (OpenDota needs a match played after that).",
+      friendOffline: "The comparison needs OpenDota (internet).",
+      friendError: (code) => `OpenDota did not answer${code ? ` (${code})` : ""}. Try Refresh later.`,
+      friendRefresh: "Refresh",
+      friendUpdating: "Updating…",
+      friendChange: "Another friend",
+      friendGroup: "Games",
+      friendGroups: { all: "All games", core: "Core", support: "Support" },
+      friendYou: "You",
+      friendGames: (me, friend) => `games: you ${me}, friend ${friend}`,
+      friendFew: (n) => `Too few games to say who is ahead: ${n}+ for each of you.`,
+      friendMetrics: { win_rate: "Win rate", kills: "Kills", deaths: "Deaths", assists: "Assists", gpm: "Gold per minute", xpm: "XP per minute", lh_per_min: "Last hits per minute", damage_per_min: "Hero damage per minute" },
+      friendCommon: "Heroes you both played",
+      friendHeroGames: (g1, w1, g2, w2) => `you ${g1} · ${w1 ?? "—"}%   friend ${g2} · ${w2 ?? "—"}%`,
+      friendTheirHeroes: (name) => `Most played by ${name}`,
+      friendNote: "Averages per game, public OpenDota data, ranked and normal modes only. Core or support is judged by last hits a minute.",
       selfTitle: (hero) => `Your best vs your worst games on ${hero}`,
       selfNote: (n) => `The best third of your last ${n} reviewed games on the hero against the worst third, by review score.`,
       selfBest: "Best",
@@ -575,6 +615,46 @@
       rankCareerEmpty: "Появится после нескольких матчей, разобранных по данным OpenDota.",
       colBracket: "На вашем ранге",
       bracketHint: (rank) => `Винрейт героя у всех игроков ранга ${rank} (OpenDota)`,
+      shareButton: "Поделиться",
+      shareTitle: "Поделиться разбором",
+      shareWhat: "Страница с этим разбором: герой, результат, оценка, цифры матча, разделы и что улучшить. Открыть её сможет любой, у кого есть ссылка.",
+      shareNot: "Не публикуется: номер матча, ваш Steam ID, ник и другие игроки. Ссылка работает 90 дней, её можно удалить в любой момент.",
+      shareCoach: "Добавить вывод ИИ-тренера",
+      shareCreate: "Создать ссылку",
+      shareCreating: "Создаю ссылку…",
+      shareLink: "Ссылка на разбор",
+      shareCopy: "Копировать",
+      shareCopied: "Скопировано.",
+      shareOpen: "Открыть",
+      shareDelete: "Удалить ссылку",
+      shareDeleted: "Ссылка удалена.",
+      shareExpires: (date) => `Работает до ${date}.`,
+      shareWithCoach: "С выводом ИИ-тренера.",
+      shareFailed: (code) => `Не получилось${code ? ` (${code})` : ""}: проверьте интернет и попробуйте ещё раз.`,
+      friendTitle: "Сравнение с другом",
+      friendHint: "Friend ID друга, Steam ID или ссылка на профиль (steamcommunity.com/profiles/…). Сравниваются открытые матчи из OpenDota: последние 20 игр каждого.",
+      friendPlaceholder: "Friend ID, Steam ID или ссылка на профиль",
+      friendCompare: "Сравнить",
+      friendSelf: "Это ваш собственный аккаунт.",
+      friendFailed: "Не удалось сохранить друга.",
+      friendLoading: (name) => `Загружаю матчи ${name} из OpenDota…`,
+      friendPrivate: (name) => `${name} скрывает данные матчей.`,
+      friendPrivateHint: "Их можно открыть в Dota 2: Настройки → Сообщество → «Открыть данные матчей». Потом нажмите «Обновить» (OpenDota нужен хотя бы один матч после этого).",
+      friendOffline: "Для сравнения нужен OpenDota (интернет).",
+      friendError: (code) => `OpenDota не ответил${code ? ` (${code})` : ""}. Попробуйте «Обновить» позже.`,
+      friendRefresh: "Обновить",
+      friendUpdating: "Обновляю…",
+      friendChange: "Другой друг",
+      friendGroup: "Игры",
+      friendGroups: { all: "Все игры", core: "Кор", support: "Саппорт" },
+      friendYou: "Вы",
+      friendGames: (me, friend) => `игр: у вас ${me}, у друга ${friend}`,
+      friendFew: (n) => `Слишком мало игр, чтобы сказать, кто впереди: нужно ${n}+ у каждого.`,
+      friendMetrics: { win_rate: "Процент побед", kills: "Убийства", deaths: "Смерти", assists: "Помощь", gpm: "Золото в минуту", xpm: "Опыт в минуту", lh_per_min: "Добивания в минуту", damage_per_min: "Урон по героям в минуту" },
+      friendCommon: "Герои, на которых играли оба",
+      friendHeroGames: (g1, w1, g2, w2) => `вы ${g1} · ${w1 ?? "—"}%   друг ${g2} · ${w2 ?? "—"}%`,
+      friendTheirHeroes: (name) => `Чаще всего играет ${name}`,
+      friendNote: "Средние за игру, открытые данные OpenDota, только рейтинговые и обычные режимы. Кор или саппорт — по добиваниям в минуту.",
       selfTitle: (hero) => `Лучшие и худшие матчи на ${hero}`,
       selfNote: (n) => `Лучшая треть из ${n} последних разобранных матчей на герое против худшей трети, по оценке разбора.`,
       selfBest: "Лучшие",
@@ -1316,6 +1396,75 @@
   }
 
   // Saves the current view as a PDF (light print theme, see @media print).
+  // «Поделиться разбором»: a link to the public part of the review (main.js createShare).
+  function shareButton(panel, detail) {
+    const button = h("button", { class: "btn btn-ghost btn-sm", type: "button", "aria-expanded": "false" }, icon("share-2"), h("span", { text: t("shareButton") }));
+    button.addEventListener("click", async () => {
+      const open = panel.hidden;
+      panel.hidden = !open;
+      button.setAttribute("aria-expanded", String(open));
+      if (open) {
+        panel.replaceChildren(skeletonRows(2));
+        const status = await api.shareStatus(String(detail.match_id));
+        renderSharePanel(panel, detail, status && status.ok ? status.share : null, "");
+      }
+    });
+    return button;
+  }
+
+  function renderSharePanel(panel, detail, share, message) {
+    const matchId = String(detail.match_id);
+    const coachReady = detail.coach && detail.coach.state === "ready";
+    const note = h("p", { class: "muted small share-note", role: "status", text: message || "" });
+    let body;
+    if (share) {
+      const expires = new Date(share.expiresAt).toLocaleDateString(state.locale === "ru" ? "ru-RU" : "en-GB");
+      const link = h("input", { class: "input share-link", type: "text", readonly: true, value: share.url, "aria-label": t("shareLink") });
+      link.addEventListener("focus", () => link.select());
+      body = h(
+        "div",
+        { class: "share-body" },
+        h("div", { class: "link-form" }, link, h("button", { class: "btn btn-primary", type: "button", onclick: async () => {
+          const copied = await api.shareCopy(matchId);
+          renderSharePanel(panel, detail, share, copied ? t("shareCopied") : "");
+        } }, icon("copy"), h("span", { text: t("shareCopy") }))),
+        h("p", { class: "muted small", text: t("shareExpires", expires) + (share.withCoach ? ` ${t("shareWithCoach")}` : "") }),
+        h(
+          "div",
+          { class: "toolbar-actions" },
+          h("button", { class: "btn btn-ghost btn-sm", type: "button", onclick: () => api.shareOpen(matchId) }, icon("external-link"), h("span", { text: t("shareOpen") })),
+          h("button", { class: "btn btn-ghost btn-sm", type: "button", onclick: async (event) => {
+            event.currentTarget.disabled = true;
+            const result = await api.shareDelete(matchId);
+            renderSharePanel(panel, detail, result && result.ok ? null : share, result && result.ok ? t("shareDeleted") : t("shareFailed", result?.code || ""));
+          } }, icon("trash-2"), h("span", { text: t("shareDelete") }))
+        )
+      );
+    } else {
+      const coach = coachReady ? h("input", { type: "checkbox", class: "checkbox", id: "share-coach", checked: true }) : null;
+      const create = h("button", { class: "btn btn-primary", type: "button" }, icon("share-2"), h("span", { text: t("shareCreate") }));
+      create.addEventListener("click", async () => {
+        create.disabled = true;
+        note.textContent = t("shareCreating");
+        const result = await api.shareCreate(matchId, Boolean(coach && coach.checked));
+        renderSharePanel(panel, detail, result && result.ok ? result.share : null, result && result.ok ? "" : t("shareFailed", result?.code || ""));
+      });
+      body = h(
+        "div",
+        { class: "share-body" },
+        h("p", { text: t("shareWhat") }),
+        h("p", { class: "muted small", text: t("shareNot") }),
+        coach ? h("label", { class: "share-check" }, coach, h("span", { text: t("shareCoach") })) : null,
+        h("div", { class: "toolbar-actions" }, create)
+      );
+    }
+    panel.replaceChildren(
+      h("header", { class: "card-head" }, icon("share-2"), h("h2", { text: t("shareTitle") })),
+      h("div", { class: "card-body" }, body, note)
+    );
+    hydrate(panel);
+  }
+
   function pdfButton(kind) {
     const note = h("span", { class: "muted small pdf-note" });
     const button = h(
@@ -1352,7 +1501,15 @@
     const root = document.getElementById("match-root");
     const backButton = h("button", { class: "btn btn-ghost btn-sm back", type: "button", onclick: () => setView("matches") }, icon("chevron-left"), h("span", { text: t("back") }));
     const detail = state.match;
-    const back = h("div", { class: "review-toolbar no-print" }, backButton, detail && detail.analysis ? pdfButton("match") : null);
+    const sharePanel = h("section", { class: "card share-panel no-print", hidden: true });
+    const back = h(
+      "div",
+      { class: "review-toolbar no-print" },
+      backButton,
+      detail && detail.analysis
+        ? h("span", { class: "toolbar-actions" }, shareButton(sharePanel, detail), pdfButton("match"))
+        : null
+    );
     if (!detail) {
       root.replaceChildren(back, card(t("reviewLoading"), "activity", skeletonRows(6)));
       hydrate(root);
@@ -1365,7 +1522,7 @@
     }
     const analysis = detail.analysis;
     const summary = detail.summary || {};
-    const parts = [back, reviewHeader(detail, analysis, summary)];
+    const parts = [back, sharePanel, reviewHeader(detail, analysis, summary)];
     if (!analysis) {
       parts.push(card(t("reviewLoading"), "hourglass", emptyState("hourglass", t("reviewPending"), tOptional(`parseStatus.${detail.parse_status}`) || "")));
     } else {
@@ -1927,6 +2084,184 @@
       return percent1(value).replace("%", "").replace(/[.,]0$/, "");
     }
     return number(value);
+  }
+
+  // --- compare with a friend (backend friend_compare.py) ---------------------------
+
+  const friendState = { group: "all", data: null, error: "", timer: null, host: null };
+
+  function friendCard() {
+    const host = h("section", { class: "card friend-card", dataset: { card: "friend" } });
+    friendState.host = host;
+    if (friendState.data) {
+      renderFriend();
+    } else {
+      host.replaceChildren(...friendShell(skeletonRows(3)));
+    }
+    loadFriend();
+    return host;
+  }
+
+  // The card's header and body (the same markup as card()), for host.replaceChildren.
+  function friendShell(body, extraHead) {
+    return [
+      h("header", { class: "card-head" }, icon("users"), h("h2", { text: t("friendTitle") }), extraHead ? h("span", { class: "card-head-extra" }, extraHead) : null),
+      h("div", { class: "card-body" }, body)
+    ];
+  }
+
+  async function loadFriend(op = "friend", args = {}) {
+    clearTimeout(friendState.timer);
+    const result = await call(op, { group: friendState.group, ...args });
+    if (!friendState.host || !friendState.host.isConnected) {
+      return;
+    }
+    if (result.ok) {
+      friendState.data = result.data;
+      friendState.error = result.data.state === "self" ? t("friendSelf") : "";
+    } else {
+      friendState.error = tOptional(`linkErrors.${result.code}`) || result.detail || t("friendFailed");
+    }
+    renderFriend();
+    const data = friendState.data;
+    if (data && (data.state === "loading" || data.refreshing) && state.view === "progress") {
+      friendState.timer = setTimeout(() => loadFriend(), 3000);
+    }
+  }
+
+  function friendForm(value = "") {
+    const input = h("input", { class: "input", type: "text", value, placeholder: t("friendPlaceholder"), "aria-label": t("friendPlaceholder"), autocomplete: "off", spellcheck: "false" });
+    const button = h("button", { class: "btn btn-primary", type: "submit" }, icon("users"), h("span", { text: t("friendCompare") }));
+    return h(
+      "div",
+      {},
+      h("p", { class: "muted small", text: t("friendHint") }),
+      h(
+        "form",
+        {
+          class: "link-form friend-form no-print",
+          onsubmit: async (event) => {
+            event.preventDefault();
+            button.disabled = true;
+            await loadFriend("friendSet", { steam: input.value });
+          }
+        },
+        input,
+        button
+      ),
+      friendState.error ? h("p", { class: "form-error", role: "alert", text: friendState.error }) : null
+    );
+  }
+
+  function friendActions(data) {
+    const busy = data.refreshing || data.state === "loading";
+    return h(
+      "span",
+      { class: "toolbar-actions no-print" },
+      data.state !== "loading"
+        ? h("button", { class: "btn btn-ghost btn-sm", type: "button", disabled: busy, onclick: () => loadFriend("friendRefresh") }, icon("refresh-cw"), h("span", { text: busy ? t("friendUpdating") : t("friendRefresh") }))
+        : null,
+      h("button", { class: "btn btn-ghost btn-sm", type: "button", onclick: () => loadFriend("friendRemove").then(() => loadFriend()) }, icon("x"), h("span", { text: t("friendChange") }))
+    );
+  }
+
+  function friendValue(key, value) {
+    if (value === null || value === undefined) {
+      return "—";
+    }
+    if (key === "win_rate") {
+      return `${value}%`;
+    }
+    return ["kills", "deaths", "assists", "lh_per_min"].includes(key) ? Number(value).toFixed(1) : number(value);
+  }
+
+  function renderFriend() {
+    const host = friendState.host;
+    const data = friendState.data;
+    if (!host) {
+      return;
+    }
+    if (!data || data.state === "none" || data.state === "self" || data.state === "unlinked") {
+      host.replaceChildren(...friendShell(friendForm()));
+      hydrate(host);
+      return;
+    }
+    const friend = data.friend || {};
+    const who = friend.name || String(friend.account_id || "");
+    if (data.state !== "ready") {
+      const text = {
+        loading: t("friendLoading", who),
+        private: t("friendPrivate", who),
+        offline: t("friendOffline"),
+        error: t("friendError", data.code || "")
+      }[data.state] || "";
+      host.replaceChildren(
+        ...friendShell(
+          h("div", {}, data.state === "loading" ? skeletonRows(3) : null, h("p", { class: "muted", text }), data.state === "private" ? h("p", { class: "muted small", text: t("friendPrivateHint") }) : null),
+          friendActions(data)
+        )
+      );
+      hydrate(host);
+      return;
+    }
+    const groups = h(
+      "div",
+      { class: "segmented segmented-sm no-print", role: "radiogroup", "aria-label": t("friendGroup") },
+      ["all", "core", "support"].map((group) =>
+        h("button", {
+          type: "button",
+          role: "radio",
+          "aria-checked": String(data.group === group),
+          disabled: group !== "all" && !(data.groups?.[group]?.me && data.groups?.[group]?.friend),
+          text: t(`friendGroups.${group}`),
+          onclick: () => {
+            friendState.group = group;
+            loadFriend();
+          }
+        })
+      )
+    );
+    const cell = (row, side) =>
+      h("td", { class: `num-col num${row.better === side ? " friend-better" : ""}`, text: friendValue(row.key, row[side]) });
+    const table = h(
+      "div",
+      { class: "table-wrap table-wrap-tight" },
+      h(
+        "table",
+        { class: "table" },
+        h("thead", {}, h("tr", {}, h("th", { text: t("colMetric") }), h("th", { class: "num-col", text: t("friendYou") }), h("th", { class: "num-col", text: who }))),
+        h("tbody", {}, data.rows.map((row) => h("tr", {}, h("td", { text: t(`friendMetrics.${row.key}`) }), cell(row, "me"), cell(row, "friend"))))
+      )
+    );
+    const heroLine = (hero) =>
+      h(
+        "li",
+        { class: "friend-hero" },
+        heroLabel(hero.hero_id, hero.hero),
+        h("span", { class: "muted num", text: t("friendHeroGames", hero.me.games, hero.me.win_rate, hero.friend.games, hero.friend.win_rate) })
+      );
+    const theirHeroes = (data.friend_heroes || []).map((hero) => h("span", { class: "chip with-pic" }, heroLabel(hero.hero_id, hero.hero), h("span", { class: "num muted", text: ` · ${hero.games}` })));
+    host.replaceChildren(
+      ...friendShell(
+        h(
+          "div",
+          { class: "friend" },
+          h(
+            "div",
+            { class: "friend-head" },
+            h("div", {}, h("p", { class: "friend-name", text: who }), h("p", { class: "muted small", text: [friend.rank, t("friendGames", data.games.me, data.games.friend)].filter(Boolean).join(" · ") })),
+            groups
+          ),
+          data.enough ? null : h("p", { class: "muted small", text: t("friendFew", data.min_games) }),
+          table,
+          data.common_heroes?.length ? h("div", {}, h("p", { class: "friend-sub", text: t("friendCommon") }), h("ul", { class: "friend-heroes" }, data.common_heroes.map(heroLine))) : null,
+          theirHeroes.length ? h("div", {}, h("p", { class: "friend-sub", text: t("friendTheirHeroes", who) }), h("div", { class: "chips" }, theirHeroes)) : null,
+          h("p", { class: "muted small", text: t("friendNote") })
+        ),
+        friendActions(data)
+      )
+    );
+    hydrate(host);
   }
 
   function selfCompareCard(compare) {
@@ -3099,6 +3434,7 @@
       coachCard(career.coach, "career") || "",
       scoreCard,
       careerRankCard(career),
+      state.careerHero === null ? friendCard() : "",
       selfCompareCard(career.self_compare) || "",
       goalCard(career.focus) || "",
       planCard,

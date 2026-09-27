@@ -90,8 +90,8 @@ jobs:
           $version = $env:TAG.Substring(1)
           $dist = "frontend/launcher/dist"
           $files = @(
-            "$dist/DotaAICoach-Setup-$version.exe",
-            "$dist/win-unpacked/DotaAICoach.exe",
+            "$dist/Wardly-Setup-$version.exe",
+            "$dist/win-unpacked/Wardly.exe",
             "$dist/win-unpacked/resources/backend/dota-ai-coach-backend.exe"
           )
           $unsigned = @()
@@ -119,8 +119,8 @@ jobs:
           # electron-updater needs all three: the feed, the installer and its blockmap.
           $files = @(
             "$dist/latest.yml",
-            "$dist/DotaAICoach-Setup-$version.exe",
-            "$dist/DotaAICoach-Setup-$version.exe.blockmap"
+            "$dist/Wardly-Setup-$version.exe",
+            "$dist/Wardly-Setup-$version.exe.blockmap"
           )
           foreach ($file in $files) {
             if (-not (Test-Path $file)) { throw "Missing release file: $file" }
@@ -130,7 +130,7 @@ jobs:
           # Hand-written notes for players when docs/release-notes/<tag>.md exists.
           $notes = "docs/release-notes/$($env:TAG).md"
           $notesArgs = if (Test-Path $notes) { @("--notes-file", $notes) } else { @("--generate-notes") }
-          gh release create $env:TAG @files --target $env:GITHUB_SHA --title "Dota AI Coach $version" @notesArgs
+          gh release create $env:TAG @files --target $env:GITHUB_SHA --title "Wardly $version" @notesArgs
           if ($LASTEXITCODE -ne 0) { throw "gh release create failed with exit code $LASTEXITCODE" }
 
       - name: Upload logs on failure
