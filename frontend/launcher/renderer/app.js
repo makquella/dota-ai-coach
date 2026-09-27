@@ -104,8 +104,8 @@ const I18N = {
     voiceTest: "Listen",
     voiceHint: {
       off: "Advice is only shown, not spoken",
-      urgent: "Speaks urgent advice; heard even in exclusive fullscreen",
-      all: "Speaks every piece of advice; heard even in exclusive fullscreen"
+      urgent: "Speaks urgent advice; heard even in exclusive fullscreen. Ctrl+Alt+R repeats",
+      all: "Speaks every piece of advice; heard even in exclusive fullscreen. Ctrl+Alt+R repeats"
     },
     voiceNoVoice: "No English voice in the system: Windows Settings → Time & language → Speech",
     voiceSample: "Back off: the enemy is missing from the map.",
@@ -164,7 +164,7 @@ const I18N = {
     stopBackend: "Stop",
     showOverlay: "Show overlay",
     hideOverlay: "Hide overlay",
-    hotkeys: "Ctrl+Alt+O on/off · Ctrl+Alt+L move · Ctrl+Alt+M mute 5 min · Ctrl+Alt+1/2/3 left/right/bottom · Ctrl+Alt+D debug line",
+    hotkeys: "Ctrl+Alt+O on/off · Ctrl+Alt+L move · Ctrl+Alt+M mute 5 min · Ctrl+Alt+R repeat advice · Ctrl+Alt+1/2/3 left/right/bottom · Ctrl+Alt+D debug line",
     groupGsi: "GSI config",
     gsiPathPlaceholder: "Custom gamestate_integration folder (optional)",
     chooseFolder: "Choose",
@@ -315,8 +315,8 @@ const I18N = {
     voiceTest: "Прослушать",
     voiceHint: {
       off: "Советы только на экране, без озвучки",
-      urgent: "Озвучивает срочные советы; слышно даже в полноэкранном режиме",
-      all: "Озвучивает все советы; слышно даже в полноэкранном режиме"
+      urgent: "Озвучивает срочные советы; слышно даже в полноэкранном режиме. Ctrl+Alt+R — повторить",
+      all: "Озвучивает все советы; слышно даже в полноэкранном режиме. Ctrl+Alt+R — повторить"
     },
     voiceNoVoice: "В Windows нет русского голоса: Параметры → Время и язык → Речь → Добавить голоса",
     voiceSample: "Отходите: противника не видно на карте.",
@@ -375,7 +375,7 @@ const I18N = {
     stopBackend: "Остановить",
     showOverlay: "Показать оверлей",
     hideOverlay: "Скрыть оверлей",
-    hotkeys: "Ctrl+Alt+O вкл/выкл · Ctrl+Alt+L переместить · Ctrl+Alt+M тишина 5 мин · Ctrl+Alt+1/2/3 слева/справа/снизу · Ctrl+Alt+D отладка",
+    hotkeys: "Ctrl+Alt+O вкл/выкл · Ctrl+Alt+L переместить · Ctrl+Alt+M тишина 5 мин · Ctrl+Alt+R повторить совет · Ctrl+Alt+1/2/3 слева/справа/снизу · Ctrl+Alt+D отладка",
     groupGsi: "Конфиг GSI",
     gsiPathPlaceholder: "Своя папка gamestate_integration (необязательно)",
     chooseFolder: "Выбрать",

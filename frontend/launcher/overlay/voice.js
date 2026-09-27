@@ -50,18 +50,20 @@
     let lastAt = -Infinity;
 
     // Returns what happened: "spoken" | "off" | "same" | "busy" | "too_soon" | "no_voice" | "empty".
-    function say({ key, text, adviceMode, mode, locale, volume = 1 }) {
-      if (!synth || !Utterance || !wantsSpeech(mode, adviceMode)) {
+    // repeat: asked for by the player (hotkey): spoken whenever the voice is
+    // on at all, right away, even if it was just said.
+    function say({ key, text, adviceMode, mode, locale, volume = 1, repeat = false }) {
+      if (!synth || !Utterance || !(repeat ? normalizeMode(mode) !== "off" : wantsSpeech(mode, adviceMode))) {
         return "off";
       }
-      if (key && key === lastKey) {
+      if (key && key === lastKey && !repeat) {
         return "same";
       }
       const spoken = speechText(text);
       if (!spoken) {
         return "empty";
       }
-      const urgent = adviceMode === "urgent";
+      const urgent = adviceMode === "urgent" || repeat;
       if (!urgent && (synth.speaking || now() - lastAt < MIN_GAP_MS)) {
         return synth.speaking ? "busy" : "too_soon";
       }

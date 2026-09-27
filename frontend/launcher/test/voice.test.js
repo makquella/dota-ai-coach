@@ -85,3 +85,16 @@ test("urgent-only mode ignores tips; no voice for the language is reported", () 
   assert.equal(voice.say({ key: "b", text: "Отходите", adviceMode: "urgent", mode: "urgent", locale: "ru" }), "no_voice");
   assert.equal(synth.spoken.length, 0);
 });
+
+test("a repeat asked by the player is spoken again at once, but never when the voice is off", () => {
+  const synth = fakeSynth();
+  const clock = { t: 0 };
+  const voice = speaker(synth, clock);
+  const tip = { key: "a", text: "Stack the camp", adviceMode: "coaching", mode: "urgent", locale: "en" };
+  assert.equal(voice.say(tip), "off");
+  assert.equal(voice.say({ ...tip, repeat: true }), "spoken");
+  clock.t = 500;
+  assert.equal(voice.say({ ...tip, repeat: true }), "spoken");
+  assert.equal(synth.cancels, 2);
+  assert.equal(voice.say({ ...tip, mode: "off", repeat: true }), "off");
+});

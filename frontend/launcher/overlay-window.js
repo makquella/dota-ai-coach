@@ -52,6 +52,7 @@ function createOverlayController({
 
   const windowShortcuts = [
     ["CommandOrControl+Alt+M", muteAdvice],
+    ["CommandOrControl+Alt+R", repeatAdvice],
     ["CommandOrControl+Alt+L", toggleLocked],
     ["CommandOrControl+Alt+D", toggleDebugLine],
     ["CommandOrControl+Alt+1", () => setPosition("left-center")],
@@ -369,6 +370,11 @@ function createOverlayController({
 
   function muteAdvice() {
     send("overlay-muted", Date.now() + MUTE_MS);
+  }
+
+  // Show (and speak, if the voice is on) the last advice again.
+  function repeatAdvice() {
+    send("overlay-repeat", Date.now());
   }
 
   function toggleDebugLine() {

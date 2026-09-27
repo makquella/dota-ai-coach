@@ -95,6 +95,23 @@ async function init() {
     speaker?.reset();
     showStatus(tr("muted"));
   });
+  window.overlayApi.onRepeat?.(() => {
+    if (!lastVisibleAdvice?.recommendation) {
+      return;
+    }
+    const data = lastVisibleAdvice;
+    renderAdvice(data, { refreshTimer: false });
+    scheduleAutoHide(data.advice_mode || "coaching", { ...data, is_pinned: false });
+    speaker?.say({
+      key: lastAdviceKey,
+      text: data.recommendation.action,
+      adviceMode: data.advice_mode,
+      mode: config.voice,
+      locale: config.locale,
+      volume: config.voiceVolume,
+      repeat: true
+    });
+  });
   window.overlayApi.onToggleDebug((visible) => {
     config.debugVisible = Boolean(visible);
     applyConfig(config);
