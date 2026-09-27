@@ -1,5 +1,5 @@
 """
-Reproducible evaluation of the whole system (numbers for docs/EVALUATION.md).
+Reproducible evaluation of the whole system (docs/evaluation_results.md and .json).
 
 Run from backend/ (no network, no API keys, a few seconds):
     python scripts/evaluate_system.py --out ../docs/evaluation_results.md
@@ -437,7 +437,7 @@ def to_markdown(result: dict[str, Any]) -> str:
         "",
         f"Generated {env['generated_at']} by `backend/scripts/evaluate_system.py` "
         f"(commit {env['commit']}, Python {env['python']}, {env['platform']}). "
-        "Explained in [EVALUATION.md](EVALUATION.md).",
+        "How each number is measured: see the docstring of that script.",
         "",
         "## 1. Live pipeline latency",
         "",

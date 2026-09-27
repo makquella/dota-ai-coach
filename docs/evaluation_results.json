@@ -1,41 +1,41 @@
 {
   "environment": {
-    "generated_at": "2026-09-27T00:27:23+00:00",
-    "commit": "a097140",
+    "generated_at": "2026-09-27T02:10:39+00:00",
+    "commit": "242bd23",
     "python": "3.11.15",
     "platform": "Linux-6.18.44-fc-v42-x86_64-with-glibc2.39"
   },
   "latency": {
     "payloads": 1971,
     "game_minutes": 32,
-    "match_end_ms": 12.7,
+    "match_end_ms": 9.7,
     "rows": [
       {
         "step": "POST /gsi",
         "n": 1971,
-        "mean_ms": 2.95,
-        "p50_ms": 2.9,
-        "p95_ms": 3.43,
-        "p99_ms": 3.86,
-        "max_ms": 6.74
+        "mean_ms": 2.96,
+        "p50_ms": 2.91,
+        "p95_ms": 3.52,
+        "p99_ms": 3.87,
+        "max_ms": 7.76
       },
       {
         "step": "GET /overlay/recommendation",
         "n": 1971,
-        "mean_ms": 4.04,
-        "p50_ms": 4.27,
-        "p95_ms": 5.0,
-        "p99_ms": 5.53,
-        "max_ms": 25.76
+        "mean_ms": 4.01,
+        "p50_ms": 4.25,
+        "p95_ms": 4.93,
+        "p99_ms": 5.36,
+        "max_ms": 25.4
       },
       {
         "step": "one tick (both)",
         "n": 1971,
-        "mean_ms": 6.99,
-        "p50_ms": 7.13,
-        "p95_ms": 8.2,
-        "p99_ms": 8.82,
-        "max_ms": 29.16
+        "mean_ms": 6.97,
+        "p50_ms": 7.14,
+        "p95_ms": 8.15,
+        "p99_ms": 8.72,
+        "max_ms": 28.42
       }
     ]
   },
@@ -62,7 +62,7 @@
         "post_laning_safety_suppressed_count": 95
       },
       "suppressed_total": 752,
-      "p95_ms": 5.7,
+      "p95_ms": 5.0,
       "examples": [
         {
           "t": "20:00",
@@ -90,29 +90,29 @@
       "match": "Juggernaut 10-20 min (match 8843471434)",
       "states": 601,
       "minutes": 10.0,
-      "advice_shown": 10,
-      "advice_per_10_min": 10.0,
+      "advice_shown": 11,
+      "advice_per_10_min": 11.0,
       "urgent": 3,
-      "coaching": 7,
+      "coaching": 8,
       "decision_points": {
         "LOW_HP": 4,
         "LANING_FARM_CHECK": 2,
+        "FARMING_PHASE_PRESSURE": 2,
         "RECENT_DAMAGE_WARNING": 1,
-        "FARMING_PHASE_PRESSURE": 1,
-        "OBJECTIVE_FIGHT_CHECK": 1,
+        "LOW_MANA": 1,
         "REPEATED_DEATH_PATTERN": 1
       },
       "min_gap_s": 4.0,
       "suppressed": {
-        "duplicate_suppressed_count": 368,
-        "repeated_post_laning_suppressed_count": 223,
+        "duplicate_suppressed_count": 306,
+        "repeated_post_laning_suppressed_count": 175,
         "repeated_objective_suppressed_count": 51,
-        "post_laning_safety_suppressed_count": 154,
+        "post_laning_safety_suppressed_count": 141,
         "death_route_suppressed_count": 12,
         "repeated_low_hp_suppressed_count": 29
       },
-      "suppressed_total": 837,
-      "p95_ms": 5.26,
+      "suppressed_total": 714,
+      "p95_ms": 4.9,
       "examples": [
         {
           "t": "10:00",
@@ -165,7 +165,7 @@
           "minutes",
           "xp"
         ],
-        "build_ms": 7.5
+        "build_ms": 6.4
       },
       {
         "source": "OpenDota, basic (not parsed)",
@@ -182,7 +182,7 @@
           "draft"
         ],
         "series": [],
-        "build_ms": 5.9
+        "build_ms": 5.0
       },
       {
         "source": "GSI only (the app's own recording)",
@@ -207,7 +207,7 @@
           "last_hits_target",
           "minutes"
         ],
-        "build_ms": 8.3
+        "build_ms": 8.1
       }
     ],
     "career": {
@@ -215,7 +215,7 @@
       "analyzed": 12,
       "focus_plan": 3,
       "self_compare": true,
-      "build_ms": 10.3
+      "build_ms": 9.7
     }
   },
   "fact_check": {
