@@ -55,3 +55,16 @@ def test_a_live_turbo_match_leaves_the_history_once_opendota_names_the_mode(clie
     PLAYER_SERVICE.jobs.run_pending(until=float("inf"))
     assert client.get("/player/matches").json()["items"] == []
     assert client.get("/player/matches").json()["skipped"] is None
+
+
+def test_review_banner_forgets_a_match_dropped_as_turbo(client, tmp_path):
+    turbo = opendota_match(good=True)
+    turbo["game_mode"] = 23
+    PLAYER_SERVICE.configure(
+        tmp_path / "svc", client=FakeOpenDota(matches={MATCH_ID: turbo}), auto_start=False
+    )
+    for payload in gsi_match_stream(minutes=10):
+        client.post("/gsi", json=payload)
+    assert client.get("/player").json()["last_review"]["match_id"] == MATCH_ID
+    PLAYER_SERVICE.jobs.run_pending(until=float("inf"))
+    assert client.get("/player").json()["last_review"] is None

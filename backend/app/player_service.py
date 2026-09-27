@@ -469,6 +469,12 @@ class PlayerService:
         detail["questions"] = self._questions(primary, match_id)
         current = self._focus(primary)
         detail["focus_id"] = current["id"] if current else None
+        # The review's top problems that can become the player's focus.
+        detail["focusable"] = [
+            finding_id
+            for finding_id in (analysis or {}).get("focus") or []
+            if can_focus(finding_id)
+        ]
         return detail
 
     def _baseline(
@@ -990,6 +996,10 @@ class PlayerService:
             # A live match recorded from GSI that turns out to be Turbo, a bot
             # game or another mode with its own rules: not part of the history.
             self.store.delete_matches(account_id, [match_id])
+            last = (self.store.get_meta(f"last_review:{account_id}") or "").split("|")[0]
+            if last == str(match_id):
+                # The "review ready" banner must not open a deleted match.
+                self.store.set_meta(f"last_review:{account_id}", None)
             return
         parsed = bool(trimmed.get("parsed"))
         status = "parsed" if parsed else "basic"

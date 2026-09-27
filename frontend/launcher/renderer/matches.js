@@ -182,6 +182,7 @@
       goalStreak: (n) => `${n} matches in a row without it`,
       goalClear: "Stop tracking",
       goalSet: "Make it my focus",
+      goalSetFailed: "Could not save the focus, try again",
       goalCurrent: "Focus",
       goalMet: "done",
       goalMissed: "happened again",
@@ -488,6 +489,7 @@
       goalStreak: (n) => `${n} ${plural(n, "матч", "матча", "матчей")} подряд без этой ошибки`,
       goalClear: "Снять фокус",
       goalSet: "Сделать фокусом",
+      goalSetFailed: "Не удалось сохранить фокус, попробуйте ещё раз",
       goalCurrent: "Фокус",
       goalMet: "получилось",
       goalMissed: "повторилось",
@@ -1238,8 +1240,9 @@
     if (result.ok && state.matchId === matchId && state.view === "match") {
       const changed = JSON.stringify(result.data) !== JSON.stringify(state.match);
       state.match = result.data;
-      // Don't wipe a key the player is typing.
-      if (changed && state.aiPanel !== "form") {
+      // Don't wipe a key or a question the player is typing, or a question on its way.
+      const asking = state.askBusy || Boolean(document.querySelector(".ask-input")?.value.trim());
+      if (changed && state.aiPanel !== "form" && !asking) {
         renderMatch();
       }
     }
@@ -1496,7 +1499,7 @@
           const body = item.querySelector(".finding-body");
           if (detail && detail.focus_id === finding.id) {
             item.querySelector(".finding-title").append(h("span", { class: "tag tag-accent", text: t("goalCurrent") }));
-          } else if (detail) {
+          } else if (detail && (detail.focusable || []).includes(finding.id)) {
             // Work on it from the next game (the Progress page tracks it).
             body.append(
               h(
@@ -1506,11 +1509,16 @@
                   type: "button",
                   onclick: async (event) => {
                     event.currentTarget.disabled = true;
+                    const button = event.currentTarget;
                     const result = await call("focusSet", { findingId: finding.id });
-                    if (result.ok) {
-                      detail.focus_id = finding.id;
-                      state.career = null;
+                    if (!result.ok) {
+                      button.disabled = false;
+                      button.replaceChildren(icon("circle-alert"), h("span", { text: t("goalSetFailed") }));
+                      hydrate(button);
+                      return;
                     }
+                    detail.focus_id = finding.id;
+                    state.career = null;
                     render();
                     hydrate(list);
                   }
@@ -2236,7 +2244,9 @@
       });
       note.textContent = "";
       pending.classList.remove("hidden");
+      state.askBusy = true;
       const result = await call("ask", { matchId: detail.match_id, question: text });
+      state.askBusy = false;
       pending.classList.add("hidden");
       button.disabled = false;
       input.disabled = false;
@@ -2249,7 +2259,7 @@
         renderHistory();
         return;
       }
-      const code = (result.data && result.data.code) || "bad_response";
+      const code = (result.data && result.data.code) || (/time/i.test(result.detail || "") ? "timeout" : "bad_response");
       note.textContent = tOptional(`askErrors.${code}`) || tOptional(`coachErrors.${code}`) || t("coachErrors.bad_response");
     }
     const form = h(

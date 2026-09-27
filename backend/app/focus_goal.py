@@ -32,6 +32,21 @@ REQUIRES = {
     "counter_item_missing": "draft",
 }
 MAX_RESULTS = 10
+# Findings whose title names one item or hero ("Late Battle Fury"). The check works
+# on the finding, not on that item or hero, so the goal gets a general title.
+GENERAL_TITLES = {
+    "build_timing_late": {"ru": "Поздние ключевые предметы", "en": "Late key items"},
+    "counter_item_missing": {
+        "ru": "Нет предметов против вражеских героев",
+        "en": "No answer to the enemy heroes",
+    },
+    "killed_by_one": {
+        "ru": "Один и тот же враг убивает вас снова и снова",
+        "en": "The same enemy keeps killing you",
+    },
+}
+# Advice about one match's lineup, not a habit (same as the career's NOT_RECURRING).
+NOT_FOCUSABLE = {"draft_better_pick"}
 
 
 def family(finding_id: str) -> str:
@@ -39,7 +54,11 @@ def family(finding_id: str) -> str:
 
 
 def can_focus(finding_id: str) -> bool:
-    return finding_id in FINDINGS and FINDINGS[finding_id].get("en") is not None
+    return (
+        finding_id in FINDINGS
+        and FINDINGS[finding_id].get("en") is not None
+        and finding_id not in NOT_FOCUSABLE
+    )
 
 
 def new_focus(
@@ -97,6 +116,10 @@ def focus_summary(
         {"id": focus["id"], "section": focus.get("section"), "params": focus.get("params") or {}},
         lang,
     )
+    general = GENERAL_TITLES.get(focus["id"])
+    if general:
+        # The drill names the item or hero of one match too.
+        rendered = {**rendered, "title": general["ru" if lang == "ru" else "en"], "drill": None}
     results = []
     for match in matches:
         if not played_after(match, focus):

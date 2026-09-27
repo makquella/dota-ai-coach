@@ -111,3 +111,25 @@ def test_today_summary_on_the_home_screen(client, tmp_path):
     assert today["games"] == 2 and today["wins"] == 2 and today["losses"] == 0
     assert isinstance(today["avg_score"], int)
     assert (today["focus_met"], today["focus_total"]) == (1, 1)
+
+
+def test_item_and_hero_findings_get_a_general_focus_title():
+    focus = new_focus("build_timing_late", "items", {"item": "Battle Fury", "t": 1500})
+    summary = focus_summary(focus, [], "ru")
+    assert summary["title"] == "Поздние ключевые предметы" and summary["drill"] is None
+    assert focus_summary(new_focus("killed_by_one", "survival", {}), [], "en")["title"] == (
+        "The same enemy keeps killing you"
+    )
+
+
+def test_lineup_advice_cannot_become_a_focus(client, tmp_path):
+    from app.focus_goal import can_focus
+
+    assert not can_focus("draft_better_pick") and can_focus("death_streak")
+    PLAYER_SERVICE.configure(tmp_path / "svc", client=None, auto_start=False)
+    _play(client, MATCH_ID, (7, 18, 19, 20))
+    bad = client.post("/player/focus", json={"finding_id": "draft_better_pick"})
+    assert bad.status_code == 400
+    detail = client.get(f"/player/matches/{MATCH_ID}?lang=en").json()
+    assert set(detail["focusable"]) <= set(detail["analysis"]["focus"])
+    assert "draft_better_pick" not in detail["focusable"]

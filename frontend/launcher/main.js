@@ -1058,12 +1058,13 @@ const PLAYER_OPS = {
   ],
   // AI coach (optional; the key is kept by the backend and never sent back).
   coachMatch: (args) => ["POST", `/player/matches/${matchIdArg(args)}/coach?lang=${uiLocale()}`],
-  // A free question about a match: the model answers synchronously, allow a minute and a half.
+  // A free question about a match: the model answers synchronously, and a failed fact
+  // check asks once more (2 x 60 s in the backend): allow two and a half minutes.
   ask: (args) => [
     "POST",
     `/player/matches/${matchIdArg(args)}/ask?lang=${uiLocale()}`,
     { question: String(args.question || "").slice(0, 300) },
-    90000
+    150000
   ],
   coachCareer: () => ["POST", `/player/career/coach?lang=${uiLocale()}`],
   aiStatus: () => ["GET", "/player/ai"],
