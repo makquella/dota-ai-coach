@@ -38,7 +38,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
-from app.analysis_texts import render_analysis
+from app.analysis_texts import rank_label, render_analysis
 from app.career_analysis import NOT_RECURRING, analyze_career
 from app.coach_llm import PROVIDERS, AISettings, CoachLLM, CoachLLMError, settings_from
 from app.coach_review import (
@@ -61,6 +61,7 @@ from app.dota_constants import (
 from app.draft_analysis import pool_heroes
 from app.finding_history import finding_history
 from app.focus_goal import can_focus, focus_summary, match_result, new_focus, played_after
+from app.friend_compare import compare
 from app.game_plan import build_game_plan
 from app.match_facts import facts_from_opendota, facts_from_timeline, merge_facts
 from app.match_tracker import MatchTracker, account_from_gsi
@@ -102,6 +103,8 @@ HERO_STATS_TTL_SECONDS = 24 * 3600
 GAME_PLAN_CACHE_SECONDS = 60
 SKIPPED_MODES_META = "skipped_modes"
 FOCUS_META = "focus"
+FRIEND_META = "friend"
+FRIEND_CACHE = "friend:matches"
 TODAY_MAX_MATCHES = 30
 # Earlier matches read for a repeating problem (some cannot show every problem).
 REPEATS_LOOKUP = 25
@@ -260,6 +263,8 @@ class PlayerService:
             self.data_dir / "live_match.json", on_finished=self._on_match_finished
         )
         self._detected: dict[str, Any] | None = None
+        # Friend fetches that failed (code), by friend account id; cleared on retry.
+        self._friend_errors: dict[int, str] = {}
         self._plans: dict[tuple[Any, ...], tuple[float, dict[str, Any] | None]] = {}
         self._sync: dict[str, Any] = {
             "state": "idle",
@@ -562,6 +567,114 @@ class PlayerService:
             account_id, limit=MAX_BASELINE_GAMES + 1, hero_id=int(hero_id)
         )
         return personal_baseline({**record, "analysis": analysis}, others)
+
+    # --- compare with a friend (friend_compare.py) --------------------------------------
+
+    def _friend_id(self, account_id: int) -> int | None:
+        raw = self.store.get_meta(f"{FRIEND_META}:{account_id}")
+        with contextlib.suppress(ValueError, TypeError):
+            return int(json.loads(raw)["account_id"]) if raw else None
+        return None
+
+    def set_friend(self, value: Any, lang: str) -> dict[str, Any]:
+        """Remember the friend to compare with and fetch their matches."""
+        primary = self.store.primary_account_id()
+        if primary is None:
+            return {"state": "unlinked"}
+        friend_id = parse_account_id(value)
+        if friend_id == primary:
+            return {"state": "self"}
+        self.store.set_meta(
+            f"{FRIEND_META}:{primary}",
+            json.dumps({"account_id": friend_id, "added_at": _now_iso()}),
+        )
+        self._request_friend(friend_id)
+        return self.friend(lang)
+
+    def remove_friend(self) -> dict[str, Any]:
+        primary = self.store.primary_account_id()
+        if primary is not None:
+            self.store.set_meta(f"{FRIEND_META}:{primary}", None)
+        return {"state": "none"}
+
+    def refresh_friend(self, lang: str) -> dict[str, Any]:
+        primary = self.store.primary_account_id()
+        friend_id = self._friend_id(primary) if primary is not None else None
+        if friend_id is not None:
+            self._request_friend(friend_id)
+        return self.friend(lang)
+
+    def _request_friend(self, friend_id: int) -> None:
+        if self.client is None:
+            return
+        self._friend_errors.pop(friend_id, None)
+        self.jobs.submit(f"friend:{friend_id}", lambda: self._job_fetch_friend(friend_id))
+
+    def _job_fetch_friend(self, friend_id: int) -> None:
+        client = self.client
+        if client is None:
+            return
+        try:
+            profile: dict[str, Any] | None = None
+            try:
+                profile = client.player(friend_id)
+            except OpenDotaError as error:
+                if error.code != "private":
+                    raise
+            rows = client.recent_matches(friend_id, limit=RECENT_MATCHES_LIMIT)
+        except OpenDotaError as error:
+            self._friend_errors[friend_id] = error.code or "error"
+            return
+        matches = [row for row in rows if is_reviewable_match(row)]
+        self.store.cache_set(
+            f"{FRIEND_CACHE}:{friend_id}",
+            {"profile": profile, "matches": matches, "fetched_at": time.time()},
+        )
+
+    def friend(self, lang: str, group: str = "all") -> dict[str, Any]:
+        """The comparison with the saved friend (state none / loading / ready / ...)."""
+        primary = self.store.primary_account_id()
+        if primary is None:
+            return {"state": "unlinked"}
+        friend_id = self._friend_id(primary)
+        if friend_id is None:
+            return {"state": "none"}
+        result: dict[str, Any] = {"friend": {"account_id": friend_id}}
+        cached = self.store.cache_get(f"{FRIEND_CACHE}:{friend_id}")
+        loading = f"friend:{friend_id}" in self.jobs.pending()
+        if cached is None:
+            if self.client is None:
+                return {**result, "state": "offline"}
+            if friend_id in self._friend_errors:
+                return {**result, "state": "error", "code": self._friend_errors[friend_id]}
+            if not loading:
+                self._request_friend(friend_id)
+            return {**result, "state": "loading"}
+        profile = cached.get("profile") or {}
+        result["friend"].update(
+            name=profile.get("persona_name"),
+            avatar_url=profile.get("avatar_url"),
+            rank=rank_label(profile.get("rank_tier"), lang),
+        )
+        me = self.store.get_player(primary) or {}
+        result["me"] = {
+            "name": me.get("persona_name"),
+            "rank": rank_label(me.get("rank_tier"), lang),
+        }
+        result["fetched_at"] = cached.get("fetched_at")
+        result["refreshing"] = loading
+        if friend_id in self._friend_errors:
+            result["error"] = self._friend_errors[friend_id]
+        theirs = cached.get("matches") or []
+        if not theirs:
+            # OpenDota shows no matches of an account that hides its match data.
+            return {**result, "state": "private"}
+        mine = [
+            row
+            for row in self.store.list_matches(primary, limit=RECENT_MATCHES_LIMIT)
+            if is_reviewable_match(row)
+        ]
+        return {**result, "state": "ready", **compare(mine, theirs, group)}
 
     # --- focus goal (focus_goal.py) ---------------------------------------------------
 

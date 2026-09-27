@@ -142,6 +142,35 @@ def player_week(lang: str = "en"):
     return {"week": PLAYER_SERVICE.week(normalize_lang(lang))}
 
 
+class FriendRequest(BaseModel):
+    steam: str
+
+
+@router.get("/friend", summary="The player next to a friend (OpenDota)")
+def friend_compare(lang: str = "ru", group: str = "all"):
+    return PLAYER_SERVICE.friend(lang, group)
+
+
+@router.post("/friend", summary="Compare with a friend (Steam ID, Friend ID or profile link)")
+def set_friend(request: FriendRequest, lang: str = "ru"):
+    try:
+        return PLAYER_SERVICE.set_friend(request.steam, lang)
+    except SteamIdError as error:
+        return JSONResponse(
+            status_code=400, content={"status": "error", "code": error.code, "detail": str(error)}
+        )
+
+
+@router.post("/friend/refresh", summary="Fetch the friend's matches again")
+def refresh_friend(lang: str = "ru"):
+    return PLAYER_SERVICE.refresh_friend(lang)
+
+
+@router.delete("/friend", summary="Stop comparing with the friend")
+def remove_friend():
+    return PLAYER_SERVICE.remove_friend()
+
+
 @router.get("/career", summary="Statistics and advice over recent matches")
 def player_career(lang: str = "en", hero_id: HeroId = None):
     """`hero_id` narrows the progress to one hero (no AI review then)."""

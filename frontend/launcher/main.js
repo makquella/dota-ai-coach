@@ -1078,6 +1078,11 @@ const PLAYER_OPS = {
   match: (args) => ["GET", `/player/matches/${matchIdArg(args)}?lang=${uiLocale()}`, undefined, 15000],
   refreshMatch: (args) => ["POST", `/player/matches/${matchIdArg(args)}/refresh`],
   week: () => ["GET", `/player/week?lang=${uiLocale()}`],
+  // Compare with a friend (their public OpenDota matches, fetched by the backend).
+  friend: (args) => ["GET", `/player/friend?lang=${uiLocale()}&group=${friendGroupArg(args)}`],
+  friendSet: (args) => ["POST", `/player/friend?lang=${uiLocale()}`, { steam: String(args.steam || "").slice(0, 200) }],
+  friendRefresh: () => ["POST", `/player/friend/refresh?lang=${uiLocale()}`],
+  friendRemove: () => ["DELETE", "/player/friend"],
   career: (args) => [
     "GET",
     `/player/career?lang=${uiLocale()}` + (/^\d{1,4}$/.test(String(args.heroId ?? "")) ? `&hero_id=${args.heroId}` : ""),
@@ -1121,6 +1126,10 @@ const PLAYER_OPS = {
   // One real request to the provider: allow it time.
   aiCheck: () => ["POST", "/player/ai/check", undefined, 45000]
 };
+
+function friendGroupArg(args) {
+  return ["all", "core", "support"].includes(args.group) ? args.group : "all";
+}
 
 // Where a player gets a free key (opened in the browser).
 const AI_KEY_PAGES = {

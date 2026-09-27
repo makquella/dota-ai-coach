@@ -2385,6 +2385,72 @@ label.setting:has(.switch:disabled) {
   font-weight: var(--fw-regular);
 }
 
+/* Compare with a friend */
+
+.friend {
+  display: grid;
+  gap: var(--sp-3);
+}
+
+.friend-form {
+  margin-top: var(--sp-2);
+}
+
+.friend-form .input {
+  flex: 1;
+}
+
+.friend-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-2);
+}
+
+.friend-name {
+  font-weight: var(--fw-semibold);
+}
+
+.friend-better {
+  color: var(--text);
+  font-weight: var(--fw-semibold);
+}
+
+.friend-card td.num-col:not(.friend-better) {
+  color: var(--text-2);
+}
+
+.friend-sub {
+  margin-bottom: var(--sp-1);
+  color: var(--text-2);
+  font-size: var(--fs-13);
+}
+
+.friend-heroes {
+  display: grid;
+  gap: var(--sp-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.friend .table-wrap {
+  margin-bottom: var(--sp-2);
+}
+
+.friend-hero {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-3);
+  font-size: var(--fs-13);
+}
+
+.friend-hero .muted {
+  white-space: pre;
+}
+
 /* Match table filters */
 
 .filter-bar {

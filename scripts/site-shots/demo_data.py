@@ -226,3 +226,21 @@ def with_route(payloads: list[dict[str, Any]]) -> list[dict[str, Any]]:
         else:
             hero.update(xpos=position[0], ypos=position[1])
     return payloads
+
+
+# --- the friend on the Progress page ------------------------------------------------
+FRIEND_HEROES = [11, 8, 17, 11, 106, 8, 11, 74, 17, 11]
+
+
+def friend_row(row: dict[str, Any], index: int) -> dict[str, Any]:
+    """One of the player's summaries turned into the friend's game."""
+    friend = dict(row)
+    friend["match_id"] = 9_100_000 + index
+    friend["hero_id"] = FRIEND_HEROES[index % len(FRIEND_HEROES)]
+    friend["win"] = index % 5 in (0, 2)
+    for key, factor in (("gpm", 0.9), ("xpm", 1.04), ("last_hits", 0.86), ("hero_damage", 1.3)):
+        if isinstance(friend.get(key), (int, float)):
+            friend[key] = int(friend[key] * factor)
+    friend["deaths"] = (friend.get("deaths") or 0) + 2
+    friend["kills"] = (friend.get("kills") or 0) + 3
+    return friend
