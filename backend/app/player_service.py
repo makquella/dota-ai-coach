@@ -79,6 +79,7 @@ from app.personal_baseline import personal_baseline
 from app.player_store import PlayerStore
 from app.post_match_analysis import ANALYSIS_VERSION, analyze_match
 from app.schemas import is_supported_hero
+from app.share_review import public_review
 from app.steam_ids import parse_account_id, steam64_from_account_id
 from app.weekly_summary import weekly_summary
 
@@ -568,6 +569,18 @@ class PlayerService:
             account_id, limit=MAX_BASELINE_GAMES + 1, hero_id=int(hero_id)
         )
         return personal_baseline({**record, "analysis": analysis}, others)
+
+    # --- share a review (share_review.py) -----------------------------------------------
+
+    def share_payload(
+        self, match_id: int, lang: str, *, with_coach: bool = False
+    ) -> dict[str, Any] | None:
+        """The public part of a review; the AI coach is not asked to write one."""
+        primary = self.store.primary_account_id()
+        if primary is None or self.store.get_match(primary, match_id) is None:
+            return None
+        detail = self.match_detail(match_id, lang)
+        return public_review(detail, lang, with_coach=with_coach) if detail else None
 
     # --- history backup (history_backup.py) ---------------------------------------------
 

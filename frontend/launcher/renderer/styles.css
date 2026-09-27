@@ -2385,6 +2385,36 @@ label.setting:has(.switch:disabled) {
   font-weight: var(--fw-regular);
 }
 
+/* Share a review */
+
+.share-body {
+  display: grid;
+  gap: var(--sp-3);
+}
+
+.share-link {
+  flex: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.share-check {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  font-size: var(--fs-13);
+  cursor: pointer;
+}
+
+.share-check input {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--accent);
+}
+
+.share-note:empty {
+  display: none;
+}
+
 /* Compare with a friend */
 
 .friend {

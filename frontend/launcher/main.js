@@ -1863,6 +1863,106 @@ async function exportPdf(kind, id) {
 }
 
 // ---------------------------------------------------------------------------
+// Share a review: the public part (backend share_review.py) goes to the API,
+// which answers with a link; the delete token stays in settings.shares.
+// ---------------------------------------------------------------------------
+
+const SHARE_TIMEOUT_MS = 30_000;
+
+function shareRecords() {
+  const stored = settings.get("shares");
+  const now = Date.now();
+  const records = stored && typeof stored === "object" ? stored : {};
+  // Links past their 90 days are gone on the server too.
+  return Object.fromEntries(Object.entries(records).filter(([, record]) => record && Number(record.expiresAt) > now));
+}
+
+function publicShare(record) {
+  return record ? { url: record.url, expiresAt: record.expiresAt, withCoach: Boolean(record.withCoach) } : null;
+}
+
+function shareStatus(matchId) {
+  return { ok: true, share: publicShare(shareRecords()[matchId]) };
+}
+
+async function createShare(matchId, withCoach) {
+  let review;
+  try {
+    const payload = await requestBackendJson(
+      `/player/matches/${matchId}/share?lang=${uiLocale()}&coach=${withCoach ? "true" : "false"}`,
+      "GET",
+      undefined,
+      15000
+    );
+    review = payload.review;
+  } catch (error) {
+    return { ok: false, code: (error.payload && error.payload.code) || "backend_down" };
+  }
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), SHARE_TIMEOUT_MS);
+  try {
+    const response = await electronNet.fetch(`${apiUrl()}/v1/share`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ install_id: installId(), version: app.getVersion(), review }),
+      signal: controller.signal
+    });
+    let answer = {};
+    try {
+      answer = await response.json();
+    } catch {
+      // Not JSON: the status decides.
+    }
+    if (!response.ok || !answer.url || !answer.delete_token) {
+      return { ok: false, code: answer.code || `http_${response.status}` };
+    }
+    const record = {
+      id: String(answer.id),
+      url: String(answer.url),
+      token: String(answer.delete_token),
+      expiresAt: Number(answer.expires_at),
+      withCoach: Boolean(withCoach)
+    };
+    settings.set("shares", { ...shareRecords(), [matchId]: record });
+    appendLog("launcher", `Review of match ${matchId} shared: ${record.url}`, { force: true });
+    return { ok: true, share: publicShare(record) };
+  } catch (error) {
+    return { ok: false, code: "offline", error: error.message };
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+async function deleteShareLink(matchId) {
+  const records = shareRecords();
+  const record = records[matchId];
+  if (!record) {
+    return { ok: true, share: null };
+  }
+  try {
+    const response = await electronNet.fetch(`${apiUrl()}/v1/share/${encodeURIComponent(record.id)}`, {
+      method: "DELETE",
+      headers: { "x-delete-token": record.token }
+    });
+    // 404: already gone (expired or deleted elsewhere).
+    if (!response.ok && response.status !== 404) {
+      return { ok: false, code: `http_${response.status}` };
+    }
+  } catch (error) {
+    return { ok: false, code: "offline", error: error.message };
+  }
+  delete records[matchId];
+  settings.set("shares", records);
+  appendLog("launcher", `Shared review of match ${matchId} deleted.`, { force: true });
+  return { ok: true, share: null };
+}
+
+function shareMatchArg(value) {
+  const text = String(value || "");
+  return /^\d{1,20}$/.test(text) ? text : null;
+}
+
+// ---------------------------------------------------------------------------
 // History backup: the backend's whole history (no keys) in one gzipped file
 // ---------------------------------------------------------------------------
 
@@ -2304,6 +2404,26 @@ function registerIpc() {
   ipcMain.handle("launcher:dismiss-setup", () => {
     settings.set("setupDismissed", true);
     return publicStatus();
+  });
+  ipcMain.handle("launcher:share-status", (_event, matchId) =>
+    shareMatchArg(matchId) ? shareStatus(shareMatchArg(matchId)) : { ok: false, code: "bad_match" }
+  );
+  ipcMain.handle("launcher:share-create", (_event, matchId, withCoach) =>
+    shareMatchArg(matchId) ? createShare(shareMatchArg(matchId), Boolean(withCoach)) : { ok: false, code: "bad_match" }
+  );
+  ipcMain.handle("launcher:share-delete", (_event, matchId) =>
+    shareMatchArg(matchId) ? deleteShareLink(shareMatchArg(matchId)) : { ok: false, code: "bad_match" }
+  );
+  ipcMain.handle("launcher:share-copy", (_event, matchId) => {
+    const record = shareMatchArg(matchId) ? shareRecords()[shareMatchArg(matchId)] : null;
+    if (record) {
+      clipboard.writeText(record.url);
+    }
+    return Boolean(record);
+  });
+  ipcMain.handle("launcher:share-open", (_event, matchId) => {
+    const record = shareMatchArg(matchId) ? shareRecords()[shareMatchArg(matchId)] : null;
+    return record && record.url.startsWith(`${apiUrl()}/r/`) ? shell.openExternal(record.url) : false;
   });
   ipcMain.handle("launcher:backup-export", () => exportHistory());
   ipcMain.handle("launcher:backup-import", () => importHistory());

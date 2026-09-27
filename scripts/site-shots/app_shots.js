@@ -130,7 +130,8 @@ const SHOTS = {
   "review-ai": [{ click: "#tab-matches", wait: 1500 }, { click: "tr.row-link", wait: 2500 }, { eval: scrollTo(".coach-card") }],
   progress: [{ click: "#tab-progress", wait: 2500 }],
   "progress-ai": [{ click: "#tab-progress", wait: 2500 }, { eval: scrollTo(".coach-card") }],
-  "progress-friend": [{ click: "#tab-progress", wait: 3000 }, { eval: scrollTo(".friend-card") }]
+  "progress-friend": [{ click: "#tab-progress", wait: 3000 }, { eval: scrollTo(".friend-card") }],
+  "review-share": [{ click: "#tab-matches", wait: 1500 }, { click: "tr.row-link", wait: 2500 }, { click: ".review-toolbar .toolbar-actions button", wait: 800 }]
 };
 
 // Single cards of the match review (by their title), for the site's detail row.

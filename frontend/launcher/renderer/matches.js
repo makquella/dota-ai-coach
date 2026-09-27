@@ -244,6 +244,22 @@
       rankCareerEmpty: "Appears after a few matches reviewed with OpenDota data.",
       colBracket: "At your rank",
       bracketHint: (rank) => `Hero win rate among all ${rank} players (OpenDota)`,
+      shareButton: "Share",
+      shareTitle: "Share this review",
+      shareWhat: "A page with this review: hero, result, score, the match numbers, the areas and what to improve. Anyone with the link can open it.",
+      shareNot: "Not published: the match number, your Steam ID, nickname and the other players. The link works for 90 days, and you can delete it at any time.",
+      shareCoach: "Add the AI coach's summary",
+      shareCreate: "Create a link",
+      shareCreating: "Creating the link…",
+      shareLink: "Link to the review",
+      shareCopy: "Copy",
+      shareCopied: "Copied.",
+      shareOpen: "Open",
+      shareDelete: "Delete the link",
+      shareDeleted: "The link is deleted.",
+      shareExpires: (date) => `Works until ${date}.`,
+      shareWithCoach: "With the AI coach's summary.",
+      shareFailed: (code) => `Could not do it${code ? ` (${code})` : ""}: check the internet and try again.`,
       friendTitle: "Compare with a friend",
       friendHint: "A friend's Friend ID, Steam ID or profile link (steamcommunity.com/profiles/…). Their public OpenDota matches are compared with yours: the last 20 games of each.",
       friendPlaceholder: "Friend ID, Steam ID or profile link",
@@ -599,6 +615,22 @@
       rankCareerEmpty: "Появится после нескольких матчей, разобранных по данным OpenDota.",
       colBracket: "На вашем ранге",
       bracketHint: (rank) => `Винрейт героя у всех игроков ранга ${rank} (OpenDota)`,
+      shareButton: "Поделиться",
+      shareTitle: "Поделиться разбором",
+      shareWhat: "Страница с этим разбором: герой, результат, оценка, цифры матча, разделы и что улучшить. Открыть её сможет любой, у кого есть ссылка.",
+      shareNot: "Не публикуется: номер матча, ваш Steam ID, ник и другие игроки. Ссылка работает 90 дней, её можно удалить в любой момент.",
+      shareCoach: "Добавить вывод ИИ-тренера",
+      shareCreate: "Создать ссылку",
+      shareCreating: "Создаю ссылку…",
+      shareLink: "Ссылка на разбор",
+      shareCopy: "Копировать",
+      shareCopied: "Скопировано.",
+      shareOpen: "Открыть",
+      shareDelete: "Удалить ссылку",
+      shareDeleted: "Ссылка удалена.",
+      shareExpires: (date) => `Работает до ${date}.`,
+      shareWithCoach: "С выводом ИИ-тренера.",
+      shareFailed: (code) => `Не получилось${code ? ` (${code})` : ""}: проверьте интернет и попробуйте ещё раз.`,
       friendTitle: "Сравнение с другом",
       friendHint: "Friend ID друга, Steam ID или ссылка на профиль (steamcommunity.com/profiles/…). Сравниваются открытые матчи из OpenDota: последние 20 игр каждого.",
       friendPlaceholder: "Friend ID, Steam ID или ссылка на профиль",
@@ -1364,6 +1396,75 @@
   }
 
   // Saves the current view as a PDF (light print theme, see @media print).
+  // «Поделиться разбором»: a link to the public part of the review (main.js createShare).
+  function shareButton(panel, detail) {
+    const button = h("button", { class: "btn btn-ghost btn-sm", type: "button", "aria-expanded": "false" }, icon("share-2"), h("span", { text: t("shareButton") }));
+    button.addEventListener("click", async () => {
+      const open = panel.hidden;
+      panel.hidden = !open;
+      button.setAttribute("aria-expanded", String(open));
+      if (open) {
+        panel.replaceChildren(skeletonRows(2));
+        const status = await api.shareStatus(String(detail.match_id));
+        renderSharePanel(panel, detail, status && status.ok ? status.share : null, "");
+      }
+    });
+    return button;
+  }
+
+  function renderSharePanel(panel, detail, share, message) {
+    const matchId = String(detail.match_id);
+    const coachReady = detail.coach && detail.coach.state === "ready";
+    const note = h("p", { class: "muted small share-note", role: "status", text: message || "" });
+    let body;
+    if (share) {
+      const expires = new Date(share.expiresAt).toLocaleDateString(state.locale === "ru" ? "ru-RU" : "en-GB");
+      const link = h("input", { class: "input share-link", type: "text", readonly: true, value: share.url, "aria-label": t("shareLink") });
+      link.addEventListener("focus", () => link.select());
+      body = h(
+        "div",
+        { class: "share-body" },
+        h("div", { class: "link-form" }, link, h("button", { class: "btn btn-primary", type: "button", onclick: async () => {
+          const copied = await api.shareCopy(matchId);
+          renderSharePanel(panel, detail, share, copied ? t("shareCopied") : "");
+        } }, icon("copy"), h("span", { text: t("shareCopy") }))),
+        h("p", { class: "muted small", text: t("shareExpires", expires) + (share.withCoach ? ` ${t("shareWithCoach")}` : "") }),
+        h(
+          "div",
+          { class: "toolbar-actions" },
+          h("button", { class: "btn btn-ghost btn-sm", type: "button", onclick: () => api.shareOpen(matchId) }, icon("external-link"), h("span", { text: t("shareOpen") })),
+          h("button", { class: "btn btn-ghost btn-sm", type: "button", onclick: async (event) => {
+            event.currentTarget.disabled = true;
+            const result = await api.shareDelete(matchId);
+            renderSharePanel(panel, detail, result && result.ok ? null : share, result && result.ok ? t("shareDeleted") : t("shareFailed", result?.code || ""));
+          } }, icon("trash-2"), h("span", { text: t("shareDelete") }))
+        )
+      );
+    } else {
+      const coach = coachReady ? h("input", { type: "checkbox", class: "checkbox", id: "share-coach", checked: true }) : null;
+      const create = h("button", { class: "btn btn-primary", type: "button" }, icon("share-2"), h("span", { text: t("shareCreate") }));
+      create.addEventListener("click", async () => {
+        create.disabled = true;
+        note.textContent = t("shareCreating");
+        const result = await api.shareCreate(matchId, Boolean(coach && coach.checked));
+        renderSharePanel(panel, detail, result && result.ok ? result.share : null, result && result.ok ? "" : t("shareFailed", result?.code || ""));
+      });
+      body = h(
+        "div",
+        { class: "share-body" },
+        h("p", { text: t("shareWhat") }),
+        h("p", { class: "muted small", text: t("shareNot") }),
+        coach ? h("label", { class: "share-check" }, coach, h("span", { text: t("shareCoach") })) : null,
+        h("div", { class: "toolbar-actions" }, create)
+      );
+    }
+    panel.replaceChildren(
+      h("header", { class: "card-head" }, icon("share-2"), h("h2", { text: t("shareTitle") })),
+      h("div", { class: "card-body" }, body, note)
+    );
+    hydrate(panel);
+  }
+
   function pdfButton(kind) {
     const note = h("span", { class: "muted small pdf-note" });
     const button = h(
@@ -1400,7 +1501,15 @@
     const root = document.getElementById("match-root");
     const backButton = h("button", { class: "btn btn-ghost btn-sm back", type: "button", onclick: () => setView("matches") }, icon("chevron-left"), h("span", { text: t("back") }));
     const detail = state.match;
-    const back = h("div", { class: "review-toolbar no-print" }, backButton, detail && detail.analysis ? pdfButton("match") : null);
+    const sharePanel = h("section", { class: "card share-panel no-print", hidden: true });
+    const back = h(
+      "div",
+      { class: "review-toolbar no-print" },
+      backButton,
+      detail && detail.analysis
+        ? h("span", { class: "toolbar-actions" }, shareButton(sharePanel, detail), pdfButton("match"))
+        : null
+    );
     if (!detail) {
       root.replaceChildren(back, card(t("reviewLoading"), "activity", skeletonRows(6)));
       hydrate(root);
@@ -1413,7 +1522,7 @@
     }
     const analysis = detail.analysis;
     const summary = detail.summary || {};
-    const parts = [back, reviewHeader(detail, analysis, summary)];
+    const parts = [back, sharePanel, reviewHeader(detail, analysis, summary)];
     if (!analysis) {
       parts.push(card(t("reviewLoading"), "hourglass", emptyState("hourglass", t("reviewPending"), tOptional(`parseStatus.${detail.parse_status}`) || "")));
     } else {
