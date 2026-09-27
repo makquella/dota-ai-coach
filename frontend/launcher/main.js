@@ -246,7 +246,8 @@ const TRAY_TEXT = {
     updateReady: (version) => `Restart and update to ${version}`,
     updateAfterGame: (version) => `Update ${version} installs after you close Dota`,
     updated: (version) => `Updated to ${version}.`,
-    reviewReady: (score) => `Post-match review is ready${score ? `: score${score}` : ""}. Click to open it.`,
+    reviewReady: (score, focusMet) =>
+      `Post-match review is ready${score ? `: score${score}` : ""}.${focusMet === true ? " Your focus: done." : focusMet === false ? " Your focus: it happened again." : ""} Click to open it.`,
     problemReport: "Save a problem report",
     voice: "Voice",
     voice_off: "Off",
@@ -272,7 +273,8 @@ const TRAY_TEXT = {
     updateReady: (version) => `Перезапустить и обновить до ${version}`,
     updateAfterGame: (version) => `Обновление ${version} установится после выхода из Доты`,
     updated: (version) => `Обновлено до версии ${version}.`,
-    reviewReady: (score) => `Разбор матча готов${score ? `: оценка${score}` : ""}. Нажмите, чтобы открыть.`,
+    reviewReady: (score, focusMet) =>
+      `Разбор матча готов${score ? `: оценка${score}` : ""}.${focusMet === true ? " Фокус: получилось." : focusMet === false ? " Фокус: снова повторилось." : ""} Нажмите, чтобы открыть.`,
     problemReport: "Сохранить отчёт о проблеме",
     voice: "Голос",
     voice_off: "Выключен",
@@ -1163,7 +1165,7 @@ async function pollPlayerStatus() {
     const score = review.score !== null && review.score !== undefined ? ` ${review.score}/100` : "";
     appendLog("player", `Post-match review ready for match ${review.match_id}${score}.`, { force: true });
     pendingReviewOpen = review.match_id;
-    showTrayBalloon(t("reviewReady", score));
+    showTrayBalloon(t("reviewReady", score, review.focus_met));
     send("launcher:player-event", { type: "review-ready", matchId: review.match_id, score: review.score });
   }
   updateStatus();

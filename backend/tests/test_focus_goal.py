@@ -80,6 +80,9 @@ def test_focus_end_to_end(client, tmp_path):
     assert [r["met"] for r in focus["results"]] == [False, True]
     assert (focus["met"], focus["total"], focus["streak"]) == (1, 2, 1)
 
+    # The "review ready" notice knows the focus result of the latest match.
+    assert client.get("/player").json()["last_review"]["focus_met"] is True
+
     detail = client.get(f"/player/matches/{MATCH_ID + 2}?lang=en").json()
     assert detail["focus"] == {"id": "death_streak", "title": "Death streak", "met": True}
     # The match before the focus is not judged.

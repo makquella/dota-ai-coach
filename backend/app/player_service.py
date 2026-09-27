@@ -984,9 +984,16 @@ class PlayerService:
         analysis = self._rebuild_analysis(account_id, match_id)
         # Per account: a match of another (detected, not linked) account must not
         # replace the linked player's "review ready" banner.
+        focus = self._focus(account_id)
+        focus_met = (
+            match_result(analysis, focus)
+            if focus is not None and played_after({"start_time": fields["start_time"]}, focus)
+            else None
+        )
         self.store.set_meta(
             f"last_review:{account_id}",
-            f"{match_id}|{_now_iso()}|{(analysis or {}).get('headline', {}).get('score') or ''}",
+            f"{match_id}|{_now_iso()}|{(analysis or {}).get('headline', {}).get('score') or ''}"
+            f"|{'' if focus_met is None else int(focus_met)}",
         )
         if account_id == self.store.primary_account_id():
             self.fetch_match(match_id, request_parse=True, delay=FIRST_FETCH_DELAY_SECONDS)
@@ -1101,8 +1108,14 @@ class PlayerService:
         raw = self.store.get_meta(f"last_review:{primary}")
         if not raw:
             return None
-        match_id, at, score = (raw.split("|") + ["", "", ""])[:3]
-        return {"match_id": int(match_id), "at": at, "score": int(score) if score else None}
+        match_id, at, score, focus_met = (raw.split("|") + ["", "", "", ""])[:4]
+        return {
+            "match_id": int(match_id),
+            "at": at,
+            "score": int(score) if score else None,
+            # Did the match avoid the player's focus problem (None: no focus / can't tell).
+            "focus_met": bool(int(focus_met)) if focus_met else None,
+        }
 
 
 _SUMMARY_KEYS = (
