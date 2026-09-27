@@ -170,7 +170,7 @@ def facts_from_opendota(trimmed: dict[str, Any]) -> dict[str, Any] | None:
             "xp_t": _series(me.get("xp_t")),
             "killed_by": {
                 hero_name_from_npc(npc): _int(count) or 0
-                for npc, count in (me.get("killed_by") or {}).items()
+                for npc, count in _dict(me.get("killed_by")).items()
                 if str(npc).startswith("npc_dota_hero_")
             },
             "final_items": [
@@ -183,17 +183,25 @@ def facts_from_opendota(trimmed: dict[str, Any]) -> dict[str, Any] | None:
     facts["deaths_log"] = _deaths_from_kill_logs(trimmed, me)
     facts["items_log"] = [
         {"t": _int(entry.get("time")), "item": str(entry.get("key"))}
-        for entry in me.get("purchase_log") or []
+        for entry in _list(me.get("purchase_log"))
         if isinstance(entry, dict) and entry.get("key") and _int(entry.get("time")) is not None
     ]
     facts["buybacks"] = [
         _int(entry.get("time"))
-        for entry in me.get("buyback_log") or []
+        for entry in _list(me.get("buyback_log"))
         if isinstance(entry, dict) and _int(entry.get("time")) is not None
     ]
     facts["wards"] = _wards(me)
     facts["lane_pos"] = _lane_pos(me.get("lane_pos"))
     return facts
+
+
+def _dict(value: Any) -> dict[str, Any]:
+    return value if isinstance(value, dict) else {}
+
+
+def _list(value: Any) -> list[Any]:
+    return value if isinstance(value, list) else []
 
 
 def _benchmarks(raw: Any) -> dict[str, float]:
@@ -221,7 +229,7 @@ def _deaths_from_kill_logs(trimmed: dict[str, Any], me: dict[str, Any]) -> list[
     for player in trimmed.get("players") or []:
         if player.get("me"):
             continue
-        for entry in player.get("kills_log") or []:
+        for entry in _list(player.get("kills_log")):
             if isinstance(entry, dict) and entry.get("key") == npc:
                 deaths.append({"t": _int(entry.get("time")), "killer": player.get("hero")})
     return sorted((d for d in deaths if d["t"] is not None), key=lambda d: d["t"])

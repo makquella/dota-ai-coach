@@ -25,10 +25,17 @@ METRICS = ("gpm", "xpm", "lh_10", "lh_per_min", "deaths", "kda", "damage_per_min
 LOWER_IS_BETTER = {"deaths"}
 
 
+def _number(value: Any) -> float | int | None:
+    """A number from OpenDota, or None for null / missing / anything else."""
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        return None
+    return value
+
+
 def player_role(player: dict[str, Any], duration: int | None) -> str:
-    minutes = max(1.0, (duration or 0) / 60)
-    wards = (player.get("obs_placed") or 0) + (player.get("sen_placed") or 0)
-    lh_rate = (player.get("last_hits") or 0) / minutes
+    minutes = max(1.0, (_number(duration) or 0) / 60)
+    wards = (_number(player.get("obs_placed")) or 0) + (_number(player.get("sen_placed")) or 0)
+    lh_rate = (_number(player.get("last_hits")) or 0) / minutes
     if wards >= 8 or (lh_rate < 2.0 and minutes >= 20):
         return "support"
     lane_role = player.get("lane_role")
@@ -40,25 +47,23 @@ def player_role(player: dict[str, Any], duration: int | None) -> str:
 
 
 def player_metrics(player: dict[str, Any], duration: int | None) -> dict[str, float | None]:
-    minutes = max(1.0, (duration or 0) / 60)
-    deaths = player.get("deaths")
-    kills = player.get("kills")
-    assists = player.get("assists")
+    minutes = max(1.0, (_number(duration) or 0) / 60)
+    deaths = _number(player.get("deaths"))
+    kills = _number(player.get("kills"))
+    assists = _number(player.get("assists"))
+    last_hits = _number(player.get("last_hits"))
+    damage = _number(player.get("hero_damage"))
     return {
-        "gpm": player.get("gold_per_min"),
-        "xpm": player.get("xp_per_min"),
-        "lh_10": player.get("lh_10"),
-        "lh_per_min": round((player.get("last_hits") or 0) / minutes, 2)
-        if player.get("last_hits") is not None
-        else None,
+        "gpm": _number(player.get("gold_per_min")),
+        "xpm": _number(player.get("xp_per_min")),
+        "lh_10": _number(player.get("lh_10")),
+        "lh_per_min": round(last_hits / minutes, 2) if last_hits is not None else None,
         "deaths": deaths,
         "kda": round(((kills or 0) + (assists or 0)) / max(1, deaths or 0), 2)
         if deaths is not None
         else None,
-        "damage_per_min": round((player.get("hero_damage") or 0) / minutes)
-        if player.get("hero_damage") is not None
-        else None,
-        "net_worth": player.get("net_worth"),
+        "damage_per_min": round(damage / minutes) if damage is not None else None,
+        "net_worth": _number(player.get("net_worth")),
     }
 
 
@@ -97,7 +102,7 @@ def match_peers(trimmed: dict[str, Any] | None) -> dict[str, Any] | None:
         )
     # Direct opponents first.
     peers.sort(key=lambda p: not p["enemy"])
-    tiers = [p.get("rank_tier") for p in trimmed.get("players") or [] if p.get("rank_tier")]
+    tiers = [p["rank_tier"] for p in trimmed.get("players") or [] if _number(p.get("rank_tier"))]
     return {
         "role": role,
         "lobby_rank_tier": int(median(tiers)) if tiers else None,

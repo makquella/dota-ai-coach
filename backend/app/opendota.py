@@ -357,7 +357,10 @@ def summary_from_recent(item: dict[str, Any]) -> dict[str, Any]:
 
 def trim_match(match: dict[str, Any], account_id: int) -> dict[str, Any]:
     """Keep the match header, a light scoreboard and the reviewed player's logs."""
-    players = [p for p in match.get("players") or [] if isinstance(p, dict)]
+    raw_players = match.get("players")
+    players = (
+        [p for p in raw_players if isinstance(p, dict)] if isinstance(raw_players, list) else []
+    )
     me = next((p for p in players if p.get("account_id") == int(account_id)), None)
     trimmed: dict[str, Any] = {key: match.get(key) for key in _MATCH_FIELDS}
     trimmed["parsed"] = match.get("version") is not None
