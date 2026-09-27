@@ -2684,10 +2684,16 @@
     state.status = status;
     renderBanner(status);
     if (localeChanged) {
+      // Texts from the backend (reviews, progress) come in the new language only
+      // when asked again.
       if (state.view === "matches") {
         renderMatches();
       } else if (state.view === "progress") {
-        renderCareer();
+        loadCareer();
+      } else if (state.view === "match" && state.matchId) {
+        openMatchQuietly(state.matchId).then(() => renderMatch());
+      } else if (state.view === "settings") {
+        renderAiSettings();
       }
     }
   }

@@ -89,6 +89,8 @@ const settings = createSettingsStore(path.join(USER_DATA_DIR, "settings.json"), 
   setupDismissed: false,
   // How often coaching advice may appear: calm | normal | active (backend scheduler).
   adviceFrequency: "normal",
+  // UI language: auto (system) | ru | en.
+  language: "auto",
   overlay: { ...OVERLAY_DEFAULTS }
 });
 
@@ -258,12 +260,7 @@ const TRAY_TEXT = {
 };
 
 function t(key, ...args) {
-  let locale = "en";
-  try {
-    locale = app.getLocale().toLowerCase().startsWith("ru") ? "ru" : "en";
-  } catch {
-    // app.getLocale() is only available after "ready".
-  }
+  const locale = uiLocale();
   const value = TRAY_TEXT[locale][key] || TRAY_TEXT.en[key] || key;
   return typeof value === "function" ? value(...args) : value;
 }
@@ -365,7 +362,12 @@ function emptyLiveDetails() {
   return { connected: false, inMatch: false, hero: null, coverage: null, clockTime: null, secondsSinceLastGsi: null, stage: "unknown" };
 }
 
+// "auto" follows the system language; the player can pick one in Settings.
 function uiLocale() {
+  const chosen = settings.get("language");
+  if (chosen === "ru" || chosen === "en") {
+    return chosen;
+  }
   try {
     return app.getLocale().toLowerCase().startsWith("ru") ? "ru" : "en";
   } catch {
@@ -373,10 +375,19 @@ function uiLocale() {
   }
 }
 
+function setLanguage(value) {
+  settings.set("language", ["ru", "en"].includes(value) ? value : "auto");
+  overlay.notifyBackendChanged(); // re-sends the overlay config with the new locale
+  refreshTray();
+  updateStatus();
+  return publicStatus();
+}
+
 function publicStatus() {
   const dota = dotaWatcher.getState();
   return {
     locale: uiLocale(),
+    language: settings.get("language") || "auto",
     live: { ...live.details },
     recentAdvice: live.recentAdvice,
     overlayPosition: overlay.position(),
@@ -1839,6 +1850,7 @@ function registerIpc() {
     overlay.setPosition(String(preset || ""));
     return publicStatus();
   });
+  ipcMain.handle("launcher:set-language", (_event, value) => setLanguage(String(value || "")));
   ipcMain.handle("launcher:set-advice-frequency", (_event, value) => setAdviceFrequency(String(value || "")));
   ipcMain.handle("launcher:set-overlay-size", (_event, name) => {
     overlay.setSize(String(name || ""));

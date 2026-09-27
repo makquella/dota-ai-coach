@@ -11,6 +11,9 @@ const I18N = {
     tabProgress: "Progress",
     tabSettings: "Settings",
     adviceSettingsTitle: "Advice",
+    languageTitle: "Language",
+    languageHint: "Advice, reviews and the whole app",
+    languageAuto: "Auto",
     dataTitle: "Match data",
     odTitle: "OpenDota key (optional)",
     odPlaceholder: "API key",
@@ -228,6 +231,9 @@ const I18N = {
     tabProgress: "Прогресс",
     tabSettings: "Настройки",
     adviceSettingsTitle: "Советы",
+    languageTitle: "Язык",
+    languageHint: "Советы, разборы и всё приложение",
+    languageAuto: "Как в системе",
     dataTitle: "Данные матчей",
     odTitle: "Ключ OpenDota (по желанию)",
     odPlaceholder: "Ключ API",
@@ -464,6 +470,7 @@ const els = {
   positionButtons: [...document.querySelectorAll("#position-group [data-position]")],
   positionHint: $("#position-hint"),
   sizeButtons: [...document.querySelectorAll("#size-group [data-size]")],
+  languageButtons: [...document.querySelectorAll("#language-group [data-language]")],
   frequencyButtons: [...document.querySelectorAll("#frequency-group [data-frequency]")],
   frequencyHint: $("#frequency-hint"),
   voiceButtons: [...document.querySelectorAll("#voice-group [data-voice]")],
@@ -622,6 +629,11 @@ async function init() {
   for (const button of els.positionButtons) {
     button.addEventListener("click", () =>
       run(async () => renderStatus(await window.launcherApi.setOverlayPosition(button.dataset.position)))
+    );
+  }
+  for (const button of els.languageButtons) {
+    button.addEventListener("click", () =>
+      run(async () => renderStatus(await window.launcherApi.setLanguage(button.dataset.language)))
     );
   }
   for (const button of els.sizeButtons) {
@@ -1160,6 +1172,11 @@ function renderOverlaySettings(status) {
     button.disabled = !enabled;
   }
   els.positionHint.textContent = position === "custom" ? tr("positionCustom") : tr("positionHint");
+
+  const language = status.language || "auto";
+  for (const button of els.languageButtons) {
+    button.setAttribute("aria-checked", String(button.dataset.language === language));
+  }
 
   const size = status.overlaySize || "normal";
   for (const button of els.sizeButtons) {

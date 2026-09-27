@@ -228,6 +228,17 @@
             <h2 id="app-card-heading" data-i18n="appTitle">App</h2>
           </header>
           <div class="card-body settings">
+            <div class="setting">
+              <span class="setting-text">
+                <span class="setting-title" id="language-title" data-i18n="languageTitle">Language</span>
+                <span class="setting-hint" data-i18n="languageHint">Advice, reviews and the whole app</span>
+              </span>
+              <div class="segmented" role="radiogroup" id="language-group" aria-labelledby="language-title">
+                <button type="button" role="radio" data-language="auto"><span data-i18n="languageAuto">Auto</span></button>
+                <button type="button" role="radio" data-language="ru"><span>Русский</span></button>
+                <button type="button" role="radio" data-language="en"><span>English</span></button>
+              </div>
+            </div>
             <label class="setting">
               <span class="setting-text">
                 <span class="setting-title" data-i18n="autostart">Start with Windows</span>
