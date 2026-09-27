@@ -1,5 +1,6 @@
 -- Problem reports sent from the launcher (docs/DATA_PLAN.md, stage 1).
--- The report text itself is in R2 (r2_key); this table is the index.
+-- The gzipped report text is in R2 (r2_key) when the bucket is bound, else in
+-- this table (body; D1 allows up to 2 MB per value).
 CREATE TABLE IF NOT EXISTS reports (
   id TEXT PRIMARY KEY,           -- "R-7F3KQ2", shown to the player
   created_at INTEGER NOT NULL,   -- ms since epoch
@@ -9,7 +10,8 @@ CREATE TABLE IF NOT EXISTS reports (
   lang TEXT,
   size INTEGER,
   summary TEXT,                  -- the player's note or the first error line
-  r2_key TEXT NOT NULL
+  r2_key TEXT,
+  body BLOB
 );
 CREATE INDEX IF NOT EXISTS reports_created ON reports (created_at);
 CREATE INDEX IF NOT EXISTS reports_install ON reports (install_id);

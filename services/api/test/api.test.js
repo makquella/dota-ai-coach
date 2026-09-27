@@ -5,7 +5,7 @@ import worker, { cleanup, config } from "../src/index.js";
 import { RATE_PER_HOUR, redact, reportId, summarize, validateReport } from "../src/report.js";
 
 // In-memory stand-ins for the D1 and R2 bindings, for the statements the Worker uses.
-function fakeEnv(vars = {}) {
+function fakeEnv(vars = {}, { r2 = true } = {}) {
   const reports = [];
   const rate = new Map();
   const objects = new Map();
@@ -23,7 +23,7 @@ function fakeEnv(vars = {}) {
             rate.set(key, (rate.get(key) || 0) + 1);
             return { count: rate.get(key) };
           }
-          if (sql.startsWith("SELECT r2_key FROM reports WHERE id")) {
+          if (sql.startsWith("SELECT r2_key, body FROM reports WHERE id")) {
             return reports.find((r) => r.id === args[0]) || null;
           }
           throw new Error(`unexpected first(): ${sql}`);
@@ -43,8 +43,10 @@ function fakeEnv(vars = {}) {
         },
         async run() {
           if (sql.startsWith("INSERT INTO reports")) {
-            const [id, created_at, install_id, version, os, lang, size, summary, r2_key] = args;
-            reports.push({ id, created_at, install_id, version, os, lang, size, summary, r2_key });
+            const [id, created_at, install_id, version, os, lang, size, summary, r2_key, body] = args;
+            // D1 returns a BLOB as an array of bytes.
+            const blob = body ? [...body] : null;
+            reports.push({ id, created_at, install_id, version, os, lang, size, summary, r2_key, body: blob });
           } else if (sql.startsWith("DELETE FROM reports WHERE install_id")) {
             reports.splice(0, reports.length, ...reports.filter((r) => r.install_id !== args[0]));
           } else if (sql.startsWith("DELETE FROM reports WHERE id IN")) {
@@ -74,7 +76,7 @@ function fakeEnv(vars = {}) {
       for (const key of [].concat(keys)) objects.delete(key);
     }
   };
-  return { env: { DB, REPORTS, ...vars }, reports, objects };
+  return { env: { DB, ...(r2 ? { REPORTS } : {}), ...vars }, reports, objects };
 }
 
 const ctx = { waitUntil: (promise) => promise };
@@ -201,4 +203,21 @@ test("cleanup removes every expired report, object and row together", async () =
   assert.equal(reports.length, 1);
   assert.equal(objects.size, 1);
   assert.deepEqual([...objects.keys()], [reports[0].r2_key]);
+});
+
+test("without an R2 bucket the report is kept in D1", async () => {
+  const { env, reports } = fakeEnv({ ADMIN_TOKEN: "t0ken" }, { r2: false });
+  const response = await worker.fetch(upload(REPORT), env, ctx);
+  assert.equal(response.status, 201);
+  const { id } = await response.json();
+  assert.equal(reports[0].r2_key, null);
+  assert.ok(reports[0].body.length > 0);
+  const auth = { headers: { authorization: "Bearer t0ken" } };
+  const text = await (await worker.fetch(new Request(`https://api.example/v1/admin/report/${id}`, auth), env, ctx)).text();
+  assert.ok(text.startsWith("Player note:\nОверлей не видно"));
+  assert.equal(await cleanup(env, Date.now() + 181 * 24 * 3_600_000), 1);
+  assert.equal(reports.length, 0);
+  await worker.fetch(upload(REPORT), env, ctx);
+  const gone = await worker.fetch(new Request(`https://api.example/v1/device/${REPORT.install_id}`, { method: "DELETE" }), env, ctx);
+  assert.deepEqual(await gone.json(), { ok: true, deleted: 1 });
 });
