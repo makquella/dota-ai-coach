@@ -2101,7 +2101,8 @@ label.setting:has(.switch:disabled) {
 }
 
 .ai-message-bad,
-.ai-message-warn {
+.ai-message-warn,
+.ai-message-ok {
   display: flex;
   align-items: center;
   gap: var(--sp-2);
@@ -2109,7 +2110,8 @@ label.setting:has(.switch:disabled) {
 }
 
 .ai-message-bad::before,
-.ai-message-warn::before {
+.ai-message-warn::before,
+.ai-message-ok::before {
   content: "";
   flex: none;
   width: 6px;
@@ -2120,6 +2122,14 @@ label.setting:has(.switch:disabled) {
 
 .ai-message-warn::before {
   background: var(--warn);
+}
+
+.ai-message-ok::before {
+  background: var(--ok);
+}
+
+#ai-settings-root:empty {
+  display: none;
 }
 
 .ai-panel-actions {

@@ -254,6 +254,10 @@
         bad_response: "The AI service answered with an error.",
         no_key: "No key yet."
       },
+      aiSettingsTitle: "AI coach",
+      aiOnTitle: "AI coach is on",
+      aiCheckNow: "Check key",
+      aiCheckOk: "The key works.",
       aiOffTitle: "AI coach is off",
       aiOffHint: "Explains the match in plain words, like a coach watching the replay. Free with a Google Gemini, Groq or OpenRouter key.",
       aiTurnOn: "Turn on",
@@ -521,6 +525,10 @@
         bad_response: "ИИ-сервис ответил ошибкой.",
         no_key: "Ключ ещё не указан."
       },
+      aiSettingsTitle: "ИИ-тренер",
+      aiOnTitle: "ИИ-тренер включён",
+      aiCheckNow: "Проверить ключ",
+      aiCheckOk: "Ключ работает.",
       aiOffTitle: "ИИ-тренер выключен",
       aiOffHint: "Объясняет матч простыми словами, как тренер, который смотрит реплей. Бесплатно с ключом Google Gemini, Groq или OpenRouter.",
       aiTurnOn: "Включить",
@@ -737,6 +745,8 @@
       loadMatches();
     } else if (view === "progress") {
       loadCareer();
+    } else if (view === "settings") {
+      renderAiSettings({ load: true });
     }
     window.scrollTo({ top: 0 });
   }
@@ -2099,7 +2109,70 @@
   }
 
   function currentKind() {
-    return state.view === "progress" ? "career" : "match";
+    return state.view === "progress" ? "career" : state.view === "settings" ? "settings" : "match";
+  }
+
+  // Settings → AI coach: the same key form as in the reviews, in one place.
+  async function renderAiSettings({ load = false } = {}) {
+    const root = document.getElementById("ai-settings-root");
+    if (!root) {
+      return;
+    }
+    if (load || !state.ai) {
+      const result = await call("aiStatus");
+      state.ai = result.ok ? result.data : state.ai;
+    }
+    const ai = state.ai || {};
+    let body;
+    if (state.aiPanel && state.view === "settings") {
+      body = aiPanel("settings");
+    } else if (ai.configured) {
+      const note = h("p", { class: "ai-message", role: "status" });
+      body = h(
+        "div",
+        { class: "ai-off" },
+        h(
+          "div",
+          { class: "ai-off-text" },
+          h("p", { class: "ai-off-title", text: t("aiOnTitle") }),
+          h("p", { class: "muted small", text: t("aiCurrent", ai.provider_label || "", ai.model || "", ai.key_hint || "") }),
+          ai.source === "env" ? h("p", { class: "muted small", text: t("aiEnvKey") }) : null,
+          note
+        ),
+        h(
+          "div",
+          { class: "ai-panel-actions" },
+          h(
+            "button",
+            {
+              class: "btn btn-sm",
+              type: "button",
+              onclick: async (event) => {
+                event.currentTarget.disabled = true;
+                note.className = "ai-message muted";
+                note.textContent = t("aiChecking");
+                const check = await call("aiCheck");
+                const code = check.ok ? (check.data.ok ? null : check.data.code) : "offline";
+                note.className = `ai-message ${code ? "ai-message-bad" : "ai-message-ok"}`;
+                note.textContent = code ? tOptional(`coachErrors.${code}`) || code : t("aiCheckOk");
+                event.currentTarget.disabled = false;
+              }
+            },
+            h("span", { text: t("aiCheckNow") })
+          ),
+          h("button", { class: "btn btn-ghost btn-sm", type: "button", onclick: () => toggleAiPanel("settings", "info") }, icon("settings"), h("span", { text: t("aiChangeKey") }))
+        )
+      );
+    } else {
+      body = h(
+        "div",
+        { class: "ai-off" },
+        h("div", { class: "ai-off-text" }, h("p", { class: "ai-off-title", text: t("aiOffTitle") }), h("p", { class: "muted small", text: t("aiOffHint") })),
+        h("button", { class: "btn btn-primary btn-sm", type: "button", onclick: () => toggleAiPanel("settings", "form") }, h("span", { text: t("aiTurnOn") }))
+      );
+    }
+    root.replaceChildren(card(t("aiSettingsTitle"), "graduation-cap", body));
+    hydrate(root);
   }
 
   async function toggleAiPanel(kind, panel) {
@@ -2115,6 +2188,8 @@
   function rerender(kind) {
     if (kind === "career") {
       renderCareer();
+    } else if (kind === "settings") {
+      renderAiSettings();
     } else {
       renderMatch();
     }
@@ -2262,7 +2337,9 @@
 
   async function reloadAfterAi(kind) {
     await refreshPlayer();
-    if (kind === "career") {
+    if (kind === "settings") {
+      await renderAiSettings({ load: true });
+    } else if (kind === "career") {
       await loadCareer();
     } else if (state.matchId) {
       await openMatchQuietly(state.matchId);

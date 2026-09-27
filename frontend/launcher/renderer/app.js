@@ -839,7 +839,15 @@ function setupSteps(status) {
     { id: "gsi", done: status.gsiConfig === "installed" || dataSeen, action: () => window.launcherApi.installGsi("") },
     { id: "data", done: dataSeen },
     { id: "account", done: Boolean(player.linked), action: () => window.PlayerViews?.setView("matches") },
-    { id: "ai", done: Boolean(player.aiConfigured), optional: true, action: () => window.PlayerViews?.setView("progress") }
+    {
+      id: "ai",
+      done: Boolean(player.aiConfigured),
+      optional: true,
+      action: () => {
+        window.PlayerViews?.setView("settings");
+        document.getElementById("ai-settings-root")?.scrollIntoView({ block: "start" });
+      }
+    }
   ];
 }
 
