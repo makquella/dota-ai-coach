@@ -118,3 +118,44 @@ def test_opendota_key_is_not_in_offline_errors():
     assert caught.value.code == "offline"
     assert key not in str(caught.value) and "[key]" in str(caught.value)
     assert key not in diagnostics.redact(f"GET /api/players/1?api_key={key}&x=1")
+
+
+def test_a_slow_opendota_answer_is_asked_once_more():
+    import requests
+
+    from app.opendota import DEFAULT_TIMEOUT_SECONDS, OpenDotaClient, OpenDotaError
+
+    # OpenDota can take half a minute for a player's history on a cold cache.
+    assert DEFAULT_TIMEOUT_SECONDS[1] >= 45
+    key = "00000000-1111-2222-3333-444455556666"
+
+    class _Slow:
+        def __init__(self, timeouts):
+            self.timeouts = timeouts
+            self.calls = 0
+
+        def request(self, method, url, params=None, timeout=None):
+            self.calls += 1
+            if self.calls <= self.timeouts:
+                raise requests.ReadTimeout(f"Read timed out. url: {url}?api_key={key}")
+
+            class _Response:
+                status_code = 200
+
+                def json(self):
+                    return {"profile": {"account_id": 1, "personaname": "Me"}}
+
+            return _Response()
+
+    once = _Slow(timeouts=1)
+    client = OpenDotaClient("https://api.example", api_key=key, session=once, min_interval=0)
+    assert client.player(1)["persona_name"] == "Me"
+    assert once.calls == 2
+
+    always = _Slow(timeouts=5)
+    client = OpenDotaClient("https://api.example", api_key=key, session=always, min_interval=0)
+    with pytest.raises(OpenDotaError) as caught:
+        client.player(1)
+    assert always.calls == 2
+    assert caught.value.code == "offline" and "in time" in str(caught.value)
+    assert key not in str(caught.value)

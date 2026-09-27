@@ -7,7 +7,8 @@ shows only your own hero). Works on cached OpenDota matchups
 
 - your hero against each enemy hero (win rate);
 - which hero of your own pool fits this enemy lineup best (average edge over
-  50 % against the enemies with enough games);
+  50 % against the enemies with enough games), among the heroes you play in
+  the role of this match (a carry is not told to pick a support);
 - counter items: a short curated list of well-known answers to enemy heroes
   (evasion, illusions, invisibility, healing), checked against the purchases.
 """
@@ -27,6 +28,14 @@ BETTER_PICK_GAP = 3.0
 MIN_ENEMIES_WITH_DATA = 3
 # Counter-item advice only for games long enough to build it.
 COUNTER_MIN_DURATION = 25 * 60
+
+# OpenDota hero role tags that fit a role, for heroes the player has no
+# reviewed game on.
+ROLE_TAGS: dict[str, set[str]] = {
+    "core": {"Carry"},
+    "offlane": {"Initiator", "Durable"},
+    "support": {"Support"},
+}
 
 # reason -> (enemy heroes, counter items (OpenDota keys), roles that should buy them)
 COUNTERS: dict[str, tuple[set[str], list[str], set[str]]] = {
@@ -65,6 +74,21 @@ def pool_heroes(matches: list[dict[str, Any]], *, limit: int = 5, min_games: int
             counts[int(row["hero_id"])] = counts.get(int(row["hero_id"]), 0) + 1
     ranked = sorted(counts.items(), key=lambda kv: -kv[1])
     return [hero for hero, games in ranked if games >= min_games][:limit]
+
+
+def fits_role(
+    hero_id: int,
+    role: str,
+    played: dict[str, dict[str, int]] | None,
+    tags: dict[str, list[str]] | None,
+) -> bool:
+    """Does the player play `hero_id` in `role`? Their reviewed games on the hero
+    decide (the most common role); without any, OpenDota's role tags do."""
+    counts = (played or {}).get(str(hero_id)) or {}
+    if counts:
+        return max(counts.items(), key=lambda kv: kv[1])[0] == role
+    hero_tags = set((tags or {}).get(str(hero_id)) or [])
+    return bool(hero_tags & ROLE_TAGS.get(role, set()))
 
 
 def _winrate(matchups: dict[str, list[int]] | None, enemy_id: int) -> dict[str, Any] | None:
@@ -116,8 +140,13 @@ def analyze_draft(
             row.update(wr)
         enemy_rows.append(row)
 
+    candidates = [
+        hero
+        for hero in meta.get("pool") or []
+        if fits_role(hero, role, meta.get("pool_roles"), meta.get("hero_roles"))
+    ]
     pool = []
-    for hero_id in dict.fromkeys([my_id, *(meta.get("pool") or [])]):
+    for hero_id in dict.fromkeys([my_id, *candidates]):
         edge = _edge(matchups.get(str(hero_id)), enemy_ids)
         if edge is not None:
             pool.append(

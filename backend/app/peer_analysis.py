@@ -46,6 +46,25 @@ def player_role(player: dict[str, Any], duration: int | None) -> str:
     return "carry"
 
 
+# Farm order inside a team when OpenDota has no lanes (an unparsed match):
+# the most last hits is the carry, then mid, offlane, and two supports.
+FARM_ORDER = ("carry", "mid", "offlane", "support", "support")
+
+
+def player_roles(players: list[dict[str, Any]], duration: int | None) -> list[str]:
+    """Roles of the match's players (same order). With lanes (a parsed replay)
+    each player's own lane decides; without them, farm order within each team."""
+    if any(player.get("lane_role") is not None for player in players):
+        return [player_role(player, duration) for player in players]
+    roles = ["support"] * len(players)
+    for side in (True, False):
+        team = [i for i, p in enumerate(players) if bool(p.get("isRadiant", True)) == side]
+        team.sort(key=lambda i: -(_number(players[i].get("last_hits")) or 0))
+        for rank, index in enumerate(team):
+            roles[index] = FARM_ORDER[min(rank, len(FARM_ORDER) - 1)]
+    return roles
+
+
 def player_metrics(player: dict[str, Any], duration: int | None) -> dict[str, float | None]:
     minutes = max(1.0, (_number(duration) or 0) / 60)
     deaths = _number(player.get("deaths"))
@@ -86,11 +105,16 @@ def match_peers(trimmed: dict[str, Any] | None) -> dict[str, Any] | None:
     if not me:
         return None
     duration = trimmed.get("duration")
-    role = player_role(me, duration)
+    players = trimmed.get("players") or []
+    roles = player_roles(players, duration)
+    role = next(
+        (r for p, r in zip(players, roles, strict=True) if p is me or p.get("me")),
+        player_role(me, duration),
+    )
     my_side = bool(me.get("isRadiant", True))
     peers = []
-    for player in trimmed.get("players") or []:
-        if player is me or player.get("me") or player_role(player, duration) != role:
+    for player, player_role_name in zip(players, roles, strict=True):
+        if player is me or player.get("me") or player_role_name != role:
             continue
         peers.append(
             {

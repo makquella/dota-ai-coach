@@ -25,7 +25,11 @@ import requests
 
 from app.dota_constants import hero_name, hero_npc_name
 
-DEFAULT_TIMEOUT_SECONDS = 15
+# Seconds to connect / to wait for the answer. A player's history can take
+# OpenDota half a minute on a cold cache (measured 13-35 s), so reading waits
+# long, and a timed-out request is asked once more (the second is usually fast).
+DEFAULT_TIMEOUT_SECONDS: tuple[float, float] = (10, 60)
+TIMEOUT_RETRIES = 1
 MIN_REQUEST_INTERVAL_SECONDS = 1.1
 # With a (paid) API key OpenDota allows far more calls per minute.
 KEYED_REQUEST_INTERVAL_SECONDS = 0.25
@@ -145,7 +149,7 @@ class OpenDotaClient:
         *,
         api_key: str = "",
         session: requests.Session | None = None,
-        timeout: float = DEFAULT_TIMEOUT_SECONDS,
+        timeout: float | tuple[float, float] = DEFAULT_TIMEOUT_SECONDS,
         min_interval: float = MIN_REQUEST_INTERVAL_SECONDS,
     ) -> None:
         self.base_url = base_url.rstrip("/")
@@ -276,6 +280,7 @@ class OpenDotaClient:
             rows.append(
                 {
                     "hero_id": int(hero["id"]),
+                    "roles": [str(r) for r in hero.get("roles") or [] if isinstance(r, str)],
                     "brackets": {
                         str(b): [int(hero.get(f"{b}_pick") or 0), int(hero.get(f"{b}_win") or 0)]
                         for b in range(1, 9)
@@ -286,6 +291,10 @@ class OpenDotaClient:
 
     # --- transport ------------------------------------------------------------
 
+    def _masked(self, error: Exception) -> str:
+        # requests puts the full URL (with ?api_key=…) into its messages.
+        return str(error).replace(self.api_key, "[key]") if self.api_key else str(error)
+
     def _get(self, path: str, params: list[tuple[str, Any]] | None = None) -> Any:
         return self._request("GET", path, params=params)
 
@@ -293,19 +302,27 @@ class OpenDotaClient:
         query = list(params or [])
         if self.api_key:
             query.append(("api_key", self.api_key))
-        with self._lock:
-            wait = self.min_interval - (time.monotonic() - self._last_request)
-            if wait > 0:
-                time.sleep(wait)
-            self._last_request = time.monotonic()
-        try:
-            response = self.session.request(
-                method, f"{self.base_url}{path}", params=query, timeout=self.timeout
-            )
-        except requests.RequestException as error:
-            # requests puts the full URL (with ?api_key=…) into its messages.
-            message = str(error).replace(self.api_key, "[key]") if self.api_key else str(error)
-            raise OpenDotaError("offline", f"OpenDota is unreachable: {message}") from error
+        for attempt in range(TIMEOUT_RETRIES + 1):
+            with self._lock:
+                wait = self.min_interval - (time.monotonic() - self._last_request)
+                if wait > 0:
+                    time.sleep(wait)
+                self._last_request = time.monotonic()
+            try:
+                response = self.session.request(
+                    method, f"{self.base_url}{path}", params=query, timeout=self.timeout
+                )
+                break
+            except requests.Timeout as error:
+                if attempt < TIMEOUT_RETRIES:
+                    continue
+                raise OpenDotaError(
+                    "offline", f"OpenDota did not answer in time: {self._masked(error)}"
+                ) from error
+            except requests.RequestException as error:
+                raise OpenDotaError(
+                    "offline", f"OpenDota is unreachable: {self._masked(error)}"
+                ) from error
         if response.status_code == 404:
             raise OpenDotaError("not_found", "OpenDota does not know this match or player.")
         if response.status_code == 429:

@@ -29,7 +29,7 @@ from app.map_analysis import analyze_map
 from app.peer_analysis import match_peers, peer_findings
 
 # Bump when the rules change: stored reviews of an older version are rebuilt on read.
-ANALYSIS_VERSION = 4
+ANALYSIS_VERSION = 5
 MAX_ADVICE_SHOWN = 40
 
 # Static targets when OpenDota benchmarks are missing (GSI-only matches).
