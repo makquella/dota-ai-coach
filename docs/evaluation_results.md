@@ -1,6 +1,6 @@
 # Evaluation results
 
-Generated 2026-09-26T23:43:42+00:00 by `backend/scripts/evaluate_system.py` (commit eabe0b5, Python 3.11.15, Linux-6.18.44-fc-v42-x86_64-with-glibc2.39). Explained in [EVALUATION.md](EVALUATION.md).
+Generated 2026-09-27T00:27:23+00:00 by `backend/scripts/evaluate_system.py` (commit a097140, Python 3.11.15, Linux-6.18.44-fc-v42-x86_64-with-glibc2.39). Explained in [EVALUATION.md](EVALUATION.md).
 
 ## 1. Live pipeline latency
 
@@ -8,18 +8,18 @@ Generated 2026-09-26T23:43:42+00:00 by `backend/scripts/evaluate_system.py` (com
 
 | step | n | mean_ms | p50_ms | p95_ms | p99_ms | max_ms |
 |---|---|---|---|---|---|---|
-| POST /gsi | 1971 | 3.11 | 2.94 | 3.78 | 6.07 | 18.72 |
-| GET /overlay/recommendation | 1971 | 4.19 | 4.35 | 5.3 | 6.4 | 29.6 |
-| one tick (both) | 1971 | 7.31 | 7.3 | 8.71 | 13.72 | 32.41 |
+| POST /gsi | 1971 | 2.95 | 2.9 | 3.43 | 3.86 | 6.74 |
+| GET /overlay/recommendation | 1971 | 4.04 | 4.27 | 5.0 | 5.53 | 25.76 |
+| one tick (both) | 1971 | 6.99 | 7.13 | 8.2 | 8.82 | 29.16 |
 
-The POST_GAME payload, which records the match and builds its review: 424.0 ms.
+The POST_GAME payload, which records the match and builds its review: 12.7 ms.
 
 ## 2. Live advice on real replays (simulated clock)
 
 | match | states | minutes | advice_shown | advice_per_10_min | urgent | coaching | min_gap_s | suppressed_total | p95_ms |
 |---|---|---|---|---|---|---|---|---|---|
-| Phantom Lancer 20-30 min (match 8843382732) | 601 | 10.0 | 7 | 7.0 | 1 | 6 | 9.0 | 752 | 5.09 |
-| Juggernaut 10-20 min (match 8843471434) | 601 | 10.0 | 10 | 10.0 | 3 | 7 | 4.0 | 837 | 5.03 |
+| Phantom Lancer 20-30 min (match 8843382732) | 601 | 10.0 | 7 | 7.0 | 1 | 6 | 9.0 | 752 | 5.7 |
+| Juggernaut 10-20 min (match 8843471434) | 601 | 10.0 | 10 | 10.0 | 3 | 7 | 4.0 | 837 | 5.26 |
 
 **Phantom Lancer 20-30 min (match 8843382732)** — decision points: FARMING_PHASE_PRESSURE ×4, OBJECTIVE_FIGHT_CHECK ×1, RECENT_DAMAGE_WARNING ×1, LOW_HP ×1
 
@@ -47,11 +47,11 @@ First advice shown:
 
 | source | score | sections | improvements | strengths | blocks | series | build_ms |
 |---|---|---|---|---|---|---|---|
-| OpenDota, parsed replay | 31 | farm, fights, items, laning, survival | 6 | 0 | build, peers, draft | deaths, denies, gold, last_hits, last_hits_target, minutes, xp | 383.0 |
+| OpenDota, parsed replay | 31 | farm, fights, items, laning, survival | 6 | 0 | build, peers, draft | deaths, denies, gold, last_hits, last_hits_target, minutes, xp | 7.5 |
 | OpenDota, basic (not parsed) | 29 | farm, fights, survival | 3 | 0 | peers, draft | — | 5.9 |
-| GSI only (the app's own recording) | 89 | farm, fights, items, laning, survival | 2 | 4 | map | deaths, denies, gold, last_hits, last_hits_target, minutes | 403.6 |
+| GSI only (the app's own recording) | 89 | farm, fights, items, laning, survival | 2 | 4 | map | deaths, denies, gold, last_hits, last_hits_target, minutes | 8.3 |
 
-Career over 26 matches (12 reviewed): focus plan 3 items, best-vs-worst comparison: True, built in 10.1 ms.
+Career over 26 matches (12 reviewed): focus plan 3 items, best-vs-worst comparison: True, built in 10.3 ms.
 
 ## 4. AI coach fact check
 

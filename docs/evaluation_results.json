@@ -1,41 +1,41 @@
 {
   "environment": {
-    "generated_at": "2026-09-26T23:43:42+00:00",
-    "commit": "eabe0b5",
+    "generated_at": "2026-09-27T00:27:23+00:00",
+    "commit": "a097140",
     "python": "3.11.15",
     "platform": "Linux-6.18.44-fc-v42-x86_64-with-glibc2.39"
   },
   "latency": {
     "payloads": 1971,
     "game_minutes": 32,
-    "match_end_ms": 424.0,
+    "match_end_ms": 12.7,
     "rows": [
       {
         "step": "POST /gsi",
         "n": 1971,
-        "mean_ms": 3.11,
-        "p50_ms": 2.94,
-        "p95_ms": 3.78,
-        "p99_ms": 6.07,
-        "max_ms": 18.72
+        "mean_ms": 2.95,
+        "p50_ms": 2.9,
+        "p95_ms": 3.43,
+        "p99_ms": 3.86,
+        "max_ms": 6.74
       },
       {
         "step": "GET /overlay/recommendation",
         "n": 1971,
-        "mean_ms": 4.19,
-        "p50_ms": 4.35,
-        "p95_ms": 5.3,
-        "p99_ms": 6.4,
-        "max_ms": 29.6
+        "mean_ms": 4.04,
+        "p50_ms": 4.27,
+        "p95_ms": 5.0,
+        "p99_ms": 5.53,
+        "max_ms": 25.76
       },
       {
         "step": "one tick (both)",
         "n": 1971,
-        "mean_ms": 7.31,
-        "p50_ms": 7.3,
-        "p95_ms": 8.71,
-        "p99_ms": 13.72,
-        "max_ms": 32.41
+        "mean_ms": 6.99,
+        "p50_ms": 7.13,
+        "p95_ms": 8.2,
+        "p99_ms": 8.82,
+        "max_ms": 29.16
       }
     ]
   },
@@ -62,7 +62,7 @@
         "post_laning_safety_suppressed_count": 95
       },
       "suppressed_total": 752,
-      "p95_ms": 5.09,
+      "p95_ms": 5.7,
       "examples": [
         {
           "t": "20:00",
@@ -112,7 +112,7 @@
         "repeated_low_hp_suppressed_count": 29
       },
       "suppressed_total": 837,
-      "p95_ms": 5.03,
+      "p95_ms": 5.26,
       "examples": [
         {
           "t": "10:00",
@@ -165,7 +165,7 @@
           "minutes",
           "xp"
         ],
-        "build_ms": 383.0
+        "build_ms": 7.5
       },
       {
         "source": "OpenDota, basic (not parsed)",
@@ -207,7 +207,7 @@
           "last_hits_target",
           "minutes"
         ],
-        "build_ms": 403.6
+        "build_ms": 8.3
       }
     ],
     "career": {
@@ -215,7 +215,7 @@
       "analyzed": 12,
       "focus_plan": 3,
       "self_compare": true,
-      "build_ms": 10.1
+      "build_ms": 10.3
     }
   },
   "fact_check": {
