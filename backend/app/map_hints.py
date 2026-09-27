@@ -129,7 +129,8 @@ class RoleTips:
             return None
         minute, second = divmod(clock, 60)
         if minute in STACK_MINUTES and STACK_FROM_SECOND <= second <= STACK_UNTIL_SECOND:
-            return _tip("stack", f"stack@{minute}", lang, at=minute * 60 + STACK_UNTIL_SECOND)
+            at = minute * 60 + STACK_UNTIL_SECOND
+            return _tip("stack", f"stack@{minute}", lang, at=at, clock=clock)
         if has_ward is False and clock >= WARD_FROM_CLOCK:
             shown = self._ward_shown_at
             if shown is None or clock - shown >= WARD_EVERY or clock < shown:
@@ -140,13 +141,16 @@ class RoleTips:
         return None
 
 
-def _tip(key: str, hint_id: str, lang: str, at: int | None = None) -> dict[str, Any]:
+def _tip(
+    key: str, hint_id: str, lang: str, at: int | None = None, clock: int | None = None
+) -> dict[str, Any]:
     title, hint = TIPS[key]["ru" if lang == "ru" else "en"]
     return {
         "kind": "tip",
         "id": hint_id,
         "at": at,
         "at_label": clock_label(at) if at is not None else None,
+        "in_seconds": at - clock if at is not None and clock is not None else None,
         "title": title,
         "hint": hint,
         "speak": False,

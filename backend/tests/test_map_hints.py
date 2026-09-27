@@ -105,6 +105,7 @@ def test_support_tips_stack_and_wards():
     tips = RoleTips()
     stack = tips.tip(7 * 60 + 45, "support", alive=True, has_ward=True, lang="ru")
     assert stack["title"] == "Застакайте лагерь" and stack["at_label"] == "7:53"
+    assert stack["in_seconds"] == 8
     assert tips.tip(7 * 60 + 45, "carry", alive=True, has_ward=False, lang="en") is None
     assert tips.tip(7 * 60 + 45, "support", alive=False, has_ward=False, lang="en") is None
     # No ward: shown for 20 s, then again 5 minutes later.
