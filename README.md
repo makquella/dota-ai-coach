@@ -16,14 +16,18 @@ During the match
 - Advice card over the game: urgent advice at once, tips with pauses; frequency Less / Normal / More.
 - Spoken advice with the Windows voices (heard even in exclusive fullscreen); `Ctrl+Alt+R` repeats the last one.
 - The full carry advisor for 21 carries (farm, items, objectives, hero abilities); survival advice (low HP, deaths, disables, mana, buyback) for every other hero.
-- Late-game reminders: farm stalls, the pace you should be at, keeping buyback gold.
+- A plan at the start of each match (until 1:30): last-hit target at 10:00 with your own average, the key item and when most players finish it, your focus.
+- Late-game reminders: farm stalls, the pace you should be at, keeping buyback gold; spend spare gold while dead.
 
 After the match
 - Score, the three things to fix next game with drills, section meters (laning, farm, survival, fights, items, vision).
 - You against the player of your role in the same match; item timings as win rate; draft (your win rate against each enemy, the best pick from your pool, counter items).
 - Match map (your path, deaths, wards, laning position), the advice given during the match and deaths right after urgent warnings.
-- AI coach review (optional, fact-checked), PDF export.
+- This match against your usual numbers on the same hero.
+- AI coach review (optional, fact-checked) and «Ask the coach»: your own question about the match, answered from its data with the same fact check. PDF export.
 - Progress: trends over the last 10 games, recurring problems, heroes at your rank, best vs worst games; filter by hero.
+- Focus: pick one recurring problem; every next review says whether you avoided it, Progress keeps the score, the home screen shows tonight's session.
+- Turbo, bot games and special modes stay out of the history and trends.
 
 App
 - One-click installer, auto-update (never while Dota runs), tray, start with Windows.
