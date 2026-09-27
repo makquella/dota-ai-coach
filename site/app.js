@@ -63,7 +63,7 @@
     f5Tag: "AI coach",
     f5Title: "A review in words, with nothing made up",
     f5Text:
-      "The model writes the review from the match data, and every number, time, hero and item is checked against it. If it doesn't match, the sentence doesn't make it in.",
+      "The model writes the review from the match data, and every number, time, hero and item is checked against it. If it doesn't match, the sentence doesn't make it in. You can also ask your own question — “why did I lose the lane?” — and the answer is checked the same way.",
     f6Tag: "Progress",
     f6Title: "See whether you're getting better",
     f6Text:
