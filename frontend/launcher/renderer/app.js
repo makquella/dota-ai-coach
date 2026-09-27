@@ -171,6 +171,13 @@ const I18N = {
     whatsNewTitle: (version) => `What's new in ${version}`,
     whatsNewOk: "Got it",
     whatsNew: {
+      "0.5.0": [
+        "Dota AI Coach is now Wardly, with a new logo. Your history and settings stay.",
+        "Progress → Compare with a friend: their public matches next to yours, with the heroes you both play.",
+        "Share a review by link — with a preview in Discord and Telegram, no Steam ID or nickname.",
+        "Settings → App → Match history: save everything to a file and load it back on any computer.",
+        "The path on the match map no longer runs from a death to the fountain."
+      ],
       "0.4.0": [
         "The match map is drawn on the real Dota minimap: your path, lane position, wards and deaths.",
         "Good-pace lines for gold and XP on the «Over the match» chart.",
@@ -476,6 +483,13 @@ const I18N = {
     whatsNewTitle: (version) => `Что нового в ${version}`,
     whatsNewOk: "Понятно",
     whatsNew: {
+      "0.5.0": [
+        "Dota AI Coach теперь называется Wardly, у него новый логотип. История и настройки на месте.",
+        "«Прогресс» → «Сравнение с другом»: его открытые матчи рядом с вашими и общие герои.",
+        "Разбор можно отправить ссылкой — с превью в Discord и Telegram, без Steam ID и ника.",
+        "«Настройки → Приложение → История матчей»: сохранить всё в файл и загрузить на любом компьютере.",
+        "Путь на карте матча больше не тянется от места смерти к фонтану."
+      ],
       "0.4.0": [
         "Карта матча нарисована на настоящей миникарте Доты: ваш путь, позиция на линии, варды и смерти.",
         "На графике «По ходу матча» — хороший темп по золоту и опыту.",

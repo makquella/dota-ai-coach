@@ -6,7 +6,7 @@
   const RELEASES = `https://github.com/${REPO}/releases/latest`;
   const LANG_KEY = "dac.lang";
   // Bump with every reshoot of the pictures (scripts/site-shots) and in index.html.
-  const SHOTS_VERSION = "3";
+  const SHOTS_VERSION = "4";
 
   const EN = {
     title: "Wardly — a Dota 2 coach right in your game",
@@ -70,6 +70,8 @@
     c4: "You against the player of your rank in the same role",
     c5: "One mistake in focus — and a count of whether you avoid it",
     c6: "“Ask the coach” — your own question about the match",
+    c7: "Compare with a friend on their public matches",
+    c8: "Send a review to a friend by link — no Steam ID or nickname",
     insideTitle: "Everything in numbers",
     insideSub: "Not “play better”, but where exactly and by how much.",
     mapCap: "Match map: where you went and where you died. Keep dying on the enemy half and it goes into the review",
