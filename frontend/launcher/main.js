@@ -233,7 +233,11 @@ const TRAY_TEXT = {
     updateAfterGame: (version) => `Update ${version} installs after you close Dota`,
     updated: (version) => `Updated to ${version}.`,
     reviewReady: (score) => `Post-match review is ready${score ? `: score${score}` : ""}. Click to open it.`,
-    problemReport: "Save a problem report"
+    problemReport: "Save a problem report",
+    voice: "Voice",
+    voice_off: "Off",
+    voice_urgent: "Urgent advice",
+    voice_all: "All advice"
   },
   ru: {
     open: "Открыть",
@@ -255,7 +259,11 @@ const TRAY_TEXT = {
     updateAfterGame: (version) => `Обновление ${version} установится после выхода из Доты`,
     updated: (version) => `Обновлено до версии ${version}.`,
     reviewReady: (score) => `Разбор матча готов${score ? `: оценка${score}` : ""}. Нажмите, чтобы открыть.`,
-    problemReport: "Сохранить отчёт о проблеме"
+    problemReport: "Сохранить отчёт о проблеме",
+    voice: "Голос",
+    voice_off: "Выключен",
+    voice_urgent: "Срочные советы",
+    voice_all: "Все советы"
   }
 };
 
@@ -1782,6 +1790,16 @@ function refreshTray() {
         type: "checkbox",
         checked: overlay.isEnabled(),
         click: (item) => overlay.setEnabled(item.checked)
+      },
+      {
+        label: t("voice"),
+        submenu: ["off", "urgent", "all"].map((mode) => ({
+          label: t(`voice_${mode}`),
+          type: "radio",
+          checked: overlay.voice().mode === mode,
+          // setVoice notifies onChange, which refreshes the tray and the panel.
+          click: () => overlay.setVoice(mode)
+        }))
       },
       {
         label: process.platform === "win32" ? t("autostartWindows") : t("autostartLogin"),
