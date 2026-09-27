@@ -1,4 +1,4 @@
-// Dota AI Coach website: language switch (the HTML is Russian, English lives
+// Wardly website: language switch (the HTML is Russian, English lives
 // here), screenshots per language, the download button (latest GitHub release)
 // and small scroll effects. No dependencies.
 (() => {
@@ -9,7 +9,7 @@
   const SHOTS_VERSION = "3";
 
   const EN = {
-    title: "Dota AI Coach — a Dota 2 coach right in your game",
+    title: "Wardly — a Dota 2 coach right in your game",
     skip: "Skip to content",
     navLabel: "Sections",
     navIngame: "In game",

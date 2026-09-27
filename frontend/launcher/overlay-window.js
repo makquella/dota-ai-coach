@@ -131,7 +131,7 @@ function createOverlayController({
     overlayWindow = new BrowserWindow({
       width: initialSize.width,
       height: initialSize.height,
-      title: "Dota AI Coach Overlay",
+      title: "Wardly Overlay",
       frame: false,
       transparent: true,
       backgroundColor: "#00000000",

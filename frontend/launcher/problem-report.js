@@ -57,7 +57,7 @@ function tail(text, lines = LOG_TAIL_LINES) {
 function reportFileName(date = new Date()) {
   const pad = (value) => String(value).padStart(2, "0");
   const stamp = `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}-${pad(date.getHours())}${pad(date.getMinutes())}`;
-  return `DotaAICoach-report-${stamp}.txt`;
+  return `Wardly-report-${stamp}.txt`;
 }
 
 function section(title, body) {
@@ -68,7 +68,7 @@ function section(title, body) {
 // parts: { app, status, settings, watcher, diagnostics, diagnosticsError, launcherLog, note }
 function buildReport(parts, date = new Date()) {
   const blocks = [
-    `Dota AI Coach problem report\nCreated: ${date.toISOString()}\n` +
+    `Wardly problem report\nCreated: ${date.toISOString()}\n` +
       "API keys, Steam ids and nicknames are removed from this file. Send it to the developer together with a short description.\n",
     section("App", parts.app || {}),
     section("Launcher status", parts.status || {}),

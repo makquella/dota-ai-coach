@@ -78,20 +78,9 @@ dd {
 }
 
 .brand-mark {
-  position: relative;
-  width: 20px;
-  height: 20px;
-  border: 1px solid var(--border-strong);
-  border-radius: var(--r-sm);
-  background: var(--surface-2);
-}
-
-.brand-mark::after {
-  content: "";
-  position: absolute;
-  inset: 6px;
-  border-radius: 50%;
-  background: var(--accent);
+  width: 24px;
+  height: 24px;
+  flex: none;
 }
 
 h1 {

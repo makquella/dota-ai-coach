@@ -1,5 +1,5 @@
 """
-main.py — FastAPI application entry point for Dota AI Coach (MVP-1).
+main.py — FastAPI application entry point for Wardly (formerly Dota AI Coach) (MVP-1).
 """
 
 from collections.abc import AsyncIterator, Mapping
@@ -64,7 +64,7 @@ async def _lifespan(_app: FastAPI) -> AsyncIterator[None]:
 
 app = FastAPI(
     lifespan=_lifespan,
-    title="Dota AI Coach",
+    title="Wardly",
     description="MVP-1: rule-based carry coach with local knowledge-base RAG.",
     version="0.4.0",
 )
@@ -100,7 +100,7 @@ if FRONTEND_DIR.exists():
 @app.get("/", summary="Health check")
 def root():
     """Simple health-check endpoint."""
-    return {"status": "ok", "service": "Dota AI Coach", "version": "0.4.0"}
+    return {"status": "ok", "service": "Wardly", "version": "0.4.0"}
 
 
 @app.get("/health", summary="Health check")

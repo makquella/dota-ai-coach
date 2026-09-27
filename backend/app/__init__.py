@@ -1,1 +1,1 @@
-# Dota AI Coach - backend package
+# Wardly (formerly Dota AI Coach) - backend package

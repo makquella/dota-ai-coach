@@ -1,6 +1,8 @@
-# Dota AI Coach
+<img src="site/assets/logo.png" alt="" width="72" align="right" />
 
-A Dota 2 coach for Windows that watches your game with you: short advice over the game (and out loud) during the match, and an honest review after it — where the farm went, why you died, when your item came, what the player of your rank did. Free, local, open source.
+# Wardly
+
+Wardly (formerly Dota AI Coach) is a Dota 2 coach for Windows that watches your game with you: short advice over the game (and out loud) during the match, and an honest review after it — where the farm went, why you died, when your item came, what the player of your rank did. Free, local, open source.
 
 **[Download the latest version](https://github.com/makquella/dota-ai-coach/releases/latest)** · [Website](https://luhovyimvp.dev) ([source](site/)) · [Release notes](docs/release-notes/)
 
@@ -164,7 +166,7 @@ Because the launcher runs its own backend, you do not need the manual `uvicorn` 
 
 On Windows, install the app with the NSIS installer built by `scripts\build-windows.ps1` (see [Windows Packaging](docs/PACKAGING_WINDOWS.md)).
 
-![Dota AI Coach status screen](docs/screenshots/ui-v3/after-launcher-in-game.png)
+![Wardly status screen](docs/screenshots/ui-v3/after-launcher-in-game.png)
 
 ### Overlay
 
@@ -351,7 +353,7 @@ See the detailed roadmap:
 ## License / Authorship
 
 - Author: Artem / makquella
-- Project: Dota AI Coach coursework MVP
+- Project: Wardly coursework MVP
 - Year: 2026
 - License: MIT, see [LICENSE](LICENSE)
 

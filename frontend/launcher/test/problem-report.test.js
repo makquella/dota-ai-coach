@@ -66,7 +66,7 @@ test("missing diagnostics are explained", () => {
 });
 
 test("report file name is sortable", () => {
-  assert.equal(reportFileName(new Date(2026, 8, 27, 9, 5)), "DotaAICoach-report-2026-09-27-0905.txt");
+  assert.equal(reportFileName(new Date(2026, 8, 27, 9, 5)), "Wardly-report-2026-09-27-0905.txt");
 });
 
 test("upload payload is limited and has no keys", () => {

@@ -45,7 +45,7 @@ const {
 const { createUpdater, UPDATE_STATUS } = require("./updater");
 
 const APP_ID = "com.dotaai.coach";
-const APP_NAME = "Dota AI Coach";
+const APP_NAME = "Wardly";
 // Shared with the frozen backend (backend/app/config.py -> %APPDATA%\DotaAICoach).
 const APP_DATA_DIR_NAME = "DotaAICoach";
 
@@ -1340,7 +1340,7 @@ function formatLiveGsiStatus(status) {
 // "heartbeat" keeps a paused match fresh for the backend's staleness check
 // (GSI_STALE_SECONDS=5); otherwise the overlay would hide during pauses.
 function gsiConfigText() {
-  return `"Dota AI Coach GSI"
+  return `"Wardly GSI"
 {
   "uri"           "${gsiEndpoint()}"
   "timeout"       "5.0"
@@ -1820,8 +1820,8 @@ async function exportPdf(kind, id) {
   }
   const stamp = new Date().toISOString().slice(0, 10);
   const fileName = kind === "match" && /^\d{1,20}$/.test(String(id))
-    ? `DotaAICoach-match-${id}.pdf`
-    : `DotaAICoach-progress-${stamp}.pdf`;
+    ? `Wardly-match-${id}.pdf`
+    : `Wardly-progress-${stamp}.pdf`;
   const { canceled, filePath } = await dialog.showSaveDialog(mainWindow, {
     defaultPath: path.join(reportFolder(), fileName),
     filters: [{ name: "PDF", extensions: ["pdf"] }]
@@ -1996,6 +1996,29 @@ function showTrayHintOnce() {
 
 function isAutostartSupported() {
   return IS_PACKAGED && (process.platform === "win32" || process.platform === "darwin");
+}
+
+// Before 0.5 the app was DotaAICoach.exe. Its Start with Windows entry (same
+// registry name: the AppUserModelId) still points at that file, which the update
+// removed: point it at this exe.
+const OLD_EXECUTABLES = ["dotaaicoach.exe"];
+
+function migrateAutostartPath() {
+  if (!isAutostartSupported() || process.platform !== "win32") {
+    return;
+  }
+  try {
+    const items = app.getLoginItemSettings().launchItems || [];
+    const stale = items.some(
+      (item) => item.enabled !== false && OLD_EXECUTABLES.includes(path.basename(String(item.path || "")).toLowerCase())
+    );
+    if (stale && !isAutostartEnabled()) {
+      app.setLoginItemSettings({ ...loginItemOptions(), openAtLogin: true });
+      appendLog("launcher", "Start with Windows now starts the renamed app.", { force: true });
+    }
+  } catch (error) {
+    appendLog("launcher", `Start with Windows migration failed: ${error.message}`, { force: true });
+  }
 }
 
 function loginItemOptions() {
@@ -2439,6 +2462,7 @@ function bootstrap() {
     appendLog("launcher", `${APP_NAME} ${app.getVersion()} started (${IS_PACKAGED ? "packaged" : "dev"}).`, {
       force: true
     });
+    migrateAutostartPath();
     autostartEnabled = isAutostartEnabled();
     createTray();
     // After an update the app comes back the way it was: hidden in the tray

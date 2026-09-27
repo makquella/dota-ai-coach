@@ -1,4 +1,4 @@
-// Dota AI Coach API (Cloudflare Worker). Stage 1 of docs/DATA_PLAN.md:
+// Wardly API (Cloudflare Worker). Stage 1 of docs/DATA_PLAN.md:
 // problem reports sent from the launcher on the player's request.
 //
 //   GET    /health                  -> { ok }
