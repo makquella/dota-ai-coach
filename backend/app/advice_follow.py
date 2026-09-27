@@ -24,12 +24,16 @@ def analyze_advice_follow(
         return None, []
     deaths = sorted(d["t"] for d in facts.get("deaths_log") or [] if d.get("t") is not None)
     ignored = []
-    for item in advice:
+    counted: set[float] = set()  # one death answers at most one warning
+    for item in sorted(advice, key=lambda a: a.get("t") if a.get("t") is not None else -1):
         t = item.get("t")
         if t is None:
             continue
-        death = next((d for d in deaths if t < d <= t + FOLLOW_WINDOW_SECONDS), None)
+        death = next(
+            (d for d in deaths if t < d <= t + FOLLOW_WINDOW_SECONDS and d not in counted), None
+        )
         if death is not None:
+            counted.add(death)
             ignored.append({"t": t, "death_t": death, "action": item.get("action")})
     block = {"urgent": len(advice), "ignored": ignored, "window": FOLLOW_WINDOW_SECONDS}
     findings = []

@@ -40,6 +40,19 @@ def test_tracker_waits_a_minute_after_minute_ten_and_clears_on_purchase():
     assert tracker.signal() == {"seconds": 140, "minutes": 2}
 
 
+def test_time_dead_does_not_count():
+    tracker = TpTracker()
+    tracker.observe(700, False, True)
+    tracker.observe(710, False, False)  # died 10 s after using the TP
+    tracker.observe(780, False, False)
+    tracker.observe(781, False, True)  # respawned without one
+    assert tracker.signal() is None
+    tracker.observe(830, False, True)
+    assert tracker.signal() is None  # 49 s alive
+    tracker.observe(841, False, True)
+    assert tracker.signal() == {"seconds": 60, "minutes": 1}
+
+
 def _stream(tp_until: int | None):
     stream = gsi_match_stream(minutes=17, death_minutes=(), step_seconds=1)
     for payload in stream:

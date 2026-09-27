@@ -71,3 +71,18 @@ def test_deaths_right_after_urgent_advice_become_a_finding():
     one = {**facts, "deaths_log": [{"t": 415}]}
     assert analyze_advice_follow(one)[1] == []
     assert analyze_advice_follow({"deaths_log": [{"t": 1}]}) == (None, [])
+
+
+def test_one_death_answers_only_one_warning():
+    from app.advice_follow import analyze_advice_follow
+
+    facts = {
+        "advice_log": [
+            {"t": 600, "mode": "urgent", "action": "Back off now"},
+            {"t": 610, "mode": "urgent", "action": "Reset HP"},
+        ],
+        "deaths_log": [{"t": 620}],
+    }
+    block, findings = analyze_advice_follow(facts)
+    assert [item["death_t"] for item in block["ignored"]] == [620]
+    assert findings == []

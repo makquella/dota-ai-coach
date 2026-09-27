@@ -52,6 +52,10 @@ class TpTracker:
             self._missing_since = None
         self._clock = int(clock)
         self._alive = alive is not False
+        if not self._alive:
+            # Only time alive counts: a respawn starts the count again.
+            self._missing_since = None
+            return
         if has_tp is None:
             return
         if has_tp:

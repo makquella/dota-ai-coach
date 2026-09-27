@@ -23,6 +23,7 @@ from app.analysis_texts import clock
 from app.career_analysis import analyze_career
 from app.hero_meta import popular_build, timing_verdict
 from app.post_match_analysis import TARGETS
+from app.schemas import is_supported_hero
 
 # The window: from hero pick (negative clock) until this game time.
 SHOW_UNTIL_CLOCK = 90
@@ -58,13 +59,18 @@ def _sentence_tail(title: str) -> str:
     return title
 
 
-def _usual_role(history: list[dict[str, Any]]) -> str:
+def _usual_role(history: list[dict[str, Any]], hero: str) -> str | None:
+    """The role most of the player's reviewed games on the hero had. Without
+    reviews only the carry-advisor heroes are assumed core; for any other hero
+    (a first Lion game) the role is unknown and there is no last-hit target."""
     roles = Counter(
         m["analysis"].get("role")
         for m in history
         if m.get("analysis") and m["analysis"].get("role") in TARGETS
     )
-    return roles.most_common(1)[0][0] if roles else "core"
+    if roles:
+        return roles.most_common(1)[0][0]
+    return "core" if is_supported_hero(hero) else None
 
 
 def _key_item(meta: dict[str, Any] | None) -> dict[str, Any] | None:
@@ -100,13 +106,14 @@ def build_game_plan(
     text = TEXT[lang]
     lines: list[str] = []
 
-    role = _usual_role(history)
-    target = int(TARGETS[role]["lh10_good"])
-    lh10 = [m["lh_10"] for m in history if isinstance(m.get("lh_10"), int)]
-    if lh10 and role != "support":
-        lines.append(text["lh_avg"].format(target=target, avg=round(mean(lh10))))
-    elif role != "support":
-        lines.append(text["lh"].format(target=target))
+    role = _usual_role(history, hero)
+    if role is not None and role != "support":
+        target = int(TARGETS[role]["lh10_good"])
+        lh10 = [m["lh_10"] for m in history if isinstance(m.get("lh_10"), int)]
+        if lh10:
+            lines.append(text["lh_avg"].format(target=target, avg=round(mean(lh10))))
+        else:
+            lines.append(text["lh"].format(target=target))
 
     item = _key_item(meta)
     if item and item["typical_t"] is not None:

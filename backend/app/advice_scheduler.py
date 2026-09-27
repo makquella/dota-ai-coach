@@ -67,7 +67,12 @@ from app.scheduler.constants import (
     SAME_ACTION_GAME_TIME_GAP_SECONDS,
     URGENT_LOW_HP_COOLDOWN_SECONDS,
 )
-from app.scheduler.frequency import heartbeat_enabled, normalize_frequency, scaled_seconds
+from app.scheduler.frequency import (
+    UNSCALED_DECISIONS,
+    heartbeat_enabled,
+    normalize_frequency,
+    scaled_seconds,
+)
 from app.scheduler.hashing import (
     _action_hash,
     build_state_hash,
@@ -1966,6 +1971,8 @@ class AdviceScheduler:
     def _cooldown_for_type_locked(self, decision_point: str) -> int:
         if decision_point in {"LOW_HP", "DISABLED_STATUS", *DEATH_REVIEW_DECISIONS}:
             return self.urgent_cooldown_seconds
+        if decision_point in UNSCALED_DECISIONS:
+            return self.regular_cooldown_seconds
         return scaled_seconds(self.regular_cooldown_seconds, self.frequency)
 
     def _cooldown_reason_locked(

@@ -65,11 +65,19 @@ def test_plan_is_cached_and_needs_a_linked_account_and_known_hero(client, tmp_pa
 
 def test_a_hero_never_played_still_gets_the_target_and_overall_reminder(client, tmp_path):
     service = _synced(client, tmp_path)
-    plan = service.game_plan("Axe", "en")
+    plan = service.game_plan("Anti-Mage", "en")
     assert plan is not None
-    # No own average and no cached build for Axe: the plain target only.
+    # No own average and no cached build for Anti-Mage: the plain target only.
     assert plan["lines"][0] == "55 last hits by 10:00"
     assert not any("wins" in line for line in plan["lines"])
+
+
+def test_an_unplayed_non_carry_hero_gets_no_guessed_target(client, tmp_path):
+    service = _synced(client, tmp_path)
+    for hero in ("Lion", "Axe"):
+        plan = service.game_plan(hero, "en")
+        assert plan is not None and plan["role"] is None
+        assert not any("last hits" in line for line in plan["lines"])
 
 
 def test_supports_get_no_last_hit_target():

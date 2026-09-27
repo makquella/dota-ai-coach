@@ -20,6 +20,20 @@ def test_values_and_scaling():
     assert heartbeat_enabled("normal") and not heartbeat_enabled("calm")
 
 
+@pytest.mark.parametrize("frequency", ["calm", "active"])
+def test_safety_cooldowns_do_not_scale(frequency):
+    ADVICE_SCHEDULER.set_frequency(frequency)
+    regular = ADVICE_SCHEDULER.regular_cooldown_seconds
+    for decision in ("LOW_HP_WARNING", "RECENT_DAMAGE_WARNING", "ABILITY_SAFETY_COOLDOWN"):
+        assert ADVICE_SCHEDULER._cooldown_for_type_locked(decision) == regular
+    assert ADVICE_SCHEDULER._cooldown_for_type_locked("LOW_HP") == (
+        ADVICE_SCHEDULER.urgent_cooldown_seconds
+    )
+    assert ADVICE_SCHEDULER._cooldown_for_type_locked("SAFE_FARMING") == scaled_seconds(
+        regular, frequency
+    )
+
+
 def test_api_round_trip(client):
     assert client.get("/settings/advice").json()["frequency"] == "normal"
     answer = client.post("/settings/advice", json={"frequency": "calm"}).json()
