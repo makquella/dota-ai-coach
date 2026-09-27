@@ -88,6 +88,11 @@ const I18N = {
     posLeft: "Left",
     posRight: "Right",
     posBottom: "Bottom",
+    overlaySize: "Card size",
+    overlaySizeHint: "Larger on big and high-resolution screens",
+    sizeSmall: "Small",
+    sizeNormal: "Normal",
+    sizeLarge: "Large",
     frequencyTitle: "How often",
     frequencyCalm: "Less",
     frequencyNormal: "Normal",
@@ -299,6 +304,11 @@ const I18N = {
     posLeft: "Слева",
     posRight: "Справа",
     posBottom: "Снизу",
+    overlaySize: "Размер карточки",
+    overlaySizeHint: "Крупнее — для больших экранов и высокого разрешения",
+    sizeSmall: "Мелкий",
+    sizeNormal: "Обычный",
+    sizeLarge: "Крупный",
     frequencyTitle: "Частота советов",
     frequencyCalm: "Реже",
     frequencyNormal: "Обычно",
@@ -450,6 +460,7 @@ const els = {
   overlayHint: $("#overlay-hint"),
   positionButtons: [...document.querySelectorAll("#position-group [data-position]")],
   positionHint: $("#position-hint"),
+  sizeButtons: [...document.querySelectorAll("#size-group [data-size]")],
   frequencyButtons: [...document.querySelectorAll("#frequency-group [data-frequency]")],
   frequencyHint: $("#frequency-hint"),
   voiceButtons: [...document.querySelectorAll("#voice-group [data-voice]")],
@@ -608,6 +619,11 @@ async function init() {
   for (const button of els.positionButtons) {
     button.addEventListener("click", () =>
       run(async () => renderStatus(await window.launcherApi.setOverlayPosition(button.dataset.position)))
+    );
+  }
+  for (const button of els.sizeButtons) {
+    button.addEventListener("click", () =>
+      run(async () => renderStatus(await window.launcherApi.setOverlaySize(button.dataset.size)))
     );
   }
   for (const button of els.frequencyButtons) {
@@ -1131,6 +1147,12 @@ function renderOverlaySettings(status) {
     button.disabled = !enabled;
   }
   els.positionHint.textContent = position === "custom" ? tr("positionCustom") : tr("positionHint");
+
+  const size = status.overlaySize || "normal";
+  for (const button of els.sizeButtons) {
+    button.setAttribute("aria-checked", String(button.dataset.size === size));
+    button.disabled = !enabled;
+  }
 
   const frequency = status.adviceFrequency || "normal";
   for (const button of els.frequencyButtons) {

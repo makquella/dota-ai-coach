@@ -381,6 +381,7 @@ function publicStatus() {
     recentAdvice: live.recentAdvice,
     overlayPosition: overlay.position(),
     overlayVoice: overlay.voice(),
+    overlaySize: overlay.size(),
     adviceFrequency: adviceFrequency(),
     overlayLocked: !overlay.isUnlocked(),
     dotaRunning: dota.running,
@@ -1826,6 +1827,10 @@ function registerIpc() {
     return publicStatus();
   });
   ipcMain.handle("launcher:set-advice-frequency", (_event, value) => setAdviceFrequency(String(value || "")));
+  ipcMain.handle("launcher:set-overlay-size", (_event, name) => {
+    overlay.setSize(String(name || ""));
+    return publicStatus();
+  });
   ipcMain.handle("launcher:set-overlay-voice", (_event, mode, volume) => {
     overlay.setVoice(String(mode || ""), volume);
     return publicStatus();

@@ -13,6 +13,8 @@ const WINDOW_HEIGHT = 176;
 const ALWAYS_ON_TOP_LEVEL = "screen-saver";
 const ENFORCE_ALWAYS_ON_TOP_MS = 2500;
 const MUTE_MS = 5 * 60 * 1000;
+// Card size presets (zoom of the whole card, window grows with it).
+const OVERLAY_SCALES = { small: 0.85, normal: 1, large: 1.25 };
 
 const OVERLAY_DEFAULTS = {
   enabled: true,
@@ -25,7 +27,8 @@ const OVERLAY_DEFAULTS = {
   urgentAutoHideMs: 12000,
   // Spoken advice: "off" | "urgent" | "all" (overlay/voice.js).
   voice: "off",
-  voiceVolume: 1
+  voiceVolume: 1,
+  size: "normal"
 };
 const VOICE_MODES = ["off", "urgent", "all"];
 
@@ -124,9 +127,10 @@ function createOverlayController({
       return overlayWindow;
     }
     const current = config();
+    const initialSize = windowSize();
     overlayWindow = new BrowserWindow({
-      width: WINDOW_WIDTH,
-      height: WINDOW_HEIGHT,
+      width: initialSize.width,
+      height: initialSize.height,
       title: "Dota AI Coach Overlay",
       frame: false,
       transparent: true,
@@ -153,6 +157,7 @@ function createOverlayController({
     applyLockedMode();
 
     overlayWindow.loadFile(path.join(__dirname, "overlay", "index.html"));
+    overlayWindow.webContents.on("did-finish-load", applyZoom);
     overlayWindow.once("ready-to-show", () => {
       if (!isOpen() || !wantVisible) {
         return;
@@ -240,7 +245,7 @@ function createOverlayController({
     }
     preset = normalizePreset(preset);
     const current = config();
-    const size = { width: WINDOW_WIDTH, height: WINDOW_HEIGHT };
+    const size = windowSize();
     let bounds = null;
     if (preset === "custom" && current.customBounds) {
       const custom = {
@@ -348,6 +353,34 @@ function createOverlayController({
       mode: VOICE_MODES.includes(current.voice) ? current.voice : "off",
       volume: Number.isFinite(Number(current.voiceVolume)) ? Number(current.voiceVolume) : 1
     };
+  }
+
+  function sizeName() {
+    const value = config().size;
+    return Object.hasOwn(OVERLAY_SCALES, value) ? value : "normal";
+  }
+
+  function windowSize() {
+    const scale = OVERLAY_SCALES[sizeName()];
+    return { width: Math.round(WINDOW_WIDTH * scale), height: Math.round(WINDOW_HEIGHT * scale) };
+  }
+
+  function applyZoom() {
+    if (isOpen()) {
+      overlayWindow.webContents.setZoomFactor(OVERLAY_SCALES[sizeName()]);
+    }
+  }
+
+  function setSize(name) {
+    if (!Object.hasOwn(OVERLAY_SCALES, name)) {
+      return;
+    }
+    updateConfig({ size: name });
+    if (isOpen()) {
+      applyZoom();
+      moveToPreset(config().positionPreset || OVERLAY_DEFAULTS.positionPreset, false);
+    }
+    onChange();
   }
 
   function position() {
@@ -468,6 +501,8 @@ function createOverlayController({
     position,
     setVoice,
     voice,
+    setSize,
+    size: sizeName,
     refreshPlacement,
     setLocked,
     window: () => (isOpen() ? overlayWindow : null),

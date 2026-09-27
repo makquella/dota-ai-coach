@@ -149,6 +149,17 @@
             </div>
             <div class="setting">
               <span class="setting-text">
+                <span class="setting-title" id="size-title" data-i18n="overlaySize">Card size</span>
+                <span class="setting-hint" data-i18n="overlaySizeHint">Larger on big and high-resolution screens</span>
+              </span>
+              <div class="segmented" role="radiogroup" id="size-group" aria-labelledby="size-title">
+                <button type="button" role="radio" data-size="small"><span data-i18n="sizeSmall">Small</span></button>
+                <button type="button" role="radio" data-size="normal"><span data-i18n="sizeNormal">Normal</span></button>
+                <button type="button" role="radio" data-size="large"><span data-i18n="sizeLarge">Large</span></button>
+              </div>
+            </div>
+            <div class="setting">
+              <span class="setting-text">
                 <span class="setting-title" data-i18n="overlayMove">Move by hand</span>
                 <span class="setting-hint" id="move-hint" data-i18n="moveHint">Shows the card so you can drag it anywhere</span>
               </span>
