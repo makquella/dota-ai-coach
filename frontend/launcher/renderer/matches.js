@@ -170,6 +170,10 @@
       scoreLabel: "Score",
       winKey: "win",
       lossKey: "loss",
+      baselineIntro: (games, hero) => `Against your ${games} other ${games === 1 ? "match" : "matches"} on ${hero}:`,
+      baselineLabels: { score: "score", gpm: "GPM", lh_10: "last hits at 10", deaths: "deaths" },
+      baselineSame: "as usual",
+      baselineTitle: (average) => `Your average: ${average}`,
       goalTitle: "Your focus",
       goalHint: "One problem at a time: every next match shows whether it came back.",
       goalSince: (date) => `since ${date}`,
@@ -459,6 +463,10 @@
       scoreLabel: "Оценка",
       winKey: "победа",
       lossKey: "поражение",
+      baselineIntro: (games, hero) => `Против ваших ${games} ${plural(games, "другого матча", "других матчей", "других матчей")} на ${hero}:`,
+      baselineLabels: { score: "оценка", gpm: "GPM", lh_10: "добиваний к 10", deaths: "смертей" },
+      baselineSame: "как обычно",
+      baselineTitle: (average) => `Ваш средний: ${average}`,
       goalTitle: "Ваш фокус",
       goalHint: "Одна проблема за раз: в каждом следующем матче видно, повторилась ли она.",
       goalSince: (date) => `с ${date}`,
@@ -1372,6 +1380,7 @@
           h("p", { class: "review-meta" }, resultBadge(win), h("span", { class: "muted", text: `· ${relativeTime(summary.start_time)} · #${detail.match_id}` })),
           h("p", { class: "review-source" }, icon(analysis && analysis.parsed ? "circle-check" : "info"), h("span", { text: sourceText })),
           statusText ? h("p", { class: "muted small", text: statusText }) : null,
+          baselineLine(detail.baseline),
           detail.focus
             ? h(
                 "p",
@@ -1396,6 +1405,35 @@
         "dl",
         { class: "review-stats" },
         stats.map(([label, value]) => h("div", {}, h("dt", { text: label }), h("dd", { class: "num", text: value })))
+      )
+    );
+  }
+
+  // "Against your 8 other matches on Juggernaut: score +17 · GPM +94 · deaths −2".
+  function baselineLine(baseline) {
+    if (!baseline || !baseline.metrics || !baseline.metrics.length) {
+      return null;
+    }
+    const format = (key, value) => {
+      const rounded = key === "deaths" ? Math.round(value * 10) / 10 : Math.round(value);
+      const text = Math.abs(rounded).toLocaleString(state.locale);
+      return `${rounded > 0 ? "+" : rounded < 0 ? "−" : ""}${text}`;
+    };
+    return h(
+      "p",
+      { class: "review-baseline" },
+      h("span", { class: "muted", text: t("baselineIntro", baseline.games, baseline.hero || "—") }),
+      baseline.metrics.map((metric) =>
+        h(
+          "span",
+          {
+            class: "baseline-chip num",
+            dataset: { tone: metric.tone },
+            title: t("baselineTitle", metric.key === "deaths" ? metric.average.toLocaleString(state.locale) : Math.round(metric.average).toLocaleString(state.locale))
+          },
+          metric.tone === "same" ? null : h("span", { class: "dot", "data-tone": metric.tone }),
+          h("span", { text: `${t(`baselineLabels.${metric.key}`)} ${metric.tone === "same" ? t("baselineSame") : format(metric.key, metric.delta)}` })
+        )
       )
     );
   }

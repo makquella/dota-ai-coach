@@ -67,6 +67,8 @@ from app.opendota import (
     summary_from_match,
     trim_match,
 )
+from app.personal_baseline import MAX_GAMES as MAX_BASELINE_GAMES
+from app.personal_baseline import personal_baseline
 from app.player_store import PlayerStore
 from app.post_match_analysis import ANALYSIS_VERSION, analyze_match
 from app.steam_ids import parse_account_id, steam64_from_account_id
@@ -419,7 +421,20 @@ class PlayerService:
         }
         detail["coach"] = self._match_coach(primary, match_id, detail, lang, force=force_coach)
         detail["focus"] = self._match_focus(primary, record, analysis, lang)
+        detail["baseline"] = self._baseline(primary, record, analysis)
         return detail
+
+    def _baseline(
+        self, account_id: int, record: dict[str, Any], analysis: dict[str, Any] | None
+    ) -> dict[str, Any] | None:
+        """This match against the player's other matches on the same hero."""
+        hero_id = record.get("hero_id")
+        if not hero_id:
+            return None
+        others = self.store.matches_for_career(
+            account_id, limit=MAX_BASELINE_GAMES + 1, hero_id=int(hero_id)
+        )
+        return personal_baseline({**record, "analysis": analysis}, others)
 
     # --- focus goal (focus_goal.py) ---------------------------------------------------
 

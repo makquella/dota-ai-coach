@@ -2557,3 +2557,23 @@ label.setting:has(.switch:disabled) {
     -webkit-print-color-adjust: exact;
   }
 }
+
+/* This match against the player's own average on the hero. */
+.review-baseline {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sp-1) var(--sp-2);
+  margin: 0;
+  font-size: var(--fs-12);
+}
+
+.baseline-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 1px 6px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--r-sm);
+  color: var(--text-2);
+}
