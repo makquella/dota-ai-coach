@@ -328,14 +328,26 @@ class PlayerService:
 
     # --- history --------------------------------------------------------------
 
-    def list_matches(self, *, limit: int = 50, offset: int = 0) -> dict[str, Any]:
+    def list_matches(
+        self,
+        *,
+        limit: int = 50,
+        offset: int = 0,
+        hero_id: int | None = None,
+        win: bool | None = None,
+    ) -> dict[str, Any]:
+        """The match table; hero_id / win filter it (totals and stats follow the filter)."""
         primary = self.store.primary_account_id()
         if primary is None:
             return {"linked": False, "items": [], "total": 0}
+        filters = {"hero_id": hero_id, "win": win}
         return {
             "linked": True,
-            "items": self.store.list_matches(primary, limit=limit, offset=offset),
-            "total": self.store.count_matches(primary),
+            "items": self.store.list_matches(primary, limit=limit, offset=offset, **filters),
+            "total": self.store.count_matches(primary, **filters),
+            "stats": self.store.match_stats(primary, **filters),
+            "heroes": self.store.hero_counts(primary),
+            "filters": filters,
             "sync": dict(self._sync),
         }
 

@@ -1001,7 +1001,9 @@ const PLAYER_OPS = {
   sync: () => ["POST", "/player/sync"],
   matches: (args) => [
     "GET",
-    `/player/matches?limit=${clampInt(args.limit, 1, 200, 30)}&offset=${clampInt(args.offset, 0, 100000, 0)}`
+    `/player/matches?limit=${clampInt(args.limit, 1, 200, 30)}&offset=${clampInt(args.offset, 0, 100000, 0)}` +
+      (/^\d{1,4}$/.test(String(args.heroId ?? "")) ? `&hero_id=${args.heroId}` : "") +
+      (["win", "loss"].includes(args.result) ? `&result=${args.result}` : "")
   ],
   match: (args) => ["GET", `/player/matches/${matchIdArg(args)}?lang=${uiLocale()}`],
   refreshMatch: (args) => ["POST", `/player/matches/${matchIdArg(args)}/refresh`],

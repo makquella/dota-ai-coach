@@ -6,7 +6,7 @@ POST   /player/link              {"steam": "<Steam ID / Friend ID / profile link
 POST   /player/link-detected     link the account currently seen in GSI
 DELETE /player                   forget the linked account (matches stay stored)
 POST   /player/sync              pull profile + recent matches from OpenDota
-GET    /player/matches           match table (newest first)
+GET    /player/matches           match table (newest first; ?hero_id=&result=win|loss)
 GET    /player/matches/{id}      one match: summary, scoreboard, post-match review
 POST   /player/matches/{id}/refresh   fetch again / ask OpenDota to parse the replay
 GET    /player/career            statistics and advice over the recent matches
@@ -95,9 +95,15 @@ def sync_player():
 
 
 @router.get("/matches", summary="Match table of the linked player")
-def player_matches(limit: int = 50, offset: int = 0):
+def player_matches(
+    limit: int = 50, offset: int = 0, hero_id: int | None = None, result: str | None = None
+):
+    """`hero_id` and `result` (win | loss) filter the table."""
     limit = max(1, min(int(limit), 200))
-    return PLAYER_SERVICE.list_matches(limit=limit, offset=max(0, int(offset)))
+    win = {"win": True, "loss": False}.get(str(result or "").lower())
+    return PLAYER_SERVICE.list_matches(
+        limit=limit, offset=max(0, int(offset)), hero_id=hero_id, win=win
+    )
 
 
 @router.get("/matches/{match_id}", summary="Post-match review")

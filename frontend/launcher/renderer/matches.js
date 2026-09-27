@@ -58,6 +58,14 @@
       more: "Show more",
       liveMatch: (hero) => `Recording the current match${hero ? ` (${hero})` : ""} — the review appears right after it ends.`,
       back: "Matches",
+      filterResult: "Result",
+      filterResults: { all: "All", win: "Wins", loss: "Losses" },
+      filterHero: "Hero",
+      filterAllHeroes: "All heroes",
+      filterSummary: (games, winrate, score) =>
+        [`${games} ${games === 1 ? "match" : "matches"}`, winrate == null ? null : `${winrate}% wins`, score == null ? null : `average score ${score}`].filter(Boolean).join(" · "),
+      filterEmptyTitle: "No matches for this filter",
+      filterEmptyHint: "Pick another hero or result.",
       pdfSave: "Save PDF",
       pdfSaved: (name) => `Saved: ${name}`,
       pdfFailed: "Could not save the PDF",
@@ -317,6 +325,14 @@
       more: "Показать ещё",
       liveMatch: (hero) => `Записываем текущий матч${hero ? ` (${hero})` : ""} — разбор появится сразу после него.`,
       back: "Матчи",
+      filterResult: "Результат",
+      filterResults: { all: "Все", win: "Победы", loss: "Поражения" },
+      filterHero: "Герой",
+      filterAllHeroes: "Все герои",
+      filterSummary: (games, winrate, score) =>
+        [`${games} ${plural(games, "матч", "матча", "матчей")}`, winrate == null ? null : `${winrate}% побед`, score == null ? null : `средняя оценка ${score}`].filter(Boolean).join(" · "),
+      filterEmptyTitle: "Нет матчей под этот фильтр",
+      filterEmptyHint: "Выберите другого героя или результат.",
       pdfSave: "Сохранить PDF",
       pdfSaved: (name) => `Сохранено: ${name}`,
       pdfFailed: "Не удалось сохранить PDF",
@@ -536,6 +552,9 @@
   const api = window.launcherApi;
 
   const state = {
+    filter: { heroId: null, result: "all" },
+    heroes: [],
+    matchesStats: null,
     locale: "en",
     view: "home",
     status: null,
@@ -919,10 +938,12 @@
       await refreshPlayer();
     }
     if (state.player?.linked) {
-      const result = await call("matches", { limit: Math.max(30, state.matches.length) });
+      const result = await call("matches", { limit: Math.max(30, state.matches.length), ...filterArgs() });
       if (result.ok) {
         state.matches = result.data.items || [];
         state.matchesTotal = result.data.total || 0;
+        state.matchesStats = result.data.stats || null;
+        state.heroes = result.data.heroes || [];
         state.matchesLoaded = true;
       }
     }
@@ -946,8 +967,11 @@
     const liveMatch = state.player.live_match;
     const liveNotice = liveMatch ? h("div", { class: "notice" }, h("span", { class: "dot dot-live", "data-tone": "good" }), h("span", { text: t("liveMatch", liveMatch.hero) })) : null;
     let body;
+    const filtered = state.filter.heroId !== null || state.filter.result !== "all";
     if (!state.matchesLoaded) {
       body = skeletonRows(5);
+    } else if (!state.matches.length && filtered) {
+      body = emptyState("history", t("filterEmptyTitle"), t("filterEmptyHint"));
     } else if (!state.matches.length) {
       body = emptyState("history", t("noMatchesTitle"), t("noMatchesHint"));
     } else {
@@ -963,7 +987,7 @@
               class: "btn btn-ghost btn-block",
               type: "button",
               onclick: async () => {
-                const result = await call("matches", { limit: 30, offset: state.matches.length });
+                const result = await call("matches", { limit: 30, offset: state.matches.length, ...filterArgs() });
                 if (result.ok) {
                   state.matches = state.matches.concat(result.data.items || []);
                   renderMatches();
@@ -975,8 +999,62 @@
         );
       }
     }
-    root.replaceChildren(playerBar(), liveNotice || "", card(t("matchesTitle"), "history", body, state.matchesTotal ? h("span", { class: "num", text: String(state.matchesTotal) }) : null));
+    const filters = state.matchesLoaded && (state.heroes.length > 1 || filtered) ? filterBar() : null;
+    root.replaceChildren(
+      playerBar(),
+      liveNotice || "",
+      card(t("matchesTitle"), "history", [filters, body].filter(Boolean), state.matchesTotal ? h("span", { class: "num", text: String(state.matchesTotal) }) : null)
+    );
     hydrate(root);
+  }
+
+  function filterArgs() {
+    return {
+      heroId: state.filter.heroId === null ? undefined : state.filter.heroId,
+      result: state.filter.result === "all" ? undefined : state.filter.result
+    };
+  }
+
+  function setFilter(patch) {
+    state.filter = { ...state.filter, ...patch };
+    state.matches = [];
+    loadMatches();
+  }
+
+  // Result + hero filter and what the filtered games add up to.
+  function filterBar() {
+    const results = h(
+      "div",
+      { class: "segmented segmented-sm", role: "radiogroup", "aria-label": t("filterResult") },
+      ["all", "win", "loss"].map((value) =>
+        h("button", {
+          type: "button",
+          role: "radio",
+          "aria-checked": String(state.filter.result === value),
+          text: t(`filterResults.${value}`),
+          onclick: () => setFilter({ result: value })
+        })
+      )
+    );
+    const select = h(
+      "select",
+      {
+        class: "input select",
+        "aria-label": t("filterHero"),
+        onchange: (event) => setFilter({ heroId: event.target.value === "" ? null : Number(event.target.value) })
+      },
+      h("option", { value: "", text: t("filterAllHeroes") }),
+      state.heroes.map((hero) => {
+        const option = h("option", { value: String(hero.hero_id), text: `${hero.hero || "—"} · ${hero.games}` });
+        option.selected = state.filter.heroId === hero.hero_id;
+        return option;
+      })
+    );
+    const stats = state.matchesStats;
+    const summary = stats && stats.games
+      ? h("p", { class: "muted small filter-summary num", text: t("filterSummary", stats.games, stats.winrate, stats.avg_score) })
+      : null;
+    return h("div", { class: "filter-bar" }, h("div", { class: "filter-controls" }, results, select), summary);
   }
 
   function matchesTable(rows) {

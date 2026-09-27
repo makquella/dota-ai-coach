@@ -279,26 +279,83 @@ class PlayerStore:
             )
             self._conn.commit()
 
+    @staticmethod
+    def _filter(
+        account_id: int, hero_id: int | None, win: bool | None
+    ) -> tuple[str, tuple[Any, ...]]:
+        """WHERE clause for the match table filters (hero, result)."""
+        where, params = ["account_id = ?"], [int(account_id)]
+        if hero_id is not None:
+            where.append("hero_id = ?")
+            params.append(int(hero_id))
+        if win is not None:
+            where.append("win = ?")
+            params.append(1 if win else 0)
+        return " AND ".join(where), tuple(params)
+
     def list_matches(
-        self, account_id: int, *, limit: int = 50, offset: int = 0
+        self,
+        account_id: int,
+        *,
+        limit: int = 50,
+        offset: int = 0,
+        hero_id: int | None = None,
+        win: bool | None = None,
     ) -> list[dict[str, Any]]:
         columns = ", ".join(("match_id", *MATCH_COLUMNS, "sources", "parse_status"))
+        where, params = self._filter(account_id, hero_id, win)
         with self._lock:
             rows = self._conn.execute(
                 f"SELECT {columns}, analysis_json IS NOT NULL AS has_analysis, "
-                "timeline_json IS NOT NULL AS has_timeline FROM matches "
-                "WHERE account_id = ? ORDER BY COALESCE(start_time, 0) DESC, match_id DESC "
-                "LIMIT ? OFFSET ?",
-                (int(account_id), int(limit), int(offset)),
+                f"timeline_json IS NOT NULL AS has_timeline FROM matches WHERE {where} "
+                "ORDER BY COALESCE(start_time, 0) DESC, match_id DESC LIMIT ? OFFSET ?",
+                (*params, int(limit), int(offset)),
             ).fetchall()
         return [_summary_row(row) for row in rows]
 
-    def count_matches(self, account_id: int) -> int:
+    def count_matches(
+        self, account_id: int, *, hero_id: int | None = None, win: bool | None = None
+    ) -> int:
+        where, params = self._filter(account_id, hero_id, win)
         with self._lock:
             row = self._conn.execute(
-                "SELECT COUNT(*) AS n FROM matches WHERE account_id = ?", (int(account_id),)
+                f"SELECT COUNT(*) AS n FROM matches WHERE {where}", params
             ).fetchone()
         return int(row["n"]) if row else 0
+
+    def match_stats(
+        self, account_id: int, *, hero_id: int | None = None, win: bool | None = None
+    ) -> dict[str, Any]:
+        """Games, wins (of those with a known result) and average score of a filter."""
+        where, params = self._filter(account_id, hero_id, win)
+        with self._lock:
+            row = self._conn.execute(
+                "SELECT COUNT(*) AS games, SUM(win = 1) AS wins, "
+                "SUM(win IS NOT NULL) AS decided, AVG(score) AS avg_score "
+                f"FROM matches WHERE {where}",
+                params,
+            ).fetchone()
+        decided = int(row["decided"] or 0)
+        return {
+            "games": int(row["games"] or 0),
+            "wins": int(row["wins"] or 0),
+            "winrate": round(100 * int(row["wins"] or 0) / decided) if decided else None,
+            "avg_score": round(row["avg_score"]) if row["avg_score"] is not None else None,
+        }
+
+    def hero_counts(self, account_id: int) -> list[dict[str, Any]]:
+        """Heroes of the stored matches, most played first (filter choices)."""
+        with self._lock:
+            rows = self._conn.execute(
+                "SELECT hero_id, MAX(hero) AS hero, COUNT(*) AS games FROM matches "
+                "WHERE account_id = ? AND hero_id IS NOT NULL GROUP BY hero_id "
+                "ORDER BY games DESC, hero",
+                (int(account_id),),
+            ).fetchall()
+        return [
+            {"hero_id": int(row["hero_id"]), "hero": row["hero"], "games": int(row["games"])}
+            for row in rows
+        ]
 
     def source_counts(self, account_id: int) -> dict[str, int]:
         """How many matches per parse status (problem report)."""

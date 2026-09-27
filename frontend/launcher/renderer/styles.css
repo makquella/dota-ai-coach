@@ -2216,6 +2216,39 @@ label.setting:has(.switch:disabled) {
   font-weight: var(--fw-regular);
 }
 
+/* Match table filters */
+
+.filter-bar {
+  display: grid;
+  gap: var(--sp-2);
+  margin-bottom: var(--sp-3);
+}
+
+.filter-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sp-2);
+}
+
+.select {
+  flex: 0 1 220px;
+  height: 30px;
+  padding-right: var(--sp-6);
+  appearance: none;
+  background-image: linear-gradient(45deg, transparent 50%, var(--text-3) 50%),
+    linear-gradient(135deg, var(--text-3) 50%, transparent 50%);
+  background-position: calc(100% - 14px) 50%, calc(100% - 10px) 50%;
+  background-size: 4px 4px;
+  background-repeat: no-repeat;
+  cursor: pointer;
+}
+
+.select option {
+  background: var(--surface-1);
+  color: var(--text);
+}
+
 /* Match map (schematic, charts.js map()) ------------------------------------ */
 
 .map-layout {
