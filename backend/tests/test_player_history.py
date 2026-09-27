@@ -181,6 +181,10 @@ def test_bad_parsed_match_names_the_problems_with_numbers():
     stall = next(f for f in analysis["improvements"] if f["id"] == "farm_stall")
     assert "С 15 по 22-ю минуту" in stall["text"]
     assert analysis["series"]["last_hits"][10] < analysis["series"]["last_hits_target"][10]
+    # Gold and experience get a "good pace" line of the same length.
+    series = analysis["series"]
+    assert len(series["gold_target"]) == len(series["gold"]) and series["gold_target"][10] > 0
+    assert len(series["xp_target"]) == len(series["xp"]) and series["xp_target"][10] > 0
     killers = [m["killer"] for m in analysis["moments"] if m["type"] == "death"]
     assert killers[0] == "Shadow Fiend"
 
@@ -808,3 +812,22 @@ def test_best_vs_worst_needs_enough_matches():
         for _ in range(5)
     ]
     assert compare_best_worst(rows, "en") is None
+
+
+def test_team_fight_deaths_get_a_place_on_the_map():
+    from app.match_facts import facts_from_opendota
+
+    match = opendota_match(good=False)
+    me_index = next(i for i, p in enumerate(match["players"]) if p.get("account_id") == ME)
+    trimmed = trim_match(match, ME)
+    deaths = facts_from_opendota(trimmed)["deaths_log"]
+    assert deaths and all("x" not in d for d in deaths)
+    first = deaths[0]["t"]
+    players = [{"deaths": 0} for _ in match["players"]]
+    players[me_index] = {"deaths": 1, "deaths_pos": {"150": {"96": 1}}}
+    match["teamfights"] = [{"start": first - 20, "end": first + 5, "players": players}]
+    trimmed = trim_match(match, ME)
+    assert trimmed["trim_version"] >= 2 and trimmed["teamfights"][0]["deaths_pos"]
+    deaths = facts_from_opendota(trimmed)["deaths_log"]
+    assert (deaths[0]["x"], deaths[0]["y"]) == (150 * 128, 96 * 128)
+    assert all("x" not in d for d in deaths[1:])

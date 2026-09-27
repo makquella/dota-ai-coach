@@ -372,6 +372,33 @@ def summary_from_recent(item: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+# Bump when trim_match keeps more: parsed matches stored by an older version are
+# fetched again on the next sync (PlayerService).
+TRIM_VERSION = 2
+
+
+def _my_teamfights(match: dict[str, Any], index: int | None) -> list[dict[str, Any]]:
+    """Where the reviewed player died in each team fight of a parsed replay:
+    [{start, end, deaths_pos: {x: {y: count}}}] (cells), fights without a death skipped."""
+    fights = []
+    if index is None or not isinstance(match.get("teamfights"), list):
+        return fights
+    for fight in match["teamfights"]:
+        players = fight.get("players") if isinstance(fight, dict) else None
+        if not isinstance(players, list) or index >= len(players):
+            continue
+        mine = players[index] if isinstance(players[index], dict) else {}
+        if mine.get("deaths") and isinstance(mine.get("deaths_pos"), dict) and mine["deaths_pos"]:
+            fights.append(
+                {
+                    "start": fight.get("start"),
+                    "end": fight.get("end"),
+                    "deaths_pos": mine["deaths_pos"],
+                }
+            )
+    return fights
+
+
 def trim_match(match: dict[str, Any], account_id: int) -> dict[str, Any]:
     """Keep the match header, a light scoreboard and the reviewed player's logs."""
     raw_players = match.get("players")
@@ -381,6 +408,10 @@ def trim_match(match: dict[str, Any], account_id: int) -> dict[str, Any]:
     me = next((p for p in players if p.get("account_id") == int(account_id)), None)
     trimmed: dict[str, Any] = {key: match.get(key) for key in _MATCH_FIELDS}
     trimmed["parsed"] = match.get("version") is not None
+    trimmed["trim_version"] = TRIM_VERSION
+    trimmed["teamfights"] = _my_teamfights(
+        match, next((i for i, p in enumerate(players) if p is me), None)
+    )
     trimmed["players"] = []
     for player in players:
         entry = {key: player.get(key) for key in _PLAYER_FIELDS if player.get(key) is not None}

@@ -79,7 +79,11 @@ MATCH_SYSTEM = (
     "You are an experienced Dota 2 coach reviewing one match of your student (the player). "
     "The JSON holds the facts of the match computed from the replay or the game's telemetry. "
     'When it has "player_focus" (the problem the player chose to train), say in the summary '
-    "whether they managed it in this match.\n\n" + COMMON_RULES + "\n\n" + MATCH_SCHEMA
+    'whether they managed it in this match. A finding with "matches_in_a_row_with_it" of 3 '
+    "or more is a habit, not bad luck: say so and put it first.\n\n"
+    + COMMON_RULES
+    + "\n\n"
+    + MATCH_SCHEMA
 )
 
 CAREER_SYSTEM = (
@@ -139,12 +143,16 @@ def match_facts(detail: dict[str, Any]) -> dict[str, Any] | None:
             for name, section in (analysis.get("sections") or {}).items()
         },
         "findings_to_improve": [
-            _finding(f, with_drill=True) for f in analysis.get("improvements") or []
+            _finding(f, with_drill=True, repeats=(detail.get("repeats") or {}).get(f.get("id")))
+            for f in analysis.get("improvements") or []
         ],
         "findings_strengths": [_finding(f) for f in analysis.get("strengths") or []],
         "every_5_minutes": _series(analysis.get("series") or {}),
         "events": [_event(m) for m in analysis.get("moments") or []],
     }
+    death_review = analysis.get("death_review")
+    if death_review and death_review.get("deaths"):
+        facts["deaths"] = _deaths_facts(death_review)
     peers = analysis.get("peers")
     if peers and peers.get("peers"):
         facts["rank"] = peers.get("lobby_rank_label")
@@ -559,15 +567,48 @@ def _kda(headline: dict[str, Any]) -> str:
     return f"{headline.get('kills')}/{headline.get('deaths')}/{headline.get('assists')}"
 
 
-def _finding(finding: dict[str, Any], *, with_drill: bool = False) -> dict[str, Any]:
-    row = {
+def _finding(
+    finding: dict[str, Any], *, with_drill: bool = False, repeats: dict[str, int] | None = None
+) -> dict[str, Any]:
+    row: dict[str, Any] = {
         "area": finding.get("section_label"),
         "title": finding.get("title"),
         "text": finding.get("text"),
     }
     if with_drill:
         row["drill"] = finding.get("drill")
+    if repeats:
+        # finding_history: the same problem in the player's earlier matches.
+        row["matches_in_a_row_with_it"] = repeats.get("in_a_row")
+        row["earlier_matches_with_it"] = f"{repeats.get('in_last')} of {repeats.get('of')}"
     return row
+
+
+def _deaths_facts(review: dict[str, Any]) -> dict[str, Any]:
+    """death_review.review_deaths: every death with what is known around it."""
+    notes = review.get("notes") or {}
+    rows = []
+    for death in review.get("deaths") or []:
+        row: dict[str, Any] = {"time": clock(death.get("t"))}
+        for key, name in (("killer", "killed_by"), ("zone", "where"), ("side", "map_half")):
+            if death.get(key):
+                row[name] = death[key]
+        if isinstance(death.get("gold"), int):
+            row["unspent_gold"] = death["gold"]
+        warning = death.get("warning")
+        if warning and warning.get("action"):
+            row["advice_shown_before"] = f"{clock(warning.get('t'))} {warning['action']}"
+        if death.get("after_respawn") is not None:
+            row["seconds_after_respawn"] = death["after_respawn"]
+        rows.append(row)
+    return {
+        "count": len(rows),
+        "on_enemy_half": notes.get("enemy_half"),
+        "with_1000_plus_unspent_gold": notes.get("unspent_gold"),
+        "after_the_apps_warning": notes.get("warned"),
+        "within_60s_after_respawn": notes.get("soon_after_respawn"),
+        "list": rows[:15],
+    }
 
 
 def _section_facts(section: dict[str, Any]) -> dict[str, Any]:

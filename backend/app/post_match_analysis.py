@@ -23,20 +23,43 @@ from typing import Any
 
 from app.advice_follow import analyze_advice_follow
 from app.build_analysis import analyze_build
+from app.death_review import review_deaths
 from app.draft_analysis import analyze_draft
 from app.item_timing import classify_item_timing, normalize_item_name
 from app.map_analysis import analyze_map
 from app.peer_analysis import match_peers, peer_findings, player_roles
 
 # Bump when the rules change: stored reviews of an older version are rebuilt on read.
-ANALYSIS_VERSION = 6
+ANALYSIS_VERSION = 8
 MAX_ADVICE_SHOWN = 40
 
 # Static targets when OpenDota benchmarks are missing (GSI-only matches).
+# xpm_good only draws the "good pace" line of the experience chart.
 TARGETS: dict[str, dict[str, float]] = {
-    "core": {"lh10_good": 55, "lh10_ok": 40, "gpm_good": 560, "gpm_ok": 430, "lh_rate": 5.5},
-    "offlane": {"lh10_good": 38, "lh10_ok": 25, "gpm_good": 460, "gpm_ok": 360, "lh_rate": 4.0},
-    "support": {"lh10_good": 12, "lh10_ok": 6, "gpm_good": 340, "gpm_ok": 260, "lh_rate": 1.0},
+    "core": {
+        "lh10_good": 55,
+        "lh10_ok": 40,
+        "gpm_good": 560,
+        "gpm_ok": 430,
+        "lh_rate": 5.5,
+        "xpm_good": 620,
+    },
+    "offlane": {
+        "lh10_good": 38,
+        "lh10_ok": 25,
+        "gpm_good": 460,
+        "gpm_ok": 360,
+        "lh_rate": 4.0,
+        "xpm_good": 560,
+    },
+    "support": {
+        "lh10_good": 12,
+        "lh10_ok": 6,
+        "gpm_good": 340,
+        "gpm_ok": 260,
+        "lh_rate": 1.0,
+        "xpm_good": 420,
+    },
 }
 SECTION_WEIGHTS: dict[str, dict[str, float]] = {
     "core": {"laning": 0.2, "farm": 0.3, "survival": 0.2, "fights": 0.15, "items": 0.15},
@@ -187,6 +210,7 @@ def analyze_match(
         "peers": peers,
         "draft": draft_block,
         "map": map_block,
+        "death_review": review_deaths(facts),
         "advice": (facts.get("advice_log") or [])[:MAX_ADVICE_SHOWN],
         "advice_follow": follow_block,
     }
@@ -702,14 +726,19 @@ def _vision(facts, role, targets, findings) -> dict[str, Any] | None:
 
 def _series(facts: dict[str, Any], targets: dict[str, float]) -> dict[str, Any]:
     lh_t = facts.get("lh_t") or []
-    minutes = list(range(len(lh_t) or len(facts.get("gold_t") or [])))
+    gold = facts.get("gold_t") or []
+    xp = facts.get("xp_t") or []
+    minutes = list(range(len(lh_t) or len(gold)))
     return {
         "minutes": minutes,
         "last_hits": lh_t,
         "last_hits_target": [round(m * targets["lh_rate"]) for m in minutes],
         "denies": facts.get("dn_t") or [],
-        "gold": facts.get("gold_t") or [],
-        "xp": facts.get("xp_t") or [],
+        "gold": gold,
+        # Gold and experience earned at the role's good GPM / XPM, minute by minute.
+        "gold_target": [round(m * targets["gpm_good"]) for m in range(len(gold))],
+        "xp": xp,
+        "xp_target": [round(m * targets["xpm_good"]) for m in range(len(xp))],
         "deaths": [d["t"] for d in facts.get("deaths_log") or [] if d.get("t") is not None],
     }
 

@@ -137,6 +137,11 @@ def refresh_match(match_id: MatchId):
     return {"status": "queued", "opendota": PLAYER_SERVICE.client is not None}
 
 
+@router.get("/week", summary="The last seven days for the home screen")
+def player_week(lang: str = "en"):
+    return {"week": PLAYER_SERVICE.week(normalize_lang(lang))}
+
+
 @router.get("/career", summary="Statistics and advice over recent matches")
 def player_career(lang: str = "en", hero_id: HeroId = None):
     """`hero_id` narrows the progress to one hero (no AI review then)."""

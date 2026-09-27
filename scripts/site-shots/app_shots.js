@@ -14,17 +14,23 @@ const assets = createAssetHandler({ root: process.env.ASSET_CACHE || path.join(r
 
 async function serveDotaAssets(page) {
   await page.addInitScript(() => {
+    const local = (value) => String(value).replace(/^dota-asset:\/\//, "https://dota-asset.local/");
     const descriptor = Object.getOwnPropertyDescriptor(HTMLImageElement.prototype, "src");
     Object.defineProperty(HTMLImageElement.prototype, "src", {
       ...descriptor,
       set(value) {
-        descriptor.set.call(this, String(value).replace(/^dota-asset:\/\//, "https://dota-asset.local/"));
+        descriptor.set.call(this, local(value));
       }
     });
+    // The match map is an SVG <image href="dota-asset://map/...">.
+    const setAttribute = Element.prototype.setAttribute;
+    Element.prototype.setAttribute = function (name, value) {
+      return setAttribute.call(this, name, name === "href" ? local(value) : value);
+    };
   });
   await page.route("https://dota-asset.local/**", async (route) => {
     const response = await assets({ url: route.request().url().replace("https://dota-asset.local/", "dota-asset://") });
-    await route.fulfill({ status: response.status, contentType: "image/png", body: Buffer.from(await response.arrayBuffer()) });
+    await route.fulfill({ status: response.status, contentType: response.headers.get("content-type") || "image/png", body: Buffer.from(await response.arrayBuffer()) });
   });
 }
 
@@ -101,6 +107,8 @@ function playerRequest(lang, op, args = {}) {
       return `/player/matches/${args.matchId || args.id}?lang=${lang}`;
     case "career":
       return `/player/career?lang=${lang}${hero}`;
+    case "week":
+      return `/player/week?lang=${lang}`;
     case "aiStatus":
       return "/player/ai";
     case "opendotaStatus":

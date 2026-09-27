@@ -95,9 +95,31 @@
       sectionsTitle: "Breakdown",
       chartTitle: "Over the match",
       mapTitle: "Match map",
+      deathsTitle: (count) => `Deaths · ${count}`,
+      weekGames: "Matches",
+      weekVsPrevious: "vs the week before",
+      weekBest: "Best match",
+      weekProblem: "Most often:",
+      weekProblemText: (title, count, of) => `${title} — in ${count} of ${of} matches`,
+      weekFocus: "Focus:",
+      weekPlanProgress: (met, played, plan) => `${met} of ${played} done · plan: ${plan} matches in a row`,
+      weekPlanNext: "Next match",
+      deathsNoPattern: "No repeating cause across these deaths.",
+      deathNoFacts: "Nothing else is known about this death.",
+      deathGold: (gold) => `${gold} unspent gold`,
+      deathAfterRespawn: (seconds) => `${seconds} s after respawning`,
+      deathWarned: (time, action) => `The coach warned at ${time}: «${action}»`,
+      deathNote: {
+        enemy_half: "on the enemy half",
+        unspent_gold: "with 1000+ unspent gold",
+        warned: "after a warning",
+        soon_after_respawn: "right after respawning"
+      },
+      deathZone: { top: "top lane", mid: "mid lane", bot: "bottom lane", jungle: "jungle", base: "base" },
+      mapEmpty: "No positions for this match yet. They come from a parsed replay (the app asks OpenDota to parse your 5 newest matches of the week) or from a match played with the app running: your path and where you died.",
       mapHint: {
         path: "Where your hero went (every 15 s, recorded by the app) and where you died.",
-        replay: "From the parsed replay: where you stood in the lane and where you placed wards.",
+        replay: "From the parsed replay: where you stood in the lane, where you placed wards and where you died in team fights.",
         both: "Your path (recorded by the app), laning position, wards from the replay and where you died."
       },
       mapLabels: {
@@ -123,6 +145,8 @@
       minuteLabel: (m) => `${m}:00`,
       strengthsTitle: "What went well",
       improveTitle: "What to improve",
+      repeatInARow: (n) => `${n} matches in a row — a habit, not bad luck`,
+      repeatInLast: (n, of) => `Also in ${n} of your previous ${of} matches`,
       nothingToImprove: "No serious mistakes found in this match.",
       nothingStrong: "Nothing stood out this time.",
       drill: "Drill",
@@ -402,9 +426,31 @@
       sectionsTitle: "По разделам",
       chartTitle: "По ходу матча",
       mapTitle: "Карта матча",
+      deathsTitle: (count) => `Смерти · ${count}`,
+      weekGames: "Матчи",
+      weekVsPrevious: "к прошлой неделе",
+      weekBest: "Лучший матч",
+      weekProblem: "Чаще всего:",
+      weekProblemText: (title, count, of) => `${title} — в ${count} из ${of} матчей`,
+      weekFocus: "Фокус:",
+      weekPlanProgress: (met, played, plan) => `получилось ${met} из ${played} · план: ${plan} матча подряд`,
+      weekPlanNext: "Следующий матч",
+      deathsNoPattern: "Повторяющейся причины у этих смертей нет.",
+      deathNoFacts: "Больше об этой смерти ничего не известно.",
+      deathGold: (gold) => `${gold} непотраченного золота`,
+      deathAfterRespawn: (seconds) => `через ${seconds} с после возрождения`,
+      deathWarned: (time, action) => `Тренер предупреждал в ${time}: «${action}»`,
+      deathNote: {
+        enemy_half: "на половине врага",
+        unspent_gold: "с 1000+ непотраченного золота",
+        warned: "после предупреждения",
+        soon_after_respawn: "сразу после возрождения"
+      },
+      deathZone: { top: "верхняя линия", mid: "центр", bot: "нижняя линия", jungle: "лес", base: "база" },
+      mapEmpty: "Для этого матча пока нет позиций. Они берутся из разобранного реплея (приложение само просит OpenDota разобрать 5 последних матчей за неделю) или из матча, сыгранного с запущенным приложением: ваш путь и места смертей.",
       mapHint: {
         path: "Где был ваш герой (каждые 15 с, записало приложение) и где вы умирали.",
-        replay: "По разобранному реплею: где вы стояли на линии и где ставили варды.",
+        replay: "По разобранному реплею: где вы стояли на линии, где ставили варды и где умирали в драках.",
         both: "Ваш путь (записало приложение), позиция на линии и варды из реплея, места смертей."
       },
       mapLabels: {
@@ -430,6 +476,8 @@
       minuteLabel: (m) => `${m}:00`,
       strengthsTitle: "Что получилось",
       improveTitle: "Что улучшить",
+      repeatInARow: (n) => `${n}-й матч подряд — это привычка, а не случайность`,
+      repeatInLast: (n, of) => `Было и в ${n} из ${of} прошлых матчей`,
       nothingToImprove: "Серьёзных ошибок в этом матче не найдено.",
       nothingStrong: "В этот раз ничего не выделилось.",
       drill: "Упражнение",
@@ -1351,10 +1399,14 @@
       if (gameMap) {
         parts.push(gameMap);
       }
+      const deathsReview = deathsCard(analysis);
+      if (deathsReview) {
+        parts.push(deathsReview);
+      }
       parts.push(findingsCard(t("strengthsTitle"), "sparkles", analysis.strengths, t("nothingStrong"), false));
       const rest = (analysis.improvements || []).filter((f) => !(analysis.focus || []).includes(f.id));
       if (rest.length) {
-        parts.push(findingsCard(t("improveTitle"), "target", rest, "", true));
+        parts.push(findingsCard(t("improveTitle"), "target", rest, "", true, detail.repeats));
       }
       const moments = momentsCard(analysis);
       if (moments) {
@@ -1382,6 +1434,7 @@
     root.querySelectorAll("[data-chart='match']").forEach((host) => drawChart(host, analysis));
     root.querySelectorAll("[data-chart='timing']").forEach((host) => drawTimingChart(host, analysis));
     root.querySelectorAll("[data-chart='map']").forEach((host) => drawMap(host, analysis.map));
+    root.querySelectorAll("[data-chart='map-empty']").forEach((host) => drawMap(host, {}));
   }
 
   function reviewHeader(detail, analysis, summary) {
@@ -1498,7 +1551,16 @@
     );
   }
 
-  function findingItem(finding, index) {
+  // finding_history: the same problem in the player's earlier matches.
+  function repeatNote(repeat) {
+    if (!repeat) {
+      return null;
+    }
+    const text = repeat.in_a_row >= 3 ? t("repeatInARow")(repeat.in_a_row) : t("repeatInLast")(repeat.in_last, repeat.of);
+    return h("p", { class: "finding-repeat" }, icon("repeat"), h("span", { text }));
+  }
+
+  function findingItem(finding, index, repeats) {
     return h(
       "li",
       { class: `finding finding-${finding.kind}` },
@@ -1508,6 +1570,7 @@
         { class: "finding-body" },
         h("p", { class: "finding-title" }, h("span", { text: finding.title }), finding.section_label ? h("span", { class: "tag", text: finding.section_label }) : null),
         h("p", { class: "finding-text", text: finding.text }),
+        repeatNote(repeats && repeats[finding.id]),
         finding.drill ? h("p", { class: "finding-drill" }, icon("lightbulb"), h("span", {}, h("strong", { text: `${t("drill")}: ` }), finding.drill)) : null
       )
     );
@@ -1522,7 +1585,7 @@
     const render = () =>
       list.replaceChildren(
         ...focus.map((finding, index) => {
-          const item = findingItem(finding, index);
+          const item = findingItem(finding, index, detail && detail.repeats);
           const body = item.querySelector(".finding-body");
           if (detail && detail.focus_id === finding.id) {
             item.querySelector(".finding-title").append(h("span", { class: "tag tag-accent", text: t("goalCurrent") }));
@@ -1562,11 +1625,11 @@
     return card(t("focusTitle"), "target", list);
   }
 
-  function findingsCard(title, iconName, findings, emptyText, improve) {
+  function findingsCard(title, iconName, findings, emptyText, improve, repeats) {
     if (!findings || !findings.length) {
       return card(title, iconName, h("p", { class: "muted", text: emptyText }));
     }
-    return card(title, iconName, h("ul", { class: `findings ${improve ? "" : "findings-compact"}` }, findings.map((f) => findingItem(f))));
+    return card(title, iconName, h("ul", { class: `findings ${improve ? "" : "findings-compact"}` }, findings.map((f) => findingItem(f, undefined, repeats))));
   }
 
   function sectionsCard(analysis) {
@@ -1593,8 +1656,19 @@
   // position and wards from the parsed replay (either may be missing).
   function mapCard(analysis) {
     const data = analysis.map;
-    if (!data || !((data.deaths || []).length || (data.wards || []).length || (data.path || []).length > 1)) {
-      return null;
+    const hasData = Boolean(
+      data && ((data.deaths || []).length || (data.wards || []).length || (data.path || []).length > 1 || (data.lane || []).length)
+    );
+    if (!hasData) {
+      // No positions (an unparsed replay, no app during the game): the map
+      // itself and how to get the positions.
+      const body = h(
+        "div",
+        {},
+        h("p", { class: "muted small chart-note", text: t("mapEmpty") }),
+        h("div", { class: "map-layout" }, h("div", { class: "chart-host", dataset: { chart: "map-empty" } }))
+      );
+      return card(t("mapTitle"), "map", body);
     }
     const hasPath = (data.path || []).length > 1;
     const hasReplay = (data.wards || []).length > 0 || (data.lane || []).length > 0;
@@ -1625,8 +1699,13 @@
     return card(t("mapTitle"), "map", body);
   }
 
+  // The game's minimap (patch 7.40 art, as OpenDota publishes it): positions in
+  // replay units 8192..24576 on both axes cover the whole picture.
+  const MAP_BACKGROUND = { href: "dota-asset://map/detailed_740", bounds: [8192, 24576] };
+
   function drawMap(host, data) {
     window.LauncherCharts.map(host, {
+      background: MAP_BACKGROUND,
       bounds: data.bounds,
       path: data.path,
       lane: data.lane,
@@ -1681,7 +1760,10 @@
     const markers = (series.deaths || []).map((seconds) => ({ x: seconds / 60, label: `${t("deathsMarker")} ${clock(seconds)}` }));
     window.LauncherCharts.line(host, {
       series: [{ label: `${t("you")} · ${label}`, values, color: VIZ_1, area: true }],
-      reference: state.chartMetric === "lh" && series.last_hits_target ? { label: t("target"), values: series.last_hits_target } : null,
+      reference: (() => {
+        const target = { lh: series.last_hits_target, gold: series.gold_target, xp: series.xp_target }[state.chartMetric];
+        return Array.isArray(target) && target.length ? { label: t("target"), values: target } : null;
+      })(),
       markers,
       markerLabel: t("deathsMarker"),
       xLabel: (i) => t("minuteLabel", i),
@@ -2060,8 +2142,56 @@
     );
   }
 
+  // Every death with what is known around it (app/death_review.py).
+  function deathsCard(analysis) {
+    const block = analysis.death_review;
+    const deaths = (block && block.deaths) || [];
+    if (!deaths.length) {
+      return null;
+    }
+    const notes = Object.entries(block.notes || {}).filter(([, count]) => count > 0);
+    const summary = notes.length
+      ? h(
+          "div",
+          { class: "death-summary" },
+          notes.map(([note, count]) => h("span", { class: "chip" }, h("span", { text: t(`deathNote.${note}`) }), h("span", { class: "num", text: ` · ${count}` })))
+        )
+      : h("p", { class: "muted small", text: t("deathsNoPattern") });
+    const rows = deaths.map((death) => {
+      const where = [
+        death.zone ? t(`deathZone.${death.zone}`) : null,
+        death.side ? t(`mapSide.${death.side}`) : null
+      ].filter(Boolean).join(" · ");
+      const facts = [
+        death.killer ? t("killedBy", death.killer) : null,
+        where || null,
+        Number.isFinite(death.gold) ? t("deathGold", number(death.gold)) : null,
+        Number.isFinite(death.after_respawn) ? t("deathAfterRespawn", death.after_respawn) : null
+      ].filter(Boolean);
+      return h(
+        "li",
+        { class: "moment death-row" },
+        h("span", { class: "moment-time num", text: clock(death.t) }),
+        h("span", { class: "moment-icon" }, icon("skull")),
+        h(
+          "span",
+          { class: "death-body" },
+          h("span", { text: facts.join(" · ") || t("deathNoFacts") }),
+          death.warning
+            ? h("span", { class: "muted small death-warning", text: t("deathWarned", clock(death.warning.t), death.warning.action || "") })
+            : null
+        )
+      );
+    });
+    const body = h("div", {}, summary, h("ol", { class: "moments deaths-list" }, rows));
+    return card(t("deathsTitle", deaths.length), "skull", body);
+  }
+
   function momentsCard(analysis) {
-    const moments = analysis.moments || [];
+    // Deaths have their own card when the review has one.
+    const moments = (analysis.moments || []).filter(
+      (moment) => moment.type !== "death" || !(analysis.death_review && analysis.death_review.deaths || []).length
+    );
     if (!moments.length) {
       return null;
     }
@@ -3028,12 +3158,88 @@
     line.textContent = parts.filter(Boolean).join(" · ");
   }
 
+  // --- home: the last seven days ---------------------------------------------------
+
+  const WEEK_REFRESH_MS = 60 * 1000;
+
+  async function refreshWeek(status) {
+    const review = status.player && status.player.lastReview;
+    const key = `${state.locale}|${review ? review.match_id : ""}|${status.player && status.player.accountId}`;
+    if (state.weekKey === key && Date.now() - (state.weekAt || 0) < WEEK_REFRESH_MS) {
+      return;
+    }
+    state.weekKey = key;
+    state.weekAt = Date.now();
+    const result = await call("week");
+    renderWeek(result.ok ? result.data.week : null);
+  }
+
+  function renderWeek(week) {
+    const cardEl = document.getElementById("week-card");
+    const body = document.getElementById("week-body");
+    if (!cardEl || !body) {
+      return;
+    }
+    cardEl.classList.toggle("hidden", !week);
+    if (!week) {
+      body.replaceChildren();
+      return;
+    }
+    let change = null;
+    if (Number.isFinite(week.score_change)) {
+      const tone = week.score_change > 0 ? "good" : week.score_change < 0 ? "bad" : "idle";
+      const iconName = week.score_change > 0 ? "trending-up" : week.score_change < 0 ? "trending-down" : "minus";
+      change = h("span", { class: `delta delta-${tone}` }, icon(iconName), h("span", { class: "num", text: `${week.score_change > 0 ? "+" : ""}${week.score_change}` }), h("span", { class: "muted", text: ` ${t("weekVsPrevious")}` }));
+    }
+    const tiles = [
+      tile(t("weekGames"), String(week.games), null, t("recordLine", week.wins, week.losses, week.games)),
+      tile(t("tiles.score"), week.avg_score == null ? "—" : String(week.avg_score), change)
+    ];
+    if (week.best) {
+      const best = h(
+        "button",
+        { type: "button", class: "tile tile-link", onclick: () => openMatch(week.best.match_id) },
+        h("p", { class: "tile-label", text: t("weekBest") }),
+        h("p", { class: "tile-value with-pic" }, window.DotaIcons?.hero(week.best.hero) ? window.DotaIcons.heroPicture(document, week.best.hero, "sm") : null, h("span", { class: "num", text: String(week.best.score) })),
+        h("p", { class: "tile-sub muted", text: week.best.hero || "" })
+      );
+      tiles.push(best);
+    }
+    const lines = [];
+    if (week.top_problem) {
+      lines.push(h("p", { class: "week-line" }, h("span", { class: "muted", text: `${t("weekProblem")} ` }), h("span", { text: t("weekProblemText", week.top_problem.title, week.top_problem.count, week.top_problem.of) })));
+    }
+    if (week.focus) {
+      const plan = week.focus;
+      const marks = Array.from({ length: plan.plan }, (_, index) => {
+        const result = plan.results[index];
+        return h("span", { class: "goal-mark", dataset: { met: result ? String(result.met) : "none" }, title: result ? `${result.hero || "—"}: ${result.met ? t("goalMet") : t("goalMissed")}` : t("weekPlanNext") });
+      });
+      lines.push(
+        h(
+          "div",
+          { class: "week-plan" },
+          h("p", { class: "week-line" }, h("span", { class: "muted", text: `${t("weekFocus")} ` }), h("span", { text: plan.title || "" })),
+          h("div", { class: "week-plan-row" }, h("div", { class: "goal-marks" }, marks), h("span", { class: "muted small num", text: t("weekPlanProgress", plan.met, plan.results.length, plan.plan) })),
+          plan.drill ? h("p", { class: "muted small", text: plan.drill }) : null
+        )
+      );
+    }
+    body.replaceChildren(h("div", { class: "tiles week-tiles" }, tiles), ...lines);
+    hydrate(body);
+  }
+
   function onStatus(status) {
     const localeChanged = state.locale !== (status.locale === "ru" ? "ru" : "en");
     state.locale = status.locale === "ru" ? "ru" : "en";
     state.status = status;
     renderBanner(status);
     renderToday(status);
+    if (status.backend === "running" && status.player && status.player.linked) {
+      refreshWeek(status).catch(() => {});
+    } else {
+      renderWeek(null);
+    }
     if (localeChanged) {
       // Texts from the backend (reviews, progress) come in the new language only
       // when asked again.

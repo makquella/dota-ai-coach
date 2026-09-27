@@ -59,11 +59,13 @@ from app.dota_constants import (
     is_reviewable_match,
 )
 from app.draft_analysis import pool_heroes
+from app.finding_history import finding_history
 from app.focus_goal import can_focus, focus_summary, match_result, new_focus, played_after
 from app.game_plan import build_game_plan
 from app.match_facts import facts_from_opendota, facts_from_timeline, merge_facts
 from app.match_tracker import MatchTracker, account_from_gsi
 from app.opendota import (
+    TRIM_VERSION,
     OpenDotaClient,
     OpenDotaError,
     my_player,
@@ -76,6 +78,7 @@ from app.player_store import PlayerStore
 from app.post_match_analysis import ANALYSIS_VERSION, analyze_match
 from app.schemas import is_supported_hero
 from app.steam_ids import parse_account_id, steam64_from_account_id
+from app.weekly_summary import weekly_summary
 
 RECENT_MATCHES_LIMIT = 50
 REVIEW_RECENT_MATCHES = 12
@@ -100,6 +103,8 @@ GAME_PLAN_CACHE_SECONDS = 60
 SKIPPED_MODES_META = "skipped_modes"
 FOCUS_META = "focus"
 TODAY_MAX_MATCHES = 30
+# Earlier matches read for a repeating problem (some cannot show every problem).
+REPEATS_LOOKUP = 25
 # "Ask the coach": the last questions per match, and how long the player waits.
 ASK_CACHE_KEY = "coach:ask"
 ASK_HISTORY = 5
@@ -320,6 +325,26 @@ class PlayerService:
         self._plans[key] = (now, plan)
         return plan
 
+    def week(self, lang: str) -> dict[str, Any] | None:
+        """The home screen's last seven days (app/weekly_summary.py); cached a
+        minute like the game plan, since Home asks for it on every visit."""
+        primary = self.store.primary_account_id()
+        if primary is None:
+            return None
+        key = ("week", primary, lang)
+        cached = self._plans.get(key)
+        now = time.monotonic()
+        if cached is not None and now - cached[0] < GAME_PLAN_CACHE_SECONDS:
+            return cached[1]
+        summary = weekly_summary(
+            self.store.matches_for_career(primary, limit=RECENT_MATCHES_LIMIT),
+            time.time(),
+            lang,
+            focus=self._focus(primary),
+        )
+        self._plans[key] = (now, summary)
+        return summary
+
     def role_prior(self, hero: str) -> dict[str, Any] | None:
         """The position to assume before the lane is known (app/live_role.py): the
         usual one of the player's reviews on this hero (2+), else OpenDota's role
@@ -499,8 +524,10 @@ class PlayerService:
             "scoreboard": _scoreboard(record.get("opendota")),
             "loading": analysis is None and self.client is not None,
         }
-        # Before the coach: the AI review mentions the player's focus when there is one.
+        # Before the coach: the AI review mentions the player's focus when there is one,
+        # and the mistakes that keep coming back.
         detail["focus"] = self._match_focus(primary, record, analysis, lang)
+        detail["repeats"] = self._repeats(primary, record, analysis)
         detail["coach"] = self._match_coach(primary, match_id, detail, lang, force=force_coach)
         detail["baseline"] = self._baseline(primary, record, analysis)
         detail["questions"] = self._questions(primary, match_id)
@@ -513,6 +540,16 @@ class PlayerService:
             if can_focus(finding_id)
         ]
         return detail
+
+    def _repeats(
+        self, account_id: int, record: dict[str, Any], analysis: dict[str, Any] | None
+    ) -> dict[str, dict[str, int]]:
+        """The problems of this match that the player's earlier matches had too."""
+        start = record.get("start_time")
+        if not analysis or not isinstance(start, (int, float)):
+            return {}
+        earlier = self.store.matches_for_career(account_id, limit=REPEATS_LOOKUP, before=int(start))
+        return finding_history(record, analysis, earlier)
 
     def _baseline(
         self, account_id: int, record: dict[str, Any], analysis: dict[str, Any] | None
@@ -979,7 +1016,12 @@ class PlayerService:
                     and row.get("parse_status") in (None, "", "basic")
                     and now - float(row.get("start_time") or 0) < PARSE_MAX_AGE_SECONDS
                 )
-                if parse or not row.get("has_analysis") or ("opendota" not in row["sources"]):
+                if (
+                    parse
+                    or not row.get("has_analysis")
+                    or ("opendota" not in row["sources"])
+                    or self._trim_outdated(account_id, row)
+                ):
                     mid = row["match_id"]
                     self.jobs.submit(
                         f"match:{mid}",
@@ -1200,6 +1242,15 @@ class PlayerService:
             return
         with contextlib.suppress(OpenDotaError):
             self.store.cache_set(key, fetch())
+
+    def _trim_outdated(self, account_id: int, row: dict[str, Any]) -> bool:
+        """A parsed match stored before trim_match kept what the review now uses
+        (team fight death positions): fetched again, one request."""
+        if row.get("parse_status") != "parsed":
+            return False
+        record = self.store.get_match(account_id, row["match_id"])
+        stored = (record or {}).get("opendota") or {}
+        return int(stored.get("trim_version") or 1) < TRIM_VERSION
 
     def _pool(self, account_id: int) -> list[int]:
         return pool_heroes(self.store.list_matches(account_id, limit=RECENT_MATCHES_LIMIT))

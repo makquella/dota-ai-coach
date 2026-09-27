@@ -672,6 +672,27 @@ def render_analysis(analysis: dict[str, Any], lang: str) -> dict[str, Any]:
             }
             for item in analysis["advice"]
         ]
+    deaths = analysis.get("death_review")
+    if deaths:
+        rendered["death_review"] = {
+            **deaths,
+            "deaths": [
+                {
+                    **row,
+                    **(
+                        {
+                            "warning": {
+                                **row["warning"],
+                                "action": _advice_text(row["warning"].get("action"), lang),
+                            }
+                        }
+                        if row.get("warning")
+                        else {}
+                    ),
+                }
+                for row in deaths.get("deaths") or []
+            ],
+        }
     rendered["sections"] = {
         name: {**section, "label": SECTIONS.get(name, {}).get(lang, name)}
         for name, section in (analysis.get("sections") or {}).items()

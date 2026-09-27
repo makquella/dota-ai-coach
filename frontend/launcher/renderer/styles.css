@@ -1533,6 +1533,19 @@ label.setting:has(.switch:disabled) {
   font-size: var(--fs-13);
 }
 
+.finding-repeat {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  margin-top: var(--sp-2);
+  color: var(--text-2);
+  font-size: var(--fs-13);
+}
+
+.finding-repeat .icon {
+  color: var(--warn);
+}
+
 .finding-drill {
   display: flex;
   gap: var(--sp-2);
@@ -2463,6 +2476,43 @@ label.setting:has(.switch:disabled) {
   opacity: 0.22;
 }
 
+/* Over the game's minimap art: stronger marks with a dark outline. */
+.map-image {
+  opacity: 0.92;
+}
+
+.map-real .map-heat circle {
+  opacity: 0.5;
+  stroke: rgba(0, 0, 0, 0.35);
+  stroke-width: 0.5;
+}
+
+.map-real .map-path {
+  stroke: #7fb2ff;
+  stroke-width: 2.5;
+  opacity: 1;
+  filter: drop-shadow(0 0 1px rgba(0, 0, 0, 0.95));
+}
+
+.map-real .map-death path {
+  stroke-width: 3;
+  paint-order: stroke;
+  filter: drop-shadow(0 0 1.5px rgba(0, 0, 0, 0.9));
+}
+
+.map-real .map-ward circle:first-child {
+  stroke: #fff;
+}
+
+.map-label {
+  fill: #fff;
+  font-size: var(--fs-12);
+  font-weight: var(--fw-semibold);
+  paint-order: stroke;
+  stroke: rgba(0, 0, 0, 0.75);
+  stroke-width: 3px;
+}
+
 .map-path {
   fill: none;
   stroke: var(--viz-1);
@@ -2868,4 +2918,86 @@ label.setting:has(.switch:disabled) {
   .review-portrait {
     display: none;
   }
+}
+
+/* Deaths card: repeated causes as chips, then one row per death. */
+.death-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+  margin-bottom: var(--sp-3);
+}
+
+.death-row {
+  align-items: flex-start;
+}
+
+.death-body {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.death-warning {
+  overflow-wrap: anywhere;
+}
+
+/* Home: the last seven days. */
+.week-card {
+  margin-bottom: var(--sp-4);
+}
+
+.week-tiles {
+  margin-bottom: var(--sp-3);
+}
+
+.tile-link {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  align-self: stretch;
+  width: 100%;
+  border: 1px solid var(--border);
+  background: var(--surface-1);
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color var(--dur-fast) var(--ease);
+}
+
+.tile-link:hover {
+  border-color: var(--border-strong);
+}
+
+.tile-link .tile-value {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+}
+
+.tile-link:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.week-line {
+  margin: 0 0 var(--sp-2);
+  font-size: var(--fs-13);
+}
+
+.week-plan-row {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  margin-bottom: var(--sp-1);
+}
+
+.goal-mark[data-met="none"] {
+  border: 1px dashed var(--border-strong);
+  background: transparent;
+}
+
+.week-plan .goal-mark {
+  cursor: default;
 }

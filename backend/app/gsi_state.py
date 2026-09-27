@@ -5,6 +5,7 @@ gsi_state.py — in-memory Dota 2 Game State Integration state for MVP overlay u
 from __future__ import annotations
 
 import json
+import math
 from datetime import UTC, datetime
 from typing import Any
 
@@ -538,13 +539,14 @@ def _value_increased(previous: dict[str, Any] | None, current: dict[str, Any], k
     return now > before
 
 
+# No real GSI number (gold, experience, clock, coordinates, cooldowns) comes
+# near this; anything larger, and inf/nan, is garbage and counts as missing.
+MAX_GSI_NUMBER = 10_000_000
+
+
 def _optional_int(value: Any) -> int | None:
-    if value is None:
-        return None
-    try:
-        return int(value)
-    except (TypeError, ValueError):
-        return None
+    number = _optional_number(value)
+    return None if number is None else int(number)
 
 
 def _optional_number(value: Any) -> float | int | None:
@@ -552,7 +554,9 @@ def _optional_number(value: Any) -> float | int | None:
         return None
     try:
         number = float(value)
-    except (TypeError, ValueError):
+    except (TypeError, ValueError, OverflowError):
+        return None
+    if not math.isfinite(number) or abs(number) > MAX_GSI_NUMBER:
         return None
     return int(number) if number.is_integer() else number
 

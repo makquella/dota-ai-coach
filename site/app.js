@@ -63,7 +63,7 @@
     reviewText:
       "Every match is recorded by itself and filled in with OpenDota data. Rules count everything in numbers, and the AI coach explains the match in plain words — every number in its text is checked against the data.",
     c1: "A score for the match: lane, farm, survival, fights, items",
-    c2: "Map: your hero's path, where you died and the wards",
+    c2: "Map on the Dota minimap: your hero's path, where you died and the wards",
     c3: "Build and item timings against OpenDota statistics",
     c4: "You against the player of your rank in the same role",
     c5: "One mistake in focus — and a count of whether you avoid it",
