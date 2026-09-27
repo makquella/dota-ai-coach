@@ -29,6 +29,8 @@ python -m compileall -q app scripts packaging tests
 ```
 After editing backend code, match the repo's Claude post-edit hook: `ruff check --fix . && ruff format .`.
 
+Live pipeline check: `python scripts/simulate_live_gsi.py [--lang ru --reasons | --session <raw_gsi_states.jsonl>]` feeds raw GSI (synthetic match or a recorded session) through `POST /gsi` → `/overlay/recommendation` with the scheduler clock on game time and prints every advice card — use it after changing live advice logic (replay-state simulations skip GSI normalization, where live-only bugs hide).
+
 Run a focused test:
 ```bash
 pytest tests/test_scheduler_spacing.py -q
@@ -62,7 +64,7 @@ Buyback reserve: `app/buyback_tracker.py` (fed by `MatchMemory.observe_state`) s
 
 Spend while dead: when the post-laning death review fires (`post_laning_death_route_reset`, same category so the scheduler still shows it once per death) and the dead hero has 1000+ gold beyond the buyback cost (after 30:00; no buyback cost known → no advice), the text becomes «buy parts of your next item now» (`_spend_while_dead` in `post_laning_coach.py`, RU in `_RU_PATTERNS`); the other death reviews (before 10:00, repeated deaths, escape on cooldown, low resources) keep their action and take that sentence as their reason (`DEATH_ACTION_TYPES` in `recommender.py`).
 
-Live farm signals: `app/farm_tracker.py` (fed by `MatchMemory.observe_state`, one sample per 5 s of game clock) sets `extra_context.farm_stall` when, after minute 12, a hero who farmed 2.5+ LH/min took ≤3 last hits in the last 4 minutes while alive; `post_laning_coach` turns it into `post_laning_farm_stall` (lower-value for the scheduler; pressure advice wins), and `post_laning_farm_recovery` names the pace ("38 last hits at minute 18; a good pace is 98+") — both texts have `_RU_PATTERNS`.
+Live farm signals: `app/farm_tracker.py` (fed by `MatchMemory.observe_state`, one sample per 5 s of game clock) sets `extra_context.farm_stall` when, after minute 12, a hero who farmed 2.5+ LH/min took ≤3 last hits in the last 4 minutes while alive; `post_laning_coach` turns it into `post_laning_farm_stall` (lower-value for the scheduler; pressure advice wins), and `post_laning_farm_recovery` (only for a real gap: `farm_quality` "low" counts when 8+ last hits and 8%+ under the pace, `_effective_farm_quality`) names the pace ("38 last hits at minute 18; a good pace is 98+") — both texts have `_RU_PATTERNS`.
 
 Hero coverage (`schemas.hero_coverage`): the 21 `SUPPORTED_HEROES` get the full carry advisor; any other Dota hero (`safety_only_hero`, npc or title-cased live name) gets survival advice only — `main._covered_decision_point` turns every decision outside `SAFETY_ONLY_DECISIONS` (LOW_HP family, deaths, disables, mana, buyback, smoke) into `NO_ADVICE`; `hero_coverage` is in overlay and `/gsi/status` answers, and Home says so. Non-heroes stay `unsupported_hero`.
 

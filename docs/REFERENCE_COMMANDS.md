@@ -157,3 +157,13 @@ backend/session_records/
 ```
 
 Generated runtime records are local artifacts and should not be committed unless explicitly needed for a sanitized report.
+
+## Live GSI simulation
+
+Replays raw GSI through the live endpoints on game time and prints the overlay advice (run from `backend/`):
+
+```bash
+python scripts/simulate_live_gsi.py --lang ru --reasons
+python scripts/simulate_live_gsi.py --deaths 7,18,19,33 --minutes 40
+python scripts/simulate_live_gsi.py --session session_records/<id>/raw_gsi_states.jsonl
+```

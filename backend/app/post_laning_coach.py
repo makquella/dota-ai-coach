@@ -62,7 +62,7 @@ def build_post_laning_advice(
     category = _category_for_state(
         decision_point=decision_point,
         hp_percent=hp_percent,
-        farm_quality=farm_quality,
+        farm_quality=_effective_farm_quality(state, extra, farm_quality),
         hp_pressure=hp_pressure,
         pressure_active=pressure_active,
         position_risk=position_risk,
@@ -360,6 +360,27 @@ def _farm_stall_reason(stall: Mapping[str, Any]) -> str:
         f"Only {last_hits} {noun} in the last {minutes} minutes; "
         "every minute without farm delays your next item."
     )
+
+
+# "Behind on farm" needs a real gap: 129 last hits against a 130+ pace is on pace.
+FARM_GAP_MIN_LAST_HITS = 8
+FARM_GAP_MIN_SHARE = 0.08
+
+
+def _effective_farm_quality(
+    state: Mapping[str, Any], extra: Mapping[str, Any], farm_quality: str
+) -> str:
+    if farm_quality != "low":
+        return farm_quality
+    expected = extra.get("expected_lh_range")
+    last_hits = extra.get("last_hits", state.get("last_hits"))
+    if not isinstance(expected, (list, tuple)) or not expected or last_hits is None:
+        return farm_quality
+    low = _to_int(expected[0], 0)
+    gap = low - _to_int(last_hits, 0)
+    if gap < max(FARM_GAP_MIN_LAST_HITS, FARM_GAP_MIN_SHARE * low):
+        return "okay"
+    return farm_quality
 
 
 def _farm_pace_reason(state: Mapping[str, Any], extra: Mapping[str, Any]) -> str | None:
