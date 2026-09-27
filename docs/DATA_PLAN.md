@@ -76,7 +76,7 @@ Cloudflare на август 2026 года; перед запуском их с�
   └─ запасной путь: файл в «Загрузках» + «Открыть issue на GitHub»
 ```
 
-Код — в репозитории, `services/api/` (проект wrangler, TypeScript). Деплой — GitHub
+Код — в репозитории, `services/api/` (проект wrangler, JavaScript без сборки). Деплой — GitHub
 Actions с секретом `CLOUDFLARE_API_TOKEN`. Токен Telegram-бота и админ-токен
 хранятся в секретах Worker и никогда не попадают в приложение.
 
@@ -180,6 +180,13 @@ Telegram: номер, версия, первая ошибка из `diagnostics.
   идентификатору установки (`DELETE /v1/device/<id>`), без ников и Steam ID.
 
 ## Этапы
+
+Этап 1 сделан: `services/api/` (Worker, миграции D1, тесты `npm test`),
+деплой `.github/workflows/api.yml`, в лаунчере — «Отправить разработчику»
+(предпросмотр, комментарий, outbox, номер отчёта), страница
+`site/privacy.html`. Поддомен `api.luhovyimvp.dev` привязывается один раз
+вручную: Workers → `dota-ai-coach-api` → Settings → Domains & Routes → Add →
+Custom domain.
 
 | Этап | Что | Объём |
 |---|---|---|

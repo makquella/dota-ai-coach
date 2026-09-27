@@ -1,0 +1,260 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Конфиденциальность — Dota AI Coach</title>
+    <meta name="description" content="Какие данные Dota AI Coach хранит на компьютере, что и когда отправляет, как удалить отправленное." />
+    <meta name="theme-color" content="#0c0d0f" />
+    <link rel="canonical" href="https://luhovyimvp.dev/privacy.html" />
+    <link rel="icon" href="assets/favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="styles.css" />
+    <style>
+      .doc {
+        max-width: 760px;
+        padding-top: 120px;
+        padding-bottom: 80px;
+      }
+      .doc h1 {
+        margin: 0 0 8px;
+        font-size: clamp(32px, 5vw, 44px);
+      }
+      .doc h2 {
+        margin: 40px 0 12px;
+        font-size: 22px;
+      }
+      .doc p,
+      .doc li {
+        color: var(--muted);
+      }
+      .doc strong {
+        color: var(--text);
+        font-weight: 600;
+      }
+      .doc ul {
+        padding-left: 20px;
+      }
+      .doc li + li {
+        margin-top: 6px;
+      }
+      .doc code {
+        padding: 1px 6px;
+        border: 1px solid var(--line-strong);
+        border-radius: 6px;
+        color: var(--text);
+        font-size: 0.9em;
+        overflow-wrap: anywhere;
+      }
+      .doc a {
+        color: var(--text);
+      }
+      .doc-updated {
+        margin: 0 0 28px;
+        color: var(--faint);
+        font-size: 14px;
+      }
+      [data-doc][hidden] {
+        display: none;
+      }
+    </style>
+  </head>
+  <body>
+    <header class="nav scrolled">
+      <div class="wrap nav-inner">
+        <a class="brand" href="./" aria-label="Dota AI Coach">
+          <img class="brand-mark" src="assets/favicon.svg" alt="" width="28" height="28" />
+          <span class="brand-name">Dota AI Coach</span>
+        </a>
+        <div class="nav-actions">
+          <div class="lang" role="group" aria-label="Язык / Language">
+            <button type="button" data-lang="ru" aria-pressed="true">RU</button>
+            <button type="button" data-lang="en" aria-pressed="false">EN</button>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <main class="wrap doc">
+      <article data-doc="ru" lang="ru">
+        <h1>Конфиденциальность</h1>
+        <p class="doc-updated">Обновлено 27 сентября 2026 года</p>
+
+        <p>
+          Dota AI Coach работает на вашем компьютере. История матчей, разборы и ключи хранятся только там. В интернет приложение
+          обращается за данными матчей (OpenDota), за картинками героев (Valve), за обновлениями (GitHub) и, если вы сами
+          добавили ключ, к выбранному ИИ-сервису. Нам приложение отправляет только отчёт о проблеме — и только по вашей
+          кнопке.
+        </p>
+
+        <h2>Что хранится на компьютере</h2>
+        <ul>
+          <li>Состояние игры из официальной интеграции Valve (Game State Integration) — для советов во время матча.</li>
+          <li>История ваших матчей и разборы (файл SQLite в папке <code>%APPDATA%\DotaAICoach</code>).</li>
+          <li>Ключи OpenDota и ИИ-сервиса, если вы их ввели. Они не показываются в приложении целиком и никуда не отправляются, кроме самого сервиса.</li>
+          <li>Настройки и журналы приложения.</li>
+        </ul>
+
+        <h2>Отчёт о проблеме</h2>
+        <p>
+          В «Настройках → Приложение» есть кнопка <strong>«Отправить разработчику»</strong>. Перед отправкой можно открыть
+          «Что будет отправлено» и прочитать отчёт целиком. В нём:
+        </p>
+        <ul>
+          <li>ваш комментарий, если вы его написали;</li>
+          <li>версия приложения, Windows и язык;</li>
+          <li>настройки приложения и состояние службы (без ключей);</li>
+          <li>последние строки журнала приложения;</li>
+          <li>случайный идентификатор установки — он нужен, чтобы ограничить частоту отправки и чтобы вы могли удалить свои отчёты.</li>
+        </ul>
+        <p>
+          <strong>Ключи API вырезаются</strong> из отчёта в приложении и ещё раз на сервере. Ников, переписки и истории матчей в
+          отчёте нет. Отчёт принимает сервис <code>api.luhovyimvp.dev</code> (Cloudflare Workers, хранение — Cloudflare R2 и
+          D1). Разработчик получает уведомление с номером отчёта. Отчёт хранится <strong>180 дней</strong>, затем удаляется
+          автоматически.
+        </p>
+        <p>
+          Если связи нет, отчёт ждёт на вашем компьютере (папка <code>outbox</code>) и отправляется позже; через 14 дней
+          неотправленный отчёт удаляется. Кнопка «Сохранить файл» сохраняет тот же отчёт в «Загрузки», ничего не отправляя.
+        </p>
+
+        <h2>Как удалить отправленное</h2>
+        <p>
+          Напишите номер отчёта (он показывается после отправки, например <code>R-7F3KQ2</code>) в
+          <a href="https://github.com/makquella/dota-ai-coach/issues" rel="noopener">issues на GitHub</a> — отчёт удалят. Все
+          отчёты вашей установки удаляет запрос <code>DELETE https://api.luhovyimvp.dev/v1/device/&lt;идентификатор&gt;</code>;
+          идентификатор — поле <code>installId</code> в файле <code>%APPDATA%\DotaAICoach\settings.json</code>.
+        </p>
+
+        <h2>Сторонние сервисы</h2>
+        <ul>
+          <li><strong>OpenDota</strong> — история матчей и разбор реплеев по вашему Steam-аккаунту (открытые данные Dota 2).</li>
+          <li><strong>Valve CDN</strong> — портреты героев и иконки предметов, один раз, затем из кэша.</li>
+          <li><strong>GitHub</strong> — проверка и загрузка обновлений.</li>
+          <li><strong>Gemini, Groq или OpenRouter</strong> — только если вы добавили свой ключ: им уходят цифры разбора матча, без ников и Steam ID.</li>
+        </ul>
+
+        <h2>Что будет дальше</h2>
+        <p>
+          Анонимная статистика использования и отправка записей матчей появятся только как отдельные переключатели, выключенные
+          по умолчанию, и будут описаны на этой странице до выхода.
+        </p>
+      </article>
+
+      <article data-doc="en" lang="en" hidden>
+        <h1>Privacy</h1>
+        <p class="doc-updated">Updated September 27, 2026</p>
+
+        <p>
+          Dota AI Coach runs on your computer. Match history, reviews and keys stay there. The app goes online for match data
+          (OpenDota), hero pictures (Valve), updates (GitHub) and, if you added a key yourself, the AI service you chose. The
+          only thing it sends to us is a problem report — and only when you press the button.
+        </p>
+
+        <h2>What stays on your computer</h2>
+        <ul>
+          <li>Game state from Valve's official Game State Integration — for advice during a match.</li>
+          <li>Your match history and reviews (an SQLite file in <code>%APPDATA%\DotaAICoach</code>).</li>
+          <li>Your OpenDota and AI keys, if you entered them. The app never shows them in full and sends them only to that service.</li>
+          <li>App settings and logs.</li>
+        </ul>
+
+        <h2>Problem report</h2>
+        <p>
+          Settings → App has a <strong>Send to developer</strong> button. Before sending you can open «What will be sent» and
+          read the whole report. It contains:
+        </p>
+        <ul>
+          <li>your note, if you wrote one;</li>
+          <li>the app version, Windows version and language;</li>
+          <li>app settings and service state (without keys);</li>
+          <li>the last lines of the app log;</li>
+          <li>a random installation id — used to limit how often reports are sent and to let you delete your reports.</li>
+        </ul>
+        <p>
+          <strong>API keys are removed</strong> in the app and once more on the server. The report has no nicknames, chat or
+          match history. It is received by <code>api.luhovyimvp.dev</code> (Cloudflare Workers, stored in Cloudflare R2 and D1).
+          The developer gets a notification with the report number. Reports are kept for <strong>180 days</strong> and then
+          deleted automatically.
+        </p>
+        <p>
+          Without a connection the report waits on your computer (the <code>outbox</code> folder) and goes out later; a report
+          not sent within 14 days is deleted. «Save file» saves the same report to Downloads without sending anything.
+        </p>
+
+        <h2>Deleting what you sent</h2>
+        <p>
+          Post the report number (shown after sending, e.g. <code>R-7F3KQ2</code>) in
+          <a href="https://github.com/makquella/dota-ai-coach/issues" rel="noopener">GitHub issues</a> and it will be deleted.
+          Every report of your installation is deleted by <code>DELETE https://api.luhovyimvp.dev/v1/device/&lt;id&gt;</code>; the
+          id is <code>installId</code> in <code>%APPDATA%\DotaAICoach\settings.json</code>.
+        </p>
+
+        <h2>Third-party services</h2>
+        <ul>
+          <li><strong>OpenDota</strong> — match history and replay parsing for your Steam account (public Dota 2 data).</li>
+          <li><strong>Valve CDN</strong> — hero portraits and item icons, once, then from a cache.</li>
+          <li><strong>GitHub</strong> — checking for and downloading updates.</li>
+          <li><strong>Gemini, Groq or OpenRouter</strong> — only if you added your own key: they get the numbers of a match review, without nicknames or Steam IDs.</li>
+        </ul>
+
+        <h2>What comes next</h2>
+        <p>
+          Anonymous usage statistics and sending match recordings will only come as separate switches, off by default, and
+          will be described on this page before they ship.
+        </p>
+      </article>
+    </main>
+
+    <footer class="footer">
+      <div class="wrap footer-inner">
+        <a class="brand" href="./" aria-label="Dota AI Coach">
+          <img class="brand-mark" src="assets/favicon.svg" alt="" width="24" height="24" />
+          <span class="brand-name">Dota AI Coach</span>
+        </a>
+        <nav class="footer-links" aria-label="Links">
+          <a href="https://github.com/makquella/dota-ai-coach" rel="noopener">GitHub</a>
+          <a href="https://github.com/makquella/dota-ai-coach/issues" rel="noopener">Issues</a>
+        </nav>
+      </div>
+    </footer>
+
+    <script>
+      // Same language choice as the landing page (app.js keeps it under "dac.lang").
+      (function () {
+        var KEY = "dac.lang";
+        function apply(lang) {
+          document.documentElement.lang = lang;
+          document.title = lang === "en" ? "Privacy — Dota AI Coach" : "Конфиденциальность — Dota AI Coach";
+          document.querySelectorAll("[data-doc]").forEach(function (el) {
+            el.hidden = el.dataset.doc !== lang;
+          });
+          document.querySelectorAll(".lang [data-lang]").forEach(function (button) {
+            button.setAttribute("aria-pressed", String(button.dataset.lang === lang));
+          });
+        }
+        // The app opens this page with ?lang= of its own language.
+        var lang = new URLSearchParams(location.search).get("lang") || "";
+        if (lang !== "ru" && lang !== "en") {
+          try {
+            lang = localStorage.getItem(KEY) || "";
+          } catch (error) {}
+        }
+        if (lang !== "ru" && lang !== "en") {
+          var preferred = (navigator.languages || [navigator.language || "ru"]).map(function (l) {
+            return String(l).toLowerCase();
+          });
+          lang = preferred.some(function (l) { return /^(ru|uk|be|kk)/.test(l); }) ? "ru" : "en";
+        }
+        apply(lang);
+        document.querySelectorAll(".lang [data-lang]").forEach(function (button) {
+          button.addEventListener("click", function () {
+            apply(button.dataset.lang);
+            try {
+              localStorage.setItem(KEY, button.dataset.lang);
+            } catch (error) {}
+          });
+        });
+      })();
+    </script>
+  </body>
+</html>

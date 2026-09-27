@@ -62,4 +62,59 @@ function buildReport(parts, date = new Date()) {
   return redact(blocks.join("\n"));
 }
 
-module.exports = { buildReport, redact, reportFileName, tail, LOG_TAIL_LINES };
+// --- Sending the report (docs/DATA_PLAN.md, stage 1) ------------------------
+// «Отправить разработчику» posts the same report to the project's API; when it
+// cannot be sent now it waits in an outbox and goes out later.
+
+const API_URL = "https://api.luhovyimvp.dev";
+const PRIVACY_URL = "https://luhovyimvp.dev/privacy.html";
+const NOTE_MAX = 1000;
+const OUTBOX_MAX = 10;
+
+function apiUrl(env = process.env) {
+  return String(env.DOTA_AI_API_URL || API_URL).replace(/\/+$/, "");
+}
+
+// app: { version, os, locale }
+function uploadPayload({ text, note, installId, app = {} }) {
+  return {
+    install_id: String(installId || ""),
+    version: String(app.version || ""),
+    os: String(app.os || "").slice(0, 64),
+    lang: String(app.locale || "").slice(0, 8),
+    note: redact(String(note || "").trim().slice(0, NOTE_MAX)),
+    text: redact(text)
+  };
+}
+
+// Send again later: no connection, the service is busy or switched off. A
+// report the service refuses (too large, malformed) is never sent again.
+function isRetryable(result) {
+  if (!result || result.ok) {
+    return false;
+  }
+  const status = Number(result.status || 0);
+  return result.code === "offline" || status === 429 || status >= 500;
+}
+
+// Outbox files are named by time; the oldest go when there are too many.
+function outboxOverflow(names, max = OUTBOX_MAX) {
+  const sorted = [...names].filter((name) => name.endsWith(".json")).sort();
+  return sorted.slice(0, Math.max(0, sorted.length - max));
+}
+
+module.exports = {
+  API_URL,
+  NOTE_MAX,
+  OUTBOX_MAX,
+  PRIVACY_URL,
+  apiUrl,
+  buildReport,
+  isRetryable,
+  outboxOverflow,
+  redact,
+  reportFileName,
+  tail,
+  uploadPayload,
+  LOG_TAIL_LINES
+};

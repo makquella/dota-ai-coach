@@ -1,7 +1,19 @@
 const assert = require("node:assert/strict");
 const test = require("node:test");
 
-const { buildReport, redact, reportFileName, tail, LOG_TAIL_LINES } = require("../problem-report");
+const {
+  apiUrl,
+  buildReport,
+  isRetryable,
+  outboxOverflow,
+  redact,
+  reportFileName,
+  tail,
+  uploadPayload,
+  LOG_TAIL_LINES,
+  NOTE_MAX,
+  OUTBOX_MAX
+} = require("../problem-report");
 
 test("redact removes every provider key format", () => {
   const text = [
@@ -53,4 +65,38 @@ test("missing diagnostics are explained", () => {
 
 test("report file name is sortable", () => {
   assert.equal(reportFileName(new Date(2026, 8, 27, 9, 5)), "DotaAICoach-report-2026-09-27-0905.txt");
+});
+
+test("upload payload is limited and has no keys", () => {
+  const payload = uploadPayload({
+    text: '{"api_key": "plain-secret"}\nERROR x',
+    note: `  ${"n".repeat(NOTE_MAX + 50)} gsk_1234567890abcdefXYZ`,
+    installId: "a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d",
+    app: { version: "0.2.1", os: "win32 10.0.22631", locale: "ru" }
+  });
+  assert.deepEqual(Object.keys(payload).sort(), ["install_id", "lang", "note", "os", "text", "version"]);
+  assert.equal(payload.note.length, NOTE_MAX);
+  assert.ok(!payload.text.includes("plain-secret"));
+  assert.equal(payload.lang, "ru");
+  assert.ok(!uploadPayload({ text: "x", note: "key gsk_1234567890abcdefXYZ" }).note.includes("gsk_"));
+});
+
+test("only temporary failures are sent again", () => {
+  assert.equal(isRetryable({ ok: true, status: 201 }), false);
+  assert.equal(isRetryable({ ok: false, code: "offline" }), true);
+  assert.equal(isRetryable({ ok: false, status: 429 }), true);
+  assert.equal(isRetryable({ ok: false, status: 503 }), true);
+  assert.equal(isRetryable({ ok: false, status: 400, code: "bad_json" }), false);
+  assert.equal(isRetryable({ ok: false, status: 413 }), false);
+});
+
+test("outbox keeps the newest reports", () => {
+  const names = Array.from({ length: OUTBOX_MAX + 2 }, (_, i) => `2026-09-27-${String(i).padStart(2, "0")}.json`);
+  assert.deepEqual(outboxOverflow([...names].reverse().concat("notes.txt")), names.slice(0, 2));
+  assert.deepEqual(outboxOverflow(names.slice(0, 3)), []);
+});
+
+test("api address can be changed for development", () => {
+  assert.equal(apiUrl({}), "https://api.luhovyimvp.dev");
+  assert.equal(apiUrl({ DOTA_AI_API_URL: "http://127.0.0.1:8799/" }), "http://127.0.0.1:8799");
 });

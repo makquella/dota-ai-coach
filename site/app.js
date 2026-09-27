@@ -96,6 +96,7 @@
     footerLabel: "Links",
     footerReleases: "Releases",
     footerIssues: "Report a problem",
+    footerPrivacy: "Privacy",
     legal:
       "Dota 2 is a trademark of Valve Corporation. This project is not affiliated with or endorsed by Valve. Game frames are from the Dota 2 Steam page; hero portraits are Valve's.",
     version: (v, mb) => `Version ${v} · Windows 10 and 11 · ${mb} MB`

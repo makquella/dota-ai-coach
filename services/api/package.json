@@ -1,0 +1,15 @@
+{
+  "name": "dota-ai-coach-api",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Cloud side of Dota AI Coach: problem reports (Cloudflare Worker + D1 + R2). See docs/DATA_PLAN.md.",
+  "type": "module",
+  "scripts": {
+    "test": "node --test test/*.test.js",
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy"
+  },
+  "devDependencies": {
+    "wrangler": "4.142.0"
+  }
+}

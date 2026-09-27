@@ -400,6 +400,90 @@ label.setting {
   flex-wrap: wrap;
 }
 
+/* Problem report: the send panel opens under the row. */
+.report-panel {
+  display: grid;
+  flex-basis: 100%;
+  gap: var(--sp-2);
+  padding: var(--sp-3) 0 var(--sp-1);
+}
+
+.report-panel[hidden] {
+  display: none;
+}
+
+.report-label {
+  color: var(--text-2);
+  font-size: var(--fs-12);
+}
+
+.input.report-note {
+  height: auto;
+  min-height: 64px;
+  padding: var(--sp-2);
+  line-height: 1.45;
+  resize: vertical;
+}
+
+.report-preview > summary {
+  width: fit-content;
+  color: var(--text-2);
+  font-size: var(--fs-12);
+  cursor: pointer;
+}
+
+.report-preview > summary:hover {
+  color: var(--text);
+}
+
+.report-preview > summary:focus-visible,
+.report-link:focus-visible,
+.report-preview-text:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: var(--r-sm);
+}
+
+.report-preview-text {
+  max-height: 220px;
+  margin: var(--sp-2) 0 0;
+  padding: var(--sp-2) var(--sp-3);
+  overflow: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  background: var(--bg);
+  color: var(--text-2);
+  font: var(--fs-12) / 1.5 var(--mono);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.report-terms {
+  margin: 0;
+  color: var(--text-3);
+  font-size: var(--fs-12);
+}
+
+.report-link {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--text-2);
+  font: inherit;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+
+.report-link:hover {
+  color: var(--text);
+}
+
+.report-actions {
+  display: flex;
+  gap: var(--sp-2);
+}
+
 #od-form .input {
   width: 220px;
   height: 32px;
