@@ -343,6 +343,64 @@ FINDINGS: dict[str, dict[str, dict[str, str]]] = {
             "drill": "Place a ward every time the shop has one, and before every Roshan or tower push.",
         },
     },
+    "runes_good": {
+        "ru": {
+            "title": "Руны под контролем",
+            "text": "Вы подняли {runes} {runes_word} — больше, чем вражеский мид. Руны дают темп для ротаций.",
+        },
+        "en": {
+            "title": "Runes under control",
+            "text": "You picked up {runes} runes — more than the enemy mid. Runes give tempo for rotations.",
+        },
+    },
+    "runes_low": {
+        "ru": {
+            "title": "Мало рун",
+            "text": "{runes} {runes_word} за {minutes} {minutes_word}. Мид без рун теряет темп и бутылку.",
+            "drill": "Каждые 2 минуты с 6:00 подходите к руне за 10–15 секунд, даже если на линии идёт волна.",
+        },
+        "en": {
+            "title": "Few runes",
+            "text": "{runes} runes in {minutes} minutes. A mid without runes loses tempo and bottle charges.",
+            "drill": "Every 2 minutes from 6:00, walk to the rune 10–15 seconds early, even with a wave in lane.",
+        },
+    },
+    "runes_behind": {
+        "ru": {
+            "title": "Руны забирал соперник",
+            "text": "{runes} {runes_word} у вас против {enemy_runes} у {hero}. Каждая его руна — ротация на ваши линии.",
+            "drill": "Руну, которую не успеваете взять, хотя бы отгоняйте: вард на реку и контроль за 15 секунд до неё.",
+        },
+        "en": {
+            "title": "The enemy mid took the runes",
+            "text": "{runes} runes for you against {enemy_runes} for {hero}. Each of his runes is a rotation onto your lanes.",
+            "drill": "When you cannot take a rune, contest it: a river ward and control 15 seconds before it spawns.",
+        },
+    },
+    "stacks_low": {
+        "ru": {
+            "title": "Почти нет стаков",
+            "text": "{stacks} {stacks_word} за {minutes} {minutes_word}. Стак — дешёвое золото для вашего керри.",
+            "drill": "Минуты 4, 7, 10, 13, 16: в x:53 отводите лагерь рядом с керри. Приложение напомнит.",
+        },
+        "en": {
+            "title": "Almost no stacks",
+            "text": "{stacks} camps stacked in {minutes} minutes. A stack is cheap gold for your carry.",
+            "drill": "Minutes 4, 7, 10, 13, 16: pull the camp next to your carry at x:53. The app reminds you.",
+        },
+    },
+    "sentries_none": {
+        "ru": {
+            "title": "Ни одного сентри",
+            "text": "За {minutes} {minutes_word} не поставлено ни одного сентри-варда: невидимых героев и вражеские варды нечем открыть.",
+            "drill": "Держите 1–2 сентри в инвентаре с 10-й минуты: у своих вардов, у Рошана, против невидимых героев.",
+        },
+        "en": {
+            "title": "No sentry wards",
+            "text": "Not one sentry ward in {minutes} minutes: nothing to reveal invisible heroes or enemy wards.",
+            "drill": "Keep 1–2 sentries from minute 10: at your wards, at Roshan and against invisible heroes.",
+        },
+    },
     "stacks_good": {
         "ru": {
             "title": "Стаки для команды",
@@ -617,6 +675,10 @@ def _prepared_params(finding: dict[str, Any], lang: str) -> dict[str, Any]:
             )
         if params.get("minutes") is not None:
             params["minutes_word"] = _plural_ru(params["minutes"], "минуту", "минуты", "минут")
+        if params.get("runes") is not None:
+            params["runes_word"] = _plural_ru(params["runes"], "руну", "руны", "рун")
+        if params.get("stacks") is not None:
+            params["stacks_word"] = _plural_ru(params["stacks"], "стак", "стака", "стаков")
     return params
 
 
