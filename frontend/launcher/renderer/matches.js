@@ -145,6 +145,8 @@
       minuteLabel: (m) => `${m}:00`,
       strengthsTitle: "What went well",
       improveTitle: "What to improve",
+      repeatInARow: (n) => `${n} matches in a row — a habit, not bad luck`,
+      repeatInLast: (n, of) => `Also in ${n} of your previous ${of} matches`,
       nothingToImprove: "No serious mistakes found in this match.",
       nothingStrong: "Nothing stood out this time.",
       drill: "Drill",
@@ -474,6 +476,8 @@
       minuteLabel: (m) => `${m}:00`,
       strengthsTitle: "Что получилось",
       improveTitle: "Что улучшить",
+      repeatInARow: (n) => `${n}-й матч подряд — это привычка, а не случайность`,
+      repeatInLast: (n, of) => `Было и в ${n} из ${of} прошлых матчей`,
       nothingToImprove: "Серьёзных ошибок в этом матче не найдено.",
       nothingStrong: "В этот раз ничего не выделилось.",
       drill: "Упражнение",
@@ -1402,7 +1406,7 @@
       parts.push(findingsCard(t("strengthsTitle"), "sparkles", analysis.strengths, t("nothingStrong"), false));
       const rest = (analysis.improvements || []).filter((f) => !(analysis.focus || []).includes(f.id));
       if (rest.length) {
-        parts.push(findingsCard(t("improveTitle"), "target", rest, "", true));
+        parts.push(findingsCard(t("improveTitle"), "target", rest, "", true, detail.repeats));
       }
       const moments = momentsCard(analysis);
       if (moments) {
@@ -1547,7 +1551,16 @@
     );
   }
 
-  function findingItem(finding, index) {
+  // finding_history: the same problem in the player's earlier matches.
+  function repeatNote(repeat) {
+    if (!repeat) {
+      return null;
+    }
+    const text = repeat.in_a_row >= 3 ? t("repeatInARow")(repeat.in_a_row) : t("repeatInLast")(repeat.in_last, repeat.of);
+    return h("p", { class: "finding-repeat" }, icon("repeat"), h("span", { text }));
+  }
+
+  function findingItem(finding, index, repeats) {
     return h(
       "li",
       { class: `finding finding-${finding.kind}` },
@@ -1557,6 +1570,7 @@
         { class: "finding-body" },
         h("p", { class: "finding-title" }, h("span", { text: finding.title }), finding.section_label ? h("span", { class: "tag", text: finding.section_label }) : null),
         h("p", { class: "finding-text", text: finding.text }),
+        repeatNote(repeats && repeats[finding.id]),
         finding.drill ? h("p", { class: "finding-drill" }, icon("lightbulb"), h("span", {}, h("strong", { text: `${t("drill")}: ` }), finding.drill)) : null
       )
     );
@@ -1571,7 +1585,7 @@
     const render = () =>
       list.replaceChildren(
         ...focus.map((finding, index) => {
-          const item = findingItem(finding, index);
+          const item = findingItem(finding, index, detail && detail.repeats);
           const body = item.querySelector(".finding-body");
           if (detail && detail.focus_id === finding.id) {
             item.querySelector(".finding-title").append(h("span", { class: "tag tag-accent", text: t("goalCurrent") }));
@@ -1611,11 +1625,11 @@
     return card(t("focusTitle"), "target", list);
   }
 
-  function findingsCard(title, iconName, findings, emptyText, improve) {
+  function findingsCard(title, iconName, findings, emptyText, improve, repeats) {
     if (!findings || !findings.length) {
       return card(title, iconName, h("p", { class: "muted", text: emptyText }));
     }
-    return card(title, iconName, h("ul", { class: `findings ${improve ? "" : "findings-compact"}` }, findings.map((f) => findingItem(f))));
+    return card(title, iconName, h("ul", { class: `findings ${improve ? "" : "findings-compact"}` }, findings.map((f) => findingItem(f, undefined, repeats))));
   }
 
   function sectionsCard(analysis) {

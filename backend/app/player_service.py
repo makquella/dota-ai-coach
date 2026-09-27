@@ -59,6 +59,7 @@ from app.dota_constants import (
     is_reviewable_match,
 )
 from app.draft_analysis import pool_heroes
+from app.finding_history import finding_history
 from app.focus_goal import can_focus, focus_summary, match_result, new_focus, played_after
 from app.game_plan import build_game_plan
 from app.match_facts import facts_from_opendota, facts_from_timeline, merge_facts
@@ -102,6 +103,8 @@ GAME_PLAN_CACHE_SECONDS = 60
 SKIPPED_MODES_META = "skipped_modes"
 FOCUS_META = "focus"
 TODAY_MAX_MATCHES = 30
+# Earlier matches read for a repeating problem (some cannot show every problem).
+REPEATS_LOOKUP = 25
 # "Ask the coach": the last questions per match, and how long the player waits.
 ASK_CACHE_KEY = "coach:ask"
 ASK_HISTORY = 5
@@ -521,8 +524,10 @@ class PlayerService:
             "scoreboard": _scoreboard(record.get("opendota")),
             "loading": analysis is None and self.client is not None,
         }
-        # Before the coach: the AI review mentions the player's focus when there is one.
+        # Before the coach: the AI review mentions the player's focus when there is one,
+        # and the mistakes that keep coming back.
         detail["focus"] = self._match_focus(primary, record, analysis, lang)
+        detail["repeats"] = self._repeats(primary, record, analysis)
         detail["coach"] = self._match_coach(primary, match_id, detail, lang, force=force_coach)
         detail["baseline"] = self._baseline(primary, record, analysis)
         detail["questions"] = self._questions(primary, match_id)
@@ -535,6 +540,16 @@ class PlayerService:
             if can_focus(finding_id)
         ]
         return detail
+
+    def _repeats(
+        self, account_id: int, record: dict[str, Any], analysis: dict[str, Any] | None
+    ) -> dict[str, dict[str, int]]:
+        """The problems of this match that the player's earlier matches had too."""
+        start = record.get("start_time")
+        if not analysis or not isinstance(start, (int, float)):
+            return {}
+        earlier = self.store.matches_for_career(account_id, limit=REPEATS_LOOKUP, before=int(start))
+        return finding_history(record, analysis, earlier)
 
     def _baseline(
         self, account_id: int, record: dict[str, Any], analysis: dict[str, Any] | None

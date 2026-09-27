@@ -1533,6 +1533,19 @@ label.setting:has(.switch:disabled) {
   font-size: var(--fs-13);
 }
 
+.finding-repeat {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  margin-top: var(--sp-2);
+  color: var(--text-2);
+  font-size: var(--fs-13);
+}
+
+.finding-repeat .icon {
+  color: var(--warn);
+}
+
 .finding-drill {
   display: flex;
   gap: var(--sp-2);

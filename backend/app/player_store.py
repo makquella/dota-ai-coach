@@ -408,11 +408,20 @@ class PlayerStore:
         return record
 
     def matches_for_career(
-        self, account_id: int, *, limit: int = 50, hero_id: int | None = None
+        self,
+        account_id: int,
+        *,
+        limit: int = 50,
+        hero_id: int | None = None,
+        before: int | None = None,
     ) -> list[dict[str, Any]]:
-        """Newest first, summary columns plus the stored analysis (for trends)."""
+        """Newest first, summary columns plus the stored analysis (for trends).
+        `before`: only matches started before that time."""
         columns = ", ".join(("match_id", *MATCH_COLUMNS, "sources"))
         where, params = self._filter(account_id, hero_id, None)
+        if before is not None:
+            where += " AND COALESCE(start_time, 0) < ?"
+            params = (*params, int(before))
         with self._lock:
             rows = self._conn.execute(
                 f"SELECT {columns}, analysis_json FROM matches WHERE {where} "
