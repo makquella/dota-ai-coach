@@ -49,8 +49,9 @@ from app.coach_review import (
     review_match,
 )
 from app.diagnostics import record_error
-from app.dota_constants import REVIEWABLE_LOBBY_TYPES
+from app.dota_constants import REVIEWABLE_LOBBY_TYPES, hero_id_from_name, hero_name
 from app.draft_analysis import pool_heroes
+from app.game_plan import build_game_plan
 from app.match_facts import facts_from_opendota, facts_from_timeline, merge_facts
 from app.match_tracker import MatchTracker, account_from_gsi
 from app.opendota import (
@@ -78,6 +79,7 @@ HERO_STATS_KEY = "opendota:hero_stats"
 MATCHUPS_KEY = "opendota:matchups"
 META_TTL_SECONDS = 7 * 24 * 3600
 HERO_STATS_TTL_SECONDS = 24 * 3600
+GAME_PLAN_CACHE_SECONDS = 60
 # AI coach.
 AI_SETTINGS_KEY = "ai_settings"
 # The replay is still being parsed: wait for the full data before asking the model.
@@ -229,6 +231,7 @@ class PlayerService:
             self.data_dir / "live_match.json", on_finished=self._on_match_finished
         )
         self._detected: dict[str, Any] | None = None
+        self._plans: dict[tuple[Any, ...], tuple[float, dict[str, Any] | None]] = {}
         self._sync: dict[str, Any] = {
             "state": "idle",
             "at": None,
@@ -268,6 +271,28 @@ class PlayerService:
 
     def check_stale(self) -> None:
         self.tracker.check_stale()
+
+    def game_plan(self, hero: str, lang: str) -> dict[str, Any] | None:
+        """The overlay's plan for the first 1:30 (app/game_plan.py); polled every
+        second, so it is cached for a minute per account, hero and language."""
+        primary = self.store.primary_account_id()
+        hero_id = hero_id_from_name(hero)
+        if primary is None or hero_id is None:
+            return None
+        key = (primary, hero_id, lang)
+        cached = self._plans.get(key)
+        now = time.monotonic()
+        if cached is not None and now - cached[0] < GAME_PLAN_CACHE_SECONDS:
+            return cached[1]
+        plan = build_game_plan(
+            hero=hero_name(hero_id),
+            history=self.store.matches_for_career(primary, limit=20, hero_id=hero_id),
+            all_recent=self.store.matches_for_career(primary, limit=RECENT_MATCHES_LIMIT),
+            meta=self._hero_meta(hero_id),
+            lang=lang,
+        )
+        self._plans[key] = (now, plan)
+        return plan
 
     def diagnostics(self) -> dict[str, Any]:
         """For the problem report: no key, no match data, just the state."""

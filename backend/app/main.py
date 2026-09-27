@@ -28,6 +28,7 @@ from app.config import (
 )
 from app.decision_points import detect_decision_point
 from app.diagnostics import recent_errors, record_error, runtime_info
+from app.game_plan import SHOW_UNTIL_CLOCK as GAME_PLAN_SHOW_UNTIL_CLOCK
 from app.gsi_state import (
     get_current_state,
     get_gsi_debug_fields,
@@ -292,7 +293,34 @@ def session_recording_status():
 @app.get("/overlay/recommendation", summary="Get overlay-friendly recommendation")
 def overlay_recommendation(lang: str = "en"):
     """`lang=ru` returns the visible text in Russian (see app/advice_i18n.py)."""
-    return localize_overlay_response(_overlay_recommendation_payload(), normalize_lang(lang))
+    lang = normalize_lang(lang)
+    response = localize_overlay_response(_overlay_recommendation_payload(), lang)
+    plan = _game_plan_for_overlay(response, lang)
+    if plan is not None:
+        response = {**response, "game_plan": plan}
+    return response
+
+
+GAME_PLAN_STATUSES = {"no_advice", "monitoring", "unsupported_hero"}
+
+
+def _game_plan_for_overlay(response: dict[str, object], lang: str) -> dict[str, object] | None:
+    """The plan for this game while nothing else is on the card (pick to 1:30)."""
+    if response.get("status") not in GAME_PLAN_STATUSES or response.get("demo_mode"):
+        return None
+    current = get_current_state()
+    state = current.get("state") if isinstance(current.get("state"), dict) else {}
+    extra = state.get("extra_context") if isinstance(state.get("extra_context"), dict) else {}
+    if extra.get("source_type") != "live_gsi":
+        return None
+    clock = extra.get("clock_time")
+    if not isinstance(clock, int) or clock >= GAME_PLAN_SHOW_UNTIL_CLOCK:
+        return None
+    try:
+        return PLAYER_SERVICE.game_plan(str(state.get("hero") or ""), lang)
+    except Exception as error:  # noqa: BLE001 - never breaks the live path
+        record_error("game-plan", error)
+        return None
 
 
 def _overlay_recommendation_payload() -> dict[str, object]:

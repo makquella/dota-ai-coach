@@ -27,7 +27,8 @@ const OVERLAY_TEXT = {
     paused: "Advice paused to avoid overload.",
     watching: "Watching…",
     noUrgent: "No urgent advice.",
-    noAction: "No urgent advice"
+    noAction: "No urgent advice",
+    plan: "Plan for this game"
   },
   ru: {
     urgent: "Срочно",
@@ -49,7 +50,8 @@ const OVERLAY_TEXT = {
     paused: "Советы на паузе, чтобы не перегружать.",
     watching: "Наблюдаем…",
     noUrgent: "Срочных советов нет.",
-    noAction: "Срочных советов нет"
+    noAction: "Срочных советов нет",
+    plan: "План на игру"
   }
 };
 
@@ -152,6 +154,12 @@ function renderOverlay(data) {
     return;
   }
 
+  // From pick to 1:30, while there is no advice: the plan for this game.
+  if (data.game_plan && Array.isArray(data.game_plan.lines) && data.game_plan.lines.length && PLAN_STATUSES.has(data.status)) {
+    showPlan(data);
+    return;
+  }
+
   if (data.status === "waiting_for_gsi") {
     showStatus(tr("waitingGsi"), data);
     return;
@@ -237,6 +245,20 @@ function renderAdvice(data, options = { refreshTimer: true }) {
     lastAdviceKey = key;
     scheduleAutoHide(adviceMode, data);
   }
+}
+
+const PLAN_STATUSES = new Set(["no_advice", "monitoring", "unsupported_hero"]);
+
+function showPlan(data) {
+  clearTimeout(hideTimer);
+  const [first, ...rest] = data.game_plan.lines;
+  shell.className = "overlay-shell plan coaching";
+  labelEl.textContent = data.game_plan.title || tr("plan");
+  priorityEl.textContent = data.game_plan.hero || "";
+  actionEl.textContent = first;
+  reasonEl.textContent = rest.join("\n");
+  renderStatusRow(data);
+  reveal();
 }
 
 function showStatus(message, data = {}) {

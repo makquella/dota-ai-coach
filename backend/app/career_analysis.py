@@ -175,7 +175,9 @@ def _recurring(analyzed: list[dict[str, Any]], kind: str, lang: str) -> list[dic
     for match in analyzed:
         analysis = match["analysis"]
         findings = analysis.get("improvements" if kind == "improve" else "strengths") or []
-        for finding_id in {f["id"] for f in findings}:
+        # dict.fromkeys, not a set: ties in most_common() keep this order, and
+        # a set's order changes with every process (string hash seed).
+        for finding_id in dict.fromkeys(f["id"] for f in findings):
             counts[finding_id] += 1
             if finding_id not in latest:
                 latest[finding_id] = next(f for f in findings if f["id"] == finding_id)
