@@ -30,7 +30,8 @@ const {
   isRetryable,
   outboxOverflow,
   reportFileName,
-  uploadPayload
+  uploadPayload,
+  withNote
 } = require("./problem-report");
 const { DOTA_STATUS, dotaStatus, overlayVisibility } = require("./overlay-visibility");
 const { createSettingsStore } = require("./settings");
@@ -1613,10 +1614,16 @@ async function collectProblemReport() {
   } catch (error) {
     diagnosticsError = error.message;
   }
-  const { recentAdvice, ...status } = publicStatus();
+  const { recentAdvice, player, ...status } = publicStatus();
+  // The nickname stays out of the report (buildReport also removes ids).
+  const { name: _name, ...playerState } = player || {};
   return buildReport({
     app: reportAppInfo(),
-    status: { ...status, recentAdviceCount: Array.isArray(recentAdvice) ? recentAdvice.length : 0 },
+    status: {
+      ...status,
+      player: player ? playerState : null,
+      recentAdviceCount: Array.isArray(recentAdvice) ? recentAdvice.length : 0
+    },
     settings: settings.all(),
     watcher: dotaWatcher.getState(),
     diagnostics,
@@ -1734,7 +1741,7 @@ async function sendProblemReport(note) {
     return { ok: false, queued: true, code: result.code };
   }
   // Refused for good (or the outbox is not writable): keep a file instead.
-  const saved = await saveProblemReport(text);
+  const saved = await saveProblemReport(withNote(text, note));
   return { ok: false, queued: false, code: result.code, path: saved.ok ? saved.path : "" };
 }
 

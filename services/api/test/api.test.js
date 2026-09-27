@@ -33,7 +33,8 @@ function fakeEnv(vars = {}) {
             return { results: reports.filter((r) => r.install_id === args[0]) };
           }
           if (sql.startsWith("SELECT id, r2_key FROM reports WHERE created_at <")) {
-            return { results: reports.filter((r) => r.created_at < args[0]) };
+            const limit = Number(sql.match(/LIMIT (\d+)/)[1]);
+            return { results: reports.filter((r) => r.created_at < args[0]).slice(0, limit) };
           }
           if (sql.startsWith("SELECT id, created_at")) {
             return { results: [...reports].reverse() };
@@ -46,8 +47,8 @@ function fakeEnv(vars = {}) {
             reports.push({ id, created_at, install_id, version, os, lang, size, summary, r2_key });
           } else if (sql.startsWith("DELETE FROM reports WHERE install_id")) {
             reports.splice(0, reports.length, ...reports.filter((r) => r.install_id !== args[0]));
-          } else if (sql.startsWith("DELETE FROM reports WHERE created_at <")) {
-            reports.splice(0, reports.length, ...reports.filter((r) => r.created_at >= args[0]));
+          } else if (sql.startsWith("DELETE FROM reports WHERE id IN")) {
+            reports.splice(0, reports.length, ...reports.filter((r) => !args.includes(r.id)));
           } else if (sql.startsWith("DELETE FROM rate")) {
             for (const key of [...rate.keys()]) {
               if (Number(key.split("|")[1]) < args[0]) rate.delete(key);
@@ -186,4 +187,18 @@ test("admin endpoints need the token and hide otherwise", async () => {
   assert.ok(text.includes("ERROR sync failed"));
   const noToken = fakeEnv();
   assert.equal((await worker.fetch(new Request("https://api.example/v1/admin/reports", auth), noToken.env, ctx)).status, 404);
+});
+
+test("cleanup removes every expired report, object and row together", async () => {
+  const { env, reports, objects } = fakeEnv();
+  for (let i = 0; i < 250; i += 1) {
+    const id = `R-OLD${String(i).padStart(3, "0")}`;
+    reports.push({ id, created_at: 1, install_id: "old-install-1", r2_key: `reports/2026/01/${id}.txt.gz` });
+    objects.set(`reports/2026/01/${id}.txt.gz`, { body: new Uint8Array() });
+  }
+  await worker.fetch(upload(REPORT), env, ctx);
+  assert.equal(await cleanup(env, Date.now()), 250);
+  assert.equal(reports.length, 1);
+  assert.equal(objects.size, 1);
+  assert.deepEqual([...objects.keys()], [reports[0].r2_key]);
 });

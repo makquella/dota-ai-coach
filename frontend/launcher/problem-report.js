@@ -17,10 +17,31 @@ const KEY_FIELD = /("api_?key"\s*:\s*")[^"]*"/gi;
 
 const LOG_TAIL_LINES = 600;
 
+// No nicknames or Steam ids in a report (site/privacy.html): JSON fields that
+// name the player, SteamID64s, OpenDota player URLs and the Windows user name
+// in paths are replaced.
+const IDENTITY_FIELD =
+  /("(?:account_?id|steam_?id(?:64)?|persona_?name|personaname|real_?name|avatar\w*|profile_?url)"\s*:\s*)("(?:[^"\\]|\\.)*"|-?\d+)/gi;
+const IDENTITY_PATTERNS = [
+  [/\b7656119\d{10}\b/g, "[steam id]"],
+  [/(\/players\/)\d+/g, "$1[id]"],
+  [/(account[_ ]?id[=: ]+)\d+/gi, "$1[id]"],
+  [/([A-Za-z]:(?:\\\\|\\|\/)+Users(?:\\\\|\\|\/)+)[^\\/"'\s]+/gi, "$1[user]"],
+  [/(\/home\/)[^/"'\s]+/g, "$1[user]"]
+];
+
 function redact(text) {
   let result = String(text ?? "").replace(KEY_FIELD, '$1[redacted]"');
   for (const pattern of SECRET_PATTERNS) {
     result = result.replace(pattern, "[redacted]");
+  }
+  return result;
+}
+
+function anonymize(text) {
+  let result = String(text ?? "").replace(IDENTITY_FIELD, '$1"[removed]"');
+  for (const [pattern, replacement] of IDENTITY_PATTERNS) {
+    result = result.replace(pattern, replacement);
   }
   return result;
 }
@@ -48,7 +69,7 @@ function section(title, body) {
 function buildReport(parts, date = new Date()) {
   const blocks = [
     `Dota AI Coach problem report\nCreated: ${date.toISOString()}\n` +
-      "API keys are removed from this file. Send it to the developer together with a short description.\n",
+      "API keys, Steam ids and nicknames are removed from this file. Send it to the developer together with a short description.\n",
     section("App", parts.app || {}),
     section("Launcher status", parts.status || {}),
     section("Settings", parts.settings || {}),
@@ -59,7 +80,7 @@ function buildReport(parts, date = new Date()) {
     ),
     section(`Launcher log (last ${LOG_TAIL_LINES} lines)`, tail(parts.launcherLog))
   ];
-  return redact(blocks.join("\n"));
+  return anonymize(redact(blocks.join("\n")));
 }
 
 // --- Sending the report (docs/DATA_PLAN.md, stage 1) ------------------------
@@ -83,8 +104,15 @@ function uploadPayload({ text, note, installId, app = {} }) {
     os: String(app.os || "").slice(0, 64),
     lang: String(app.locale || "").slice(0, 8),
     note: redact(String(note || "").trim().slice(0, NOTE_MAX)),
-    text: redact(text)
+    text: anonymize(redact(text))
   };
+}
+
+// The player's note on top, as the service stores it (for a report saved as a
+// file instead of being sent).
+function withNote(text, note) {
+  const clean = redact(String(note || "").trim().slice(0, NOTE_MAX));
+  return clean ? `Player note:\n${clean}\n\n${text}` : String(text ?? "");
 }
 
 // Send again later: no connection, the service is busy or switched off. A
@@ -108,6 +136,7 @@ module.exports = {
   NOTE_MAX,
   OUTBOX_MAX,
   PRIVACY_URL,
+  anonymize,
   apiUrl,
   buildReport,
   isRetryable,
@@ -116,5 +145,6 @@ module.exports = {
   reportFileName,
   tail,
   uploadPayload,
+  withNote,
   LOG_TAIL_LINES
 };

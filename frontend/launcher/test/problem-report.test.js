@@ -2,6 +2,7 @@ const assert = require("node:assert/strict");
 const test = require("node:test");
 
 const {
+  anonymize,
   apiUrl,
   buildReport,
   isRetryable,
@@ -10,6 +11,7 @@ const {
   reportFileName,
   tail,
   uploadPayload,
+  withNote,
   LOG_TAIL_LINES,
   NOTE_MAX,
   OUTBOX_MAX
@@ -99,4 +101,25 @@ test("outbox keeps the newest reports", () => {
 test("api address can be changed for development", () => {
   assert.equal(apiUrl({}), "https://api.luhovyimvp.dev");
   assert.equal(apiUrl({ DOTA_AI_API_URL: "http://127.0.0.1:8799/" }), "http://127.0.0.1:8799");
+});
+
+test("reports carry no nickname, Steam id or Windows user name", () => {
+  const report = buildReport({
+    status: { player: { linked: true, accountId: 123456789 } },
+    app: { userData: "C:\\Users\\Artem\\AppData\\Roaming\\DotaAICoach" },
+    diagnostics: { player: { account_id: 123456789, persona_name: "Nick", sync: "ok" } },
+    launcherLog: "GET https://api.opendota.com/api/players/123456789/matches\nsteam 76561197960389013 linked\n"
+  });
+  for (const secret of ["123456789", "76561197960389013", "Nick", "Artem"]) {
+    assert.ok(!report.includes(secret), secret);
+  }
+  assert.match(report, /"sync": "ok"/);
+  assert.match(report, /Users\\\\\[user\]/);
+  assert.equal(anonymize("/home/artem/logs and C:/Users/Artem/x"), "/home/[user]/logs and C:/Users/[user]/x");
+  assert.ok(!uploadPayload({ text: '{"accountId": 55}' }).text.includes("55"));
+});
+
+test("a report saved instead of sent keeps the player's note", () => {
+  assert.equal(withNote("REPORT", "  Overlay is gone gsk_1234567890abcdefXYZ "), "Player note:\nOverlay is gone [redacted]\n\nREPORT");
+  assert.equal(withNote("REPORT", "   "), "REPORT");
 });

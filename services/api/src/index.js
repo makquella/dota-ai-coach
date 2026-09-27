@@ -176,18 +176,37 @@ async function adminReport(id, env) {
   });
 }
 
+// D1 binds at most 100 parameters per statement, so old reports go in batches.
+const CLEANUP_BATCH = 100;
+const CLEANUP_MAX_BATCHES = 50;
+
 export async function cleanup(env, now = Date.now()) {
   const cutoff = now - RETENTION_DAYS * 24 * 3_600_000;
-  const { results } = await env.DB.prepare("SELECT id, r2_key FROM reports WHERE created_at < ?1 LIMIT 1000")
-    .bind(cutoff)
-    .all();
-  const rows = results || [];
-  if (rows.length) {
+  let removed = 0;
+  for (let batch = 0; batch < CLEANUP_MAX_BATCHES; batch += 1) {
+    const { results } = await env.DB.prepare(
+      `SELECT id, r2_key FROM reports WHERE created_at < ?1 LIMIT ${CLEANUP_BATCH}`
+    )
+      .bind(cutoff)
+      .all();
+    const rows = results || [];
+    if (!rows.length) {
+      break;
+    }
+    // Objects first, then exactly those index rows: a failure in between
+    // leaves rows that the next run deletes again, never unindexed objects.
     await env.REPORTS.delete(rows.map((row) => row.r2_key));
-    await env.DB.prepare("DELETE FROM reports WHERE created_at < ?1").bind(cutoff).run();
+    const marks = rows.map((_, i) => `?${i + 1}`).join(", ");
+    await env.DB.prepare(`DELETE FROM reports WHERE id IN (${marks})`)
+      .bind(...rows.map((row) => row.id))
+      .run();
+    removed += rows.length;
+    if (rows.length < CLEANUP_BATCH) {
+      break;
+    }
   }
   await env.DB.prepare("DELETE FROM rate WHERE hour < ?1").bind(hourWindow(now) - 48).run();
-  return rows.length;
+  return removed;
 }
 
 export default {
