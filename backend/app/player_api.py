@@ -25,7 +25,9 @@ All review texts follow `lang` (ru/en).
 
 from __future__ import annotations
 
-from fastapi import APIRouter
+from typing import Annotated
+
+from fastapi import APIRouter, Path, Query
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
@@ -43,6 +45,11 @@ PLAYER_SERVICE = PlayerService(
 )
 
 router = APIRouter(prefix="/player", tags=["player"])
+
+# Match ids are stored as SQLite INTEGER (64-bit): bigger ids are a 422, not a 500.
+MatchId = Annotated[int, Path(ge=0, le=2**63 - 1)]
+HeroId = Annotated[int | None, Query(ge=0, le=100_000)]
+Offset = Annotated[int, Query(ge=0, le=10_000_000)]
 
 
 class LinkRequest(BaseModel):
@@ -96,7 +103,7 @@ def sync_player():
 
 @router.get("/matches", summary="Match table of the linked player")
 def player_matches(
-    limit: int = 50, offset: int = 0, hero_id: int | None = None, result: str | None = None
+    limit: int = 50, offset: Offset = 0, hero_id: HeroId = None, result: str | None = None
 ):
     """`hero_id` and `result` (win | loss) filter the table."""
     limit = max(1, min(int(limit), 200))
@@ -107,7 +114,7 @@ def player_matches(
 
 
 @router.get("/matches/{match_id}", summary="Post-match review")
-def player_match(match_id: int, lang: str = "en"):
+def player_match(match_id: MatchId, lang: str = "en"):
     detail = PLAYER_SERVICE.match_detail(match_id, normalize_lang(lang))
     if detail is None:
         return JSONResponse(status_code=404, content={"status": "error", "code": "match_not_found"})
@@ -117,19 +124,19 @@ def player_match(match_id: int, lang: str = "en"):
 @router.post(
     "/matches/{match_id}/refresh", summary="Fetch the match again and request a replay parse"
 )
-def refresh_match(match_id: int):
+def refresh_match(match_id: MatchId):
     PLAYER_SERVICE.fetch_match(match_id, request_parse=True)
     return {"status": "queued", "opendota": PLAYER_SERVICE.client is not None}
 
 
 @router.get("/career", summary="Statistics and advice over recent matches")
-def player_career(lang: str = "en", hero_id: int | None = None):
+def player_career(lang: str = "en", hero_id: HeroId = None):
     """`hero_id` narrows the progress to one hero (no AI review then)."""
     return PLAYER_SERVICE.career(normalize_lang(lang), hero_id=hero_id)
 
 
 @router.post("/matches/{match_id}/coach", summary="(Re)generate the AI coach review of a match")
-def coach_match(match_id: int, lang: str = "en"):
+def coach_match(match_id: MatchId, lang: str = "en"):
     detail = PLAYER_SERVICE.match_detail(match_id, normalize_lang(lang), force_coach=True)
     if detail is None:
         return JSONResponse(status_code=404, content={"status": "error", "code": "match_not_found"})

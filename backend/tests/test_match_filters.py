@@ -64,3 +64,21 @@ def test_progress_for_one_hero(client, tmp_path):
     assert one["matches"] == other["games"] < everything["matches"]
     assert one["coach"] == {"state": "none"}
     assert [h["hero"] for h in one["hero_choices"]] == [h["hero"] for h in heroes]
+
+
+def test_huge_match_id_is_rejected_not_a_server_error(client):
+    for path in (
+        "/player/matches/99999999999999999999",
+        "/player/matches/99999999999999999999/refresh",
+    ):
+        response = client.get(path) if not path.endswith("refresh") else client.post(path)
+        assert response.status_code == 422
+
+
+def test_out_of_range_filters_are_rejected(client):
+    for path in (
+        "/player/matches?hero_id=99999999999999999999",
+        "/player/matches?offset=99999999999999999999",
+        "/player/career?hero_id=99999999999999999999",
+    ):
+        assert client.get(path).status_code == 422
