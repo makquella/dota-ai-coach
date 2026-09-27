@@ -39,6 +39,14 @@ Key files:
 - `backend/app/hero_meta.py`, `build_analysis.py`, `peer_analysis.py` - cached OpenDota meta (items, item timings, pro builds, win rate per rank), build advice, comparison with same-role players of the player's rank.
 - `backend/app/draft_analysis.py`, `self_compare.py` - draft of a match (matchups vs the enemy five, best hero of your pool for it, counter items) and your best games vs your worst on your main hero.
 - `backend/app/farm_tracker.py` - live "no farm lately" signal for the post-laning coach.
+- `backend/app/buyback_tracker.py` - live "a purchase left less gold than the buyback costs" signal (after 30:00) for the post-laning coach.
+- `backend/app/map_analysis.py`, `advice_follow.py` - match map (path, deaths, wards, lane position; deaths on the enemy half) and deaths within 30 s after an urgent advice.
+- `backend/app/game_plan.py` - the overlay's plan for the first 1:30: last-hit target at 10:00, key item with its typical timing, the recurring mistake or the chosen focus.
+- `backend/app/focus_goal.py` - the one problem the player works on, judged in every match played after it was chosen.
+- `backend/app/personal_baseline.py` - a match against the player's usual numbers on the same hero.
+- `backend/app/scheduler/frequency.py` - advice frequency preference (calm / normal / active) scaling the coaching gaps.
+- `backend/app/diagnostics.py` - recent errors and runtime info for the problem report, with keys redacted.
+- `backend/scripts/simulate_live_gsi.py` - raw GSI through the live endpoints on game time, printing every advice card; `backend/scripts/evaluate_system.py` - latency, replay advice, review coverage and fact-check numbers.
 - `backend/app/coach_llm.py`, `coach_review.py` - optional AI coach: explains a match or the recent matches in plain words (Google Gemini Flash by default, or Groq / OpenRouter, all on free tiers), with every number, time, hero and item checked against the rule-based facts. `backend/scripts/compare_coach_models.py` compares models on the same match.
 - `backend/app/advice_i18n.py` - Russian wording of the visible advice text, applied only at the API edge (`lang=ru` on `/overlay/recommendation` and `/advice/recent`); the pipeline, logs and history stay English.
 
