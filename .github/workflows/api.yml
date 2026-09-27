@@ -89,8 +89,15 @@ jobs:
       # tier). Until then the Worker keeps the reports in D1 (see src/index.js).
       - name: R2 bucket (optional)
         run: |
+          # Only "R2 is not enabled" (code 10042) means D1 storage: any other
+          # failure stops the deploy, so a Worker that already keeps reports in
+          # R2 never loses its bucket binding.
           if ! list=$(npx wrangler r2 bucket list 2>&1); then
             echo "$list" | tail -5
+            if ! echo "$list" | grep -q "code: 10042"; then
+              echo "::error::Could not list R2 buckets (see above)."
+              exit 1
+            fi
             echo "::warning::R2 is not enabled for this account: reports are stored in D1. Enable R2 in the Cloudflare dashboard to move new reports to R2."
             sed -i '/^\[\[r2_buckets\]\]/,/^$/d' wrangler.toml
           elif echo "$list" | grep -qE "(^|[^a-z0-9-])$BUCKET([^a-z0-9-]|$)"; then
