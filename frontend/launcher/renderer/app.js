@@ -150,7 +150,7 @@ const I18N = {
       "0.2.0": [
         "A plan at the start of each match, and a focus: pick one mistake to work on — every review says whether you avoided it.",
         "«Ask the coach»: your own question about a match, answered from its data.",
-        "Spoken advice, advice frequency, survival advice for every hero, a reminder to spend gold while dead.",
+        "Spoken advice, advice frequency, survival advice for every hero, reminders to carry a TP scroll and to spend gold while dead.",
         "Match map, this match against your usual numbers, match filters and PDF export.",
         "A check for Dota's -gamestateintegration launch option, without which no game data arrives."
       ]
@@ -386,7 +386,7 @@ const I18N = {
       "0.2.0": [
         "План на игру в начале матча и фокус: выберите одну ошибку — в каждом разборе видно, получилось ли её избежать.",
         "«Спросить тренера»: свой вопрос о матче, ответ по его данным.",
-        "Голос, частота советов, советы по выживанию на любом герое, подсказка потратить золото после смерти.",
+        "Голос, частота советов, советы по выживанию на любом герое, напоминания носить TP и тратить золото после смерти.",
         "Карта матча, сравнение с вашими обычными цифрами, фильтры матчей и сохранение в PDF.",
         "Проверка параметра запуска -gamestateintegration, без которого Дота не передаёт данные."
       ]
