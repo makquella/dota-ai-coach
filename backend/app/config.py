@@ -108,6 +108,10 @@ GSI_DEBUG_SAMPLES_DIR = WRITABLE_DIR / "gsi_debug_samples"
 # How often coaching advice may appear: calm | normal | active (the launcher
 # passes the player's choice; see app/scheduler/frequency.py).
 ADVICE_FREQUENCY = os.getenv("DOTA_AI_ADVICE_FREQUENCY", "normal").strip().lower()
+# The player's position for timers and role tips: auto | carry | mid | offlane |
+# support (app/live_role.py), and whether the overlay shows map hints at all.
+ADVICE_ROLE = os.getenv("DOTA_AI_ROLE", "auto").strip().lower()
+MAP_HINTS = os.getenv("DOTA_AI_MAP_HINTS", "true").strip().lower() != "false"
 LIVE_CONSERVATIVE_MODE = os.getenv("LIVE_CONSERVATIVE_MODE", "true").strip().lower() != "false"
 try:
     GSI_STALE_SECONDS = max(1.0, float(os.getenv("GSI_STALE_SECONDS", "5")))

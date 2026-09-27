@@ -32,6 +32,7 @@ import json
 import re
 import threading
 import time
+from collections import Counter
 from collections.abc import Callable
 from datetime import UTC, datetime
 from pathlib import Path
@@ -73,6 +74,7 @@ from app.personal_baseline import MAX_GAMES as MAX_BASELINE_GAMES
 from app.personal_baseline import personal_baseline
 from app.player_store import PlayerStore
 from app.post_match_analysis import ANALYSIS_VERSION, analyze_match
+from app.schemas import is_supported_hero
 from app.steam_ids import parse_account_id, steam64_from_account_id
 
 RECENT_MATCHES_LIMIT = 50
@@ -317,6 +319,36 @@ class PlayerService:
         )
         self._plans[key] = (now, plan)
         return plan
+
+    def role_prior(self, hero: str) -> dict[str, Any] | None:
+        """The position to assume before the lane is known (app/live_role.py): the
+        usual one of the player's reviews on this hero (2+), else OpenDota's role
+        tags of the hero. Polled every second, so cached like the game plan."""
+        hero_id = hero_id_from_name(hero)
+        if hero_id is None:
+            return None
+        primary = self.store.primary_account_id()
+        key = ("role", primary, hero_id)
+        cached = self._plans.get(key)
+        now = time.monotonic()
+        if cached is not None and now - cached[0] < GAME_PLAN_CACHE_SECONDS:
+            return cached[1]
+        prior = _role_prior(
+            self.store.matches_for_career(primary, limit=20, hero_id=hero_id)
+            if primary is not None
+            else [],
+            next(
+                (
+                    row.get("roles") or []
+                    for row in self.store.cache_get(HERO_STATS_KEY) or []
+                    if isinstance(row, dict) and row.get("hero_id") == hero_id
+                ),
+                [],
+            ),
+            hero_name(hero_id),
+        )
+        self._plans[key] = (now, prior)
+        return prior
 
     def diagnostics(self) -> dict[str, Any]:
         """For the problem report: no key, no match data, just the state."""
@@ -1332,6 +1364,23 @@ def _scoreboard(trimmed: dict[str, Any] | None) -> list[dict[str, Any]] | None:
             }
         )
     return rows
+
+
+def _role_prior(history: list[dict[str, Any]], tags: list[str], hero: str) -> dict[str, Any] | None:
+    positions = Counter(
+        (row.get("analysis") or {}).get("position")
+        for row in history
+        if (row.get("analysis") or {}).get("position")
+    )
+    if positions:
+        position, games = positions.most_common(1)[0]
+        if games >= 2:
+            return {"role": position, "source": "history"}
+    if "Support" in tags and "Carry" not in tags:
+        return {"role": "support", "source": "hero"}
+    if "Carry" in tags or is_supported_hero(hero):
+        return {"role": "carry", "source": "hero"}
+    return None
 
 
 def _start_time(timeline: dict[str, Any]) -> int | None:

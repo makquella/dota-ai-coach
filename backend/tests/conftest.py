@@ -20,7 +20,8 @@ if str(BACKEND_DIR) not in sys.path:
 from app import gsi_state  # noqa: E402
 from app.advice_scheduler import ADVICE_SCHEDULER  # noqa: E402
 from app.coach_summary import COACH_SESSION_HISTORY  # noqa: E402
-from app.main import _clear_demo_overlay_response, app  # noqa: E402
+from app.live_role import set_role_setting  # noqa: E402
+from app.main import _clear_demo_overlay_response, _map_hints, app  # noqa: E402
 from app.match_memory import MATCH_MEMORY  # noqa: E402
 from app.player_api import PLAYER_SERVICE  # noqa: E402
 
@@ -32,6 +33,8 @@ def reset_runtime_state(tmp_path):
     MATCH_MEMORY.reset()
     ADVICE_SCHEDULER.reset()
     ADVICE_SCHEDULER.set_frequency("normal")
+    set_role_setting("auto")
+    _map_hints["enabled"] = True
     COACH_SESSION_HISTORY.reset()
     _clear_demo_overlay_response()
     gsi_state._latest_raw_payload = None
@@ -42,6 +45,8 @@ def reset_runtime_state(tmp_path):
     MATCH_MEMORY.reset()
     ADVICE_SCHEDULER.reset()
     ADVICE_SCHEDULER.set_frequency("normal")
+    set_role_setting("auto")
+    _map_hints["enabled"] = True
     COACH_SESSION_HISTORY.reset()
     _clear_demo_overlay_response()
     gsi_state._latest_raw_payload = None

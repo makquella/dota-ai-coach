@@ -1,0 +1,113 @@
+{
+  "patch": "7.41f",
+  "checked": "2026-09-27",
+  "sources": [
+    "Dota 2 patch notes 7.38-7.41f (dota2.com/datafeed/patchnotes)",
+    "Dota 2 wiki: Runes, Lotus Pool, Tormentor"
+  ],
+  "comment": "Clock seconds. roles: position -> last clock second the event is announced for it. speak: read aloud when the voice reads every advice. minor: a role tip (stack, wards) wins over it.",
+  "lead_seconds": 20,
+  "grace_seconds": 5,
+  "events": [
+    {
+      "id": "water_rune",
+      "minor": true,
+      "times": [120, 240],
+      "roles": {"mid": 240},
+      "en": "Water rune",
+      "ru": "Водная руна",
+      "hint_en": "Both river rune spots: refill HP and mana.",
+      "hint_ru": "На обеих точках рун в реке: восполнит HP и ману."
+    },
+    {
+      "id": "power_rune",
+      "minor": true,
+      "first": 360,
+      "every": 120,
+      "roles": {"mid": 2400, "support": 1080},
+      "en": "Power rune",
+      "ru": "Руна силы",
+      "hint_en": "One of the river rune spots.",
+      "hint_ru": "На одной из точек рун в реке."
+    },
+    {
+      "id": "bounty_rune",
+      "minor": true,
+      "first": 240,
+      "every": 240,
+      "roles": {"support": 1200, "mid": 720},
+      "en": "Bounty runes",
+      "ru": "Руны богатства",
+      "hint_en": "In both jungles: gold for the whole team.",
+      "hint_ru": "В обоих лесах: золото всей команде."
+    },
+    {
+      "id": "wisdom_shrine",
+      "first": 420,
+      "every": 420,
+      "roles": {"offlane": 2940, "support": 2940},
+      "speak": true,
+      "en": "Wisdom shrine",
+      "ru": "Святилище мудрости",
+      "hint_en": "Offlane-side jungle: stand in it 3 s for experience.",
+      "hint_ru": "Лес на стороне хардлайна: постойте 3 с — опыт."
+    },
+    {
+      "id": "lotus",
+      "minor": true,
+      "first": 180,
+      "every": 180,
+      "roles": {"offlane": 720, "support": 720},
+      "en": "Healing lotus",
+      "ru": "Лотос",
+      "hint_en": "Lotus pool by the offlane tower: free healing.",
+      "hint_ru": "Пруд у вышки хардлайна: бесплатное лечение."
+    },
+    {
+      "id": "tormentor",
+      "times": [1200],
+      "roles": {"carry": 1200, "mid": 1200, "offlane": 1200, "support": 1200},
+      "speak": true,
+      "en": "Tormentor",
+      "ru": "Торментор",
+      "hint_en": "First spawn: an Aghanim's Shard for the team that kills it.",
+      "hint_ru": "Первое появление: Aghanim's Shard команде, которая его убьёт."
+    },
+    {
+      "id": "neutral_tier_2",
+      "times": [900],
+      "roles": {"carry": 900, "mid": 900, "offlane": 900, "support": 900},
+      "en": "Neutral items, tier 2",
+      "ru": "Нейтральные предметы, уровень 2",
+      "hint_en": "Clear camps for Madstone and craft the next neutral item.",
+      "hint_ru": "Зачищайте лагеря ради Madstone и создайте следующий нейтральный предмет."
+    },
+    {
+      "id": "neutral_tier_3",
+      "times": [1500],
+      "roles": {"carry": 1500, "mid": 1500, "offlane": 1500, "support": 1500},
+      "en": "Neutral items, tier 3",
+      "ru": "Нейтральные предметы, уровень 3",
+      "hint_en": "Clear camps for Madstone and craft the next neutral item.",
+      "hint_ru": "Зачищайте лагеря ради Madstone и создайте следующий нейтральный предмет."
+    },
+    {
+      "id": "neutral_tier_4",
+      "times": [2100],
+      "roles": {"carry": 2100, "mid": 2100, "offlane": 2100, "support": 2100},
+      "en": "Neutral items, tier 4",
+      "ru": "Нейтральные предметы, уровень 4",
+      "hint_en": "Clear camps for Madstone; lotus pools now grow Great Lotuses.",
+      "hint_ru": "Зачищайте лагеря ради Madstone; в прудах теперь большие лотосы."
+    },
+    {
+      "id": "neutral_tier_5",
+      "times": [3600],
+      "roles": {"carry": 3600, "mid": 3600, "offlane": 3600, "support": 3600},
+      "en": "Neutral items, tier 5",
+      "ru": "Нейтральные предметы, уровень 5",
+      "hint_en": "Clear camps for Madstone and craft the last neutral item.",
+      "hint_ru": "Зачищайте лагеря ради Madstone и создайте последний нейтральный предмет."
+    }
+  ]
+}

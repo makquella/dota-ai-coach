@@ -37,7 +37,12 @@ def test_safety_cooldowns_do_not_scale(frequency):
 def test_api_round_trip(client):
     assert client.get("/settings/advice").json()["frequency"] == "normal"
     answer = client.post("/settings/advice", json={"frequency": "calm"}).json()
-    assert answer == {"frequency": "calm", "options": ["calm", "normal", "active"]}
+    assert answer["frequency"] == "calm" and answer["options"] == ["calm", "normal", "active"]
+    # Role and map hints are separate fields of the same settings.
+    assert answer["role"] == "auto" and answer["map_hints"] is True
+    answer = client.post("/settings/advice", json={"role": "support", "map_hints": False}).json()
+    assert (answer["frequency"], answer["role"], answer["map_hints"]) == ("calm", "support", False)
+    assert client.post("/settings/advice", json={"role": "jungle"}).json()["role"] == "auto"
     assert client.post("/settings/advice", json={"frequency": "?"}).json()["frequency"] == "normal"
     # A new match keeps the preference.
     ADVICE_SCHEDULER.set_frequency("active")
