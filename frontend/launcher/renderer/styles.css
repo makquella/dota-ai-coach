@@ -1259,9 +1259,28 @@ label.setting:has(.switch:disabled) {
 
 .review-toolbar {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
   gap: var(--sp-3);
+}
+
+.toolbar-actions {
+  display: inline-flex;
+  flex: none;
+  flex-wrap: nowrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--sp-2);
+}
+
+.toolbar-actions .pdf-action {
+  margin-left: 0;
+}
+
+.toolbar-actions .select {
+  flex: none;
+  width: 200px;
 }
 
 .pdf-action {

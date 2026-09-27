@@ -379,12 +379,17 @@ class PlayerService:
         detail["coach"] = self._match_coach(primary, match_id, detail, lang, force=force_coach)
         return detail
 
-    def career(self, lang: str, *, force_coach: bool = False) -> dict[str, Any]:
+    def career(
+        self, lang: str, *, force_coach: bool = False, hero_id: int | None = None
+    ) -> dict[str, Any]:
+        """Progress over the recent matches; `hero_id` narrows it to one hero."""
         primary = self.store.primary_account_id()
         if primary is None:
             return {"linked": False}
         player = self.store.get_player(primary) or {}
-        matches = self.store.matches_for_career(primary, limit=RECENT_MATCHES_LIMIT)
+        matches = self.store.matches_for_career(
+            primary, limit=RECENT_MATCHES_LIMIT, hero_id=hero_id
+        )
         for match in matches:
             stale = match.get("analysis")
             if stale is not None and stale.get("version") != ANALYSIS_VERSION:
@@ -396,6 +401,13 @@ class PlayerService:
             hero_stats=self.store.cache_get(HERO_STATS_KEY),
         )
         result["linked"] = True
+        result["hero_filter"] = hero_id
+        result["heroes"] = self.store.hero_counts(primary)
+        if hero_id is not None:
+            # The AI career review covers all heroes; one per hero would spend
+            # the player's free quota on every switch.
+            result["coach"] = {"state": "none"}
+            return result
         recent = [
             recent_match_line(render_analysis(m["analysis"], lang))
             for m in matches

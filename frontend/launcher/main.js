@@ -1011,7 +1011,12 @@ const PLAYER_OPS = {
   // Reviews may be rebuilt on read after an update (new analysis version): allow time.
   match: (args) => ["GET", `/player/matches/${matchIdArg(args)}?lang=${uiLocale()}`, undefined, 15000],
   refreshMatch: (args) => ["POST", `/player/matches/${matchIdArg(args)}/refresh`],
-  career: () => ["GET", `/player/career?lang=${uiLocale()}`, undefined, 15000],
+  career: (args) => [
+    "GET",
+    `/player/career?lang=${uiLocale()}` + (/^\d{1,4}$/.test(String(args.heroId ?? "")) ? `&hero_id=${args.heroId}` : ""),
+    undefined,
+    15000
+  ],
   // AI coach (optional; the key is kept by the backend and never sent back).
   coachMatch: (args) => ["POST", `/player/matches/${matchIdArg(args)}/coach?lang=${uiLocale()}`],
   coachCareer: () => ["POST", `/player/career/coach?lang=${uiLocale()}`],

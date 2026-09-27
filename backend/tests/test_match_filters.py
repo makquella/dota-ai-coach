@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from match_fixtures import ME, FakeOpenDota, recent_matches
+from match_fixtures import ME, FakeOpenDota, opendota_match, recent_matches
 
 from app.player_api import PLAYER_SERVICE
 
@@ -42,3 +42,24 @@ def test_filters_by_hero_and_result(client, tmp_path):
 def test_unknown_result_means_no_filter(client, tmp_path):
     recent = _synced(client, tmp_path)
     assert client.get("/player/matches?result=draw&limit=200").json()["total"] == len(recent)
+
+
+def test_progress_for_one_hero(client, tmp_path):
+    recent = recent_matches(26)
+    matches = {
+        r["match_id"]: opendota_match(good=r["radiant_win"], match_id=r["match_id"]) for r in recent
+    }
+    PLAYER_SERVICE.configure(
+        tmp_path / "svc", client=FakeOpenDota(matches=matches, recent=recent), auto_start=False
+    )
+    client.post("/player/link", json={"steam": str(ME)})
+    PLAYER_SERVICE.jobs.run_pending(until=float("inf"))
+    everything = client.get("/player/career?lang=ru").json()
+    heroes = everything["heroes"]
+    assert everything["hero_filter"] is None and len(heroes) >= 2
+    other = heroes[-1]
+    one = client.get(f"/player/career?lang=ru&hero_id={other['hero_id']}").json()
+    assert one["hero_filter"] == other["hero_id"]
+    assert one["matches"] == other["games"] < everything["matches"]
+    assert one["coach"] == {"state": "none"}
+    assert [h["hero"] for h in one["heroes"]] == [h["hero"] for h in heroes]

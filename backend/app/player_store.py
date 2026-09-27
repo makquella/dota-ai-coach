@@ -386,14 +386,17 @@ class PlayerStore:
         record["sources"] = [item for item in (record.get("sources") or "").split(",") if item]
         return record
 
-    def matches_for_career(self, account_id: int, *, limit: int = 50) -> list[dict[str, Any]]:
+    def matches_for_career(
+        self, account_id: int, *, limit: int = 50, hero_id: int | None = None
+    ) -> list[dict[str, Any]]:
         """Newest first, summary columns plus the stored analysis (for trends)."""
         columns = ", ".join(("match_id", *MATCH_COLUMNS, "sources"))
+        where, params = self._filter(account_id, hero_id, None)
         with self._lock:
             rows = self._conn.execute(
-                f"SELECT {columns}, analysis_json FROM matches WHERE account_id = ? "
+                f"SELECT {columns}, analysis_json FROM matches WHERE {where} "
                 "ORDER BY COALESCE(start_time, 0) DESC, match_id DESC LIMIT ?",
-                (int(account_id), int(limit)),
+                (*params, int(limit)),
             ).fetchall()
         result = []
         for row in rows:

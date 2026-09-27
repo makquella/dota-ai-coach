@@ -123,8 +123,9 @@ def refresh_match(match_id: int):
 
 
 @router.get("/career", summary="Statistics and advice over recent matches")
-def player_career(lang: str = "en"):
-    return PLAYER_SERVICE.career(normalize_lang(lang))
+def player_career(lang: str = "en", hero_id: int | None = None):
+    """`hero_id` narrows the progress to one hero (no AI review then)."""
+    return PLAYER_SERVICE.career(normalize_lang(lang), hero_id=hero_id)
 
 
 @router.post("/matches/{match_id}/coach", summary="(Re)generate the AI coach review of a match")

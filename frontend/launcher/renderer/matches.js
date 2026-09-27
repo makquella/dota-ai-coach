@@ -561,6 +561,7 @@
 
   const state = {
     filter: { heroId: null, result: "all" },
+    careerHero: null,
     heroes: [],
     matchesStats: null,
     locale: "en",
@@ -2362,7 +2363,7 @@
       hydrate(root);
       return;
     }
-    const result = await call("career");
+    const result = await call("career", careerArgs());
     if (result.ok) {
       state.career = result.data;
     }
@@ -2382,7 +2383,7 @@
       if (state.view !== "progress") {
         return;
       }
-      const result = await call("career");
+      const result = await call("career", careerArgs());
       if (result.ok) {
         const changed = JSON.stringify(result.data) !== JSON.stringify(state.career);
         state.career = result.data;
@@ -2407,6 +2408,36 @@
 
   function tile(label, value, delta, sub) {
     return h("div", { class: "tile" }, h("p", { class: "tile-label", text: label }), h("p", { class: "tile-value", text: value }), delta || null, sub ? h("p", { class: "tile-sub muted", text: sub }) : null);
+  }
+
+  function careerArgs() {
+    return state.careerHero === null ? {} : { heroId: state.careerHero };
+  }
+
+  // "All heroes" or one hero for the whole Progress page.
+  function careerHeroSelect(career) {
+    const heroes = career.heroes || [];
+    if (heroes.length < 2 && state.careerHero === null) {
+      return null;
+    }
+    const select = h(
+      "select",
+      {
+        class: "input select",
+        "aria-label": t("filterHero"),
+        onchange: async (event) => {
+          state.careerHero = event.target.value === "" ? null : Number(event.target.value);
+          await loadCareer();
+        }
+      },
+      h("option", { value: "", text: t("filterAllHeroes") }),
+      heroes.map((hero) => {
+        const option = h("option", { value: String(hero.hero_id), text: `${hero.hero || "—"} · ${hero.games}` });
+        option.selected = state.careerHero === hero.hero_id;
+        return option;
+      })
+    );
+    return select;
   }
 
   function renderCareer() {
@@ -2537,7 +2568,7 @@
         "div",
         { class: "review-toolbar" },
         h("p", { class: "muted small progress-note", text: t("analyzed", career.analyzed, career.matches) }),
-        h("span", { class: "no-print" }, pdfButton("career"))
+        h("span", { class: "toolbar-actions no-print" }, careerHeroSelect(career), pdfButton("career"))
       ),
       tiles,
       coachCard(career.coach, "career") || "",
