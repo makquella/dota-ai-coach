@@ -402,7 +402,8 @@ class PlayerService:
         )
         result["linked"] = True
         result["hero_filter"] = hero_id
-        result["heroes"] = self.store.hero_counts(primary)
+        # "heroes" is the career's own hero table; the filter's choices go apart.
+        result["hero_choices"] = self.store.hero_counts(primary)
         if hero_id is not None:
             # The AI career review covers all heroes; one per hero would spend
             # the player's free quota on every switch.

@@ -2416,7 +2416,7 @@
 
   // "All heroes" or one hero for the whole Progress page.
   function careerHeroSelect(career) {
-    const heroes = career.heroes || [];
+    const heroes = career.hero_choices || [];
     if (heroes.length < 2 && state.careerHero === null) {
       return null;
     }
