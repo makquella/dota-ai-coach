@@ -2,7 +2,7 @@
 
 A Dota 2 coach for Windows that watches your game with you: short advice over the game (and out loud) during the match, and an honest review after it — where the farm went, why you died, when your item came, what the player of your rank did. Free, local, open source.
 
-**[Download the latest version](https://github.com/makquella/dota-ai-coach/releases/latest)** · [Website source](site/) · [Release notes](docs/release-notes/)
+**[Download the latest version](https://github.com/makquella/dota-ai-coach/releases/latest)** · [Website](https://luhovyimvp.dev) ([source](site/)) · [Release notes](docs/release-notes/)
 
 Live advice comes from deterministic, tested rules on top of Valve's official Game State Integration (no memory reading, no inputs on your behalf). An optional AI coach (free Google Gemini key) writes the post-match review in plain words, and every number, time, hero and item it writes is checked against the match data.
 
