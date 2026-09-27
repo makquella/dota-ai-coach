@@ -128,6 +128,7 @@
       adviceLogTitle: "Advice during the match",
       adviceLogHint: (n, urgent) => `${n} ${n === 1 ? "tip" : "tips"} over the game, ${urgent} urgent. Worth checking whether you followed them.`,
       adviceLogMore: (n) => `Show all ${n}`,
+      adviceLogDeath: (time) => `Died at ${time}`,
       momentDeath: (killer) => (killer ? `Died to ${killer}` : "Died"),
       momentGold: (gold) => `${gold} gold on hand`,
       momentItem: (item) => item,
@@ -402,6 +403,7 @@
       adviceLogTitle: "Подсказки во время матча",
       adviceLogHint: (n, urgent) => `${n} ${plural(n, "подсказка", "подсказки", "подсказок")} за игру, срочных — ${urgent}. Стоит проверить, получилось ли им следовать.`,
       adviceLogMore: (n) => `Показать все (${n})`,
+      adviceLogDeath: (time) => `Смерть в ${time}`,
       momentDeath: (killer) => (killer ? `Смерть от ${killer}` : "Смерть"),
       momentGold: (gold) => `${gold} золота на руках`,
       momentItem: (item) => item,
@@ -1918,6 +1920,8 @@
       return null;
     }
     const shown = state.adviceLogOpen ? advice : advice.slice(0, 8);
+    const follow = analysis.advice_follow || { ignored: [] };
+    const deathAfter = new Map((follow.ignored || []).map((item) => [item.t, item.death_t]));
     const list = h(
       "ol",
       { class: "moments advice-log" },
@@ -1931,7 +1935,10 @@
             "span",
             { class: "moment-text" },
             h("span", { text: item.action }),
-            item.reason ? h("span", { class: "muted advice-log-reason", text: item.reason }) : null
+            item.reason ? h("span", { class: "muted advice-log-reason", text: item.reason }) : null,
+            deathAfter.has(item.t)
+              ? h("span", { class: "advice-log-death" }, icon("skull"), h("span", { text: t("adviceLogDeath", clock(deathAfter.get(item.t))) }))
+              : null
           )
         )
       )

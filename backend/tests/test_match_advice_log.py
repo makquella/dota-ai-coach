@@ -35,3 +35,39 @@ def test_notes_need_a_match_and_are_capped(tmp_path):
         tracker.note_advice(60 + index, "SAFE_FARMING", f"Tip {index}", "", "coaching")
     tracker.note_advice(-30, "LOW_HP", "Before the horn", "", "urgent")
     assert len(tracker._current["advice"]) == MAX_ADVICE_NOTES
+
+
+def test_deaths_right_after_urgent_advice_become_a_finding():
+    from app.advice_follow import analyze_advice_follow
+    from app.analysis_texts import render_finding
+
+    facts = {
+        "advice_log": [
+            {
+                "t": 400,
+                "mode": "urgent",
+                "action": "Leave the wave now and reset HP before rejoining.",
+            },
+            {
+                "t": 900,
+                "mode": "coaching",
+                "action": "Recover farm through the safest wave-and-camp route.",
+            },
+            {"t": 1100, "mode": "urgent", "action": "Reset HP before showing on another lane."},
+            {"t": 1500, "mode": "urgent", "action": "Reset HP before showing on another lane."},
+        ],
+        "deaths_log": [{"t": 415}, {"t": 905}, {"t": 1120}, {"t": 1600}],
+    }
+    block, findings = analyze_advice_follow(facts)
+    assert block["urgent"] == 3
+    assert [item["death_t"] for item in block["ignored"]] == [415, 1120]
+    assert findings[0]["id"] == "died_after_warning"
+    assert findings[0]["params"] == {"count": 2, "urgent": 3, "t": 400, "window": 30}
+    text = render_finding(findings[0], "ru")["text"]
+    assert text.startswith(
+        "2 раза вы погибли в течение 30 с после срочной подсказки (первый раз — 6:40)"
+    )
+    # One ignored warning is not a pattern.
+    one = {**facts, "deaths_log": [{"t": 415}]}
+    assert analyze_advice_follow(one)[1] == []
+    assert analyze_advice_follow({"deaths_log": [{"t": 1}]}) == (None, [])

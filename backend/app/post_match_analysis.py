@@ -21,6 +21,7 @@ from __future__ import annotations
 from datetime import UTC, datetime
 from typing import Any
 
+from app.advice_follow import analyze_advice_follow
 from app.build_analysis import analyze_build
 from app.draft_analysis import analyze_draft
 from app.item_timing import classify_item_timing, normalize_item_name
@@ -107,6 +108,8 @@ def analyze_match(
     findings.extend(draft_findings)
     map_block, map_findings = analyze_map(facts)
     findings.extend(map_findings)
+    follow_block, follow_findings = analyze_advice_follow(facts)
+    findings.extend(follow_findings)
     findings = _dedupe(findings)
 
     weights = SECTION_WEIGHTS[role]
@@ -160,6 +163,7 @@ def analyze_match(
         "draft": draft_block,
         "map": map_block,
         "advice": (facts.get("advice_log") or [])[:MAX_ADVICE_SHOWN],
+        "advice_follow": follow_block,
     }
 
 

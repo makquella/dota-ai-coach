@@ -1562,6 +1562,20 @@ label.setting:has(.switch:disabled) {
   font-size: var(--fs-12);
 }
 
+.advice-log-death {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-1);
+  color: var(--text-2);
+  font-size: var(--fs-12);
+}
+
+.advice-log-death .icon {
+  width: 13px;
+  height: 13px;
+  color: var(--error);
+}
+
 .teams {
   display: grid;
   gap: var(--sp-4);
