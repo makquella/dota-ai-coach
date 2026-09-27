@@ -59,7 +59,7 @@ app = FastAPI(
     lifespan=_lifespan,
     title="Dota AI Coach",
     description="MVP-1: rule-based carry coach with local knowledge-base RAG.",
-    version="0.1.0",
+    version="0.2.0",
 )
 app.include_router(player_router)
 
@@ -93,7 +93,7 @@ if FRONTEND_DIR.exists():
 @app.get("/", summary="Health check")
 def root():
     """Simple health-check endpoint."""
-    return {"status": "ok", "service": "Dota AI Coach", "version": "0.1.0"}
+    return {"status": "ok", "service": "Dota AI Coach", "version": "0.2.0"}
 
 
 @app.get("/health", summary="Health check")

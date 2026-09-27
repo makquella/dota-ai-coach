@@ -1,7 +1,7 @@
 {
   "name": "dota-ai-coach-launcher",
   "productName": "Dota AI Coach",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "description": "Dota AI Coach desktop app: tray launcher, local backend and always-on-top overlay.",
   "author": "Dota AI Coach",
