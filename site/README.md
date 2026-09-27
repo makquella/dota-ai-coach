@@ -21,24 +21,23 @@ cd site && python3 -m http.server 8080
 # http://localhost:8080
 ```
 
-## Свой домен
+## Адрес: luhovyimvp.dev
 
-Подойдёт любой статический хостинг — достаточно выложить содержимое папки
-`site/` в корень сайта.
+Сайт публикуется на GitHub Pages (Actions → *Website* → Run workflow,
+`.github/workflows/pages.yml`) и открывается по адресу `https://luhovyimvp.dev`.
+DNS домена — в Cloudflare:
 
-- **GitHub Pages.** Settings → Pages → Source: *GitHub Actions*, затем
-  Actions → *Website* → Run workflow (`.github/workflows/pages.yml`). Для своего
-  домена укажите его в Settings → Pages → Custom domain и добавьте у регистратора
-  DNS-запись `CNAME` на `makquella.github.io` (для корня домена — записи `A` на
-  адреса GitHub Pages).
-- **Cloudflare Pages / Netlify / Vercel.** Новый проект из репозитория, команда
-  сборки — пустая, папка публикации — `site`, затем подключить домен в панели.
-- **Свой сервер (nginx).** `root /var/www/dota-ai-coach;` и скопировать туда
-  содержимое `site/`.
+- `A` для `@`: `185.199.108.153`, `185.199.109.153`, `185.199.110.153`,
+  `185.199.111.153`; `AAAA` для `@`: `2606:50c0:8000::153` … `2606:50c0:8003::153`;
+  `CNAME` для `www` → `makquella.github.io`. Все — «DNS only» (серое облако):
+  через прокси Cloudflare GitHub не выпустит сертификат.
+- Записи почты (MX, TXT для Migadu) не трогать.
+- В GitHub: Settings → Pages → Custom domain `luhovyimvp.dev`, после проверки —
+  Enforce HTTPS. Домен `.dev` открывается только по HTTPS, поэтому до выпуска
+  сертификата (обычно до часа) сайт не откроется.
 
-После подключения домена поменяйте в `index.html` `og:image` на полный адрес
-(`https://ваш-домен/assets/og.jpg`) — так превью ссылки надёжнее показывается в
-Telegram, Discord и VK.
+Канонический адрес и превью ссылки (`og:image`) в `index.html` указывают на этот
+домен. Другой хостинг: достаточно выложить содержимое `site/` в корень сайта.
 
 ## Обновить картинки
 
