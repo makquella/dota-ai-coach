@@ -353,6 +353,9 @@
       askButton: "Ask",
       askThinking: "The coach is thinking…",
       askSuggestions: ["What decided this game for me?", "What should I change in the lane?", "Was my build on time?"],
+      askCareerHint: "A question about your recent matches: heroes, enemies, habits. The answer uses only your statistics and goes through the same fact check.",
+      askCareerPlaceholder: "For example: which enemy heroes are hardest for me?",
+      askCareerSuggestions: ["Which enemy heroes are hardest for me?", "What mistake costs me the most games?", "Which hero should I play more?"],
       askErrors: {
         unverified: "The coach could not answer this from the match data. Try asking differently.",
         empty_question: "Type a question first.",
@@ -729,6 +732,9 @@
       askButton: "Спросить",
       askThinking: "Тренер думает…",
       askSuggestions: ["Что решило эту игру?", "Что изменить на линии?", "Вовремя ли я собрал предметы?"],
+      askCareerHint: "Вопрос о ваших последних матчах: герои, противники, привычки. Ответ строится только по вашей статистике и проходит ту же проверку фактов.",
+      askCareerPlaceholder: "Например: против каких героев мне сложнее всего?",
+      askCareerSuggestions: ["Против каких героев мне сложнее всего?", "Какая ошибка стоит мне больше всего игр?", "На каком герое мне стоит играть чаще?"],
       askErrors: {
         unverified: "Тренер не смог ответить по данным этого матча. Попробуйте спросить иначе.",
         empty_question: "Сначала напишите вопрос.",
@@ -2734,7 +2740,8 @@
   }
 
   // "Ask the coach": a free question about this match, answered from its facts.
-  function askCard(detail) {
+  // «Спросить тренера» about one match (op "ask") or, with `career`, the recent matches.
+  function askCard(detail, career = false) {
     const coach = detail.coach;
     if (!coach || coach.state === "off" || coach.state === "none") {
       return null;
@@ -2747,14 +2754,14 @@
         )
       );
     renderHistory();
-    const input = h("input", { class: "input ask-input", type: "text", maxlength: "300", placeholder: t("askPlaceholder"), "aria-label": t("askTitle") });
+    const input = h("input", { class: "input ask-input", type: "text", maxlength: "300", placeholder: t(career ? "askCareerPlaceholder" : "askPlaceholder"), "aria-label": t("askTitle") });
     const button = h("button", { class: "btn btn-primary btn-sm", type: "submit" }, icon("send"), h("span", { text: t("askButton") }));
     const note = h("p", { class: "muted small ask-note", role: "status" });
     const pending = h("div", { class: "ask-pending hidden" }, h("p", { class: "muted small", text: t("askThinking") }), skeletonRows(2));
     const chips = h(
       "div",
       { class: "ask-chips" },
-      t("askSuggestions").map((question) =>
+      t(career ? "askCareerSuggestions" : "askSuggestions").map((question) =>
         h("button", { class: "chip ask-chip", type: "button", text: question, onclick: () => submit(question) })
       )
     );
@@ -2773,7 +2780,7 @@
       note.textContent = "";
       pending.classList.remove("hidden");
       state.askBusy = true;
-      const result = await call("ask", { matchId: detail.match_id, question: text });
+      const result = career ? await call("askCareer", { question: text }) : await call("ask", { matchId: detail.match_id, question: text });
       state.askBusy = false;
       pending.classList.add("hidden");
       button.disabled = false;
@@ -2803,7 +2810,7 @@
       button
     );
     return card(t("askTitle"), "message-circle", [
-      h("p", { class: "muted small no-print", text: t("askHint") }),
+      h("p", { class: "muted small no-print", text: t(career ? "askCareerHint" : "askHint") }),
       form,
       h("div", { class: "no-print" }, chips),
       pending,
@@ -3467,6 +3474,7 @@
       ),
       tiles,
       coachCard(career.coach, "career") || "",
+      state.careerHero === null ? askCard(career, true) || "" : "",
       scoreCard,
       careerRankCard(career),
       state.careerHero === null ? friendCard() : "",

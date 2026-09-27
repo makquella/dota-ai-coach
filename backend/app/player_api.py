@@ -230,6 +230,11 @@ def coach_match(match_id: MatchId, lang: str = "en"):
     return detail["coach"]
 
 
+@router.post("/career/ask", summary="Ask the AI coach a question about the recent matches")
+def ask_career(request: AskRequest, lang: str = "en"):
+    return PLAYER_SERVICE.ask_career(request.question, normalize_lang(lang))
+
+
 @router.post("/career/coach", summary="(Re)generate the AI coach review of recent matches")
 def coach_career(lang: str = "en"):
     return PLAYER_SERVICE.career(normalize_lang(lang), force_coach=True).get("coach")

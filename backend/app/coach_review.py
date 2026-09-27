@@ -107,6 +107,13 @@ ASK_SYSTEM = (
     "- Calm, direct and honest. No emoji, no markdown.\n"
     'Answer with one JSON object only: {"answer": "your answer"}'
 )
+ASK_CAREER_SYSTEM = ASK_SYSTEM.replace(
+    "The JSON holds the facts of one match of your student (the player), computed from the "
+    "replay or the game's telemetry. Answer the student's question about this match",
+    "The JSON holds the statistics of your student's (the player's) recent matches: heroes, "
+    "win rates, recurring problems, the enemy heroes they lose to most and short lines of the "
+    "latest reviews. Answer the student's question about their games",
+)
 QUESTION_LIMIT = 300
 
 LIMITS = {"summary": 700, "title": 80, "detail": 450, "fix": 320, "line": 260, "answer": 900}
@@ -230,16 +237,17 @@ def career_facts(career: dict[str, Any], recent: list[dict[str, Any]]) -> dict[s
         "recent_matches": recent[:10],
     }
     opponents = career.get("opponents") or {}
-    if opponents.get("hard"):
-        # Their record against each enemy hero met 3+ times (lineups from OpenDota).
-        facts["hardest_enemy_heroes"] = [
-            {
-                "hero": r["hero"],
-                "wins_losses": f"{r['wins']}-{r['losses']}",
-                "winrate_percent": r["winrate"],
-            }
-            for r in opponents["hard"]
-        ]
+    # Their record against each enemy hero met 3+ times (lineups from OpenDota).
+    for key, name in (("hard", "hardest_enemy_heroes"), ("easy", "enemy_heroes_you_beat_most")):
+        if opponents.get(key):
+            facts[name] = [
+                {
+                    "hero": r["hero"],
+                    "wins_losses": f"{r['wins']}-{r['losses']}",
+                    "winrate_percent": r["winrate"],
+                }
+                for r in opponents[key]
+            ]
     compare = career.get("self_compare")
     if compare:
         facts["your_best_vs_worst_games"] = {
@@ -305,14 +313,16 @@ def answer_question(
     lang: str,
     *,
     known_items: list[str] | None = None,
+    about: str = "match",
 ) -> dict[str, Any]:
-    """A free question about one match; the answer goes through the same fact check."""
+    """A free question about one match (or, about="career", the recent matches); the
+    answer goes through the same fact check."""
     question = " ".join(str(question or "").split())[:QUESTION_LIMIT]
     if not question:
         raise CoachLLMError("empty_question", "no question")
     return _generate(
         llm,
-        ASK_SYSTEM,
+        ASK_CAREER_SYSTEM if about == "career" else ASK_SYSTEM,
         facts,
         lang,
         _normalize_answer,

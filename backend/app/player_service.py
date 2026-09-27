@@ -776,6 +776,20 @@ class PlayerService:
         primary = self.store.primary_account_id()
         if primary is None:
             return {"linked": False}
+        result, recent = self._career_result(primary, lang, hero_id)
+        if hero_id is not None:
+            # The AI career review covers all heroes; one per hero would spend
+            # the player's free quota on every switch.
+            result["coach"] = {"state": "none"}
+            return result
+        result["coach"] = self._career_coach(primary, result, recent, lang, force=force_coach)
+        result["questions"] = self.store.cache_get(f"{ASK_CACHE_KEY}:{primary}:career") or []
+        return result
+
+    def _career_result(
+        self, primary: int, lang: str, hero_id: int | None = None
+    ) -> tuple[dict[str, Any], list[dict[str, Any]]]:
+        """The career numbers and the recent review lines (the AI coach's facts)."""
         player = self.store.get_player(primary) or {}
         matches = self.store.matches_for_career(
             primary, limit=RECENT_MATCHES_LIMIT, hero_id=hero_id
@@ -805,18 +819,49 @@ class PlayerService:
             result["focus"] = None
         # "heroes" is the career's own hero table; the filter's choices go apart.
         result["hero_choices"] = self.store.hero_counts(primary)
-        if hero_id is not None:
-            # The AI career review covers all heroes; one per hero would spend
-            # the player's free quota on every switch.
-            result["coach"] = {"state": "none"}
-            return result
         recent = [
             recent_match_line(render_analysis(m["analysis"], lang))
             for m in matches
             if m.get("analysis")
         ]
-        result["coach"] = self._career_coach(primary, result, recent, lang, force=force_coach)
-        return result
+        return result, recent
+
+    def ask_career(self, question: str, lang: str) -> dict[str, Any]:
+        """A free question about the recent matches (heroes, enemies, habits), answered
+        from the career facts with the same fact check; nothing else is generated."""
+        primary = self.store.primary_account_id()
+        if primary is None:
+            return {"ok": False, "code": "not_linked"}
+        if not self.ai_configured():
+            return {"ok": False, "code": "off"}
+        result, recent = self._career_result(primary, lang)
+        facts = career_facts(result, recent)
+        if facts is None:
+            return {"ok": False, "code": "not_enough"}
+        client = self.llm if self.llm is not None else self._coach_client_with(ASK_TIMEOUT_SECONDS)
+        if client is None:
+            return {"ok": False, "code": "off"}
+        try:
+            answer = answer_question(
+                client, facts, question, lang, known_items=self._known_items(), about="career"
+            )
+        except CoachLLMError as error:
+            if error.code not in {"empty_question", "unverified"}:
+                record_error("coach-ai", f"career question: {error.code}", with_trace=False)
+            return {"ok": False, "code": error.code}
+        except Exception as error:  # noqa: BLE001 - a bad answer must not become a 500
+            record_error("coach-ai", error)
+            return {"ok": False, "code": "bad_response"}
+        entry = {
+            "question": " ".join(str(question).split())[:QUESTION_LIMIT],
+            "answer": answer["review"]["answer"],
+            "at": _now_iso(),
+            "lang": lang,
+        }
+        key = f"{ASK_CACHE_KEY}:{primary}:career"
+        history = [entry, *(self.store.cache_get(key) or [])][:ASK_HISTORY]
+        self.store.cache_set(key, history)
+        return {"ok": True, "answer": entry, "history": history}
 
     # --- OpenDota key --------------------------------------------------------------
 

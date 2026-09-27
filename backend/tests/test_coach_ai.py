@@ -516,3 +516,32 @@ def test_asking_needs_the_ai_and_a_question(client, tmp_path):
     assert empty == {"ok": False, "code": "empty_question"}
     missing = client.post("/player/matches/123/ask", json={"question": "Why?"}).json()
     assert missing == {"ok": False, "code": "no_review"}
+
+
+def test_ask_the_coach_about_the_recent_matches(client, tmp_path):
+    recent = recent_matches(12)
+    fake = FakeOpenDota(
+        matches={
+            row["match_id"]: opendota_match(good=row["radiant_win"], match_id=row["match_id"])
+            for row in recent
+        },
+        recent=recent,
+    )
+    good = {"answer": "Чаще всего вы проигрываете на Juggernaut, когда рано умираете на линии."}
+    llm = FakeLLM(good)
+    service = _service(tmp_path, llm, client=fake)
+    client.post("/player/link", json={"steam": str(ME)})
+    service.jobs.run_pending(until=float("inf"))
+    answer = client.post(
+        "/player/career/ask?lang=ru", json={"question": "Против кого мне сложнее?"}
+    ).json()
+    assert answer["ok"] is True and answer["answer"]["answer"] == good["answer"]
+    messages = llm.calls[-1]
+    assert "recent matches" in messages[0]["content"]
+    facts = json.loads(messages[1]["content"])
+    # Same lineup in every fixture match, won 8 of 12: the easy list.
+    assert facts["recurring_problems"] and facts["enemy_heroes_you_beat_most"]
+    # Asking wrote no career review (it would spend the player's quota).
+    assert service.ai_jobs.pending() == []
+    career = client.get("/player/career?lang=ru").json()
+    assert [q["question"] for q in career["questions"]] == ["Против кого мне сложнее?"]
