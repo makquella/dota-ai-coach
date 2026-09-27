@@ -46,3 +46,23 @@ def test_little_gold_or_alive_keeps_the_usual_texts():
     assert build_post_laning_advice(_dead(18, 600), "DEATH_REVIEW").action == usual
     alive = build_post_laning_advice(_dead(18, 3000, alive=True, respawn=0), "SAFE_FARMING")
     assert alive is None or "Buy parts" not in alive.action
+
+
+def test_other_death_reviews_carry_it_as_their_reason(client):
+    from match_fixtures import gsi_match_stream
+
+    seen = {}
+    for payload in gsi_match_stream(minutes=8, death_minutes=(7,), step_seconds=5):
+        client.post("/gsi", json=payload)
+        response = client.get("/overlay/recommendation?lang=ru").json()
+        if (
+            response.get("status") == "active_advice"
+            and response["decision_point"] == "DEATH_REVIEW"
+        ):
+            seen = response["recommendation"]
+            break
+    # Before minute 10 the death review keeps its own action; the reason is the purchase.
+    assert seen["action"] == "Пока ждёте возрождения, продумайте более безопасный маршрут."
+    assert seen["reason"] == (
+        "Купите части следующего предмета на 1800 золота сейчас — заберёте их у фонтана."
+    )

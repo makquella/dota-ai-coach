@@ -317,6 +317,14 @@ def _spend_while_dead(state: Mapping[str, Any], extra: Mapping[str, Any]) -> dic
     return {"gold": gold, "spare": spare, "reserve": reserve}
 
 
+def spend_while_dead_sentence(game_state: Mapping[str, Any] | Any) -> str | None:
+    """ "Buy parts of your next item now..." when a dead hero has gold to spare, for the
+    other death reviews (repeated deaths, escape on cooldown...) to use as their reason."""
+    state = _as_mapping(game_state)
+    spend = _spend_while_dead(state, _extra_context(state))
+    return _spend_copy(spend)[0] if spend is not None else None
+
+
 def _spend_copy(spend: Mapping[str, int]) -> tuple[str, str]:
     if spend["reserve"]:
         action = (
