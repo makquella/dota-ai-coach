@@ -652,6 +652,35 @@ def test_counter_item_missing_and_bought():
     assert not [f for f in support if f["id"].startswith("counter")]
 
 
+def test_counter_items_of_an_unparsed_match_come_from_the_inventory():
+    """An unparsed match has no purchase log: the final inventory (item ids)
+    decides, and with no items known there is no "missing" advice at all."""
+    from app.draft_analysis import bought_items
+
+    base = _draft_meta()
+    constants = {
+        **base["constants"],
+        "by_id": {**base["constants"]["by_id"], "135": "monkey_king_bar"},
+    }
+    meta = {**base, "constants": constants}
+    mkb_id = "135"
+    match = _with_enemy(opendota_match(good=True, parsed=False), 6, 44)  # vs Phantom Assassin
+    me = next(p for p in match["players"] if p.get("account_id") == ME)
+    me["item_0"] = int(mkb_id)
+    trimmed = trim_match(match, ME)
+    facts = facts_from_opendota(trimmed)
+    assert "monkey_king_bar" in bought_items(facts, constants)
+    _, findings = analyze_draft(facts, trimmed, meta, "core")
+    assert [f["id"] for f in findings if f["id"].startswith("counter")] == ["counter_item_bought"]
+
+    me["item_0"] = None
+    trimmed = trim_match(match, ME)
+    facts = facts_from_opendota(trimmed)
+    assert bought_items(facts, constants) is None
+    block, findings = analyze_draft(facts, trimmed, meta, "core")
+    assert block["counters"] and not [f for f in findings if f["id"].startswith("counter")]
+
+
 def test_no_draft_without_the_enemy_lineup(tmp_path):
     finished = []
     tracker = MatchTracker(tmp_path / "live.json", on_finished=finished.append)

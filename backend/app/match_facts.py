@@ -175,7 +175,17 @@ def facts_from_opendota(trimmed: dict[str, Any]) -> dict[str, Any] | None:
             },
             "final_items": [
                 me.get(key)
-                for key in ("item_0", "item_1", "item_2", "item_3", "item_4", "item_5")
+                for key in (
+                    "item_0",
+                    "item_1",
+                    "item_2",
+                    "item_3",
+                    "item_4",
+                    "item_5",
+                    "backpack_0",
+                    "backpack_1",
+                    "backpack_2",
+                )
                 if me.get(key)
             ],
         }

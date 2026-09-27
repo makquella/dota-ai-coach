@@ -76,6 +76,23 @@ def pool_heroes(matches: list[dict[str, Any]], *, limit: int = 5, min_games: int
     return [hero for hero, games in ranked if games >= min_games][:limit]
 
 
+def bought_items(facts: dict[str, Any], constants: dict[str, Any] | None) -> set[str] | None:
+    """Item keys the player had: the purchase log of a parsed replay, else the
+    final inventory (OpenDota gives item ids there). None when neither is known."""
+    log = {item_key(entry.get("item")) for entry in facts.get("items_log") or []}
+    if log:
+        return log
+    by_id = (constants or {}).get("by_id") or {}
+    final = set()
+    for raw in facts.get("final_items") or []:
+        if isinstance(raw, bool):
+            continue
+        key = by_id.get(str(raw)) if isinstance(raw, int) or str(raw).isdigit() else item_key(raw)
+        if key:
+            final.add(key)
+    return final or None
+
+
 def fits_role(
     hero_id: int,
     role: str,
@@ -174,7 +191,10 @@ def analyze_draft(
             )
         )
 
-    bought = {item_key(entry.get("item")) for entry in facts.get("items_log") or []}
+    # Without a purchase log or an inventory nothing is known about the items:
+    # the counters are still shown, but no "missing" advice.
+    known = bought_items(facts, constants)
+    bought = known or set()
     counters = []
     long_game = (facts.get("duration") or 0) >= COUNTER_MIN_DURATION
     for reason, (heroes, items, roles) in COUNTERS.items():
@@ -192,7 +212,7 @@ def analyze_draft(
                 "for_role": role in roles,
             }
         )
-        if role not in roles or not long_game:
+        if role not in roles or not long_game or known is None:
             continue
         params = {"reason": reason, "enemy": ", ".join(threats), "items": ", ".join(names)}
         if has:
