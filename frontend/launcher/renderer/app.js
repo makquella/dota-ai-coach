@@ -215,6 +215,15 @@ const I18N = {
     reportTitle: "Problem report",
     reportHint: "Logs and settings for the developer, without keys",
     reportSave: "Save file",
+    backupTitle: "Match history",
+    backupHint: "Every match, review and AI answer in one file: to keep a copy or move to another computer. Keys are not saved.",
+    backupExport: "Save to file",
+    backupImport: "Load from file",
+    backupSaved: (count, file) => `Saved ${count} matches: ${file}`,
+    backupLoaded: (added, linked) => `Loaded: ${added} new matches${linked ? ", account linked" : ""}. Nothing was overwritten.`,
+    backupNotBackup: "This file is not a Wardly history backup.",
+    backupNewer: "The backup was made by a newer version: update the app first.",
+    backupFailed: "Could not do it: the service is not running or the disk is not available.",
     reportSaving: "Collecting…",
     reportSaved: (name) => `Saved: ${name}. Send this file to the developer.`,
     reportFailed: "Could not save the file",
@@ -511,6 +520,15 @@ const I18N = {
     reportTitle: "Отчёт о проблеме",
     reportHint: "Журналы и настройки для разработчика, без ключей",
     reportSave: "Сохранить файл",
+    backupTitle: "История матчей",
+    backupHint: "Все матчи, разборы и ответы ИИ одним файлом: для копии или переноса на другой компьютер. Ключи не сохраняются.",
+    backupExport: "Сохранить в файл",
+    backupImport: "Загрузить из файла",
+    backupSaved: (count, file) => `Сохранено матчей: ${count}. Файл ${file}`,
+    backupLoaded: (added, linked) => `Загружено новых матчей: ${added}${linked ? ", аккаунт привязан" : ""}. Ничего не перезаписано.`,
+    backupNotBackup: "Это не файл истории Wardly.",
+    backupNewer: "Файл сделан более новой версией: сначала обновите приложение.",
+    backupFailed: "Не получилось: служба не запущена или диск недоступен.",
     reportSaving: "Собираем…",
     reportSaved: (name) => `Сохранено: ${name}. Отправьте этот файл разработчику.`,
     reportFailed: "Не удалось сохранить файл",
@@ -655,6 +673,9 @@ const els = {
   odGet: $("#od-get"),
   odClear: $("#od-clear"),
   reportAction: $("#report-action"),
+  backupExport: $("#backup-export"),
+  backupImport: $("#backup-import"),
+  backupHint: $("#backup-hint"),
   reportHint: $("#report-hint"),
   reportOpen: $("#report-open"),
   reportPanel: $("#report-panel"),
@@ -751,6 +772,7 @@ function applyStaticTexts() {
     element.title = tr(element.dataset.i18nTitle);
     element.setAttribute("aria-label", element.title);
   }
+  els.backupHint.textContent = tr("backupHint");
 }
 
 // ---------------------------------------------------------------------------
@@ -871,6 +893,29 @@ async function init() {
   els.setupDismiss.addEventListener("click", () =>
     run(async () => renderStatus(await window.launcherApi.dismissSetup()))
   );
+  // History backup: one file with every match and review (no keys), merged back on load.
+  const backupButtons = () => [els.backupExport, els.backupImport];
+  async function backupRun(action) {
+    backupButtons().forEach((button) => (button.disabled = true));
+    try {
+      const result = await action();
+      if (result && result.canceled) {
+        els.backupHint.textContent = tr("backupHint");
+        return;
+      }
+      if (result && result.ok) {
+        els.backupHint.textContent = result.path
+          ? tr("backupSaved", result.matches, result.path.split(/[\\/]/).pop())
+          : tr("backupLoaded", result.imported?.matches?.added ?? 0, result.linked);
+      } else {
+        els.backupHint.textContent = tr(result?.code === "not_backup" ? "backupNotBackup" : result?.code === "newer_version" ? "backupNewer" : "backupFailed");
+      }
+    } finally {
+      backupButtons().forEach((button) => (button.disabled = false));
+    }
+  }
+  els.backupExport.addEventListener("click", () => run(() => backupRun(() => window.launcherApi.exportHistory())));
+  els.backupImport.addEventListener("click", () => run(() => backupRun(() => window.launcherApi.importHistory())));
   els.reportAction.addEventListener("click", () =>
     run(async () => {
       els.reportAction.disabled = true;

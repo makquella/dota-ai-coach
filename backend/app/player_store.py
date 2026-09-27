@@ -106,6 +106,11 @@ CREATE TABLE IF NOT EXISTS cache (
 """
 
 
+def _plain(value: Any) -> bool:
+    """A value SQLite stores as it is (backups are JSON: no nested objects)."""
+    return value is None or isinstance(value, (str, int, float))
+
+
 def _now() -> str:
     return datetime.now(UTC).isoformat()
 
@@ -173,6 +178,66 @@ class PlayerStore:
         with self._lock:
             self._set_meta(key, value)
             self._conn.commit()
+
+    # --- backup (history_backup.py): whole rows of a table, merged back -----------
+
+    BACKUP_KEYS = {
+        "players": ("account_id",),
+        "matches": ("account_id", "match_id"),
+        "meta": ("key",),
+        "cache": ("key",),
+    }
+
+    def _columns(self, table: str) -> list[str]:
+        return [row["name"] for row in self._conn.execute(f"PRAGMA table_info({table})")]
+
+    def export_rows(self, table: str) -> list[dict[str, Any]]:
+        if table not in self.BACKUP_KEYS:
+            raise ValueError(table)
+        with self._lock:
+            rows = self._conn.execute(f"SELECT * FROM {table}").fetchall()
+        return [dict(row) for row in rows]
+
+    def import_rows(self, table: str, rows: list[dict[str, Any]]) -> dict[str, int]:
+        """Merge rows: a missing row is added; a stored one only gets the values it
+        lacks (never overwritten). Unknown columns are ignored."""
+        keys = self.BACKUP_KEYS.get(table)
+        if keys is None:
+            raise ValueError(table)
+        added = filled = 0
+        with self._lock:
+            columns = set(self._columns(table))
+            for raw in rows:
+                if not isinstance(raw, dict) or any(raw.get(k) is None for k in keys):
+                    continue
+                row = {k: v for k, v in raw.items() if k in columns and _plain(v)}
+                where = " AND ".join(f"{k} = ?" for k in keys)
+                params = tuple(row[k] for k in keys)
+                stored = self._conn.execute(
+                    f"SELECT * FROM {table} WHERE {where}", params
+                ).fetchone()
+                if stored is None:
+                    names = ", ".join(row)
+                    marks = ", ".join("?" for _ in row)
+                    self._conn.execute(
+                        f"INSERT INTO {table} ({names}) VALUES ({marks})", tuple(row.values())
+                    )
+                    added += 1
+                    continue
+                missing = {
+                    k: v
+                    for k, v in row.items()
+                    if k not in keys and v not in (None, "") and stored[k] in (None, "")
+                }
+                if missing:
+                    sets = ", ".join(f"{k} = ?" for k in missing)
+                    self._conn.execute(
+                        f"UPDATE {table} SET {sets} WHERE {where}",
+                        (*missing.values(), *params),
+                    )
+                    filled += 1
+            self._conn.commit()
+        return {"added": added, "filled": filled}
 
     # --- cache (OpenDota meta data: items, hero builds, bracket win rates) -----
 

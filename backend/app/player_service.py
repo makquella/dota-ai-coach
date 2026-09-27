@@ -63,6 +63,7 @@ from app.finding_history import finding_history
 from app.focus_goal import can_focus, focus_summary, match_result, new_focus, played_after
 from app.friend_compare import compare
 from app.game_plan import build_game_plan
+from app.history_backup import export_backup, import_backup
 from app.match_facts import facts_from_opendota, facts_from_timeline, merge_facts
 from app.match_tracker import MatchTracker, account_from_gsi
 from app.opendota import (
@@ -567,6 +568,19 @@ class PlayerService:
             account_id, limit=MAX_BASELINE_GAMES + 1, hero_id=int(hero_id)
         )
         return personal_baseline({**record, "analysis": analysis}, others)
+
+    # --- history backup (history_backup.py) ---------------------------------------------
+
+    def export_backup(self, app_version: str) -> dict[str, Any]:
+        self.tracker.flush()
+        return export_backup(self.store, app_version)
+
+    def import_backup(self, data: Any) -> dict[str, Any]:
+        result = import_backup(self.store, data)
+        self._plans.clear()  # plans, week and today read the matches again
+        if result["linked"]:
+            self.request_sync()
+        return result
 
     # --- compare with a friend (friend_compare.py) --------------------------------------
 

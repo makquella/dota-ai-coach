@@ -27,13 +27,14 @@ from __future__ import annotations
 
 from typing import Annotated
 
-from fastapi import APIRouter, Path, Query
+from fastapi import APIRouter, Body, Path, Query, Request
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
 from app.advice_i18n import normalize_lang
 from app.coach_llm import env_settings
 from app.config import OPENDOTA_API_KEY, OPENDOTA_API_URL, OPENDOTA_ENABLED, PLAYER_DATA_DIR
+from app.history_backup import BackupError
 from app.opendota import OpenDotaClient
 from app.player_service import PlayerService
 from app.steam_ids import SteamIdError
@@ -142,19 +143,34 @@ def player_week(lang: str = "en"):
     return {"week": PLAYER_SERVICE.week(normalize_lang(lang))}
 
 
+@router.get("/backup", summary="The whole history as one backup (no keys)")
+def export_history(request: Request):
+    return PLAYER_SERVICE.export_backup(str(request.app.version))
+
+
+@router.post("/backup", summary="Merge a history backup (adds, never overwrites)")
+def import_history(data: Annotated[dict, Body()]):
+    try:
+        return PLAYER_SERVICE.import_backup(data)
+    except BackupError as error:
+        return JSONResponse(
+            status_code=400, content={"status": "error", "code": error.code, "detail": str(error)}
+        )
+
+
 class FriendRequest(BaseModel):
     steam: str
 
 
 @router.get("/friend", summary="The player next to a friend (OpenDota)")
-def friend_compare(lang: str = "ru", group: str = "all"):
-    return PLAYER_SERVICE.friend(lang, group)
+def friend_compare(lang: str = "en", group: str = "all"):
+    return PLAYER_SERVICE.friend(normalize_lang(lang), group)
 
 
 @router.post("/friend", summary="Compare with a friend (Steam ID, Friend ID or profile link)")
-def set_friend(request: FriendRequest, lang: str = "ru"):
+def set_friend(request: FriendRequest, lang: str = "en"):
     try:
-        return PLAYER_SERVICE.set_friend(request.steam, lang)
+        return PLAYER_SERVICE.set_friend(request.steam, normalize_lang(lang))
     except SteamIdError as error:
         return JSONResponse(
             status_code=400, content={"status": "error", "code": error.code, "detail": str(error)}
@@ -162,8 +178,8 @@ def set_friend(request: FriendRequest, lang: str = "ru"):
 
 
 @router.post("/friend/refresh", summary="Fetch the friend's matches again")
-def refresh_friend(lang: str = "ru"):
-    return PLAYER_SERVICE.refresh_friend(lang)
+def refresh_friend(lang: str = "en"):
+    return PLAYER_SERVICE.refresh_friend(normalize_lang(lang))
 
 
 @router.delete("/friend", summary="Stop comparing with the friend")

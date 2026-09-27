@@ -40,6 +40,9 @@ contextBridge.exposeInMainWorld("launcherApi", {
   },
   openLogs: () => ipcRenderer.invoke("launcher:open-logs"),
   exportPdf: (kind, id) => ipcRenderer.invoke("launcher:export-pdf", kind, id),
+  // History backup: save to a file / merge a file back (dialogs in the main process).
+  exportHistory: () => ipcRenderer.invoke("launcher:backup-export"),
+  importHistory: () => ipcRenderer.invoke("launcher:backup-import"),
   dismissSetup: () => ipcRenderer.invoke("launcher:dismiss-setup"),
   dismissWhatsNew: () => ipcRenderer.invoke("launcher:dismiss-whats-new"),
   saveProblemReport: () => ipcRenderer.invoke("launcher:save-problem-report"),

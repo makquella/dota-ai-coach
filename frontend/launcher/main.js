@@ -19,6 +19,7 @@ const http = require("node:http");
 const net = require("node:net");
 const os = require("node:os");
 const path = require("node:path");
+const zlib = require("node:zlib");
 
 const { SCHEME: DOTA_ASSET_SCHEME, createAssetHandler } = require("./dota-assets");
 const { createDotaWatcher } = require("./dota-watcher");
@@ -1862,6 +1863,79 @@ async function exportPdf(kind, id) {
 }
 
 // ---------------------------------------------------------------------------
+// History backup: the backend's whole history (no keys) in one gzipped file
+// ---------------------------------------------------------------------------
+
+const BACKUP_TIMEOUT_MS = 180000;
+const BACKUP_MAX_BYTES = 512 * 1024 * 1024;
+
+function backupFailure(error) {
+  const payload = error.payload || {};
+  return {
+    ok: false,
+    code: payload.code || (processStatus.backend !== "running" ? "backend_down" : "failed"),
+    error: payload.detail || error.message
+  };
+}
+
+async function exportHistory() {
+  if (!mainWindow || mainWindow.isDestroyed()) {
+    return { ok: false, code: "no_window" };
+  }
+  const stamp = new Date().toISOString().slice(0, 10);
+  const { canceled, filePath } = await dialog.showSaveDialog(mainWindow, {
+    defaultPath: path.join(reportFolder(), `Wardly-backup-${stamp}.json.gz`),
+    filters: [{ name: "Wardly backup", extensions: ["gz", "json"] }]
+  });
+  if (canceled || !filePath) {
+    return { ok: false, canceled: true };
+  }
+  try {
+    const data = await requestBackendJson("/player/backup", "GET", undefined, BACKUP_TIMEOUT_MS);
+    const text = JSON.stringify(data);
+    fs.writeFileSync(filePath, filePath.toLowerCase().endsWith(".json") ? text : zlib.gzipSync(text));
+    appendLog("launcher", `History backup saved: ${filePath}`, { force: true });
+    shell.showItemInFolder(filePath);
+    return { ok: true, path: filePath, matches: (data.counts && data.counts.matches) || 0 };
+  } catch (error) {
+    appendLog("launcher", `History backup failed: ${error.message}`, { force: true });
+    return backupFailure(error);
+  }
+}
+
+async function importHistory() {
+  if (!mainWindow || mainWindow.isDestroyed()) {
+    return { ok: false, code: "no_window" };
+  }
+  const { canceled, filePaths } = await dialog.showOpenDialog(mainWindow, {
+    defaultPath: reportFolder(),
+    properties: ["openFile"],
+    filters: [{ name: "Wardly backup", extensions: ["gz", "json"] }]
+  });
+  if (canceled || !filePaths || !filePaths[0]) {
+    return { ok: false, canceled: true };
+  }
+  let data;
+  try {
+    let raw = fs.readFileSync(filePaths[0]);
+    if (raw[0] === 0x1f && raw[1] === 0x8b) {
+      raw = zlib.gunzipSync(raw, { maxOutputLength: BACKUP_MAX_BYTES });
+    }
+    data = JSON.parse(raw.toString("utf8"));
+  } catch (error) {
+    return { ok: false, code: "not_backup", error: error.message };
+  }
+  try {
+    const result = await requestBackendJson("/player/backup", "POST", data, BACKUP_TIMEOUT_MS);
+    appendLog("launcher", `History backup loaded: ${filePaths[0]}`, { force: true });
+    return { ok: true, ...result };
+  } catch (error) {
+    appendLog("launcher", `Loading the history backup failed: ${error.message}`, { force: true });
+    return backupFailure(error);
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Advice frequency (sent at backend start and on change)
 // ---------------------------------------------------------------------------
 
@@ -2231,6 +2305,8 @@ function registerIpc() {
     settings.set("setupDismissed", true);
     return publicStatus();
   });
+  ipcMain.handle("launcher:backup-export", () => exportHistory());
+  ipcMain.handle("launcher:backup-import", () => importHistory());
   ipcMain.handle("launcher:export-pdf", (_event, kind, id) =>
     exportPdf(kind === "match" ? "match" : "career", String(id || ""))
   );
