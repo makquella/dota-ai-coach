@@ -6,9 +6,11 @@ A Dota 2 coach for Windows that watches your game with you: short advice over th
 
 Live advice comes from deterministic, tested rules on top of Valve's official Game State Integration (no memory reading, no inputs on your behalf). An optional AI coach (free Google Gemini key) writes the post-match review in plain words, and every number, time, hero and item it writes is checked against the match data.
 
+![The plan for this game over a real Dota 2 match](site/assets/game/ingame-en.jpg)
+
 | Review with the AI coach | Match map | Build timing |
 |---|---|---|
-| ![AI coach review](site/assets/shots/en/coach.jpg) | ![Match map](site/assets/shots/en/map.jpg) | ![Item timing](site/assets/shots/en/build.jpg) |
+| ![AI coach review](site/assets/app/en/review-ai.jpg) | ![Match map](site/assets/shots/en/map.jpg) | ![Item timing](site/assets/shots/en/build.jpg) |
 
 ## Features
 

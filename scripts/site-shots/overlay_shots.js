@@ -4,6 +4,29 @@
 const fs = require("node:fs");
 const path = require("node:path");
 const { chromium } = require("playwright");
+const { createAssetHandler } = require("../../frontend/launcher/dota-assets");
+
+// Hero portraits and item icons: the app loads them from dota-asset:// (its
+// main process). Here the same handler (dota-assets.js) serves them from a disk
+// cache, downloading from Valve's CDN once. Node's fetch needs
+// NODE_USE_ENV_PROXY=1 behind a proxy.
+const assets = createAssetHandler({ root: process.env.ASSET_CACHE || path.join(require("node:os").tmpdir(), "dota-assets"), fetchImpl: fetch });
+
+async function serveDotaAssets(page) {
+  await page.addInitScript(() => {
+    const descriptor = Object.getOwnPropertyDescriptor(HTMLImageElement.prototype, "src");
+    Object.defineProperty(HTMLImageElement.prototype, "src", {
+      ...descriptor,
+      set(value) {
+        descriptor.set.call(this, String(value).replace(/^dota-asset:\/\//, "https://dota-asset.local/"));
+      }
+    });
+  });
+  await page.route("https://dota-asset.local/**", async (route) => {
+    const response = await assets({ url: route.request().url().replace("https://dota-asset.local/", "dota-asset://") });
+    await route.fulfill({ status: response.status, contentType: "image/png", body: Buffer.from(await response.arrayBuffer()) });
+  });
+}
 
 const [outDir = "out", APP = "http://127.0.0.1:8766"] = process.argv.slice(2);
 const cases = JSON.parse(fs.readFileSync(path.join(__dirname, "overlay_cases.json"), "utf8"));
@@ -15,6 +38,7 @@ const cases = JSON.parse(fs.readFileSync(path.join(__dirname, "overlay_cases.jso
     for (const [name, data] of Object.entries(entries)) {
       const page = await browser.newPage({ viewport: { width: 420, height: 320 }, deviceScaleFactor: 2 });
       page.on("pageerror", (error) => console.error(`${lang}/${name}:`, error.message));
+      await serveDotaAssets(page);
       await page.addInitScript(([locale, answer]) => {
         window.overlayApi = {
           getConfig: async () => ({ locale, backendStatus: "running", locked: true, voice: "off", autoHideMs: 1e9, urgentAutoHideMs: 1e9 }),

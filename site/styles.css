@@ -267,18 +267,6 @@ p {
   padding: 88px 0 120px;
   overflow: hidden;
 }
-.hero::before {
-  /* The Dota map, barely visible behind the app. */
-  content: "";
-  position: absolute;
-  inset: -10% -5% 0 45%;
-  background: url("assets/game/map.jpg") center / cover no-repeat;
-  opacity: 0.09;
-  filter: saturate(0.6) blur(1px);
-  mask-image: radial-gradient(closest-side, #000 40%, transparent);
-  -webkit-mask-image: radial-gradient(closest-side, #000 40%, transparent);
-  pointer-events: none;
-}
 .hero-grid {
   position: relative;
   display: grid;
@@ -382,14 +370,21 @@ h1 span {
   right: -14%;
   opacity: 0.5;
 }
+.win-game {
+  width: 96%;
+  top: 0;
+  right: -20%;
+  opacity: 1;
+}
 .win-mid {
   top: 9%;
   right: 2%;
   opacity: 0.75;
 }
 .win-front {
-  top: 19%;
-  right: 18%;
+  top: 30%;
+  right: 30%;
+  width: 66%;
 }
 .hero-card {
   position: absolute;
@@ -416,7 +411,7 @@ h1 span {
 }
 .section-head {
   text-align: center;
-  max-width: 760px;
+  max-width: 900px;
   margin: 0 auto 64px;
 }
 h2 {
@@ -449,8 +444,7 @@ h2 {
   background: var(--card-hover);
   border-color: var(--line-strong);
 }
-.tile-art,
-.step-game {
+.tile-art {
   position: relative;
   display: grid;
   place-items: center;
@@ -461,18 +455,20 @@ h2 {
   background: #111;
   isolation: isolate;
 }
-.tile-art::before,
-.step-game::before {
+.tile-art::before {
+  /* A frame of the real game behind the card. */
   content: "";
   position: absolute;
   inset: 0;
   z-index: -1;
-  background: url("assets/game/map.jpg") var(--x, 50%) var(--y, 50%) / 190% no-repeat;
-  filter: brightness(0.42) saturate(0.8) blur(1.5px);
+  background: var(--bg) center / cover no-repeat;
+  filter: brightness(0.62) saturate(0.95);
+  transition: transform 600ms var(--ease);
+}
+.tile:hover .tile-art::before {
   transform: scale(1.04);
 }
-.tile-art img,
-.step-game img {
+.tile-art img {
   width: 100%;
   max-width: 404px;
   filter: drop-shadow(0 10px 24px rgba(0, 0, 0, 0.55));
@@ -527,7 +523,15 @@ h2 {
   width: 100%;
 }
 .step-crop {
-  aspect-ratio: 1184 / 646;
+  aspect-ratio: 1184 / 900;
+}
+.step-crop.fit {
+  display: grid;
+  place-items: center;
+  background: #111214;
+}
+.step-crop.fit > img {
+  height: auto;
 }
 .step-crop > img {
   height: 100%;
@@ -535,8 +539,14 @@ h2 {
   object-position: top left;
 }
 .step-game {
-  aspect-ratio: 16 / 11;
-  border: 1px solid var(--line-strong);
+  padding: 0;
+  display: block;
+}
+.step-game img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: right top;
 }
 .step figcaption {
   margin: 22px auto 0;
@@ -651,9 +661,10 @@ h2 {
   position: absolute;
   inset: 0;
   z-index: -1;
-  background: url("assets/game/map.jpg") center 40% / cover no-repeat;
-  opacity: 0.05;
-  filter: blur(2px);
+  background: url("assets/game/chrono.jpg") center / cover no-repeat;
+  opacity: 0.1;
+  filter: blur(3px) saturate(0.7);
+  transform: scale(1.05);
 }
 .final-inner p {
   margin: 18px auto 36px;
@@ -783,5 +794,54 @@ h2 {
   .js .reveal {
     opacity: 1;
     transform: none;
+  }
+}
+
+/* The 21 carries with the full advisor: real portraits. */
+.heroes {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 12px;
+}
+.heroes li {
+  position: relative;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  background: var(--card);
+  border: 1px solid var(--line);
+}
+.heroes img {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+  transition: transform 300ms var(--ease);
+}
+.heroes li:hover img {
+  transform: scale(1.06);
+}
+.heroes span {
+  position: absolute;
+  inset: auto 0 0;
+  padding: 18px 8px 6px;
+  background: linear-gradient(transparent, rgba(0, 0, 0, 0.85));
+  font-size: 12px;
+  font-weight: 600;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+@media (max-width: 1080px) {
+  .heroes {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+}
+@media (max-width: 720px) {
+  .heroes {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
   }
 }

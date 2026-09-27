@@ -83,8 +83,7 @@
           </div>
 
           <div class="hero-stage" aria-hidden="true">
-            <figure class="win win-back"><img src="assets/app/ru/progress.jpg" data-img="progress" alt="" width="1080" height="930" /></figure>
-            <figure class="win win-mid"><img src="assets/app/ru/matches.jpg" data-img="matches" alt="" width="1080" height="930" /></figure>
+            <figure class="win win-back win-game"><img src="assets/game/ingame-ru.jpg" data-game="ingame" alt="" width="1600" height="900" /></figure>
             <figure class="win win-front"><img src="assets/app/ru/review-ai.jpg" data-img="review-ai" alt="" width="1080" height="930" /></figure>
             <img class="hero-card" src="assets/overlay/ru/lowhp.webp" data-ov="lowhp" alt="" width="756" />
           </div>
@@ -92,7 +91,7 @@
       </section>
 
       <!-- In game: the real overlay cards. -->
-      <section class="section" id="ingame">
+      <section class="section section-alt" id="ingame">
         <div class="wrap">
           <header class="section-head">
             <h2 data-i18n="ingameTitle">Подсказки прямо в игре</h2>
@@ -100,32 +99,32 @@
           </header>
           <div class="tiles">
             <article class="tile">
-              <div class="tile-art" style="--x: 18%; --y: 78%"><img src="assets/overlay/ru/lowhp.webp" data-ov="lowhp" alt="" loading="lazy" data-i18n-alt="lowhpAlt" /></div>
+              <div class="tile-art" style="--bg: url(assets/game/fight.jpg)"><img src="assets/overlay/ru/lowhp.webp" data-ov="lowhp" alt="" loading="lazy" data-i18n-alt="lowhpAlt" /></div>
               <h3 data-i18n="lowhpTitle">Мало HP</h3>
               <p data-i18n="lowhpText">Срочная подсказка сразу, пока ещё можно уйти. Остальные — с паузами, чтобы не отвлекать.</p>
             </article>
             <article class="tile">
-              <div class="tile-art" style="--x: 50%; --y: 50%"><img src="assets/overlay/ru/plan.webp" data-ov="plan" alt="" loading="lazy" data-i18n-alt="planAlt" /></div>
+              <div class="tile-art" style="--bg: url(assets/game/base.jpg)"><img src="assets/overlay/ru/plan.webp" data-ov="plan" alt="" loading="lazy" data-i18n-alt="planAlt" /></div>
               <h3 data-i18n="planTitle">План на игру</h3>
               <p data-i18n="planText">С пика до 1:30: сколько добиваний нужно к 10:00, ключевой предмет и твоя частая ошибка.</p>
             </article>
             <article class="tile">
-              <div class="tile-art" style="--x: 82%; --y: 22%"><img src="assets/overlay/ru/farm.webp" data-ov="farm" alt="" loading="lazy" data-i18n-alt="farmAlt" /></div>
+              <div class="tile-art" style="--bg: url(assets/game/forest.jpg)"><img src="assets/overlay/ru/farm.webp" data-ov="farm" alt="" loading="lazy" data-i18n-alt="farmAlt" /></div>
               <h3 data-i18n="farmTitle">Отставание по фарму</h3>
               <p data-i18n="farmText">С цифрами: сколько добиваний у тебя и какой темп хороший на этой минуте.</p>
             </article>
             <article class="tile">
-              <div class="tile-art" style="--x: 30%; --y: 35%"><img src="assets/overlay/ru/tp.webp" data-ov="tp" alt="" loading="lazy" data-i18n-alt="tpAlt" /></div>
+              <div class="tile-art" style="--bg: url(assets/game/hook.jpg)"><img src="assets/overlay/ru/tp.webp" data-ov="tp" alt="" loading="lazy" data-i18n-alt="tpAlt" /></div>
               <h3 data-i18n="tpTitle">Свиток телепортации</h3>
               <p data-i18n="tpText">После 10-й минуты напомнит, если ТП нет больше минуты: без него не успеть ни в драку, ни к башне.</p>
             </article>
             <article class="tile">
-              <div class="tile-art" style="--x: 70%; --y: 65%"><img src="assets/overlay/ru/spend.webp" data-ov="spend" alt="" loading="lazy" data-i18n-alt="spendAlt" /></div>
+              <div class="tile-art" style="--bg: url(assets/game/dark.jpg)"><img src="assets/overlay/ru/spend.webp" data-ov="spend" alt="" loading="lazy" data-i18n-alt="spendAlt" /></div>
               <h3 data-i18n="spendTitle">Золото после смерти</h3>
               <p data-i18n="spendText">Умер с лишним золотом — сразу купи части следующего предмета. После 30-й минуты оставит на байбэк.</p>
             </article>
             <article class="tile">
-              <div class="tile-art" style="--x: 88%; --y: 12%"><img src="assets/overlay/ru/buyback.webp" data-ov="buyback" alt="" loading="lazy" data-i18n-alt="buybackAlt" /></div>
+              <div class="tile-art" style="--bg: url(assets/game/chrono.jpg)"><img src="assets/overlay/ru/buyback.webp" data-ov="buyback" alt="" loading="lazy" data-i18n-alt="buybackAlt" /></div>
               <h3 data-i18n="buybackTitle">Байбэк</h3>
               <p data-i18n="buybackText">Потратил золото на байбэк в поздней игре — тренер скажет нафармить его обратно.</p>
             </article>
@@ -134,6 +133,40 @@
             <svg class="i" aria-hidden="true"><use href="#i-volume" /></svg>
             <span data-i18n="voiceNote">Советы можно слушать голосом Windows — их слышно даже в полноэкранном режиме, где карточку не видно.</span>
           </p>
+        </div>
+      </section>
+
+      <!-- Heroes: the full advisor. -->
+      <section class="section" id="heroes">
+        <div class="wrap">
+          <header class="section-head">
+            <h2 data-i18n="heroesTitle">Полные подсказки для 21 керри</h2>
+            <p class="sub" data-i18n="heroesSub">Фарм, предметы, цели и способности. На любом другом герое — подсказки по выживанию.</p>
+          </header>
+          <ul class="heroes">
+            <li><img src="assets/heroes/antimage.webp" alt="" width="256" height="144" loading="lazy" /><span>Anti-Mage</span></li>
+            <li><img src="assets/heroes/drow_ranger.webp" alt="" width="256" height="144" loading="lazy" /><span>Drow Ranger</span></li>
+            <li><img src="assets/heroes/ember_spirit.webp" alt="" width="256" height="144" loading="lazy" /><span>Ember Spirit</span></li>
+            <li><img src="assets/heroes/gyrocopter.webp" alt="" width="256" height="144" loading="lazy" /><span>Gyrocopter</span></li>
+            <li><img src="assets/heroes/juggernaut.webp" alt="" width="256" height="144" loading="lazy" /><span>Juggernaut</span></li>
+            <li><img src="assets/heroes/kez.webp" alt="" width="256" height="144" loading="lazy" /><span>Kez</span></li>
+            <li><img src="assets/heroes/life_stealer.webp" alt="" width="256" height="144" loading="lazy" /><span>Lifestealer</span></li>
+            <li><img src="assets/heroes/luna.webp" alt="" width="256" height="144" loading="lazy" /><span>Luna</span></li>
+            <li><img src="assets/heroes/medusa.webp" alt="" width="256" height="144" loading="lazy" /><span>Medusa</span></li>
+            <li><img src="assets/heroes/monkey_king.webp" alt="" width="256" height="144" loading="lazy" /><span>Monkey King</span></li>
+            <li><img src="assets/heroes/morphling.webp" alt="" width="256" height="144" loading="lazy" /><span>Morphling</span></li>
+            <li><img src="assets/heroes/muerta.webp" alt="" width="256" height="144" loading="lazy" /><span>Muerta</span></li>
+            <li><img src="assets/heroes/naga_siren.webp" alt="" width="256" height="144" loading="lazy" /><span>Naga Siren</span></li>
+            <li><img src="assets/heroes/phantom_assassin.webp" alt="" width="256" height="144" loading="lazy" /><span>Phantom Assassin</span></li>
+            <li><img src="assets/heroes/phantom_lancer.webp" alt="" width="256" height="144" loading="lazy" /><span>Phantom Lancer</span></li>
+            <li><img src="assets/heroes/slark.webp" alt="" width="256" height="144" loading="lazy" /><span>Slark</span></li>
+            <li><img src="assets/heroes/sniper.webp" alt="" width="256" height="144" loading="lazy" /><span>Sniper</span></li>
+            <li><img src="assets/heroes/spectre.webp" alt="" width="256" height="144" loading="lazy" /><span>Spectre</span></li>
+            <li><img src="assets/heroes/sven.webp" alt="" width="256" height="144" loading="lazy" /><span>Sven</span></li>
+            <li><img src="assets/heroes/terrorblade.webp" alt="" width="256" height="144" loading="lazy" /><span>Terrorblade</span></li>
+            <li><img src="assets/heroes/ursa.webp" alt="" width="256" height="144" loading="lazy" /><span>Ursa</span></li>
+          </ul>
+          <p class="note" data-i18n="heroesNote">Разбор матча, карта, сборка и прогресс работают для всех 127 героев.</p>
         </div>
       </section>
 
@@ -150,7 +183,7 @@
               <figcaption data-i18n="step1">Запусти Доту — тренер увидит матч сам через официальную интеграцию Valve</figcaption>
             </figure>
             <figure class="step">
-              <div class="step-shot step-game" style="--x: 40%; --y: 60%"><img src="assets/overlay/ru/lowhp.webp" data-ov="lowhp" alt="" loading="lazy" data-i18n-alt="step2Alt" /></div>
+              <div class="step-shot step-game"><img src="assets/game/ingame-ru.jpg" data-game="ingame" alt="" loading="lazy" data-i18n-alt="step2Alt" /></div>
               <figcaption data-i18n="step2">Играй: короткая подсказка появится поверх игры, когда она нужна</figcaption>
             </figure>
             <figure class="step">
@@ -204,7 +237,7 @@
               <figcaption data-i18n="buildCap">Сборка: процент побед по времени покупки каждого предмета и сборка про-игроков</figcaption>
             </figure>
             <figure class="step">
-              <div class="step-shot step-crop"><img src="assets/shots/ru/chart.jpg" data-shot="chart" alt="" loading="lazy" data-i18n-alt="chartAlt" /></div>
+              <div class="step-shot step-crop fit"><img src="assets/shots/ru/chart.jpg" data-shot="chart" alt="" loading="lazy" data-i18n-alt="chartAlt" /></div>
               <figcaption data-i18n="chartCap">Добивания, золото и опыт по минутам против хорошего темпа, со смертями на графике</figcaption>
             </figure>
           </div>
@@ -275,7 +308,7 @@
           <a href="https://github.com/makquella/dota-ai-coach/issues" rel="noopener" data-i18n="footerIssues">Сообщить о проблеме</a>
         </nav>
         <p class="footer-legal" data-i18n="legal">
-          Dota 2 — товарный знак Valve Corporation. Проект не связан с Valve и не одобрен ею. Карта Доты — из открытых ресурсов OpenDota.
+          Dota 2 — товарный знак Valve Corporation. Проект не связан с Valve и не одобрен ею. Кадры игры — со страницы Dota 2 в Steam, портреты — Valve.
         </p>
       </div>
     </footer>

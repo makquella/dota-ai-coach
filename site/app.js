@@ -46,13 +46,16 @@
     buybackTitle: "Buyback",
     buybackText: "Spent your buyback gold late in the game? The coach tells you to farm it back.",
     buybackAlt: "Advice to farm back the buyback gold",
+    heroesTitle: "Full advice for 21 carries",
+    heroesSub: "Farm, items, objectives and abilities. On any other hero, advice to survive.",
+    heroesNote: "Match reviews, the map, the build and progress work for all 127 heroes.",
     voiceNote: "Advice can be spoken with the Windows voice — heard even in exclusive fullscreen, where the card cannot be shown.",
     howTitle: "Install it and play",
     howSub: "No accounts, no setup. The app connects to Dota by itself.",
     step1: "Start Dota — the coach sees the match by itself through Valve's official integration",
     step1Alt: "The app sees the match: Juggernaut, 18:54",
     step2: "Play: short advice shows over the game when you need it",
-    step2Alt: "Advice card over the game",
+    step2Alt: "The plan for this game over a real Dota 2 match",
     step3: "After the match open the review: the score, your mistakes and what to do next game",
     step3Alt: "Match review",
     reviewTitle: "Your personal coach after every match",
@@ -94,7 +97,7 @@
     footerReleases: "Releases",
     footerIssues: "Report a problem",
     legal:
-      "Dota 2 is a trademark of Valve Corporation. This project is not affiliated with or endorsed by Valve. The Dota map is from OpenDota's open assets.",
+      "Dota 2 is a trademark of Valve Corporation. This project is not affiliated with or endorsed by Valve. Game frames are from the Dota 2 Steam page; hero portraits are Valve's.",
     version: (v, mb) => `Version ${v} · Windows 10 and 11 · ${mb} MB`
   };
   const RU = {};
@@ -150,6 +153,9 @@
     });
     document.querySelectorAll("img[data-ov]").forEach((img) => {
       img.src = `assets/overlay/${lang}/${img.dataset.ov}.webp`;
+    });
+    document.querySelectorAll("img[data-game]").forEach((img) => {
+      img.src = `assets/game/${img.dataset.game}-${lang}.jpg`;
     });
     document.querySelectorAll("img[data-shot]").forEach((img) => {
       img.src = `assets/shots/${lang}/${img.dataset.shot}.jpg`;
@@ -228,7 +234,7 @@
   window.addEventListener("scroll", onScroll, { passive: true });
   onScroll();
 
-  const revealed = document.querySelectorAll(".section-head, .tile, .step, .split-copy, .split-stage, .final-inner");
+  const revealed = document.querySelectorAll(".section-head, .tile, .step, .split-copy, .split-stage, .heroes, .final-inner");
   if ("IntersectionObserver" in window) {
     const observer = new IntersectionObserver(
       (entries) => {

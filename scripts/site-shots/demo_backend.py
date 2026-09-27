@@ -21,7 +21,7 @@ os.environ["OPENDOTA_ENABLED"] = "false"
 
 import uvicorn  # noqa: E402
 from fastapi.testclient import TestClient  # noqa: E402
-from match_fixtures import ME, FakeOpenDota, recent_matches  # noqa: E402
+from match_fixtures import ME, FakeOpenDota, gsi_match_stream, recent_matches  # noqa: E402
 
 from app.main import app  # noqa: E402
 from app.player_api import PLAYER_SERVICE  # noqa: E402
@@ -41,8 +41,13 @@ def main() -> None:
     PLAYER_SERVICE.configure(data / "svc", client=fake, auto_start=False, llm=DemoLLM())
     with TestClient(app) as client:
         client.post("/player/link", json={"steam": str(ME)})
-        PLAYER_SERVICE.jobs.run_pending(until=float("inf"))
+        # The first match was also recorded live: the hero's path and deaths on the map.
         first = recent[0]["match_id"]
+        for payload in gsi_match_stream(
+            match_id=first, minutes=38, positions=True, win=False, death_minutes=(4, 7, 18, 19, 20)
+        ):
+            client.post("/gsi", json=payload)
+        PLAYER_SERVICE.jobs.run_pending(until=float("inf"))
         for lang in ("ru", "en"):
             for path in (
                 f"/player/matches/{first}?lang={lang}",

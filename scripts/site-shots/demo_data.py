@@ -119,9 +119,20 @@ def vary(recent: list[dict[str, Any]]) -> dict[int, dict[str, Any]]:
     for index, row in enumerate(recent):
         good = row["radiant_win"]
         if index == 0:
-            matches[row["match_id"]] = opendota_match(
-                good=good, match_id=row["match_id"]
-            )
+            match = opendota_match(good=good, match_id=row["match_id"])
+            me = match["players"][0]
+            # A parsed replay's wards and laning position, for the match map.
+            me["obs_log"] = [
+                {"time": 130, "x": 118, "y": 112},
+                {"time": 900, "x": 150, "y": 96},
+                {"time": 1500, "x": 104, "y": 140},
+            ]
+            me["sen_log"] = [{"time": 610, "x": 131, "y": 118}]
+            me["lane_pos"] = {
+                str(x): {str(y): 4 + (x * 7 + y * 3) % 23 for y in range(74, 86, 2)}
+                for x in range(150, 176, 2)
+            }
+            matches[row["match_id"]] = match
             row.update(hero_id=8)
             continue
         duration = rnd.randrange(28, 52) * 60
