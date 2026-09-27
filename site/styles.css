@@ -947,6 +947,16 @@ h3 {
   font-size: 15px;
 }
 
+.step code {
+  padding: 1px 6px;
+  border-radius: 6px;
+  background: var(--surface-2);
+  color: var(--text);
+  font-family: ui-monospace, "Cascadia Mono", Consolas, monospace;
+  font-size: 13px;
+  white-space: nowrap;
+}
+
 .step-n {
   display: inline-grid;
   place-items: center;
@@ -1225,87 +1235,7 @@ h3 {
 
   .steps,
   .trust-grid,
-  /* Fact-check and versus mocks inside text tiles */
-
-.check,
-.versus {
-  display: grid;
-  gap: 8px;
-  margin-top: auto;
-  padding-top: 8px;
-}
-
-.check-line {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 10px 12px;
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  background: var(--bg-2);
-  color: var(--text-2) !important;
-  font-size: 14px !important;
-}
-
-.check-mark {
-  display: inline-grid;
-  place-items: center;
-  width: 20px;
-  height: 20px;
-  flex: none;
-  border-radius: 50%;
-  font-size: 11px;
-  font-weight: 700;
-}
-
-.check-line.is-ok .check-mark {
-  background: rgba(76, 195, 138, 0.15);
-  color: var(--ok);
-}
-
-.check-line.is-bad .check-mark {
-  background: rgba(235, 111, 111, 0.15);
-  color: var(--error);
-}
-
-.check-line.is-bad span:last-child {
-  text-decoration: line-through;
-  text-decoration-color: rgba(235, 111, 111, 0.6);
-}
-
-.versus p {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 44px 44px 52px;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 12px;
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  background: var(--bg-2);
-  font-size: 14px !important;
-}
-
-.versus b {
-  color: var(--text);
-  font-weight: 600;
-  text-align: right;
-}
-
-.versus b.muted {
-  color: var(--text-3);
-}
-
-.versus em {
-  font-style: normal;
-  font-weight: 600;
-  text-align: right;
-}
-
-.versus em.bad {
-  color: var(--error);
-}
-
-.mini-features {
+  .mini-features {
     grid-template-columns: minmax(0, 1fr);
   }
 

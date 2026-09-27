@@ -27,7 +27,7 @@ After the match
 
 App
 - One-click installer, auto-update (never while Dota runs), tray, start with Windows.
-- Finds Dota and installs the GSI config itself; a first-run checklist shows what is left.
+- Finds Dota and installs the GSI config itself; checks Steam's saved launch options for `-gamestateintegration` (Dota sends no game data without it) and says how to add it; a first-run checklist shows what is left.
 - Match history from the app's own recording plus OpenDota (optional API key for faster sync).
 - One-click problem report for bug reports (keys removed).
 - Russian and English.

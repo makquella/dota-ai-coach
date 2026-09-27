@@ -43,6 +43,8 @@ const I18N = {
       waitingTitle: "Ready, waiting for a match",
       waitingHintConnected: "Advice starts as soon as a match with your hero begins.",
       waitingHintNoData: "If a match is already on, restart Dota: it reads the GSI config at start.",
+      launchOptionTitle: "Dota is not sending game data",
+      launchOptionHint: "Add -gamestateintegration to Dota 2 launch options (Steam → Dota 2 → Properties → Launch options), then restart the game.",
       inGameTitle: (hero, clock) => `In game: ${[hero, clock].filter(Boolean).join(", ")}`,
       inGameHint: "Advice appears over the game while Dota is the active window.",
       inGameOverlayOff: "The overlay is off, advice shows only here.",
@@ -56,7 +58,9 @@ const I18N = {
       start: "Start service",
       install: "Install config",
       chooseDota: "Choose Dota folder",
-      fullscreenSeen: "I can see the advice"
+      fullscreenSeen: "I can see the advice",
+      copyLaunchOption: "Copy option",
+      copied: "Copied"
     },
     matchTitle: "Current match",
     coverageSafety: "Full advice (farm, items, objectives) is for carry heroes; this hero gets survival advice only.",
@@ -147,11 +151,12 @@ const I18N = {
       service: ["The coach service is running", "Starts with the app; restart it in Settings → «For developers» if it stopped."],
       dota: ["Dota 2 found", "Not in your Steam libraries: point to the game folder."],
       gsi: ["Game data config installed", "A small file in the Dota folder that lets the game share match data."],
+      launch: ["Launch option -gamestateintegration", "Without it Dota does not share game data. Steam → Dota 2 → Properties → Launch options: add -gamestateintegration."],
       data: ["First data from Dota received", "Start Dota 2 (or restart it after installing the config) and open any match, bots are fine."],
       account: ["Steam account linked", "Linked by itself in the first match, or enter it on the Matches tab."],
       ai: ["AI coach (optional)", "A free Gemini key writes a coach review of every match."]
     },
-    setupActions: { dota: "Choose folder", gsi: "Install", account: "Link", ai: "Set up" },
+    setupActions: { dota: "Choose folder", gsi: "Install", launch: "Copy", account: "Link", ai: "Set up" },
     reportTitle: "Problem report",
     reportHint: "Saves one file with logs for the developer, without keys",
     reportSave: "Save",
@@ -263,6 +268,8 @@ const I18N = {
       waitingTitle: "Готово, ждём матч",
       waitingHintConnected: "Подсказки начнутся, как только стартует матч с вашим героем.",
       waitingHintNoData: "Если матч уже идёт, перезапустите Доту: конфиг GSI читается при старте игры.",
+      launchOptionTitle: "Дота не передаёт данные игры",
+      launchOptionHint: "Добавьте -gamestateintegration в параметры запуска Dota 2 (Steam → Dota 2 → Свойства → Параметры запуска) и перезапустите игру.",
       inGameTitle: (hero, clock) => `В игре: ${[hero, clock].filter(Boolean).join(", ")}`,
       inGameHint: "Подсказки появляются поверх игры, пока окно Доты активно.",
       inGameOverlayOff: "Оверлей выключен — подсказки видны только здесь.",
@@ -276,7 +283,9 @@ const I18N = {
       start: "Запустить сервис",
       install: "Установить конфиг",
       chooseDota: "Указать папку Доты",
-      fullscreenSeen: "Подсказки видны"
+      fullscreenSeen: "Подсказки видны",
+      copyLaunchOption: "Скопировать параметр",
+      copied: "Скопировано"
     },
     matchTitle: "Текущий матч",
     coverageSafety: "Полные советы (фарм, предметы, цели) — для керри; на этом герое тренер подсказывает только по выживанию.",
@@ -367,11 +376,12 @@ const I18N = {
       service: ["Сервис тренера запущен", "Запускается вместе с приложением; если остановился, перезапустите в «Настройки → Для разработчика»."],
       dota: ["Dota 2 найдена", "Игры нет в библиотеках Steam — укажите папку игры."],
       gsi: ["Конфиг данных игры установлен", "Небольшой файл в папке Доты, через который игра передаёт данные матча."],
+      launch: ["Параметр запуска -gamestateintegration", "Без него Дота не передаёт данные. Steam → Dota 2 → Свойства → Параметры запуска: добавьте -gamestateintegration."],
       data: ["Первые данные из Доты получены", "Запустите Dota 2 (или перезапустите после установки конфига) и зайдите в любой матч, можно с ботами."],
       account: ["Аккаунт Steam привязан", "Привяжется сам в первом матче, или укажите его на вкладке «Матчи»."],
       ai: ["ИИ-тренер (по желанию)", "Бесплатный ключ Gemini — и к каждому матчу будет разбор тренера."]
     },
-    setupActions: { dota: "Указать папку", gsi: "Установить", account: "Привязать", ai: "Настроить" },
+    setupActions: { dota: "Указать папку", gsi: "Установить", launch: "Скопировать", account: "Привязать", ai: "Настроить" },
     reportTitle: "Отчёт о проблеме",
     reportHint: "Сохранит файл с журналами для разработчика, без ключей",
     reportSave: "Сохранить",
@@ -622,6 +632,9 @@ async function init() {
     els.statusAction.disabled = true;
     await run(action.run);
     els.statusAction.disabled = false;
+    if (action.doneLabel) {
+      flashLabel(els.statusActionLabel, action.doneLabel);
+    }
   });
   els.overlayToggle.addEventListener("change", () =>
     run(() => (els.overlayToggle.checked ? window.launcherApi.startOverlay() : window.launcherApi.stopOverlay()))
@@ -727,6 +740,17 @@ async function init() {
 
   renderLogs(await window.launcherApi.getLogs());
   renderStatus(await window.launcherApi.getStatus());
+}
+
+// "Copied" for a moment, then the label the next render gives it.
+function flashLabel(element, text) {
+  const previous = element.textContent;
+  element.textContent = text;
+  setTimeout(() => {
+    if (element.textContent === text) {
+      element.textContent = previous;
+    }
+  }, 1600);
 }
 
 async function run(handler) {
@@ -852,6 +876,10 @@ function setupSteps(status) {
     { id: "service", done: status.backend === "running" },
     { id: "dota", done: Boolean(status.dotaDir || status.dotaRunning || dataSeen), action: () => window.launcherApi.chooseDotaFolder() },
     { id: "gsi", done: status.gsiConfig === "installed" || dataSeen, action: () => window.launcherApi.installGsi("") },
+    // Shown only when Steam's saved settings could be read.
+    ...(status.launchOption === "ok" || status.launchOption === "missing"
+      ? [{ id: "launch", done: status.launchOption === "ok" || dataSeen, action: () => window.launcherApi.copyLaunchOption() }]
+      : []),
     { id: "data", done: dataSeen },
     { id: "account", done: Boolean(player.linked), action: () => window.PlayerViews?.setView("matches") },
     {
@@ -910,7 +938,12 @@ function renderSetup(status) {
         button.type = "button";
         button.className = step === next && !step.optional ? "btn btn-primary btn-sm" : "btn btn-sm";
         button.textContent = tr(`setupActions.${step.id}`);
-        button.addEventListener("click", () => run(step.action));
+        button.addEventListener("click", async () => {
+          await run(step.action);
+          if (step.id === "launch") {
+            flashLabel(button, tr("actions.copied"));
+          }
+        });
         item.append(button);
       }
       return item;
@@ -955,7 +988,8 @@ function resolveStatusLine(status) {
     start: { label: tr("actions.start"), icon: "play", run: () => api.startBackend() },
     install: { label: tr("actions.install"), icon: "download", run: () => installGsi("") },
     chooseDota: { label: tr("actions.chooseDota"), icon: "folder-search", run: () => api.chooseDotaFolder() },
-    fullscreenSeen: { label: tr("actions.fullscreenSeen"), icon: "eye", run: () => api.dismissFullscreenWarning() }
+    fullscreenSeen: { label: tr("actions.fullscreenSeen"), icon: "eye", run: () => api.dismissFullscreenWarning() },
+    copyLaunchOption: { label: tr("actions.copyLaunchOption"), icon: "copy", run: () => api.copyLaunchOption(), doneLabel: tr("actions.copied") }
   };
 
   if (isLoading(status)) {
@@ -990,6 +1024,10 @@ function resolveStatusLine(status) {
   }
   if (!status.dotaRunning) {
     return { state: "idle", title: tr("status.notRunningTitle"), hint: tr("status.notRunningHint") };
+  }
+  if (!live.connected && status.launchOption === "missing") {
+    // Dota runs, the config is there, but nothing arrives: the usual cause.
+    return { state: "warn", title: tr("status.launchOptionTitle"), hint: tr("status.launchOptionHint"), action: actions.copyLaunchOption };
   }
   return {
     state: "warn",

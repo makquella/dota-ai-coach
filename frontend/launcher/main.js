@@ -22,7 +22,13 @@ const { createOverlayController, OVERLAY_DEFAULTS } = require("./overlay-window"
 const { buildReport, reportFileName } = require("./problem-report");
 const { DOTA_STATUS, dotaStatus, overlayVisibility } = require("./overlay-visibility");
 const { createSettingsStore } = require("./settings");
-const { dotaDirFromExecutable, gsiDirForDotaDir, locateDota } = require("./steam-locator");
+const {
+  GSI_LAUNCH_OPTION,
+  checkLaunchOptions,
+  dotaDirFromExecutable,
+  gsiDirForDotaDir,
+  locateDota
+} = require("./steam-locator");
 const { createUpdater, UPDATE_STATUS } = require("./updater");
 
 const APP_ID = "com.dotaai.coach";
@@ -124,6 +130,8 @@ let currentDemoPreset = "";
 let recordingStatus = "stopped";
 let launcherLogStream = null;
 let dotaInstall = { steamRoots: [], libraries: [], dotaDir: "", gsiDir: "", source: "not searched" };
+// Does Dota start with -gamestateintegration (read from Steam's saved settings)?
+let launchOptions = { state: "unknown", accountId: null };
 let dotaInstallLogged = false;
 let dotaLocatePromise = null;
 let autoInstallRunning = false;
@@ -165,11 +173,17 @@ const overlay = createOverlayController({
 const dotaWatcher = createDotaWatcher({
   log: (message) => appendLog("dota", message, { force: true })
 });
+let dotaWasRunning = false;
 dotaWatcher.on("change", (state) => {
   appendLog(
     "dota",
     state.running ? `dota2 running, ${state.focused ? "focused" : "in background"}` : "dota2 not running"
   );
+  if (state.running && !dotaWasRunning) {
+    // The player may have just added the launch option in Steam.
+    refreshLaunchOptions();
+  }
+  dotaWasRunning = state.running;
   if (state.running && !dotaInstall.dotaDir && dotaDirFromExecutable(state.exePath)) {
     // The running game tells us where it is installed, even outside known libraries.
     autoInstallGsiOnce().catch((error) => appendLog("gsi", error.message, { force: true }));
@@ -420,6 +434,7 @@ function publicStatus() {
     overlayReason: presence.reason,
     dota: presence.status,
     dotaDir: dotaInstall.dotaDir,
+    launchOption: launchOptions.state,
     demo: processStatus.demo,
     demoPreset: processStatus.demo !== "stopped" ? currentDemoPreset : "",
     recording: recordingStatus,
@@ -1117,6 +1132,7 @@ async function pollPlayerStatus() {
   const reviewKey = review ? `${review.match_id}|${review.at}` : "";
   const first = live.player === null;
   const previousKey = live.player ? live.player.reviewKey : "";
+  const previousAccount = live.player ? live.player.accountId : null;
   // An account linked from GSI proves Dota already sent data (users updating
   // from a version without the first-run checklist).
   if (status.source === "gsi" && !settings.get("gsiSeenAt")) {
@@ -1132,6 +1148,10 @@ async function pollPlayerStatus() {
     opendotaKey: Boolean(status.opendota_key),
     liveMatch: status.live_match || null
   };
+  if (live.player.accountId !== previousAccount) {
+    // Launch options are per Steam account: check the linked one.
+    refreshLaunchOptions();
+  }
   if (!first && reviewKey && reviewKey !== previousKey) {
     const score = review.score !== null && review.score !== undefined ? ` ${review.score}/100` : "";
     appendLog("player", `Post-match review ready for match ${review.match_id}${score}.`, { force: true });
@@ -1292,6 +1312,22 @@ function gsiConfigText() {
 `;
 }
 
+function refreshLaunchOptions() {
+  let next;
+  try {
+    next = checkLaunchOptions({ steamRoots: dotaInstall.steamRoots, accountId: live.player ? live.player.accountId : null });
+  } catch (error) {
+    next = { state: "unknown", accountId: null };
+    appendLog("gsi", `Launch options check failed: ${error.message}`, { force: true });
+  }
+  if (next.state !== launchOptions.state) {
+    appendLog("gsi", `Dota launch option ${GSI_LAUNCH_OPTION}: ${next.state}`, { force: true });
+    launchOptions = next;
+    updateStatus();
+  }
+  launchOptions = next;
+}
+
 // Steam registry -> libraryfolders.vdf -> every library; the running
 // dota2.exe path (from the watcher) is used as an extra hint.
 function refreshDotaInstall() {
@@ -1301,6 +1337,7 @@ function refreshDotaInstall() {
       .then((result) => {
         const changed = result.dotaDir !== dotaInstall.dotaDir;
         dotaInstall = result;
+        refreshLaunchOptions();
         if (changed) {
           updateStatus();
         }
@@ -1836,6 +1873,10 @@ function registerIpc() {
     hiddenBackendAccessLogs = 0;
     send("launcher:logs", logs);
     return true;
+  });
+  ipcMain.handle("launcher:copy-launch-option", () => {
+    clipboard.writeText(GSI_LAUNCH_OPTION);
+    return { ok: true, text: GSI_LAUNCH_OPTION };
   });
   ipcMain.handle("launcher:copy-logs", () => {
     clipboard.writeText(logs);

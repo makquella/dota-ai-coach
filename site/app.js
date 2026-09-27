@@ -78,7 +78,7 @@
     howKicker: "Three steps",
     howTitle: "Install it and forget it until the match starts",
     s1Title: "Install",
-    s1Text: "The app finds Dota 2 in your Steam libraries and adds a small config file through which the game shares match data.",
+    s1Text: "The app finds Dota 2 in your Steam libraries and adds a small config file through which the game shares match data. Then add <code>-gamestateintegration</code> to Dota's launch options — the app will remind you.",
     s2Title: "Play as usual",
     s2Text: "Advice appears over the game only while Dota is active and a match is on. Use borderless window mode — or turn on the voice.",
     s3Title: "Review the game",

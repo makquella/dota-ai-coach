@@ -5,6 +5,7 @@ contextBridge.exposeInMainWorld("launcherApi", {
   getLogs: () => ipcRenderer.invoke("launcher:get-logs"),
   clearLogs: () => ipcRenderer.invoke("launcher:clear-logs"),
   copyLogs: () => ipcRenderer.invoke("launcher:copy-logs"),
+  copyLaunchOption: () => ipcRenderer.invoke("launcher:copy-launch-option"),
   startBackend: () => ipcRenderer.invoke("launcher:start-backend"),
   stopBackend: () => ipcRenderer.invoke("launcher:stop-backend"),
   restartBackend: () => ipcRenderer.invoke("launcher:restart-backend"),

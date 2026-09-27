@@ -286,8 +286,79 @@ async function locateDota(options = {}) {
   };
 }
 
+// Since 2023 Dota 2 sends game state only when started with this option.
+const GSI_LAUNCH_OPTION = "-gamestateintegration";
+
+// userdata/<account id>/config/localconfig.vdf ->
+// UserLocalConfigStore > Software > Valve > Steam > apps > 570 > LaunchOptions.
+// null when the file has no entry for Dota at all.
+function dotaLaunchOptionsFromVdf(parsed) {
+  let node = findKey(parsed, "UserLocalConfigStore");
+  for (const key of ["Software", "Valve", "Steam", "apps", DOTA_APP_ID]) {
+    node = findKey(node, key);
+  }
+  if (!node || typeof node !== "object") {
+    return null;
+  }
+  const options = findKey(node, "LaunchOptions");
+  return typeof options === "string" ? options : "";
+}
+
+function hasGsiLaunchOption(options) {
+  return String(options || "")
+    .split(/\s+/)
+    .some((part) => part.toLowerCase() === GSI_LAUNCH_OPTION);
+}
+
+/**
+ * Does Dota start with -gamestateintegration? Reads the launch options Steam
+ * saved for `accountId` (or, without one, for the Steam user whose settings
+ * changed last). Returns { state: "ok" | "missing" | "unknown", accountId }.
+ * Steam saves the file lazily, so "missing" is a hint, never a hard error.
+ */
+function checkLaunchOptions({ steamRoots = [], accountId = null, platform = process.platform, fs: fsImpl = fs } = {}) {
+  const pathApi = platform === "win32" ? path.win32 : path.posix;
+  const configs = [];
+  for (const root of steamRoots) {
+    const userdata = pathApi.join(root, "userdata");
+    let users;
+    try {
+      users = fsImpl.readdirSync(userdata).filter((name) => /^\d+$/.test(name) && name !== "0");
+    } catch {
+      continue;
+    }
+    if (accountId) {
+      users = users.filter((name) => name === String(accountId));
+    }
+    for (const user of users) {
+      const file = pathApi.join(userdata, user, "config", "localconfig.vdf");
+      try {
+        configs.push({ user, file, mtime: fsImpl.statSync(file).mtimeMs });
+      } catch {
+        // No saved settings for this user yet.
+      }
+    }
+  }
+  if (!configs.length) {
+    return { state: "unknown", accountId: null };
+  }
+  configs.sort((a, b) => b.mtime - a.mtime);
+  const latest = configs[0];
+  let options;
+  try {
+    options = dotaLaunchOptionsFromVdf(parseVdf(fsImpl.readFileSync(latest.file, "utf8")));
+  } catch {
+    return { state: "unknown", accountId: latest.user };
+  }
+  return { state: hasGsiLaunchOption(options) ? "ok" : "missing", accountId: latest.user };
+}
+
 module.exports = {
   DOTA_APP_ID,
+  GSI_LAUNCH_OPTION,
+  checkLaunchOptions,
+  dotaLaunchOptionsFromVdf,
+  hasGsiLaunchOption,
   defaultSteamRoots,
   dotaDirFromExecutable,
   gsiDirForDotaDir,
