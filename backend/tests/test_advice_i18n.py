@@ -224,3 +224,17 @@ def test_every_visible_text_from_fixtures_has_russian(client, repo_root):
             check(client.get("/overlay/recommendation").json())
 
     assert not untranslated, sorted(untranslated)
+
+
+def test_coaching_rewording_keeps_english_grammatical():
+    from app.advice_ux_policy import _coaching_action
+
+    assert _coaching_action("Farm back your buyback gold before the next purchase.") == (
+        "Consider: farm back your buyback gold before the next purchase."
+    )
+    # Both spellings translate (history written before the colon keeps working).
+    for text in (
+        "Consider: farm back your buyback gold before the next purchase.",
+        "Consider farm back your buyback gold before the next purchase.",
+    ):
+        assert translate_ru(text).startswith("Подумайте: нафармите")

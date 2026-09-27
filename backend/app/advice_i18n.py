@@ -496,8 +496,9 @@ _RU_PATTERNS: tuple[tuple[re.Pattern[str], str], ...] = (
     ),
 )
 
-# advice_ux_policy rewords coaching-mode actions as "Consider <action>".
-_CONSIDER_PREFIX = re.compile(r"^Consider (?P<rest>.+)$")
+# advice_ux_policy rewords coaching-mode actions as "Consider: <action>" (older
+# logs and history have "Consider <action>").
+_CONSIDER_PREFIX = re.compile(r"^Consider:? (?P<rest>.+)$")
 _SENTENCE_SPLIT = re.compile(r"(?<=[.;!?])\s+(?=[A-Z])")
 _TRUNCATION = "..."
 
