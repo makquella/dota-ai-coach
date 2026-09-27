@@ -81,7 +81,11 @@ def test_not_a_backup(client, tmp_path):
         "format": "wardly-backup",
         "version": 1,
         "tables": {
-            "matches": [{"account_id": 1, "match_id": 2, "kills": {"x": 1}, "evil": "DROP"}],
+            "matches": [
+                {"account_id": 1, "match_id": 2, "kills": {"x": 1}, "evil": "DROP"},
+                {"account_id": {"nested": 1}, "match_id": 3},
+                {"account_id": 1, "match_id": [4]},
+            ],
             "meta": [{"key": "opendota_api_key", "value": "stolen"}],
             "sqlite_master": [{"name": "x"}],
         },

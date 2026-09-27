@@ -2181,20 +2181,22 @@ function isAutostartSupported() {
   return IS_PACKAGED && (process.platform === "win32" || process.platform === "darwin");
 }
 
-// Before 0.5 the app was DotaAICoach.exe. Its Start with Windows entry (same
-// registry name: the AppUserModelId) still points at that file, which the update
-// removed: point it at this exe.
-const OLD_EXECUTABLES = ["dotaaicoach.exe"];
+// Before 0.5 the app was DotaAICoach.exe in the same folder. Its Start with
+// Windows entry (same registry name: the AppUserModelId) still points at that
+// file, which the update removed: point it at this exe. Electron lists only the
+// run entries of the path it is asked about, so ask about the old exe.
+const OLD_EXECUTABLES = ["DotaAICoach.exe"];
 
 function migrateAutostartPath() {
   if (!isAutostartSupported() || process.platform !== "win32") {
     return;
   }
   try {
-    const items = app.getLoginItemSettings().launchItems || [];
-    const stale = items.some(
-      (item) => item.enabled !== false && OLD_EXECUTABLES.includes(path.basename(String(item.path || "")).toLowerCase())
-    );
+    const folder = path.dirname(process.execPath);
+    const stale = OLD_EXECUTABLES.some((name) => {
+      const old = app.getLoginItemSettings({ path: path.join(folder, name), args: ["--hidden"] });
+      return Boolean(old.openAtLogin) || (old.launchItems || []).some((item) => item.enabled !== false);
+    });
     if (stale && !isAutostartEnabled()) {
       app.setLoginItemSettings({ ...loginItemOptions(), openAtLogin: true });
       appendLog("launcher", "Start with Windows now starts the renamed app.", { force: true });

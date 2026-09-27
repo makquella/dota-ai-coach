@@ -211,6 +211,8 @@ class PlayerStore:
                 if not isinstance(raw, dict) or any(raw.get(k) is None for k in keys):
                     continue
                 row = {k: v for k, v in raw.items() if k in columns and _plain(v)}
+                if any(row.get(k) is None for k in keys):
+                    continue  # a key that is not a plain value: not a row we can place
                 where = " AND ".join(f"{k} = ?" for k in keys)
                 params = tuple(row[k] for k in keys)
                 stored = self._conn.execute(
