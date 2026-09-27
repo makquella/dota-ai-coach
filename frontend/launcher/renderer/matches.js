@@ -95,6 +95,19 @@
       sectionsTitle: "Breakdown",
       chartTitle: "Over the match",
       mapTitle: "Match map",
+      deathsTitle: (count) => `Deaths · ${count}`,
+      deathsNoPattern: "No repeating cause across these deaths.",
+      deathNoFacts: "Nothing else is known about this death.",
+      deathGold: (gold) => `${gold} unspent gold`,
+      deathAfterRespawn: (seconds) => `${seconds} s after respawning`,
+      deathWarned: (time, action) => `The coach warned at ${time}: «${action}»`,
+      deathNote: {
+        enemy_half: "on the enemy half",
+        unspent_gold: "with 1000+ unspent gold",
+        warned: "after a warning",
+        soon_after_respawn: "right after respawning"
+      },
+      deathZone: { top: "top lane", mid: "mid lane", bot: "bottom lane", jungle: "jungle", base: "base" },
       mapEmpty: "No positions for this match yet. They come from a parsed replay (the app asks OpenDota to parse your 5 newest matches of the week) or from a match played with the app running: your path and where you died.",
       mapHint: {
         path: "Where your hero went (every 15 s, recorded by the app) and where you died.",
@@ -403,6 +416,19 @@
       sectionsTitle: "По разделам",
       chartTitle: "По ходу матча",
       mapTitle: "Карта матча",
+      deathsTitle: (count) => `Смерти · ${count}`,
+      deathsNoPattern: "Повторяющейся причины у этих смертей нет.",
+      deathNoFacts: "Больше об этой смерти ничего не известно.",
+      deathGold: (gold) => `${gold} непотраченного золота`,
+      deathAfterRespawn: (seconds) => `через ${seconds} с после возрождения`,
+      deathWarned: (time, action) => `Тренер предупреждал в ${time}: «${action}»`,
+      deathNote: {
+        enemy_half: "на половине врага",
+        unspent_gold: "с 1000+ непотраченного золота",
+        warned: "после предупреждения",
+        soon_after_respawn: "сразу после возрождения"
+      },
+      deathZone: { top: "верхняя линия", mid: "центр", bot: "нижняя линия", jungle: "лес", base: "база" },
       mapEmpty: "Для этого матча пока нет позиций. Они берутся из разобранного реплея (приложение само просит OpenDota разобрать 5 последних матчей за неделю) или из матча, сыгранного с запущенным приложением: ваш путь и места смертей.",
       mapHint: {
         path: "Где был ваш герой (каждые 15 с, записало приложение) и где вы умирали.",
@@ -1353,6 +1379,10 @@
       if (gameMap) {
         parts.push(gameMap);
       }
+      const deathsReview = deathsCard(analysis);
+      if (deathsReview) {
+        parts.push(deathsReview);
+      }
       parts.push(findingsCard(t("strengthsTitle"), "sparkles", analysis.strengths, t("nothingStrong"), false));
       const rest = (analysis.improvements || []).filter((f) => !(analysis.focus || []).includes(f.id));
       if (rest.length) {
@@ -2082,8 +2112,56 @@
     );
   }
 
+  // Every death with what is known around it (app/death_review.py).
+  function deathsCard(analysis) {
+    const block = analysis.death_review;
+    const deaths = (block && block.deaths) || [];
+    if (!deaths.length) {
+      return null;
+    }
+    const notes = Object.entries(block.notes || {}).filter(([, count]) => count > 0);
+    const summary = notes.length
+      ? h(
+          "div",
+          { class: "death-summary" },
+          notes.map(([note, count]) => h("span", { class: "chip" }, h("span", { text: t(`deathNote.${note}`) }), h("span", { class: "num", text: ` · ${count}` })))
+        )
+      : h("p", { class: "muted small", text: t("deathsNoPattern") });
+    const rows = deaths.map((death) => {
+      const where = [
+        death.zone ? t(`deathZone.${death.zone}`) : null,
+        death.side ? t(`mapSide.${death.side}`) : null
+      ].filter(Boolean).join(" · ");
+      const facts = [
+        death.killer ? t("killedBy", death.killer) : null,
+        where || null,
+        Number.isFinite(death.gold) ? t("deathGold", number(death.gold)) : null,
+        Number.isFinite(death.after_respawn) ? t("deathAfterRespawn", death.after_respawn) : null
+      ].filter(Boolean);
+      return h(
+        "li",
+        { class: "moment death-row" },
+        h("span", { class: "moment-time num", text: clock(death.t) }),
+        h("span", { class: "moment-icon" }, icon("skull")),
+        h(
+          "span",
+          { class: "death-body" },
+          h("span", { text: facts.join(" · ") || t("deathNoFacts") }),
+          death.warning
+            ? h("span", { class: "muted small death-warning", text: t("deathWarned", clock(death.warning.t), death.warning.action || "") })
+            : null
+        )
+      );
+    });
+    const body = h("div", {}, summary, h("ol", { class: "moments deaths-list" }, rows));
+    return card(t("deathsTitle", deaths.length), "skull", body);
+  }
+
   function momentsCard(analysis) {
-    const moments = analysis.moments || [];
+    // Deaths have their own card when the review has one.
+    const moments = (analysis.moments || []).filter(
+      (moment) => moment.type !== "death" || !(analysis.death_review && analysis.death_review.deaths || []).length
+    );
     if (!moments.length) {
       return null;
     }

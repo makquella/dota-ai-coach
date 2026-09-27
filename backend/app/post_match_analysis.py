@@ -23,13 +23,14 @@ from typing import Any
 
 from app.advice_follow import analyze_advice_follow
 from app.build_analysis import analyze_build
+from app.death_review import review_deaths
 from app.draft_analysis import analyze_draft
 from app.item_timing import classify_item_timing, normalize_item_name
 from app.map_analysis import analyze_map
 from app.peer_analysis import match_peers, peer_findings, player_roles
 
 # Bump when the rules change: stored reviews of an older version are rebuilt on read.
-ANALYSIS_VERSION = 7
+ANALYSIS_VERSION = 8
 MAX_ADVICE_SHOWN = 40
 
 # Static targets when OpenDota benchmarks are missing (GSI-only matches).
@@ -209,6 +210,7 @@ def analyze_match(
         "peers": peers,
         "draft": draft_block,
         "map": map_block,
+        "death_review": review_deaths(facts),
         "advice": (facts.get("advice_log") or [])[:MAX_ADVICE_SHOWN],
         "advice_follow": follow_block,
     }

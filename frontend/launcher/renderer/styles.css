@@ -2906,3 +2906,25 @@ label.setting:has(.switch:disabled) {
     display: none;
   }
 }
+
+/* Deaths card: repeated causes as chips, then one row per death. */
+.death-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+  margin-bottom: var(--sp-3);
+}
+
+.death-row {
+  align-items: flex-start;
+}
+
+.death-body {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.death-warning {
+  overflow-wrap: anywhere;
+}
