@@ -69,14 +69,17 @@ def session_stream(path: Path) -> Iterator[dict[str, Any]]:
 
 
 def simulate(
-    payloads: Iterable[dict[str, Any]], lang: str = "en", hints: bool = False
+    payloads: Iterable[dict[str, Any]], lang: str = "en", hints: bool = False, role: str = "auto"
 ) -> list[dict[str, Any]]:
     """Feed the payloads; returns every new advice card as {clock, decision_point, ...}
     (and with `hints` every new map hint as decision point MAP_HINT)."""
     from fastapi.testclient import TestClient
 
+    from app.live_role import set_role_setting
     from app.main import app
     from app.player_api import PLAYER_SERVICE
+
+    set_role_setting(role)
 
     scheduler_module._utcnow = _game_clock_now
     PLAYER_SERVICE.configure(Path(tempfile.mkdtemp()), client=None, auto_start=False)
@@ -152,16 +155,12 @@ def main() -> None:
     )
     args = parser.parse_args()
 
-    from app.live_role import set_role_setting
-
-    set_role_setting(args.role)
-
     if args.session:
         payloads: Iterable[dict[str, Any]] = session_stream(args.session)
     else:
         deaths = tuple(int(m) for m in args.deaths.split(",") if m.strip())
         payloads = synthetic_stream(args.minutes, deaths, args.lh)
-    cards = simulate(payloads, args.lang, hints=args.hints)
+    cards = simulate(payloads, args.lang, hints=args.hints, role=args.role)
     for card in cards:
         print(f"{_clock_label(card['clock'])}  {card['decision_point']:<26} {card['action']}")
         if args.reasons:

@@ -195,3 +195,21 @@ def test_a_carry_hero_played_as_support_gets_no_farm_advice(client):
             shown.add(answer["decision_point"])
     assert MATCH_MEMORY.role.role()["role"] == "support"
     assert not shown & {"LANING_FARM_CHECK", "FARMING_PHASE_PRESSURE", "SAFE_FARMING"}
+
+
+def test_tp_and_last_hit_tips():
+    tips = RoleTips()
+    # Without the carry advisor (a support, a hero outside it) the TP tip shows...
+    tp = tips.tip(900, "offlane", alive=True, has_ward=None, lang="ru", tp_missing=True)
+    assert tp["title"] == "Нет свитка телепортации"
+    # ...but the carry advisor has its own TP advice.
+    assert (
+        RoleTips().tip(
+            900, "carry", alive=True, has_ward=None, lang="en", tp_missing=True, carry_advisor=True
+        )
+        is None
+    )
+    # A support with 15 last hits at 5:00 (3 per minute) is taking the carry's farm.
+    lh = RoleTips().tip(300, "support", alive=True, has_ward=True, lang="en", last_hits=15)
+    assert lh["title"] == "Leave the last hits to your carry"
+    assert RoleTips().tip(300, "support", alive=True, has_ward=True, lang="en", last_hits=5) is None

@@ -337,6 +337,10 @@ def _live_role_and_hint(response: dict[str, object], lang: str) -> dict[str, obj
     result: dict[str, object] = {"live_role": role}
     if _map_hints["enabled"]:
         clock = extra.get("clock_time")
+        carry_advisor = hero_coverage(str(state.get("hero") or "")) == "full" and not (
+            _plays_support(state)
+        )
+        last_hits = extra.get("last_hits")
         hint = map_hint(
             clock if isinstance(clock, int) else None,
             role.get("role") if role else None,
@@ -346,6 +350,9 @@ def _live_role_and_hint(response: dict[str, object], lang: str) -> dict[str, obj
             if isinstance(extra.get("has_observer"), bool)
             else None,
             lang=lang,
+            tp_missing=MATCH_MEMORY.tp.signal() is not None,
+            carry_advisor=carry_advisor,
+            last_hits=last_hits if isinstance(last_hits, int) else None,
         )
         if hint is not None:
             result["map_hint"] = hint
