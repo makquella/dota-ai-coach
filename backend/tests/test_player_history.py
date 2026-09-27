@@ -381,6 +381,39 @@ def test_sync_skips_bot_practice_and_custom_lobbies(client, tmp_path):
     assert ids == {recent[0]["match_id"], recent[4]["match_id"], recent[5]["match_id"]}
 
 
+def test_sync_asks_opendota_to_parse_the_newest_unparsed_matches(client, tmp_path):
+    import time as clock
+
+    now = int(clock.time())
+    recent = recent_matches(8)
+    for index, row in enumerate(recent):
+        row["start_time"] = now - 3600 * (index + 1)
+    recent[6]["start_time"] = now - 10 * 24 * 3600  # replay probably gone
+    matches = {
+        row["match_id"]: opendota_match(
+            good=row["radiant_win"], match_id=row["match_id"], parsed=index == 1
+        )
+        for index, row in enumerate(recent)
+    }
+    fake = FakeOpenDota(matches=matches, recent=recent)
+    service = _service(tmp_path, fake)
+    client.post("/player/link", json={"steam": str(ME)})
+    service.jobs.run_pending(until=float("inf"))
+    # The five newest, except the one OpenDota has already parsed; each only once.
+    expected = [recent[i]["match_id"] for i in (0, 2, 3, 4)]
+    assert sorted(fake.parse_requests) == sorted(expected)
+    statuses = {
+        row["match_id"]: row["parse_status"]
+        for row in client.get("/player/matches").json()["items"]
+    }
+    assert statuses[recent[1]["match_id"]] == "parsed"
+    assert statuses[recent[5]["match_id"]] == "basic"
+    # A second sync does not ask again for matches that did not get parsed.
+    client.post("/player/sync")
+    service.jobs.run_pending(until=float("inf"))
+    assert sorted(fake.parse_requests) == sorted(expected)
+
+
 def test_empty_path_env_means_default(monkeypatch, tmp_path):
     from app.config import path_from_env
 
@@ -471,6 +504,20 @@ def test_rank_peers_compare_with_the_direct_opponent():
     assert "peer_gpm_ahead" in {f["id"] for f in peer_findings(good["peers"])}
 
 
+def test_unparsed_match_peers_follow_the_farm_order():
+    """Without lanes (an unparsed match) every non-support used to count as a
+    carry, so the enemy mid was the "same-role opponent" too."""
+    from app.peer_analysis import match_peers
+
+    match = opendota_match(good=False, parsed=False)
+    for player in match["players"]:
+        player["lane_role"] = None
+    peers = match_peers(trim_match(match, ME))
+    # The enemy with the most last hits is their carry (Anti-Mage, 250).
+    assert peers["role"] == "carry"
+    assert [p["hero"] for p in peers["peers"]] == ["Anti-Mage"]
+
+
 def test_rank_labels():
     from app.analysis_texts import rank_label
 
@@ -533,6 +580,8 @@ def _draft_meta():
     return {
         "matchups": {"8": fake.hero_matchups(8), "1": fake.hero_matchups(1)},
         "pool": [1],
+        # Anti-Mage is a carry by OpenDota's tags (no reviewed games on it).
+        "hero_roles": {"1": ["Carry", "Escape", "Nuker"]},
         "constants": fake.item_constants(),
     }
 
@@ -564,6 +613,22 @@ def test_draft_matchups_and_a_better_pick_from_the_pool():
     assert pick["section_label"] == "Драфт"
 
 
+def test_the_better_pick_keeps_the_role():
+    from app.draft_analysis import fits_role
+
+    # A support hero of the pool is not offered to a carry, whatever its edge.
+    meta = {**_draft_meta(), "hero_roles": {"1": ["Support", "Disabler"]}}
+    trimmed = trim_match(opendota_match(good=True), ME)
+    block, findings = analyze_draft(facts_from_opendota(trimmed), trimmed, meta, "core")
+    assert [row["hero"] for row in block["pool"]] == ["Juggernaut"]
+    assert not [f for f in findings if f["id"] == "draft_better_pick"]
+    # The role the player really plays the hero in wins over the tags.
+    played = {"1": {"core": 4, "support": 1}}
+    assert fits_role(1, "core", played, {"1": ["Support"]})
+    assert not fits_role(1, "support", played, {"1": ["Support"]})
+    assert not fits_role(2, "core", None, None)
+
+
 def test_counter_item_missing_and_bought():
     match = _with_enemy(opendota_match(good=True), 6, 44)  # Shadow Fiend -> Phantom Assassin
     analysis = _draft_analysis(match)
@@ -585,6 +650,55 @@ def test_counter_item_missing_and_bought():
     # A support is not told to buy Monkey King Bar.
     _, support = analyze_draft(facts_from_opendota(trimmed), trimmed, _draft_meta(), "support")
     assert not [f for f in support if f["id"].startswith("counter")]
+
+
+def test_reviews_are_rebuilt_once_the_role_history_is_known(client, tmp_path):
+    """Sync reviews the newest match first, before the older matches say which
+    role the player plays each pool hero in; the sync ends with a rebuild."""
+    recent = recent_matches(8)
+    matches = {}
+    for row in recent:
+        match = opendota_match(good=True, match_id=row["match_id"])
+        me = next(p for p in match["players"] if p.get("account_id") == ME)
+        me["hero_id"] = row["hero_id"]  # Juggernaut and Anti-Mage in turn
+        matches[row["match_id"]] = match
+    service = _service(tmp_path, FakeOpenDota(matches=matches, recent=recent))
+    client.post("/player/link", json={"steam": str(ME)})
+    service.jobs.run_pending(until=float("inf"))
+    newest = client.get(f"/player/matches/{recent[0]['match_id']}?lang=en").json()
+    # Anti-Mage has no role tags in the fixture: only the player's own core
+    # games on it let it into the pool of this core review.
+    pool = [row["hero"] for row in newest["analysis"]["draft"]["pool"]]
+    assert "Anti-Mage" in pool
+
+
+def test_counter_items_of_an_unparsed_match_come_from_the_inventory():
+    """An unparsed match has no purchase log: the final inventory (item ids)
+    decides, and with no items known there is no "missing" advice at all."""
+    from app.draft_analysis import bought_items
+
+    base = _draft_meta()
+    constants = {
+        **base["constants"],
+        "by_id": {**base["constants"]["by_id"], "135": "monkey_king_bar"},
+    }
+    meta = {**base, "constants": constants}
+    mkb_id = "135"
+    match = _with_enemy(opendota_match(good=True, parsed=False), 6, 44)  # vs Phantom Assassin
+    me = next(p for p in match["players"] if p.get("account_id") == ME)
+    me["item_0"] = int(mkb_id)
+    trimmed = trim_match(match, ME)
+    facts = facts_from_opendota(trimmed)
+    assert "monkey_king_bar" in bought_items(facts, constants)
+    _, findings = analyze_draft(facts, trimmed, meta, "core")
+    assert [f["id"] for f in findings if f["id"].startswith("counter")] == ["counter_item_bought"]
+
+    me["item_0"] = None
+    trimmed = trim_match(match, ME)
+    facts = facts_from_opendota(trimmed)
+    assert bought_items(facts, constants) is None
+    block, findings = analyze_draft(facts, trimmed, meta, "core")
+    assert block["counters"] and not [f for f in findings if f["id"].startswith("counter")]
 
 
 def test_no_draft_without_the_enemy_lineup(tmp_path):

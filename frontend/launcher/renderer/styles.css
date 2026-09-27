@@ -225,7 +225,8 @@ h1 {
 /* Match stats */
 .stats {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  /* The hero's name needs the most room. */
+  grid-template-columns: minmax(0, 1.6fr) repeat(3, minmax(0, 1fr));
   gap: var(--sp-4);
 }
 
@@ -1619,7 +1620,8 @@ label.setting:has(.switch:disabled) {
 
 .tiles {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+  /* Five tiles fit in one row at the default window width (760 px). */
+  grid-template-columns: repeat(auto-fit, minmax(96px, 1fr));
   gap: var(--sp-3);
 }
 

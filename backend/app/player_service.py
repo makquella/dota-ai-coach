@@ -77,6 +77,11 @@ from app.steam_ids import parse_account_id, steam64_from_account_id
 
 RECENT_MATCHES_LIMIT = 50
 REVIEW_RECENT_MATCHES = 12
+# On sync, ask OpenDota to parse this many of the newest unparsed matches (a
+# parsed replay adds lanes, last hits at 10:00, the build and the map). Valve
+# keeps replays for about two weeks; a week keeps the requests useful.
+PARSE_RECENT_MATCHES = 5
+PARSE_MAX_AGE_SECONDS = 7 * 24 * 3600
 # OpenDota learns about a match a minute or two after it ends.
 FIRST_FETCH_DELAY_SECONDS = 120
 PARSE_POLL_SECONDS = 90
@@ -931,16 +936,29 @@ class PlayerService:
                     }
                 ),
             )
-            # Review the latest matches (one request each, well under the rate limit).
-            for row in self.store.list_matches(account_id, limit=REVIEW_RECENT_MATCHES):
-                if not row.get("has_analysis") or ("opendota" not in row["sources"]):
+            # Review the latest matches (one request each, well under the rate limit);
+            # the newest unparsed ones are also sent to OpenDota's replay parser.
+            now = time.time()
+            for index, row in enumerate(
+                self.store.list_matches(account_id, limit=REVIEW_RECENT_MATCHES)
+            ):
+                parse = (
+                    index < PARSE_RECENT_MATCHES
+                    and row.get("parse_status") in (None, "", "basic")
+                    and now - float(row.get("start_time") or 0) < PARSE_MAX_AGE_SECONDS
+                )
+                if parse or not row.get("has_analysis") or ("opendota" not in row["sources"]):
                     mid = row["match_id"]
                     self.jobs.submit(
                         f"match:{mid}",
-                        lambda mid=mid: self._job_fetch_match(
-                            account_id, mid, request_parse=False, attempt=0
+                        lambda mid=mid, parse=parse: self._job_fetch_match(
+                            account_id, mid, request_parse=parse, attempt=0
                         ),
                     )
+            # Reviews built above come newest first, before the older matches
+            # tell which role the player plays each pool hero in (the draft's
+            # better pick): rebuild them once all of these jobs have run.
+            self.jobs.submit(f"rebuild:{account_id}", lambda: self._rebuild_recent(account_id))
             self._sync = {
                 "state": "done",
                 "at": _now_iso(),
@@ -1022,6 +1040,11 @@ class PlayerService:
         self._rebuild_analysis(account_id, match_id)
         if status == "parsing":
             self._retry(account_id, match_id, request_parse, attempt)
+
+    def _rebuild_recent(self, account_id: int) -> None:
+        for row in self.store.list_matches(account_id, limit=REVIEW_RECENT_MATCHES):
+            if row.get("has_analysis"):
+                self._rebuild_analysis(account_id, row["match_id"])
 
     def _drop_unreviewable(self, account_id: int) -> None:
         """Matches stored before a mode was excluded (older versions kept Turbo)."""
@@ -1158,9 +1181,24 @@ class PlayerService:
             cached = self.store.cache_get(f"{MATCHUPS_KEY}:{hero}")
             if cached:
                 matchups[str(hero)] = cached
+        # The role the player plays each pool hero in (reviewed games), and
+        # OpenDota's role tags for the rest: the better pick keeps the role.
+        played: dict[str, dict[str, int]] = {}
+        for row in self.store.matches_for_career(account_id, limit=RECENT_MATCHES_LIMIT):
+            role = (row.get("analysis") or {}).get("role")
+            if row.get("hero_id") and role:
+                counts = played.setdefault(str(int(row["hero_id"])), {})
+                counts[role] = counts.get(role, 0) + 1
+        tags = {
+            str(row["hero_id"]): row.get("roles") or []
+            for row in self.store.cache_get(HERO_STATS_KEY) or []
+            if isinstance(row, dict) and row.get("hero_id")
+        }
         return {
             "matchups": matchups,
             "pool": heroes[1:],
+            "pool_roles": played,
+            "hero_roles": tags,
             "constants": self.store.cache_get(ITEM_CONSTANTS_KEY),
         }
 

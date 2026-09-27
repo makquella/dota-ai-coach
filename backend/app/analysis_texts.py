@@ -32,11 +32,11 @@ FINDINGS: dict[str, dict[str, dict[str, str]]] = {
     "lh10_great": {
         "ru": {
             "title": "Сильная линия",
-            "text": "{lh10} добиваний к 10-й минуте — выше цели {target}. Вы вышли из лайнинга с хорошим запасом золота.",
+            "text": "{lh10} добиваний к 10-й минуте при цели {target}. Вы вышли из лайнинга с хорошим запасом золота.",
         },
         "en": {
             "title": "Strong lane",
-            "text": "{lh10} last hits by minute 10, above the {target} target. You left the lane with a solid gold lead.",
+            "text": "{lh10} last hits by minute 10 with a {target} target. You left the lane with a solid gold lead.",
         },
     },
     "lh10_low": {
@@ -108,11 +108,11 @@ FINDINGS: dict[str, dict[str, dict[str, str]]] = {
     "gpm_high_static": {
         "ru": {
             "title": "Отличный фарм",
-            "text": "{gpm} золота в минуту — выше ориентира {target} для этой роли.",
+            "text": "{gpm} золота в минуту при ориентире {target} для этой роли.",
         },
         "en": {
             "title": "Great farm",
-            "text": "{gpm} gold per minute — above the {target} benchmark for this role.",
+            "text": "{gpm} gold per minute with a {target} benchmark for this role.",
         },
     },
     "gpm_low": {

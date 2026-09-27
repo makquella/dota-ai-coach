@@ -1,7 +1,7 @@
 # Сайт Dota AI Coach
 
 Статический лендинг без сборки: `index.html`, `styles.css`, `app.js` и `assets/`
-(шрифт Inter, скриншоты приложения на двух языках, иконка, превью для соцсетей).
+(шрифты, скриншоты приложения на двух языках, кадры игры и портреты героев, иконка, превью для соцсетей).
 Всё грузится с того же домена — ни CDN, ни трекеров.
 
 - Язык: русский по умолчанию, английский — по языку браузера или переключателю
@@ -40,12 +40,13 @@ cd site && python3 -m http.server 8080
 (`https://ваш-домен/assets/og.jpg`) — так превью ссылки надёжнее показывается в
 Telegram, Discord и VK.
 
-## Обновить скриншоты
+## Обновить картинки
 
-Скриншоты в `assets/shots/{ru,en}/` сняты с настоящего приложения на демо-данных
-(2x, JPEG). Если интерфейс поменяется, их стоит переснять тем же способом и
-сохранить под теми же именами.
+Все картинки сайта — настоящие: окна приложения (`assets/app/{ru,en}/`),
+карточки оверлея (`assets/overlay/{ru,en}/`) и карточки разбора
+(`assets/shots/{ru,en}/`) сняты с самого приложения на демо-данных; кадры игры
+(`assets/game/`) — со страницы Dota 2 в Steam, портреты (`assets/heroes/`) — с
+CDN Valve, те же, что показывает приложение. Переснять всё:
+`scripts/site-shots/README.md`.
 
-## Hero and item pictures
-
-The hero scene and the «В игре» cards load hero portraits and item icons from Valve's CDN (`cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/...`, the same files dota2.com and OpenDota show) at view time; `app.js` fills every `.pic[data-hero]` / `.pic[data-item]`, and without a picture the initials show. Dota 2 and its artwork are Valve's.
+Шрифты: Montserrat (заголовки) и Inter (текст), оба OFL, лежат в `assets/fonts/`.

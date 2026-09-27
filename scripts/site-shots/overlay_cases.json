@@ -1,0 +1,188 @@
+{
+ "ru": {
+  "lowhp": {
+   "status": "active_advice",
+   "decision_point": "LOW_HP",
+   "advice_mode": "urgent",
+   "clock_time": 754,
+   "game_time_seconds": 754,
+   "recommendation": {
+    "action": "Уходите с волны сейчас и восстановите HP, прежде чем вернуться.",
+    "reason": "С таким HP ещё один размен или способность могут вас убить.",
+    "priority": "high"
+   },
+   "hero": "Juggernaut",
+   "gsi_connected": true,
+   "new_advice": true
+  },
+  "tp": {
+   "status": "active_advice",
+   "decision_point": "SAFE_FARMING",
+   "advice_mode": "coaching",
+   "clock_time": 1391,
+   "game_time_seconds": 1391,
+   "recommendation": {
+    "action": "Держите свиток телепортации в слоте: купите его сейчас, курьер принесёт.",
+    "reason": "Без свитка телепортации уже 2 мин — не успеете ни в драку, ни спасти башню.",
+    "priority": "medium"
+   },
+   "hero": "Juggernaut",
+   "gsi_connected": true,
+   "new_advice": true
+  },
+  "spend": {
+   "status": "active_advice",
+   "decision_point": "DEATH_REVIEW",
+   "advice_mode": "coaching",
+   "clock_time": 1621,
+   "game_time_seconds": 1621,
+   "recommendation": {
+    "action": "Купите части следующего предмета на 1800 золота сейчас — заберёте их у фонтана.",
+    "reason": "Непотраченное золото частично теряется при следующей смерти. Потом выберите маршрут безопаснее того, где вас поймали.",
+    "priority": "medium"
+   },
+   "hero": "Juggernaut",
+   "gsi_connected": true,
+   "new_advice": true
+  },
+  "buyback": {
+   "status": "active_advice",
+   "decision_point": "SAFE_FARMING",
+   "advice_mode": "coaching",
+   "clock_time": 2112,
+   "game_time_seconds": 2112,
+   "recommendation": {
+    "action": "Нафармите золото на байбэк, прежде чем покупать дальше.",
+    "reason": "После 30-й минуты одна смерть без байбэка может решить игру.",
+    "priority": "high"
+   },
+   "hero": "Juggernaut",
+   "gsi_connected": true,
+   "new_advice": true
+  },
+  "farm": {
+   "status": "active_advice",
+   "decision_point": "FARMING_PHASE_PRESSURE",
+   "advice_mode": "coaching",
+   "clock_time": 1081,
+   "game_time_seconds": 1081,
+   "recommendation": {
+    "action": "Навёрстывайте фарм по самому безопасному маршруту из волн и лагерей.",
+    "reason": "Добиваний к 18-й минуте: 98, хороший темп — 120+. Сначала восстановите фарм, потом ищите драки.",
+    "priority": "medium"
+   },
+   "hero": "Juggernaut",
+   "gsi_connected": true,
+   "new_advice": true
+  },
+  "plan": {
+   "status": "no_advice",
+   "clock_time": -40,
+   "hero": "Juggernaut",
+   "gsi_connected": true,
+   "game_plan": {
+    "title": "План на игру",
+    "hero": "Juggernaut",
+    "role": "core",
+    "lines": [
+     "К 10:00 — 55 добиваний (ваш средний: 41)",
+     "Battle Fury к 14:00, как у большинства: побед 54%",
+     "Ваш фокус: смерти на линии"
+    ]
+   }
+  }
+ },
+ "en": {
+  "lowhp": {
+   "status": "active_advice",
+   "decision_point": "LOW_HP",
+   "advice_mode": "urgent",
+   "clock_time": 754,
+   "game_time_seconds": 754,
+   "recommendation": {
+    "action": "Leave the wave now and reset HP before rejoining.",
+    "reason": "At this HP, one more trade or spell can kill you.",
+    "priority": "high"
+   },
+   "hero": "Juggernaut",
+   "gsi_connected": true,
+   "new_advice": true
+  },
+  "tp": {
+   "status": "active_advice",
+   "decision_point": "SAFE_FARMING",
+   "advice_mode": "coaching",
+   "clock_time": 1391,
+   "game_time_seconds": 1391,
+   "recommendation": {
+    "action": "Keep a TP scroll in its slot: buy one now, the courier can bring it.",
+    "reason": "No TP scroll for 2 minutes: without it you cannot join a fight or save a tower in time.",
+    "priority": "medium"
+   },
+   "hero": "Juggernaut",
+   "gsi_connected": true,
+   "new_advice": true
+  },
+  "spend": {
+   "status": "active_advice",
+   "decision_point": "DEATH_REVIEW",
+   "advice_mode": "coaching",
+   "clock_time": 1621,
+   "game_time_seconds": 1621,
+   "recommendation": {
+    "action": "Buy parts of your next item now with your 1800 gold: they wait for you at the fountain.",
+    "reason": "Unspent gold is partly lost on the next death; then choose a safer route than the one you died on.",
+    "priority": "medium"
+   },
+   "hero": "Juggernaut",
+   "gsi_connected": true,
+   "new_advice": true
+  },
+  "buyback": {
+   "status": "active_advice",
+   "decision_point": "SAFE_FARMING",
+   "advice_mode": "coaching",
+   "clock_time": 2112,
+   "game_time_seconds": 2112,
+   "recommendation": {
+    "action": "Farm back your buyback gold before the next purchase.",
+    "reason": "After minute 30 one death without buyback can decide the game.",
+    "priority": "high"
+   },
+   "hero": "Juggernaut",
+   "gsi_connected": true,
+   "new_advice": true
+  },
+  "farm": {
+   "status": "active_advice",
+   "decision_point": "FARMING_PHASE_PRESSURE",
+   "advice_mode": "coaching",
+   "clock_time": 1081,
+   "game_time_seconds": 1081,
+   "recommendation": {
+    "action": "Recover farm through the safest wave-and-camp route.",
+    "reason": "98 last hits at minute 18; a good pace is 120+. Rebuild farm before looking for fights.",
+    "priority": "medium"
+   },
+   "hero": "Juggernaut",
+   "gsi_connected": true,
+   "new_advice": true
+  },
+  "plan": {
+   "status": "no_advice",
+   "clock_time": -40,
+   "hero": "Juggernaut",
+   "gsi_connected": true,
+   "game_plan": {
+    "title": "Plan for this game",
+    "hero": "Juggernaut",
+    "role": "core",
+    "lines": [
+     "55 last hits by 10:00 (your average: 41)",
+     "Battle Fury by 14:00, like most players: 54% wins",
+     "Your focus: lane deaths"
+    ]
+   }
+  }
+ }
+}

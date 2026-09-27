@@ -7,7 +7,8 @@ shows only your own hero). Works on cached OpenDota matchups
 
 - your hero against each enemy hero (win rate);
 - which hero of your own pool fits this enemy lineup best (average edge over
-  50 % against the enemies with enough games);
+  50 % against the enemies with enough games), among the heroes you play in
+  the role of this match (a carry is not told to pick a support);
 - counter items: a short curated list of well-known answers to enemy heroes
   (evasion, illusions, invisibility, healing), checked against the purchases.
 """
@@ -27,6 +28,14 @@ BETTER_PICK_GAP = 3.0
 MIN_ENEMIES_WITH_DATA = 3
 # Counter-item advice only for games long enough to build it.
 COUNTER_MIN_DURATION = 25 * 60
+
+# OpenDota hero role tags that fit a role, for heroes the player has no
+# reviewed game on.
+ROLE_TAGS: dict[str, set[str]] = {
+    "core": {"Carry"},
+    "offlane": {"Initiator", "Durable"},
+    "support": {"Support"},
+}
 
 # reason -> (enemy heroes, counter items (OpenDota keys), roles that should buy them)
 COUNTERS: dict[str, tuple[set[str], list[str], set[str]]] = {
@@ -65,6 +74,38 @@ def pool_heroes(matches: list[dict[str, Any]], *, limit: int = 5, min_games: int
             counts[int(row["hero_id"])] = counts.get(int(row["hero_id"]), 0) + 1
     ranked = sorted(counts.items(), key=lambda kv: -kv[1])
     return [hero for hero, games in ranked if games >= min_games][:limit]
+
+
+def bought_items(facts: dict[str, Any], constants: dict[str, Any] | None) -> set[str] | None:
+    """Item keys the player had: the purchase log of a parsed replay, else the
+    final inventory (OpenDota gives item ids there). None when neither is known."""
+    log = {item_key(entry.get("item")) for entry in facts.get("items_log") or []}
+    if log:
+        return log
+    by_id = (constants or {}).get("by_id") or {}
+    final = set()
+    for raw in facts.get("final_items") or []:
+        if isinstance(raw, bool):
+            continue
+        key = by_id.get(str(raw)) if isinstance(raw, int) or str(raw).isdigit() else item_key(raw)
+        if key:
+            final.add(key)
+    return final or None
+
+
+def fits_role(
+    hero_id: int,
+    role: str,
+    played: dict[str, dict[str, int]] | None,
+    tags: dict[str, list[str]] | None,
+) -> bool:
+    """Does the player play `hero_id` in `role`? Their reviewed games on the hero
+    decide (the most common role); without any, OpenDota's role tags do."""
+    counts = (played or {}).get(str(hero_id)) or {}
+    if counts:
+        return max(counts.items(), key=lambda kv: kv[1])[0] == role
+    hero_tags = set((tags or {}).get(str(hero_id)) or [])
+    return bool(hero_tags & ROLE_TAGS.get(role, set()))
 
 
 def _winrate(matchups: dict[str, list[int]] | None, enemy_id: int) -> dict[str, Any] | None:
@@ -116,8 +157,13 @@ def analyze_draft(
             row.update(wr)
         enemy_rows.append(row)
 
+    candidates = [
+        hero
+        for hero in meta.get("pool") or []
+        if fits_role(hero, role, meta.get("pool_roles"), meta.get("hero_roles"))
+    ]
     pool = []
-    for hero_id in dict.fromkeys([my_id, *(meta.get("pool") or [])]):
+    for hero_id in dict.fromkeys([my_id, *candidates]):
         edge = _edge(matchups.get(str(hero_id)), enemy_ids)
         if edge is not None:
             pool.append(
@@ -145,7 +191,10 @@ def analyze_draft(
             )
         )
 
-    bought = {item_key(entry.get("item")) for entry in facts.get("items_log") or []}
+    # Without a purchase log or an inventory nothing is known about the items:
+    # the counters are still shown, but no "missing" advice.
+    known = bought_items(facts, constants)
+    bought = known or set()
     counters = []
     long_game = (facts.get("duration") or 0) >= COUNTER_MIN_DURATION
     for reason, (heroes, items, roles) in COUNTERS.items():
@@ -163,7 +212,7 @@ def analyze_draft(
                 "for_role": role in roles,
             }
         )
-        if role not in roles or not long_game:
+        if role not in roles or not long_game or known is None:
             continue
         params = {"reason": reason, "enemy": ", ".join(threats), "items": ", ".join(names)}
         if has:

@@ -147,6 +147,12 @@ const I18N = {
     whatsNewTitle: (version) => `What's new in ${version}`,
     whatsNewOk: "Got it",
     whatsNew: {
+      "0.2.1": [
+        "Match history no longer fails to sync when OpenDota answers slowly.",
+        "The app asks OpenDota to parse your latest matches, so reviews get last hits at 10:00, the build and the chart.",
+        "Draft advice suggests a hero of your role; the same-role opponent and counter items are right even without a parsed replay.",
+        "Progress shows all five tiles in one row, and Home no longer cuts the hero's name."
+      ],
       "0.2.0": [
         "A plan at the start of each match, and a focus: pick one mistake to work on — every review says whether you avoided it.",
         "«Ask the coach»: your own question about a match, answered from its data.",
@@ -383,6 +389,12 @@ const I18N = {
     whatsNewTitle: (version) => `Что нового в ${version}`,
     whatsNewOk: "Понятно",
     whatsNew: {
+      "0.2.1": [
+        "История матчей больше не срывается, когда OpenDota отвечает медленно.",
+        "Приложение само просит OpenDota разобрать последние матчи — в разборе появляются добивания к 10:00, сборка и график.",
+        "Драфт советует героя вашей роли; соперник по роли и предметы против врагов определяются верно и без разбора реплея.",
+        "На «Прогрессе» все пять плиток в одну строку, на главной не обрезается имя героя."
+      ],
       "0.2.0": [
         "План на игру в начале матча и фокус: выберите одну ошибку — в каждом разборе видно, получилось ли её избежать.",
         "«Спросить тренера»: свой вопрос о матче, ответ по его данным.",
