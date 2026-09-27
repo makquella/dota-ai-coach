@@ -65,7 +65,7 @@
       filterSummary: (games, winrate, score) =>
         [`${games} ${games === 1 ? "match" : "matches"}`, winrate == null ? null : `${winrate}% wins`, score == null ? null : `average score ${score}`].filter(Boolean).join(" · "),
       skippedModes: (count, turbo, of) =>
-        `${count} of your last ${of} games are not reviewed: ${turbo ? `Turbo (${turbo}), ` : ""}bot games and modes with their own rules would skew the norms.`,
+        `${count} of your last ${of} games are not reviewed${turbo ? ` (Turbo: ${turbo})` : ""}: Turbo, bot games and special modes have different norms.`,
       filterEmptyTitle: "No matches for this filter",
       filterEmptyHint: "Pick another hero or result.",
       pdfSave: "Save PDF",
@@ -342,7 +342,7 @@
       filterSummary: (games, winrate, score) =>
         [`${games} ${plural(games, "матч", "матча", "матчей")}`, winrate == null ? null : `${winrate}% побед`, score == null ? null : `средняя оценка ${score}`].filter(Boolean).join(" · "),
       skippedModes: (count, turbo, of) =>
-        `Не разбираем ${count} из ${of} последних игр: ${turbo ? `Турбо (${turbo}), ` : ""}игры с ботами и режимы со своими правилами исказили бы нормы.`,
+        `Не разбираем ${count} из ${of} последних игр${turbo ? ` (Турбо: ${turbo})` : ""}: в Турбо, играх с ботами и особых режимах другие нормы.`,
       filterEmptyTitle: "Нет матчей под этот фильтр",
       filterEmptyHint: "Выберите другого героя или результат.",
       pdfSave: "Сохранить PDF",
