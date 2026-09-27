@@ -170,6 +170,13 @@ const I18N = {
     whatsNewTitle: (version) => `What's new in ${version}`,
     whatsNewOk: "Got it",
     whatsNew: {
+      "0.3.0": [
+        "Map timers on the overlay 20 s ahead: runes, wisdom shrines, lotuses, the Tormentor, neutral item tiers — only the ones your role needs.",
+        "Your role is found from your lane in the first minutes (or chosen in Settings → Advice) and shown on Home.",
+        "Support tips: stack a camp, take wards, leave the last hits to your carry. No carry farm advice on a support; the TP reminder works on every hero.",
+        "«Send to developer» in the problem report: one click, with a note and a preview; keys, nickname and Steam ID are removed.",
+        "Draft advice suggests only heroes of the position you played."
+      ],
       "0.2.1": [
         "Match history no longer fails to sync when OpenDota answers slowly.",
         "The app asks OpenDota to parse your latest matches, so reviews get last hits at 10:00, the build and the chart.",
@@ -451,6 +458,13 @@ const I18N = {
     whatsNewTitle: (version) => `Что нового в ${version}`,
     whatsNewOk: "Понятно",
     whatsNew: {
+      "0.3.0": [
+        "Таймеры карты на оверлее за 20 секунд: руны, святилища мудрости, лотосы, Торментор, уровни нейтральных предметов — только нужные вашей роли.",
+        "Роль определяется по линии в первые минуты (или выбирается в «Настройки → Советы») и видна на главной.",
+        "Подсказки саппорту: застакать лагерь, взять варды, оставить добивания керри. Советы про фарм на саппорте выключены; про ТП — на любом герое.",
+        "«Отправить разработчику» в отчёте о проблеме: одна кнопка, комментарий и предпросмотр; ключи, ник и Steam ID вырезаются.",
+        "Драфт предлагает только героев той позиции, на которой вы играли."
+      ],
       "0.2.1": [
         "История матчей больше не срывается, когда OpenDota отвечает медленно.",
         "Приложение само просит OpenDota разобрать последние матчи — в разборе появляются добивания к 10:00, сборка и график.",

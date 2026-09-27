@@ -90,6 +90,30 @@
      "Ваш фокус: смерти на линии"
     ]
    }
+  },
+  "timer": {
+   "status": "no_advice",
+   "decision_point": "NO_ADVICE",
+   "recommendation": null,
+   "hero": "Lion",
+   "gsi_connected": true,
+   "current_mode": "live_gsi",
+   "live_role": {
+    "role": "support",
+    "source": "lane",
+    "lane": "safe"
+   },
+   "map_hint": {
+    "kind": "timer",
+    "id": "tormentor@1200",
+    "at": 1200,
+    "at_label": "20:00",
+    "in_seconds": 15,
+    "title": "Торментор",
+    "hint": "Первое появление: Aghanim's Shard команде, которая его убьёт.",
+    "speak": true,
+    "minor": false
+   }
   }
  },
  "en": {
@@ -182,6 +206,30 @@
      "Battle Fury by 14:00, like most players: 54% wins",
      "Your focus: lane deaths"
     ]
+   }
+  },
+  "timer": {
+   "status": "no_advice",
+   "decision_point": "NO_ADVICE",
+   "recommendation": null,
+   "hero": "Lion",
+   "gsi_connected": true,
+   "current_mode": "live_gsi",
+   "live_role": {
+    "role": "support",
+    "source": "lane",
+    "lane": "safe"
+   },
+   "map_hint": {
+    "kind": "timer",
+    "id": "tormentor@1200",
+    "at": 1200,
+    "at_label": "20:00",
+    "in_seconds": 15,
+    "title": "Tormentor",
+    "hint": "First spawn: an Aghanim's Shard for the team that kills it.",
+    "speak": true,
+    "minor": false
    }
   }
  }

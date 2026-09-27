@@ -2,9 +2,10 @@
 main.py — FastAPI application entry point for Dota AI Coach (MVP-1).
 """
 
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, Mapping
 from contextlib import asynccontextmanager
 from datetime import UTC, datetime, timedelta
+from typing import Any
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -65,7 +66,7 @@ app = FastAPI(
     lifespan=_lifespan,
     title="Dota AI Coach",
     description="MVP-1: rule-based carry coach with local knowledge-base RAG.",
-    version="0.2.1",
+    version="0.3.0",
 )
 app.include_router(player_router)
 
@@ -99,7 +100,7 @@ if FRONTEND_DIR.exists():
 @app.get("/", summary="Health check")
 def root():
     """Simple health-check endpoint."""
-    return {"status": "ok", "service": "Dota AI Coach", "version": "0.2.1"}
+    return {"status": "ok", "service": "Dota AI Coach", "version": "0.3.0"}
 
 
 @app.get("/health", summary="Health check")
@@ -310,15 +311,18 @@ def overlay_recommendation(lang: str = "en"):
     return response
 
 
-def _plays_support(state: dict[str, object]) -> bool:
-    extra = state.get("extra_context") if isinstance(state.get("extra_context"), dict) else {}
+def _plays_support(state: Mapping[str, object] | None) -> bool:
+    state = state or {}
+    raw_extra = state.get("extra_context")
+    extra: Mapping[str, object] = raw_extra if isinstance(raw_extra, dict) else {}
     if extra.get("source_type") != "live_gsi":
         return False
     role = _live_role(state)
-    return bool(role) and role.get("role") == "support" and role.get("source") != "hero"
+    return role is not None and role.get("role") == "support" and role.get("source") != "hero"
 
 
-def _live_role(state: dict[str, object]) -> dict[str, object] | None:
+def _live_role(state: Mapping[str, object] | None) -> dict[str, Any] | None:
+    state = state or {}
     hero = str(state.get("hero") or "")
     prior = PLAYER_SERVICE.role_prior(hero) if hero else None
     return MATCH_MEMORY.role.role(prior)
