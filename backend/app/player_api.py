@@ -60,6 +60,10 @@ class OpenDotaKeyRequest(BaseModel):
     api_key: str
 
 
+class AskRequest(BaseModel):
+    question: str
+
+
 class FocusRequest(BaseModel):
     finding_id: str
 
@@ -137,6 +141,12 @@ def refresh_match(match_id: MatchId):
 def player_career(lang: str = "en", hero_id: HeroId = None):
     """`hero_id` narrows the progress to one hero (no AI review then)."""
     return PLAYER_SERVICE.career(normalize_lang(lang), hero_id=hero_id)
+
+
+@router.post("/matches/{match_id}/ask", summary="Ask the AI coach a question about a match")
+def ask_match(match_id: MatchId, request: AskRequest, lang: str = "en"):
+    """Answered synchronously (up to about a minute); the answer is fact-checked."""
+    return PLAYER_SERVICE.ask_match(match_id, request.question, normalize_lang(lang))
 
 
 @router.post("/focus", summary="Work on one recurring problem from now on")

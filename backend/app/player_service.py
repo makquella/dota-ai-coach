@@ -41,6 +41,8 @@ from app.analysis_texts import render_analysis
 from app.career_analysis import NOT_RECURRING, analyze_career
 from app.coach_llm import PROVIDERS, AISettings, CoachLLM, CoachLLMError, settings_from
 from app.coach_review import (
+    QUESTION_LIMIT,
+    answer_question,
     career_facts,
     facts_hash,
     match_facts,
@@ -91,6 +93,10 @@ GAME_PLAN_CACHE_SECONDS = 60
 SKIPPED_MODES_META = "skipped_modes"
 FOCUS_META = "focus"
 TODAY_MAX_MATCHES = 30
+# "Ask the coach": the last questions per match, and how long the player waits.
+ASK_CACHE_KEY = "coach:ask"
+ASK_HISTORY = 5
+ASK_TIMEOUT_SECONDS = 60.0
 # AI coach.
 AI_SETTINGS_KEY = "ai_settings"
 # The replay is still being parsed: wait for the full data before asking the model.
@@ -459,6 +465,7 @@ class PlayerService:
         detail["focus"] = self._match_focus(primary, record, analysis, lang)
         detail["coach"] = self._match_coach(primary, match_id, detail, lang, force=force_coach)
         detail["baseline"] = self._baseline(primary, record, analysis)
+        detail["questions"] = self._questions(primary, match_id)
         return detail
 
     def _baseline(
@@ -687,6 +694,48 @@ class PlayerService:
         if settings is None:
             return None
         return CoachLLM(settings, timeout=30.0) if check else CoachLLM(settings)
+
+    def ask_match(self, match_id: int, question: str, lang: str) -> dict[str, Any]:
+        """A free question about one reviewed match, answered by the AI coach with the
+        same fact check as the reviews (synchronous: the player waits for it)."""
+        primary = self.store.primary_account_id()
+        if primary is None:
+            return {"ok": False, "code": "not_linked"}
+        if not self.ai_configured():
+            return {"ok": False, "code": "off"}
+        detail = self.match_detail(match_id, lang)
+        facts = match_facts(detail) if detail else None
+        if facts is None:
+            return {"ok": False, "code": "no_review"}
+        client = self.llm if self.llm is not None else self._coach_client_with(ASK_TIMEOUT_SECONDS)
+        if client is None:
+            return {"ok": False, "code": "off"}
+        try:
+            result = answer_question(client, facts, question, lang, known_items=self._known_items())
+        except CoachLLMError as error:
+            if error.code not in {"empty_question", "unverified"}:
+                record_error("coach-ai", f"question: {error.code}", with_trace=False)
+            return {"ok": False, "code": error.code}
+        except Exception as error:  # noqa: BLE001 - a bad answer must not become a 500
+            record_error("coach-ai", error)
+            return {"ok": False, "code": "bad_response"}
+        entry = {
+            "question": " ".join(str(question).split())[:QUESTION_LIMIT],
+            "answer": result["review"]["answer"],
+            "at": _now_iso(),
+            "lang": lang,
+        }
+        key = f"{ASK_CACHE_KEY}:{primary}:{match_id}"
+        history = [entry, *(self.store.cache_get(key) or [])][:ASK_HISTORY]
+        self.store.cache_set(key, history)
+        return {"ok": True, "answer": entry, "history": history}
+
+    def _questions(self, account_id: int, match_id: int) -> list[dict[str, Any]]:
+        return self.store.cache_get(f"{ASK_CACHE_KEY}:{account_id}:{match_id}") or []
+
+    def _coach_client_with(self, timeout: float) -> Any:
+        settings = self.ai_settings()
+        return CoachLLM(settings, timeout=timeout) if settings is not None else None
 
     def _known_items(self) -> list[str]:
         constants = self.store.cache_get(ITEM_CONSTANTS_KEY) or {}

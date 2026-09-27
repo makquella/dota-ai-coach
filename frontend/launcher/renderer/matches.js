@@ -276,6 +276,18 @@
         bad_response: "The AI service answered with an error.",
         no_key: "No key yet."
       },
+      askTitle: "Ask the coach",
+      askHint: "A question about this match. The answer uses only this match's data and goes through the same fact check.",
+      askPlaceholder: "For example: why did I lose the lane?",
+      askButton: "Ask",
+      askThinking: "The coach is thinking…",
+      askSuggestions: ["What decided this game for me?", "What should I change in the lane?", "Was my build on time?"],
+      askErrors: {
+        unverified: "The coach could not answer this from the match data. Try asking differently.",
+        empty_question: "Type a question first.",
+        no_review: "The review of this match is not ready yet.",
+        off: "Turn the AI coach on in Settings first."
+      },
       aiSettingsTitle: "AI coach",
       aiOnTitle: "AI coach is on",
       aiCheckNow: "Check key",
@@ -568,6 +580,18 @@
         unverified: "В ответе ИИ были факты, которых нет в данных, поэтому он не показан. Попробуйте ещё раз.",
         bad_response: "ИИ-сервис ответил ошибкой.",
         no_key: "Ключ ещё не указан."
+      },
+      askTitle: "Спросить тренера",
+      askHint: "Вопрос об этом матче. Ответ строится только по данным матча и проходит ту же проверку фактов.",
+      askPlaceholder: "Например: почему я проиграл линию?",
+      askButton: "Спросить",
+      askThinking: "Тренер думает…",
+      askSuggestions: ["Что решило эту игру?", "Что изменить на линии?", "Вовремя ли я собрал предметы?"],
+      askErrors: {
+        unverified: "Тренер не смог ответить по данным этого матча. Попробуйте спросить иначе.",
+        empty_question: "Сначала напишите вопрос.",
+        no_review: "Разбор этого матча ещё не готов.",
+        off: "Сначала включите ИИ-тренера в настройках."
       },
       aiSettingsTitle: "ИИ-тренер",
       aiOnTitle: "ИИ-тренер включён",
@@ -1277,6 +1301,10 @@
       const coach = coachCard(detail.coach, "match");
       if (coach) {
         parts.push(coach);
+      }
+      const ask = askCard(detail);
+      if (ask) {
+        parts.push(ask);
       }
       parts.push(focusCard(analysis));
       parts.push(sectionsCard(analysis));
@@ -2129,6 +2157,83 @@
         : null;
     const head = h("span", { class: "coach-head" }, h("span", { class: "tag", text: t("coachTag") }), settingsButton);
     return h("div", { class: "coach-card" }, card(title, "graduation-cap", body, head));
+  }
+
+  // "Ask the coach": a free question about this match, answered from its facts.
+  function askCard(detail) {
+    const coach = detail.coach;
+    if (!coach || coach.state === "off" || coach.state === "none") {
+      return null;
+    }
+    const history = h("div", { class: "ask-history" });
+    const renderHistory = () =>
+      history.replaceChildren(
+        ...(detail.questions || []).map((qa) =>
+          h("div", { class: "ask-item" }, h("p", { class: "ask-q", text: qa.question }), h("p", { class: "ask-a", text: qa.answer }))
+        )
+      );
+    renderHistory();
+    const input = h("input", { class: "input ask-input", type: "text", maxlength: "300", placeholder: t("askPlaceholder"), "aria-label": t("askTitle") });
+    const button = h("button", { class: "btn btn-primary btn-sm", type: "submit" }, icon("send"), h("span", { text: t("askButton") }));
+    const note = h("p", { class: "muted small ask-note", role: "status" });
+    const pending = h("div", { class: "ask-pending hidden" }, h("p", { class: "muted small", text: t("askThinking") }), skeletonRows(2));
+    const chips = h(
+      "div",
+      { class: "ask-chips" },
+      t("askSuggestions").map((question) =>
+        h("button", { class: "chip ask-chip", type: "button", text: question, onclick: () => submit(question) })
+      )
+    );
+    async function submit(question) {
+      const text = String(question || "").trim();
+      if (!text) {
+        note.textContent = t("askErrors.empty_question");
+        return;
+      }
+      input.value = text;
+      button.disabled = true;
+      input.disabled = true;
+      chips.querySelectorAll("button").forEach((chip) => {
+        chip.disabled = true;
+      });
+      note.textContent = "";
+      pending.classList.remove("hidden");
+      const result = await call("ask", { matchId: detail.match_id, question: text });
+      pending.classList.add("hidden");
+      button.disabled = false;
+      input.disabled = false;
+      chips.querySelectorAll("button").forEach((chip) => {
+        chip.disabled = false;
+      });
+      if (result.ok && result.data && result.data.ok) {
+        input.value = "";
+        detail.questions = result.data.history || [];
+        renderHistory();
+        return;
+      }
+      const code = (result.data && result.data.code) || "bad_response";
+      note.textContent = tOptional(`askErrors.${code}`) || tOptional(`coachErrors.${code}`) || t("coachErrors.bad_response");
+    }
+    const form = h(
+      "form",
+      {
+        class: "ask-form no-print",
+        onsubmit: (event) => {
+          event.preventDefault();
+          submit(input.value);
+        }
+      },
+      input,
+      button
+    );
+    return card(t("askTitle"), "message-circle", [
+      h("p", { class: "muted small no-print", text: t("askHint") }),
+      form,
+      h("div", { class: "no-print" }, chips),
+      pending,
+      note,
+      history
+    ]);
   }
 
   function coachStatusLine(coach, kind) {
