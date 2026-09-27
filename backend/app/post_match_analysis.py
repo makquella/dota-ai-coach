@@ -222,7 +222,24 @@ def analyze_match(
         "advice": (facts.get("advice_log") or [])[:MAX_ADVICE_SHOWN],
         "advice_follow": follow_block,
         "role_play": role_block,
+        # The enemy lineup (OpenDota), for the career's hardest opponents.
+        "enemy_heroes": _enemy_heroes(opendota),
     }
+
+
+def _enemy_heroes(opendota: dict[str, Any] | None) -> list[int]:
+    players = (opendota or {}).get("players") or []
+    me = next((p for p in players if p.get("me")), None)
+    if me is None:
+        return []
+    side = bool(me.get("isRadiant", True))
+    return [
+        int(p["hero_id"])
+        for p in players
+        if bool(p.get("isRadiant", True)) != side
+        and isinstance(p.get("hero_id"), int)
+        and p["hero_id"] > 0
+    ]
 
 
 def _per_section(findings: list[dict[str, Any]], limit: int = 2) -> list[dict[str, Any]]:

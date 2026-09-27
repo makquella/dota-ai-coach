@@ -229,6 +229,17 @@ def career_facts(career: dict[str, Any], recent: list[dict[str, Any]]) -> dict[s
         ],
         "recent_matches": recent[:10],
     }
+    opponents = career.get("opponents") or {}
+    if opponents.get("hard"):
+        # Their record against each enemy hero met 3+ times (lineups from OpenDota).
+        facts["hardest_enemy_heroes"] = [
+            {
+                "hero": r["hero"],
+                "wins_losses": f"{r['wins']}-{r['losses']}",
+                "winrate_percent": r["winrate"],
+            }
+            for r in opponents["hard"]
+        ]
     compare = career.get("self_compare")
     if compare:
         facts["your_best_vs_worst_games"] = {

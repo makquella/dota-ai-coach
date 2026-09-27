@@ -260,6 +260,11 @@
       shareExpires: (date) => `Works until ${date}.`,
       shareWithCoach: "With the AI coach's summary.",
       shareFailed: (code) => `Could not do it${code ? ` (${code})` : ""}: check the internet and try again.`,
+      opponentsTitle: "Enemy heroes",
+      opponentsNote: (n, min) => `Your record against each enemy hero in ${n} matches with a known lineup (heroes met ${min}+ times).`,
+      opponentsHard: "Hardest to play against",
+      opponentsEasy: "You beat them most often",
+      opponentRecord: (w, l, wr) => `${w}–${l} · ${wr}%`,
       friendTitle: "Compare with a friend",
       friendHint: "A friend's Friend ID, Steam ID or profile link (steamcommunity.com/profiles/…). Their public OpenDota matches are compared with yours: the last 20 games of each.",
       friendPlaceholder: "Friend ID, Steam ID or profile link",
@@ -631,6 +636,11 @@
       shareExpires: (date) => `Работает до ${date}.`,
       shareWithCoach: "С выводом ИИ-тренера.",
       shareFailed: (code) => `Не получилось${code ? ` (${code})` : ""}: проверьте интернет и попробуйте ещё раз.`,
+      opponentsTitle: "Вражеские герои",
+      opponentsNote: (n, min) => `Ваш счёт против каждого вражеского героя в ${n} матчах с известным составом (герои, встреченные ${min}+ раза).`,
+      opponentsHard: "Против них сложнее всего",
+      opponentsEasy: "Их вы обыгрываете чаще всего",
+      opponentRecord: (w, l, wr) => `${w}–${l} · ${wr}%`,
       friendTitle: "Сравнение с другом",
       friendHint: "Friend ID друга, Steam ID или ссылка на профиль (steamcommunity.com/profiles/…). Сравниваются открытые матчи из OpenDota: последние 20 игр каждого.",
       friendPlaceholder: "Friend ID, Steam ID или ссылка на профиль",
@@ -2264,6 +2274,31 @@
     hydrate(host);
   }
 
+  // The record against enemy heroes met 3+ times (career_analysis.opponents).
+  function opponentsCard(record) {
+    if (!record || !(record.hard?.length || record.easy?.length)) {
+      return null;
+    }
+    const row = (hero) =>
+      h(
+        "li",
+        { class: "friend-hero" },
+        heroLabel(hero.hero_id, hero.hero),
+        h("span", { class: "muted num", text: t("opponentRecord", hero.wins, hero.losses, hero.winrate) })
+      );
+    return card(
+      t("opponentsTitle"),
+      "swords",
+      h(
+        "div",
+        { class: "friend" },
+        h("p", { class: "muted small", text: t("opponentsNote", record.matches, record.min_games) }),
+        record.hard?.length ? h("div", {}, h("p", { class: "friend-sub", text: t("opponentsHard") }), h("ul", { class: "friend-heroes" }, record.hard.map(row))) : null,
+        record.easy?.length ? h("div", {}, h("p", { class: "friend-sub", text: t("opponentsEasy") }), h("ul", { class: "friend-heroes" }, record.easy.map(row))) : null
+      )
+    );
+  }
+
   function selfCompareCard(compare) {
     if (!compare) {
       return null;
@@ -3435,6 +3470,7 @@
       scoreCard,
       careerRankCard(career),
       state.careerHero === null ? friendCard() : "",
+      opponentsCard(career.opponents) || "",
       selfCompareCard(career.self_compare) || "",
       goalCard(career.focus) || "",
       planCard,
