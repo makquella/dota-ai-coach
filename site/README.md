@@ -25,16 +25,20 @@ cd site && python3 -m http.server 8080
 
 Сайт публикуется на GitHub Pages (Actions → *Website* → Run workflow,
 `.github/workflows/pages.yml`) и открывается по адресу `https://luhovyimvp.dev`.
-DNS домена — в Cloudflare:
+DNS домена — в Cloudflare, записи идут **через прокси Cloudflare** (оранжевое
+облако): HTTPS выдаёт Cloudflare, GitHub отдаёт страницы.
 
 - `A` для `@`: `185.199.108.153`, `185.199.109.153`, `185.199.110.153`,
   `185.199.111.153`; `AAAA` для `@`: `2606:50c0:8000::153` … `2606:50c0:8003::153`;
-  `CNAME` для `www` → `makquella.github.io`. Все — «DNS only» (серое облако):
-  через прокси Cloudflare GitHub не выпустит сертификат.
+  `CNAME` для `www` → `makquella.github.io`.
+- В Cloudflare: SSL/TLS → режим **Full** (не Flexible и не Full strict),
+  **Always Use HTTPS** включён. Галочка «Enforce HTTPS» в GitHub при прокси
+  недоступна и не нужна.
 - Записи почты (MX, TXT для Migadu) не трогать.
-- В GitHub: Settings → Pages → Custom domain `luhovyimvp.dev`, после проверки —
-  Enforce HTTPS. Домен `.dev` открывается только по HTTPS, поэтому до выпуска
-  сертификата (обычно до часа) сайт не откроется.
+- Если сайт не открывается у игроков из России (в 2025 году провайдеры замедляли
+  ресурсы за Cloudflare), переключите записи в «DNS only» (серое облако), а в
+  GitHub → Settings → Pages включите Enforce HTTPS, когда выпустится сертификат
+  (до часа; домен `.dev` без HTTPS не открывается).
 
 Канонический адрес и превью ссылки (`og:image`) в `index.html` указывают на этот
 домен. Другой хостинг: достаточно выложить содержимое `site/` в корень сайта.
