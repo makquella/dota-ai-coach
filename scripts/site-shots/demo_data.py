@@ -166,3 +166,63 @@ def vary(recent: list[dict[str, Any]]) -> dict[int, dict[str, Any]]:
             last_hits=me["last_hits"],
         )
     return matches
+
+
+# --- the recorded match on the map --------------------------------------------------
+# A believable game of a Radiant safe-lane Juggernaut (live GSI world coordinates:
+# centre 0, Radiant bottom-left): two lane deaths to Shadow Fiend, then farm, and
+# deaths in the Dire jungle, at Roshan and at a Dire tower. The death times are those
+# of the parsed replay (opendota_match's defaults), so every death gets its place.
+FOUNTAIN = (-7000, -6700)
+RESPAWN = 20
+ROUTE_DEATHS = (240, 420, 1300, 1500, 2100, 2250)
+# (clock, x, y) waypoints of each life; the hero walks straight between them.
+LIVES: list[list[tuple[int, int, int]]] = [
+    [(-60, *FOUNTAIN), (-30, -5600, -6500), (0, -3200, -6450), (40, 900, -6350),
+     (90, 2300, -6200), (130, 1500, -6300), (180, 2600, -6150), (225, 1900, -6250),
+     (240, 2300, -6150)],
+    [(260, *FOUNTAIN), (300, -3500, -6450), (340, 1200, -6350), (380, 2900, -6150),
+     (420, 3700, -6000)],
+    [(440, *FOUNTAIN), (480, -3600, -6450), (520, 800, -6350), (560, 2400, -6200),
+     (600, 1400, -6300), (650, 300, -5000), (700, -900, -4100), (760, -2300, -3300),
+     (820, -3100, -4500), (880, -1600, -5200), (930, -300, -4000), (990, -700, -2600),
+     (1040, 700, -1900), (1100, 1600, -900), (1150, 2100, 300), (1210, 3100, 900),
+     (1260, 3100, 1900), (1300, 3600, 1300)],
+    [(1320, *FOUNTAIN), (1360, -4600, -4700), (1400, -2600, -2700), (1440, -1300, -1400),
+     (1470, 200, 800), (1500, 1300, 3400)],
+    [(1520, *FOUNTAIN), (1560, -3500, -6400), (1610, 1500, -6300), (1680, 4800, -6150),
+     (1740, 6200, -5200), (1800, 6300, -3300), (1860, 4900, -2900), (1920, 3900, -4100),
+     (1990, 2600, -3600), (2050, 2300, -2700), (2100, 2750, -2300)],
+    [(2120, *FOUNTAIN), (2160, -3500, -6400), (2200, 2600, -6250), (2230, 6000, -5600),
+     (2250, 6300, 1400)],
+    [(2270, *FOUNTAIN), (2280, *FOUNTAIN)],
+]
+
+
+def route_position(t: int) -> tuple[int, int] | None:
+    """Where the hero stands at clock `t`; None while dead."""
+    for life in LIVES:
+        if life[0][0] <= t <= life[-1][0]:
+            for (t0, x0, y0), (t1, x1, y1) in zip(life, life[1:], strict=False):
+                if t0 <= t <= t1:
+                    k = (t - t0) / (t1 - t0) if t1 > t0 else 0
+                    return round(x0 + (x1 - x0) * k), round(y0 + (y1 - y0) * k)
+    return None
+
+
+def with_route(payloads: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """gsi_match_stream payloads (no deaths of their own) moved along LIVES."""
+    for payload in payloads:
+        t = payload["map"]["clock_time"]
+        deaths = sum(1 for d in ROUTE_DEATHS if d <= t)
+        payload["player"]["deaths"] = deaths
+        position = route_position(t)
+        hero = payload["hero"]
+        dead = position is None or any(d <= t < d + RESPAWN for d in ROUTE_DEATHS)
+        hero.update(alive=not dead, health_percent=0 if dead else 80)
+        hero["respawn_seconds"] = RESPAWN if dead else 0
+        if dead:
+            payload["player"]["gold"] = 900
+        else:
+            hero.update(xpos=position[0], ypos=position[1])
+    return payloads

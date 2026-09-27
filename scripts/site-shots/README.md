@@ -37,3 +37,7 @@ backend/.venv/bin/python scripts/site-shots/game_frames.py /tmp/site-shots/raw
 - `game_frames.py` — six store screenshots cropped for the "In game" tiles,
   the in-game view (Juggernaut at 1:12 with the real plan card where the
   overlay sits, at the large card size) and the 21 carry portraits.
+
+After a reshoot bump `SHOTS_VERSION` in `site/app.js` and the matching `?v=` of the
+`assets/{app,overlay,shots}/` pictures in `site/index.html`: the site sends pictures
+with a 4-hour cache, so returning visitors would see the old ones otherwise.
