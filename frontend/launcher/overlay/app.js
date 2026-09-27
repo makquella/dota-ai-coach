@@ -248,6 +248,7 @@ function renderAdvice(data, options = { refreshTimer: true }) {
 }
 
 const PLAN_STATUSES = new Set(["no_advice", "monitoring", "unsupported_hero"]);
+const spokenPlans = new Set();
 
 function showPlan(data) {
   clearTimeout(hideTimer);
@@ -259,6 +260,24 @@ function showPlan(data) {
   reasonEl.textContent = rest.join("\n");
   renderStatusRow(data);
   reveal();
+  // Heard once per plan when the voice reads every advice (fullscreen players
+  // never see the card).
+  const planKey = `plan|${data.game_plan.hero || ""}|${data.game_plan.lines.join("|")}`;
+  if (!speaker || spokenPlans.has(planKey)) {
+    return;
+  }
+  const spoken = speaker.say({
+    key: planKey,
+    text: data.game_plan.lines.join(". "),
+    adviceMode: "coaching",
+    mode: config.voice,
+    locale: config.locale,
+    volume: config.voiceVolume
+  });
+  // Once per plan, even when advice was spoken in between.
+  if (spoken === "spoken" || spoken === "off") {
+    spokenPlans.add(planKey);
+  }
 }
 
 function showStatus(message, data = {}) {
