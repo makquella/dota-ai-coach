@@ -171,6 +171,13 @@ const I18N = {
     whatsNewTitle: (version) => `What's new in ${version}`,
     whatsNewOk: "Got it",
     whatsNew: {
+      "0.4.0": [
+        "The match map is drawn on the real Dota minimap: your path, lane position, wards and deaths.",
+        "Good-pace lines for gold and XP on the «Over the match» chart.",
+        "A «Deaths» card: where, who killed you, unspent gold and the advice shown before each death.",
+        "Mistakes that keep coming back are marked: «3 matches in a row».",
+        "This week on Home: matches, score change, best match, the most frequent mistake and a 3-match plan for your focus."
+      ],
       "0.3.0": [
         "Map timers on the overlay 20 s ahead: runes, wisdom shrines, lotuses, the Tormentor, neutral item tiers — only the ones your role needs.",
         "Your role is found from your lane in the first minutes (or chosen in Settings → Advice) and shown on Home.",
@@ -460,6 +467,13 @@ const I18N = {
     whatsNewTitle: (version) => `Что нового в ${version}`,
     whatsNewOk: "Понятно",
     whatsNew: {
+      "0.4.0": [
+        "Карта матча нарисована на настоящей миникарте Доты: ваш путь, позиция на линии, варды и смерти.",
+        "На графике «По ходу матча» — хороший темп по золоту и опыту.",
+        "Карточка «Смерти»: где, кто убил, сколько золота не потрачено и какая была подсказка перед смертью.",
+        "Повторяющиеся ошибки отмечены: «3-й матч подряд».",
+        "Неделя на главной: матчи, изменение оценки, лучший матч, частая ошибка и план на 3 матча по фокусу."
+      ],
       "0.3.0": [
         "Таймеры карты на оверлее за 20 секунд: руны, святилища мудрости, лотосы, Торментор, уровни нейтральных предметов — только нужные вашей роли.",
         "Роль определяется по линии в первые минуты (или выбирается в «Настройки → Советы») и видна на главной.",
