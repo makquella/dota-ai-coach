@@ -1093,6 +1093,11 @@ async function pollPlayerStatus() {
   const reviewKey = review ? `${review.match_id}|${review.at}` : "";
   const first = live.player === null;
   const previousKey = live.player ? live.player.reviewKey : "";
+  // An account linked from GSI proves Dota already sent data (users updating
+  // from a version without the first-run checklist).
+  if (status.source === "gsi" && !settings.get("gsiSeenAt")) {
+    settings.set("gsiSeenAt", new Date().toISOString());
+  }
   live.player = {
     linked: Boolean(status.linked),
     name: status.player ? status.player.persona_name || null : null,
