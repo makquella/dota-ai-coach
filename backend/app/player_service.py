@@ -419,8 +419,9 @@ class PlayerService:
             "scoreboard": _scoreboard(record.get("opendota")),
             "loading": analysis is None and self.client is not None,
         }
-        detail["coach"] = self._match_coach(primary, match_id, detail, lang, force=force_coach)
+        # Before the coach: the AI review mentions the player's focus when there is one.
         detail["focus"] = self._match_focus(primary, record, analysis, lang)
+        detail["coach"] = self._match_coach(primary, match_id, detail, lang, force=force_coach)
         detail["baseline"] = self._baseline(primary, record, analysis)
         return detail
 

@@ -440,3 +440,22 @@ def test_fact_checker_understands_number_formats():
     assert checker.problems("Держите 50 добиваний к 10-й минуте.") == ["50"]
     # 14 000 net worth does not make "14 deaths" a fact.
     assert FactChecker(json.dumps({"nw": 14000}), []).problems("14 смертей, 14k золота") == ["14"]
+
+
+def test_the_coach_hears_about_the_players_focus(client, tmp_path):
+    from match_fixtures import gsi_match_stream
+
+    llm = FakeLLM(GOOD_MATCH_REVIEW)
+    service = _service(tmp_path, llm)
+    client.post("/player/link", json={"steam": str(ME)})
+    client.post("/player/focus", json={"finding_id": "death_streak"})
+    for payload in gsi_match_stream(match_id=MATCH_ID + 5, death_minutes=(7, 18, 19, 20)):
+        client.post("/gsi", json=payload)
+    client.get(f"/player/matches/{MATCH_ID + 5}?lang=en")
+    service.ai_jobs.run_pending(until=float("inf"))
+    prompt = json.loads(llm.calls[0][-1]["content"])
+    assert prompt["player_focus"] == {
+        "problem_the_player_trains": "Death streak",
+        "this_match": "it happened again",
+    }
+    assert "player_focus" in llm.calls[0][0]["content"]

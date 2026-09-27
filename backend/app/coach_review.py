@@ -77,10 +77,9 @@ CAREER_SCHEMA = """JSON format:
 
 MATCH_SYSTEM = (
     "You are an experienced Dota 2 coach reviewing one match of your student (the player). "
-    "The JSON holds the facts of the match computed from the replay or the game's telemetry.\n\n"
-    + COMMON_RULES
-    + "\n\n"
-    + MATCH_SCHEMA
+    "The JSON holds the facts of the match computed from the replay or the game's telemetry. "
+    'When it has "player_focus" (the problem the player chose to train), say in the summary '
+    "whether they managed it in this match.\n\n" + COMMON_RULES + "\n\n" + MATCH_SCHEMA
 )
 
 CAREER_SYSTEM = (
@@ -158,6 +157,12 @@ def match_facts(detail: dict[str, Any]) -> dict[str, Any] | None:
                 for c in draft.get("counters") or []
                 if c.get("for_role")
             ],
+        }
+    focus = detail.get("focus")
+    if focus and focus.get("met") is not None:
+        facts["player_focus"] = {
+            "problem_the_player_trains": focus.get("title"),
+            "this_match": "avoided it" if focus["met"] else "it happened again",
         }
     scoreboard = detail.get("scoreboard")
     if scoreboard:
