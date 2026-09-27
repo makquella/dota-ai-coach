@@ -16,7 +16,8 @@ const KEY_FIELD = /("api_?key"\s*:\s*")[^"]*"/gi;
 export const LIMITS = {
   textChars: 1_500_000, // the report file (logs, diagnostics)
   noteChars: 1000, // what the player wrote about the problem
-  bodyBytes: 2 * 1024 * 1024
+  bodyBytes: 2 * 1024 * 1024,
+  rowBytes: 1_900_000 // gzipped report kept in D1 (max 2 MB per value)
 };
 // Reports per hour from one installation and from one address.
 export const RATE_PER_HOUR = { install: 5, address: 20 };

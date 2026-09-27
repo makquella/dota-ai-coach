@@ -9,7 +9,8 @@
 //   GET    /v1/admin/report/<id>    -> one report as text (same)
 //   cron                            -> deletes reports older than RETENTION_DAYS, old rate counters
 //
-// Bindings: DB (D1), REPORTS (R2). Secrets (optional): TELEGRAM_BOT_TOKEN,
+// Bindings: DB (D1), REPORTS (R2, optional: without it the gzipped report is
+// kept in the D1 row, which is enough for the free tier's 5 GB). Secrets (optional): TELEGRAM_BOT_TOKEN,
 // TELEGRAM_CHAT_ID (a message with the report file to the developer), ADMIN_TOKEN.
 
 import {
@@ -72,6 +73,17 @@ async function gunzipText(body) {
   return new Response(stream).text();
 }
 
+/** Removes the R2 objects of these rows (rows stored in D1 have no key). */
+async function deleteObjects(env, rows) {
+  const keys = rows.map((row) => row.r2_key).filter(Boolean);
+  if (!env.REPORTS) {
+    return;
+  }
+  for (let i = 0; i < keys.length; i += 1000) {
+    await env.REPORTS.delete(keys.slice(i, i + 1000));
+  }
+}
+
 async function notifyTelegram(env, id, report) {
   if (!env.TELEGRAM_BOT_TOKEN || !env.TELEGRAM_CHAT_ID) {
     return;
@@ -123,17 +135,26 @@ export async function handleReport(request, env, ctx, now = Date.now()) {
 
   const id = reportId(crypto.getRandomValues(new Uint8Array(6)));
   const date = new Date(now);
-  const key = storageKey(id, date);
   const stored = `${report.note ? `Player note:\n${report.note}\n\n` : ""}${report.text}`;
-  await env.REPORTS.put(key, await gzip(stored), {
-    httpMetadata: { contentType: "text/plain; charset=utf-8", contentEncoding: "gzip" },
-    customMetadata: { id, version: report.version, install: report.installId }
-  });
+  const packed = await gzip(stored);
+  let key = null;
+  let inline = null;
+  if (env.REPORTS) {
+    key = storageKey(id, date);
+    await env.REPORTS.put(key, packed, {
+      httpMetadata: { contentType: "text/plain; charset=utf-8", contentEncoding: "gzip" },
+      customMetadata: { id, version: report.version, install: report.installId }
+    });
+  } else if (packed.byteLength > LIMITS.rowBytes) {
+    return json({ ok: false, code: "too_large" }, 413);
+  } else {
+    inline = packed;
+  }
   await env.DB.prepare(
-    "INSERT INTO reports (id, created_at, install_id, version, os, lang, size, summary, r2_key) " +
-      "VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)"
+    "INSERT INTO reports (id, created_at, install_id, version, os, lang, size, summary, r2_key, body) " +
+      "VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)"
   )
-    .bind(id, now, report.installId, report.version, report.os, report.lang, stored.length, summarize(report), key)
+    .bind(id, now, report.installId, report.version, report.os, report.lang, stored.length, summarize(report), key, inline)
     .run();
   ctx.waitUntil(notifyTelegram(env, id, report).catch((error) => console.log(`telegram: ${error.message}`)));
   return json({ ok: true, id, retention_days: RETENTION_DAYS }, 201);
@@ -145,12 +166,10 @@ export async function deleteDevice(installId, env) {
     return json({ ok: false, code: "bad_install_id" }, 400);
   }
   const { results } = await env.DB.prepare("SELECT r2_key FROM reports WHERE install_id = ?1").bind(id).all();
-  const keys = (results || []).map((row) => row.r2_key);
-  for (let i = 0; i < keys.length; i += 1000) {
-    await env.REPORTS.delete(keys.slice(i, i + 1000));
-  }
+  const rows = results || [];
+  await deleteObjects(env, rows);
   await env.DB.prepare("DELETE FROM reports WHERE install_id = ?1").bind(id).run();
-  return json({ ok: true, deleted: keys.length });
+  return json({ ok: true, deleted: rows.length });
 }
 
 function isAdmin(request, env) {
@@ -166,12 +185,17 @@ async function adminList(env) {
 }
 
 async function adminReport(id, env) {
-  const row = await env.DB.prepare("SELECT r2_key FROM reports WHERE id = ?1").bind(id).first();
-  const object = row ? await env.REPORTS.get(row.r2_key) : null;
-  if (!object) {
+  const row = await env.DB.prepare("SELECT r2_key, body FROM reports WHERE id = ?1").bind(id).first();
+  let packed = null;
+  if (row?.body) {
+    packed = new Blob([new Uint8Array(row.body)]).stream();
+  } else if (row?.r2_key && env.REPORTS) {
+    packed = (await env.REPORTS.get(row.r2_key))?.body || null;
+  }
+  if (!packed) {
     return json({ ok: false, code: "not_found" }, 404);
   }
-  return new Response(await gunzipText(object.body), {
+  return new Response(await gunzipText(packed), {
     headers: { "content-type": "text/plain; charset=utf-8", "cache-control": "no-store" }
   });
 }
@@ -195,7 +219,7 @@ export async function cleanup(env, now = Date.now()) {
     }
     // Objects first, then exactly those index rows: a failure in between
     // leaves rows that the next run deletes again, never unindexed objects.
-    await env.REPORTS.delete(rows.map((row) => row.r2_key));
+    await deleteObjects(env, rows);
     const marks = rows.map((_, i) => `?${i + 1}`).join(", ");
     await env.DB.prepare(`DELETE FROM reports WHERE id IN (${marks})`)
       .bind(...rows.map((row) => row.id))
