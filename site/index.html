@@ -1,0 +1,423 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Dota AI Coach — тренер по Dota 2 прямо в игре</title>
+    <meta
+      name="description"
+      content="Бесплатный тренер для Dota 2: подсказки поверх игры и голосом во время матча, после игры — подробный разбор с картой, сборкой, драфтом и сравнением с соперником твоего ранга."
+    />
+    <meta name="theme-color" content="#07070a" />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Dota AI Coach — тренер по Dota 2 прямо в игре" />
+    <meta
+      property="og:description"
+      content="Подсказки во время матча и честный разбор после. Бесплатно, для Windows, с открытым кодом."
+    />
+    <meta property="og:image" content="assets/og.jpg" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <link rel="icon" href="assets/favicon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="assets/icon.png" />
+    <link rel="preload" href="assets/fonts/inter-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <a class="skip" href="#main" data-i18n="skip">Перейти к содержанию</a>
+
+    <header class="nav" id="top">
+      <div class="nav-inner">
+        <a class="brand" href="#top" aria-label="Dota AI Coach">
+          <span class="brand-mark" aria-hidden="true"></span>
+          <span class="brand-name">Dota AI Coach</span>
+        </a>
+        <nav class="nav-links" aria-label="Разделы" data-i18n-aria="navLabel">
+          <a href="#features" data-i18n="navFeatures">Возможности</a>
+          <a href="#how" data-i18n="navHow">Как работает</a>
+          <a href="#review" data-i18n="navReview">Разбор</a>
+          <a href="#faq" data-i18n="navFaq">Вопросы</a>
+        </nav>
+        <div class="nav-actions">
+          <div class="lang" role="group" aria-label="Язык" data-i18n-aria="langLabel">
+            <button type="button" data-lang="ru" aria-pressed="true">RU</button>
+            <button type="button" data-lang="en" aria-pressed="false">EN</button>
+          </div>
+          <a class="btn btn-primary btn-sm js-download" href="https://github.com/makquella/dota-ai-coach/releases/latest">
+            <svg class="i" aria-hidden="true"><use href="#i-download" /></svg>
+            <span data-i18n="navDownload">Скачать</span>
+          </a>
+        </div>
+      </div>
+    </header>
+
+    <main id="main">
+      <!-- Hero -->
+      <section class="hero">
+        <div class="hero-grid" aria-hidden="true"></div>
+        <div class="wrap hero-inner">
+          <div class="hero-copy">
+            <p class="eyebrow">
+              <span class="pill"><span class="dot dot-ok"></span><span data-i18n="eyebrow">Бесплатно · Windows · открытый код</span></span>
+            </p>
+            <h1 data-i18n-html="heroTitle">Тренер, который смотрит <span class="accent">твою игру</span> вместе с тобой</h1>
+            <p class="lead" data-i18n="heroLead">
+              Подсказки поверх Dota 2 во время матча — на экране и голосом. После игры — честный разбор: где потерял фарм, почему
+              умер, когда пришёл предмет и что делал соперник твоего ранга.
+            </p>
+            <div class="cta-row">
+              <a class="btn btn-primary btn-lg js-download" href="https://github.com/makquella/dota-ai-coach/releases/latest">
+                <svg class="i" aria-hidden="true"><use href="#i-windows" /></svg>
+                <span data-i18n="ctaDownload">Скачать для Windows</span>
+              </a>
+              <a class="btn btn-ghost btn-lg" href="https://github.com/makquella/dota-ai-coach" rel="noopener">
+                <svg class="i" aria-hidden="true"><use href="#i-github" /></svg>
+                <span data-i18n="ctaGithub">Код на GitHub</span>
+              </a>
+            </div>
+            <p class="cta-note" id="release-note" data-i18n="ctaNote">Установка в один клик, обновляется само.</p>
+          </div>
+
+          <!-- A stylized match with the real advice card on top (texts from the app). -->
+          <div class="scene" aria-label="Пример подсказки поверх игры" data-i18n-aria="sceneLabel" role="img">
+            <div class="scene-glow" aria-hidden="true"></div>
+            <div class="scene-screen" aria-hidden="true">
+              <div class="scene-terrain"></div>
+              <div class="scene-clock num"><span class="team team-r">24</span><span id="scene-clock">14:32</span><span class="team team-d">19</span></div>
+              <div class="scene-minimap">
+                <svg viewBox="0 0 100 100">
+                  <rect x="0" y="0" width="100" height="100" rx="6" class="mm-ground" />
+                  <path d="M3,3 L97,97" class="mm-river" />
+                  <path d="M16,80 L16,20 Q16,16 20,16 L80,16" class="mm-lane" />
+                  <path d="M20,84 L80,84 Q84,84 84,80 L84,20" class="mm-lane" />
+                  <path d="M20,80 L80,20" class="mm-lane" />
+                  <circle cx="58" cy="84" r="3.2" class="mm-me" />
+                  <circle cx="70" cy="80" r="2.4" class="mm-enemy" />
+                  <circle cx="44" cy="44" r="2.4" class="mm-enemy" />
+                </svg>
+              </div>
+              <div class="scene-hud">
+                <div class="hud-portrait"></div>
+                <div class="hud-bars">
+                  <div class="hud-bar hud-hp"><span id="scene-hp" style="width: 34%"></span></div>
+                  <div class="hud-bar hud-mp"><span style="width: 62%"></span></div>
+                </div>
+                <div class="hud-items"><i></i><i></i><i></i><i></i><i></i><i></i></div>
+              </div>
+            </div>
+            <div class="advice" id="advice" data-mode="urgent">
+              <div class="advice-top">
+                <span class="dot"></span>
+                <span class="advice-label" id="advice-label">Срочно</span>
+                <span class="advice-voice" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
+              </div>
+              <p class="advice-action" id="advice-action">Уходите с волны сейчас и восстановите HP, прежде чем вернуться.</p>
+              <p class="advice-reason" id="advice-reason">При таком HP ещё один размен или заклинание могут вас убить.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Facts strip -->
+      <section class="facts wrap" aria-label="Коротко" data-i18n-aria="factsLabel">
+        <div class="fact">
+          <p class="fact-value num">~7 <small data-i18n="factMsUnit">мс</small></p>
+          <p class="fact-label" data-i18n="factLatency">на обработку данных игры — совет успевает раньше, чем ты моргнёшь</p>
+        </div>
+        <div class="fact">
+          <p class="fact-value" data-i18n="factGsiValue">Официально</p>
+          <p class="fact-label" data-i18n="factGsi">только Game State Integration от Valve: ни чтения памяти, ни нажатий за тебя</p>
+        </div>
+        <div class="fact">
+          <p class="fact-value num" data-i18n="factFreeValue">0 ₽</p>
+          <p class="fact-label" data-i18n="factFree">без подписок и аккаунтов; ИИ-разбор — на бесплатном ключе Gemini</p>
+        </div>
+        <div class="fact">
+          <p class="fact-value" data-i18n="factLocalValue">Локально</p>
+          <p class="fact-label" data-i18n="factLocal">история матчей и ключи хранятся только на твоём компьютере</p>
+        </div>
+      </section>
+
+      <!-- Features -->
+      <section class="section" id="features">
+        <div class="wrap">
+          <header class="section-head">
+            <p class="kicker" data-i18n="featuresKicker">Во время матча и после</p>
+            <h2 data-i18n="featuresTitle">Всё, что делает тренер — только быстрее и без упрёков</h2>
+          </header>
+
+          <div class="bento">
+            <article class="tile tile-wide">
+              <div class="tile-copy">
+                <p class="tile-tag"><svg class="i" aria-hidden="true"><use href="#i-activity" /></svg><span data-i18n="f1Tag">Живые подсказки</span></p>
+                <h3 data-i18n="f1Title">Говорит, что делать сейчас — а не через пять минут</h3>
+                <p data-i18n="f1Text">
+                  Мало HP под давлением, провал в фарме, рискованный заход к Рошану — правила видят момент и показывают короткий совет.
+                  Срочные — сразу, обычные — с паузами, чтобы не отвлекать. Частоту выбираешь сам.
+                </p>
+              </div>
+              <figure class="tile-shot">
+                <img src="assets/shots/ru/recent-advice.jpg" data-shot="recent-advice" width="592" height="175" loading="lazy" alt="Последние подсказки в приложении" data-i18n-alt="f1Alt" />
+              </figure>
+            </article>
+
+            <article class="tile">
+              <p class="tile-tag"><svg class="i" aria-hidden="true"><use href="#i-volume" /></svg><span data-i18n="f2Tag">Голос</span></p>
+              <h3 data-i18n="f2Title">Слышно даже в полноэкранном режиме</h3>
+              <p data-i18n="f2Text">Озвучивает срочные или все советы системным голосом Windows. Работает офлайн и не перекрикивает сам себя.</p>
+              <figure class="tile-shot tile-shot-flat">
+                <img src="assets/shots/ru/settings-advice.jpg" data-shot="settings-advice" width="592" height="167" loading="lazy" alt="Настройки частоты и голоса" data-i18n-alt="f2Alt" />
+              </figure>
+            </article>
+
+            <article class="tile">
+              <p class="tile-tag"><svg class="i" aria-hidden="true"><use href="#i-map" /></svg><span data-i18n="f3Tag">Карта матча</span></p>
+              <h3 data-i18n="f3Title">Где ты ходил и где умирал</h3>
+              <p data-i18n="f3Text">Путь героя, места смертей, варды и позиция на линии. Если умираешь на чужой половине — тренер это заметит.</p>
+              <figure class="tile-shot">
+                <img src="assets/shots/ru/map.jpg" data-shot="map" width="592" height="490" loading="lazy" alt="Карта матча со смертями и путём героя" data-i18n-alt="f3Alt" />
+              </figure>
+            </article>
+
+            <article class="tile">
+              <p class="tile-tag"><svg class="i" aria-hidden="true"><use href="#i-coins" /></svg><span data-i18n="f4Tag">Сборка</span></p>
+              <h3 data-i18n="f4Title">Тайминг предмета — в процентах побед</h3>
+              <p data-i18n="f4Text">Сравнивает, когда ты собрал предмет, с типичным таймингом в публичных матчах и показывает, сколько это стоило.</p>
+              <figure class="tile-shot">
+                <img src="assets/shots/ru/build.jpg" data-shot="build" width="592" height="528" loading="lazy" alt="Процент побед по времени покупки" data-i18n-alt="f4Alt" />
+              </figure>
+            </article>
+
+            <article class="tile">
+              <p class="tile-tag"><svg class="i" aria-hidden="true"><use href="#i-graduation" /></svg><span data-i18n="f5Tag">ИИ-тренер</span></p>
+              <h3 data-i18n="f5Title">Разбор словами, но без выдумок</h3>
+              <p data-i18n="f5Text">
+                Нейросеть пишет разбор по данным матча, а каждое число, время, герой и предмет сверяются с ними. Не сходится — фраза не попадает в разбор.
+              </p>
+              <div class="check" aria-hidden="true">
+                <p class="check-line is-ok"><span class="check-mark">✓</span><span data-i18n="checkOk">36 добиваний к 10:00 — есть в данных</span></p>
+                <p class="check-line is-ok"><span class="check-mark">✓</span><span data-i18n="checkOk2">Maelstrom к 26:00 — есть в данных</span></p>
+                <p class="check-line is-bad"><span class="check-mark">✕</span><span data-i18n="checkBad">50 добиваний к 12:00 — фраза удалена</span></p>
+              </div>
+            </article>
+
+            <article class="tile">
+              <p class="tile-tag"><svg class="i" aria-hidden="true"><use href="#i-target" /></svg><span data-i18n="f7Tag">Соперник твоего ранга</span></p>
+              <h3 data-i18n="f7Title">Сравнение с тем, кто стоял напротив</h3>
+              <p data-i18n="f7Text">Игра подбирает соперников твоего уровня — значит, их фарм и смерти тебе по силам. Разбор показывает разницу по каждому показателю.</p>
+              <div class="versus" aria-hidden="true">
+                <p><span data-i18n="vsGpm">Золото в минуту</span><b class="num">390</b><b class="num muted">600</b><em class="num bad">−210</em></p>
+                <p><span data-i18n="vsLh">Добивания к 10:00</span><b class="num">36</b><b class="num muted">65</b><em class="num bad">−29</em></p>
+                <p><span data-i18n="vsDeaths">Смерти</span><b class="num">9</b><b class="num muted">5</b><em class="num bad">+4</em></p>
+              </div>
+            </article>
+
+            <article class="tile tile-wide tile-reverse">
+              <div class="tile-copy">
+                <p class="tile-tag"><svg class="i" aria-hidden="true"><use href="#i-chart" /></svg><span data-i18n="f6Tag">Прогресс</span></p>
+                <h3 data-i18n="f6Title">Видно, растёшь ли ты</h3>
+                <p data-i18n="f6Text">
+                  Винрейт, фарм и смерти за последние 10 игр против предыдущих, повторяющиеся ошибки с упражнениями и сравнение твоих
+                  лучших и худших матчей на одном герое.
+                </p>
+              </div>
+              <figure class="tile-shot">
+                <img src="assets/shots/ru/tiles.jpg" data-shot="tiles" width="592" height="290" loading="lazy" alt="Плитки прогресса" data-i18n-alt="f6Alt" />
+              </figure>
+            </article>
+          </div>
+
+          <ul class="mini-features">
+            <li><svg class="i" aria-hidden="true"><use href="#i-swords" /></svg><span data-i18n="m1">Драфт: твой винрейт против каждого врага и лучший пик из твоего пула</span></li>
+            <li><svg class="i" aria-hidden="true"><use href="#i-check" /></svg><span data-i18n="m2">Чек-лист первого запуска подскажет, что осталось настроить</span></li>
+            <li><svg class="i" aria-hidden="true"><use href="#i-file" /></svg><span data-i18n="m3">Сохранение разбора в PDF — показать тиммейтам или тренеру</span></li>
+            <li><svg class="i" aria-hidden="true"><use href="#i-wifi-off" /></svg><span data-i18n="m4">Живые советы работают без интернета</span></li>
+            <li><svg class="i" aria-hidden="true"><use href="#i-refresh" /></svg><span data-i18n="m5">Обновляется само, но никогда во время игры</span></li>
+            <li><svg class="i" aria-hidden="true"><use href="#i-globe" /></svg><span data-i18n="m6">Русский и английский</span></li>
+          </ul>
+        </div>
+      </section>
+
+      <!-- How it works -->
+      <section class="section section-alt" id="how">
+        <div class="wrap">
+          <header class="section-head">
+            <p class="kicker" data-i18n="howKicker">Три шага</p>
+            <h2 data-i18n="howTitle">Поставил — и забыл, пока не начнётся матч</h2>
+          </header>
+          <ol class="steps">
+            <li class="step">
+              <span class="step-n num">1</span>
+              <h3 data-i18n="s1Title">Установи</h3>
+              <p data-i18n="s1Text">Приложение само найдёт Dota 2 в библиотеках Steam и положит маленький конфиг, через который игра делится данными матча.</p>
+            </li>
+            <li class="step">
+              <span class="step-n num">2</span>
+              <h3 data-i18n="s2Title">Играй как обычно</h3>
+              <p data-i18n="s2Text">Подсказки появляются поверх игры, только когда Дота активна и идёт матч. Режим окна без рамки — или включи голос.</p>
+            </li>
+            <li class="step">
+              <span class="step-n num">3</span>
+              <h3 data-i18n="s3Title">Разбери игру</h3>
+              <p data-i18n="s3Text">Через пару минут после матча — оценка, главное на следующую игру и упражнения. Если реплей разобран OpenDota, разбор становится ещё точнее.</p>
+            </li>
+          </ol>
+        </div>
+      </section>
+
+      <!-- Showcase -->
+      <section class="section" id="review">
+        <div class="wrap">
+          <header class="section-head">
+            <p class="kicker" data-i18n="reviewKicker">После матча</p>
+            <h2 data-i18n="reviewTitle">Разбор, который объясняет, а не ругает</h2>
+          </header>
+          <div class="showcase">
+            <div class="show-tabs" role="tablist" aria-label="Части разбора" data-i18n-aria="showLabel">
+              <button role="tab" aria-selected="true" data-show="coach">
+                <strong data-i18n="t1">Разбор тренера</strong><span data-i18n="t1d">Ключевые моменты, ошибки и цели на следующую игру</span>
+              </button>
+              <button role="tab" aria-selected="false" data-show="focus">
+                <strong data-i18n="t2">Главное на следующую игру</strong><span data-i18n="t2d">Три вещи, которые дадут больше всего побед</span>
+              </button>
+              <button role="tab" aria-selected="false" data-show="chart">
+                <strong data-i18n="t3">По ходу матча</strong><span data-i18n="t3d">Добивания, золото и опыт против хорошего темпа</span>
+              </button>
+              <button role="tab" aria-selected="false" data-show="progress-chart">
+                <strong data-i18n="t4">Оценка по матчам</strong><span data-i18n="t4d">Последние 20 игр одним взглядом</span>
+              </button>
+              <button role="tab" aria-selected="false" data-show="matches">
+                <strong data-i18n="t5">История</strong><span data-i18n="t5d">Все матчи аккаунта Steam с оценкой</span>
+              </button>
+            </div>
+            <figure class="show-frame" role="tabpanel">
+              <img id="show-img" src="assets/shots/ru/coach.jpg" data-shot="coach" width="592" height="1018" alt="" />
+            </figure>
+          </div>
+        </div>
+      </section>
+
+      <!-- Trust -->
+      <section class="section section-alt">
+        <div class="wrap trust">
+          <header class="section-head">
+            <p class="kicker" data-i18n="trustKicker">Честно</p>
+            <h2 data-i18n="trustTitle">Никакой магии и никакого риска для аккаунта</h2>
+          </header>
+          <div class="trust-grid">
+            <div class="trust-item">
+              <svg class="i i-lg" aria-hidden="true"><use href="#i-shield" /></svg>
+              <h3 data-i18n="tr1Title">Не трогает игру</h3>
+              <p data-i18n="tr1Text">Данные приходят через официальный Game State Integration — тот же механизм, что у стримерских оверлеев. Ничего не читается из памяти и ничего не нажимается за тебя.</p>
+            </div>
+            <div class="trust-item">
+              <svg class="i i-lg" aria-hidden="true"><use href="#i-lock" /></svg>
+              <h3 data-i18n="tr2Title">Твои данные — у тебя</h3>
+              <p data-i18n="tr2Text">История матчей, разборы и ключи лежат в локальной базе на компьютере. Приложение ходит только в OpenDota за публичной статистикой и, если включишь, к ИИ-сервису.</p>
+            </div>
+            <div class="trust-item">
+              <svg class="i i-lg" aria-hidden="true"><use href="#i-check" /></svg>
+              <h3 data-i18n="tr3Title">Правила решают, ИИ — формулирует</h3>
+              <p data-i18n="tr3Text">Что, когда и насколько срочно подсказать, решают проверяемые правила. Нейросеть — только по желанию и только после матча, с проверкой фактов.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- FAQ -->
+      <section class="section" id="faq">
+        <div class="wrap faq-wrap">
+          <header class="section-head">
+            <p class="kicker" data-i18n="faqKicker">Вопросы</p>
+            <h2 data-i18n="faqTitle">Частые вопросы</h2>
+          </header>
+          <div class="faq">
+            <details>
+              <summary data-i18n="q1">Могут ли забанить?</summary>
+              <p data-i18n="a1">Нет. Game State Integration — официальная возможность Dota 2 от Valve. Приложение не внедряется в игру, не читает память и не управляет героем, а подсказки — такие же, как от друга в Discord.</p>
+            </details>
+            <details>
+              <summary data-i18n="q2">Это правда бесплатно?</summary>
+              <p data-i18n="a2">Да, полностью. Для ИИ-разбора нужен свой бесплатный ключ Google Gemini (получается за минуту); без него всё остальное работает так же.</p>
+            </details>
+            <details>
+              <summary data-i18n="q3">Подсказки не видно поверх игры</summary>
+              <p data-i18n="a3">Поверх эксклюзивного полноэкранного режима Windows не рисует окна. В Доте: Настройки → Видео → «Окно без рамки». Или включи голос — его слышно в любом режиме.</p>
+            </details>
+            <details>
+              <summary data-i18n="q4">Для каких героев есть подсказки?</summary>
+              <p data-i18n="a4">Живые подсказки сейчас заточены под керри. Разбор матча, карта, сборка, драфт и прогресс работают для любого героя.</p>
+            </details>
+            <details>
+              <summary data-i18n="q5">Откуда берётся история матчей?</summary>
+              <p data-i18n="a5">Приложение само записывает каждый твой матч через GSI и дополняет его данными OpenDota. Для этого в Dota 2 должна быть включена «Общедоступная история матчей».</p>
+            </details>
+            <details>
+              <summary data-i18n="q6">Нужен ли интернет?</summary>
+              <p data-i18n="a6">Для подсказок во время игры — нет. Интернет нужен для истории с OpenDota, ИИ-разбора и обновлений.</p>
+            </details>
+            <details>
+              <summary data-i18n="q7">Windows пишет «защитил ваш компьютер»</summary>
+              <p data-i18n="a7">Установщик пока без цифровой подписи. Нажми «Подробнее» → «Выполнить в любом случае». Код открыт — можно проверить, что внутри.</p>
+            </details>
+          </div>
+        </div>
+      </section>
+
+      <!-- Final CTA -->
+      <section class="final">
+        <div class="wrap final-inner">
+          <h2 data-i18n="finalTitle">Следующая игра — уже с тренером</h2>
+          <p data-i18n="finalText">Две минуты на установку. Дальше приложение всё сделает само.</p>
+          <a class="btn btn-primary btn-lg js-download" href="https://github.com/makquella/dota-ai-coach/releases/latest">
+            <svg class="i" aria-hidden="true"><use href="#i-windows" /></svg>
+            <span data-i18n="ctaDownload">Скачать для Windows</span>
+          </a>
+          <p class="cta-note js-release-meta" data-i18n="finalNote">Windows 10 и 11 · около 120 МБ</p>
+        </div>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <div class="wrap footer-inner">
+        <div class="brand">
+          <span class="brand-mark" aria-hidden="true"></span>
+          <span class="brand-name">Dota AI Coach</span>
+        </div>
+        <nav class="footer-links" aria-label="Ссылки" data-i18n-aria="footerLabel">
+          <a href="https://github.com/makquella/dota-ai-coach" rel="noopener">GitHub</a>
+          <a href="https://github.com/makquella/dota-ai-coach/releases" rel="noopener" data-i18n="footerReleases">Версии</a>
+          <a href="https://github.com/makquella/dota-ai-coach/issues" rel="noopener" data-i18n="footerIssues">Сообщить о проблеме</a>
+        </nav>
+        <p class="footer-legal" data-i18n="legal">
+          Dota 2 — товарный знак Valve Corporation. Проект не связан с Valve и не одобрен ею.
+        </p>
+      </div>
+    </footer>
+
+    <!-- Icons: Lucide (ISC), the same subset as the app. -->
+    <svg width="0" height="0" style="position: absolute" aria-hidden="true">
+      <defs>
+        <symbol id="i-download" viewBox="0 0 24 24"><path d="M12 15V3" /><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><path d="m7 10 5 5 5-5" /></symbol>
+        <symbol id="i-windows" viewBox="0 0 24 24"><rect x="3" y="3" width="8" height="8" rx="1" /><rect x="13" y="3" width="8" height="8" rx="1" /><rect x="3" y="13" width="8" height="8" rx="1" /><rect x="13" y="13" width="8" height="8" rx="1" /></symbol>
+        <symbol id="i-github" viewBox="0 0 24 24"><path d="M15 22v-4a4.8 4.8 0 0 0-1-3.5c3 0 6-2 6-5.5.08-1.25-.27-2.48-1-3.5.28-1.15.28-2.35 0-3.5 0 0-1 0-3 1.5-2.64-.5-5.36-.5-8 0C6 2 5 2 5 2c-.3 1.15-.3 2.35 0 3.5A5.4 5.4 0 0 0 4 9c0 3.5 3 5.5 6 5.5-.39.49-.68 1.05-.85 1.65-.17.6-.22 1.23-.15 1.85v4" /><path d="M9 18c-4.51 2-5-2-7-2" /></symbol>
+        <symbol id="i-activity" viewBox="0 0 24 24"><path d="M22 12h-2.48a2 2 0 0 0-1.93 1.46l-2.35 8.36a.25.25 0 0 1-.48 0L9.24 2.18a.25.25 0 0 0-.48 0l-2.35 8.36A2 2 0 0 1 4.49 12H2" /></symbol>
+        <symbol id="i-volume" viewBox="0 0 24 24"><path d="M11 4.702a.705.705 0 0 0-1.203-.498L6.413 7.587A1.4 1.4 0 0 1 5.416 8H3a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1h2.416a1.4 1.4 0 0 1 .997.413l3.383 3.384A.705.705 0 0 0 11 19.298z" /><path d="M16 9a5 5 0 0 1 0 6" /><path d="M19.364 18.364a9 9 0 0 0 0-12.728" /></symbol>
+        <symbol id="i-map" viewBox="0 0 24 24"><path d="M14.106 5.553a2 2 0 0 0 1.788 0l3.659-1.83A1 1 0 0 1 21 4.619v12.764a1 1 0 0 1-.553.894l-4.553 2.277a2 2 0 0 1-1.788 0l-4.212-2.106a2 2 0 0 0-1.788 0l-3.659 1.83A1 1 0 0 1 3 19.381V6.618a1 1 0 0 1 .553-.894l4.553-2.277a2 2 0 0 1 1.788 0z" /><path d="M15 5.764v15" /><path d="M9 3.236v15" /></symbol>
+        <symbol id="i-coins" viewBox="0 0 24 24"><circle cx="8" cy="8" r="6" /><path d="M18.09 10.37A6 6 0 1 1 10.34 18" /><path d="M7 6h1v4" /><path d="m16.71 13.88.7.71-2.82 2.82" /></symbol>
+        <symbol id="i-graduation" viewBox="0 0 24 24"><path d="M21.42 10.922a1 1 0 0 0-.019-1.838L12.83 5.18a2 2 0 0 0-1.66 0L2.6 9.08a1 1 0 0 0 0 1.832l8.57 3.908a2 2 0 0 0 1.66 0z" /><path d="M22 10v6" /><path d="M6 12.5V16a6 3 0 0 0 12 0v-3.5" /></symbol>
+        <symbol id="i-chart" viewBox="0 0 24 24"><path d="M3 3v16a2 2 0 0 0 2 2h16" /><path d="m19 9-5 5-4-4-3 3" /></symbol>
+        <symbol id="i-swords" viewBox="0 0 24 24"><polyline points="14.5 17.5 3 6 3 3 6 3 17.5 14.5" /><line x1="13" x2="19" y1="19" y2="13" /><line x1="16" x2="20" y1="16" y2="20" /><line x1="19" x2="21" y1="21" y2="19" /><polyline points="14.5 6.5 18 3 21 3 21 6 17.5 9.5" /><line x1="5" x2="9" y1="14" y2="18" /><line x1="7" x2="4" y1="17" y2="20" /><line x1="3" x2="5" y1="19" y2="21" /></symbol>
+        <symbol id="i-target" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" /><circle cx="12" cy="12" r="6" /><circle cx="12" cy="12" r="2" /></symbol>
+        <symbol id="i-file" viewBox="0 0 24 24"><path d="M6 22a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.704.706l3.588 3.588A2.4 2.4 0 0 1 20 8v12a2 2 0 0 1-2 2z" /><path d="M14 2v5a1 1 0 0 0 1 1h5" /><path d="M10 9H8" /><path d="M16 13H8" /><path d="M16 17H8" /></symbol>
+        <symbol id="i-wifi-off" viewBox="0 0 24 24"><path d="M12 20h.01" /><path d="M8.5 16.429a5 5 0 0 1 7 0" /><path d="M5 12.859a10 10 0 0 1 5.17-2.69" /><path d="M19 12.859a10 10 0 0 0-2.007-1.523" /><path d="M2 8.82a15 15 0 0 1 4.177-2.643" /><path d="M22 8.82a15 15 0 0 0-11.288-3.764" /><path d="m2 2 20 20" /></symbol>
+        <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" /><path d="M21 3v5h-5" /><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16" /><path d="M8 16H3v5" /></symbol>
+        <symbol id="i-globe" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" /><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20" /><path d="M2 12h20" /></symbol>
+        <symbol id="i-shield" viewBox="0 0 24 24"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z" /><path d="m9 12 2 2 4-4" /></symbol>
+        <symbol id="i-lock" viewBox="0 0 24 24"><rect width="18" height="11" x="3" y="11" rx="2" ry="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" /></symbol>
+        <symbol id="i-check" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" /><path d="m9 12 2 2 4-4" /></symbol>
+      </defs>
+    </svg>
+
+    <script src="app.js" defer></script>
+  </body>
+</html>

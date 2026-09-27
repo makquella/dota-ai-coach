@@ -7,6 +7,7 @@ Onboarding for OpenCode agents. Only non-obvious, repo-specific facts. See `docs
 Two independent packages, no monorepo tooling:
 - `backend/` — Python 3.11 FastAPI app. Package is `app/`, entrypoint `app.main:app`. **Run all backend commands from `backend/`.**
 - `frontend/` — one Electron app, `launcher/`: control panel window + always-on-top overlay window + tray; it runs the backend itself. `frontend/overlay.html` + `script.js` are a legacy browser debug overlay.
+- `site/` — the project website: static landing (`index.html` + `styles.css` + `app.js`, no build), ru in the HTML and en in `app.js`; downloads resolve to the latest GitHub release; screenshots in `site/assets/shots/{ru,en}/` are 2x JPEGs of the real app on demo data. Deploy notes in `site/README.md`; `.github/workflows/pages.yml` publishes it to GitHub Pages (manual run).
 - `scripts/` — Windows build (`build-windows.ps1`) and smoke test (`smoke-windows.ps1`).
 - `data/` — read-only fixtures: `match_simulations/` (replay-derived GSI-like JSONL), `heroes/`, `knowledge_base/`, `gsi_samples/`, `scenarios/`.
 - `backend/scripts/` — offline replay/simulation/benchmark scripts, not part of the server runtime.
