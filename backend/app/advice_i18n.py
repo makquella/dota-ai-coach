@@ -186,6 +186,11 @@ _RU_EXACT: dict[str, str] = {
     "Use regen or play back until your HP is safer.": (
         "Используйте реген или отойдите, пока HP не восстановится."
     ),
+    "Unspent gold is partly lost on the next death; "
+    "then choose a safer route than the one you died on.": (
+        "Непотраченное золото частично теряется при следующей смерти. Потом выберите "
+        "маршрут безопаснее того, где вас поймали."
+    ),
     "Use the respawn time to choose a safer farming route.": (
         "Пока ждёте возрождения, выберите более безопасный маршрут фарма."
     ),
@@ -420,6 +425,20 @@ _RU_EXACT: dict[str, str] = {
 
 # Texts with a hero or ability name inside. The name is kept as sent.
 _RU_PATTERNS: tuple[tuple[re.Pattern[str], str], ...] = (
+    (
+        re.compile(
+            r"^Buy parts of your next item now with your (?P<gold>\d+) gold: "
+            r"they wait for you at the fountain\.$"
+        ),
+        "Купите части следующего предмета на {gold} золота сейчас — заберёте их у фонтана.",
+    ),
+    (
+        re.compile(
+            r"^Buy parts of your next item with (?P<spare>\d+) gold "
+            r"and keep (?P<cost>\d+) for buyback\.$"
+        ),
+        "Купите части следующего предмета на {spare} золота, а {cost} оставьте на байбэк.",
+    ),
     (
         re.compile(r"^Avoid committing forward until (?P<name>.+) is ready\.$"),
         "Не лезьте вперёд до готовности {name}.",

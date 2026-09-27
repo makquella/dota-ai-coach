@@ -81,6 +81,12 @@ def build_post_laning_advice(
         reason = _buyback_reason(buyback_spent)
     elif category == "post_laning_farm_recovery":
         reason = _farm_pace_reason(state, extra) or reason
+    elif category == "post_laning_death_route_reset":
+        # Same category (one death review per death in the scheduler), but with
+        # gold to spend the first thing to do while dead is to buy.
+        spend = _spend_while_dead(state, extra)
+        if spend is not None:
+            action, reason = _spend_copy(spend)
     repeat_key = ":".join(
         [
             category,
@@ -281,6 +287,52 @@ def _copy_for_category(category: str, objective_missing: bool) -> tuple[str, str
         "Your farm pace is stable now, so keep using safe routes instead of forcing uncertain fights.",
         "Low risk if you keep farming without showing in exposed areas.",
     )
+
+
+# Gold left over (after the buyback reserve late in the game) worth a component.
+SPEND_WHILE_DEAD_MIN_GOLD = 1000
+BUYBACK_RESERVE_MINUTE = 30
+
+
+def _spend_while_dead(state: Mapping[str, Any], extra: Mapping[str, Any]) -> dict[str, int] | None:
+    alive = extra.get("alive", state.get("alive", True))
+    dead = (
+        alive is False or _to_int(extra.get("respawn_seconds", state.get("respawn_seconds")), 0) > 0
+    )
+    if not dead:
+        return None
+    gold = extra.get("available_gold", state.get("gold"))
+    if gold is None:
+        return None
+    gold = _to_int(gold, 0)
+    reserve = 0
+    if _to_int(state.get("minute"), 0) >= BUYBACK_RESERVE_MINUTE:
+        cost = extra.get("buyback_cost")
+        if cost is None:
+            return None  # can't tell what to keep for buyback
+        reserve = _to_int(cost, 0)
+    spare = gold - reserve
+    if spare < SPEND_WHILE_DEAD_MIN_GOLD:
+        return None
+    return {"gold": gold, "spare": spare, "reserve": reserve}
+
+
+def _spend_copy(spend: Mapping[str, int]) -> tuple[str, str]:
+    if spend["reserve"]:
+        action = (
+            f"Buy parts of your next item with {spend['spare']} gold "
+            f"and keep {spend['reserve']} for buyback."
+        )
+    else:
+        action = (
+            f"Buy parts of your next item now with your {spend['gold']} gold: "
+            "they wait for you at the fountain."
+        )
+    reason = (
+        "Unspent gold is partly lost on the next death; "
+        "then choose a safer route than the one you died on."
+    )
+    return action, reason
 
 
 def _buyback_reason(signal: Mapping[str, Any]) -> str:
