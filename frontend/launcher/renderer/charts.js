@@ -329,6 +329,8 @@
   // Game map pictures: "ok" once loaded, "fail" when it could not be (offline on
   // the first run): the schematic map is drawn instead.
   const mapImages = new Map();
+  // Map units per second no hero walks faster than (max move speed 550 plus a blink).
+  const MAP_WALK_SPEED = 800;
 
   /**
    * The Dota map with the match on top: the hero's path, laning position, wards
@@ -434,10 +436,18 @@
 
     const path = options.path || [];
     if (path.length > 1) {
-      // A gap of more than a minute (death, disconnect) starts a new segment.
+      // A new segment after a death (respawn in the fountain), a gap of more than a
+      // minute (disconnect) or a jump no hero can walk (teleport).
+      const deathTimes = (options.deaths || []).map((death) => death.t).filter((t) => typeof t === "number");
+      const moved = (a, b) => Math.hypot(b.x - a.x, b.y - a.y) > MAP_WALK_SPEED * Math.max(1, b.t - a.t);
       let d = "";
       path.forEach((point, index) => {
-        const jump = index === 0 || point.t - path[index - 1].t > 60;
+        const prev = path[index - 1];
+        const jump =
+          index === 0 ||
+          point.t - prev.t > 60 ||
+          deathTimes.some((t) => t > prev.t && t <= point.t) ||
+          moved(prev, point);
         d += `${jump ? "M" : "L"}${px(point.x).toFixed(1)},${py(point.y).toFixed(1)} `;
       });
       el("path", { d: d.trim(), class: "map-path" }, svg);

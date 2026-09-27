@@ -5,6 +5,8 @@
   const REPO = "makquella/dota-ai-coach";
   const RELEASES = `https://github.com/${REPO}/releases/latest`;
   const LANG_KEY = "dac.lang";
+  // Bump with every reshoot of the pictures (scripts/site-shots) and in index.html.
+  const SHOTS_VERSION = "2";
 
   const EN = {
     title: "Dota AI Coach — a Dota 2 coach right in your game",
@@ -148,18 +150,19 @@
     }
     remember("title", document.title);
     document.title = table.title || RU.title;
-    // Screenshots exist in both languages.
+    // Screenshots exist in both languages. SHOTS_VERSION (also in index.html) is
+    // bumped with every reshoot, so browsers do not keep the old pictures.
     document.querySelectorAll("img[data-img]").forEach((img) => {
-      img.src = `assets/app/${lang}/${img.dataset.img}.jpg`;
+      img.src = `assets/app/${lang}/${img.dataset.img}.jpg?v=${SHOTS_VERSION}`;
     });
     document.querySelectorAll("img[data-ov]").forEach((img) => {
-      img.src = `assets/overlay/${lang}/${img.dataset.ov}.webp`;
+      img.src = `assets/overlay/${lang}/${img.dataset.ov}.webp?v=${SHOTS_VERSION}`;
     });
     document.querySelectorAll("img[data-game]").forEach((img) => {
       img.src = `assets/game/${img.dataset.game}-${lang}.jpg`;
     });
     document.querySelectorAll("img[data-shot]").forEach((img) => {
-      img.src = `assets/shots/${lang}/${img.dataset.shot}.jpg`;
+      img.src = `assets/shots/${lang}/${img.dataset.shot}.jpg?v=${SHOTS_VERSION}`;
     });
     document.querySelectorAll(".lang [data-lang]").forEach((button) => {
       button.setAttribute("aria-pressed", String(button.dataset.lang === lang));

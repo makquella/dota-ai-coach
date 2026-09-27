@@ -25,7 +25,7 @@ from match_fixtures import ME, FakeOpenDota, gsi_match_stream, recent_matches  #
 
 from app.main import app  # noqa: E402
 from app.player_api import PLAYER_SERVICE  # noqa: E402
-from demo_data import DemoLLM, vary  # noqa: E402
+from demo_data import DemoLLM, vary, with_route  # noqa: E402
 
 
 def main() -> None:
@@ -43,8 +43,8 @@ def main() -> None:
         client.post("/player/link", json={"steam": str(ME)})
         # The first match was also recorded live: the hero's path and deaths on the map.
         first = recent[0]["match_id"]
-        for payload in gsi_match_stream(
-            match_id=first, minutes=38, positions=True, win=False, death_minutes=(4, 7, 18, 19, 20)
+        for payload in with_route(
+            gsi_match_stream(match_id=first, minutes=38, win=False, death_minutes=())
         ):
             client.post("/gsi", json=payload)
         PLAYER_SERVICE.jobs.run_pending(until=float("inf"))
