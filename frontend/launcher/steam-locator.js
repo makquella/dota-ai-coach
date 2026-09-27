@@ -304,6 +304,44 @@ function dotaLaunchOptionsFromVdf(parsed) {
   return typeof options === "string" ? options : "";
 }
 
+// Same answer from the raw text without parsing the whole file (localconfig.vdf
+// grows to several MB and this runs in the main process): only the "570"
+// blocks are parsed, and the first one with LaunchOptions wins.
+function dotaLaunchOptionsFromText(text) {
+  const source = String(text || "");
+  const pattern = new RegExp(`"${DOTA_APP_ID}"\\s*\\{`, "g");
+  let found = false;
+  let match;
+  while ((match = pattern.exec(source))) {
+    const start = match.index + match[0].length;
+    let depth = 1;
+    let inString = false;
+    let i = start;
+    for (; i < source.length && depth > 0; i += 1) {
+      const char = source[i];
+      if (inString) {
+        if (char === "\\") {
+          i += 1;
+        } else if (char === '"') {
+          inString = false;
+        }
+      } else if (char === '"') {
+        inString = true;
+      } else if (char === "{") {
+        depth += 1;
+      } else if (char === "}") {
+        depth -= 1;
+      }
+    }
+    found = true;
+    const options = findKey(parseVdf(source.slice(start, i - 1)), "LaunchOptions");
+    if (typeof options === "string") {
+      return options;
+    }
+  }
+  return found ? "" : null;
+}
+
 function hasGsiLaunchOption(options) {
   return String(options || "")
     .split(/\s+/)
@@ -346,7 +384,7 @@ function checkLaunchOptions({ steamRoots = [], accountId = null, platform = proc
   const latest = configs[0];
   let options;
   try {
-    options = dotaLaunchOptionsFromVdf(parseVdf(fsImpl.readFileSync(latest.file, "utf8")));
+    options = dotaLaunchOptionsFromText(fsImpl.readFileSync(latest.file, "utf8"));
   } catch {
     return { state: "unknown", accountId: latest.user };
   }
@@ -357,6 +395,7 @@ module.exports = {
   DOTA_APP_ID,
   GSI_LAUNCH_OPTION,
   checkLaunchOptions,
+  dotaLaunchOptionsFromText,
   dotaLaunchOptionsFromVdf,
   hasGsiLaunchOption,
   defaultSteamRoots,

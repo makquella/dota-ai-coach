@@ -192,3 +192,14 @@ test("launch options are read for the linked account, else the latest Steam user
   const broken = steamWithUsers([["22", "\"UserLocalConfigStore\" { \"Software\" ", 1000]]);
   assert.equal(checkLaunchOptions({ steamRoots: [broken], platform: "linux" }).state, "missing");
 });
+
+test("the text scan agrees with the full parse and skips other 570 blocks", () => {
+  const { dotaLaunchOptionsFromText, dotaLaunchOptionsFromVdf } = require("../steam-locator");
+  for (const options of ["-novid -gamestateintegration", "", '-console \\"quoted\\" { braces }']) {
+    const text = localConfig(options);
+    assert.equal(dotaLaunchOptionsFromText(text), dotaLaunchOptionsFromVdf(parseVdf(text)));
+  }
+  assert.equal(dotaLaunchOptionsFromText(localConfig(null)), null);
+  const withCloud = `"UserLocalConfigStore" { "Apps" { "570" { "cloud" { "quota" "1" } } } ${localConfig("-gamestateintegration").slice(22)} }`;
+  assert.equal(dotaLaunchOptionsFromText(withCloud), "-gamestateintegration");
+});
