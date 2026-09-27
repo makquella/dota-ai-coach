@@ -70,6 +70,16 @@ def map_position(hero: dict[str, Any]) -> tuple[int, int] | None:
     return round(x) + MAP_CENTER, round(y) + MAP_CENTER
 
 
+def is_spectator_payload(payload: dict[str, Any]) -> bool:
+    """Watching a replay or a live game in the client: GSI then sends every
+    player and hero per team ("team2"/"team3") instead of the local player."""
+    return any(
+        key in _dict(payload.get(block))
+        for block in ("player", "hero")
+        for key in ("team2", "team3")
+    )
+
+
 def match_id_from_gsi(map_block: dict[str, Any]) -> int | None:
     match_id = _int(map_block.get("matchid") or map_block.get("match_id"))
     return match_id if match_id and match_id > 0 else None
@@ -107,6 +117,9 @@ class MatchTracker:
 
     def observe(self, payload: dict[str, Any]) -> None:
         """Feed one raw GSI payload (called from POST /gsi)."""
+        if is_spectator_payload(payload):
+            # Someone else's game: never the player's history.
+            return
         map_block = _dict(payload.get("map"))
         player = _dict(payload.get("player"))
         match_id = match_id_from_gsi(map_block)
@@ -347,6 +360,9 @@ class MatchTracker:
         current["ended_at"] = datetime.now(UTC).isoformat()
         current["duration"] = current.get("last_clock")
         if (current.get("last_clock") or 0) < MIN_REVIEW_CLOCK_SECONDS:
+            return None
+        if not current.get("hero"):
+            # No hero ever seen (not the player's own game): nothing to review.
             return None
         return current
 
