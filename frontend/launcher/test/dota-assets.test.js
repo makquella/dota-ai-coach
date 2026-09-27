@@ -75,3 +75,17 @@ test("parallel requests for one picture share one download", async () => {
   assert.deepEqual(answers.map((r) => r.status), [200, 200, 200]);
   assert.equal(calls.length, 1);
 });
+
+test("the map is WebP from OpenDota's published game art", async () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "dota-assets-"));
+  const WEBP = Buffer.concat([Buffer.from("RIFF"), Buffer.from([1, 0, 0, 0]), Buffer.from("WEBPVP8 "), Buffer.from([0, 0])]);
+  assert.equal(cdnUrl("map", "detailed_740"), "https://www.opendota.com/assets/images/dota2/map/detailed_740.webp");
+  assert.deepEqual(parseAssetUrl("dota-asset://map/detailed_740"), { kind: "map", name: "detailed_740" });
+  const { fetchImpl } = fakeFetch({ [cdnUrl("map", "detailed_740")]: WEBP, [cdnUrl("map", "fake")]: PNG });
+  const handle = createAssetHandler({ root, fetchImpl });
+  const answer = await handle({ url: "dota-asset://map/detailed_740" });
+  assert.equal(answer.status, 200);
+  assert.equal(answer.headers.get("content-type"), "image/webp");
+  assert.ok(fs.existsSync(path.join(root, "map", "detailed_740.webp")));
+  assert.equal((await handle({ url: "dota-asset://map/fake" })).status, 404);
+});

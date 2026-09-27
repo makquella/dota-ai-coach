@@ -95,9 +95,10 @@
       sectionsTitle: "Breakdown",
       chartTitle: "Over the match",
       mapTitle: "Match map",
+      mapEmpty: "No positions for this match yet. They come from a parsed replay (the app asks OpenDota to parse your 5 newest matches of the week) or from a match played with the app running: your path and where you died.",
       mapHint: {
         path: "Where your hero went (every 15 s, recorded by the app) and where you died.",
-        replay: "From the parsed replay: where you stood in the lane and where you placed wards.",
+        replay: "From the parsed replay: where you stood in the lane, where you placed wards and where you died in team fights.",
         both: "Your path (recorded by the app), laning position, wards from the replay and where you died."
       },
       mapLabels: {
@@ -402,9 +403,10 @@
       sectionsTitle: "По разделам",
       chartTitle: "По ходу матча",
       mapTitle: "Карта матча",
+      mapEmpty: "Для этого матча пока нет позиций. Они берутся из разобранного реплея (приложение само просит OpenDota разобрать 5 последних матчей за неделю) или из матча, сыгранного с запущенным приложением: ваш путь и места смертей.",
       mapHint: {
         path: "Где был ваш герой (каждые 15 с, записало приложение) и где вы умирали.",
-        replay: "По разобранному реплею: где вы стояли на линии и где ставили варды.",
+        replay: "По разобранному реплею: где вы стояли на линии, где ставили варды и где умирали в драках.",
         both: "Ваш путь (записало приложение), позиция на линии и варды из реплея, места смертей."
       },
       mapLabels: {
@@ -1382,6 +1384,7 @@
     root.querySelectorAll("[data-chart='match']").forEach((host) => drawChart(host, analysis));
     root.querySelectorAll("[data-chart='timing']").forEach((host) => drawTimingChart(host, analysis));
     root.querySelectorAll("[data-chart='map']").forEach((host) => drawMap(host, analysis.map));
+    root.querySelectorAll("[data-chart='map-empty']").forEach((host) => drawMap(host, {}));
   }
 
   function reviewHeader(detail, analysis, summary) {
@@ -1593,8 +1596,19 @@
   // position and wards from the parsed replay (either may be missing).
   function mapCard(analysis) {
     const data = analysis.map;
-    if (!data || !((data.deaths || []).length || (data.wards || []).length || (data.path || []).length > 1)) {
-      return null;
+    const hasData = Boolean(
+      data && ((data.deaths || []).length || (data.wards || []).length || (data.path || []).length > 1 || (data.lane || []).length)
+    );
+    if (!hasData) {
+      // No positions (an unparsed replay, no app during the game): the map
+      // itself and how to get the positions.
+      const body = h(
+        "div",
+        {},
+        h("p", { class: "muted small chart-note", text: t("mapEmpty") }),
+        h("div", { class: "map-layout" }, h("div", { class: "chart-host", dataset: { chart: "map-empty" } }))
+      );
+      return card(t("mapTitle"), "map", body);
     }
     const hasPath = (data.path || []).length > 1;
     const hasReplay = (data.wards || []).length > 0 || (data.lane || []).length > 0;
@@ -1625,8 +1639,13 @@
     return card(t("mapTitle"), "map", body);
   }
 
+  // The game's minimap (patch 7.40 art, as OpenDota publishes it): positions in
+  // replay units 8192..24576 on both axes cover the whole picture.
+  const MAP_BACKGROUND = { href: "dota-asset://map/detailed_740", bounds: [8192, 24576] };
+
   function drawMap(host, data) {
     window.LauncherCharts.map(host, {
+      background: MAP_BACKGROUND,
       bounds: data.bounds,
       path: data.path,
       lane: data.lane,
@@ -1681,7 +1700,10 @@
     const markers = (series.deaths || []).map((seconds) => ({ x: seconds / 60, label: `${t("deathsMarker")} ${clock(seconds)}` }));
     window.LauncherCharts.line(host, {
       series: [{ label: `${t("you")} · ${label}`, values, color: VIZ_1, area: true }],
-      reference: state.chartMetric === "lh" && series.last_hits_target ? { label: t("target"), values: series.last_hits_target } : null,
+      reference: (() => {
+        const target = { lh: series.last_hits_target, gold: series.gold_target, xp: series.xp_target }[state.chartMetric];
+        return Array.isArray(target) && target.length ? { label: t("target"), values: target } : null;
+      })(),
       markers,
       markerLabel: t("deathsMarker"),
       xLabel: (i) => t("minuteLabel", i),

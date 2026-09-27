@@ -13,8 +13,18 @@ const CDN = "https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react
 const KINDS = {
   hero: "heroes",
   "hero-icon": "heroes/icons",
-  item: "items"
+  item: "items",
+  // The game's minimap art for the match review's map (dota-asset://map/detailed_740):
+  // Valve's picture as OpenDota publishes it (github.com/odota/web, public/assets).
+  map: "map"
 };
+const MAP_BASE = "https://www.opendota.com/assets/images/dota2/map";
+// PNG from Valve's CDN; the map is WebP.
+const FORMATS = {
+  png: { type: "image/png", check: (b) => b.length > 8 && b[0] === 0x89 && b[1] === 0x50 && b[2] === 0x4e && b[3] === 0x47 },
+  webp: { type: "image/webp", check: (b) => b.length > 12 && b.toString("latin1", 0, 4) === "RIFF" && b.toString("latin1", 8, 12) === "WEBP" }
+};
+const formatOf = (kind) => (kind === "map" ? "webp" : "png");
 const NAME_RE = /^[a-z0-9_]{1,64}$/;
 // A picture that could not be downloaded is not asked for again for a while
 // (offline, or a name the CDN does not know).
@@ -32,7 +42,7 @@ function parseAssetUrl(url) {
     return null;
   }
   const kind = parsed.hostname;
-  const name = decodeURIComponent(parsed.pathname.replace(/^\/+/, "")).replace(/\.png$/, "");
+  const name = decodeURIComponent(parsed.pathname.replace(/^\/+/, "")).replace(/\.(png|webp)$/, "");
   if (!Object.hasOwn(KINDS, kind) || !NAME_RE.test(name)) {
     return null;
   }
@@ -40,21 +50,20 @@ function parseAssetUrl(url) {
 }
 
 function cdnUrl(kind, name) {
+  if (kind === "map") {
+    return `${MAP_BASE}/${name}.webp`;
+  }
   return `${CDN}/${KINDS[kind]}/${name}.png`;
 }
 
 function cachePath(root, kind, name) {
-  return path.join(root, kind, `${name}.png`);
+  return path.join(root, kind, `${name}.${formatOf(kind)}`);
 }
 
-function isPng(buffer) {
-  return buffer.length > 8 && buffer[0] === 0x89 && buffer[1] === 0x50 && buffer[2] === 0x4e && buffer[3] === 0x47;
-}
-
-function pngResponse(buffer) {
+function imageResponse(kind, buffer) {
   return new Response(buffer, {
     status: 200,
-    headers: { "content-type": "image/png", "cache-control": "max-age=86400" }
+    headers: { "content-type": FORMATS[formatOf(kind)].type, "cache-control": "max-age=86400" }
   });
 }
 
@@ -76,8 +85,8 @@ function createAssetHandler({ root, fetchImpl, fsImpl = fs, now = Date.now, log 
       throw new Error(`HTTP ${response ? response.status : "?"}`);
     }
     const buffer = Buffer.from(await response.arrayBuffer());
-    if (buffer.length > MAX_BYTES || !isPng(buffer)) {
-      throw new Error("not a PNG");
+    if (buffer.length > MAX_BYTES || !FORMATS[formatOf(kind)].check(buffer)) {
+      throw new Error(`not a ${formatOf(kind).toUpperCase()}`);
     }
     fsImpl.mkdirSync(path.dirname(file), { recursive: true });
     fsImpl.writeFileSync(file, buffer);
@@ -92,7 +101,7 @@ function createAssetHandler({ root, fetchImpl, fsImpl = fs, now = Date.now, log 
     const { kind, name } = asset;
     const file = cachePath(root, kind, name);
     try {
-      return pngResponse(fsImpl.readFileSync(file));
+      return imageResponse(kind, fsImpl.readFileSync(file));
     } catch {
       // Not cached yet.
     }
@@ -107,7 +116,7 @@ function createAssetHandler({ root, fetchImpl, fsImpl = fs, now = Date.now, log 
       );
     }
     try {
-      return pngResponse(await inFlight.get(key));
+      return imageResponse(kind, await inFlight.get(key));
     } catch (error) {
       failedUntil.set(key, now() + RETRY_AFTER_MS);
       log(`${key}: ${error.message}`);

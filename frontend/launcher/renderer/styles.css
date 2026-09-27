@@ -2463,6 +2463,43 @@ label.setting:has(.switch:disabled) {
   opacity: 0.22;
 }
 
+/* Over the game's minimap art: stronger marks with a dark outline. */
+.map-image {
+  opacity: 0.92;
+}
+
+.map-real .map-heat circle {
+  opacity: 0.5;
+  stroke: rgba(0, 0, 0, 0.35);
+  stroke-width: 0.5;
+}
+
+.map-real .map-path {
+  stroke: #7fb2ff;
+  stroke-width: 2.5;
+  opacity: 1;
+  filter: drop-shadow(0 0 1px rgba(0, 0, 0, 0.95));
+}
+
+.map-real .map-death path {
+  stroke-width: 3;
+  paint-order: stroke;
+  filter: drop-shadow(0 0 1.5px rgba(0, 0, 0, 0.9));
+}
+
+.map-real .map-ward circle:first-child {
+  stroke: #fff;
+}
+
+.map-label {
+  fill: #fff;
+  font-size: var(--fs-12);
+  font-weight: var(--fw-semibold);
+  paint-order: stroke;
+  stroke: rgba(0, 0, 0, 0.75);
+  stroke-width: 3px;
+}
+
 .map-path {
   fill: none;
   stroke: var(--viz-1);

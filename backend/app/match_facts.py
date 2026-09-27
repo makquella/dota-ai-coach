@@ -190,7 +190,9 @@ def facts_from_opendota(trimmed: dict[str, Any]) -> dict[str, Any] | None:
             ],
         }
     )
-    facts["deaths_log"] = _deaths_from_kill_logs(trimmed, me)
+    facts["deaths_log"] = _with_fight_positions(
+        _deaths_from_kill_logs(trimmed, me), trimmed.get("teamfights")
+    )
     facts["items_log"] = [
         {"t": _int(entry.get("time")), "item": str(entry.get("key"))}
         for entry in _list(me.get("purchase_log"))
@@ -243,6 +245,27 @@ def _deaths_from_kill_logs(trimmed: dict[str, Any], me: dict[str, Any]) -> list[
             if isinstance(entry, dict) and entry.get("key") == npc:
                 deaths.append({"t": _int(entry.get("time")), "killer": player.get("hero")})
     return sorted((d for d in deaths if d["t"] is not None), key=lambda d: d["t"])
+
+
+def _with_fight_positions(deaths: list[dict[str, Any]], fights: Any) -> list[dict[str, Any]]:
+    """Adds x/y (map units) to the deaths that happened in a team fight of a parsed
+    replay: the fight's death positions, in order, to the deaths inside its time
+    (a few seconds of slack). Deaths outside fights keep no position."""
+    for fight in _list(fights):
+        if not isinstance(fight, dict):
+            continue
+        start, end = _int(fight.get("start")), _int(fight.get("end"))
+        if start is None or end is None:
+            continue
+        points = [p for x, y, n in _lane_pos(fight.get("deaths_pos")) for p in [(x, y)] * n]
+        inside = [
+            d
+            for d in deaths
+            if d.get("x") is None and d["t"] is not None and start - 3 <= d["t"] <= end + 3
+        ]
+        for death, (x, y) in zip(inside, points, strict=False):
+            death["x"], death["y"] = x, y
+    return deaths
 
 
 def facts_from_timeline(timeline: dict[str, Any]) -> dict[str, Any]:

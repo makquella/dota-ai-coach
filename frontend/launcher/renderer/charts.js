@@ -326,40 +326,78 @@
     return track;
   }
 
+  // Game map pictures: "ok" once loaded, "fail" when it could not be (offline on
+  // the first run): the schematic map is drawn instead.
+  const mapImages = new Map();
+
   /**
-   * Schematic Dota map (no game art): lanes, river and bases drawn from the
-   * real coordinates, with the match on top: the hero's path, laning
-   * position, wards and deaths. Radiant is bottom-left, Dire top-right.
-   * options: { bounds: [min, max], path, lane, wards, deaths, labels, clock(t), ariaLabel }
+   * The Dota map with the match on top: the hero's path, laning position, wards
+   * and deaths. Radiant is bottom-left, Dire top-right. With `background`
+   * ({ href, bounds }) the game's minimap art is the ground once it has loaded
+   * (the map redraws itself then); until then, or without it, a schematic map
+   * of lanes, river and bases.
+   * options: { bounds: [min, max], background, path, lane, wards, deaths, labels, clock(t), ariaLabel }
    */
   function map(host, options) {
     host.replaceChildren();
     host.classList.add("chart", "map-chart");
-    const [min, max] = options.bounds || [7000, 25800];
-    const size = Math.max(240, Math.min(360, host.clientWidth || 360));
+    const background = options.background && options.background.href ? options.background : null;
+    const imageState = background ? mapImages.get(background.href) : null;
+    if (background && imageState === undefined) {
+      mapImages.set(background.href, "loading");
+      const probe = new Image();
+      probe.onload = () => {
+        mapImages.set(background.href, "ok");
+        if (host.isConnected) {
+          map(host, options);
+        }
+      };
+      probe.onerror = () => mapImages.set(background.href, "fail");
+      probe.src = background.href;
+    }
+    const real = imageState === "ok";
+    host.classList.toggle("map-real", real);
+    const [min, max] = real ? background.bounds : options.bounds || [7000, 25800];
+    const size = Math.max(240, Math.min(420, host.clientWidth || 360));
     const px = (x) => ((x - min) / (max - min)) * size;
     const py = (y) => size - ((y - min) / (max - min)) * size;
     const f = (value) => (value * size).toFixed(1);
     const labels = options.labels || {};
     const svg = el("svg", { viewBox: `0 0 ${size} ${size}`, width: size, height: size, role: "img", "aria-label": options.ariaLabel || "" });
 
-    // Terrain: lanes at x/y ≈ 0.16 and 0.84 of the map, mid on the diagonal,
-    // the river across it, bases around the fountains.
-    el("rect", { x: 0, y: 0, width: size, height: size, rx: 8, class: "map-ground" }, svg);
-    el("path", { d: `M${f(0.03)},${f(0.03)} L${f(0.97)},${f(0.97)}`, class: "map-river", "stroke-width": f(0.06) }, svg);
-    const lane = { class: "map-lane", "stroke-width": f(0.012) };
-    el("path", { d: `M${f(0.16)},${f(0.8)} L${f(0.16)},${f(0.2)} Q${f(0.16)},${f(0.16)} ${f(0.2)},${f(0.16)} L${f(0.8)},${f(0.16)}`, ...lane }, svg);
-    el("path", { d: `M${f(0.2)},${f(0.84)} L${f(0.8)},${f(0.84)} Q${f(0.84)},${f(0.84)} ${f(0.84)},${f(0.8)} L${f(0.84)},${f(0.2)}`, ...lane }, svg);
-    el("path", { d: `M${f(0.2)},${f(0.8)} L${f(0.8)},${f(0.2)}`, ...lane }, svg);
-    for (const [cx, cy, text, anchor] of [
-      [0.13, 0.87, labels.radiant, "start"],
-      [0.87, 0.13, labels.dire, "end"]
-    ]) {
-      el("rect", { x: f(cx - 0.07), y: f(cy - 0.07), width: f(0.14), height: f(0.14), rx: 6, class: "map-base" }, svg);
-      if (text) {
-        // Beside the base, along the map edge: Radiant under its base, Dire above.
-        const label = el("text", { x: f(anchor === "start" ? 0.22 : 0.78), y: f(cy > 0.5 ? 0.975 : 0.025), class: "chart-tick", "text-anchor": anchor, "dominant-baseline": cy > 0.5 ? "auto" : "hanging" }, svg);
-        label.textContent = text;
+    if (real) {
+      const clip = el("clipPath", { id: `map-clip-${size}` }, el("defs", {}, svg));
+      el("rect", { x: 0, y: 0, width: size, height: size, rx: 8 }, clip);
+      el("image", { href: background.href, x: 0, y: 0, width: size, height: size, preserveAspectRatio: "none", "clip-path": `url(#map-clip-${size})`, class: "map-image" }, svg);
+      for (const [x, y, text, anchor, baseline] of [
+        [0.03, 0.97, labels.radiant, "start", "auto"],
+        [0.97, 0.03, labels.dire, "end", "hanging"]
+      ]) {
+        if (text) {
+          const label = el("text", { x: f(x), y: f(y), class: "map-label", "text-anchor": anchor, "dominant-baseline": baseline }, svg);
+          label.textContent = text;
+        }
+      }
+    }
+    // Schematic terrain: lanes at x/y ≈ 0.16 and 0.84 of the map, mid on the
+    // diagonal, the river across it, bases around the fountains.
+    if (!real) {
+      el("rect", { x: 0, y: 0, width: size, height: size, rx: 8, class: "map-ground" }, svg);
+      el("path", { d: `M${f(0.03)},${f(0.03)} L${f(0.97)},${f(0.97)}`, class: "map-river", "stroke-width": f(0.06) }, svg);
+      const lane = { class: "map-lane", "stroke-width": f(0.012) };
+      el("path", { d: `M${f(0.16)},${f(0.8)} L${f(0.16)},${f(0.2)} Q${f(0.16)},${f(0.16)} ${f(0.2)},${f(0.16)} L${f(0.8)},${f(0.16)}`, ...lane }, svg);
+      el("path", { d: `M${f(0.2)},${f(0.84)} L${f(0.8)},${f(0.84)} Q${f(0.84)},${f(0.84)} ${f(0.84)},${f(0.8)} L${f(0.84)},${f(0.2)}`, ...lane }, svg);
+      el("path", { d: `M${f(0.2)},${f(0.8)} L${f(0.8)},${f(0.2)}`, ...lane }, svg);
+      for (const [cx, cy, text, anchor] of [
+        [0.13, 0.87, labels.radiant, "start"],
+        [0.87, 0.13, labels.dire, "end"]
+      ]) {
+        el("rect", { x: f(cx - 0.07), y: f(cy - 0.07), width: f(0.14), height: f(0.14), rx: 6, class: "map-base" }, svg);
+        if (text) {
+          // Beside the base, along the map edge: Radiant under its base, Dire above.
+          const label = el("text", { x: f(anchor === "start" ? 0.22 : 0.78), y: f(cy > 0.5 ? 0.975 : 0.025), class: "chart-tick", "text-anchor": anchor, "dominant-baseline": cy > 0.5 ? "auto" : "hanging" }, svg);
+          label.textContent = text;
+        }
       }
     }
 

@@ -64,6 +64,7 @@ from app.game_plan import build_game_plan
 from app.match_facts import facts_from_opendota, facts_from_timeline, merge_facts
 from app.match_tracker import MatchTracker, account_from_gsi
 from app.opendota import (
+    TRIM_VERSION,
     OpenDotaClient,
     OpenDotaError,
     my_player,
@@ -979,7 +980,12 @@ class PlayerService:
                     and row.get("parse_status") in (None, "", "basic")
                     and now - float(row.get("start_time") or 0) < PARSE_MAX_AGE_SECONDS
                 )
-                if parse or not row.get("has_analysis") or ("opendota" not in row["sources"]):
+                if (
+                    parse
+                    or not row.get("has_analysis")
+                    or ("opendota" not in row["sources"])
+                    or self._trim_outdated(account_id, row)
+                ):
                     mid = row["match_id"]
                     self.jobs.submit(
                         f"match:{mid}",
@@ -1200,6 +1206,15 @@ class PlayerService:
             return
         with contextlib.suppress(OpenDotaError):
             self.store.cache_set(key, fetch())
+
+    def _trim_outdated(self, account_id: int, row: dict[str, Any]) -> bool:
+        """A parsed match stored before trim_match kept what the review now uses
+        (team fight death positions): fetched again, one request."""
+        if row.get("parse_status") != "parsed":
+            return False
+        record = self.store.get_match(account_id, row["match_id"])
+        stored = (record or {}).get("opendota") or {}
+        return int(stored.get("trim_version") or 1) < TRIM_VERSION
 
     def _pool(self, account_id: int) -> list[int]:
         return pool_heroes(self.store.list_matches(account_id, limit=RECENT_MATCHES_LIMIT))
