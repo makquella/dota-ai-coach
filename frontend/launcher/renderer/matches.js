@@ -170,6 +170,18 @@
       scoreLabel: "Score",
       winKey: "win",
       lossKey: "loss",
+      goalTitle: "Your focus",
+      goalHint: "One problem at a time: every next match shows whether it came back.",
+      goalSince: (date) => `since ${date}`,
+      goalProgress: (met, total) => `Done in ${met} of ${total} ${total === 1 ? "match" : "matches"}`,
+      goalWaiting: "Play a match: after it you will see here whether it worked.",
+      goalStreak: (n) => `${n} matches in a row without it`,
+      goalClear: "Stop tracking",
+      goalSet: "Make it my focus",
+      goalCurrent: "Focus",
+      goalMet: "done",
+      goalMissed: "happened again",
+      goalMatch: (title, met) => `Your focus «${title}»: ${met ? "done in this match" : "it happened again"}`,
       planTitle: "What to work on",
       planHint: "Problems that keep coming back in your recent matches, with one drill each.",
       planEmpty: "No repeated problems found — keep it up.",
@@ -447,6 +459,18 @@
       scoreLabel: "Оценка",
       winKey: "победа",
       lossKey: "поражение",
+      goalTitle: "Ваш фокус",
+      goalHint: "Одна проблема за раз: в каждом следующем матче видно, повторилась ли она.",
+      goalSince: (date) => `с ${date}`,
+      goalProgress: (met, total) => `Получилось в ${met} из ${total} ${plural(total, "матча", "матчей", "матчей")}`,
+      goalWaiting: "Сыграйте матч — после него здесь будет видно, получилось ли.",
+      goalStreak: (n) => `${n} ${plural(n, "матч", "матча", "матчей")} подряд без этой ошибки`,
+      goalClear: "Снять фокус",
+      goalSet: "Сделать фокусом",
+      goalCurrent: "Фокус",
+      goalMet: "получилось",
+      goalMissed: "повторилось",
+      goalMatch: (title, met) => `Ваш фокус «${title}»: ${met ? "в этом матче получилось" : "снова повторилось"}`,
       planTitle: "Над чем работать",
       planHint: "Ошибки, которые повторяются в последних матчах, и по одному упражнению на каждую.",
       planEmpty: "Повторяющихся ошибок не найдено — так держать.",
@@ -1348,6 +1372,14 @@
           h("p", { class: "review-meta" }, resultBadge(win), h("span", { class: "muted", text: `· ${relativeTime(summary.start_time)} · #${detail.match_id}` })),
           h("p", { class: "review-source" }, icon(analysis && analysis.parsed ? "circle-check" : "info"), h("span", { text: sourceText })),
           statusText ? h("p", { class: "muted small", text: statusText }) : null,
+          detail.focus
+            ? h(
+                "p",
+                { class: "review-goal", dataset: { met: String(detail.focus.met) } },
+                h("span", { class: "dot", "data-tone": detail.focus.met ? "good" : "bad" }),
+                h("span", { text: t("goalMatch", detail.focus.title, detail.focus.met) })
+              )
+            : null,
           requestButton ? h("div", { class: "row" }, requestButton, requestNote) : null
         ),
         score !== null && score !== undefined
@@ -2514,6 +2546,62 @@
     return select;
   }
 
+  async function setGoal(findingId, button) {
+    if (button) {
+      button.disabled = true;
+    }
+    const result = await call("focusSet", { findingId });
+    if (result.ok && state.career) {
+      state.career = { ...state.career, focus: result.data };
+      renderCareer();
+    } else if (button) {
+      button.disabled = false;
+    }
+  }
+
+  async function clearGoal() {
+    const result = await call("focusClear");
+    if (result.ok && state.career) {
+      state.career = { ...state.career, focus: null };
+      renderCareer();
+    }
+  }
+
+  // The problem the player chose to work on and how the matches since went.
+  function goalCard(focus) {
+    if (!focus) {
+      return null;
+    }
+    const since = focus.since ? new Date(focus.since).toLocaleDateString(state.locale === "ru" ? "ru-RU" : "en-GB", { day: "numeric", month: "long" }) : "";
+    const marks = (focus.results || []).map((result) =>
+      h("button", {
+        class: "goal-mark",
+        type: "button",
+        dataset: { met: String(result.met) },
+        title: `${result.hero || "—"}: ${result.met ? t("goalMet") : t("goalMissed")}`,
+        "aria-label": `${result.hero || "—"}: ${result.met ? t("goalMet") : t("goalMissed")}`,
+        onclick: () => openMatch(result.match_id)
+      })
+    );
+    const progress = focus.total
+      ? [t("goalProgress", focus.met, focus.total), focus.streak >= 2 ? t("goalStreak", focus.streak) : null].filter(Boolean).join(" · ")
+      : t("goalWaiting");
+    return card(
+      t("goalTitle"),
+      "target",
+      h(
+        "div",
+        { class: "goal" },
+        h("p", { class: "finding-title" }, h("span", { text: focus.title }), focus.section_label ? h("span", { class: "tag", text: focus.section_label }) : null),
+        focus.drill ? h("p", { class: "finding-drill" }, icon("lightbulb"), h("span", {}, h("strong", { text: `${t("drill")}: ` }), focus.drill)) : null,
+        marks.length ? h("div", { class: "goal-marks" }, marks) : null,
+        h("p", { class: "muted small num", text: since ? `${progress} · ${t("goalSince", since)}` : progress }),
+        h("div", { class: "row no-print" }, h("button", { class: "btn btn-ghost btn-sm", type: "button", onclick: clearGoal }, h("span", { text: t("goalClear") })))
+      ),
+      null
+    );
+  }
+
   function renderCareer() {
     const root = document.getElementById("progress-root");
     const career = state.career;
@@ -2577,9 +2665,23 @@
                   h(
                     "div",
                     { class: "finding-body" },
-                    h("p", { class: "finding-title" }, h("span", { text: item.title }), item.section_label ? h("span", { class: "tag", text: item.section_label }) : null),
+                    h(
+                      "p",
+                      { class: "finding-title" },
+                      h("span", { text: item.title }),
+                      item.section_label ? h("span", { class: "tag", text: item.section_label }) : null,
+                      career.focus && career.focus.id === item.id ? h("span", { class: "tag tag-accent", text: t("goalCurrent") }) : null
+                    ),
                     h("div", { class: "share" }, window.LauncherCharts.meter(item.share, item.share >= 50 ? "bad" : "ok"), h("span", { class: "muted small", text: item.text })),
-                    item.drill ? h("p", { class: "finding-drill" }, icon("lightbulb"), h("span", {}, h("strong", { text: `${t("drill")}: ` }), item.drill)) : null
+                    item.drill ? h("p", { class: "finding-drill" }, icon("lightbulb"), h("span", {}, h("strong", { text: `${t("drill")}: ` }), item.drill)) : null,
+                    career.focus && career.focus.id === item.id
+                      ? null
+                      : h(
+                          "button",
+                          { class: "btn btn-ghost btn-sm goal-set no-print", type: "button", onclick: (event) => setGoal(item.id, event.currentTarget) },
+                          icon("target"),
+                          h("span", { text: t("goalSet") })
+                        )
                   )
                 )
               )
@@ -2649,6 +2751,7 @@
       scoreCard,
       careerRankCard(career),
       selfCompareCard(career.self_compare) || "",
+      goalCard(career.focus) || "",
       planCard,
       strengthsCard || "",
       heroesCard || ""

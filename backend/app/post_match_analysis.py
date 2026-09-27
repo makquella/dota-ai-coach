@@ -29,7 +29,7 @@ from app.map_analysis import analyze_map
 from app.peer_analysis import match_peers, peer_findings
 
 # Bump when the rules change: stored reviews of an older version are rebuilt on read.
-ANALYSIS_VERSION = 3
+ANALYSIS_VERSION = 4
 MAX_ADVICE_SHOWN = 40
 
 # Static targets when OpenDota benchmarks are missing (GSI-only matches).
@@ -156,6 +156,8 @@ def analyze_match(
         "strengths": strengths[:5],
         "improvements": improvements[:6],
         "focus": [f["id"] for f in improvements[:3]],
+        # Every problem found, before the per-section cap (focus_goal.py checks it).
+        "problems": sorted({f["id"] for f in findings if f["kind"] == "improve"}),
         "series": _series(facts, targets),
         "moments": _moments(facts, findings),
         "build": build,

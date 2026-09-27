@@ -2491,3 +2491,69 @@ label.setting:has(.switch:disabled) {
 .skipped-note {
   margin: var(--sp-3) 0 0;
 }
+
+/* Focus goal: the one problem the player works on --------------------------- */
+.tag-accent {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.goal {
+  display: grid;
+  gap: var(--sp-2);
+}
+
+.goal .finding-drill {
+  margin: 0;
+}
+
+.goal-marks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-1);
+}
+
+.goal-mark {
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  border: 0;
+  border-radius: 4px;
+  background: var(--error);
+  cursor: pointer;
+  transition: transform var(--dur) var(--ease);
+}
+
+.goal-mark[data-met="true"] {
+  background: var(--ok);
+}
+
+.goal-mark:hover {
+  transform: translateY(-1px);
+}
+
+.goal-mark:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.goal-set {
+  justify-self: start;
+  margin-top: var(--sp-1);
+}
+
+.review-goal {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  margin: 0;
+  color: var(--text-2);
+  font-size: var(--fs-12);
+}
+
+@media print {
+  .goal-mark {
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+}

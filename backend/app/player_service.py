@@ -38,7 +38,7 @@ from pathlib import Path
 from typing import Any
 
 from app.analysis_texts import render_analysis
-from app.career_analysis import analyze_career
+from app.career_analysis import NOT_RECURRING, analyze_career
 from app.coach_llm import PROVIDERS, AISettings, CoachLLM, CoachLLMError, settings_from
 from app.coach_review import (
     career_facts,
@@ -56,6 +56,7 @@ from app.dota_constants import (
     is_reviewable_match,
 )
 from app.draft_analysis import pool_heroes
+from app.focus_goal import can_focus, focus_summary, match_result, new_focus, played_after
 from app.game_plan import build_game_plan
 from app.match_facts import facts_from_opendota, facts_from_timeline, merge_facts
 from app.match_tracker import MatchTracker, account_from_gsi
@@ -86,6 +87,7 @@ META_TTL_SECONDS = 7 * 24 * 3600
 HERO_STATS_TTL_SECONDS = 24 * 3600
 GAME_PLAN_CACHE_SECONDS = 60
 SKIPPED_MODES_META = "skipped_modes"
+FOCUS_META = "focus"
 # AI coach.
 AI_SETTINGS_KEY = "ai_settings"
 # The replay is still being parsed: wait for the full data before asking the model.
@@ -290,7 +292,9 @@ class PlayerService:
         now = time.monotonic()
         if cached is not None and now - cached[0] < GAME_PLAN_CACHE_SECONDS:
             return cached[1]
+        focus = self._focus(primary)
         plan = build_game_plan(
+            focus=focus_summary(focus, [], lang)["title"] if focus else None,
             hero=hero_name(hero_id),
             history=self.store.matches_for_career(primary, limit=20, hero_id=hero_id),
             all_recent=self.store.matches_for_career(primary, limit=RECENT_MATCHES_LIMIT),
@@ -414,7 +418,72 @@ class PlayerService:
             "loading": analysis is None and self.client is not None,
         }
         detail["coach"] = self._match_coach(primary, match_id, detail, lang, force=force_coach)
+        detail["focus"] = self._match_focus(primary, record, analysis, lang)
         return detail
+
+    # --- focus goal (focus_goal.py) ---------------------------------------------------
+
+    def _focus(self, account_id: int) -> dict[str, Any] | None:
+        raw = self.store.get_meta(f"{FOCUS_META}:{account_id}")
+        if not raw:
+            return None
+        with contextlib.suppress(ValueError, TypeError):
+            focus = json.loads(raw)
+            if isinstance(focus, dict) and can_focus(str(focus.get("id"))):
+                return focus
+        return None
+
+    def set_focus(self, finding_id: str) -> dict[str, Any]:
+        """Work on one problem from now on; its wording comes from its latest occurrence."""
+        primary = self.store.primary_account_id()
+        if primary is None:
+            raise ValueError("not_linked")
+        finding_id = str(finding_id or "")
+        if not can_focus(finding_id) or finding_id in NOT_RECURRING:
+            raise ValueError("bad_focus")
+        latest: dict[str, Any] = {}
+        for match in self.store.matches_for_career(primary, limit=RECENT_MATCHES_LIMIT):
+            found = next(
+                (
+                    f
+                    for f in (match.get("analysis") or {}).get("improvements") or []
+                    if f.get("id") == finding_id
+                ),
+                None,
+            )
+            if found:
+                latest = found
+                break
+        focus = new_focus(finding_id, latest.get("section"), latest.get("params"))
+        self.store.set_meta(f"{FOCUS_META}:{primary}", json.dumps(focus))
+        self._plans.clear()
+        return focus
+
+    def focus_status(self, lang: str) -> dict[str, Any] | None:
+        primary = self.store.primary_account_id()
+        focus = self._focus(primary) if primary is not None else None
+        if focus is None:
+            return None
+        matches = self.store.matches_for_career(primary, limit=RECENT_MATCHES_LIMIT)
+        return focus_summary(focus, matches, lang)
+
+    def clear_focus(self) -> None:
+        primary = self.store.primary_account_id()
+        if primary is not None:
+            self.store.set_meta(f"{FOCUS_META}:{primary}", None)
+        self._plans.clear()
+
+    def _match_focus(
+        self, account_id: int, record: dict[str, Any], analysis: dict[str, Any] | None, lang: str
+    ) -> dict[str, Any] | None:
+        focus = self._focus(account_id)
+        if focus is None or not played_after(record, focus):
+            return None
+        met = match_result(analysis, focus)
+        if met is None:
+            return None
+        summary = focus_summary(focus, [], lang)
+        return {"id": focus["id"], "title": summary["title"], "met": met}
 
     def career(
         self, lang: str, *, force_coach: bool = False, hero_id: int | None = None
@@ -439,6 +508,17 @@ class PlayerService:
         )
         result["linked"] = True
         result["hero_filter"] = hero_id
+        focus = self._focus(primary)
+        if focus is not None:
+            # The goal is the same on every hero: judged over all recent matches.
+            source = (
+                matches
+                if hero_id is None
+                else self.store.matches_for_career(primary, limit=RECENT_MATCHES_LIMIT)
+            )
+            result["focus"] = focus_summary(focus, source, lang)
+        else:
+            result["focus"] = None
         # "heroes" is the career's own hero table; the filter's choices go apart.
         result["hero_choices"] = self.store.hero_counts(primary)
         if hero_id is not None:

@@ -36,6 +36,7 @@ TEXT = {
         "item": "{item} к {time}, как у большинства: побед {winrate}%",
         "item_plain": "Ключевой предмет: {item}",
         "reminder": "Частая ошибка: {title}",
+        "focus": "Ваш фокус: {title}",
     },
     "en": {
         "title": "Plan for this game",
@@ -44,6 +45,7 @@ TEXT = {
         "item": "{item} by {time}, like most players: {winrate}% wins",
         "item_plain": "Key item: {item}",
         "reminder": "Common mistake: {title}",
+        "focus": "Your focus: {title}",
     },
 }
 
@@ -85,6 +87,7 @@ def _key_item(meta: dict[str, Any] | None) -> dict[str, Any] | None:
 
 def build_game_plan(
     *,
+    focus: str | None = None,
     hero: str,
     history: list[dict[str, Any]],
     all_recent: list[dict[str, Any]],
@@ -114,6 +117,11 @@ def build_game_plan(
         )
     elif item:
         lines.append(text["item_plain"].format(item=item["name"]))
+
+    if focus:
+        # The problem the player chose to work on beats the most frequent one.
+        lines.append(text["focus"].format(title=_sentence_tail(focus)))
+        return {"title": text["title"], "hero": hero, "role": role, "lines": lines}
 
     reviewed_on_hero = [m for m in history if m.get("analysis")]
     source = (

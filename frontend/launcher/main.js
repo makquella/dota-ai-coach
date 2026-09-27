@@ -1070,6 +1070,13 @@ const PLAYER_OPS = {
   odStatus: () => ["GET", "/player/opendota"],
   odSave: (args) => ["POST", "/player/opendota", { api_key: String(args.apiKey || "").trim().slice(0, 100) }],
   odClear: () => ["DELETE", "/player/opendota"],
+  // The one recurring problem the player works on (checked in every next match).
+  focusSet: (args) => [
+    "POST",
+    `/player/focus?lang=${uiLocale()}`,
+    { finding_id: /^[a-z0-9_]{1,60}$/.test(String(args.findingId || "")) ? String(args.findingId) : "" }
+  ],
+  focusClear: () => ["DELETE", "/player/focus"],
   // One real request to the provider: allow it time.
   aiCheck: () => ["POST", "/player/ai/check", undefined, 45000]
 };

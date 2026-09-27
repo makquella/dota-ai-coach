@@ -60,6 +60,10 @@ class OpenDotaKeyRequest(BaseModel):
     api_key: str
 
 
+class FocusRequest(BaseModel):
+    finding_id: str
+
+
 class AIRequest(BaseModel):
     provider: str
     api_key: str
@@ -133,6 +137,21 @@ def refresh_match(match_id: MatchId):
 def player_career(lang: str = "en", hero_id: HeroId = None):
     """`hero_id` narrows the progress to one hero (no AI review then)."""
     return PLAYER_SERVICE.career(normalize_lang(lang), hero_id=hero_id)
+
+
+@router.post("/focus", summary="Work on one recurring problem from now on")
+def set_focus(request: FocusRequest, lang: str = "en"):
+    try:
+        PLAYER_SERVICE.set_focus(request.finding_id)
+    except ValueError as error:
+        return JSONResponse(status_code=400, content={"status": "error", "code": str(error)})
+    return PLAYER_SERVICE.focus_status(normalize_lang(lang))
+
+
+@router.delete("/focus", summary="Stop tracking the focus problem")
+def clear_focus():
+    PLAYER_SERVICE.clear_focus()
+    return {"status": "ok"}
 
 
 @router.post("/matches/{match_id}/coach", summary="(Re)generate the AI coach review of a match")
