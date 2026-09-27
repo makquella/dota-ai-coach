@@ -2,9 +2,10 @@
 main.py — FastAPI application entry point for Dota AI Coach (MVP-1).
 """
 
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, Mapping
 from contextlib import asynccontextmanager
 from datetime import UTC, datetime, timedelta
+from typing import Any
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -16,10 +17,12 @@ from app.advice_i18n import localize_advice_items, localize_overlay_response, no
 from app.advice_scheduler import ADVICE_SCHEDULER, ScheduledAdvice
 from app.coach_summary import COACH_SESSION_HISTORY
 from app.config import (
+    ADVICE_ROLE,
     BACKEND_PORT,
     GSI_STALE_SECONDS,
     LIVE_CONSERVATIVE_MODE,
     LLM_PROVIDER,
+    MAP_HINTS,
     OPENDOTA_ENABLED,
     PLAYER_DATA_DIR,
     RESOURCE_ROOT,
@@ -36,9 +39,12 @@ from app.gsi_state import (
     is_in_match,
     update_latest_gsi,
 )
+from app.live_role import SETTINGS as ROLE_SETTINGS
+from app.live_role import role_setting, set_role_setting
 from app.live_session_recorder import LIVE_SESSION_RECORDER
 from app.llm_provider import generate_llm_recommendation, is_llm_provider_enabled
 from app.logger import log_recommendation, prune_logs
+from app.map_hints import map_hint
 from app.match_memory import MATCH_MEMORY
 from app.player_api import PLAYER_SERVICE
 from app.player_api import router as player_router
@@ -60,7 +66,7 @@ app = FastAPI(
     lifespan=_lifespan,
     title="Dota AI Coach",
     description="MVP-1: rule-based carry coach with local knowledge-base RAG.",
-    version="0.2.1",
+    version="0.3.0",
 )
 app.include_router(player_router)
 
@@ -94,7 +100,7 @@ if FRONTEND_DIR.exists():
 @app.get("/", summary="Health check")
 def root():
     """Simple health-check endpoint."""
-    return {"status": "ok", "service": "Dota AI Coach", "version": "0.2.1"}
+    return {"status": "ok", "service": "Dota AI Coach", "version": "0.3.0"}
 
 
 @app.get("/health", summary="Health check")
@@ -298,7 +304,63 @@ def overlay_recommendation(lang: str = "en"):
     plan = _game_plan_for_overlay(response, lang)
     if plan is not None:
         response = {**response, "game_plan": plan}
+    try:
+        response = {**response, **_live_role_and_hint(response, lang)}
+    except Exception as error:  # noqa: BLE001 - never breaks the live path
+        record_error("map-hint", error)
     return response
+
+
+def _plays_support(state: Mapping[str, object] | None) -> bool:
+    state = state or {}
+    raw_extra = state.get("extra_context")
+    extra: Mapping[str, object] = raw_extra if isinstance(raw_extra, dict) else {}
+    if extra.get("source_type") != "live_gsi":
+        return False
+    role = _live_role(state)
+    return role is not None and role.get("role") == "support" and role.get("source") != "hero"
+
+
+def _live_role(state: Mapping[str, object] | None) -> dict[str, Any] | None:
+    state = state or {}
+    hero = str(state.get("hero") or "")
+    prior = PLAYER_SERVICE.role_prior(hero) if hero else None
+    return MATCH_MEMORY.role.role(prior)
+
+
+def _live_role_and_hint(response: dict[str, object], lang: str) -> dict[str, object]:
+    """The player's position and the map hint (timer or role tip), live GSI only."""
+    if response.get("demo_mode") or response.get("status") in {"waiting_for_gsi", "stale_gsi"}:
+        return {}
+    current = get_current_state()
+    state = current.get("state") if isinstance(current.get("state"), dict) else {}
+    extra = state.get("extra_context") if isinstance(state.get("extra_context"), dict) else {}
+    if extra.get("source_type") != "live_gsi":
+        return {}
+    role = _live_role(state)
+    result: dict[str, object] = {"live_role": role}
+    if _map_hints["enabled"]:
+        clock = extra.get("clock_time")
+        carry_advisor = hero_coverage(str(state.get("hero") or "")) == "full" and not (
+            _plays_support(state)
+        )
+        last_hits = extra.get("last_hits")
+        hint = map_hint(
+            clock if isinstance(clock, int) else None,
+            role.get("role") if role else None,
+            MATCH_MEMORY.tips,
+            alive=extra.get("alive") is not False,
+            has_ward=extra.get("has_observer")
+            if isinstance(extra.get("has_observer"), bool)
+            else None,
+            lang=lang,
+            tp_missing=MATCH_MEMORY.tp.signal() is not None,
+            carry_advisor=carry_advisor,
+            last_hits=last_hits if isinstance(last_hits, int) else None,
+        )
+        if hint is not None:
+            result["map_hint"] = hint
+    return result
 
 
 GAME_PLAN_STATUSES = {"no_advice", "monitoring", "unsupported_hero"}
@@ -391,6 +453,10 @@ def _overlay_recommendation_payload() -> dict[str, object]:
             **_overlay_live_context(state),
         }
 
+    # A carry-advisor hero played as a support gets the survival advice only:
+    # farm and item advice assume a carry (the support tips are map hints).
+    if coverage == "full" and _plays_support(state):
+        coverage = "safety"
     decision_point = _covered_decision_point(
         _live_conservative_decision_point(detect_decision_point(state), state), coverage
     )
@@ -568,20 +634,40 @@ def recent_advice(limit: int = 5, lang: str = "en"):
 
 
 class AdviceSettings(BaseModel):
-    frequency: str
+    frequency: str | None = None
+    role: str | None = None
+    map_hints: bool | None = None
+
+
+# Map hints (timers, role tips) on the overlay; the launcher switches them.
+_map_hints = {"enabled": MAP_HINTS}
+set_role_setting(ADVICE_ROLE)
+
+
+def _advice_settings() -> dict[str, object]:
+    return {
+        "frequency": ADVICE_SCHEDULER.frequency,
+        "options": list(FREQUENCIES),
+        "role": role_setting(),
+        "role_options": list(ROLE_SETTINGS),
+        "map_hints": _map_hints["enabled"],
+    }
 
 
 @app.get("/settings/advice", summary="Live advice preferences")
 def get_advice_settings():
-    return {"frequency": ADVICE_SCHEDULER.frequency, "options": list(FREQUENCIES)}
+    return _advice_settings()
 
 
 @app.post("/settings/advice", summary="Change live advice preferences")
 def set_advice_settings(settings: AdviceSettings):
-    return {
-        "frequency": ADVICE_SCHEDULER.set_frequency(settings.frequency),
-        "options": list(FREQUENCIES),
-    }
+    if settings.frequency is not None:
+        ADVICE_SCHEDULER.set_frequency(settings.frequency)
+    if settings.role is not None:
+        set_role_setting(settings.role)
+    if settings.map_hints is not None:
+        _map_hints["enabled"] = bool(settings.map_hints)
+    return _advice_settings()
 
 
 @app.get("/diagnostics", summary="State and recent errors for a problem report")
@@ -843,6 +929,7 @@ def _gsi_status_response() -> dict[str, object]:
         if isinstance(latest_recommendation, dict)
         else None,
         "current_mode": "live_gsi" if state else "idle",
+        "live_role": _live_role(state) if extra_context.get("source_type") == "live_gsi" else None,
     }
 
 

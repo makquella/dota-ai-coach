@@ -1,0 +1,48 @@
+name: Dota data
+
+# Every Monday: rebuild frontend/launcher/renderer/dota-data.js (item names ->
+# icon keys from OpenDota's dotaconstants) and check that app/dota_constants.py
+# knows every hero. A changed file becomes a pull request; a missing hero fails
+# the run with the hero's id and name (it needs a line in HEROES by hand).
+#
+# The pull request is opened with the workflow token: Settings → Actions →
+# General → "Allow GitHub Actions to create and approve pull requests" must be on.
+on:
+  schedule:
+    - cron: "23 6 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: backend/requirements.txt
+      - name: Install
+        working-directory: backend
+        run: pip install -r requirements.txt
+      - name: Rebuild dota-data.js
+        working-directory: backend
+        run: python scripts/build_dota_data.py
+      - name: Open a pull request when it changed
+        uses: peter-evans/create-pull-request@v7
+        with:
+          branch: chore/dota-data
+          commit-message: "Refresh hero and item icon data"
+          title: "Refresh hero and item icon data"
+          body: |
+            `backend/scripts/build_dota_data.py` found new or renamed items in OpenDota's dotaconstants.
+            Regenerated `frontend/launcher/renderer/dota-data.js`; the launcher shows their icons after the next release.
+          add-paths: frontend/launcher/renderer/dota-data.js
+          delete-branch: true
+      - name: Check heroes
+        working-directory: backend
+        run: python scripts/build_dota_data.py --check-heroes

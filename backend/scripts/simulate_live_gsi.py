@@ -40,11 +40,19 @@ def _game_clock_now(value: datetime | None = None) -> datetime:
     return _real_utcnow(value) if value is not None else _clock[0]
 
 
-def synthetic_stream(minutes: int, deaths: tuple[int, ...]) -> list[dict[str, Any]]:
+def synthetic_stream(
+    minutes: int, deaths: tuple[int, ...], lh_per_minute: float = 6.0
+) -> list[dict[str, Any]]:
     sys.path.insert(0, str(BACKEND_DIR / "tests"))
     from match_fixtures import gsi_match_stream
 
-    stream = gsi_match_stream(minutes=minutes, death_minutes=deaths, step_seconds=1, positions=True)
+    stream = gsi_match_stream(
+        minutes=minutes,
+        death_minutes=deaths,
+        step_seconds=1,
+        positions=True,
+        lh_per_minute=lh_per_minute,
+    )
     for payload in stream:
         # Heroes normally carry a TP scroll (the fixture has no TP slot).
         payload["items"]["teleport0"] = {"name": "item_tpscroll"}
@@ -60,17 +68,24 @@ def session_stream(path: Path) -> Iterator[dict[str, Any]]:
                 yield entry.get("raw_payload", entry)
 
 
-def simulate(payloads: Iterable[dict[str, Any]], lang: str = "en") -> list[dict[str, Any]]:
-    """Feed the payloads; returns every new advice card as {clock, decision_point, ...}."""
+def simulate(
+    payloads: Iterable[dict[str, Any]], lang: str = "en", hints: bool = False, role: str = "auto"
+) -> list[dict[str, Any]]:
+    """Feed the payloads; returns every new advice card as {clock, decision_point, ...}
+    (and with `hints` every new map hint as decision point MAP_HINT)."""
     from fastapi.testclient import TestClient
 
+    from app.live_role import set_role_setting
     from app.main import app
     from app.player_api import PLAYER_SERVICE
+
+    set_role_setting(role)
 
     scheduler_module._utcnow = _game_clock_now
     PLAYER_SERVICE.configure(Path(tempfile.mkdtemp()), client=None, auto_start=False)
     cards: list[dict[str, Any]] = []
     last = None
+    hint_ids: set[str] = set()
     try:
         with TestClient(app) as client:
             for payload in payloads:
@@ -79,6 +94,19 @@ def simulate(payloads: Iterable[dict[str, Any]], lang: str = "en") -> list[dict[
                     _clock[0] = START + timedelta(seconds=clock + 90)
                 client.post("/gsi", json=payload)
                 response = client.get(f"/overlay/recommendation?lang={lang}").json()
+                hint = response.get("map_hint")
+                if hints and hint and hint["id"] not in hint_ids:
+                    hint_ids.add(hint["id"])
+                    role = (response.get("live_role") or {}).get("role")
+                    cards.append(
+                        {
+                            "clock": clock,
+                            "decision_point": "MAP_HINT",
+                            "mode": role,
+                            "action": f"{hint['title']} ({hint.get('at_label') or 'now'})",
+                            "reason": hint["hint"],
+                        }
+                    )
                 recommendation = response.get("recommendation")
                 if response.get("status") != "active_advice" or not recommendation:
                     last = None
@@ -116,14 +144,23 @@ def main() -> None:
     parser.add_argument("--deaths", default="7,18,19,33", help="synthetic death minutes")
     parser.add_argument("--lang", default="en", choices=("en", "ru"))
     parser.add_argument("--reasons", action="store_true", help="print the reasons too")
+    parser.add_argument(
+        "--hints", action="store_true", help="print map hints (timers, role tips) too"
+    )
+    parser.add_argument(
+        "--lh", type=float, default=6.0, help="synthetic last hits per minute (1 = a support)"
+    )
+    parser.add_argument(
+        "--role", default="auto", help="position setting: auto|carry|mid|offlane|support"
+    )
     args = parser.parse_args()
 
     if args.session:
         payloads: Iterable[dict[str, Any]] = session_stream(args.session)
     else:
         deaths = tuple(int(m) for m in args.deaths.split(",") if m.strip())
-        payloads = synthetic_stream(args.minutes, deaths)
-    cards = simulate(payloads, args.lang)
+        payloads = synthetic_stream(args.minutes, deaths, args.lh)
+    cards = simulate(payloads, args.lang, hints=args.hints, role=args.role)
     for card in cards:
         print(f"{_clock_label(card['clock'])}  {card['decision_point']:<26} {card['action']}")
         if args.reasons:

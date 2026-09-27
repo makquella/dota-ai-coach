@@ -29,13 +29,22 @@ MIN_ENEMIES_WITH_DATA = 3
 # Counter-item advice only for games long enough to build it.
 COUNTER_MIN_DURATION = 25 * 60
 
-# OpenDota hero role tags that fit a role, for heroes the player has no
-# reviewed game on.
+# OpenDota hero role tags that fit a role.
+# Reviewed games in a role that count as the player's habit on a hero whose
+# tags say otherwise (e.g. a mid Pudge).
+HABIT_GAMES = 5
+# Roles are review roles (core/offlane/support) or, with OpenDota's lineup,
+# positions (carry/mid/offlane/support).
 ROLE_TAGS: dict[str, set[str]] = {
     "core": {"Carry"},
+    "carry": {"Carry"},
+    "mid": {"Carry", "Nuker"},
     "offlane": {"Initiator", "Durable"},
     "support": {"Support"},
 }
+
+# Positions -> the review roles that COUNTERS name.
+COUNTER_ROLE = {"carry": "core", "mid": "core"}
 
 # reason -> (enemy heroes, counter items (OpenDota keys), roles that should buy them)
 COUNTERS: dict[str, tuple[set[str], list[str], set[str]]] = {
@@ -99,13 +108,28 @@ def fits_role(
     played: dict[str, dict[str, int]] | None,
     tags: dict[str, list[str]] | None,
 ) -> bool:
-    """Does the player play `hero_id` in `role`? Their reviewed games on the hero
-    decide (the most common role); without any, OpenDota's role tags do."""
+    """Does the player play `hero_id` in `role`? The most common role of their
+    reviewed games on the hero must match, and so must OpenDota's role tags
+    (a Treant is not offered to a carry because a few games looked like farm),
+    unless the player has a real habit: HABIT_GAMES games in that role. Without
+    cached tags the games alone decide."""
     counts = (played or {}).get(str(hero_id)) or {}
-    if counts:
-        return max(counts.items(), key=lambda kv: kv[1])[0] == role
+    if counts and not _same_role(max(counts.items(), key=lambda kv: kv[1])[0], role):
+        return False
     hero_tags = set((tags or {}).get(str(hero_id)) or [])
-    return bool(hero_tags & ROLE_TAGS.get(role, set()))
+    if not hero_tags:  # no OpenDota tags cached: the player's games decide
+        return bool(counts)
+    if hero_tags & ROLE_TAGS.get(role, set()):
+        return True
+    return sum(n for key, n in counts.items() if _same_role(key, role)) >= HABIT_GAMES
+
+
+def _same_role(a: str, b: str) -> bool:
+    """Positions vs review roles: "core" (a review without the match lineup, or
+    stored before positions) stands for carry or mid."""
+    if a == b:
+        return True
+    return {a, b} in ({"core", "carry"}, {"core", "mid"})
 
 
 def _winrate(matchups: dict[str, list[int]] | None, enemy_id: int) -> dict[str, Any] | None:
@@ -197,6 +221,7 @@ def analyze_draft(
     bought = known or set()
     counters = []
     long_game = (facts.get("duration") or 0) >= COUNTER_MIN_DURATION
+    counter_role = COUNTER_ROLE.get(role, role)
     for reason, (heroes, items, roles) in COUNTERS.items():
         threats = [p.get("hero") for p in enemies if p.get("hero") in heroes]
         if not threats:
@@ -209,10 +234,10 @@ def analyze_draft(
                 "heroes": threats,
                 "items": names,
                 "bought": [item_name(key, constants) for key in has],
-                "for_role": role in roles,
+                "for_role": counter_role in roles,
             }
         )
-        if role not in roles or not long_game or known is None:
+        if counter_role not in roles or not long_game or known is None:
             continue
         params = {"reason": reason, "enemy": ", ".join(threats), "items": ", ".join(names)}
         if has:

@@ -63,7 +63,7 @@ const I18N = {
       copied: "Copied"
     },
     matchTitle: "Current match",
-    coverageSafety: "Full advice (farm, items, objectives) is for carry heroes; this hero gets survival advice only.",
+    coverageSafety: "Farm and item advice is for carry heroes; on this hero the coach gives survival advice, map timers and role tips.",
     statHero: "Hero",
     statClock: "Match time",
     statStage: "Stage",
@@ -105,6 +105,29 @@ const I18N = {
     frequencyCalm: "Less",
     frequencyNormal: "Normal",
     frequencyActive: "More",
+    roleTitle: "Your role",
+    roleAuto: "Auto",
+    roleCarry: "Carry",
+    roleMid: "Mid",
+    roleOfflane: "Offlane",
+    roleSupport: "Support",
+    roleHint: {
+      auto: "Found from your lane in the first minutes; timers and tips follow it",
+      carry: "Timers and tips for a carry",
+      mid: "Runes and timers for a mid player",
+      offlane: "Shrines, lotuses and timers for an offlaner",
+      support: "Stacks, wards and runes for a support; farm advice is off"
+    },
+    roleNames: { carry: "carry", mid: "mid", offlane: "offlane", support: "support" },
+    roleSource: {
+      setting: "chosen in Settings",
+      lane: "from your lane",
+      history: "from your past games on this hero",
+      hero: "usual for this hero"
+    },
+    roleNote: (role, source) => `Role: ${role}, ${source}.`,
+    mapHintsTitle: "Map timers",
+    mapHintsHint: "Runes, shrines, Tormentor, stacks and wards 20 s ahead, on the overlay card",
     frequencyHint: {
       calm: "Twice the pause between tips; urgent advice is never delayed",
       normal: "Balanced pauses between tips",
@@ -147,6 +170,13 @@ const I18N = {
     whatsNewTitle: (version) => `What's new in ${version}`,
     whatsNewOk: "Got it",
     whatsNew: {
+      "0.3.0": [
+        "Map timers on the overlay 20 s ahead: runes, wisdom shrines, lotuses, the Tormentor, neutral item tiers — only the ones your role needs.",
+        "Your role is found from your lane in the first minutes (or chosen in Settings → Advice) and shown on Home.",
+        "Support tips: stack a camp, take wards, leave the last hits to your carry. No carry farm advice on a support; the TP reminder works on every hero.",
+        "«Send to developer» in the problem report: one click, with a note and a preview; keys, nickname and Steam ID are removed.",
+        "Draft advice suggests only heroes of the position you played."
+      ],
       "0.2.1": [
         "Match history no longer fails to sync when OpenDota answers slowly.",
         "The app asks OpenDota to parse your latest matches, so reviews get last hits at 10:00, the build and the chart.",
@@ -321,7 +351,7 @@ const I18N = {
       copied: "Скопировано"
     },
     matchTitle: "Текущий матч",
-    coverageSafety: "Полные советы (фарм, предметы, цели) — для керри; на этом герое тренер подсказывает только по выживанию.",
+    coverageSafety: "Советы по фарму и предметам — для керри; на этом герое тренер подсказывает по выживанию, таймерам карты и роли.",
     statHero: "Герой",
     statClock: "Время матча",
     statStage: "Стадия",
@@ -363,6 +393,29 @@ const I18N = {
     frequencyCalm: "Реже",
     frequencyNormal: "Обычно",
     frequencyActive: "Чаще",
+    roleTitle: "Ваша роль",
+    roleAuto: "Авто",
+    roleCarry: "Керри",
+    roleMid: "Мид",
+    roleOfflane: "Хардлайн",
+    roleSupport: "Саппорт",
+    roleHint: {
+      auto: "Определяется по линии в первые минуты; по ней выбираются таймеры и подсказки",
+      carry: "Таймеры и подсказки для керри",
+      mid: "Руны и таймеры для мидера",
+      offlane: "Святилища, лотосы и таймеры для хардлайнера",
+      support: "Стаки, варды и руны для саппорта; советы про фарм выключены"
+    },
+    roleNames: { carry: "керри", mid: "мид", offlane: "хардлайн", support: "саппорт" },
+    roleSource: {
+      setting: "выбрана в настройках",
+      lane: "по линии",
+      history: "по вашим прошлым играм на герое",
+      hero: "обычная для героя"
+    },
+    roleNote: (role, source) => `Роль: ${role}, ${source}.`,
+    mapHintsTitle: "Таймеры карты",
+    mapHintsHint: "Руны, святилища, Торментор, стаки и варды за 20 с — на карточке оверлея",
     frequencyHint: {
       calm: "Вдвое больше пауза между советами; срочные не задерживаются",
       normal: "Обычные паузы между советами",
@@ -405,6 +458,13 @@ const I18N = {
     whatsNewTitle: (version) => `Что нового в ${version}`,
     whatsNewOk: "Понятно",
     whatsNew: {
+      "0.3.0": [
+        "Таймеры карты на оверлее за 20 секунд: руны, святилища мудрости, лотосы, Торментор, уровни нейтральных предметов — только нужные вашей роли.",
+        "Роль определяется по линии в первые минуты (или выбирается в «Настройки → Советы») и видна на главной.",
+        "Подсказки саппорту: застакать лагерь, взять варды, оставить добивания керри. Советы про фарм на саппорте выключены; про ТП — на любом герое.",
+        "«Отправить разработчику» в отчёте о проблеме: одна кнопка, комментарий и предпросмотр; ключи, ник и Steam ID вырезаются.",
+        "Драфт предлагает только героев той позиции, на которой вы играли."
+      ],
       "0.2.1": [
         "История матчей больше не срывается, когда OpenDota отвечает медленно.",
         "Приложение само просит OpenDota разобрать последние матчи — в разборе появляются добивания к 10:00, сборка и график.",
@@ -548,6 +608,10 @@ const els = {
   sizeButtons: [...document.querySelectorAll("#size-group [data-size]")],
   languageButtons: [...document.querySelectorAll("#language-group [data-language]")],
   frequencyButtons: [...document.querySelectorAll("#frequency-group [data-frequency]")],
+  roleButtons: [...document.querySelectorAll("#role-group [data-role]")],
+  roleHint: $("#role-hint"),
+  roleNote: $("#role-note"),
+  mapHints: $("#map-hints"),
   frequencyHint: $("#frequency-hint"),
   voiceButtons: [...document.querySelectorAll("#voice-group [data-voice]")],
   voiceHint: $("#voice-hint"),
@@ -740,6 +804,14 @@ async function init() {
       run(async () => renderStatus(await window.launcherApi.setAdviceFrequency(button.dataset.frequency)))
     );
   }
+  for (const button of els.roleButtons) {
+    button.addEventListener("click", () =>
+      run(async () => renderStatus(await window.launcherApi.setAdvicePreferences({ role: button.dataset.role })))
+    );
+  }
+  els.mapHints.addEventListener("change", () =>
+    run(async () => renderStatus(await window.launcherApi.setAdvicePreferences({ mapHints: els.mapHints.checked })))
+  );
   for (const button of els.voiceButtons) {
     button.addEventListener("click", () =>
       run(async () => renderStatus(await window.launcherApi.setOverlayVoice(button.dataset.voice)))
@@ -1270,6 +1342,7 @@ function renderMatch(status) {
     return;
   }
   els.coverageNote.classList.add("hidden");
+  els.roleNote.classList.add("hidden");
   if (isOffline(status)) {
     els.matchStats.classList.add("hidden");
     setEmpty(els.matchEmpty, true, { title: tr("offlineTitle"), hint: tr("offlineHint"), icon: "wifi-off" });
@@ -1283,6 +1356,9 @@ function renderMatch(status) {
   els.matchStats.classList.remove("hidden");
   setEmpty(els.matchEmpty, false);
   els.coverageNote.classList.toggle("hidden", live.coverage !== "safety");
+  const role = live.role && tr(`roleNames.${live.role.role}`);
+  els.roleNote.classList.toggle("hidden", !live.role);
+  els.roleNote.textContent = live.role ? tr("roleNote", role, tr(`roleSource.${live.role.source}`)) : "";
   if (live.hero && window.DotaIcons?.hero(live.hero)) {
     // Keep the element while the hero stays the same (no flicker every second).
     if (els.statHero.dataset.hero !== live.hero) {
@@ -1424,6 +1500,13 @@ function renderOverlaySettings(status) {
     button.setAttribute("aria-checked", String(button.dataset.frequency === frequency));
   }
   els.frequencyHint.textContent = tr(`frequencyHint.${frequency}`);
+
+  const role = status.adviceRole || "auto";
+  for (const button of els.roleButtons) {
+    button.setAttribute("aria-checked", String(button.dataset.role === role));
+  }
+  els.roleHint.textContent = tr(`roleHint.${role}`);
+  els.mapHints.checked = status.mapHints !== false;
 
   lastVoice = status.overlayVoice || { mode: "off", volume: 1 };
   for (const button of els.voiceButtons) {

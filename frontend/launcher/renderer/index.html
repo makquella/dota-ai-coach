@@ -104,7 +104,8 @@
                 <dd id="stat-data"><span class="skeleton skeleton-line w-50"></span></dd>
               </div>
             </dl>
-            <p class="note coverage-note hidden" id="coverage-note" data-i18n="coverageSafety">Full advice (farm, items, objectives) is for carry heroes; this hero gets survival advice only.</p>
+            <p class="note coverage-note hidden" id="coverage-note" data-i18n="coverageSafety">Farm and item advice is for carry heroes; on this hero the coach gives survival advice, map timers and role tips.</p>
+            <p class="note role-note hidden" id="role-note"></p>
             <div class="empty hidden" id="match-empty">
               <i data-icon="clock"></i>
               <p class="empty-title" id="match-empty-title"></p>
@@ -199,6 +200,26 @@
                 <button type="button" role="radio" data-frequency="active"><span data-i18n="frequencyActive">More</span></button>
               </div>
             </div>
+            <div class="setting setting-wrap">
+              <span class="setting-text">
+                <span class="setting-title" id="role-title" data-i18n="roleTitle">Your role</span>
+                <span class="setting-hint" id="role-hint"></span>
+              </span>
+              <div class="segmented" role="radiogroup" id="role-group" aria-labelledby="role-title">
+                <button type="button" role="radio" data-role="auto"><span data-i18n="roleAuto">Auto</span></button>
+                <button type="button" role="radio" data-role="carry"><span data-i18n="roleCarry">Carry</span></button>
+                <button type="button" role="radio" data-role="mid"><span data-i18n="roleMid">Mid</span></button>
+                <button type="button" role="radio" data-role="offlane"><span data-i18n="roleOfflane">Offlane</span></button>
+                <button type="button" role="radio" data-role="support"><span data-i18n="roleSupport">Support</span></button>
+              </div>
+            </div>
+            <label class="setting">
+              <span class="setting-text">
+                <span class="setting-title" data-i18n="mapHintsTitle">Map timers</span>
+                <span class="setting-hint" data-i18n="mapHintsHint">Runes, shrines, Tormentor, stacks and wards 20 s ahead, on the overlay card</span>
+              </span>
+              <input id="map-hints" type="checkbox" class="switch" role="switch" />
+            </label>
             <div class="setting">
               <span class="setting-text">
                 <span class="setting-title" id="voice-title" data-i18n="voiceTitle">Voice</span>

@@ -16,6 +16,8 @@ from typing import Any
 
 from app.buyback_tracker import BuybackTracker
 from app.farm_tracker import FarmTracker
+from app.live_role import LiveRoleTracker
+from app.map_hints import RoleTips
 from app.tp_tracker import TpTracker
 
 DEATH_DECISION_POINTS = {
@@ -86,6 +88,8 @@ class MatchMemory:
         self.farm = FarmTracker()
         self.buyback = BuybackTracker()
         self.tp = TpTracker()
+        self.role = LiveRoleTracker()
+        self.tips = RoleTips()
 
     def observe_state(self, state: dict[str, Any]) -> dict[str, Any]:
         now_dt = datetime.now(UTC)
@@ -160,6 +164,16 @@ class MatchMemory:
             current_alive,
             paused=_ctx_bool(state, "paused"),
         )
+        extra = state.get("extra_context") if isinstance(state.get("extra_context"), dict) else {}
+        if extra.get("source_type") == "live_gsi":
+            self.role.observe(
+                _game_clock(state),
+                x=_number_or_none(extra.get("xpos")),
+                y=_number_or_none(extra.get("ypos")),
+                last_hits=_ctx_int_or_none(state, "last_hits"),
+                team=extra.get("team_name"),
+                alive=current_alive,
+            )
         self.last_states.append(_copy_state(state))
         self._annotate_state(state)
         return state
@@ -372,6 +386,12 @@ class MatchMemory:
             raw = f"{hero}|{now}|{game_time}"
             self._local_session_seed = hashlib.sha1(raw.encode("utf-8")).hexdigest()[:12]
         return f"local_{self._local_session_seed}"
+
+
+def _number_or_none(value: Any) -> float | None:
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        return None
+    return float(value)
 
 
 def _game_clock(state: Mapping[str, Any]) -> int | None:

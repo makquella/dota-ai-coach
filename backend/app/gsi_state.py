@@ -13,6 +13,7 @@ from app.config import GSI_DEBUG_LOG, GSI_DEBUG_SAMPLES_DIR
 from app.hero_profiles import evaluate_laning_context
 from app.hero_safety import evaluate_hero_safety
 from app.item_timing import normalize_item_name
+from app.map_hints import has_observer_ward
 from app.signal_capabilities import capability_summary, live_gsi_observed_capabilities
 from app.tp_tracker import has_teleport
 
@@ -420,6 +421,8 @@ def _normalize_extra_context(
         "has_buildings": has_buildings,
         # TP scroll in its slot or Boots of Travel (None: no items block).
         "has_tp": has_teleport(payload.get("items")),
+        # Observer ward in the inventory (support tip; None: no items block).
+        "has_observer": has_observer_ward(payload.get("items")),
         "status_effects": status_effects,
         "abilities": abilities,
     }

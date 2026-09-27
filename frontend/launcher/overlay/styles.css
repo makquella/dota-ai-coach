@@ -128,6 +128,15 @@ body:not(.locked) .overlay-shell {
   -webkit-line-clamp: 3;
 }
 
+/* Map hint card (timer or role tip) while there is no advice. */
+.hint .action {
+  font-size: var(--fs-14);
+}
+
+.hint .priority {
+  font-variant-numeric: tabular-nums;
+}
+
 /* Status cards (waiting, muted…): smaller and dimmer than advice. */
 .overlay-shell.status {
   width: auto;

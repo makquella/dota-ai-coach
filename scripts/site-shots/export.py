@@ -10,7 +10,7 @@ from PIL import Image
 
 SITE = Path(__file__).resolve().parents[2] / "site" / "assets"
 APP = ("home", "matches", "review", "review-ai", "progress", "progress-ai")
-OVERLAY = ("lowhp", "plan", "tp", "spend", "buyback", "farm")
+OVERLAY = ("lowhp", "plan", "tp", "spend", "timer", "farm")
 CARDS = ("map", "build", "chart")
 
 

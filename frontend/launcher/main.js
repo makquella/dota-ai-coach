@@ -110,6 +110,9 @@ const settings = createSettingsStore(path.join(USER_DATA_DIR, "settings.json"), 
   whatsNewPending: "",
   // How often coaching advice may appear: calm | normal | active (backend scheduler).
   adviceFrequency: "normal",
+  // Position for map timers and role tips (auto = from the lane), and the timers switch.
+  adviceRole: "auto",
+  mapHints: true,
   // UI language: auto (system) | ru | en.
   language: "auto",
   overlay: { ...OVERLAY_DEFAULTS }
@@ -402,7 +405,7 @@ function gsiEndpoint() {
 }
 
 function emptyLiveDetails() {
-  return { connected: false, inMatch: false, hero: null, coverage: null, clockTime: null, secondsSinceLastGsi: null, stage: "unknown" };
+  return { connected: false, inMatch: false, hero: null, coverage: null, role: null, clockTime: null, secondsSinceLastGsi: null, stage: "unknown" };
 }
 
 // "auto" follows the system language; the player can pick one in Settings.
@@ -437,6 +440,8 @@ function publicStatus() {
     overlayVoice: overlay.voice(),
     overlaySize: overlay.size(),
     adviceFrequency: adviceFrequency(),
+    adviceRole: adviceRole(),
+    mapHints: mapHintsEnabled(),
     overlayLocked: !overlay.isUnlocked(),
     dotaRunning: dota.running,
     dotaFocused: dota.focused,
@@ -568,6 +573,8 @@ async function pollGsiStatus() {
         hero: status.hero && status.hero !== "Unknown" ? String(status.hero) : null,
         // "full" carry advisor or "safety" (survival advice only) for this hero.
         coverage: status.hero_coverage || null,
+        // Position for timers and role tips: { role, source: setting|lane|history|hero }.
+        role: status.live_role && status.live_role.role ? { role: String(status.live_role.role), source: String(status.live_role.source || "") } : null,
         clockTime: Number.isFinite(status.clock_time) ? status.clock_time : null,
         secondsSinceLastGsi: Number.isFinite(status.seconds_since_last_gsi) ? status.seconds_since_last_gsi : null,
         stage: status.stage || "unknown"
@@ -877,6 +884,8 @@ async function launchBackend() {
     SIMULATION_USE_LLM: "false",
     LIVE_CONSERVATIVE_MODE: "true",
     DOTA_AI_ADVICE_FREQUENCY: adviceFrequency(),
+    DOTA_AI_ROLE: adviceRole(),
+    DOTA_AI_MAP_HINTS: mapHintsEnabled() ? "true" : "false",
     PYTHONUNBUFFERED: "1",
     DOTA_AI_BACKEND_HOST: BACKEND_HOST,
     DOTA_AI_BACKEND_PORT: String(port),
@@ -1868,6 +1877,40 @@ async function setAdviceFrequency(value) {
   return publicStatus();
 }
 
+const ADVICE_ROLES = ["auto", "carry", "mid", "offlane", "support"];
+
+function adviceRole() {
+  const value = settings.get("adviceRole");
+  return ADVICE_ROLES.includes(value) ? value : "auto";
+}
+
+function mapHintsEnabled() {
+  return settings.get("mapHints") !== false;
+}
+
+// Role and map hints: saved, then sent to the running service (or read from the
+// env at its next start).
+async function setAdvicePreferences(patch = {}) {
+  const body = {};
+  if (ADVICE_ROLES.includes(patch.role)) {
+    settings.set("adviceRole", patch.role);
+    body.role = patch.role;
+  }
+  if (typeof patch.mapHints === "boolean") {
+    settings.set("mapHints", patch.mapHints);
+    body.map_hints = patch.mapHints;
+  }
+  if (Object.keys(body).length) {
+    try {
+      await requestBackendJson("/settings/advice", "POST", body);
+    } catch (error) {
+      appendLog("launcher", `Advice preferences saved; the service applies them on start (${error.message}).`, { force: true });
+    }
+  }
+  updateStatus();
+  return publicStatus();
+}
+
 function setLogMode(nextMode = "clean") {
   logMode = nextMode === "verbose" ? "verbose" : "clean";
   appendLog(
@@ -2115,6 +2158,9 @@ function registerIpc() {
   });
   ipcMain.handle("launcher:set-language", (_event, value) => setLanguage(String(value || "")));
   ipcMain.handle("launcher:set-advice-frequency", (_event, value) => setAdviceFrequency(String(value || "")));
+  ipcMain.handle("launcher:set-advice-preferences", (_event, patch) =>
+    setAdvicePreferences(patch && typeof patch === "object" ? patch : {})
+  );
   ipcMain.handle("launcher:set-overlay-size", (_event, name) => {
     overlay.setSize(String(name || ""));
     return publicStatus();

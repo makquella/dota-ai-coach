@@ -26,10 +26,10 @@ from app.build_analysis import analyze_build
 from app.draft_analysis import analyze_draft
 from app.item_timing import classify_item_timing, normalize_item_name
 from app.map_analysis import analyze_map
-from app.peer_analysis import match_peers, peer_findings
+from app.peer_analysis import match_peers, peer_findings, player_roles
 
 # Bump when the rules change: stored reviews of an older version are rebuilt on read.
-ANALYSIS_VERSION = 5
+ANALYSIS_VERSION = 6
 MAX_ADVICE_SHOWN = 40
 
 # Static targets when OpenDota benchmarks are missing (GSI-only matches).
@@ -69,7 +69,27 @@ def _at(series: list[int], minute: int) -> int | None:
     return series[minute] if len(series) > minute else None
 
 
-def detect_role(facts: dict[str, Any]) -> str:
+# Match roles (peer_analysis) -> review roles (TARGETS).
+REVIEW_ROLE = {"carry": "core", "mid": "core", "offlane": "offlane", "support": "support"}
+
+
+def match_position(facts: dict[str, Any], opendota: dict[str, Any] | None) -> str | None:
+    """carry | mid | offlane | support from OpenDota's lineup (lanes of a parsed
+    replay, else the farm order inside the team, as for the rank comparison);
+    None without the lineup."""
+    players = (opendota or {}).get("players") or []
+    index = next((i for i, p in enumerate(players) if p.get("me")), None)
+    if index is None:
+        return None
+    return player_roles(players, (opendota or {}).get("duration") or facts.get("duration"))[index]
+
+
+def detect_role(facts: dict[str, Any], opendota: dict[str, Any] | None = None) -> str:
+    """The review role (TARGETS). Last hits per minute alone make a farming
+    support a "core", so the match lineup decides when there is one."""
+    position = match_position(facts, opendota)
+    if position is not None:
+        return REVIEW_ROLE.get(position, "core")
     lane_role = facts.get("lane_role")
     duration_min = max(1.0, (facts.get("duration") or 0) / 60)
     lh_rate = (facts.get("last_hits") or 0) / duration_min
@@ -90,7 +110,8 @@ def analyze_match(
 ) -> dict[str, Any]:
     """`meta`: cached hero meta (build advice); `opendota`: trimmed match (rank peers,
     enemy lineup); `draft`: cached matchups + the player's hero pool (draft advice)."""
-    role = detect_role(facts)
+    role = detect_role(facts, opendota)
+    position = match_position(facts, opendota)
     targets = TARGETS[role]
     findings: list[dict[str, Any]] = []
     sections: dict[str, dict[str, Any]] = {}
@@ -104,7 +125,8 @@ def analyze_match(
     findings.extend(build_findings)
     peers = match_peers(opendota)
     findings.extend(peer_findings(peers))
-    draft_block, draft_findings = analyze_draft(facts, opendota, draft, role)
+    # The better pick keeps the position (a mid hero is not offered to a carry).
+    draft_block, draft_findings = analyze_draft(facts, opendota, draft, position or role)
     findings.extend(draft_findings)
     map_block, map_findings = analyze_map(facts)
     findings.extend(map_findings)
@@ -135,6 +157,7 @@ def analyze_match(
         "sources": facts.get("sources", []),
         "parsed": bool(facts.get("parsed")),
         "role": role,
+        "position": position,
         "headline": {
             "hero": facts.get("hero"),
             "hero_id": facts.get("hero_id"),

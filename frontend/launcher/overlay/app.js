@@ -28,7 +28,10 @@ const OVERLAY_TEXT = {
     watching: "Watching…",
     noUrgent: "No urgent advice.",
     noAction: "No urgent advice",
-    plan: "Plan for this game"
+    plan: "Plan for this game",
+    map: "Map",
+    hintIn: (seconds) => (seconds > 0 ? `in ${seconds} s` : "now"),
+    hintSoon: (title) => `Soon: ${title}`
   },
   ru: {
     urgent: "Срочно",
@@ -51,7 +54,10 @@ const OVERLAY_TEXT = {
     watching: "Наблюдаем…",
     noUrgent: "Срочных советов нет.",
     noAction: "Срочных советов нет",
-    plan: "План на игру"
+    plan: "План на игру",
+    map: "Карта",
+    hintIn: (seconds) => (seconds > 0 ? `через ${seconds} с` : "сейчас"),
+    hintSoon: (title) => `Скоро: ${title}`
   }
 };
 
@@ -148,7 +154,14 @@ async function poll() {
   renderOverlay(result.data);
 }
 
+// Map hint (timer or role tip) of the latest poll: shown in the top row next to
+// advice, or as the card itself while there is no advice.
+let currentHint = null;
+const spokenHints = new Set();
+
 function renderOverlay(data) {
+  currentHint = data.map_hint && data.map_hint.title ? data.map_hint : null;
+  speakHint(currentHint);
   if (data.recommendation && (data.status === "active_advice" || data.status === "cooldown")) {
     renderAdvice(data, { refreshTimer: data.status !== "active_advice" });
     return;
@@ -222,7 +235,7 @@ function renderAdvice(data, options = { refreshTimer: true }) {
     priorityClassName(recommendation.priority)
   ].filter(Boolean).join(" ");
   labelEl.textContent = labelText(adviceMode, data);
-  priorityEl.textContent = priorityText(recommendation, data);
+  priorityEl.textContent = currentHint ? hintShort(currentHint) : priorityText(recommendation, data);
   actionEl.textContent = recommendation.action || tr("noAction");
   reasonEl.textContent = recommendation.reason || "";
   renderStatusRow(data);
@@ -287,7 +300,49 @@ function showPlan(data) {
   }
 }
 
+function hintShort(hint) {
+  const when = Number.isFinite(hint.in_seconds) ? ` · ${tr("hintIn", Math.max(0, hint.in_seconds))}` : "";
+  return `${hint.title}${when}`;
+}
+
+// While no advice is on the card, the map hint takes it (not while waiting for data).
+function showHint(hint, data) {
+  clearTimeout(hideTimer);
+  shell.className = "overlay-shell hint coaching";
+  labelEl.textContent = tr("map");
+  priorityEl.textContent = Number.isFinite(hint.in_seconds) ? tr("hintIn", Math.max(0, hint.in_seconds)) : "";
+  actionEl.textContent = hint.title;
+  reasonEl.textContent = hint.hint || "";
+  renderStatusRow(data);
+  reveal();
+}
+
+// Timers marked "speak" (Tormentor, wisdom shrine) are read once when the voice
+// reads every advice: a fullscreen player never sees the card.
+function speakHint(hint) {
+  if (!speaker || !hint || !hint.speak || spokenHints.has(hint.id)) {
+    return;
+  }
+  const spoken = speaker.say({
+    key: `hint|${hint.id}`,
+    text: tr("hintSoon", hint.title),
+    adviceMode: "coaching",
+    mode: config.voice,
+    locale: config.locale,
+    volume: config.voiceVolume
+  });
+  if (spoken === "spoken" || spoken === "off") {
+    spokenHints.add(hint.id);
+  }
+}
+
+const NO_HINT_STATUSES = new Set(["waiting_for_gsi", "stale_gsi", "invalid_state"]);
+
 function showStatus(message, data = {}) {
+  if (currentHint && !NO_HINT_STATUSES.has(data.status) && Date.now() >= mutedUntil) {
+    showHint(currentHint, data);
+    return;
+  }
   clearTimeout(hideTimer);
   shell.className = "overlay-shell status";
   labelEl.textContent = statusLabel(data);

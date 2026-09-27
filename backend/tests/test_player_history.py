@@ -622,11 +622,39 @@ def test_the_better_pick_keeps_the_role():
     block, findings = analyze_draft(facts_from_opendota(trimmed), trimmed, meta, "core")
     assert [row["hero"] for row in block["pool"]] == ["Juggernaut"]
     assert not [f for f in findings if f["id"] == "draft_better_pick"]
-    # The role the player really plays the hero in wins over the tags.
+    # A few "core" games on a support hero are not enough: the tags must agree...
     played = {"1": {"core": 4, "support": 1}}
-    assert fits_role(1, "core", played, {"1": ["Support"]})
+    assert not fits_role(1, "core", played, {"1": ["Support", "Initiator"]})
     assert not fits_role(1, "support", played, {"1": ["Support"]})
+    # ...unless the player really plays it that way.
+    assert fits_role(1, "core", {"1": {"core": 6}}, {"1": ["Support"]})
+    assert fits_role(1, "core", {"1": {"core": 2}}, {"1": ["Carry", "Escape"]})
+    assert fits_role(1, "core", None, {"1": ["Carry"]})
     assert not fits_role(2, "core", None, None)
+    # With the match lineup the position counts: a mid hero is not a carry pick.
+    sf = {"11": {"mid": 5, "carry": 1}}
+    assert not fits_role(11, "carry", sf, {"11": ["Carry", "Nuker"]})
+    assert fits_role(11, "mid", sf, {"11": ["Carry", "Nuker"]})
+
+
+def test_a_farming_support_is_a_support_in_the_review():
+    from app.post_match_analysis import detect_role
+
+    # Unparsed match: no lanes, no wards. Treant took 60 last hits in 25 min
+    # (2.4/min, above the old 2.0 support cut), fourth in his team's farm.
+    players = [
+        {"me": True, "isRadiant": True, "last_hits": 60},
+        {"isRadiant": True, "last_hits": 250},
+        {"isRadiant": True, "last_hits": 180},
+        {"isRadiant": True, "last_hits": 120},
+        {"isRadiant": True, "last_hits": 30},
+        *({"isRadiant": False, "last_hits": 100} for _ in range(5)),
+    ]
+    facts = {"duration": 25 * 60, "last_hits": 60}
+    assert detect_role(facts) == "core"  # without the lineup: the old guess
+    assert detect_role(facts, {"duration": 25 * 60, "players": players}) == "support"
+    players[0]["last_hits"] = 300
+    assert detect_role(facts, {"duration": 25 * 60, "players": players}) == "core"
 
 
 def test_counter_item_missing_and_bought():
