@@ -466,6 +466,8 @@ class PlayerService:
         detail["coach"] = self._match_coach(primary, match_id, detail, lang, force=force_coach)
         detail["baseline"] = self._baseline(primary, record, analysis)
         detail["questions"] = self._questions(primary, match_id)
+        current = self._focus(primary)
+        detail["focus_id"] = current["id"] if current else None
         return detail
 
     def _baseline(

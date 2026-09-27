@@ -1306,7 +1306,7 @@
       if (ask) {
         parts.push(ask);
       }
-      parts.push(focusCard(analysis));
+      parts.push(focusCard(analysis, detail));
       parts.push(sectionsCard(analysis));
       const build = buildCard(analysis);
       if (build) {
@@ -1481,12 +1481,48 @@
     );
   }
 
-  function focusCard(analysis) {
+  function focusCard(analysis, detail) {
     const focus = (analysis.improvements || []).filter((f) => (analysis.focus || []).includes(f.id));
     if (!focus.length) {
       return card(t("focusTitle"), "target", emptyState("circle-check", t("nothingToImprove"), ""));
     }
-    return card(t("focusTitle"), "target", h("ol", { class: "findings" }, focus.map((f, i) => findingItem(f, i))));
+    const list = h("ol", { class: "findings" });
+    const render = () =>
+      list.replaceChildren(
+        ...focus.map((finding, index) => {
+          const item = findingItem(finding, index);
+          const body = item.querySelector(".finding-body");
+          if (detail && detail.focus_id === finding.id) {
+            item.querySelector(".finding-title").append(h("span", { class: "tag tag-accent", text: t("goalCurrent") }));
+          } else if (detail) {
+            // Work on it from the next game (the Progress page tracks it).
+            body.append(
+              h(
+                "button",
+                {
+                  class: "btn btn-ghost btn-sm goal-set no-print",
+                  type: "button",
+                  onclick: async (event) => {
+                    event.currentTarget.disabled = true;
+                    const result = await call("focusSet", { findingId: finding.id });
+                    if (result.ok) {
+                      detail.focus_id = finding.id;
+                      state.career = null;
+                    }
+                    render();
+                    hydrate(list);
+                  }
+                },
+                icon("target"),
+                h("span", { text: t("goalSet") })
+              )
+            );
+          }
+          return item;
+        })
+      );
+    render();
+    return card(t("focusTitle"), "target", list);
   }
 
   function findingsCard(title, iconName, findings, emptyText, improve) {

@@ -85,6 +85,7 @@ def test_focus_end_to_end(client, tmp_path):
 
     detail = client.get(f"/player/matches/{MATCH_ID + 2}?lang=en").json()
     assert detail["focus"] == {"id": "death_streak", "title": "Death streak", "met": True}
+    assert detail["focus_id"] == "death_streak"
     # The match before the focus is not judged.
     assert client.get(f"/player/matches/{MATCH_ID}?lang=en").json()["focus"] is None
 
