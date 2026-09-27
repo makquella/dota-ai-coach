@@ -6,6 +6,11 @@ icons. Run from backend/ after a patch adds heroes or items:
 
     python scripts/build_dota_data.py
     python scripts/build_dota_data.py --items /path/to/dotaconstants/build/items.json
+    python scripts/build_dota_data.py --check-heroes   # exit 1 when a hero is missing
+
+New heroes also need a line in app/dota_constants.py HEROES; --check-heroes
+compares it with OpenDota's heroes.json (names may differ: HEROES keeps the
+in-game ones). .github/workflows/dota-data.yml runs both every week.
 """
 
 from __future__ import annotations
@@ -22,6 +27,7 @@ sys.path.insert(0, str(BACKEND_DIR))
 from app.dota_constants import HEROES  # noqa: E402
 
 ITEMS_URL = "https://raw.githubusercontent.com/odota/dotaconstants/master/build/items.json"
+HEROES_URL = "https://raw.githubusercontent.com/odota/dotaconstants/master/build/heroes.json"
 OUT = BACKEND_DIR.parent / "frontend" / "launcher" / "renderer" / "dota-data.js"
 
 
@@ -32,10 +38,29 @@ def load_items(path: str | None) -> dict[str, dict]:
         return json.loads(response.read().decode("utf-8"))
 
 
+def missing_heroes(remote: dict[str, dict]) -> dict[int, str]:
+    """Heroes in OpenDota's heroes.json that HEROES does not have (id -> name)."""
+    return {
+        int(key): str(info.get("localized_name") or info.get("name") or key)
+        for key, info in remote.items()
+        if str(key).isdigit() and int(key) not in HEROES
+    }
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[1])
     parser.add_argument("--items", help="a local copy of dotaconstants build/items.json")
+    parser.add_argument(
+        "--check-heroes", action="store_true", help="fail when OpenDota has a hero HEROES lacks"
+    )
     args = parser.parse_args()
+
+    if args.check_heroes:
+        with urllib.request.urlopen(HEROES_URL, timeout=30) as response:  # noqa: S310
+            missing = missing_heroes(json.loads(response.read().decode("utf-8")))
+        for hero_id, name in sorted(missing.items()):
+            print(f"missing hero {hero_id}: {name} (add it to app/dota_constants.py HEROES)")
+        sys.exit(1 if missing else 0)
 
     heroes = {
         str(hero_id): [name, npc.removeprefix("npc_dota_hero_")]
