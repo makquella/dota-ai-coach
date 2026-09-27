@@ -1,25 +1,47 @@
 # Dota AI Coach
 
-Dota AI Coach is a coursework MVP for a real-time Dota 2 carry coach. It receives live Dota 2 Game State Integration (GSI) updates, normalizes the state, applies deterministic coaching rules, filters advice through an anti-spam scheduler, and shows compact guidance in an always-on-top overlay window of the Electron desktop app.
+A Dota 2 coach for Windows that watches your game with you: short advice over the game (and out loud) during the match, and an honest review after it — where the farm went, why you died, when your item came, what the player of your rank did. Free, local, open source.
 
-The project is intentionally conservative. The local rule-based policy is authoritative for live advice. Optional LLM support is used only for wording and offline review workflows, not for overriding safety priority or timing.
+**[Download the latest version](https://github.com/makquella/dota-ai-coach/releases/latest)** · [Website source](site/) · [Release notes](docs/release-notes/)
+
+Live advice comes from deterministic, tested rules on top of Valve's official Game State Integration (no memory reading, no inputs on your behalf). An optional AI coach (free Google Gemini key) writes the post-match review in plain words, and every number, time, hero and item it writes is checked against the match data.
+
+| Review with the AI coach | Match map | Build timing |
+|---|---|---|
+| ![AI coach review](site/assets/shots/en/coach.jpg) | ![Match map](site/assets/shots/en/map.jpg) | ![Item timing](site/assets/shots/en/build.jpg) |
+
+## Features
+
+During the match
+- Advice card over the game: urgent advice at once, tips with pauses; frequency Less / Normal / More.
+- Spoken advice with the Windows voices (heard even in exclusive fullscreen); `Ctrl+Alt+R` repeats the last one.
+- The full carry advisor for 21 carries (farm, items, objectives, hero abilities); survival advice (low HP, deaths, disables, mana, buyback) for every other hero.
+- Late-game reminders: farm stalls, the pace you should be at, keeping buyback gold.
+
+After the match
+- Score, the three things to fix next game with drills, section meters (laning, farm, survival, fights, items, vision).
+- You against the player of your role in the same match; item timings as win rate; draft (your win rate against each enemy, the best pick from your pool, counter items).
+- Match map (your path, deaths, wards, laning position), the advice given during the match and deaths right after urgent warnings.
+- AI coach review (optional, fact-checked), PDF export.
+- Progress: trends over the last 10 games, recurring problems, heroes at your rank, best vs worst games; filter by hero.
+
+App
+- One-click installer, auto-update (never while Dota runs), tray, start with Windows.
+- Finds Dota and installs the GSI config itself; a first-run checklist shows what is left.
+- Match history from the app's own recording plus OpenDota (optional API key for faster sync).
+- One-click problem report for bug reports (keys removed).
+- Russian and English.
 
 ## Current Status
 
-**Coursework MVP / v0.1.0**
-
-The current version is ready for coursework defense and local demonstration:
+**v0.2.0** — see [release notes](docs/release-notes/v0.2.0.md).
 
 - FastAPI backend runs locally on `127.0.0.1` (port 8000 by default; the desktop app picks a free port automatically).
-- Dota 2 GSI can post live game state to `/gsi`.
-- Rule-based recommender and scheduler produce compact carry advice.
+- Dota 2 GSI posts live game state to `/gsi`; rule-based recommender and scheduler produce compact advice.
 - Electron desktop app (tray, single instance) starts the backend automatically and shows the overlay as its second window.
-- The overlay displays one small always-on-top advice card.
-- Replay demo playback works without launching Dota 2.
-- Live GSI session recording works for validation and post-session review.
-- Backend tests and Node syntax checks are available.
-- Windows live GSI validation was completed in Dota 2 Demo Hero mode.
-- Windows packaging: one command (`scripts\build-windows.ps1`) builds the PyInstaller backend, the Electron app and an NSIS installer; CI builds it on `windows-latest` and smoke-tests `/health`.
+- Player history, post-match reviews and progress in SQLite; OpenDota enrichment; optional AI coach.
+- Replay demo playback works without launching Dota 2; live GSI session recording for validation.
+- Backend tests, Node checks and unit tests run in CI; Windows packaging (PyInstaller backend + NSIS installer) is built and smoke-tested on `windows-latest`, and releases publish the auto-update feed.
 
 ## What Is Implemented
 
