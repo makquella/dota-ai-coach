@@ -2432,3 +2432,7 @@ label.setting:has(.switch:disabled) {
     animation: none;
   }
 }
+
+.coverage-note {
+  margin-top: var(--sp-3);
+}

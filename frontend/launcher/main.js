@@ -362,7 +362,7 @@ function gsiEndpoint() {
 }
 
 function emptyLiveDetails() {
-  return { connected: false, inMatch: false, hero: null, clockTime: null, secondsSinceLastGsi: null, stage: "unknown" };
+  return { connected: false, inMatch: false, hero: null, coverage: null, clockTime: null, secondsSinceLastGsi: null, stage: "unknown" };
 }
 
 function uiLocale() {
@@ -509,6 +509,8 @@ async function pollGsiStatus() {
         connected: Boolean(status.gsi_connected),
         inMatch: Boolean(status.in_match),
         hero: status.hero && status.hero !== "Unknown" ? String(status.hero) : null,
+        // "full" carry advisor or "safety" (survival advice only) for this hero.
+        coverage: status.hero_coverage || null,
         clockTime: Number.isFinite(status.clock_time) ? status.clock_time : null,
         secondsSinceLastGsi: Number.isFinite(status.seconds_since_last_gsi) ? status.seconds_since_last_gsi : null,
         stage: status.stage || "unknown"

@@ -60,6 +60,8 @@ The app keeps live state in module-level singletons, not a DB:
 
 Live farm signals: `app/farm_tracker.py` (fed by `MatchMemory.observe_state`, one sample per 5 s of game clock) sets `extra_context.farm_stall` when, after minute 12, a hero who farmed 2.5+ LH/min took ≤3 last hits in the last 4 minutes while alive; `post_laning_coach` turns it into `post_laning_farm_stall` (lower-value for the scheduler; pressure advice wins), and `post_laning_farm_recovery` names the pace ("38 last hits at minute 18; a good pace is 98+") — both texts have `_RU_PATTERNS`.
 
+Hero coverage (`schemas.hero_coverage`): the 21 `SUPPORTED_HEROES` get the full carry advisor; any other Dota hero (`safety_only_hero`, npc or title-cased live name) gets survival advice only — `main._covered_decision_point` turns every decision outside `SAFETY_ONLY_DECISIONS` (LOW_HP family, deaths, disables, mana, buyback, smoke) into `NO_ADVICE`; `hero_coverage` is in overlay and `/gsi/status` answers, and Home says so. Non-heroes stay `unsupported_hero`.
+
 `app/scheduler/` is a subpackage factored out of the large `advice_scheduler.py` (hashing, heartbeat, safety_predicates, state, types). Load the **advice-policy** skill before changing advice/scheduler/safety logic.
 
 ## Player history and post-match reviews

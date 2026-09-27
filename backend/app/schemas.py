@@ -6,6 +6,8 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, Field, field_validator
 
+from app.dota_constants import NPC_TO_HERO_ID, hero_id_from_name, hero_name
+
 SUPPORTED_HEROES = (
     "Anti-Mage",
     "Drow Ranger",
@@ -68,7 +70,31 @@ _SUPPORTED_HERO_LOOKUP.update(
 
 
 def is_supported_hero(value: str) -> bool:
+    """Heroes with the full carry advisor (farm, items, objectives, hero safety)."""
     return _SUPPORTED_HERO_LOOKUP.get(value.strip().lower()) is not None
+
+
+def safety_only_hero(value: str) -> str | None:
+    """Any other Dota hero gets survival advice only: its canonical name, else None.
+
+    Live GSI names unknown heroes by title-casing the npc name ("Crystal Maiden",
+    "Furion"), so both the localized and the npc form are looked up.
+    """
+    text = str(value or "").strip()
+    if not text or is_supported_hero(text):
+        return None
+    hero_id = hero_id_from_name(text)
+    if hero_id is None:
+        npc = "npc_dota_hero_" + text.lower().replace(" ", "_").replace("-", "")
+        hero_id = NPC_TO_HERO_ID.get(npc)
+    return hero_name(hero_id) if hero_id is not None else None
+
+
+def hero_coverage(value: str) -> str | None:
+    """ "full" (carry advisor), "safety" (survival advice only) or None (not a hero)."""
+    if is_supported_hero(value):
+        return "full"
+    return "safety" if safety_only_hero(value) else None
 
 
 class GameSituationRequest(BaseModel):
@@ -148,10 +174,10 @@ class GameSituationRequest(BaseModel):
     @classmethod
     def validate_supported_hero(cls, value: str) -> str:
         hero = value.strip()
-        supported_hero = _SUPPORTED_HERO_LOOKUP.get(hero.lower())
+        supported_hero = _SUPPORTED_HERO_LOOKUP.get(hero.lower()) or safety_only_hero(hero)
         if supported_hero is None:
             supported = ", ".join(SUPPORTED_HEROES)
-            raise ValueError(f"Unsupported hero '{value}'. Supported heroes: {supported}.")
+            raise ValueError(f"Unknown hero '{value}'. Full advice for: {supported}.")
         return supported_hero
 
     @field_validator("items")

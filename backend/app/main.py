@@ -44,7 +44,7 @@ from app.player_api import router as player_router
 from app.rag import retrieve_context
 from app.recommender import generate_recommendation
 from app.scheduler.frequency import FREQUENCIES
-from app.schemas import GameSituationRequest, RecommendationResponse, is_supported_hero
+from app.schemas import GameSituationRequest, RecommendationResponse, hero_coverage
 
 
 @asynccontextmanager
@@ -228,8 +228,9 @@ async def receive_gsi(request: Request):
     if isinstance(state, dict):
         LIVE_SESSION_RECORDER.record_gsi(payload, state)
         MATCH_MEMORY.observe_state(state)
-        if is_supported_hero(str(state.get("hero") or "")):
-            decision_point = detect_decision_point(state)
+        coverage = hero_coverage(str(state.get("hero") or ""))
+        if coverage:
+            decision_point = _covered_decision_point(detect_decision_point(state), coverage)
             MATCH_MEMORY.last_advice_type = decision_point
             ADVICE_SCHEDULER.observe_state(state, decision_point)
         else:
@@ -341,7 +342,8 @@ def _overlay_recommendation_payload() -> dict[str, object]:
         }
 
     state = current["state"] or {}
-    if not is_supported_hero(str(state.get("hero") or "")):
+    coverage = hero_coverage(str(state.get("hero") or ""))
+    if not coverage:
         ADVICE_SCHEDULER.observe_state(state, "NO_ADVICE")
         return {
             "status": "unsupported_hero",
@@ -361,7 +363,9 @@ def _overlay_recommendation_payload() -> dict[str, object]:
             **_overlay_live_context(state),
         }
 
-    decision_point = _live_conservative_decision_point(detect_decision_point(state), state)
+    decision_point = _covered_decision_point(
+        _live_conservative_decision_point(detect_decision_point(state), state), coverage
+    )
 
     if decision_point == "NO_ADVICE":
         ADVICE_SCHEDULER.observe_state(state, decision_point)
@@ -632,7 +636,8 @@ def _overlay_response_for_state(
     timestamp: str | None,
     now: datetime | None = None,
 ) -> dict[str, object]:
-    if not is_supported_hero(str(state.get("hero") or "")):
+    coverage = hero_coverage(str(state.get("hero") or ""))
+    if not coverage:
         ADVICE_SCHEDULER.observe_state(state, "NO_ADVICE", now=now)
         return {
             "status": "unsupported_hero",
@@ -652,7 +657,7 @@ def _overlay_response_for_state(
             **_overlay_live_context(state),
         }
 
-    decision_point = detect_decision_point(state)
+    decision_point = _covered_decision_point(detect_decision_point(state), coverage)
 
     if decision_point == "NO_ADVICE":
         ADVICE_SCHEDULER.observe_state(state, decision_point, now=now)
@@ -784,6 +789,7 @@ def _gsi_status_response() -> dict[str, object]:
         "last_gsi_received_at": timestamp,
         "seconds_since_last_gsi": round(seconds_since, 2) if seconds_since is not None else None,
         "hero": state.get("hero"),
+        "hero_coverage": hero_coverage(str(state.get("hero") or "")) if state else None,
         "game_time": extra_context.get("game_time") or state.get("minute"),
         # The in-game clock as the player sees it (negative before the horn).
         "clock_time": extra_context.get("clock_time"),
@@ -882,6 +888,34 @@ def _live_conservative_decision_point(decision_point: str, state: dict[str, obje
     return decision_point
 
 
+# Heroes outside the carry advisor get only what is true for any hero: survival,
+# deaths, disables, mana, buyback. Farm, item, objective and hero-ability advice
+# assume a carry (or a hero profile) and stay off for them.
+SAFETY_ONLY_DECISIONS = {
+    "LOW_HP",
+    "LOW_HP_WARNING",
+    "RECENT_DAMAGE_WARNING",
+    "OVERSTAY_WARNING",
+    "DEATH_REVIEW",
+    "REPEATED_DEATH_PATTERN",
+    "DEATH_WITH_ESCAPE_ON_COOLDOWN",
+    "DEATH_LOW_RESOURCE",
+    "DISABLED_STATUS",
+    "DEAD_WAIT",
+    "LOW_MANA",
+    "BUYBACK_AVAILABLE",
+    "SMOKED_STATUS",
+    "NO_ADVICE",
+    "SOFT_STATUS",
+}
+
+
+def _covered_decision_point(decision_point: str, coverage: str | None) -> str:
+    if coverage == "safety" and decision_point not in SAFETY_ONLY_DECISIONS:
+        return "NO_ADVICE"
+    return decision_point
+
+
 def _overlay_live_context(state: dict[str, object]) -> dict[str, object]:
     extra_context = (
         state.get("extra_context") if isinstance(state.get("extra_context"), dict) else {}
@@ -896,6 +930,7 @@ def _overlay_live_context(state: dict[str, object]) -> dict[str, object]:
         "current_mode": "live_gsi" if extra_context.get("source_type") == "live_gsi" else "idle",
         "live_conservative_mode": LIVE_CONSERVATIVE_MODE,
         "hero": state.get("hero"),
+        "hero_coverage": hero_coverage(str(state.get("hero") or "")),
         "minute": state.get("minute"),
         "stage": _stage_label(state),
         "game_state": state.get("game_state"),

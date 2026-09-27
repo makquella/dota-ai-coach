@@ -56,6 +56,7 @@ const I18N = {
       fullscreenSeen: "I can see the advice"
     },
     matchTitle: "Current match",
+    coverageSafety: "Full advice (farm, items, objectives) is for carry heroes; this hero gets survival advice only.",
     statHero: "Hero",
     statClock: "Match time",
     statStage: "Stage",
@@ -272,6 +273,7 @@ const I18N = {
       fullscreenSeen: "Подсказки видны"
     },
     matchTitle: "Текущий матч",
+    coverageSafety: "Полные советы (фарм, предметы, цели) — для керри; на этом герое тренер подсказывает только по выживанию.",
     statHero: "Герой",
     statClock: "Время матча",
     statStage: "Стадия",
@@ -450,6 +452,7 @@ const els = {
   statusActionLabel: $("#status-action-label"),
   matchStats: $("#match-body .stats"),
   matchEmpty: $("#match-empty"),
+  coverageNote: $("#coverage-note"),
   statHero: $("#stat-hero"),
   statClock: $("#stat-clock"),
   statStage: $("#stat-stage"),
@@ -1033,6 +1036,7 @@ function renderMatch(status) {
     els.statData.replaceChildren(skeleton("w-50"));
     return;
   }
+  els.coverageNote.classList.add("hidden");
   if (isOffline(status)) {
     els.matchStats.classList.add("hidden");
     setEmpty(els.matchEmpty, true, { title: tr("offlineTitle"), hint: tr("offlineHint"), icon: "wifi-off" });
@@ -1045,6 +1049,7 @@ function renderMatch(status) {
   }
   els.matchStats.classList.remove("hidden");
   setEmpty(els.matchEmpty, false);
+  els.coverageNote.classList.toggle("hidden", live.coverage !== "safety");
   els.statHero.textContent = live.hero || "—";
   els.statClock.textContent = formatClock(live.clockTime) || "—";
   els.statStage.textContent = live.stage && live.stage !== "unknown" ? stageLabel(live.stage) : "—";

@@ -116,7 +116,7 @@
     q3: "I can't see the advice over the game",
     a3: "Windows can't draw windows over exclusive fullscreen. In Dota: Settings → Video → Borderless window. Or turn on the voice — it's heard in any mode.",
     q4: "Which heroes get live advice?",
-    a4: "Live advice is tuned for carries for now. The match review, map, build, draft and progress work for any hero.",
+    a4: "Full live advice (farm, items, objectives, abilities) covers 21 carries. On any other hero the coach gives survival advice: low HP, death streaks, disables, mana, buyback. The match review, map, build, draft and progress work for everyone.",
     q5: "Where does the match history come from?",
     a5: "The app records each of your matches through GSI and adds OpenDota data. For that, “Expose Public Match Data” must be on in Dota 2.",
     q6: "Do I need internet?",
