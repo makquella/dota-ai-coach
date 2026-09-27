@@ -267,12 +267,31 @@
               </span>
               <button id="update-action" class="btn" type="button" data-mode="check"><i data-icon="rotate-cw"></i><span id="update-label" data-i18n="updateCheck">Check</span></button>
             </div>
-            <div class="setting">
+            <div class="setting setting-wrap report-row">
               <span class="setting-text">
                 <span class="setting-title" data-i18n="reportTitle">Problem report</span>
-                <span class="setting-hint" id="report-hint" data-i18n="reportHint">Saves one file with logs for the developer, without keys</span>
+                <span class="setting-hint" id="report-hint" aria-live="polite"></span>
               </span>
-              <button id="report-action" class="btn" type="button"><i data-icon="file-text"></i><span data-i18n="reportSave">Save</span></button>
+              <div class="setting-controls">
+                <button id="report-open" class="btn" type="button" aria-expanded="false" aria-controls="report-panel"><i data-icon="send"></i><span data-i18n="reportSend">Send to developer</span></button>
+                <button id="report-action" class="btn btn-ghost" type="button"><i data-icon="file-text"></i><span data-i18n="reportSave">Save file</span></button>
+              </div>
+              <div class="report-panel" id="report-panel" hidden>
+                <label class="report-label" for="report-note" data-i18n="reportNoteLabel">What happened? (optional)</label>
+                <textarea id="report-note" class="input report-note" rows="3" maxlength="1000" data-i18n-placeholder="reportNotePlaceholder" placeholder="For example: the overlay does not show in a match"></textarea>
+                <details class="report-preview" id="report-preview">
+                  <summary data-i18n="reportPreview">What will be sent</summary>
+                  <pre id="report-preview-text" class="report-preview-text" tabindex="0"></pre>
+                </details>
+                <p class="report-terms">
+                  <span data-i18n="reportTerms">API keys are removed. The report is kept for 180 days.</span>
+                  <button id="report-privacy" class="report-link" type="button" data-i18n="reportPrivacy">Privacy</button>
+                </p>
+                <div class="report-actions">
+                  <button id="report-send" class="btn btn-primary" type="button"><span data-i18n="reportSendNow">Send</span></button>
+                  <button id="report-cancel" class="btn btn-ghost" type="button"><span data-i18n="reportCancel">Cancel</span></button>
+                </div>
+              </div>
             </div>
           </div>
         </section>

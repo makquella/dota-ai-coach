@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import copy
+import time
 
 from match_fixtures import MATCH_ID, ME, gsi_match_stream
 
@@ -57,6 +58,12 @@ def test_summary_counts_matches_after_the_focus_was_set():
     assert summary["title"] == "Серия смертей"
 
 
+def _next_second():
+    """Match start and focus times are whole seconds: a match played in the same
+    second as the focus was set would count as played after it."""
+    time.sleep(1.001 - time.time() % 1)
+
+
 def _play(client, match_id, death_minutes):
     for payload in gsi_match_stream(match_id=match_id, death_minutes=death_minutes):
         client.post("/gsi", json=payload)
@@ -68,6 +75,7 @@ def test_focus_end_to_end(client, tmp_path):
     career = client.get("/player/career?lang=ru").json()
     assert career["focus"] is None
 
+    _next_second()
     bad = client.post("/player/focus", json={"finding_id": "nope"})
     assert bad.status_code == 400 and bad.json()["code"] == "bad_focus"
     focus = client.post("/player/focus?lang=ru", json={"finding_id": "death_streak"}).json()
@@ -105,6 +113,7 @@ def test_today_summary_on_the_home_screen(client, tmp_path):
     PLAYER_SERVICE.configure(tmp_path / "svc", client=None, auto_start=False)
     assert client.get("/player").json()["today"] is None
     _play(client, MATCH_ID, (7, 18, 19, 20))
+    _next_second()
     client.post("/player/focus", json={"finding_id": "death_streak"})
     _play(client, MATCH_ID + 1, ())
     today = client.get("/player").json()["today"]

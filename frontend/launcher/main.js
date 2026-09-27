@@ -13,6 +13,7 @@ const {
   shell
 } = require("electron");
 const { spawn } = require("node:child_process");
+const crypto = require("node:crypto");
 const fs = require("node:fs");
 const http = require("node:http");
 const net = require("node:net");
@@ -22,7 +23,16 @@ const path = require("node:path");
 const { SCHEME: DOTA_ASSET_SCHEME, createAssetHandler } = require("./dota-assets");
 const { createDotaWatcher } = require("./dota-watcher");
 const { createOverlayController, OVERLAY_DEFAULTS } = require("./overlay-window");
-const { buildReport, reportFileName } = require("./problem-report");
+const {
+  PRIVACY_URL,
+  apiUrl,
+  buildReport,
+  isRetryable,
+  outboxOverflow,
+  reportFileName,
+  uploadPayload,
+  withNote
+} = require("./problem-report");
 const { DOTA_STATUS, dotaStatus, overlayVisibility } = require("./overlay-visibility");
 const { createSettingsStore } = require("./settings");
 const {
@@ -153,6 +163,8 @@ const live = {
 let pendingReviewOpen = null;
 const presence = { status: DOTA_STATUS.NOT_FOUND, visible: false, reason: "", code: "" };
 let autostartEnabled = false;
+// Problem reports waiting in the outbox (sent again later).
+let outboxCount = 0;
 let fullscreenBalloonShown = false;
 let fullscreenWarningShown = false;
 
@@ -254,6 +266,7 @@ const TRAY_TEXT = {
     reviewReady: (score, focusMet) =>
       `Post-match review is ready${score ? `: score${score}` : ""}.${focusMet === true ? " Your focus: done." : focusMet === false ? " Your focus: it happened again." : ""} Click to open it.`,
     problemReport: "Save a problem report",
+    reportSentLater: (id) => `Your problem report was sent. Number: ${id}.`,
     voice: "Voice",
     voice_off: "Off",
     voice_urgent: "Urgent advice",
@@ -281,6 +294,7 @@ const TRAY_TEXT = {
     reviewReady: (score, focusMet) =>
       `Разбор матча готов${score ? `: оценка${score}` : ""}.${focusMet === true ? " Фокус: получилось." : focusMet === false ? " Фокус: снова повторилось." : ""} Нажмите, чтобы открыть.`,
     problemReport: "Сохранить отчёт о проблеме",
+    reportSentLater: (id) => `Отчёт о проблеме отправлен. Номер: ${id}.`,
     voice: "Голос",
     voice_off: "Выключен",
     voice_urgent: "Срочные советы",
@@ -431,6 +445,7 @@ function publicStatus() {
     update: { ...updater.getState(), blockedByGame: isGameRunning() },
     player: live.player,
     setup: { gsiSeen: Boolean(settings.get("gsiSeenAt")), dismissed: Boolean(settings.get("setupDismissed")) },
+    report: { last: settings.get("lastReport") || null, queued: outboxCount },
     whatsNew: settings.get("whatsNewPending") === app.getVersion() ? app.getVersion() : "",
     overlayReasonCode: presence.code,
     backend: processStatus.backend,
@@ -1580,7 +1595,18 @@ function reportFolder() {
   return USER_DATA_DIR;
 }
 
-async function saveProblemReport() {
+function reportAppInfo() {
+  return {
+    version: app.getVersion(),
+    packaged: IS_PACKAGED,
+    electron: process.versions.electron,
+    os: `${process.platform} ${os.release()} ${process.arch}`,
+    locale: app.getLocale(),
+    userData: USER_DATA_DIR
+  };
+}
+
+async function collectProblemReport() {
   let diagnostics = null;
   let diagnosticsError = "";
   try {
@@ -1588,26 +1614,29 @@ async function saveProblemReport() {
   } catch (error) {
     diagnosticsError = error.message;
   }
-  const { recentAdvice, ...status } = publicStatus();
-  const text = buildReport({
-    app: {
-      version: app.getVersion(),
-      packaged: IS_PACKAGED,
-      electron: process.versions.electron,
-      os: `${process.platform} ${os.release()} ${process.arch}`,
-      locale: app.getLocale(),
-      userData: USER_DATA_DIR
+  const { recentAdvice, player, ...status } = publicStatus();
+  // The nickname stays out of the report (buildReport also removes ids).
+  const { name: _name, ...playerState } = player || {};
+  return buildReport({
+    app: reportAppInfo(),
+    status: {
+      ...status,
+      player: player ? playerState : null,
+      recentAdviceCount: Array.isArray(recentAdvice) ? recentAdvice.length : 0
     },
-    status: { ...status, recentAdviceCount: Array.isArray(recentAdvice) ? recentAdvice.length : 0 },
     settings: settings.all(),
     watcher: dotaWatcher.getState(),
     diagnostics,
     diagnosticsError,
     launcherLog: readLauncherLog()
   });
+}
+
+async function saveProblemReport(text) {
+  const body = typeof text === "string" && text ? text : await collectProblemReport();
   const filePath = path.join(reportFolder(), reportFileName());
   try {
-    fs.writeFileSync(filePath, text, "utf8");
+    fs.writeFileSync(filePath, body, "utf8");
   } catch (error) {
     appendLog("launcher", `Could not save the problem report: ${error.message}`, { force: true });
     return { ok: false, error: error.message };
@@ -1615,6 +1644,157 @@ async function saveProblemReport() {
   appendLog("launcher", `Problem report saved: ${filePath}`, { force: true });
   shell.showItemInFolder(filePath);
   return { ok: true, path: filePath };
+}
+
+// ---------------------------------------------------------------------------
+// Sending the report to the developer (services/api, docs/DATA_PLAN.md stage 1).
+// Only on the player's request; a report that cannot go out now waits in the
+// outbox and is sent again later (on start and every hour).
+// ---------------------------------------------------------------------------
+
+const OUTBOX_DIR = path.join(USER_DATA_DIR, "outbox");
+const OUTBOX_MAX_AGE_MS = 14 * 24 * 3_600_000;
+const REPORT_UPLOAD_TIMEOUT_MS = 30_000;
+let outboxTimer = null;
+let outboxFlushing = false;
+
+function installId() {
+  let id = settings.get("installId");
+  if (typeof id !== "string" || !/^[a-z0-9-]{8,64}$/.test(id)) {
+    id = crypto.randomUUID();
+    settings.set("installId", id);
+  }
+  return id;
+}
+
+async function postReport(payload) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), REPORT_UPLOAD_TIMEOUT_MS);
+  try {
+    const response = await electronNet.fetch(`${apiUrl()}/v1/report`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(payload),
+      signal: controller.signal
+    });
+    let answer = {};
+    try {
+      answer = await response.json();
+    } catch {
+      // Not JSON (a proxy page): the status decides.
+    }
+    return response.ok && answer.id
+      ? { ok: true, status: response.status, id: String(answer.id) }
+      : { ok: false, status: response.status, code: answer.code || `http_${response.status}` };
+  } catch (error) {
+    return { ok: false, code: "offline", error: error.message };
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+function countOutbox() {
+  try {
+    outboxCount = fs.readdirSync(OUTBOX_DIR).filter((name) => name.endsWith(".json")).length;
+  } catch {
+    outboxCount = 0;
+  }
+}
+
+function rememberSentReport(id) {
+  settings.set("lastReport", { id, at: new Date().toISOString() });
+}
+
+function queueReport(payload) {
+  try {
+    fs.mkdirSync(OUTBOX_DIR, { recursive: true });
+    const name = `${Date.now()}-${crypto.randomBytes(3).toString("hex")}.json`;
+    fs.writeFileSync(path.join(OUTBOX_DIR, name), JSON.stringify(payload), "utf8");
+    for (const old of outboxOverflow(fs.readdirSync(OUTBOX_DIR))) {
+      fs.rmSync(path.join(OUTBOX_DIR, old), { force: true });
+    }
+    countOutbox();
+    return true;
+  } catch (error) {
+    appendLog("launcher", `Could not queue the problem report: ${error.message}`, { force: true });
+    return false;
+  }
+}
+
+async function sendProblemReport(note) {
+  const text = await collectProblemReport();
+  const info = reportAppInfo();
+  const payload = uploadPayload({
+    text,
+    note,
+    installId: installId(),
+    app: { version: info.version, os: info.os, locale: uiLocale() }
+  });
+  const result = await postReport(payload);
+  if (result.ok) {
+    rememberSentReport(result.id);
+    appendLog("launcher", `Problem report sent: ${result.id}`, { force: true });
+    return { ok: true, id: result.id };
+  }
+  appendLog("launcher", `Problem report not sent: ${result.code} ${result.error || ""}`.trim(), { force: true });
+  if (isRetryable(result) && queueReport(payload)) {
+    return { ok: false, queued: true, code: result.code };
+  }
+  // Refused for good (or the outbox is not writable): keep a file instead.
+  const saved = await saveProblemReport(withNote(text, note));
+  return { ok: false, queued: false, code: result.code, path: saved.ok ? saved.path : "" };
+}
+
+async function flushOutbox() {
+  if (outboxFlushing) {
+    return;
+  }
+  outboxFlushing = true;
+  try {
+    let names = [];
+    try {
+      names = fs.readdirSync(OUTBOX_DIR).filter((name) => name.endsWith(".json")).sort();
+    } catch {
+      return;
+    }
+    for (const name of names) {
+      const file = path.join(OUTBOX_DIR, name);
+      let payload = null;
+      try {
+        if (Date.now() - fs.statSync(file).mtimeMs < OUTBOX_MAX_AGE_MS) {
+          payload = JSON.parse(fs.readFileSync(file, "utf8"));
+        }
+      } catch {
+        // Unreadable: dropped below.
+      }
+      if (!payload) {
+        fs.rmSync(file, { force: true });
+        continue;
+      }
+      const result = await postReport(payload);
+      if (result.ok) {
+        rememberSentReport(result.id);
+        appendLog("launcher", `Queued problem report sent: ${result.id}`, { force: true });
+        showTrayBalloon(t("reportSentLater", result.id));
+      } else if (isRetryable(result)) {
+        break; // Still offline or busy: try again at the next flush.
+      } else {
+        appendLog("launcher", `Queued problem report refused: ${result.code}`, { force: true });
+      }
+      fs.rmSync(file, { force: true });
+    }
+  } finally {
+    outboxFlushing = false;
+    countOutbox();
+    updateStatus();
+  }
+}
+
+function startOutbox() {
+  countOutbox();
+  setTimeout(() => flushOutbox().catch(() => {}), 60_000).unref?.();
+  outboxTimer = setInterval(() => flushOutbox().catch(() => {}), 3_600_000);
+  outboxTimer.unref?.();
 }
 
 // ---------------------------------------------------------------------------
@@ -1961,6 +2141,9 @@ function registerIpc() {
   ipcMain.handle("launcher:player", (_event, op, args) => playerRequest(String(op || ""), args || {}));
   ipcMain.handle("launcher:open-logs", () => openPath(LOGS_DIR));
   ipcMain.handle("launcher:save-problem-report", () => saveProblemReport());
+  ipcMain.handle("launcher:preview-problem-report", () => collectProblemReport());
+  ipcMain.handle("launcher:send-problem-report", (_event, note) => sendProblemReport(String(note || "")));
+  ipcMain.handle("launcher:open-privacy", () => shell.openExternal(`${PRIVACY_URL}?lang=${uiLocale()}`));
   ipcMain.handle("launcher:dismiss-whats-new", () => {
     settings.set("whatsNewPending", "");
     return publicStatus();
@@ -2244,6 +2427,7 @@ function bootstrap() {
     }
     startBackend();
     updater.start();
+    startOutbox();
     app.on("activate", showMainWindow);
   });
 

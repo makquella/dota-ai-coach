@@ -175,11 +175,27 @@ const I18N = {
     },
     setupActions: { dota: "Choose folder", gsi: "Install", launch: "Copy", account: "Link", ai: "Set up" },
     reportTitle: "Problem report",
-    reportHint: "Saves one file with logs for the developer, without keys",
-    reportSave: "Save",
+    reportHint: "Logs and settings for the developer, without keys",
+    reportSave: "Save file",
     reportSaving: "Collecting…",
     reportSaved: (name) => `Saved: ${name}. Send this file to the developer.`,
     reportFailed: "Could not save the file",
+    reportSend: "Send to developer",
+    reportNoteLabel: "What happened? (optional)",
+    reportNotePlaceholder: "For example: the overlay does not show in a match",
+    reportPreview: "What will be sent",
+    reportPreviewLoading: "Collecting the report…",
+    reportTerms: "API keys are removed. The report is kept for 180 days.",
+    reportPrivacy: "Privacy",
+    reportSendNow: "Send",
+    reportCancel: "Cancel",
+    reportSending: "Sending…",
+    reportSentId: (id) => `Sent. Report number: ${id}. Mention it if you write to the developer.`,
+    reportQueued: "No connection to the service. The report will be sent automatically later.",
+    reportQueuedCount: (count) => `Waiting to be sent: ${count}`,
+    reportLast: (id) => `Last report: ${id}`,
+    reportRefused: (name) =>
+      name ? `The service did not accept the report. Saved a file instead: ${name}.` : "The service did not accept the report.",
     devTitle: "For developers",
     devHint: "Service, GSI, replay demos, recordings, logs",
     factBackend: "Service",
@@ -417,11 +433,27 @@ const I18N = {
     },
     setupActions: { dota: "Указать папку", gsi: "Установить", launch: "Скопировать", account: "Привязать", ai: "Настроить" },
     reportTitle: "Отчёт о проблеме",
-    reportHint: "Сохранит файл с журналами для разработчика, без ключей",
-    reportSave: "Сохранить",
+    reportHint: "Журналы и настройки для разработчика, без ключей",
+    reportSave: "Сохранить файл",
     reportSaving: "Собираем…",
     reportSaved: (name) => `Сохранено: ${name}. Отправьте этот файл разработчику.`,
     reportFailed: "Не удалось сохранить файл",
+    reportSend: "Отправить разработчику",
+    reportNoteLabel: "Что случилось? (необязательно)",
+    reportNotePlaceholder: "Например: в матче не видно оверлея",
+    reportPreview: "Что будет отправлено",
+    reportPreviewLoading: "Собираем отчёт…",
+    reportTerms: "Ключи API вырезаны. Отчёт хранится 180 дней.",
+    reportPrivacy: "Конфиденциальность",
+    reportSendNow: "Отправить",
+    reportCancel: "Отмена",
+    reportSending: "Отправляем…",
+    reportSentId: (id) => `Отправлено. Номер отчёта: ${id}. Назовите его, если будете писать разработчику.`,
+    reportQueued: "Нет связи с сервисом. Отчёт отправится сам позже.",
+    reportQueuedCount: (count) => `Ждут отправки: ${count}`,
+    reportLast: (id) => `Последний отчёт: ${id}`,
+    reportRefused: (name) =>
+      name ? `Сервис не принял отчёт. Вместо этого сохранён файл: ${name}.` : "Сервис не принял отчёт.",
     devTitle: "Для разработчика",
     devHint: "Сервис, GSI, демо-повторы, записи, логи",
     factBackend: "Сервис",
@@ -544,6 +576,14 @@ const els = {
   odClear: $("#od-clear"),
   reportAction: $("#report-action"),
   reportHint: $("#report-hint"),
+  reportOpen: $("#report-open"),
+  reportPanel: $("#report-panel"),
+  reportNote: $("#report-note"),
+  reportPreview: $("#report-preview"),
+  reportPreviewText: $("#report-preview-text"),
+  reportPrivacy: $("#report-privacy"),
+  reportSend: $("#report-send"),
+  reportCancel: $("#report-cancel"),
   devTools: $("#dev-tools"),
   logs: $("#logs"),
   gsiPath: $("#gsi-path"),
@@ -589,6 +629,9 @@ let statusAction = null;
 let lastVoice = { mode: "off", volume: 1 };
 let voiceListChecked = false;
 let openDotaLoaded = false;
+// Problem report row: a result message stays until the panel is opened again.
+let reportSticky = false;
+let reportPreviewLoaded = false;
 const seenAdvice = new Set();
 
 init();
@@ -743,15 +786,60 @@ async function init() {
   els.reportAction.addEventListener("click", () =>
     run(async () => {
       els.reportAction.disabled = true;
-      els.reportHint.textContent = tr("reportSaving");
+      reportSticky = true;
+      setReportHint(tr("reportSaving"));
       try {
         const result = await window.launcherApi.saveProblemReport();
-        els.reportHint.textContent = result && result.ok
-          ? tr("reportSaved", result.path.split(/[\\/]/).pop())
-          : tr("reportFailed");
-        els.reportHint.title = result && result.ok ? result.path : result?.error || "";
+        setReportHint(
+          result && result.ok ? tr("reportSaved", result.path.split(/[\\/]/).pop()) : tr("reportFailed"),
+          result && result.ok ? result.path : result?.error || ""
+        );
       } finally {
         els.reportAction.disabled = false;
+      }
+    })
+  );
+  els.reportOpen.addEventListener("click", () => toggleReportPanel(els.reportPanel.hidden));
+  els.reportCancel.addEventListener("click", () => toggleReportPanel(false));
+  els.reportPreview.addEventListener("toggle", () => {
+    if (els.reportPreview.open && !reportPreviewLoaded) {
+      reportPreviewLoaded = true;
+      els.reportPreviewText.textContent = tr("reportPreviewLoading");
+      window.launcherApi
+        .previewProblemReport()
+        .then((text) => {
+          els.reportPreviewText.textContent = text;
+        })
+        .catch(() => {
+          reportPreviewLoaded = false;
+          els.reportPreviewText.textContent = tr("reportFailed");
+        });
+    }
+  });
+  els.reportPrivacy.addEventListener("click", () => run(() => window.launcherApi.openPrivacy()));
+  els.reportSend.addEventListener("click", () =>
+    run(async () => {
+      els.reportSend.disabled = true;
+      els.reportCancel.disabled = true;
+      setReportHint(tr("reportSending"));
+      try {
+        const result = await window.launcherApi.sendProblemReport(els.reportNote.value);
+        if (result?.ok) {
+          setReportHint(tr("reportSentId", result.id));
+          reportSticky = true;
+          toggleReportPanel(false);
+          els.reportNote.value = "";
+        } else if (result?.queued) {
+          setReportHint(tr("reportQueued"));
+          reportSticky = true;
+          toggleReportPanel(false);
+        } else {
+          setReportHint(tr("reportRefused", (result?.path || "").split(/[\\/]/).pop()), result?.path || "");
+          reportSticky = true;
+        }
+      } finally {
+        els.reportSend.disabled = false;
+        els.reportCancel.disabled = false;
       }
     })
   );
@@ -857,6 +945,7 @@ function renderStatus(status) {
   renderStatusLine(status);
   renderSetup(status);
   renderWhatsNew(status);
+  renderReport(status);
   if (status.backend === "running" && !openDotaLoaded) {
     openDotaLoaded = true;
     run(refreshOpenDota);
@@ -870,6 +959,37 @@ function renderStatus(status) {
   updateGsiDetail({ status: status.gsiConfig, path: status.gsiPath });
   // Matches / Progress views (renderer/matches.js).
   window.PlayerViews?.onStatus(status);
+}
+
+function setReportHint(text, title = "") {
+  els.reportHint.textContent = text;
+  els.reportHint.title = title;
+}
+
+function renderReport(status) {
+  if (reportSticky) {
+    return;
+  }
+  const report = status.report || {};
+  const parts = [tr("reportHint")];
+  if (report.queued) {
+    parts.push(tr("reportQueuedCount", report.queued));
+  } else if (report.last?.id) {
+    parts.push(tr("reportLast", report.last.id));
+  }
+  setReportHint(parts.join(". "));
+}
+
+function toggleReportPanel(open) {
+  els.reportPanel.hidden = !open;
+  els.reportOpen.setAttribute("aria-expanded", String(open));
+  if (open) {
+    reportSticky = false;
+    reportPreviewLoaded = false;
+    els.reportPreview.open = false;
+    els.reportPreviewText.textContent = "";
+    els.reportNote.focus();
+  }
 }
 
 // OpenDota key: the backend keeps it and only ever answers with a hint.

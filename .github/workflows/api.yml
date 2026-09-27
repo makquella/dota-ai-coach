@@ -1,0 +1,121 @@
+name: API
+
+# Tests the Cloudflare Worker in services/api on every pull request that touches
+# it, and deploys it from main (or by hand). The deploy creates the D1 database
+# and the R2 bucket when they are missing, applies the migrations and sets the
+# Worker's secrets from the repository secrets. See docs/DATA_PLAN.md.
+#
+# Repository settings: secret CLOUDFLARE_API_TOKEN (Workers edit, D1 edit,
+# Workers R2 Storage edit), variable (or secret) CLOUDFLARE_ACCOUNT_ID; optional
+# secrets TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID, API_ADMIN_TOKEN.
+on:
+  pull_request:
+    paths: ["services/api/**", ".github/workflows/api.yml"]
+  push:
+    branches: [main]
+    paths: ["services/api/**", ".github/workflows/api.yml"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: api-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  test:
+    name: Test (node --test)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: services/api
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - run: npm test
+
+  deploy:
+    name: Deploy to Cloudflare
+    needs: test
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: services/api
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID || secrets.CLOUDFLARE_ACCOUNT_ID }}
+      DATABASE: dota-ai-coach
+      BUCKET: dota-ai-coach-reports
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: services/api/package-lock.json
+      - run: npm ci
+
+      - name: Check the Cloudflare settings
+        run: |
+          if [ -z "$CLOUDFLARE_API_TOKEN" ] || [ -z "$CLOUDFLARE_ACCOUNT_ID" ]; then
+            echo "::error::Set the CLOUDFLARE_API_TOKEN secret and the CLOUDFLARE_ACCOUNT_ID variable in the repository settings."
+            exit 1
+          fi
+
+      - name: D1 database
+        run: |
+          find_id() {
+            npx wrangler d1 list --json | node -e '
+              let raw = ""; process.stdin.on("data", (c) => (raw += c)).on("end", () => {
+                const list = JSON.parse(raw.slice(raw.indexOf("[")));
+                const db = list.find((d) => d.name === process.env.DATABASE);
+                process.stdout.write(db ? String(db.uuid || db.id || db.database_id) : "");
+              });'
+          }
+          id=$(find_id)
+          if [ -z "$id" ]; then
+            npx wrangler d1 create "$DATABASE"
+            id=$(find_id)
+          fi
+          if [ -z "$id" ]; then echo "::error::Could not find or create the D1 database"; exit 1; fi
+          sed -i "s/00000000-0000-0000-0000-000000000000/$id/" wrangler.toml
+          echo "D1 $DATABASE: $id"
+
+      - name: R2 bucket
+        run: |
+          if npx wrangler r2 bucket list | grep -qE "(^|[^a-z0-9-])$BUCKET([^a-z0-9-]|$)"; then
+            echo "R2 $BUCKET exists"
+          else
+            npx wrangler r2 bucket create "$BUCKET"
+          fi
+
+      - name: Migrations
+        run: npx wrangler d1 migrations apply "$DATABASE" --remote
+
+      - name: Deploy
+        run: npx wrangler deploy | tee deploy.log
+
+      - name: Secrets
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID || vars.TELEGRAM_CHAT_ID }}
+          ADMIN_TOKEN: ${{ secrets.API_ADMIN_TOKEN }}
+        run: |
+          node -e '
+            const names = ["TELEGRAM_BOT_TOKEN", "TELEGRAM_CHAT_ID", "ADMIN_TOKEN"];
+            const set = Object.fromEntries(names.filter((n) => process.env[n]).map((n) => [n, process.env[n]]));
+            require("fs").writeFileSync("secrets.json", JSON.stringify(set));
+            console.log("secrets:", Object.keys(set).join(", ") || "none");'
+          if [ "$(cat secrets.json)" != "{}" ]; then npx wrangler secret bulk secrets.json; fi
+          rm -f secrets.json
+
+      - name: Check
+        run: |
+          url=$(grep -oE 'https://[a-z0-9.-]+\.workers\.dev' deploy.log | head -1)
+          echo "Worker: $url"
+          if [ -n "$url" ]; then curl -fsS "$url/health"; echo; curl -fsS "$url/v1/config"; echo; fi
+          curl -fsS https://api.luhovyimvp.dev/health && echo || echo "api.luhovyimvp.dev is not attached yet: Workers → dota-ai-coach-api → Settings → Domains & Routes → Add → Custom domain"

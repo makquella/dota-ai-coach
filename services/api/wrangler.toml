@@ -1,0 +1,26 @@
+# Dota AI Coach API — see docs/DATA_PLAN.md. Deployed by .github/workflows/api.yml,
+# which creates the D1 database and the R2 bucket when they are missing and puts
+# the real database id in place of the zero id below.
+name = "dota-ai-coach-api"
+main = "src/index.js"
+compatibility_date = "2026-09-20"
+workers_dev = true
+
+[vars]
+REPORTS_ENABLED = "true"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "dota-ai-coach"
+database_id = "00000000-0000-0000-0000-000000000000"
+migrations_dir = "migrations"
+
+[[r2_buckets]]
+binding = "REPORTS"
+bucket_name = "dota-ai-coach-reports"
+
+[triggers]
+crons = ["17 3 * * *"]
+
+[observability]
+enabled = true
