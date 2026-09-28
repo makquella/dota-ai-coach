@@ -69,7 +69,7 @@ function status(lang) {
     dotaRunning: true,
     dotaFocused: true,
     dotaFullscreen: false,
-    appVersion: "0.11.0",
+    appVersion: "0.12.0",
     update: { state: "idle" },
     player: { linked: true, name: "farm_or_die", accountId: 52079950, lastReview: null, aiConfigured: true, opendotaKey: false, liveMatch: null, today: null },
     setup: { gsiSeen: true, dismissed: true },

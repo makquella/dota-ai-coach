@@ -217,6 +217,12 @@ const I18N = {
     whatsNewTitle: (version) => `What's new in ${version}`,
     whatsNewOk: "Got it",
     whatsNew: {
+      "0.12.0": [
+        "Every tab is split into clear areas: what to look at first, then the details.",
+        "Your week on Home: the score against the week before and a chart of every match.",
+        "Farm advice for carries names your next item, the gold it needs and how long to farm it.",
+        "Fixed: some reviews stayed on «Loading the match» forever."
+      ],
       "0.11.0": [
         "The app uses the whole window: side navigation, two columns, both teams side by side.",
         "Last matches on Home, score rings in reviews and the match table.",
@@ -630,6 +636,12 @@ const I18N = {
     whatsNewTitle: (version) => `Что нового в ${version}`,
     whatsNewOk: "Понятно",
     whatsNew: {
+      "0.12.0": [
+        "Каждая вкладка разбита на понятные зоны: сначала главное, потом детали.",
+        "«Ваша неделя» на Главной: оценка против прошлой недели и график каждого матча.",
+        "Совет по фарму для керри называет следующий предмет, сколько золота не хватает и сколько его фармить.",
+        "Исправлено: некоторые разборы бесконечно показывали «Загружаем матч…»."
+      ],
       "0.11.0": [
         "Приложение на весь экран: навигация слева, две колонки, обе команды рядом.",
         "«Последние матчи» на Главной, оценка кольцом в разборе и таблице матчей.",
