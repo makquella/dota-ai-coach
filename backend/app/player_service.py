@@ -38,6 +38,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
+from app import rank_history
 from app.analysis_texts import rank_label, render_analysis
 from app.career_analysis import NOT_RECURRING, analyze_career
 from app.coach_llm import PROVIDERS, AISettings, CoachLLM, CoachLLMError, settings_from
@@ -833,6 +834,9 @@ class PlayerService:
             result["focus"] = None
         # "heroes" is the career's own hero table; the filter's choices go apart.
         result["hero_choices"] = self.store.hero_counts(primary)
+        result["rank_history"] = rank_history.summary(
+            self.store.get_meta(f"rank_history:{primary}"), lang
+        )
         recent = [
             recent_match_line(render_analysis(m["analysis"], lang))
             for m in matches
@@ -1181,6 +1185,10 @@ class PlayerService:
                     steam_id64=profile.get("steam_id64"),
                     rank_tier=profile.get("rank_tier"),
                 )
+                key = f"rank_history:{account_id}"
+                updated = rank_history.note(self.store.get_meta(key), profile.get("rank_tier"))
+                if updated is not None:
+                    self.store.set_meta(key, updated)
             except OpenDotaError as error:
                 if error.code != "private":
                     raise

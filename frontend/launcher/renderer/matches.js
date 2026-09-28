@@ -299,6 +299,10 @@
       friendHeroGames: (g1, w1, g2, w2) => `you ${g1} · ${w1 ?? "—"}%   friend ${g2} · ${w2 ?? "—"}%`,
       friendTheirHeroes: (name) => `Most played by ${name}`,
       friendNote: "Averages per game, public OpenDota data, ranked and normal modes only. Core or support is judged by last hits a minute.",
+      rankTitle: "Your rank medal",
+      rankUp: (from, to, since) => `Up from ${from} to ${to} since ${since}.`,
+      rankDown: (from, to, since) => `Down from ${from} to ${to} since ${since}.`,
+      rankNote: "Noted at every sync with OpenDota when the medal changes.",
       buildTitle: (hero) => `Your build on ${hero}`,
       buildNote: (n, wins) => `Your items in ${n} reviewed games on the hero (${wins} wins): when they come in wins and in losses, and how often you win with and without them.`,
       buildItem: "Item",
@@ -697,6 +701,10 @@
       friendHeroGames: (g1, w1, g2, w2) => `вы ${g1} · ${w1 ?? "—"}%   друг ${g2} · ${w2 ?? "—"}%`,
       friendTheirHeroes: (name) => `Чаще всего играет ${name}`,
       friendNote: "Средние за игру, открытые данные OpenDota, только рейтинговые и обычные режимы. Кор или саппорт — по добиваниям в минуту.",
+      rankTitle: "Ваше звание",
+      rankUp: (from, to, since) => `С ${since} вы поднялись с ${from} до ${to}.`,
+      rankDown: (from, to, since) => `С ${since} звание снизилось с ${from} до ${to}.`,
+      rankNote: "Приложение записывает звание при каждой синхронизации с OpenDota, когда оно меняется.",
       buildTitle: (hero) => `Ваш билд на ${hero}`,
       buildNote: (n, wins) => `Ваши предметы в ${n} разобранных матчах на герое (побед: ${wins}): когда они приходят в победах и в поражениях и как часто вы выигрываете с ними и без них.`,
       buildItem: "Предмет",
@@ -2349,6 +2357,32 @@
     );
   }
 
+  // The rank medal over time (app/rank_history.py): shown once it has changed.
+  function rankHistoryCard(history) {
+    if (!history || !(history.steps || []).length || history.steps.length < 2) {
+      return null;
+    }
+    const day = (iso) => new Date(`${iso}T12:00:00Z`).toLocaleDateString(state.locale === "ru" ? "ru-RU" : "en-GB");
+    const line = history.change >= 0
+      ? t("rankUp", history.first, history.current, day(history.since))
+      : t("rankDown", history.first, history.current, day(history.since));
+    return card(
+      t("rankTitle"),
+      "trending-up",
+      h(
+        "div",
+        { class: "draft" },
+        h("p", { text: line }),
+        h(
+          "div",
+          { class: "death-summary" },
+          history.steps.map((step) => h("span", { class: "chip" }, h("span", { text: step.label || "—" }), h("span", { class: "muted num", text: ` · ${day(step.date)}` })))
+        ),
+        h("p", { class: "muted small", text: t("rankNote") })
+      )
+    );
+  }
+
   // The player's own build on the hero (app/hero_build.py).
   function heroBuildCard(build) {
     if (!build || !(build.items || []).length) {
@@ -3634,6 +3668,7 @@
       opponentsCard(career.opponents) || "",
       selfCompareCard(career.self_compare) || "",
       heroBuildCard(career.hero_build) || "",
+      state.careerHero === null ? rankHistoryCard(career.rank_history) || "" : "",
       goalCard(career.focus) || "",
       planCard,
       strengthsCard || "",
