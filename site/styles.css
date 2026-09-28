@@ -345,13 +345,13 @@ h1 span {
   color: var(--text);
 }
 
-/* Real app windows, tilted and stacked like screens on a desk. */
+/* Real app windows stacked like screens on a desk. They stay flat: a 3D tilt
+   or a scale() makes Chrome rasterize the screenshots soft at 100 % zoom, and
+   the texts in them must read crisp. The stage grows with width instead. */
 .hero-stage {
   position: relative;
   aspect-ratio: 1 / 0.92;
-  perspective: 2200px;
-  transform: scale(1.12);
-  transform-origin: left center;
+  margin-right: -10%;
 }
 .win {
   position: absolute;
@@ -362,13 +362,11 @@ h1 span {
   background: #0b0b0c;
   border: 1px solid var(--line-strong);
   box-shadow: 0 30px 80px rgba(0, 0, 0, 0.55), 0 8px 24px rgba(0, 0, 0, 0.35);
-  transform-style: preserve-3d;
 }
 .win img {
   width: 100%;
 }
 .hero-stage .win {
-  transform: rotateY(-16deg) rotateX(5deg) rotateZ(1deg);
   transition: transform 600ms var(--ease);
 }
 .win-back {
@@ -377,9 +375,9 @@ h1 span {
   opacity: 0.5;
 }
 .win-game {
-  width: 96%;
+  width: 86%;
   top: 0;
-  right: -20%;
+  right: -4%;
   opacity: 1;
 }
 .win-mid {
@@ -388,14 +386,14 @@ h1 span {
   opacity: 0.75;
 }
 .win-front {
-  top: 30%;
-  right: 30%;
-  width: 66%;
+  top: 24%;
+  left: 0;
+  width: 74%;
 }
 .hero-card {
   position: absolute;
-  left: -2%;
-  bottom: -4%;
+  left: -6%;
+  bottom: -8%;
   width: 50%;
   filter: drop-shadow(0 18px 40px rgba(0, 0, 0, 0.6));
   animation: rise 700ms 250ms var(--ease) both;
@@ -571,11 +569,9 @@ h2 {
 .split-stage {
   position: relative;
   aspect-ratio: 1 / 0.9;
-  perspective: 2000px;
 }
 .split-stage .win {
-  width: 78%;
-  transform: rotateY(14deg) rotateX(6deg) rotateZ(-1.5deg);
+  width: 80%;
 }
 .win-a {
   top: 0;
