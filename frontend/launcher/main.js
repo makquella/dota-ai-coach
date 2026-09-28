@@ -457,6 +457,7 @@ function publicStatus() {
     adviceRole: adviceRole(),
     mapHints: mapHintsEnabled(),
     discordPresence: settings.get("discordPresence") !== false,
+    discordState: discord.getState(),
     discordWeekly: discordWeeklyState(),
     overlayLocked: !overlay.isUnlocked(),
     dotaRunning: dota.running,
@@ -567,7 +568,9 @@ function refreshPresence() {
 // ---------------------------------------------------------------------------
 
 const discord = discordPresence.createDiscordPresence({
-  log: (message) => appendLog("discord", message)
+  log: (message) => appendLog("discord", message, { force: true }),
+  // Shown under «Статус в Discord»: Discord not found, refused, or shown.
+  onState: () => updateStatus()
 });
 let discordMatch = { hero: null, startedAt: null };
 
@@ -2433,10 +2436,37 @@ function appIcon() {
   return nativeImage.createFromPath(path.join(ICON_DIR, process.platform === "win32" ? "icon.ico" : "icon.png"));
 }
 
+// The panel opens wide (side navigation, two columns) but never larger than
+// 90 % of the screen; the size and "maximized" are remembered between runs.
+const MAIN_WINDOW_DEFAULT = { width: 1280, height: 840 };
+// A panel created hidden (behind the splash, or --hidden) is maximized when first shown.
+let maximizeOnShow = false;
+
+function mainWindowSize() {
+  const area = screen.getPrimaryDisplay().workAreaSize;
+  const saved = settings.get("mainWindow") || {};
+  const pick = (value, fallback, max) => Math.min(Number.isFinite(value) && value >= 560 ? value : fallback, Math.round(max));
+  return {
+    width: pick(saved.width, MAIN_WINDOW_DEFAULT.width, area.width * 0.9),
+    height: pick(saved.height, MAIN_WINDOW_DEFAULT.height, area.height * 0.9),
+    maximized: saved.maximized === true
+  };
+}
+
+function rememberMainWindowSize() {
+  if (!mainWindow || mainWindow.isDestroyed() || mainWindow.isMinimized()) {
+    return;
+  }
+  const maximized = mainWindow.isMaximized();
+  const bounds = maximized ? mainWindow.getNormalBounds() : mainWindow.getBounds();
+  settings.set("mainWindow", { width: bounds.width, height: bounds.height, maximized });
+}
+
 function createMainWindow({ show = true } = {}) {
+  const size = mainWindowSize();
   mainWindow = new BrowserWindow({
-    width: 760,
-    height: 760,
+    width: size.width,
+    height: size.height,
     minWidth: 560,
     minHeight: 560,
     title: APP_NAME,
@@ -2450,6 +2480,21 @@ function createMainWindow({ show = true } = {}) {
     }
   });
   mainWindow.setMenuBarVisibility(false);
+  if (size.maximized) {
+    if (show) {
+      mainWindow.maximize();
+    } else {
+      maximizeOnShow = true;
+    }
+  }
+  let sizeTimer = null;
+  const rememberSoon = () => {
+    clearTimeout(sizeTimer);
+    sizeTimer = setTimeout(rememberMainWindowSize, 500);
+  };
+  for (const eventName of ["resize", "maximize", "unmaximize"]) {
+    mainWindow.on(eventName, rememberSoon);
+  }
   mainWindow.loadFile(path.join(__dirname, "renderer", "index.html"));
 
   // Closing the window only hides it; the coach keeps running in the tray.
@@ -2543,8 +2588,7 @@ function revealMainWindow() {
     createMainWindow();
     return;
   }
-  mainWindow.show();
-  mainWindow.focus();
+  showPanel();
 }
 
 function showMainWindow() {
@@ -2559,6 +2603,14 @@ function showMainWindow() {
   }
   if (mainWindow.isMinimized()) {
     mainWindow.restore();
+  }
+  showPanel();
+}
+
+function showPanel() {
+  if (maximizeOnShow) {
+    maximizeOnShow = false;
+    mainWindow.maximize();
   }
   mainWindow.show();
   mainWindow.focus();

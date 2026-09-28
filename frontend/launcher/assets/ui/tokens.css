@@ -63,6 +63,10 @@
   --sp-8: 32px;
   --sp-10: 40px;
 
+  /* Layout: the side navigation of a wide window and the content's widest line. */
+  --sidebar-w: 220px;
+  --content-max: 1320px;
+
   /* Radii */
   --r-sm: 6px;
   --r-md: 8px;

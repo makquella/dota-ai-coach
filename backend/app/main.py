@@ -67,7 +67,7 @@ app = FastAPI(
     lifespan=_lifespan,
     title="Wardly",
     description="MVP-1: rule-based carry coach with local knowledge-base RAG.",
-    version="0.10.1",
+    version="0.11.0",
 )
 app.include_router(player_router)
 
@@ -101,7 +101,7 @@ if FRONTEND_DIR.exists():
 @app.get("/", summary="Health check")
 def root():
     """Simple health-check endpoint."""
-    return {"status": "ok", "service": "Wardly", "version": "0.10.1"}
+    return {"status": "ok", "service": "Wardly", "version": "0.11.0"}
 
 
 @app.get("/health", summary="Health check")
@@ -361,7 +361,14 @@ def _live_role_and_hint(response: dict[str, object], lang: str) -> dict[str, obj
             tp_missing=MATCH_MEMORY.tp.signal() is not None,
             carry_advisor=carry_advisor,
             last_hits=last_hits if isinstance(last_hits, int) else None,
-            level=state.get("level") if isinstance(state.get("level"), int) else None,
+            level=extra.get("hero_level") if isinstance(extra.get("hero_level"), int) else None,
+            deaths=extra.get("deaths") if isinstance(extra.get("deaths"), int) else None,
+            gold=state.get("gold") if isinstance(state.get("gold"), int) else None,
+            lane=role.get("lane") if role else None,
+            items=extra.get("item_names") if isinstance(extra.get("item_names"), list) else None,
+            key_item=PLAYER_SERVICE.key_item(str(state.get("hero") or ""))
+            if role and role.get("role") != "support"
+            else None,
         )
         if hint is not None:
             result["map_hint"] = hint

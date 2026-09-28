@@ -106,6 +106,7 @@ const I18N = {
     frequencyNormal: "Normal",
     frequencyActive: "More",
     weekTitle: "This week",
+    recentTitle: "Last matches",
     roleTitle: "Your role",
     roleAuto: "Auto",
     roleCarry: "Carry",
@@ -153,6 +154,15 @@ const I18N = {
     moveDone: "Done",
     discordTitle: "Status in Discord",
     discordHint: "Your Discord friends see «Playing Juggernaut · with the Wardly coach» while Dota runs",
+    discordStates: {
+      idle: "It appears once Dota is running.",
+      connecting: "Connecting to Discord…",
+      no_discord: "Discord not found: open the Discord app on this computer (the browser version cannot show it).",
+      connected: "Discord connected. The status appears once Dota is running.",
+      shown: "Shown in Discord. Friends do not see it? Discord → Settings → Activity Privacy → «Share your detected activities with others».",
+      rejected: (error) => `Discord did not accept the status: ${error}`
+    },
+    settingsMore: "More",
     weeklyTitle: "The week in Discord",
     weeklyHint:
       "Every Monday your matches, results and average score of the week go to a channel of your Discord server. Channel settings → Integrations → Webhooks → New webhook → Copy webhook URL, then paste it here.",
@@ -194,6 +204,12 @@ const I18N = {
     whatsNewTitle: (version) => `What's new in ${version}`,
     whatsNewOk: "Got it",
     whatsNew: {
+      "0.11.0": [
+        "The app uses the whole window: side navigation, two columns, both teams side by side.",
+        "Last matches on Home, score rings in reviews and the match table.",
+        "More in-game tips for every role: mid rotations and last hits, offlane hard lanes, support pulls, your key item's timing.",
+        "Hard matchups in the game plan."
+      ],
       "0.10.0": [
         "The week in Discord: every Monday your matches, score and heroes of the week go to your server's channel. Settings → App → The week in Discord.",
         "The Week card on Home shows the heroes you played.",
@@ -490,6 +506,7 @@ const I18N = {
     frequencyNormal: "Обычно",
     frequencyActive: "Чаще",
     weekTitle: "Неделя",
+    recentTitle: "Последние матчи",
     roleTitle: "Ваша роль",
     roleAuto: "Авто",
     roleCarry: "Керри",
@@ -537,6 +554,15 @@ const I18N = {
     moveDone: "Готово",
     discordTitle: "Статус в Discord",
     discordHint: "Друзья в Discord видят «Матч на Juggernaut · с тренером Wardly», пока запущена Дота",
+    discordStates: {
+      idle: "Появится, когда запущена Дота.",
+      connecting: "Подключаюсь к Discord…",
+      no_discord: "Discord не найден: откройте приложение Discord на этом компьютере (в браузере статус не работает).",
+      connected: "Discord подключён. Статус появится, когда запущена Дота.",
+      shown: "Статус показан в Discord. Друзья не видят? Discord → Настройки → Конфиденциальность активности → «Делиться своей активностью».",
+      rejected: (error) => `Discord не принял статус: ${error}`
+    },
+    settingsMore: "Дополнительно",
     weeklyTitle: "Неделя в Discord",
     weeklyHint:
       "Каждый понедельник матчи, результаты и средняя оценка за неделю приходят в канал вашего сервера Discord. Настройки канала → Интеграция → Вебхуки → Новый вебхук → Копировать URL вебхука, затем вставьте ссылку сюда.",
@@ -578,6 +604,12 @@ const I18N = {
     whatsNewTitle: (version) => `Что нового в ${version}`,
     whatsNewOk: "Понятно",
     whatsNew: {
+      "0.11.0": [
+        "Приложение на весь экран: навигация слева, две колонки, обе команды рядом.",
+        "«Последние матчи» на Главной, оценка кольцом в разборе и таблице матчей.",
+        "Больше подсказок в игре для каждой роли: ротации и добивания мида, тяжёлая линия хардлайна, пулы саппорта, тайминг ключевого предмета.",
+        "«Тяжело против» в плане на игру."
+      ],
       "0.10.0": [
         "Неделя в Discord: по понедельникам матчи, оценка и герои недели приходят в канал вашего сервера. «Настройки → Приложение → Неделя в Discord».",
         "В карточке «Неделя» на Главной видно, на каких героях вы играли.",
@@ -813,6 +845,7 @@ const els = {
   moveHint: $("#move-hint"),
   autostart: $("#autostart"),
   discordPresence: $("#discord-presence"),
+  discordState: $("#discord-state"),
   weeklyHint: $("#weekly-hint"),
   weeklyForm: $("#weekly-form"),
   weeklyInput: $("#weekly-input"),
@@ -1885,6 +1918,13 @@ function renderOverlaySettings(status) {
   els.moveHint.textContent = moving ? tr("moveActiveHint") : tr("moveHint");
 
   els.discordPresence.checked = status.discordPresence !== false;
+  const discordState = status.discordState || { state: "idle" };
+  // "Waiting for Dota" repeats the hint above: only the other states are shown.
+  els.discordState.hidden = status.discordPresence === false || discordState.state === "idle";
+  els.discordState.textContent =
+    discordState.state === "rejected"
+      ? tr("discordStates.rejected", discordState.error || "?")
+      : trOr(`discordStates.${discordState.state}`, tr("discordStates.idle"));
   renderWeekly(status.discordWeekly || null);
   els.autostart.checked = Boolean(status.autostart);
   els.autostart.disabled = !status.autostartSupported;

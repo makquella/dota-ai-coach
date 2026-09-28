@@ -21,7 +21,8 @@ def main() -> None:
         (SITE / "overlay" / lang).mkdir(parents=True, exist_ok=True)
         for name in APP:
             image = Image.open(raw / f"{lang}-{name}.png").convert("RGB")
-            image = image.resize((1080, 930), Image.LANCZOS)
+            # 1280×800 at 2x → 1600 wide: sharp in the page and in the full view.
+            image = image.resize((1600, 1000), Image.LANCZOS)
             image.save(
                 SITE / "app" / lang / f"{name}.jpg", quality=84, optimize=True, progressive=True
             )

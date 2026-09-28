@@ -27,7 +27,7 @@ test("the activity: a match with the hero and its start, the menu, nothing witho
   const match = buildActivity({ dotaRunning: true, inMatch: true, hero: "Juggernaut", startedAt: 1_790_000_000_500, lang: "ru" });
   assert.equal(match.details, "Матч на Juggernaut");
   assert.equal(match.state, "С тренером Wardly");
-  assert.deepEqual(match.timestamps, { start: 1_790_000_000 });
+  assert.deepEqual(match.timestamps, { start: 1_790_000_000_500 }, "milliseconds, as the RPC server reads them");
   assert.equal(match.assets.large_image, "wardly");
   assert.ok(match.buttons[0].label.length <= 32 && match.buttons[0].url === "https://luhovyimvp.dev");
   const menu = buildActivity({ dotaRunning: true, inMatch: false, hero: null, startedAt: null, lang: "en" });
@@ -86,6 +86,56 @@ test("the client shakes hands, sets the activity once per change and clears it",
   assert.equal(sets[1].data.args.activity, null);
   presence.stop();
   server.close();
+  fs.rmSync(dir, { recursive: true, force: true });
+});
+
+test("the state says why nothing shows: accepted, refused with the reason, Discord not found", async (t) => {
+  if (process.platform === "win32") {
+    t.skip("unix socket fake");
+    return;
+  }
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "wardly-discord-"));
+  let refuse = true;
+  const server = net.createServer((socket) => {
+    socket.on("error", () => {}); // the client may hang up first
+    let buffer = Buffer.alloc(0);
+    socket.on("data", (chunk) => {
+      buffer = Buffer.concat([buffer, chunk]);
+      const { frames, rest } = decode(buffer);
+      buffer = rest;
+      for (const frame of frames) {
+        if (frame.op === OP.HANDSHAKE) {
+          socket.write(encode(OP.FRAME, { cmd: "DISPATCH", evt: "READY", data: {} }));
+        } else if (frame.data && frame.data.cmd === "SET_ACTIVITY") {
+          const answer = refuse
+            ? { cmd: "SET_ACTIVITY", evt: "ERROR", nonce: frame.data.nonce, data: { code: 4000, message: "child \"activity\" fails" } }
+            : { cmd: "SET_ACTIVITY", evt: null, nonce: frame.data.nonce, data: {} };
+          socket.write(encode(OP.FRAME, answer));
+        }
+      }
+    });
+  });
+  await new Promise((resolve) => server.listen(path.join(dir, "discord-ipc-0"), resolve));
+  const states = [];
+  const presence = createDiscordPresence({
+    pathFor: (i) => path.join(dir, `discord-ipc-${i}`),
+    onState: (state) => states.push(state)
+  });
+  const activity = buildActivity({ dotaRunning: true, inMatch: false, hero: null, startedAt: null, lang: "en" });
+  presence.update(activity);
+  await waitFor(() => presence.getState().state === "rejected");
+  assert.equal(presence.getState().error, 'child "activity" fails');
+  refuse = false;
+  presence.update({ ...activity, details: "In a Dota 2 match" });
+  await waitFor(() => presence.getState().state === "shown");
+  assert.deepEqual(states.map((s) => s.state), ["connecting", "connected", "rejected", "shown"]);
+  presence.stop();
+  server.close();
+
+  const nowhere = createDiscordPresence({ pathFor: (i) => path.join(dir, `missing-${i}`), retryMs: 60_000 });
+  nowhere.update(activity);
+  await waitFor(() => nowhere.getState().state === "no_discord");
+  nowhere.stop();
   fs.rmSync(dir, { recursive: true, force: true });
 });
 

@@ -29,6 +29,8 @@ LANE_UNTIL = 6 * 60
 # The lane is read once this much laning has been seen (3:00 clock, 20 samples).
 LANE_DECIDE_AT = 3 * 60
 MIN_LANE_SAMPLES = 20
+# With the role chosen in the settings only the lane is read: 30 s of samples.
+SETTING_LANE_SAMPLES = 6
 SAMPLE_EVERY = 5
 # Last hits per minute that make a lane hero a farmer (carry / offlaner).
 CARRY_LH_PER_MIN = 2.0
@@ -133,10 +135,24 @@ class LiveRoleTracker:
             role = "offlane" if pace >= OFFLANE_LH_PER_MIN else "support"
         self._current = {"role": role, "source": "lane", "lane": kind}
 
+    def _sampled_lane(self) -> str | None:
+        """safe / off / mid from the lane samples so far (a role setting needs no
+        3:00 decision), or None with too few samples."""
+        if sum(self._lanes.values()) < SETTING_LANE_SAMPLES:
+            return None
+        lane, _count = self._lanes.most_common(1)[0]
+        return lane_kind(lane, self._team)
+
     def role(self, prior: dict[str, Any] | None = None) -> dict[str, Any] | None:
         """{"role", "source": setting|lane|history|hero, "lane"?} or None (unknown)."""
         if _setting != "auto":
-            return {"role": _setting, "source": "setting"}
+            chosen: dict[str, Any] = {"role": _setting, "source": "setting"}
+            # The lane read still tells a safe-lane support (pulls from 2:15) from
+            # a roamer: with the role chosen, the lane samples so far are enough.
+            lane = self._sampled_lane()
+            if lane is not None:
+                chosen["lane"] = lane
+            return chosen
         if self._current is not None:
             return dict(self._current)
         if prior and prior.get("role") in POSITIONS:

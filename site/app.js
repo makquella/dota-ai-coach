@@ -6,7 +6,7 @@
   const RELEASES = `https://github.com/${REPO}/releases/latest`;
   const LANG_KEY = "dac.lang";
   // Bump with every reshoot of the pictures (scripts/site-shots) and in index.html.
-  const SHOTS_VERSION = "4";
+  const SHOTS_VERSION = "5";
 
   const EN = {
     title: "Wardly — a Dota 2 coach right in your game",
@@ -258,6 +258,42 @@
       el.classList.add("reveal");
       observer.observe(el);
     });
+  }
+
+  // --- screenshots at full size ----------------------------------------------------
+  // The app windows on the page are scaled down; a click opens the real
+  // screenshot at full size (a <dialog>: Esc, a click or the button closes it).
+
+  const zoomable = document.querySelectorAll(".win img, .step-shot img");
+  if (zoomable.length && typeof HTMLDialogElement === "function") {
+    const dialog = document.createElement("dialog");
+    dialog.className = "lightbox";
+    const picture = document.createElement("img");
+    picture.alt = "";
+    const close = document.createElement("button");
+    close.type = "button";
+    close.className = "lightbox-close";
+    close.textContent = "×";
+    dialog.append(picture, close);
+    document.body.append(dialog);
+    dialog.addEventListener("click", () => dialog.close());
+    for (const img of zoomable) {
+      img.classList.add("zoomable");
+      img.tabIndex = 0;
+      const open = () => {
+        picture.src = img.currentSrc || img.src;
+        picture.alt = img.alt;
+        close.setAttribute("aria-label", document.documentElement.lang === "ru" ? "Закрыть" : "Close");
+        dialog.showModal();
+      };
+      img.addEventListener("click", open);
+      img.addEventListener("keydown", (event) => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          open();
+        }
+      });
+    }
   }
 
   applyLanguage(initialLanguage());

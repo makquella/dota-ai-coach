@@ -14,7 +14,7 @@ from app.config import GSI_DEBUG_LOG, GSI_DEBUG_SAMPLES_DIR
 from app.hero_profiles import evaluate_laning_context
 from app.hero_safety import evaluate_hero_safety
 from app.item_timing import normalize_item_name
-from app.map_hints import has_observer_ward
+from app.map_hints import has_observer_ward, item_names
 from app.signal_capabilities import capability_summary, live_gsi_observed_capabilities
 from app.tp_tracker import has_teleport
 
@@ -337,6 +337,11 @@ def _dict_value(value: Any) -> dict[str, Any]:
     return value if isinstance(value, dict) else {}
 
 
+def _observed_level(payload: dict[str, Any], hero_block: dict[str, Any]) -> int | None:
+    level = _optional_int(_first_value(payload.get("level"), hero_block.get("level")))
+    return level if level is not None and 1 <= level <= 30 else None
+
+
 def _normalize_extra_context(
     payload: dict[str, Any],
     *,
@@ -439,6 +444,11 @@ def _normalize_extra_context(
         "has_tp": has_teleport(payload.get("items")),
         # Observer ward in the inventory (support tip; None: no items block).
         "has_observer": has_observer_ward(payload.get("items")),
+        # Item names in the inventory and stash (role tips such as the mid's Bottle).
+        "item_names": item_names(payload.get("items")),
+        # The hero level as sent (None when missing; the state's "level" falls
+        # back to 1, which role tips must not read as "behind in levels").
+        "hero_level": _observed_level(payload, hero_block),
         "status_effects": status_effects,
         "abilities": abilities,
     }
