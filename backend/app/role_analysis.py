@@ -7,7 +7,10 @@ Parsed replays only (OpenDota counts runes, stacks and wards from the replay):
   against the enemy mid of the same match (player_roles); runes are the mid's
   tempo, so the findings sit in the laning section;
 - support: camps stacked and sentry wards over the whole game (a support with
-  no sentries cannot answer invisible heroes or dewarding).
+  no sentries cannot answer invisible heroes or dewarding);
+- offlane: seconds of stuns against the enemy offlaner of the same match (the
+  offlaner's job in fights is control; heroes without stuns compare low on both
+  sides, so only a clear gap counts).
 
 Returns (block, findings): the block is stored as analysis["role_play"] and shown
 in the review's laning / vision facts; the findings use _finding's shape.
@@ -25,6 +28,7 @@ RUNES_BEHIND_BY = 4
 MIN_MINUTES = 20
 STACKS_LOW_MAX = 1
 STACKS_MIN_MINUTES = 25
+STUNS_GAP_SECONDS = 15
 
 
 def _finding(
@@ -40,7 +44,10 @@ def _finding(
     }
 
 
-def _enemy_mid_runes(opendota: dict[str, Any] | None) -> tuple[str | None, int | None]:
+def _enemy_same_role(
+    opendota: dict[str, Any] | None, role_name: str, field: str
+) -> tuple[str | None, float | None]:
+    """The enemy player of this role in the match: (hero, value of `field`)."""
     if not opendota:
         return None, None
     players = opendota.get("players") or []
@@ -50,17 +57,26 @@ def _enemy_mid_runes(opendota: dict[str, Any] | None) -> tuple[str | None, int |
     roles = player_roles(players, opendota.get("duration"))
     my_side = bool(me.get("isRadiant", True))
     for player, role in zip(players, roles, strict=True):
-        if role == "mid" and bool(player.get("isRadiant", True)) != my_side:
-            runes = player.get("rune_pickups")
-            return player.get("hero"), int(runes) if isinstance(runes, (int, float)) else None
+        if role == role_name and bool(player.get("isRadiant", True)) != my_side:
+            value = player.get(field)
+            return player.get("hero"), float(value) if isinstance(value, (int, float)) else None
     return None, None
+
+
+def _enemy_mid_runes(opendota: dict[str, Any] | None) -> tuple[str | None, int | None]:
+    hero, runes = _enemy_same_role(opendota, "mid", "rune_pickups")
+    return hero, None if runes is None else int(runes)
 
 
 def analyze_role(
     facts: dict[str, Any], opendota: dict[str, Any] | None, position: str | None
 ) -> tuple[dict[str, Any] | None, list[dict[str, Any]]]:
     minutes = (facts.get("duration") or 0) / 60
-    if not facts.get("parsed") or minutes < MIN_MINUTES or position not in ("mid", "support"):
+    if not facts.get("parsed") or minutes < MIN_MINUTES:
+        return None, []
+    if position == "offlane":
+        return _offlane(facts, opendota)
+    if position not in ("mid", "support"):
         return None, []
     findings: list[dict[str, Any]] = []
     if position == "mid":
@@ -109,5 +125,38 @@ def analyze_role(
     if sentries == 0:
         findings.append(
             _finding("sentries_none", "improve", "vision", weight=1.2, minutes=round(minutes))
+        )
+    return block, findings
+
+
+def _offlane(
+    facts: dict[str, Any], opendota: dict[str, Any] | None
+) -> tuple[dict[str, Any] | None, list[dict[str, Any]]]:
+    stuns = facts.get("stuns")
+    if not isinstance(stuns, (int, float)):
+        return None, []
+    enemy_hero, enemy_stuns = _enemy_same_role(opendota, "offlane", "stuns")
+    mine = round(stuns)
+    block: dict[str, Any] = {"stuns": mine}
+    findings: list[dict[str, Any]] = []
+    if enemy_stuns is None:
+        return block, findings
+    theirs = round(enemy_stuns)
+    block.update(enemy_offlane=enemy_hero, enemy_stuns=theirs)
+    if theirs >= mine + STUNS_GAP_SECONDS and theirs >= 2 * max(mine, 1):
+        findings.append(
+            _finding(
+                "stuns_behind",
+                "improve",
+                "fights",
+                severity=1,
+                stuns=mine,
+                enemy_stuns=theirs,
+                hero=enemy_hero,
+            )
+        )
+    elif mine >= theirs + STUNS_GAP_SECONDS and mine >= 2 * max(theirs, 1):
+        findings.append(
+            _finding("stuns_good", "strength", "fights", stuns=mine, enemy_stuns=theirs)
         )
     return block, findings

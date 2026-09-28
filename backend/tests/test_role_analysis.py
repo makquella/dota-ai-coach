@@ -63,3 +63,29 @@ def test_only_parsed_long_enough_games_and_these_roles():
     assert analyze_role(_facts(duration=15 * 60), None, "mid") == (None, [])
     assert analyze_role(_facts(), None, "carry") == (None, [])
     assert analyze_role(_facts(rune_pickups=None), None, "mid") == (None, [])
+
+
+def _offlane_lineup(my_stuns: float, enemy_stuns: float) -> dict:
+    players = []
+    for radiant in (True, False):
+        for lane, lh in ((1, 300), (2, 250), (3, 150), (1, 40), (3, 30)):
+            players.append(
+                {"isRadiant": radiant, "lane_role": lane, "last_hits": lh, "hero": "Hero"}
+            )
+    players[2].update(me=True, stuns=my_stuns)
+    players[7].update(hero="Mars", stuns=enemy_stuns)
+    return {"duration": 40 * 60, "players": players}
+
+
+def test_offlane_stuns_against_the_enemy_offlaner():
+    block, findings = analyze_role(_facts(stuns=12.4), _offlane_lineup(12.4, 48.0), "offlane")
+    assert block == {"stuns": 12, "enemy_offlane": "Mars", "enemy_stuns": 48}
+    assert [f["id"] for f in findings] == ["stuns_behind"]
+    assert render_finding(findings[0], "ru")["text"].startswith(
+        "12 с оглушений у вас против 48 с у Mars"
+    )
+    _, good = analyze_role(_facts(stuns=60), _offlane_lineup(60, 20), "offlane")
+    assert [f["id"] for f in good] == ["stuns_good"]
+    # Close numbers or no lineup: nothing said.
+    assert analyze_role(_facts(stuns=30), _offlane_lineup(30, 40), "offlane")[1] == []
+    assert analyze_role(_facts(stuns=30), None, "offlane") == ({"stuns": 30}, [])

@@ -401,6 +401,28 @@ FINDINGS: dict[str, dict[str, dict[str, str]]] = {
             "drill": "Keep 1–2 sentries from minute 10: at your wards, at Roshan and against invisible heroes.",
         },
     },
+    "stuns_behind": {
+        "ru": {
+            "title": "Мало контроля в драках",
+            "text": "{stuns} с оглушений у вас против {enemy_stuns} с у {hero}. Контроль — главная работа хардлайнера в драке.",
+            "drill": "Начинайте драку своим контролем: оглушение по керри или по тому, кто первым вошёл, — до того как тратить остальные способности.",
+        },
+        "en": {
+            "title": "Little control in fights",
+            "text": "{stuns} s of stuns for you against {enemy_stuns} s for {hero}. Control is the offlaner's main job in a fight.",
+            "drill": "Start fights with your control: stun the carry or whoever comes in first, before spending the rest of your spells.",
+        },
+    },
+    "stuns_good": {
+        "ru": {
+            "title": "Контроль в драках",
+            "text": "{stuns} с оглушений против {enemy_stuns} с у вражеского хардлайнера — вы задавали драки.",
+        },
+        "en": {
+            "title": "Control in fights",
+            "text": "{stuns} s of stuns against {enemy_stuns} s for the enemy offlaner — you set up the fights.",
+        },
+    },
     "stacks_good": {
         "ru": {
             "title": "Стаки для команды",
