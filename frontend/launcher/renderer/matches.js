@@ -175,12 +175,12 @@
         duration: "Duration"
       },
       sectionFacts: {
-        laning: (s) => [s.lh10 != null && `${s.lh10} LH by 10:00`, s.lane_efficiency != null && `lane efficiency ${Math.round(s.lane_efficiency)}%`, s.lane_deaths ? `${s.lane_deaths} deaths in lane` : null],
+        laning: (s) => [s.lh10 != null && `${s.lh10} LH by 10:00`, s.lane_efficiency != null && `lane efficiency ${Math.round(s.lane_efficiency)}%`, s.lane_deaths ? `${s.lane_deaths} deaths in lane` : null, s.runes != null && `${s.runes} runes${s.enemy_runes != null ? ` (enemy mid ${s.enemy_runes})` : ""}`],
         farm: (s) => [s.gpm != null && `${s.gpm} GPM`, s.gpm_pct != null && `better than ${Math.round(s.gpm_pct * 100)}%`],
         survival: (s) => [`${s.deaths} deaths`, s.deaths_per_10 != null && `${s.deaths_per_10} per 10 min`],
         fights: (s) => [s.kill_participation != null && `${s.kill_participation}% kill participation`],
         items: (s) => [s.first_item && `${s.first_item.item} at ${clock(s.first_item.t)}`],
-        vision: (s) => [s.obs_placed != null && `${s.obs_placed} observers`, s.sen_placed != null && `${s.sen_placed} sentries`]
+        vision: (s) => [s.obs_placed != null && `${s.obs_placed} observers`, s.sen_placed != null && `${s.sen_placed} sentries`, s.camps_stacked != null && `${s.camps_stacked} stacks`]
       },
       progressEmptyTitle: "Not enough matches yet",
       progressEmptyHint: "Statistics appear after a few reviewed matches. Refresh your history on the Matches tab.",
@@ -260,6 +260,11 @@
       shareExpires: (date) => `Works until ${date}.`,
       shareWithCoach: "With the AI coach's summary.",
       shareFailed: (code) => `Could not do it${code ? ` (${code})` : ""}: check the internet and try again.`,
+      opponentsTitle: "Enemy heroes",
+      opponentsNote: (n, min) => `Your record against each enemy hero in ${n} matches with a known lineup (heroes met ${min}+ times).`,
+      opponentsHard: "Hardest to play against",
+      opponentsEasy: "You beat them most often",
+      opponentRecord: (w, l, wr) => `${w}–${l} · ${wr}%`,
       friendTitle: "Compare with a friend",
       friendHint: "A friend's Friend ID, Steam ID or profile link (steamcommunity.com/profiles/…). Their public OpenDota matches are compared with yours: the last 20 games of each.",
       friendPlaceholder: "Friend ID, Steam ID or profile link",
@@ -348,10 +353,14 @@
       askButton: "Ask",
       askThinking: "The coach is thinking…",
       askSuggestions: ["What decided this game for me?", "What should I change in the lane?", "Was my build on time?"],
+      askCareerHint: "A question about your recent matches: heroes, enemies, habits. The answer uses only your statistics and goes through the same fact check.",
+      askCareerPlaceholder: "For example: which enemy heroes are hardest for me?",
+      askCareerSuggestions: ["Which enemy heroes are hardest for me?", "What mistake costs me the most games?", "Which hero should I play more?"],
       askErrors: {
         unverified: "The coach could not answer this from the match data. Try asking differently.",
         empty_question: "Type a question first.",
         no_review: "The review of this match is not ready yet.",
+        not_enough: "Not enough reviewed matches yet: open a few reviews first.",
         off: "Turn the AI coach on in Settings first."
       },
       aiSettingsTitle: "AI coach",
@@ -546,12 +555,12 @@
         duration: "Длительность"
       },
       sectionFacts: {
-        laning: (s) => [s.lh10 != null && `${s.lh10} добиваний к 10:00`, s.lane_efficiency != null && `эффективность ${Math.round(s.lane_efficiency)}%`, s.lane_deaths ? `смертей на линии: ${s.lane_deaths}` : null],
+        laning: (s) => [s.lh10 != null && `${s.lh10} добиваний к 10:00`, s.lane_efficiency != null && `эффективность ${Math.round(s.lane_efficiency)}%`, s.lane_deaths ? `смертей на линии: ${s.lane_deaths}` : null, s.runes != null && `рун: ${s.runes}${s.enemy_runes != null ? ` (у вражеского мида ${s.enemy_runes})` : ""}`],
         farm: (s) => [s.gpm != null && `${s.gpm} GPM`, s.gpm_pct != null && `лучше ${Math.round(s.gpm_pct * 100)}% игроков`],
         survival: (s) => [`смертей: ${s.deaths}`, s.deaths_per_10 != null && `${s.deaths_per_10} за 10 мин`],
         fights: (s) => [s.kill_participation != null && `участие в убийствах ${s.kill_participation}%`],
         items: (s) => [s.first_item && `${s.first_item.item} к ${clock(s.first_item.t)}`],
-        vision: (s) => [s.obs_placed != null && `обсерверов: ${s.obs_placed}`, s.sen_placed != null && `сентри: ${s.sen_placed}`]
+        vision: (s) => [s.obs_placed != null && `обсерверов: ${s.obs_placed}`, s.sen_placed != null && `сентри: ${s.sen_placed}`, s.camps_stacked != null && `стаков: ${s.camps_stacked}`]
       },
       progressEmptyTitle: "Пока мало матчей",
       progressEmptyHint: "Статистика появится после нескольких разобранных матчей. Обновите историю на вкладке «Матчи».",
@@ -631,6 +640,11 @@
       shareExpires: (date) => `Работает до ${date}.`,
       shareWithCoach: "С выводом ИИ-тренера.",
       shareFailed: (code) => `Не получилось${code ? ` (${code})` : ""}: проверьте интернет и попробуйте ещё раз.`,
+      opponentsTitle: "Вражеские герои",
+      opponentsNote: (n, min) => `Ваш счёт против каждого вражеского героя в ${n} матчах с известным составом (герои, встреченные ${min}+ раза).`,
+      opponentsHard: "Против них сложнее всего",
+      opponentsEasy: "Их вы обыгрываете чаще всего",
+      opponentRecord: (w, l, wr) => `${w}–${l} · ${wr}%`,
       friendTitle: "Сравнение с другом",
       friendHint: "Friend ID друга, Steam ID или ссылка на профиль (steamcommunity.com/profiles/…). Сравниваются открытые матчи из OpenDota: последние 20 игр каждого.",
       friendPlaceholder: "Friend ID, Steam ID или ссылка на профиль",
@@ -719,10 +733,14 @@
       askButton: "Спросить",
       askThinking: "Тренер думает…",
       askSuggestions: ["Что решило эту игру?", "Что изменить на линии?", "Вовремя ли я собрал предметы?"],
+      askCareerHint: "Вопрос о ваших последних матчах: герои, противники, привычки. Ответ строится только по вашей статистике и проходит ту же проверку фактов.",
+      askCareerPlaceholder: "Например: против каких героев мне сложнее всего?",
+      askCareerSuggestions: ["Против каких героев мне сложнее всего?", "Какая ошибка стоит мне больше всего игр?", "На каком герое мне стоит играть чаще?"],
       askErrors: {
         unverified: "Тренер не смог ответить по данным этого матча. Попробуйте спросить иначе.",
         empty_question: "Сначала напишите вопрос.",
         no_review: "Разбор этого матча ещё не готов.",
+        not_enough: "Пока мало разобранных матчей: сначала откройте несколько разборов.",
         off: "Сначала включите ИИ-тренера в настройках."
       },
       aiSettingsTitle: "ИИ-тренер",
@@ -2264,6 +2282,31 @@
     hydrate(host);
   }
 
+  // The record against enemy heroes met 3+ times (career_analysis.opponents).
+  function opponentsCard(record) {
+    if (!record || !(record.hard?.length || record.easy?.length)) {
+      return null;
+    }
+    const row = (hero) =>
+      h(
+        "li",
+        { class: "friend-hero" },
+        heroLabel(hero.hero_id, hero.hero),
+        h("span", { class: "muted num", text: t("opponentRecord", hero.wins, hero.losses, hero.winrate) })
+      );
+    return card(
+      t("opponentsTitle"),
+      "swords",
+      h(
+        "div",
+        { class: "friend" },
+        h("p", { class: "muted small", text: t("opponentsNote", record.matches, record.min_games) }),
+        record.hard?.length ? h("div", {}, h("p", { class: "friend-sub", text: t("opponentsHard") }), h("ul", { class: "friend-heroes" }, record.hard.map(row))) : null,
+        record.easy?.length ? h("div", {}, h("p", { class: "friend-sub", text: t("opponentsEasy") }), h("ul", { class: "friend-heroes" }, record.easy.map(row))) : null
+      )
+    );
+  }
+
   function selfCompareCard(compare) {
     if (!compare) {
       return null;
@@ -2699,7 +2742,8 @@
   }
 
   // "Ask the coach": a free question about this match, answered from its facts.
-  function askCard(detail) {
+  // «Спросить тренера» about one match (op "ask") or, with `career`, the recent matches.
+  function askCard(detail, career = false) {
     const coach = detail.coach;
     if (!coach || coach.state === "off" || coach.state === "none") {
       return null;
@@ -2712,14 +2756,14 @@
         )
       );
     renderHistory();
-    const input = h("input", { class: "input ask-input", type: "text", maxlength: "300", placeholder: t("askPlaceholder"), "aria-label": t("askTitle") });
+    const input = h("input", { class: "input ask-input", type: "text", maxlength: "300", placeholder: t(career ? "askCareerPlaceholder" : "askPlaceholder"), "aria-label": t("askTitle") });
     const button = h("button", { class: "btn btn-primary btn-sm", type: "submit" }, icon("send"), h("span", { text: t("askButton") }));
     const note = h("p", { class: "muted small ask-note", role: "status" });
     const pending = h("div", { class: "ask-pending hidden" }, h("p", { class: "muted small", text: t("askThinking") }), skeletonRows(2));
     const chips = h(
       "div",
       { class: "ask-chips" },
-      t("askSuggestions").map((question) =>
+      t(career ? "askCareerSuggestions" : "askSuggestions").map((question) =>
         h("button", { class: "chip ask-chip", type: "button", text: question, onclick: () => submit(question) })
       )
     );
@@ -2738,7 +2782,7 @@
       note.textContent = "";
       pending.classList.remove("hidden");
       state.askBusy = true;
-      const result = await call("ask", { matchId: detail.match_id, question: text });
+      const result = career ? await call("askCareer", { question: text }) : await call("ask", { matchId: detail.match_id, question: text });
       state.askBusy = false;
       pending.classList.add("hidden");
       button.disabled = false;
@@ -2768,7 +2812,7 @@
       button
     );
     return card(t("askTitle"), "message-circle", [
-      h("p", { class: "muted small no-print", text: t("askHint") }),
+      h("p", { class: "muted small no-print", text: t(career ? "askCareerHint" : "askHint") }),
       form,
       h("div", { class: "no-print" }, chips),
       pending,
@@ -3432,9 +3476,12 @@
       ),
       tiles,
       coachCard(career.coach, "career") || "",
+      // Asking needs at least one review (the backend answers not_enough without one).
+      state.careerHero === null && career.analyzed ? askCard(career, true) || "" : "",
       scoreCard,
       careerRankCard(career),
       state.careerHero === null ? friendCard() : "",
+      opponentsCard(career.opponents) || "",
       selfCompareCard(career.self_compare) || "",
       goalCard(career.focus) || "",
       planCard,

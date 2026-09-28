@@ -171,6 +171,12 @@ const I18N = {
     whatsNewTitle: (version) => `What's new in ${version}`,
     whatsNewOk: "Got it",
     whatsNew: {
+      "0.6.0": [
+        "Role reviews: runes for a mid against the enemy mid, stacks and sentries for a support.",
+        "Progress: your record against each enemy hero — who is hardest for you and whom you beat most.",
+        "Ask the AI coach about your recent matches, not only one game.",
+        "In game: a level-6 tip for a mid (rotation) and an offlaner (pressure)."
+      ],
       "0.5.0": [
         "Dota AI Coach is now Wardly, with a new logo. Your history and settings stay.",
         "Progress → Compare with a friend: their public matches next to yours, with the heroes you both play.",
@@ -483,6 +489,12 @@ const I18N = {
     whatsNewTitle: (version) => `Что нового в ${version}`,
     whatsNewOk: "Понятно",
     whatsNew: {
+      "0.6.0": [
+        "Разбор под роль: руны мида против вражеского мида, стаки и сентри саппорта.",
+        "«Прогресс»: ваш счёт против каждого вражеского героя — кто неудобен и кого вы обыгрываете.",
+        "ИИ-тренеру можно задать вопрос о всех последних матчах, а не только об одном.",
+        "В игре: подсказка на 6-м уровне для мида (ротация) и оффлейна (давление)."
+      ],
       "0.5.0": [
         "Dota AI Coach теперь называется Wardly, у него новый логотип. История и настройки на месте.",
         "«Прогресс» → «Сравнение с другом»: его открытые матчи рядом с вашими и общие герои.",

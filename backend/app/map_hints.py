@@ -46,6 +46,10 @@ LAST_HITS_FROM = 3 * 60
 LAST_HITS_UNTIL = 10 * 60
 SUPPORT_LH_PER_MIN = 2.5
 LAST_HITS_EVERY = 3 * 60
+# Level 6 before this clock: the mid's rotation window, the offlaner's pressure.
+POWER_SPIKE_LEVEL = 6
+POWER_SPIKE_UNTIL = 12 * 60
+POWER_SPIKE_SHOW = 25
 
 TIPS = {
     "stack": {
@@ -69,6 +73,26 @@ TIPS = {
     "wards": {
         "en": ("No observer wards on you", "Take wards from the shop and light up the next fight."),
         "ru": ("Нет вардов", "Возьмите варды в лавке и подсветите место следующей драки."),
+    },
+    "mid_six": {
+        "en": (
+            "Level 6: look for a rotation",
+            "Push the wave first, then check the side lanes with the next rune.",
+        ),
+        "ru": (
+            "6-й уровень: время ротации",
+            "Сначала запушьте волну, потом с руной посмотрите на боковые линии.",
+        ),
+    },
+    "offlane_six": {
+        "en": (
+            "Level 6: pressure the lane",
+            "With your support, go for the enemy carry or their tower while the wave is close.",
+        ),
+        "ru": (
+            "6-й уровень: давите линию",
+            "Вместе с саппортом идите на вражеского керри или вышку, пока волна рядом.",
+        ),
     },
 }
 
@@ -144,6 +168,14 @@ class RoleTips:
 
     def reset(self) -> None:
         self._shown: dict[str, int] = {}
+        # Level 6 counts as reached only after a level below 6 was seen: a
+        # backend started mid-game at level 8 must not call it a new spike.
+        self._armed = False
+
+    def observe_level(self, level: int | None) -> None:
+        """Every hint request (also while a timer shows): arms the level-6 tip."""
+        if level is not None and level < POWER_SPIKE_LEVEL:
+            self._armed = True
 
     def _every(self, key: str, clock: int, every: int, show: int) -> int | None:
         """Shown for `show` seconds, then again `every` seconds later: the start."""
@@ -163,6 +195,7 @@ class RoleTips:
         tp_missing: bool = False,
         carry_advisor: bool = False,
         last_hits: int | None = None,
+        level: int | None = None,
     ) -> dict[str, Any] | None:
         if not alive or role is None:
             return None
@@ -170,6 +203,13 @@ class RoleTips:
             start = self._every("tp", clock, TP_EVERY, TP_SHOW)
             if start is not None:
                 return _tip("tp", f"tp@{start}", lang)
+        if role in ("mid", "offlane") and level is not None:
+            key = f"{role}_six"
+            if level >= POWER_SPIKE_LEVEL and clock <= POWER_SPIKE_UNTIL and self._armed:
+                # Once per match, from the moment the level is reached.
+                start = self._shown.setdefault(key, clock)
+                if 0 <= clock - start <= POWER_SPIKE_SHOW:
+                    return _tip(key, f"{key}@{start}", lang)
         if role != "support":
             return None
         if (
@@ -218,11 +258,13 @@ def map_hint(
     tp_missing: bool = False,
     carry_advisor: bool = False,
     last_hits: int | None = None,
+    level: int | None = None,
 ) -> dict[str, Any] | None:
     """A timer, but a role tip over a minor one (runes, lotus); None before the
     horn or without a role."""
     if clock is None or clock < 0 or role is None:
         return None
+    tips.observe_level(level)
     timer = next_timer(clock, role, lang)
     if timer is not None and not timer["minor"]:
         return timer
@@ -235,5 +277,6 @@ def map_hint(
         tp_missing=tp_missing,
         carry_advisor=carry_advisor,
         last_hits=last_hits,
+        level=level,
     )
     return tip or timer

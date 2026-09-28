@@ -1101,6 +1101,13 @@ const PLAYER_OPS = {
     150000
   ],
   coachCareer: () => ["POST", `/player/career/coach?lang=${uiLocale()}`],
+  // A free question about the recent matches (same fact check, one retry).
+  askCareer: (args) => [
+    "POST",
+    `/player/career/ask?lang=${uiLocale()}`,
+    { question: String(args.question || "").slice(0, 300) },
+    150000
+  ],
   aiStatus: () => ["GET", "/player/ai"],
   aiSave: (args) => [
     "POST",

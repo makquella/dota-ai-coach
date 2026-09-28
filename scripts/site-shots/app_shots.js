@@ -131,6 +131,7 @@ const SHOTS = {
   progress: [{ click: "#tab-progress", wait: 2500 }],
   "progress-ai": [{ click: "#tab-progress", wait: 2500 }, { eval: scrollTo(".coach-card") }],
   "progress-friend": [{ click: "#tab-progress", wait: 3000 }, { eval: scrollTo(".friend-card") }],
+  "progress-ask": [{ click: "#tab-progress", wait: 3000 }, { eval: scrollTo(".ask-form") }],
   "review-share": [{ click: "#tab-matches", wait: 1500 }, { click: "tr.row-link", wait: 2500 }, { click: ".review-toolbar .toolbar-actions button", wait: 800 }]
 };
 

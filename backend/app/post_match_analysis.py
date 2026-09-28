@@ -28,9 +28,10 @@ from app.draft_analysis import analyze_draft
 from app.item_timing import classify_item_timing, normalize_item_name
 from app.map_analysis import analyze_map
 from app.peer_analysis import match_peers, peer_findings, player_roles
+from app.role_analysis import analyze_role
 
 # Bump when the rules change: stored reviews of an older version are rebuilt on read.
-ANALYSIS_VERSION = 8
+ANALYSIS_VERSION = 9
 MAX_ADVICE_SHOWN = 40
 
 # Static targets when OpenDota benchmarks are missing (GSI-only matches).
@@ -155,6 +156,13 @@ def analyze_match(
     findings.extend(map_findings)
     follow_block, follow_findings = analyze_advice_follow(facts)
     findings.extend(follow_findings)
+    role_block, role_findings = analyze_role(facts, opendota, position)
+    findings.extend(role_findings)
+    if role_block and "runes" in role_block and "laning" in sections:
+        # The mid's runes are shown with the lane numbers.
+        sections["laning"]["runes"] = role_block["runes"]
+        if role_block.get("enemy_runes") is not None:
+            sections["laning"]["enemy_runes"] = role_block["enemy_runes"]
     findings = _dedupe(findings)
 
     weights = SECTION_WEIGHTS[role]
@@ -213,7 +221,25 @@ def analyze_match(
         "death_review": review_deaths(facts),
         "advice": (facts.get("advice_log") or [])[:MAX_ADVICE_SHOWN],
         "advice_follow": follow_block,
+        "role_play": role_block,
+        # The enemy lineup (OpenDota), for the career's hardest opponents.
+        "enemy_heroes": _enemy_heroes(opendota),
     }
+
+
+def _enemy_heroes(opendota: dict[str, Any] | None) -> list[int]:
+    players = (opendota or {}).get("players") or []
+    me = next((p for p in players if p.get("me")), None)
+    if me is None:
+        return []
+    side = bool(me.get("isRadiant", True))
+    return [
+        int(p["hero_id"])
+        for p in players
+        if bool(p.get("isRadiant", True)) != side
+        and isinstance(p.get("hero_id"), int)
+        and p["hero_id"] > 0
+    ]
 
 
 def _per_section(findings: list[dict[str, Any]], limit: int = 2) -> list[dict[str, Any]]:

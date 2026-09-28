@@ -15,6 +15,7 @@ from statistics import mean
 from typing import Any
 
 from app.analysis_texts import FINDINGS, PEER_ROLES, rank_label, render_finding
+from app.dota_constants import hero_name
 from app.hero_meta import bracket_winrate, rank_bracket
 from app.peer_analysis import career_peers
 from app.self_compare import compare_best_worst
@@ -82,6 +83,7 @@ def analyze_career(
             :3
         ],
         "self_compare": compare_best_worst(matches, lang),
+        "opponents": opponents(analyzed),
         "series": _series(matches),
         "best_match": _best(matches),
     }
@@ -133,6 +135,50 @@ def _trend(matches: list[dict[str, Any]]) -> dict[str, Any]:
             "better": better,
         }
     return result
+
+
+# Enemy heroes met this many times before their record means something.
+OPPONENT_MIN_GAMES = 3
+OPPONENTS_SHOWN = 5
+
+
+def opponents(analyzed: list[dict[str, Any]]) -> dict[str, Any] | None:
+    """The player's record against each enemy hero (lineups of OpenDota matches):
+    the hardest (lowest win rate) and the easiest, heroes met 3+ times."""
+    record: dict[int, list[int]] = defaultdict(lambda: [0, 0])
+    lineups = 0
+    for match in analyzed:
+        enemies = (match.get("analysis") or {}).get("enemy_heroes") or []
+        if not enemies or match.get("win") is None:
+            continue
+        lineups += 1
+        for hero_id in set(enemies):
+            record[hero_id][0] += 1
+            record[hero_id][1] += 1 if match["win"] else 0
+    rows = [
+        {
+            "hero_id": hero_id,
+            "hero": hero_name(hero_id),
+            "games": games,
+            "wins": wins,
+            "losses": games - wins,
+            "winrate": round(100 * wins / games),
+        }
+        for hero_id, (games, wins) in record.items()
+        if games >= OPPONENT_MIN_GAMES
+    ]
+    if not rows:
+        return None
+    hard = sorted((r for r in rows if r["winrate"] < 50), key=lambda r: (r["winrate"], -r["games"]))
+    easy = sorted(
+        (r for r in rows if r["winrate"] >= 60), key=lambda r: (-r["winrate"], -r["games"])
+    )
+    return {
+        "matches": lineups,
+        "min_games": OPPONENT_MIN_GAMES,
+        "hard": hard[:OPPONENTS_SHOWN],
+        "easy": easy[:3],
+    }
 
 
 def _heroes(
