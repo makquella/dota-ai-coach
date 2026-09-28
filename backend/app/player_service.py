@@ -222,6 +222,10 @@ def _now_iso() -> str:
     return datetime.now(UTC).isoformat()
 
 
+# The review chart's «your best match on this hero»: from the last 40 on the
+# hero, when 2+ other reviewed matches exist.
+BEST_ON_HERO_LOOKUP = 40
+BEST_ON_HERO_MIN = 2
 # The death screen card shows for this many seconds of clock after a death at most.
 DEATH_SCREEN_WINDOW = 150
 # Deaths in the same place within this many seconds make a pattern.
@@ -687,6 +691,7 @@ class PlayerService:
         detail["repeats"] = self._repeats(primary, record, analysis)
         detail["coach"] = self._match_coach(primary, match_id, detail, lang, force=force_coach)
         detail["baseline"] = self._baseline(primary, record, analysis)
+        detail["best_on_hero"] = self._best_on_hero(primary, record, analysis)
         detail["questions"] = self._questions(primary, match_id)
         current = self._focus(primary)
         detail["focus_id"] = current["id"] if current else None
@@ -707,6 +712,41 @@ class PlayerService:
             return {}
         earlier = self.store.matches_for_career(account_id, limit=REPEATS_LOOKUP, before=int(start))
         return finding_history(record, analysis, earlier)
+
+    def _best_on_hero(
+        self, account_id: int, record: dict[str, Any], analysis: dict[str, Any] | None
+    ) -> dict[str, Any] | None:
+        """The player's best other match on this hero (highest review score), with
+        its last hits / gold / XP curves for the review chart; `self_best` when
+        this match is the best one."""
+        hero_id = record.get("hero_id")
+        score = ((analysis or {}).get("headline") or {}).get("score")
+        if not hero_id or not isinstance(score, (int, float)):
+            return None
+        others = [
+            row
+            for row in self.store.matches_for_career(
+                account_id, limit=BEST_ON_HERO_LOOKUP, hero_id=int(hero_id)
+            )
+            if row.get("match_id") != record.get("match_id")
+            and isinstance(
+                ((row.get("analysis") or {}).get("headline") or {}).get("score"), (int, float)
+            )
+        ]
+        if len(others) < BEST_ON_HERO_MIN:
+            return None
+        best = max(others, key=lambda row: row["analysis"]["headline"]["score"])
+        best_score = best["analysis"]["headline"]["score"]
+        if best_score <= score:
+            return {"self_best": True, "of": len(others) + 1}
+        series = best["analysis"].get("series") or {}
+        return {
+            "match_id": best.get("match_id"),
+            "score": best_score,
+            "start_time": best.get("start_time"),
+            "win": best.get("win"),
+            "series": {key: series.get(key) for key in ("last_hits", "gold", "xp")},
+        }
 
     def _baseline(
         self, account_id: int, record: dict[str, Any], analysis: dict[str, Any] | None

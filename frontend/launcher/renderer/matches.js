@@ -177,6 +177,9 @@
       watchMomentHint: "Copies a Dota console command. Open this match's replay in Dota, press \\ for the console and paste it: the replay jumps to about 10 s before this moment.",
       watchCopied: "Copied: paste in the replay console",
       watchFailed: "Could not copy",
+      bestOnHeroLine: (score) => `Your best match on this hero (${score})`,
+      bestOnHeroNote: (score, when) => `Dashed: your best match on this hero, score ${score} (${when}).`,
+      bestOnHeroSelf: (of) => `This is your best match on this hero out of ${of}.`,
       mapDeaths: "Deaths",
       killedBy: (hero) => `Killed by ${hero}`,
       mapSide: { own: "on your half", river: "in the river", enemy: "on the enemy half" },
@@ -619,6 +622,9 @@
       watchMomentHint: "Копирует команду консоли Доты. Откройте запись этого матча в Доте, нажмите \\ (консоль) и вставьте: запись перемотается примерно за 10 с до этого момента.",
       watchCopied: "Скопировано: вставьте в консоль записи",
       watchFailed: "Не удалось скопировать",
+      bestOnHeroLine: (score) => `Ваш лучший матч на герое (${score})`,
+      bestOnHeroNote: (score, when) => `Пунктир — ваш лучший матч на этом герое, оценка ${score} (${when}).`,
+      bestOnHeroSelf: (of) => `Это ваш лучший матч на этом герое из ${of}.`,
       mapDeaths: "Смерти",
       killedBy: (hero) => `Убил: ${hero}`,
       mapSide: { own: "на своей половине", river: "у реки", enemy: "на половине противника" },
@@ -898,6 +904,7 @@
   const cssVar = (name, fallback) =>
     getComputedStyle(document.documentElement).getPropertyValue(name).trim() || fallback;
   const VIZ_1 = cssVar("--viz-1", "#3987e5");
+  const VIZ_2 = cssVar("--viz-2", "#e5963a");
   const TAB_KEY = "dota-ai-coach.tab";
   const api = window.launcherApi;
 
@@ -2075,7 +2082,14 @@
         })
       )
     );
-    return card(t("chartTitle"), "chart-line", host, toggle);
+    const best = state.match && state.match.best_on_hero;
+    let note = null;
+    if (best && best.self_best) {
+      note = h("p", { class: "muted small chart-note", text: t("bestOnHeroSelf", best.of) });
+    } else if (best && best.score) {
+      note = h("p", { class: "muted small chart-note", text: t("bestOnHeroNote", best.score, relativeTime(best.start_time)) });
+    }
+    return card(t("chartTitle"), "chart-line", note ? h("div", {}, host, note) : host, toggle);
   }
 
   function drawChart(host, analysis) {
@@ -2083,8 +2097,15 @@
     const values = { lh: series.last_hits, gold: series.gold, xp: series.xp }[state.chartMetric] || [];
     const label = { lh: t("chartLh"), gold: t("chartGold"), xp: t("chartXp") }[state.chartMetric];
     const markers = (series.deaths || []).map((seconds) => ({ x: seconds / 60, label: `${t("deathsMarker")} ${clock(seconds)}` }));
+    // The player's best match on this hero, dashed (PlayerService._best_on_hero).
+    const best = state.match && state.match.best_on_hero;
+    const bestSeries = best && best.series ? { lh: best.series.last_hits, gold: best.series.gold, xp: best.series.xp }[state.chartMetric] : null;
+    const lines = [{ label: `${t("you")} · ${label}`, values, color: VIZ_1, area: true }];
+    if (Array.isArray(bestSeries) && bestSeries.length > 2) {
+      lines.push({ label: t("bestOnHeroLine", best.score), values: bestSeries, color: VIZ_2, dashed: true });
+    }
     window.LauncherCharts.line(host, {
-      series: [{ label: `${t("you")} · ${label}`, values, color: VIZ_1, area: true }],
+      series: lines,
       reference: (() => {
         const target = { lh: series.last_hits_target, gold: series.gold_target, xp: series.xp_target }[state.chartMetric];
         return Array.isArray(target) && target.length ? { label: t("target"), values: target } : null;

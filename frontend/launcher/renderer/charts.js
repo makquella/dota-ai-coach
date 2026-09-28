@@ -164,7 +164,7 @@
         const d = `M${points[0][0]},${y(0)} L${points.map((p) => p.join(",")).join(" L")} L${points[points.length - 1][0]},${y(0)} Z`;
         el("path", { d, fill: s.color, "fill-opacity": 0.1, stroke: "none" }, svg);
       }
-      el("polyline", { points: points.map((p) => p.join(",")).join(" "), class: "chart-line", stroke: s.color }, svg);
+      el("polyline", { points: points.map((p) => p.join(",")).join(" "), class: "chart-line", stroke: s.color, ...(s.dashed ? { "stroke-dasharray": "5 4" } : {}) }, svg);
       const last = points[points.length - 1];
       el("circle", { cx: last[0], cy: last[1], r: 4, fill: s.color, class: "chart-dot" }, svg);
       const endLabel = el("text", { x: last[0] + 8, y: last[1] + 4, class: "chart-end" }, svg);
