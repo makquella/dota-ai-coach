@@ -217,6 +217,10 @@ const I18N = {
     whatsNewTitle: (version) => `What's new in ${version}`,
     whatsNewOk: "Got it",
     whatsNew: {
+      "0.13.0": [
+        "Advice names what to press right now: Force Staff to get out, Magic Wand with its charges, Black King Bar the moment a stun ends.",
+        "After a death: the rescue item you left unpressed and the place where you keep dying."
+      ],
       "0.12.0": [
         "Every tab is split into clear areas: what to look at first, then the details.",
         "Your week on Home: the score against the week before and a chart of every match.",
@@ -636,6 +640,10 @@ const I18N = {
     whatsNewTitle: (version) => `Что нового в ${version}`,
     whatsNewOk: "Понятно",
     whatsNew: {
+      "0.13.0": [
+        "Подсказки называют, что нажать прямо сейчас: Force Staff, чтобы уйти, Magic Wand с зарядами, Black King Bar сразу после оглушения.",
+        "После смерти: какой спасающий предмет остался не нажат и где вы умираете раз за разом."
+      ],
       "0.12.0": [
         "Каждая вкладка разбита на понятные зоны: сначала главное, потом детали.",
         "«Ваша неделя» на Главной: оценка против прошлой недели и график каждого матча.",

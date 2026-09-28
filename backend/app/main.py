@@ -67,7 +67,7 @@ app = FastAPI(
     lifespan=_lifespan,
     title="Wardly",
     description="MVP-1: rule-based carry coach with local knowledge-base RAG.",
-    version="0.12.0",
+    version="0.13.0",
 )
 app.include_router(player_router)
 
@@ -101,7 +101,7 @@ if FRONTEND_DIR.exists():
 @app.get("/", summary="Health check")
 def root():
     """Simple health-check endpoint."""
-    return {"status": "ok", "service": "Wardly", "version": "0.12.0"}
+    return {"status": "ok", "service": "Wardly", "version": "0.13.0"}
 
 
 @app.get("/health", summary="Health check")
@@ -530,6 +530,7 @@ def _overlay_recommendation_payload() -> dict[str, object]:
         }
 
     state = _with_next_item(state, coverage, decision_point)
+    state = _with_death_items(state, decision_point)
     try:
         request = GameSituationRequest(**state)
     except ValidationError as exc:
@@ -857,6 +858,7 @@ def _overlay_response_for_state(
         }
 
     state = _with_next_item(state, coverage, decision_point)
+    state = _with_death_items(state, decision_point)
     try:
         game_request = GameSituationRequest(**state)
     except ValidationError as exc:
@@ -925,6 +927,33 @@ def _with_next_item(
     if item is None:
         return state
     return {**state, "extra_context": {**raw_extra, "next_item": item}}
+
+
+# Death reviews: the advice after a death names the rescue item left unpressed.
+DEATH_DECISIONS = {
+    "DEATH_REVIEW",
+    "REPEATED_DEATH_PATTERN",
+    "DEATH_WITH_ESCAPE_ON_COOLDOWN",
+    "DEATH_LOW_RESOURCE",
+    "DEAD_WAIT",
+}
+
+
+def _with_death_items(state: dict[str, object], decision_point: str) -> dict[str, object]:
+    """The rescue items ready in the last seconds before this death (the match
+    recording's last_moments) and where it happened, for live_tools.death_copy."""
+    raw_extra = state.get("extra_context")
+    if decision_point not in DEATH_DECISIONS or not isinstance(raw_extra, dict):
+        return state
+    try:
+        death = PLAYER_SERVICE.recent_death(raw_extra.get("clock_time"))
+    except Exception as error:  # noqa: BLE001 - never breaks the live path
+        record_error("death-items", error)
+        return state
+    if not death:
+        return state
+    added = {"death_items": death["items"], "death_place": death["place"]}
+    return {**state, "extra_context": {**raw_extra, **added}}
 
 
 def _overlay_status_message(scheduled: ScheduledAdvice) -> str | None:

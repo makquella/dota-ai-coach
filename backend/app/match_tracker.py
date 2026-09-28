@@ -189,6 +189,24 @@ class MatchTracker:
                 "samples": len(self._current["samples"]),
             }
 
+    def last_death(self) -> dict[str, Any] | None:
+        """The latest death of the match in progress: its clock and the rescue
+        items that were ready and not pressed (last_moments `usable`)."""
+        with self._lock:
+            if not self._current or not self._current["deaths"]:
+                return None
+            death = self._current["deaths"][-1]
+            return {
+                "t": death.get("t"),
+                "usable": list((death.get("last") or {}).get("usable") or []),
+                "team": self._current.get("team"),
+                # Every death of the match so far with its position (repeated places).
+                "places": [
+                    {"t": d.get("t"), "x": d.get("x"), "y": d.get("y")}
+                    for d in self._current["deaths"]
+                ],
+            }
+
     def note_advice(
         self, clock: Any, decision_point: str, action: str, reason: str, mode: str
     ) -> None:

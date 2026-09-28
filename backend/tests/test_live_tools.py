@@ -1,0 +1,201 @@
+"""Survival advice names the tool that can be pressed right now (app/live_tools.py)."""
+
+from __future__ import annotations
+
+import copy
+
+from match_fixtures import gsi_match_stream
+
+from app.advice_i18n import translate_ru
+from app.gsi_state import normalize_gsi_payload
+from app.live_tools import death_items_reason, disabled_copy, low_hp_copy, regen_items
+from app.player_api import PLAYER_SERVICE
+from app.recommender import _fallback_text
+from app.schemas import GameSituationRequest
+
+READY = {"can_cast": True, "cooldown": 0}
+WAND = {"name": "item_magic_wand", "charges": 14, **READY}
+FORCE = {"name": "item_force_staff", **READY}
+BKB = {"name": "item_black_king_bar", **READY}
+MANTA = {"name": "item_manta", **READY}
+SALVE = {"name": "item_flask", "charges": 1, **READY}
+
+
+def _extra(*items, **flags):
+    raw = {f"slot{i}": item for i, item in enumerate(items)}
+    payload = copy.deepcopy(gsi_match_stream(minutes=20, death_minutes=())[-1])
+    payload["items"] = raw
+    return normalize_gsi_payload(payload)["extra_context"] | flags
+
+
+def test_low_hp_names_an_escape_first_then_a_heal_then_regen():
+    action, reason = low_hp_copy(_extra(WAND, FORCE))
+    assert action == "Use Force Staff now to get out, then reset HP."
+    action, reason = low_hp_copy(_extra(WAND, SALVE))
+    assert action == "Use Magic Wand now, then step back."
+    assert reason == "Magic Wand has 14 charges: that HP is yours right now."
+    action, _ = low_hp_copy(_extra(SALVE))
+    assert action == "Step out of enemy range and use Healing Salve."
+    # A wand with few charges or a force staff on cooldown is not "ready".
+    assert low_hp_copy(_extra({**WAND, "charges": 3}, {**FORCE, "cooldown": 12})) is None
+    # No items block in GSI: nothing is claimed.
+    assert low_hp_copy({"ready_savers": None}) is None
+
+
+def test_a_disable_names_what_removes_it_or_gets_out_after_it():
+    action, reason = disabled_copy(_extra(BKB, stunned=True))
+    assert action == "The moment the disable ends, use Black King Bar."
+    # A silence alone does not stop items: dispel it now.
+    action, _ = disabled_copy(_extra(MANTA, silenced=True))
+    assert action == "Use Manta Style now: it removes the silence."
+    assert disabled_copy(_extra(WAND, stunned=True)) is None  # nothing that helps
+    assert disabled_copy(_extra(BKB)) is None  # not disabled
+
+
+def test_regen_needs_a_usable_item():
+    assert regen_items({"slot0": {"name": "item_bottle", "charges": 0}}) == []
+    assert regen_items({"slot0": {"name": "item_bottle", "charges": 2}}) == ["item_bottle"]
+    assert regen_items({}) is None
+
+
+def _request(extra):
+    payload = copy.deepcopy(gsi_match_stream(minutes=20, death_minutes=())[-1])
+    state = normalize_gsi_payload(payload)
+    return GameSituationRequest(**{**state, "hp_percent": 15, "extra_context": extra})
+
+
+def test_the_cards_use_the_tools_and_keep_the_plain_text_without_them():
+    text = _fallback_text(_request(_extra(WAND)), "retreat_reset")
+    assert text["action"] == "Use Magic Wand now, then step back."
+    plain = _fallback_text(_request(_extra()), "retreat_reset")
+    assert "Magic Wand" not in plain["action"]
+    stunned = _fallback_text(_request(_extra(BKB, stunned=True)), "wait_out_disable")
+    assert stunned["action"] == "The moment the disable ends, use Black King Bar."
+    assert (
+        _fallback_text(_request(_extra(stunned=True)), "wait_out_disable")["action"]
+        == "Wait out the disable and avoid forcing actions."
+    )
+
+
+def test_the_death_review_says_which_item_was_left_unpressed():
+    extra = _extra() | {"death_items": ["item_black_king_bar"]}
+    text = _fallback_text(_request(extra), "plan_safer_respawn_route")
+    assert text["reason"] == (
+        "You died with Black King Bar ready: next time use it at the first big hit."
+    )
+    assert death_items_reason({"death_items": ["not_an_item"]}) is None
+
+
+def test_the_last_death_of_the_live_match_names_its_unpressed_item():
+    stream = gsi_match_stream(death_minutes=(18,), step_seconds=1, minutes=19)
+    for payload in stream:
+        before = 18 * 60 - payload["map"]["clock_time"]
+        if 0 < before <= 6:
+            payload["hero"]["health_percent"] = 12 * before
+            payload["items"]["slot5"] = dict(BKB)
+        PLAYER_SERVICE.tracker.observe(payload)
+        if payload["map"]["clock_time"] == 18 * 60 + 5:
+            death = PLAYER_SERVICE.recent_death(18 * 60 + 5)
+            assert death["items"] == ["item_black_king_bar"]
+    assert PLAYER_SERVICE.recent_death(18 * 60 + 200) is None  # long ago
+    assert PLAYER_SERVICE.recent_death(None) is None
+
+
+def test_the_live_card_through_gsi(client):
+    payload = copy.deepcopy(gsi_match_stream(minutes=20, death_minutes=())[-1])
+    payload["hero"]["health_percent"] = 12
+    payload["hero"]["health"] = 200
+    payload["items"]["slot4"] = dict(WAND)
+    client.post("/gsi", json=payload)
+    body = client.get("/overlay/recommendation").json()
+    assert body["recommendation"]["action"] == "Use Magic Wand now, then step back."
+    russian = client.get("/overlay/recommendation?lang=ru").json()["recommendation"]
+    assert russian["action"] == "Нажмите Magic Wand сейчас и отойдите."
+
+
+def test_every_new_text_has_russian():
+    texts = [
+        "Use Force Staff now to get out, then reset HP.",
+        "Your HP is low and Force Staff is ready: use it before the next hit, not after.",
+        "Use Magic Wand now, then step back.",
+        "Magic Wand has 14 charges: that HP is yours right now.",
+        "Magic Wand is charged: that HP is yours right now.",
+        "Guardian Greaves is ready and heals you at once.",
+        "Faerie Fire heals you at once.",
+        "Step out of enemy range and use Healing Salve.",
+        "Consider: step out of enemy range and use Healing Salve.",
+        "Healing Salve heals over time: use it where enemies cannot hit you.",
+        "Use Manta Style now: it removes the silence.",
+        "A silence does not stop items: get rid of it before the next spell lands.",
+        "The moment the disable ends, use Black King Bar.",
+        "Black King Bar is ready: the second after a disable is when most kills finish.",
+        "You died with Eul's Scepter ready: next time use it at the first big hit.",
+    ]
+    for text in texts:
+        assert translate_ru(text), text
+
+
+def _feed_until(client, clock, **stream_args):
+    for payload in gsi_match_stream(positions=True, **stream_args):
+        if payload["map"]["clock_time"] > clock:
+            break
+        client.post("/gsi", json=payload)
+
+
+def test_repeated_deaths_in_one_place_are_named(client):
+    # The fixture's Radiant Juggernaut dies at 18:00, 19:00 and 20:00 at (3600, 3200):
+    # next to the mid lane on the Dire half.
+    _feed_until(client, 19 * 60 + 5, death_minutes=(18, 19, 20), minutes=21)
+    death = PLAYER_SERVICE.recent_death(19 * 60 + 5)
+    assert death["place"] == {"zone": "mid", "side": "enemy", "count": 2, "minutes": 1}
+    body = client.get("/overlay/recommendation").json()
+    assert body["recommendation"]["action"] == (
+        "After respawn, stay away from the mid lane on the enemy side."
+    )
+    assert body["recommendation"]["reason"] == (
+        "2 deaths in the mid lane on the enemy side in 1 minute: "
+        "farm somewhere safer until your team is there."
+    )
+    russian = client.get("/overlay/recommendation?lang=ru").json()["recommendation"]
+    assert (
+        russian["action"]
+        == "После возрождения держитесь подальше от центральной линии на половине врага."
+    )
+    assert russian["reason"].startswith("2 смерти на центральной линии на половине врага за 1 мин")
+
+
+def test_one_death_on_the_enemy_half_says_to_farm_your_own():
+    extra = _extra() | {"death_place": {"zone": "top", "side": "enemy", "count": 1, "minutes": 1}}
+    text = _fallback_text(_request(extra), "plan_safer_respawn_route")
+    assert text["reason"] == (
+        "You died in the top lane on the enemy side: "
+        "farm your own half until your team is with you."
+    )
+    # One death on your own side: nothing to add.
+    own = _extra() | {"death_place": {"zone": "top", "side": "own", "count": 1, "minutes": 1}}
+    assert "top lane" not in _fallback_text(_request(own), "plan_safer_respawn_route")["reason"]
+    # The unpressed item is the lesson and wins the reason; the place keeps the action.
+    both = _extra() | {
+        "death_items": ["item_black_king_bar"],
+        "death_place": {"zone": "mid", "side": "river", "count": 3, "minutes": 6},
+    }
+    text = _fallback_text(_request(both), "break_repeated_death_pattern")
+    assert text["action"] == "After respawn, stay away from the mid lane by the river."
+    assert text["reason"].startswith("You died with Black King Bar ready")
+
+
+def test_satanic_is_not_an_instant_heal():
+    """Satanic heals through lifesteal while attacking: never «press it and step back»."""
+    satanic = {"name": "item_satanic", **READY}
+    copy_ = low_hp_copy(_extra(satanic))
+    assert copy_ is None or "Satanic" not in copy_[0]
+    greaves = {"name": "item_guardian_greaves", **READY}
+    assert low_hp_copy(_extra(greaves))[0] == "Use Guardian Greaves now, then step back."
+
+
+def test_low_hp_while_stunned_waits_for_the_disable_to_end():
+    """No item can be pressed while stunned, hexed or muted."""
+    for flag in ("stunned", "hexed", "muted"):
+        action, _ = low_hp_copy(_extra(FORCE, **{flag: True}))
+        assert action == "The moment the disable ends, use Force Staff."
+    assert low_hp_copy(_extra(WAND, stunned=True)) is None  # a wand is no way out of a stun

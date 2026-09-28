@@ -19,6 +19,7 @@ fails on any visible text without a translation.
 from __future__ import annotations
 
 import re
+from collections.abc import Callable
 from typing import Any
 
 DEFAULT_LANG = "en"
@@ -156,6 +157,9 @@ _RU_EXACT: dict[str, str] = {
     ),
     "Recover farm through the safest wave-and-camp route.": (
         "Навёрстывайте фарм по самому безопасному маршруту из волн и лагерей."
+    ),
+    "A silence does not stop items: get rid of it before the next spell lands.": (
+        "Немота не мешает предметам: снимите её до следующего заклинания."
     ),
     "Reset HP before showing on another lane.": (
         "Восстановите HP, прежде чем появляться на другой линии."
@@ -502,6 +506,63 @@ _RU_PATTERNS: tuple[tuple[re.Pattern[str], str], ...] = (
         "Добиваний к {m}-й минуте: {lh}, хороший темп — {low}+. "
         "Сначала восстановите фарм, потом ищите драки.",
     ),
+    # live_tools.py: the tool that is ready right now.
+    (
+        re.compile(r"^Use (?P<name>.+) now to get out, then reset HP\.$"),
+        "Используйте {name} сейчас, чтобы уйти, потом восстановите HP.",
+    ),
+    (
+        re.compile(
+            r"^Your HP is low and (?P<name>.+) is ready: use it before the next hit, not after\.$"
+        ),
+        "HP мало, а {name} готов: нажмите его до следующего удара, а не после.",
+    ),
+    (
+        re.compile(r"^Use (?P<name>.+) now, then step back\.$"),
+        "Нажмите {name} сейчас и отойдите.",
+    ),
+    (
+        re.compile(r"^Magic Wand has (?P<n>\d+) charges: that HP is yours right now\.$"),
+        "В Magic Wand {n} зарядов: это HP можно получить прямо сейчас.",
+    ),
+    (
+        re.compile(r"^(?P<name>Magic Wand) is charged: that HP is yours right now\.$"),
+        "{name} заряжен: это HP можно получить прямо сейчас.",
+    ),
+    (
+        re.compile(r"^(?P<name>.+) is ready and heals you at once\.$"),
+        "{name} готов и лечит сразу.",
+    ),
+    (
+        re.compile(r"^(?P<name>.+) heals you at once\.$"),
+        "{name} лечит сразу.",
+    ),
+    (
+        re.compile(r"^Step out of enemy range and use (?P<name>.+)\.$"),
+        "Отойдите туда, где враг не достанет, и используйте {name}.",
+    ),
+    (
+        re.compile(r"^(?P<name>.+) heals over time: use it where enemies cannot hit you\.$"),
+        "{name} лечит постепенно: используйте там, где вас не достанут.",
+    ),
+    (
+        re.compile(r"^Use (?P<name>.+) now: it removes the silence\.$"),
+        "Нажмите {name} сейчас: он снимает немоту.",
+    ),
+    (
+        re.compile(r"^The moment the disable ends, use (?P<name>.+)\.$"),
+        "Как только контроль закончится, сразу нажмите {name}.",
+    ),
+    (
+        re.compile(
+            r"^(?P<name>.+) is ready: the second after a disable is when most kills finish\.$"
+        ),
+        "{name} готов: чаще всего добивают в первую секунду после контроля.",
+    ),
+    (
+        re.compile(r"^You died with (?P<name>.+) ready: next time use it at the first big hit\.$"),
+        "Вы погибли с готовым {name}: в следующий раз нажмите его при первом сильном ударе.",
+    ),
     (
         re.compile(r"^Use your gold: (?P<name>.+) can be bought now\.$"),
         "Потратьте золото: {name} уже можно купить.",
@@ -543,6 +604,66 @@ _RU_PATTERNS: tuple[tuple[re.Pattern[str], str], ...] = (
     ),
 )
 
+# Death places (live_tools.death_copy): Russian needs the zone in a case, so
+# these render with a function instead of a format template.
+_ZONE_FROM = {
+    "top lane": "от верхней линии",
+    "mid lane": "от центральной линии",
+    "bottom lane": "от нижней линии",
+    "jungle": "от леса",
+}
+_ZONE_IN = {
+    "top lane": "на верхней линии",
+    "mid lane": "на центральной линии",
+    "bottom lane": "на нижней линии",
+    "jungle": "в лесу",
+}
+_SIDE = {
+    "on your side": "на своей половине",
+    "by the river": "у реки",
+    "on the enemy side": "на половине врага",
+}
+_ZONE_RE = "(?P<zone>top lane|mid lane|bottom lane|jungle)"
+_SIDE_RE = "(?P<side>on your side|by the river|on the enemy side)"
+
+
+def _deaths_word(count: int) -> str:
+    if count % 10 == 1 and count % 100 != 11:
+        return "смерть"
+    if 2 <= count % 10 <= 4 and not 12 <= count % 100 <= 14:
+        return "смерти"
+    return "смертей"
+
+
+_RU_FUNCTIONS: tuple[tuple[re.Pattern[str], Callable[[dict[str, str]], str]], ...] = (
+    (
+        re.compile(rf"^After respawn, stay away from the {_ZONE_RE} {_SIDE_RE}\.$"),
+        lambda g: (
+            f"После возрождения держитесь подальше {_ZONE_FROM[g['zone']]} {_SIDE[g['side']]}."
+        ),
+    ),
+    (
+        re.compile(
+            rf"^(?P<count>\d+) deaths in the {_ZONE_RE} {_SIDE_RE} in (?P<m>\d+) minutes?: "
+            r"farm somewhere safer until your team is there\.$"
+        ),
+        lambda g: (
+            f"{g['count']} {_deaths_word(int(g['count']))} {_ZONE_IN[g['zone']]} "
+            f"{_SIDE[g['side']]} за {g['m']} мин: фармите в другом месте, пока там нет вашей команды."
+        ),
+    ),
+    (
+        re.compile(
+            rf"^You died in the {_ZONE_RE} on the enemy side: "
+            r"farm your own half until your team is with you\.$"
+        ),
+        lambda g: (
+            f"Вы погибли {_ZONE_IN[g['zone']]} на половине врага: "
+            "фармите на своей половине, пока команда не рядом."
+        ),
+    ),
+)
+
 # advice_ux_policy rewords coaching-mode actions as "Consider: <action>" (older
 # logs and history have "Consider <action>").
 _CONSIDER_PREFIX = re.compile(r"^Consider:? (?P<rest>.+)$")
@@ -573,6 +694,10 @@ def _translate_sentence(text: str) -> str | None:
         match = pattern.match(text)
         if match:
             return template.format(**match.groupdict())
+    for pattern, render in _RU_FUNCTIONS:
+        match = pattern.match(text)
+        if match:
+            return render(match.groupdict())
     return None
 
 

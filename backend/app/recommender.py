@@ -8,6 +8,12 @@ short, safe action/reason/risk text.
 from app.advice_policy import build_advice_policy
 from app.hero_profiles import evaluate_laning_context
 from app.laning_coach import build_laning_advice
+from app.live_tools import (
+    LOW_HP_ACTION_TYPES,
+    death_copy,
+    disabled_copy,
+    low_hp_copy,
+)
 from app.post_laning_coach import build_post_laning_advice, spend_while_dead_sentence
 from app.schemas import GameSituationRequest, RecommendationResponse
 
@@ -172,10 +178,25 @@ DEATH_ACTION_TYPES = {
 
 def _fallback_text(req: GameSituationRequest, action_type: str) -> dict[str, str]:
     text = _base_fallback_text(req, action_type)
+    extra = req.extra_context or {}
+    # Name what can be pressed right now (live_tools.py); the plain text stays
+    # when GSI shows nothing ready.
+    tool = None
+    if action_type in LOW_HP_ACTION_TYPES:
+        tool = low_hp_copy(extra)
+    elif action_type == "wait_out_disable":
+        tool = disabled_copy(extra)
+    if tool is not None:
+        text = {**text, "action": tool[0], "reason": tool[1]}
     if action_type in DEATH_ACTION_TYPES and not text["action"].startswith("Buy parts"):
-        spend = spend_while_dead_sentence(req)
-        if spend is not None:
-            text = {**text, "reason": spend}
+        # Where the deaths keep happening, and the lesson of this one (a rescue
+        # item left unpressed); else what to buy while waiting.
+        action, reason = death_copy(extra)
+        reason = reason or spend_while_dead_sentence(req)
+        if action is not None:
+            text = {**text, "action": action}
+        if reason is not None:
+            text = {**text, "reason": reason}
     return text
 
 

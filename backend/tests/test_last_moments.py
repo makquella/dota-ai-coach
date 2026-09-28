@@ -131,3 +131,19 @@ def test_ready_only_while_disabled_is_not_an_unpressed_item():
         "saver_ready"
         in review_deaths({"deaths_log": [{"t": 219, "last": last}]})["deaths"][0]["notes"]
     )
+
+
+def test_an_item_pressed_in_the_last_seconds_is_not_unused():
+    """Ready on a free second, then pressed (on cooldown at the last tick): not "unused"."""
+    buffer = LastSeconds()
+    hero = {"alive": True, "health_percent": 60, "mana_percent": 50}
+    force = {"name": "item_force_staff", "can_cast": True, "cooldown": 0}
+    buffer.observe(115, hero, {"slot0": force})
+    buffer.observe(117, {**hero, "health_percent": 30}, {"slot0": {**force, "cooldown": 19}})
+    buffer.observe(119, {**hero, "health_percent": 5}, {"slot0": {**force, "cooldown": 17}})
+    summary = buffer.summarize(120)
+    assert summary["usable"] == []
+    # Never pressed: still ready at the last tick.
+    buffer.observe(115, hero, {"slot0": force})
+    buffer.observe(119, {**hero, "health_percent": 5}, {"slot0": force})
+    assert buffer.summarize(120)["usable"] == ["item_force_staff"]

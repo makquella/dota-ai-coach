@@ -1,0 +1,246 @@
+"""
+live_tools.py - what the player can press right now, for the survival advice.
+
+The survival cards ("Leave the wave and reset HP", "Wait out the disable",
+"After respawn, change your route") were the same every time. With the live
+GSI items they can name the tool that is ready:
+
+- low HP: an escape (Force Staff, Eul's, Ghost Scepter…), an instant heal
+  (Magic Wand with its charges, Satanic, Faerie Fire…) or regen to use out of
+  sight (Healing Salve, Tango, Bottle);
+- a disable: what dispels it or gets out once it ends (Black King Bar, Manta
+  Style, Lotus Orb…); a silence alone does not stop items, so then "now";
+- a death: the rescue item that was ready and not pressed in the last seconds
+  (last_moments.py, from the match recording).
+
+Only what GSI reports as ready counts (last_moments.ready_savers: castable, off
+cooldown, a Magic Wand from 10 charges); without an items block nothing is
+claimed and the plain text stays.
+"""
+
+from __future__ import annotations
+
+from collections.abc import Mapping
+from typing import Any
+
+from app.last_moments import SAVERS
+
+# Low HP: first a way out, then an instant heal.
+ESCAPES = (
+    "item_force_staff",
+    "item_hurricane_pike",
+    "item_cyclone",
+    "item_wind_waker",
+    "item_ghost",
+    "item_glimmer_cape",
+    "item_invis_sword",
+    "item_silver_edge",
+    "item_manta",
+    "item_blink",
+    "item_swift_blink",
+    "item_arcane_blink",
+    "item_overwhelming_blink",
+    "item_black_king_bar",
+)
+# Only real instant heals: Satanic and Bloodstone heal through lifesteal while
+# attacking or casting, so "press it and step back" would heal nothing.
+INSTANT_HEALS = (
+    "item_magic_wand",
+    "item_guardian_greaves",
+)
+# Consumables that heal: instant first, then over time (use out of sight).
+REGEN_INSTANT = {"item_faerie_fire": "Faerie Fire", "item_cheese": "Cheese"}
+REGEN_OVER_TIME = {
+    "item_flask": "Healing Salve",
+    "item_bottle": "Bottle",
+    "item_tango": "Tango",
+    "item_tango_single": "Tango",
+}
+# A disable: what removes it or gets out the moment it ends.
+DISPELS = (
+    "item_black_king_bar",
+    "item_manta",
+    "item_lotus_orb",
+    "item_cyclone",
+    "item_wind_waker",
+    "item_satanic",
+    "item_guardian_greaves",
+    "item_disperser",
+)
+
+LOW_HP_ACTION_TYPES = {
+    "retreat_reset",
+    "play_back_and_regen",
+    "stop_overstay_low_hp",
+    "stabilize_after_recent_damage",
+}
+
+
+def _dict(value: Any) -> dict[str, Any]:
+    return value if isinstance(value, dict) else {}
+
+
+def _count(value: Any) -> int:
+    if isinstance(value, bool) or not isinstance(value, (int, float)) or value != value:
+        return 0
+    return int(value) if 0 <= value < 1000 else 0
+
+
+def regen_items(items: Any) -> list[str] | None:
+    """Healing consumables in the inventory that can be used (None: no items block)."""
+    if not isinstance(items, dict) or not items:
+        return None
+    found: list[str] = []
+    for slot, value in items.items():
+        item = _dict(value)
+        name = item.get("name")
+        if not str(slot).startswith("slot") or not isinstance(name, str) or name in found:
+            continue
+        if name not in REGEN_INSTANT and name not in REGEN_OVER_TIME:
+            continue
+        if item.get("can_cast") is False:
+            continue
+        if name == "item_bottle" and _count(item.get("charges")) < 1:
+            continue
+        found.append(name)
+    return found
+
+
+def wand_charges(items: Any) -> int | None:
+    for slot, value in _dict(items).items():
+        item = _dict(value)
+        if str(slot).startswith("slot") and item.get("name") == "item_magic_wand":
+            return _count(item.get("charges"))
+    return None
+
+
+def _label(name: str) -> str:
+    saver = SAVERS.get(name)
+    if saver:
+        return saver["en"]
+    return REGEN_INSTANT.get(name) or REGEN_OVER_TIME.get(name) or name
+
+
+def _first(ready: list[str], order: tuple[str, ...]) -> str | None:
+    return next((name for name in order if name in ready), None)
+
+
+def _ready(extra: Mapping[str, Any]) -> list[str] | None:
+    ready = extra.get("ready_savers")
+    if not isinstance(ready, list):
+        return None
+    return [name for name in ready if isinstance(name, str)]
+
+
+def _items_blocked(extra: Mapping[str, Any]) -> bool:
+    """Stunned, hexed or muted: no item can be used right now."""
+    return any(extra.get(flag) is True for flag in ("stunned", "hexed", "muted"))
+
+
+def low_hp_copy(extra: Mapping[str, Any]) -> tuple[str, str] | None:
+    """(action, reason) naming the tool to press at low HP; None without one.
+    Stunned, hexed or muted, no item can be pressed: the post-disable wording."""
+    ready = _ready(extra)
+    if ready is None:
+        return None
+    if _items_blocked(extra):
+        return disabled_copy(extra)
+    escape = _first(ready, ESCAPES)
+    if escape:
+        name = _label(escape)
+        return (
+            f"Use {name} now to get out, then reset HP.",
+            f"Your HP is low and {name} is ready: use it before the next hit, not after.",
+        )
+    heal = _first(ready, INSTANT_HEALS)
+    if heal == "item_magic_wand":
+        charges = _count(extra.get("wand_charges"))
+        return (
+            "Use Magic Wand now, then step back.",
+            f"Magic Wand has {charges} charges: that HP is yours right now."
+            if charges
+            else "Magic Wand is charged: that HP is yours right now.",
+        )
+    if heal:
+        name = _label(heal)
+        return (f"Use {name} now, then step back.", f"{name} is ready and heals you at once.")
+    regen = extra.get("regen_items")
+    regen = [n for n in regen if isinstance(n, str)] if isinstance(regen, list) else []
+    instant = next((n for n in regen if n in REGEN_INSTANT), None)
+    if instant:
+        name = _label(instant)
+        return (f"Use {name} now, then step back.", f"{name} heals you at once.")
+    over_time = next((n for n in regen if n in REGEN_OVER_TIME), None)
+    if over_time:
+        name = _label(over_time)
+        return (
+            f"Step out of enemy range and use {name}.",
+            f"{name} heals over time: use it where enemies cannot hit you.",
+        )
+    return None
+
+
+def disabled_copy(extra: Mapping[str, Any]) -> tuple[str, str] | None:
+    """(action, reason) for a disable when a dispel or escape is ready."""
+    ready = _ready(extra)
+    if not ready:
+        return None
+    blocked = _items_blocked(extra)
+    tool = _first(ready, DISPELS)
+    if not blocked and extra.get("silenced") is True and tool:
+        name = _label(tool)
+        return (
+            f"Use {name} now: it removes the silence.",
+            "A silence does not stop items: get rid of it before the next spell lands.",
+        )
+    tool = tool or _first(ready, ESCAPES)
+    if not blocked or not tool:
+        return None
+    name = _label(tool)
+    return (
+        f"The moment the disable ends, use {name}.",
+        f"{name} is ready: the second after a disable is when most kills finish.",
+    )
+
+
+ZONES = {"top": "top lane", "mid": "mid lane", "bot": "bottom lane", "jungle": "jungle"}
+SIDES = {"own": "on your side", "river": "by the river", "enemy": "on the enemy side"}
+
+
+def death_items_reason(extra: Mapping[str, Any]) -> str | None:
+    """The rescue item that was ready and not pressed before the last death."""
+    items = extra.get("death_items")
+    if not isinstance(items, list):
+        return None
+    names = [_label(n) for n in items if isinstance(n, str) and n in SAVERS]
+    if not names:
+        return None
+    return f"You died with {names[0]} ready: next time use it at the first big hit."
+
+
+def death_copy(extra: Mapping[str, Any]) -> tuple[str | None, str | None]:
+    """(action, reason) of a death advice from where it happened and what was
+    left unpressed; None for a part that stays as it is.
+
+    Two or more deaths in the same zone and half within ten minutes → stay away
+    from there; one death on the enemy half → farm your own half; the unpressed
+    item is the lesson and wins the reason."""
+    action = reason = None
+    place = extra.get("death_place")
+    if isinstance(place, Mapping) and place.get("zone") in ZONES and place.get("side") in SIDES:
+        where = f"{ZONES[place['zone']]} {SIDES[place['side']]}"
+        count = place.get("count") if isinstance(place.get("count"), int) else 1
+        minutes = place.get("minutes") if isinstance(place.get("minutes"), int) else 1
+        if count >= 2:
+            action = f"After respawn, stay away from the {where}."
+            noun = "minute" if minutes == 1 else "minutes"
+            reason = (
+                f"{count} deaths in the {where} in {minutes} {noun}: "
+                "farm somewhere safer until your team is there."
+            )
+        elif place["side"] == "enemy":
+            reason = (
+                f"You died in the {ZONES[place['zone']]} on the enemy side: "
+                "farm your own half until your team is with you."
+            )
+    return action, death_items_reason(extra) or reason
