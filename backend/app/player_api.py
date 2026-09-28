@@ -165,6 +165,16 @@ def player_week(
     return {"week": PLAYER_SERVICE.week(normalize_lang(lang), until, since)}
 
 
+@router.get("/usage", summary="Advice counts of a period for the opt-in anonymous statistics")
+def player_usage(
+    since: Annotated[float, Query(gt=0, lt=1e11)],
+    until: Annotated[float, Query(gt=0, lt=1e11)],
+):
+    if not until - 8 * 86400 <= since < until:
+        return JSONResponse(status_code=422, content={"status": "error", "code": "bad_period"})
+    return {"usage": PLAYER_SERVICE.usage(int(since), int(until))}
+
+
 @router.get("/backup", summary="The whole history as one backup (no keys)")
 def export_history(request: Request):
     return PLAYER_SERVICE.export_backup(str(request.app.version))

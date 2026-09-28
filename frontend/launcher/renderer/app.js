@@ -150,6 +150,19 @@ const I18N = {
     moveActiveHint: "Drag the card, then press Done",
     moveStart: "Move",
     moveDone: "Done",
+    statsTitle: "Anonymous statistics",
+    statsHint: "Once a day: which advice the coach showed and which warnings came before a death. No heroes, matches, nickname or keys. Helps make the advice better.",
+    statsPreview: "What is sent (today so far)",
+    statsTerms: "Kept for a year.",
+    statsOff: "Off: nothing is sent.",
+    statsOn: "On: the first upload is tomorrow, with today's counts.",
+    statsSent: (date) => `On. Last sent ${date}.`,
+    statsPreviewLoading: "Collecting…",
+    statsPreviewFailed: "The service is not running: nothing to show.",
+    serverDelete: "Delete my data on the server",
+    serverDeleteConfirm: "Delete for sure? Press again",
+    serverDeleted: "Deleted: problem reports, shared links and statistics of this computer are gone from the server.",
+    serverDeleteFailed: (code) => `Could not delete (${code}): check the internet and try again.`,
     discordTitle: "Status in Discord",
     discordHint: "Your Discord friends see «Playing Juggernaut · with the Wardly coach» while Dota runs",
     discordStates: {
@@ -588,6 +601,19 @@ const I18N = {
     moveActiveHint: "Перетащите карточку и нажмите «Готово»",
     moveStart: "Переместить",
     moveDone: "Готово",
+    statsTitle: "Анонимная статистика",
+    statsHint: "Раз в день: какие подсказки показал тренер и после каких предупреждений была смерть. Без героев, матчей, ника и ключей. Помогает сделать подсказки лучше.",
+    statsPreview: "Что отправляется (за сегодня)",
+    statsTerms: "Хранится год.",
+    statsOff: "Выключено: ничего не отправляется.",
+    statsOn: "Включено: первая отправка — завтра, со счётчиками за сегодня.",
+    statsSent: (date) => `Включено. Последняя отправка — ${date}.`,
+    statsPreviewLoading: "Собираем…",
+    statsPreviewFailed: "Сервис не запущен: показать нечего.",
+    serverDelete: "Удалить мои данные на сервере",
+    serverDeleteConfirm: "Точно удалить? Нажмите ещё раз",
+    serverDeleted: "Удалено: отчёты о проблемах, ссылки «Поделиться» и статистика этого компьютера стёрты с сервера.",
+    serverDeleteFailed: (code) => `Не получилось удалить (${code}): проверьте интернет и попробуйте ещё раз.`,
     discordTitle: "Статус в Discord",
     discordHint: "Друзья в Discord видят «Матч на Juggernaut · с тренером Wardly», пока запущена Дота",
     discordStates: {
@@ -960,6 +986,12 @@ const els = {
   reportOpen: $("#report-open"),
   reportPanel: $("#report-panel"),
   reportNote: $("#report-note"),
+  shareStats: $("#share-stats"),
+  statsHint: $("#stats-hint"),
+  statsPreview: $("#stats-preview"),
+  statsPreviewText: $("#stats-preview-text"),
+  statsPrivacy: $("#stats-privacy"),
+  serverDelete: $("#server-delete"),
   reportPreview: $("#report-preview"),
   reportPreviewText: $("#report-preview-text"),
   reportPrivacy: $("#report-privacy"),
@@ -1020,6 +1052,8 @@ let weeklyMessage = "";
 let weeklyBusy = false;
 let lastWeekly = null;
 let reportPreviewLoaded = false;
+let serverDeleteArmed = false;
+let serverDeleteNote = "";
 const seenAdvice = new Set();
 
 init();
@@ -1340,6 +1374,53 @@ async function init() {
       } finally {
         els.reportSend.disabled = false;
         els.reportCancel.disabled = false;
+      }
+    })
+  );
+  els.shareStats.addEventListener("change", () =>
+    run(async () => {
+      serverDeleteNote = "";
+      renderStatus(await window.launcherApi.setShareStats(els.shareStats.checked));
+    })
+  );
+  els.statsPreview.addEventListener("toggle", () => {
+    if (!els.statsPreview.open) {
+      return;
+    }
+    // Always fresh: the counts change with every match.
+    els.statsPreviewText.textContent = tr("statsPreviewLoading");
+    Promise.resolve(window.launcherApi.statsPreview())
+      .then((result) => {
+        els.statsPreviewText.textContent = result && result.ok ? result.text : tr("statsPreviewFailed");
+      })
+      .catch(() => {
+        els.statsPreviewText.textContent = tr("statsPreviewFailed");
+      });
+  });
+  els.statsPrivacy.addEventListener("click", () => run(() => window.launcherApi.openPrivacy()));
+  els.serverDelete.addEventListener("click", () =>
+    run(async () => {
+      // Two presses: the first one asks, for a few seconds.
+      if (!serverDeleteArmed) {
+        serverDeleteArmed = true;
+        els.serverDelete.querySelector("span").textContent = tr("serverDeleteConfirm");
+        setTimeout(() => {
+          serverDeleteArmed = false;
+          els.serverDelete.querySelector("span").textContent = tr("serverDelete");
+        }, 5000);
+        return;
+      }
+      serverDeleteArmed = false;
+      els.serverDelete.disabled = true;
+      try {
+        const result = await window.launcherApi.deleteServerData();
+        serverDeleteNote = result && result.ok ? tr("serverDeleted") : tr("serverDeleteFailed", (result && result.code) || "?");
+        els.serverDelete.querySelector("span").textContent = tr("serverDelete");
+        if (result && result.status) {
+          renderStatus(result.status);
+        }
+      } finally {
+        els.serverDelete.disabled = false;
       }
     })
   );
@@ -1992,6 +2073,13 @@ function renderOverlaySettings(status) {
   els.moveToggle.disabled = !enabled;
   els.moveLabel.textContent = moving ? tr("moveDone") : tr("moveStart");
   els.moveHint.textContent = moving ? tr("moveActiveHint") : tr("moveHint");
+
+  els.shareStats.checked = Boolean(status.shareStats);
+  const statsDate = status.statsSentAt
+    ? new Date(status.statsSentAt).toLocaleDateString(locale === "ru" ? "ru-RU" : "en-GB", { day: "numeric", month: "long" })
+    : "";
+  els.statsHint.textContent =
+    serverDeleteNote || (!status.shareStats ? tr("statsOff") : statsDate ? tr("statsSent", statsDate) : tr("statsOn"));
 
   els.discordPresence.checked = status.discordPresence !== false;
   const discordState = status.discordState || { state: "idle" };

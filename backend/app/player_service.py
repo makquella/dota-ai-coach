@@ -88,6 +88,7 @@ from app.schemas import is_supported_hero
 from app.share_progress import public_progress
 from app.share_review import public_review
 from app.steam_ids import parse_account_id, steam64_from_account_id
+from app.usage_stats import usage_stats
 from app.weekly_summary import weekly_summary
 
 RECENT_MATCHES_LIMIT = 50
@@ -507,6 +508,14 @@ class PlayerService:
         )
         self._plans[key] = (now, summary)
         return summary
+
+    def usage(self, since: int, until: int) -> dict[str, Any]:
+        """Advice counts for the opt-in anonymous statistics (usage_stats.py)."""
+        primary = self.store.primary_account_id()
+        matches = (
+            self.store.matches_for_career(primary, limit=RECENT_MATCHES_LIMIT) if primary else []
+        )
+        return usage_stats(matches, since, until)
 
     def role_prior(self, hero: str) -> dict[str, Any] | None:
         """The position to assume before the lane is known (app/live_role.py): the

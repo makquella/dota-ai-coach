@@ -82,8 +82,9 @@
         <p>
           Wardly работает на вашем компьютере. История матчей, разборы и ключи хранятся только там. В интернет приложение
           обращается за данными матчей (OpenDota), за картинками героев (Valve), за обновлениями (GitHub) и, если вы сами
-          добавили ключ, к выбранному ИИ-сервису. Нам приложение отправляет только две вещи и только по вашей кнопке: отчёт о
-          проблеме и разбор матча, которым вы решили поделиться по ссылке.
+          добавили ключ, к выбранному ИИ-сервису. Нам приложение отправляет только то, что вы выбрали сами: по кнопке — отчёт о
+          проблеме, разбор или прогресс, которым вы решили поделиться по ссылке, и зашифрованную историю при переносе по коду;
+          а если вы включили анонимную статистику — раз в день счётчики подсказок.
         </p>
 
         <h2>Что хранится на компьютере</h2>
@@ -158,13 +159,27 @@
           канале удаляются в Discord.
         </p>
 
+        <h2>Анонимная статистика</h2>
+        <p>
+          Только если вы сами включили «Настройки → Приложение → Анонимная статистика» (по умолчанию выключено): раз в день
+          приложение отправляет на <code>api.luhovyimvp.dev</code> счётчики за прошлый день — сколько раз показана подсказка
+          каждого типа (например, <code>LOW_HP_WARNING: 5</code>), после скольких срочных предупреждений в течение 30 секунд была
+          смерть, сколько матчей разобрано, а также версию приложения, систему (только Windows / Linux / macOS), язык и
+          несколько настроек подсказок: оверлей, голос, частота, роль, таймеры карты, статус в Discord, есть ли ключ ИИ и
+          OpenDota (не сами ключи), был ли эксклюзивный полноэкранный режим, код последней ошибки синхронизации. Без героев,
+          номеров и времени матчей, текстов подсказок, ника, Steam ID и ключей. Идентификатор установки хранится на сервере
+          только в виде хеша. Точный текст отправки показывает «Что отправляется» под переключателем. Хранится год; одна
+          строка на установку и день. Считаем только с момента включения; выключение сразу прекращает отправку.
+        </p>
+
         <h2>Как удалить отправленное</h2>
         <p>
           Напишите номер отчёта (он показывается после отправки, например <code>R-7F3KQ2</code>) в
           <a href="https://github.com/makquella/dota-ai-coach/issues" rel="noopener">issues на GitHub</a> — отчёт удалят. Все
           отчёты вашей установки удаляет запрос <code>DELETE https://api.luhovyimvp.dev/v1/device/&lt;идентификатор&gt;</code>;
           идентификатор — поле <code>installId</code> в файле <code>%APPDATA%\DotaAICoach\settings.json</code>. Этот же запрос удаляет
-          и все опубликованные разборы установки.
+          все опубликованные разборы и статистику установки; в приложении он запускается кнопкой «Удалить мои данные на сервере»
+          в «Настройках → Приложение» (под «Анонимной статистикой»).
         </p>
 
         <h2>Сторонние сервисы</h2>
@@ -177,20 +192,21 @@
 
         <h2>Что будет дальше</h2>
         <p>
-          Анонимная статистика использования и отправка записей матчей появятся только как отдельные переключатели, выключенные
-          по умолчанию, и будут описаны на этой странице до выхода.
+          Отправка записей матчей появится только как отдельное согласие на каждую отправку и будет описана на этой странице до
+          выхода.
         </p>
       </article>
 
       <article data-doc="en" lang="en" hidden>
         <h1>Privacy</h1>
-        <p class="doc-updated">Updated September 27, 2026</p>
+        <p class="doc-updated">Updated September 28, 2026</p>
 
         <p>
           Wardly runs on your computer. Match history, reviews and keys stay there. The app goes online for match data
-          (OpenDota), hero pictures (Valve), updates (GitHub) and, if you added a key yourself, the AI service you chose. The
-          only things it sends to us are a problem report and a match review you chose to share by link — each only when you
-          press the button.
+          (OpenDota), hero pictures (Valve), updates (GitHub) and, if you added a key yourself, the AI service you chose. It
+          sends us only what you chose: on a button press, a problem report, a review or your progress shared by link, and the
+          encrypted history when you move it by code; and, if you switched on anonymous statistics, the advice counts once a
+          day.
         </p>
 
         <h2>What stays on your computer</h2>
@@ -256,13 +272,27 @@
           Nothing is sent to us. Switch it off in «Settings → App → Status in Discord».
         </p>
 
+        <h2>Anonymous statistics</h2>
+        <p>
+          Only if you switched on «Settings → App → Anonymous statistics» yourself (off by default): once a day the app sends
+          yesterday's counts to <code>api.luhovyimvp.dev</code> — how many times each kind of advice was shown (e.g.
+          <code>LOW_HP_WARNING: 5</code>), how many urgent warnings were followed by a death within 30 seconds, how many matches
+          were reviewed — plus the app version, the system (Windows / Linux / macOS only), the language and a few advice
+          settings: overlay, voice, frequency, role, map timers, Discord status, whether an AI or OpenDota key is set (never the
+          keys), whether Dota ran in exclusive fullscreen, and the code of the last sync error. No heroes, match numbers or
+          times, advice texts, nickname, Steam ID or keys. The installation id is kept on the server only as a hash. «What is
+          sent» under the switch shows the exact body. Kept for a year, one row per installation and day. Counting starts when
+          you switch it on; switching it off stops sending at once.
+        </p>
+
         <h2>Deleting what you sent</h2>
         <p>
           Post the report number (shown after sending, e.g. <code>R-7F3KQ2</code>) in
           <a href="https://github.com/makquella/dota-ai-coach/issues" rel="noopener">GitHub issues</a> and it will be deleted.
           Every report of your installation is deleted by <code>DELETE https://api.luhovyimvp.dev/v1/device/&lt;id&gt;</code>; the
           id is <code>installId</code> in <code>%APPDATA%\DotaAICoach\settings.json</code>. The same request also deletes every
-          review the installation shared.
+          review the installation shared and its statistics; in the app, «Delete my data on the server» in «Settings → App» (under
+          «Anonymous statistics») sends it.
         </p>
 
         <h2>Third-party services</h2>
@@ -275,8 +305,8 @@
 
         <h2>What comes next</h2>
         <p>
-          Anonymous usage statistics and sending match recordings will only come as separate switches, off by default, and
-          will be described on this page before they ship.
+          Sending match recordings will only come as a separate consent for each upload and will be described on this page
+          before it ships.
         </p>
       </article>
     </main>
