@@ -241,7 +241,10 @@ export async function handleShare(request, env, now = Date.now()) {
   )
     .bind(id, now, expiresAt, installId, await sha256(`dac-share:${token}`), review.lang, version, await gzip(JSON.stringify(review)))
     .run();
-  const url = `${new URL(request.url).origin}/r/${id}`;
+  // SHARE_ORIGIN: the site's own address when a Workers route sends /r/* there
+  // (luhovyimvp.dev/r/<id>); the pages work on the API's address too.
+  const origin = /^https:\/\/[a-z0-9.-]+$/.test(String(env.SHARE_ORIGIN || "")) ? env.SHARE_ORIGIN : new URL(request.url).origin;
+  const url = `${origin}/r/${id}`;
   return json({ ok: true, id, url, delete_token: token, expires_at: expiresAt }, 201);
 }
 

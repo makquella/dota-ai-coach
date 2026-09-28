@@ -26,6 +26,7 @@ contextBridge.exposeInMainWorld("launcherApi", {
   setOverlayPosition: (preset) => ipcRenderer.invoke("launcher:set-overlay-position", preset),
   setLanguage: (value) => ipcRenderer.invoke("launcher:set-language", value),
   setAdviceFrequency: (value) => ipcRenderer.invoke("launcher:set-advice-frequency", value),
+  setDiscordPresence: (enabled) => ipcRenderer.invoke("launcher:set-discord-presence", Boolean(enabled)),
   setAdvicePreferences: (patch) => ipcRenderer.invoke("launcher:set-advice-preferences", patch),
   setOverlaySize: (name) => ipcRenderer.invoke("launcher:set-overlay-size", name),
   setOverlayVoice: (mode, volume) => ipcRenderer.invoke("launcher:set-overlay-voice", mode, volume),

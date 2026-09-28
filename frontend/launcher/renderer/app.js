@@ -151,6 +151,8 @@ const I18N = {
     moveActiveHint: "Drag the card, then press Done",
     moveStart: "Move",
     moveDone: "Done",
+    discordTitle: "Status in Discord",
+    discordHint: "Your Discord friends see «Playing Juggernaut · with the Wardly coach» while Dota runs",
     autostart: "Start with Windows",
     autostartOn: "Starts hidden in the tray",
     autostartOff: "Start it yourself before playing",
@@ -171,6 +173,11 @@ const I18N = {
     whatsNewTitle: (version) => `What's new in ${version}`,
     whatsNewOk: "Got it",
     whatsNew: {
+      "0.9.0": [
+        "Status in Discord: your friends see «Playing <hero> · with the Wardly coach». Switch it off in Settings → App.",
+        "Links to reviews and progress are shorter now: luhovyimvp.dev/r/…",
+        "The website in the logo's colours."
+      ],
       "0.8.0": [
         "Death reviews: HP in the last 20 seconds and the saving item that was ready but not pressed.",
         "Progress: your build on the hero — when items come in your wins and in your losses.",
@@ -502,6 +509,8 @@ const I18N = {
     moveActiveHint: "Перетащите карточку и нажмите «Готово»",
     moveStart: "Переместить",
     moveDone: "Готово",
+    discordTitle: "Статус в Discord",
+    discordHint: "Друзья в Discord видят «Матч на Juggernaut · с тренером Wardly», пока запущена Дота",
     autostart: "Автозапуск с Windows",
     autostartOn: "Запускается скрыто в трее",
     autostartOff: "Запускайте сами перед игрой",
@@ -522,6 +531,11 @@ const I18N = {
     whatsNewTitle: (version) => `Что нового в ${version}`,
     whatsNewOk: "Понятно",
     whatsNew: {
+      "0.9.0": [
+        "Статус в Discord: друзья видят «Матч на <герой> · с тренером Wardly». Выключается в «Настройках → Приложение».",
+        "Ссылки на разборы и прогресс теперь короче: luhovyimvp.dev/r/…",
+        "Сайт в цветах логотипа."
+      ],
       "0.8.0": [
         "Разбор смертей: здоровье за последние 20 секунд и спасающий предмет, который был готов, но не нажат.",
         "«Прогресс»: ваш билд на герое — когда предметы приходят в победах и в поражениях.",
@@ -746,6 +760,7 @@ const els = {
   moveLabel: $("#move-label"),
   moveHint: $("#move-hint"),
   autostart: $("#autostart"),
+  discordPresence: $("#discord-presence"),
   autostartHint: $("#autostart-hint"),
   updateHint: $("#update-hint"),
   updateAction: $("#update-action"),
@@ -1126,6 +1141,9 @@ async function init() {
         els.reportCancel.disabled = false;
       }
     })
+  );
+  els.discordPresence.addEventListener("change", () =>
+    run(async () => renderStatus(await window.launcherApi.setDiscordPresence(els.discordPresence.checked)))
   );
   els.autostart.addEventListener("change", () =>
     run(async () => {
@@ -1734,6 +1752,7 @@ function renderOverlaySettings(status) {
   els.moveLabel.textContent = moving ? tr("moveDone") : tr("moveStart");
   els.moveHint.textContent = moving ? tr("moveActiveHint") : tr("moveHint");
 
+  els.discordPresence.checked = status.discordPresence !== false;
   els.autostart.checked = Boolean(status.autostart);
   els.autostart.disabled = !status.autostartSupported;
   els.autostartHint.textContent = !status.autostartSupported

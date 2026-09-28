@@ -300,6 +300,12 @@ test("a shared review is published, shown as a page and deleted by its author", 
   assert.match(answer.id, /^[2-9a-z]{10}$/);
   assert.equal(answer.url, `https://api.example/r/${answer.id}`);
   assert.equal(shares.length, 1);
+  // With a Workers route on the site, the link points at the site.
+  const onSite = await (
+    await worker.fetch(shareRequest({ install_id: REPORT.install_id, review: REVIEW }), { ...env, SHARE_ORIGIN: "https://luhovyimvp.dev" }, ctx)
+  ).json();
+  assert.match(onSite.url, /^https:\/\/luhovyimvp\.dev\/r\/[2-9a-z]{10}$/);
+  shares.splice(1);
 
   const json = await (await worker.fetch(new Request(`https://api.example/v1/share/${answer.id}`), env, ctx)).json();
   assert.equal(json.review.hero, "Juggernaut");

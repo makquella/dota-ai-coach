@@ -8,6 +8,9 @@ workers_dev = true
 
 [vars]
 REPORTS_ENABLED = "true"
+# Share links point at the site: a Workers route (Cloudflare dashboard) sends
+# luhovyimvp.dev/r/* to this Worker.
+SHARE_ORIGIN = "https://luhovyimvp.dev"
 
 [[d1_databases]]
 binding = "DB"

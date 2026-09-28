@@ -120,7 +120,7 @@
         <h2>Поделиться разбором</h2>
         <p>
           Только когда вы сами нажмёте «Поделиться» в разборе матча и затем «Создать ссылку». Публикуется страница
-          <code>api.luhovyimvp.dev/r/&lt;код&gt;</code>, которую откроет любой, у кого есть ссылка: герой, результат, длительность,
+          <code>luhovyimvp.dev/r/&lt;код&gt;</code>, которую откроет любой, у кого есть ссылка: герой, результат, длительность,
           дата, оценка, цифры матча (У/С/П, золото, опыт, добивания, урон), оценки разделов, до трёх сильных сторон и четырёх
           советов, число смертей и, если вы отметили, вывод ИИ-тренера. Не публикуется: номер матча, ваш Steam ID, ник, другие
           игроки, подсказки во время матча и ключи. Страница не индексируется поисковиками, хранится 90 дней, и её можно удалить
@@ -139,6 +139,13 @@
           шифрует историю матчей (то же, что в файле истории, без ключей) частью кода, которая <strong>не уходит на сервер</strong>,
           и отправляет зашифрованный файл. Сервер хранит его <strong>15 минут</strong> и не может его прочитать. Другой компьютер
           скачивает файл по коду (не больше трёх раз), расшифровывает у себя и сразу удаляет с сервера.
+        </p>
+
+        <h2>Статус в Discord</h2>
+        <p>
+          Если у вас запущен Discord, приложение передаёт ему статус «Матч на &lt;герой&gt; · с тренером Wardly» или «В меню
+          Dota 2», пока запущена Дота. Статус уходит только в программу Discord на вашем компьютере, и видят его ваши друзья в
+          Discord. Нам ничего не отправляется. Выключается в «Настройках → Приложение → Статус в Discord».
         </p>
 
         <h2>Как удалить отправленное</h2>
@@ -210,7 +217,7 @@
         <h2>Sharing a review</h2>
         <p>
           Only when you press «Share» in a match review and then «Create a link». A page
-          <code>api.luhovyimvp.dev/r/&lt;code&gt;</code> is published that anyone with the link can open: the hero, result,
+          <code>luhovyimvp.dev/r/&lt;code&gt;</code> is published that anyone with the link can open: the hero, result,
           duration, date, score, the match numbers (K/D/A, gold, XP, last hits, damage), the area scores, up to three strengths
           and four tips, the number of deaths and, if you ticked it, the AI coach's summary. Not published: the match number,
           your Steam ID, nickname, other players, the live advice and keys. The page is not indexed by search engines, is kept
@@ -230,6 +237,13 @@
           (the same as the history file, no keys) with the part of the code that <strong>never reaches the server</strong> and
           uploads the encrypted file. The server keeps it for <strong>15 minutes</strong> and cannot read it. The other computer
           downloads it with the code (three times at most), decrypts it locally and deletes it from the server right away.
+        </p>
+
+        <h2>Status in Discord</h2>
+        <p>
+          If Discord is running, the app gives it the status «Playing &lt;hero&gt; · with the Wardly coach» or «In the Dota 2
+          menu» while Dota runs. The status goes only to the Discord app on your computer, and your Discord friends see it.
+          Nothing is sent to us. Switch it off in «Settings → App → Status in Discord».
         </p>
 
         <h2>Deleting what you sent</h2>

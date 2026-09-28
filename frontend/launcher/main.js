@@ -23,6 +23,7 @@ const zlib = require("node:zlib");
 
 const { SCHEME: DOTA_ASSET_SCHEME, createAssetHandler } = require("./dota-assets");
 const transferCode = require("./transfer-code");
+const discordPresence = require("./discord-presence");
 const { createDotaWatcher } = require("./dota-watcher");
 const { createOverlayController, OVERLAY_DEFAULTS } = require("./overlay-window");
 const {
@@ -115,6 +116,8 @@ const settings = createSettingsStore(path.join(USER_DATA_DIR, "settings.json"), 
   // Position for map timers and role tips (auto = from the lane), and the timers switch.
   adviceRole: "auto",
   mapHints: true,
+  // Rich Presence on the player's Discord profile («Матч на Juggernaut · с тренером Wardly»).
+  discordPresence: true,
   // UI language: auto (system) | ru | en.
   language: "auto",
   overlay: { ...OVERLAY_DEFAULTS }
@@ -447,6 +450,7 @@ function publicStatus() {
     adviceFrequency: adviceFrequency(),
     adviceRole: adviceRole(),
     mapHints: mapHintsEnabled(),
+    discordPresence: settings.get("discordPresence") !== false,
     overlayLocked: !overlay.isUnlocked(),
     dotaRunning: dota.running,
     dotaFocused: dota.focused,
@@ -530,6 +534,7 @@ function refreshPresence() {
     postGame: live.postGame
   });
   overlay.setVisible(decision.visible);
+  refreshDiscord();
   const status = dotaStatus({ dota, inMatch: live.inMatch });
   const visibilityChanged = decision.visible !== presence.visible || decision.reason !== presence.reason;
   const statusChanged = status !== presence.status;
@@ -547,6 +552,49 @@ function refreshPresence() {
     updateStatus();
     refreshTray();
   }
+}
+
+// ---------------------------------------------------------------------------
+// Discord Rich Presence (discord-presence.js): Dota running → «В меню Dota 2»,
+// a match → «Матч на <герой>» with the time since the horn; nothing without Dota.
+// ---------------------------------------------------------------------------
+
+const discord = discordPresence.createDiscordPresence({
+  log: (message) => appendLog("discord", message)
+});
+const discordMatch = { hero: null, startedAt: null };
+
+function refreshDiscord() {
+  if (IS_SMOKE_TEST || settings.get("discordPresence") === false) {
+    discord.update(null);
+    return;
+  }
+  const dota = dotaWatcher.getState();
+  const hero = live.inMatch ? live.details.hero : null;
+  if (!live.inMatch) {
+    discordMatch.hero = null;
+    discordMatch.startedAt = null;
+  } else if (hero !== discordMatch.hero || discordMatch.startedAt === null) {
+    // The start is fixed once per match (the clock would move it every poll).
+    const clock = live.details.clockTime;
+    discordMatch.hero = hero;
+    discordMatch.startedAt = Number.isFinite(clock) && clock > 0 ? Date.now() - clock * 1000 : Date.now();
+  }
+  discord.update(
+    discordPresence.buildActivity({
+      dotaRunning: Boolean(dota.running),
+      inMatch: live.inMatch,
+      hero,
+      startedAt: discordMatch.startedAt,
+      lang: uiLocale()
+    })
+  );
+}
+
+function setDiscordPresence(enabled) {
+  settings.set("discordPresence", Boolean(enabled));
+  refreshDiscord();
+  return publicStatus();
 }
 
 // The backend decides whether GSI is fresh and comes from a match
@@ -627,6 +675,7 @@ async function pollGsiStatus() {
   if (detailsChanged) {
     // Hero and match clock on the status screen.
     updateStatus();
+    refreshDiscord();
   }
 }
 
@@ -2562,6 +2611,7 @@ function registerIpc() {
   });
   ipcMain.handle("launcher:set-language", (_event, value) => setLanguage(String(value || "")));
   ipcMain.handle("launcher:set-advice-frequency", (_event, value) => setAdviceFrequency(String(value || "")));
+  ipcMain.handle("launcher:set-discord-presence", (_event, enabled) => setDiscordPresence(Boolean(enabled)));
   ipcMain.handle("launcher:set-advice-preferences", (_event, patch) =>
     setAdvicePreferences(patch && typeof patch === "object" ? patch : {})
   );
@@ -2620,7 +2670,9 @@ function registerIpc() {
   });
   ipcMain.handle("launcher:share-open", (_event, matchId) => {
     const record = shareMatchArg(matchId) ? shareRecords()[shareMatchArg(matchId)] : null;
-    return record && record.url.startsWith(`${apiUrl()}/r/`) ? shell.openExternal(record.url) : false;
+    // Only our own share pages: the API's address or the site's (Workers route).
+    const ours = record && [`${apiUrl()}/r/`, "https://luhovyimvp.dev/r/"].some((prefix) => record.url.startsWith(prefix));
+    return ours ? shell.openExternal(record.url) : false;
   });
   ipcMain.handle("launcher:backup-export", () => exportHistory());
   ipcMain.handle("launcher:backup-import", () => importHistory());
@@ -2648,6 +2700,7 @@ function registerIpc() {
 
 async function shutdownChildren() {
   stopGsiPolling();
+  discord.stop();
   dotaWatcher.stop();
   updater.stop();
   overlay.dispose();
