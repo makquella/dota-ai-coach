@@ -457,6 +457,7 @@ function publicStatus() {
     adviceRole: adviceRole(),
     mapHints: mapHintsEnabled(),
     discordPresence: settings.get("discordPresence") !== false,
+    discordState: discord.getState(),
     discordWeekly: discordWeeklyState(),
     overlayLocked: !overlay.isUnlocked(),
     dotaRunning: dota.running,
@@ -567,7 +568,9 @@ function refreshPresence() {
 // ---------------------------------------------------------------------------
 
 const discord = discordPresence.createDiscordPresence({
-  log: (message) => appendLog("discord", message)
+  log: (message) => appendLog("discord", message, { force: true }),
+  // Shown under «Статус в Discord»: Discord not found, refused, or shown.
+  onState: () => updateStatus()
 });
 let discordMatch = { hero: null, startedAt: null };
 

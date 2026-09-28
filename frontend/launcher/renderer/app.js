@@ -153,6 +153,14 @@ const I18N = {
     moveDone: "Done",
     discordTitle: "Status in Discord",
     discordHint: "Your Discord friends see «Playing Juggernaut · with the Wardly coach» while Dota runs",
+    discordStates: {
+      idle: "It appears once Dota is running.",
+      connecting: "Connecting to Discord…",
+      no_discord: "Discord not found: open the Discord app on this computer (the browser version cannot show it).",
+      connected: "Discord connected. The status appears once Dota is running.",
+      shown: "Shown in Discord. Friends do not see it? Discord → Settings → Activity Privacy → «Share your detected activities with others».",
+      rejected: (error) => `Discord did not accept the status: ${error}`
+    },
     weeklyTitle: "The week in Discord",
     weeklyHint:
       "Every Monday your matches, results and average score of the week go to a channel of your Discord server. Channel settings → Integrations → Webhooks → New webhook → Copy webhook URL, then paste it here.",
@@ -537,6 +545,14 @@ const I18N = {
     moveDone: "Готово",
     discordTitle: "Статус в Discord",
     discordHint: "Друзья в Discord видят «Матч на Juggernaut · с тренером Wardly», пока запущена Дота",
+    discordStates: {
+      idle: "Появится, когда запущена Дота.",
+      connecting: "Подключаюсь к Discord…",
+      no_discord: "Discord не найден: откройте приложение Discord на этом компьютере (в браузере статус не работает).",
+      connected: "Discord подключён. Статус появится, когда запущена Дота.",
+      shown: "Статус показан в Discord. Друзья не видят? Discord → Настройки → Конфиденциальность активности → «Делиться своей активностью».",
+      rejected: (error) => `Discord не принял статус: ${error}`
+    },
     weeklyTitle: "Неделя в Discord",
     weeklyHint:
       "Каждый понедельник матчи, результаты и средняя оценка за неделю приходят в канал вашего сервера Discord. Настройки канала → Интеграция → Вебхуки → Новый вебхук → Копировать URL вебхука, затем вставьте ссылку сюда.",
@@ -813,6 +829,7 @@ const els = {
   moveHint: $("#move-hint"),
   autostart: $("#autostart"),
   discordPresence: $("#discord-presence"),
+  discordState: $("#discord-state"),
   weeklyHint: $("#weekly-hint"),
   weeklyForm: $("#weekly-form"),
   weeklyInput: $("#weekly-input"),
@@ -1885,6 +1902,12 @@ function renderOverlaySettings(status) {
   els.moveHint.textContent = moving ? tr("moveActiveHint") : tr("moveHint");
 
   els.discordPresence.checked = status.discordPresence !== false;
+  const discordState = status.discordState || { state: "idle" };
+  els.discordState.hidden = status.discordPresence === false;
+  els.discordState.textContent =
+    discordState.state === "rejected"
+      ? tr("discordStates.rejected", discordState.error || "?")
+      : trOr(`discordStates.${discordState.state}`, tr("discordStates.idle"));
   renderWeekly(status.discordWeekly || null);
   els.autostart.checked = Boolean(status.autostart);
   els.autostart.disabled = !status.autostartSupported;

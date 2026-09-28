@@ -88,7 +88,8 @@ function buildActivity({ dotaRunning, inMatch, hero, startedAt, lang }) {
     instance: false
   };
   if (inMatch && Number.isFinite(startedAt)) {
-    activity.timestamps = { start: Math.floor(startedAt / 1000) };
+    // Milliseconds, as the RPC server expects (seconds read as January 1970).
+    activity.timestamps = { start: Math.floor(startedAt) };
   }
   return activity;
 }
@@ -112,13 +113,17 @@ function trackMatchStart(previous, { inMatch, hero, clock, now }) {
 /**
  * A small client: connects when there is something to show, sends the latest
  * activity (same one twice is sent once), reconnects every RETRY_MS while
- * Discord is closed. `log(message)` gets connection changes only.
+ * Discord is closed. `log(message)` gets connection changes only; `onState`
+ * gets every change of `getState()` — { state: idle | connecting | no_discord |
+ * connected | shown | rejected, error } — for the panel, so a player can see
+ * why nothing shows (Discord closed, or Discord refused the activity).
  */
 function createDiscordPresence({
   clientId = CLIENT_ID,
   connect = (path) => net.createConnection(path),
   pathFor = ipcPath,
   log = () => {},
+  onState = () => {},
   retryMs = RETRY_MS,
   pid = process.pid
 } = {}) {
@@ -130,6 +135,16 @@ function createDiscordPresence({
   let retryTimer = null;
   let buffer = Buffer.alloc(0);
   let stopped = false;
+  let status = { state: "idle", error: null };
+  const pending = new Map(); // nonce -> activity sent
+
+  function setState(state, error = null) {
+    if (status.state === state && status.error === error) {
+      return;
+    }
+    status = { state, error };
+    onState({ ...status });
+  }
 
   function send(activity) {
     const key = JSON.stringify(activity);
@@ -137,7 +152,9 @@ function createDiscordPresence({
       return;
     }
     sent = key;
-    socket.write(encode(OP.FRAME, { cmd: "SET_ACTIVITY", args: { pid, activity }, nonce: crypto.randomUUID() }));
+    const nonce = crypto.randomUUID();
+    pending.set(nonce, activity);
+    socket.write(encode(OP.FRAME, { cmd: "SET_ACTIVITY", args: { pid, activity }, nonce }));
   }
 
   function reset() {
@@ -145,6 +162,7 @@ function createDiscordPresence({
     connecting = false;
     sent = "";
     buffer = Buffer.alloc(0);
+    pending.clear();
     if (socket) {
       socket.removeAllListeners();
       socket.destroy();
@@ -166,6 +184,7 @@ function createDiscordPresence({
   function tryPipe(index) {
     if (index > 9) {
       connecting = false;
+      setState("no_discord");
       scheduleRetry();
       return;
     }
@@ -184,6 +203,9 @@ function createDiscordPresence({
           log("Discord closed the connection.");
         }
         reset();
+        if (status.state !== "rejected") {
+          setState("no_discord");
+        }
         scheduleRetry();
       });
       socket.write(encode(OP.HANDSHAKE, { v: 1, client_id: clientId }));
@@ -198,7 +220,9 @@ function createDiscordPresence({
       if (frame.op === OP.PING) {
         socket.write(encode(OP.PONG, frame.data || {}));
       } else if (frame.op === OP.CLOSE) {
-        log(`Discord refused the connection: ${frame.data && frame.data.message}`);
+        const message = String((frame.data && frame.data.message) || "closed");
+        log(`Discord refused the connection: ${message}`);
+        setState("rejected", message.slice(0, 200));
         reset();
         scheduleRetry();
         return;
@@ -206,8 +230,21 @@ function createDiscordPresence({
         ready = true;
         connecting = false;
         log("Connected to Discord.");
+        setState("connected");
         if (wanted !== undefined) {
           send(wanted);
+        }
+      } else if (frame.op === OP.FRAME && frame.data && pending.has(frame.data.nonce)) {
+        // The answer to a SET_ACTIVITY: accepted, or an ERROR with the reason.
+        const activity = pending.get(frame.data.nonce);
+        pending.delete(frame.data.nonce);
+        if (frame.data.evt === "ERROR") {
+          const message = String((frame.data.data && frame.data.data.message) || "error").slice(0, 200);
+          log(`Discord did not accept the activity: ${message}`);
+          setState("rejected", message);
+          sent = ""; // try again with the next update
+        } else {
+          setState(activity ? "shown" : "connected");
         }
       }
     }
@@ -218,6 +255,9 @@ function createDiscordPresence({
       return;
     }
     connecting = true;
+    if (status.state === "idle") {
+      setState("connecting");
+    }
     tryPipe(0);
   }
 
@@ -232,6 +272,7 @@ function createDiscordPresence({
       }
     },
     isReady: () => ready,
+    getState: () => ({ ...status }),
     stop() {
       stopped = true;
       clearTimeout(retryTimer);
