@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Что нового — Wardly</title>
+    <meta name="description" content="Что появилось и что исправлено в каждой версии Wardly." />
+    <meta name="theme-color" content="#0c0d0f" />
+    <link rel="canonical" href="https://luhovyimvp.dev/changelog.html" />
+    <link rel="icon" href="assets/favicon.png" type="image/png" />
+    <link rel="stylesheet" href="styles.css" />
+    <style>
+      .doc {
+        max-width: 760px;
+        padding-top: 120px;
+        padding-bottom: 80px;
+      }
+      .doc h1 {
+        margin: 0 0 8px;
+        font-size: clamp(32px, 5vw, 44px);
+      }
+      .doc h2 {
+        margin: 40px 0 12px;
+        font-size: 22px;
+      }
+      .doc p,
+      .doc li {
+        color: var(--muted);
+      }
+      .doc strong {
+        color: var(--text);
+        font-weight: 600;
+      }
+      .doc ul {
+        padding-left: 20px;
+      }
+      .doc li + li {
+        margin-top: 6px;
+      }
+      .doc code {
+        padding: 1px 6px;
+        border: 1px solid var(--line-strong);
+        border-radius: 6px;
+        color: var(--text);
+        font-size: 0.9em;
+        overflow-wrap: anywhere;
+      }
+      .doc a {
+        color: var(--text);
+      }
+      .doc-updated {
+        margin: 0 0 28px;
+        color: var(--faint);
+        font-size: 14px;
+      }
+      .doc h3 {
+        margin: 20px 0 8px;
+        font-size: 16px;
+      }
+      .release {
+        padding-top: 8px;
+      }
+      .release + .release {
+        margin-top: 40px;
+        border-top: 1px solid var(--line-strong);
+      }
+      .release h2 a {
+        text-decoration: none;
+      }
+      .release p {
+        margin: 0 0 12px;
+      }
+      .release-link {
+        font-size: 14px;
+      }
+      [data-doc][hidden] {
+        display: none;
+      }
+    </style>
+  </head>
+  <body>
+    <header class="nav scrolled">
+      <div class="wrap nav-inner">
+        <a class="brand" href="./" aria-label="Wardly">
+          <img class="brand-mark" src="assets/logo-mark.png" alt="" width="28" height="28" />
+          <span class="brand-name">Wardly</span>
+        </a>
+        <div class="nav-actions">
+          <div class="lang" role="group" aria-label="Язык / Language">
+            <button type="button" data-lang="ru" aria-pressed="true">RU</button>
+            <button type="button" data-lang="en" aria-pressed="false">EN</button>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <main class="wrap doc">
+      <article data-doc="ru" lang="ru">
+        <h1>Что нового</h1>
+        <p class="doc-updated">Все версии Wardly. Установленное приложение обновляется само, когда Дота закрыта.</p>
+<!-- RU -->
+      </article>
+      <article data-doc="en" lang="en" hidden>
+        <h1>What's new</h1>
+        <p class="doc-updated">Every Wardly version. The installed app updates itself while Dota is closed.</p>
+<!-- EN -->
+      </article>
+    </main>
+
+    <script>
+      // Same language choice as the landing page (app.js keeps it under "dac.lang").
+      (function () {
+        var KEY = "dac.lang";
+        function apply(lang) {
+          document.documentElement.lang = lang;
+          document.title = lang === "en" ? "What's new — Wardly" : "Что нового — Wardly";
+          document.querySelectorAll("[data-doc]").forEach(function (el) {
+            el.hidden = el.dataset.doc !== lang;
+          });
+          document.querySelectorAll(".lang [data-lang]").forEach(function (button) {
+            button.setAttribute("aria-pressed", String(button.dataset.lang === lang));
+          });
+        }
+        // The app opens this page with ?lang= of its own language.
+        var lang = new URLSearchParams(location.search).get("lang") || "";
+        if (lang !== "ru" && lang !== "en") {
+          try {
+            lang = localStorage.getItem(KEY) || "";
+          } catch (error) {}
+        }
+        if (lang !== "ru" && lang !== "en") {
+          var preferred = (navigator.languages || [navigator.language || "ru"]).map(function (l) {
+            return String(l).toLowerCase();
+          });
+          lang = preferred.some(function (l) { return /^(ru|uk|be|kk)/.test(l); }) ? "ru" : "en";
+        }
+        apply(lang);
+        document.querySelectorAll(".lang [data-lang]").forEach(function (button) {
+          button.addEventListener("click", function () {
+            apply(button.dataset.lang);
+            try {
+              localStorage.setItem(KEY, button.dataset.lang);
+            } catch (error) {}
+          });
+        });
+      })();
+    </script>
+  </body>
+</html>

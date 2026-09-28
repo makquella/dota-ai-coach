@@ -401,6 +401,40 @@ FINDINGS: dict[str, dict[str, dict[str, str]]] = {
             "drill": "Keep 1–2 sentries from minute 10: at your wards, at Roshan and against invisible heroes.",
         },
     },
+    "stuns_behind": {
+        "ru": {
+            "title": "Мало контроля в драках",
+            "text": "{stuns} с оглушений у вас против {enemy_stuns} с у {hero}. Контроль — главная работа хардлайнера в драке.",
+            "drill": "Начинайте драку своим контролем: оглушение по керри или по тому, кто первым вошёл, — до того как тратить остальные способности.",
+        },
+        "en": {
+            "title": "Little control in fights",
+            "text": "{stuns} s of stuns for you against {enemy_stuns} s for {hero}. Control is the offlaner's main job in a fight.",
+            "drill": "Start fights with your control: stun the carry or whoever comes in first, before spending the rest of your spells.",
+        },
+    },
+    "stuns_good": {
+        "ru": {
+            "title": "Контроль в драках",
+            "text": "{stuns} с оглушений против {enemy_stuns} с у вражеского хардлайнера — вы задавали драки.",
+        },
+        "en": {
+            "title": "Control in fights",
+            "text": "{stuns} s of stuns against {enemy_stuns} s for the enemy offlaner — you set up the fights.",
+        },
+    },
+    "towers_behind": {
+        "ru": {
+            "title": "Мало давления на строения",
+            "text": "{damage} урона по строениям у вас против {enemy_damage} у {hero}. Хардлайнер, который не давит вышки, отдаёт карту.",
+            "drill": "После выигранной драки или когда враги показались на другой линии — сразу бейте ближайшую вышку, а не уходите в лес.",
+        },
+        "en": {
+            "title": "Little pressure on buildings",
+            "text": "{damage} building damage for you against {enemy_damage} for {hero}. An offlaner who does not hit towers gives up the map.",
+            "drill": "After a won fight, or when the enemies show on another lane, hit the nearest tower right away instead of going back to the jungle.",
+        },
+    },
     "stacks_good": {
         "ru": {
             "title": "Стаки для команды",

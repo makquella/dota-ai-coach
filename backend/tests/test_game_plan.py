@@ -51,6 +51,10 @@ def test_plan_names_the_farm_target_key_item_and_recurring_mistake(client, tmp_p
 
     english = service.game_plan("Juggernaut", "en")
     assert english["lines"][0].startswith("55 last hits by 10:00 (your average: ")
+    # The record on the hero next to its name: every fixture match is on Juggernaut.
+    rows = service.store.matches_for_career(ME, limit=20)
+    wins = sum(1 for row in rows if row["win"])
+    assert plan["record"] == f"{wins}–{len(rows) - wins}"
 
 
 def test_plan_is_cached_and_needs_a_linked_account_and_known_hero(client, tmp_path):
@@ -70,6 +74,7 @@ def test_a_hero_never_played_still_gets_the_target_and_overall_reminder(client, 
     # No own average and no cached build for Anti-Mage: the plain target only.
     assert plan["lines"][0] == "55 last hits by 10:00"
     assert not any("wins" in line for line in plan["lines"])
+    assert "record" not in plan
 
 
 def test_an_unplayed_non_carry_hero_gets_no_guessed_target(client, tmp_path):
@@ -132,3 +137,16 @@ def test_recurring_problems_keep_one_order_across_processes():
     }
     assert len(outputs) == 1
     assert outputs.pop().startswith("['lh10_low', 'lane_eff_low', 'lane_deaths'")
+
+
+def test_the_record_skips_matches_without_a_result():
+    rows = [{"win": None}] * 5 + [{"win": True}] * 15 + [{"win": False}] * 10
+    plan = build_game_plan(
+        hero="Juggernaut",
+        history=rows[:20],
+        record_history=rows,
+        all_recent=[],
+        meta=None,
+        lang="en",
+    )
+    assert plan["record"] == "15–5"  # the last 20 finished games, not 15 of 20 rows

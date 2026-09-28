@@ -321,10 +321,13 @@ class PlayerService:
         if cached is not None and now - cached[0] < GAME_PLAN_CACHE_SECONDS:
             return cached[1]
         focus = self._focus(primary)
+        # Extra rows so that matches without a result do not shorten the record.
+        on_hero = self.store.matches_for_career(primary, limit=40, hero_id=hero_id)
         plan = build_game_plan(
             focus=focus_summary(focus, [], lang)["title"] if focus else None,
             hero=hero_name(hero_id),
-            history=self.store.matches_for_career(primary, limit=20, hero_id=hero_id),
+            history=on_hero[:20],
+            record_history=on_hero,
             all_recent=self.store.matches_for_career(primary, limit=RECENT_MATCHES_LIMIT),
             meta=self._hero_meta(hero_id),
             lang=lang,
