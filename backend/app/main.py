@@ -43,6 +43,7 @@ from app.gsi_state import (
 from app.live_role import SETTINGS as ROLE_SETTINGS
 from app.live_role import role_setting, set_role_setting
 from app.live_session_recorder import LIVE_SESSION_RECORDER
+from app.live_tools import disabled_copy
 from app.llm_provider import generate_llm_recommendation, is_llm_provider_enabled
 from app.logger import log_recommendation, prune_logs
 from app.map_hints import map_hint
@@ -67,7 +68,7 @@ app = FastAPI(
     lifespan=_lifespan,
     title="Wardly",
     description="MVP-1: rule-based carry coach with local knowledge-base RAG.",
-    version="0.14.0",
+    version="0.15.0",
 )
 app.include_router(player_router)
 
@@ -101,7 +102,7 @@ if FRONTEND_DIR.exists():
 @app.get("/", summary="Health check")
 def root():
     """Simple health-check endpoint."""
-    return {"status": "ok", "service": "Wardly", "version": "0.14.0"}
+    return {"status": "ok", "service": "Wardly", "version": "0.15.0"}
 
 
 @app.get("/health", summary="Health check")
@@ -308,6 +309,9 @@ def overlay_recommendation(lang: str = "en"):
     post_game = _post_game_for_overlay(response, lang)
     if post_game is not None:
         response = {**response, "post_game": post_game}
+    death_screen = _death_screen_for_overlay(response, lang)
+    if death_screen is not None:
+        response = {**response, "death_screen": death_screen}
     try:
         response = {**response, **_live_role_and_hint(response, lang)}
     except Exception as error:  # noqa: BLE001 - never breaks the live path
@@ -369,6 +373,7 @@ def _live_role_and_hint(response: dict[str, object], lang: str) -> dict[str, obj
             key_item=PLAYER_SERVICE.key_item(str(state.get("hero") or ""))
             if role and role.get("role") != "support"
             else None,
+            objective=MATCH_MEMORY.roshan.hint(clock if isinstance(clock, int) else None, lang),
         )
         if hint is not None:
             result["map_hint"] = hint
@@ -394,6 +399,24 @@ def _game_plan_for_overlay(response: dict[str, object], lang: str) -> dict[str, 
         return PLAYER_SERVICE.game_plan(str(state.get("hero") or ""), lang)
     except Exception as error:  # noqa: BLE001 - never breaks the live path
         record_error("game-plan", error)
+        return None
+
+
+def _death_screen_for_overlay(response: dict[str, object], lang: str) -> dict[str, object] | None:
+    """While the player is dead (live GSI): how it happened and what to do now."""
+    # A frozen "dead" snapshot must not hide the lost-connection status.
+    if response.get("demo_mode") or response.get("status") in {"waiting_for_gsi", "stale_gsi"}:
+        return None
+    current = get_current_state()
+    state = current.get("state") if isinstance(current.get("state"), dict) else {}
+    extra = state.get("extra_context") if isinstance(state.get("extra_context"), dict) else {}
+    if extra.get("source_type") != "live_gsi" or extra.get("alive") is not False:
+        return None
+    carry = hero_coverage(str(state.get("hero") or "")) == "full" and not _plays_support(state)
+    try:
+        return PLAYER_SERVICE.death_screen(state, lang, next_item_for_hero=carry)
+    except Exception as error:  # noqa: BLE001 - never breaks the live path
+        record_error("death-screen", error)
         return None
 
 
@@ -481,7 +504,10 @@ def _overlay_recommendation_payload() -> dict[str, object]:
     if coverage == "full" and _plays_support(state):
         coverage = "safety"
     decision_point = _covered_decision_point(
-        _live_conservative_decision_point(detect_decision_point(state), state), coverage
+        _useful_disable(
+            _live_conservative_decision_point(detect_decision_point(state), state), state
+        ),
+        coverage,
     )
 
     if decision_point == "NO_ADVICE":
@@ -1100,6 +1126,21 @@ def _live_conservative_decision_point(decision_point: str, state: dict[str, obje
         or extra_context.get("context_confidence") != "high"
     ):
         return "SOFT_STATUS"
+    return decision_point
+
+
+def _useful_disable(decision_point: str, state: dict[str, object]) -> str:
+    """Live GSI: a disable card only when something can be pressed as it ends (or
+    now, when only silenced or muted) — live_tools.disabled_copy. «Wait out the
+    disable» alone was up to 40 % of the urgent cards and changes nothing."""
+    if decision_point != "DISABLED_STATUS":
+        return decision_point
+    raw_extra = state.get("extra_context")
+    extra: dict[str, object] = raw_extra if isinstance(raw_extra, dict) else {}
+    if extra.get("source_type") != "live_gsi":
+        return decision_point
+    if disabled_copy(extra, state.get("hero")) is None:
+        return "NO_ADVICE"
     return decision_point
 
 

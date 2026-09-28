@@ -217,6 +217,11 @@ const I18N = {
     whatsNewTitle: (version) => `What's new in ${version}`,
     whatsNewOk: "Got it",
     whatsNew: {
+      "0.15.0": [
+        "Roshan and Aegis timers: the respawn window after a kill, and your Aegis warns a minute before it expires.",
+        "While you wait to respawn: how you died, what was left unpressed, what to buy now.",
+        "No more «wait out the disable» when there is nothing to press after the stun."
+      ],
       "0.14.0": [
         "Advice knows your hero: Blink to get out, Blade Fury to walk out of a fight, and how many seconds until your escape is back.",
         "The match map rings the places where you keep dying, with a route tip."
@@ -644,6 +649,11 @@ const I18N = {
     whatsNewTitle: (version) => `Что нового в ${version}`,
     whatsNewOk: "Понятно",
     whatsNew: {
+      "0.15.0": [
+        "Таймеры Рошана и Аегиса: окно появления после убийства и предупреждение за минуту до того, как сгорит ваш Аегис.",
+        "Пока ждёте возрождения: как вас убили, что осталось не нажато и что купить сейчас.",
+        "Больше нет «Переждите контроль», если после оглушения нечего нажать."
+      ],
       "0.14.0": [
         "Подсказки знают вашего героя: Blink, чтобы уйти, Blade Fury, чтобы выйти из драки, и через сколько секунд откатится побег.",
         "Карта матча обводит места, где вы умираете раз за разом, и подсказывает маршрут."

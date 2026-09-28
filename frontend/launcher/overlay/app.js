@@ -165,6 +165,11 @@ function renderOverlay(data) {
     showPostGame(data);
     return;
   }
+  // Dead, waiting to respawn: how it happened and what to do now.
+  if (data.death_screen && Array.isArray(data.death_screen.lines) && data.death_screen.lines.length) {
+    showDeathScreen(data);
+    return;
+  }
   currentHint = data.map_hint && data.map_hint.title ? data.map_hint : null;
   speakHint(currentHint);
   if (data.recommendation && (data.status === "active_advice" || data.status === "cooldown")) {
@@ -286,6 +291,30 @@ function showPostGame(data) {
   reasonEl.textContent = (card.detail || []).join(" ");
   renderStatusRow(data);
   reveal();
+}
+
+const spokenDeaths = new Set();
+
+function showDeathScreen(data) {
+  clearTimeout(hideTimer);
+  const card = data.death_screen;
+  const [first, ...rest] = card.lines;
+  shell.className = "overlay-shell plan death-screen coaching";
+  labelEl.textContent = card.title;
+  priorityEl.textContent = "";
+  actionEl.textContent = first;
+  reasonEl.textContent = rest.join("\n");
+  renderStatusRow(data);
+  reveal();
+  // Read once per death when the voice reads every advice (the id stays while the gold changes).
+  const key = `death|${card.id || data.match_death_count || ""}`;
+  if (!speaker || spokenDeaths.has(key)) {
+    return;
+  }
+  const spoken = speaker.say({ key, text: card.lines.join(". "), adviceMode: "coaching", mode: config.voice, locale: config.locale, volume: config.voiceVolume });
+  if (spoken === "spoken" || spoken === "off") {
+    spokenDeaths.add(key);
+  }
 }
 
 function showPlan(data) {

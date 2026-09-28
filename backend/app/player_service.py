@@ -52,6 +52,7 @@ from app.coach_review import (
     review_career,
     review_match,
 )
+from app.death_screen import build_death_screen
 from app.diagnostics import record_error
 from app.dota_constants import (
     TURBO_GAME_MODE,
@@ -221,6 +222,8 @@ def _now_iso() -> str:
     return datetime.now(UTC).isoformat()
 
 
+# The death screen card shows for this many seconds of clock after a death at most.
+DEATH_SCREEN_WINDOW = 150
 # Deaths in the same place within this many seconds make a pattern.
 PLACE_WINDOW = 10 * 60
 
@@ -360,6 +363,47 @@ class PlayerService:
         if not 0 <= clock - death["t"] <= within:
             return None
         return {"items": death["usable"], "place": _death_place(death)}
+
+    def death_screen(
+        self,
+        state: dict[str, Any],
+        lang: str,
+        *,
+        next_item_for_hero: bool,
+        within: int = DEATH_SCREEN_WINDOW,
+    ) -> dict[str, Any] | None:
+        """The overlay card while the player waits to respawn (death_screen.py),
+        from the death just recorded and the live state."""
+        extra = state.get("extra_context") if isinstance(state.get("extra_context"), dict) else {}
+        clock = extra.get("clock_time")
+        death = self.tracker.last_death()
+        if (
+            not death
+            or not isinstance(clock, int)
+            or not isinstance(death.get("t"), int)
+            or not 0 <= clock - death["t"] <= within
+        ):
+            return None
+        names = extra.get("item_names")
+        item = (
+            self.next_item(str(state.get("hero") or ""), names if isinstance(names, list) else None)
+            if next_item_for_hero
+            else None
+        )
+        card = build_death_screen(
+            death=death,
+            place=_death_place(death),
+            respawn=extra.get("respawn_seconds"),
+            gold=extra.get("available_gold", state.get("gold")),
+            buyback_cost=extra.get("buyback_cost"),
+            minute=state.get("minute"),
+            next_item=item,
+            lang=lang,
+        )
+        if card is not None:
+            # Stable per death (the lines change with the gold): the overlay reads it once.
+            card["id"] = f"{death.get('match_id') or ''}:{death['t']}"
+        return card
 
     def check_stale(self) -> None:
         self.tracker.check_stale()

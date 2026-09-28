@@ -500,13 +500,19 @@ def map_hint(
     lane: str | None = None,
     items: list[str] | None = None,
     key_item: dict[str, Any] | None = None,
+    objective: dict[str, Any] | None = None,
 ) -> dict[str, Any] | None:
     """A timer, but a role tip over a minor one (runes, lotus); None before the
-    horn or without a role."""
+    horn or without a role. `objective`: a Roshan / Aegis timer (roshan_timer.py),
+    which wins over a scheduled timer that is not sooner."""
     if clock is None or clock < 0 or role is None:
         return None
     tips.observe_level(level)
     timer = next_timer(clock, role, lang)
+    if objective is not None and (
+        timer is None or timer["minor"] or objective["in_seconds"] <= timer["in_seconds"]
+    ):
+        timer = objective
     if (
         timer is not None
         and role == "mid"

@@ -328,3 +328,21 @@ def test_a_mute_stops_items_not_the_heros_spells():
         "Use Force Staff now to get out, then reset HP."
     )
     assert translate_ru("Use Blade Fury now: a mute blocks items, not spells.")
+
+
+def _stunned_payload(*items):
+    payload = copy.deepcopy(gsi_match_stream(minutes=20, death_minutes=())[-1])
+    payload["hero"]["stunned"] = True
+    payload["items"] = {f"slot{i}": item for i, item in enumerate(items)}
+    return payload
+
+
+def test_a_disable_card_only_when_something_can_be_pressed(client):
+    """«Wait out the disable» alone changes nothing: no card for it."""
+    client.post("/gsi", json=_stunned_payload())
+    body = client.get("/overlay/recommendation").json()
+    assert body["decision_point"] == "NO_ADVICE" and body["recommendation"] is None
+    client.post("/gsi", json=_stunned_payload(BKB))
+    body = client.get("/overlay/recommendation").json()
+    assert body["decision_point"] == "DISABLED_STATUS"
+    assert body["recommendation"]["action"] == "The moment the disable ends, use Black King Bar."
