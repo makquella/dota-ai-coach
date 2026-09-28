@@ -360,6 +360,7 @@
         unverified: "The coach could not answer this from the match data. Try asking differently.",
         empty_question: "Type a question first.",
         no_review: "The review of this match is not ready yet.",
+        not_enough: "Not enough reviewed matches yet: open a few reviews first.",
         off: "Turn the AI coach on in Settings first."
       },
       aiSettingsTitle: "AI coach",
@@ -739,6 +740,7 @@
         unverified: "Тренер не смог ответить по данным этого матча. Попробуйте спросить иначе.",
         empty_question: "Сначала напишите вопрос.",
         no_review: "Разбор этого матча ещё не готов.",
+        not_enough: "Пока мало разобранных матчей: сначала откройте несколько разборов.",
         off: "Сначала включите ИИ-тренера в настройках."
       },
       aiSettingsTitle: "ИИ-тренер",
@@ -3474,7 +3476,8 @@
       ),
       tiles,
       coachCard(career.coach, "career") || "",
-      state.careerHero === null ? askCard(career, true) || "" : "",
+      // Asking needs at least one review (the backend answers not_enough without one).
+      state.careerHero === null && career.analyzed ? askCard(career, true) || "" : "",
       scoreCard,
       careerRankCard(career),
       state.careerHero === null ? friendCard() : "",

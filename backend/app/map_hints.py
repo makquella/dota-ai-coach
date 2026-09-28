@@ -168,6 +168,14 @@ class RoleTips:
 
     def reset(self) -> None:
         self._shown: dict[str, int] = {}
+        # Level 6 counts as reached only after a level below 6 was seen: a
+        # backend started mid-game at level 8 must not call it a new spike.
+        self._armed = False
+
+    def observe_level(self, level: int | None) -> None:
+        """Every hint request (also while a timer shows): arms the level-6 tip."""
+        if level is not None and level < POWER_SPIKE_LEVEL:
+            self._armed = True
 
     def _every(self, key: str, clock: int, every: int, show: int) -> int | None:
         """Shown for `show` seconds, then again `every` seconds later: the start."""
@@ -197,7 +205,7 @@ class RoleTips:
                 return _tip("tp", f"tp@{start}", lang)
         if role in ("mid", "offlane") and level is not None:
             key = f"{role}_six"
-            if level >= POWER_SPIKE_LEVEL and clock <= POWER_SPIKE_UNTIL:
+            if level >= POWER_SPIKE_LEVEL and clock <= POWER_SPIKE_UNTIL and self._armed:
                 # Once per match, from the moment the level is reached.
                 start = self._shown.setdefault(key, clock)
                 if 0 <= clock - start <= POWER_SPIKE_SHOW:
@@ -256,6 +264,7 @@ def map_hint(
     horn or without a role."""
     if clock is None or clock < 0 or role is None:
         return None
+    tips.observe_level(level)
     timer = next_timer(clock, role, lang)
     if timer is not None and not timer["minor"]:
         return timer

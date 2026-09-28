@@ -234,9 +234,13 @@ def test_level_six_tip_for_mid_and_offlane_once_before_minute_twelve():
     assert (
         map_hint(13 * 60 + 30, "mid", other, alive=True, has_ward=None, lang="en", level=6) is None
     )  # after 12:00 it is no longer a spike
-    off = map_hint(
-        7 * 60 + 30, "offlane", RoleTips(), alive=True, has_ward=None, lang="en", level=7
-    )
+    offlane = RoleTips()
+    # First seen at level 7 (the app started mid-game): not a new spike.
+    late = map_hint(7 * 60 + 30, "offlane", offlane, alive=True, has_ward=None, lang="en", level=7)
+    assert late is None or not late["id"].startswith("offlane_six")
+    fresh = RoleTips()
+    map_hint(6 * 60 + 50, "offlane", fresh, alive=True, has_ward=None, lang="en", level=5)
+    off = map_hint(7 * 60 + 30, "offlane", fresh, alive=True, has_ward=None, lang="en", level=6)
     assert off["title"] == "Level 6: pressure the lane"
     carry = map_hint(
         7 * 60 + 30, "carry", RoleTips(), alive=True, has_ward=None, lang="en", level=6
