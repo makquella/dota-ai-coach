@@ -42,6 +42,28 @@
         bad_response: "OpenDota answered with an error."
       },
       matchesTitle: "Matches",
+      matchesSub: "Every game with its review: open one to see what to fix",
+      matchesTableTitle: "Match history",
+      progressTitle: "Progress",
+      zoneFix: "What to fix",
+      zoneFixHint: "The coach's review and the goal for the next game",
+      zoneStory: "How the match went",
+      zoneStoryHint: "Farm and gold over time, deaths, the advice you got",
+      zoneScores: "Scores and comparison",
+      zoneScoresHint: "Areas of the game, what went well, your rank",
+      zoneMapItems: "Map and items",
+      zoneMapItemsHint: "Where you were, what you bought and when",
+      zoneTeams: "Teams",
+      zoneSummary: "Summary",
+      zoneSummaryHint: "Your last 10 matches against the 10 before",
+      zoneCoach: "Coach",
+      zoneCoachHint: "What keeps coming back and what to train",
+      zoneGames: "Games and heroes",
+      zoneGamesHint: "The score of every match and your heroes",
+      zoneCompare: "Comparison",
+      zoneCompareHint: "Players of your rank, enemy heroes, a friend",
+      zoneHero: "Your main hero",
+      zoneHeroHint: "Your best games against your worst, your build",
       colResult: "Result",
       colHero: "Hero",
       colKda: "K / D / A",
@@ -100,6 +122,10 @@
       deathsTitle: (count) => `Deaths · ${count}`,
       weekGames: "Matches",
       weekVsPrevious: "vs the week before",
+      weekRecord: (w, l) => `${w}W · ${l}L`,
+      weekNoPrevious: "No matches the week before to compare with",
+      weekNoPrevScore: "The week before has no reviewed matches",
+      weekChartTitle: "Score of every match this week",
       weekBest: "Best match",
       weekHeroes: "Heroes:",
       weekHeroTitle: (hero, games, wins) => `${hero}: ${games} ${games === 1 ? "match" : "matches"}, ${wins} ${wins === 1 ? "win" : "wins"}`,
@@ -448,6 +474,28 @@
         bad_response: "OpenDota ответил ошибкой."
       },
       matchesTitle: "Матчи",
+      matchesSub: "Все игры с разборами: откройте матч, чтобы увидеть, что исправить",
+      matchesTableTitle: "История матчей",
+      progressTitle: "Прогресс",
+      zoneFix: "Что исправить",
+      zoneFixHint: "Разбор тренера и цель на следующую игру",
+      zoneStory: "Как шёл матч",
+      zoneStoryHint: "Фарм и золото по ходу игры, смерти, ваши подсказки",
+      zoneScores: "Оценки и сравнение",
+      zoneScoresHint: "Разделы игры, что получилось, ваш ранг",
+      zoneMapItems: "Карта и предметы",
+      zoneMapItemsHint: "Где вы были, что и когда купили",
+      zoneTeams: "Составы",
+      zoneSummary: "Итоги",
+      zoneSummaryHint: "Последние 10 матчей против 10 предыдущих",
+      zoneCoach: "Тренер",
+      zoneCoachHint: "Что повторяется и что тренировать",
+      zoneGames: "Матчи и герои",
+      zoneGamesHint: "Оценка каждого матча и ваши герои",
+      zoneCompare: "Сравнение",
+      zoneCompareHint: "Игроки вашего ранга, вражеские герои, друг",
+      zoneHero: "Ваш основной герой",
+      zoneHeroHint: "Лучшие игры против худших, ваш билд",
       colResult: "Итог",
       colHero: "Герой",
       colKda: "У / С / П",
@@ -506,6 +554,10 @@
       deathsTitle: (count) => `Смерти · ${count}`,
       weekGames: "Матчи",
       weekVsPrevious: "к прошлой неделе",
+      weekRecord: (w, l) => `${w} ${plural(w, "победа", "победы", "побед")} · ${l} ${plural(l, "поражение", "поражения", "поражений")}`,
+      weekNoPrevious: "Неделей раньше матчей не было — сравнить не с чем",
+      weekNoPrevScore: "Неделей раньше нет разобранных матчей",
+      weekChartTitle: "Оценка каждого матча за неделю",
       weekBest: "Лучший матч",
       weekHeroes: "Герои:",
       weekHeroTitle: (hero, games, wins) => `${hero}: матчей ${games}, побед ${wins}`,
@@ -1296,9 +1348,10 @@
       ? h("p", { class: "muted small skipped-note", text: t("skippedModes", state.matchesSkipped.count, state.matchesSkipped.turbo, state.matchesSkipped.of) })
       : null;
     root.replaceChildren(
+      pageHead(t("matchesTitle"), t("matchesSub")),
       playerBar(),
       liveNotice || "",
-      card(t("matchesTitle"), "history", [filters, body, skipped].filter(Boolean), state.matchesTotal ? h("span", { class: "num", text: String(state.matchesTotal) }) : null)
+      card(t("matchesTableTitle"), "history", [filters, body, skipped].filter(Boolean), state.matchesTotal ? h("span", { class: "num", text: String(state.matchesTotal) }) : null)
     );
     hydrate(root);
   }
@@ -1617,32 +1670,51 @@
           list.push(element);
         }
       };
-      add(main, coachCard(detail.coach, "match"));
-      add(main, askCard(detail));
-      add(main, focusCard(analysis, detail));
-      add(side, sectionsCard(analysis));
-      add(main, chartCard(analysis));
-      add(side, mapCard(analysis));
-      add(main, deathsCard(analysis));
+      // Zones: what to fix first, then how the match went; on the side the
+      // scores and comparisons, then the map and the items.
       const rest = (analysis.improvements || []).filter((f) => !(analysis.focus || []).includes(f.id));
-      if (rest.length) {
-        add(main, findingsCard(t("improveTitle"), "target", rest, "", true, detail.repeats));
-      }
-      add(side, findingsCard(t("strengthsTitle"), "sparkles", analysis.strengths, t("nothingStrong"), false));
-      add(side, buildCard(analysis));
-      add(side, rankCard(analysis));
-      add(side, draftCard(analysis));
-      add(side, momentsCard(analysis));
-      add(main, adviceLogCard(analysis));
+      add(main, zone(t("zoneFix"), t("zoneFixHint"), [
+        coachCard(detail.coach, "match"),
+        focusCard(analysis, detail),
+        rest.length ? findingsCard(t("improveTitle"), "target", rest, "", true, detail.repeats) : null,
+        askCard(detail)
+      ]));
+      add(main, zone(t("zoneStory"), t("zoneStoryHint"), [chartCard(analysis), deathsCard(analysis), adviceLogCard(analysis)]));
+      add(side, zone(t("zoneScores"), t("zoneScoresHint"), [
+        sectionsCard(analysis),
+        findingsCard(t("strengthsTitle"), "sparkles", analysis.strengths, t("nothingStrong"), false),
+        rankCard(analysis),
+        draftCard(analysis)
+      ]));
+      add(side, zone(t("zoneMapItems"), t("zoneMapItemsHint"), [mapCard(analysis), buildCard(analysis), momentsCard(analysis)]));
       parts.push(twoColumns(main, side));
     }
     if (detail.scoreboard) {
-      parts.push(scoreboardCard(detail.scoreboard));
+      parts.push(zone(t("zoneTeams"), "", [scoreboardCard(detail.scoreboard)]));
     }
     root.replaceChildren(...parts);
     hydrate(root);
     // Charts measure their container, so draw after insertion.
     drawMatchCharts(root, analysis);
+  }
+
+  // A page title (Matches, Progress) with its one-line summary and actions.
+  function pageHead(title, sub, actions) {
+    return h(
+      "header",
+      { class: "page-head" },
+      h("div", { class: "page-head-text" }, h("h1", { class: "page-title", text: title }), sub ? h("p", { class: "page-sub", text: sub }) : null),
+      actions ? h("div", { class: "page-actions no-print" }, actions) : null
+    );
+  }
+
+  // Cards grouped under a small heading (styles.css .zone); null without cards.
+  function zone(title, hint, cards) {
+    const items = cards.filter(Boolean);
+    if (!items.length) {
+      return null;
+    }
+    return h("section", { class: "zone" }, h("header", { class: "zone-head" }, h("h2", { class: "zone-title", text: title }), hint ? h("p", { class: "zone-hint", text: hint }) : null), items);
   }
 
   // Main and side cards as two columns (styles.css .layout-2).
@@ -3645,39 +3717,33 @@
 
     const sharePanel = h("section", { class: "card share-panel no-print", hidden: true });
     root.replaceChildren(
-      h(
-        "div",
-        { class: "review-toolbar" },
-        h("p", { class: "muted small progress-note", text: t("analyzed", career.analyzed, career.matches) }),
-        h(
-          "span",
-          { class: "toolbar-actions no-print" },
-          careerHeroSelect(career),
-          // Progress over all heroes only: that is what the page shows.
-          state.careerHero === null && career.analyzed ? shareButton(sharePanel, career, "progress") : "",
-          pdfButton("career")
-        )
-      ),
+      pageHead(t("progressTitle"), t("analyzed", career.analyzed, career.matches), [
+        careerHeroSelect(career),
+        // Progress over all heroes only: that is what the page shows.
+        state.careerHero === null && career.analyzed ? shareButton(sharePanel, career, "progress") : null,
+        pdfButton("career")
+      ].filter(Boolean)),
       sharePanel,
-      tiles,
+      zone(t("zoneSummary"), t("zoneSummaryHint"), [tiles]),
       twoColumns(
         [
-          coachCard(career.coach, "career"),
-          // Asking needs at least one review (the backend answers not_enough without one).
-          state.careerHero === null && career.analyzed ? askCard(career, true) : null,
-          scoreCard,
-          goalCard(career.focus),
-          planCard,
-          heroesCard
+          zone(t("zoneCoach"), t("zoneCoachHint"), [
+            coachCard(career.coach, "career"),
+            goalCard(career.focus),
+            planCard,
+            // Asking needs at least one review (the backend answers not_enough without one).
+            state.careerHero === null && career.analyzed ? askCard(career, true) : null
+          ]),
+          zone(t("zoneGames"), t("zoneGamesHint"), [scoreCard, heroesCard, strengthsCard])
         ].filter(Boolean),
         [
-          careerRankCard(career),
-          state.careerHero === null ? friendCard() : null,
-          opponentsCard(career.opponents),
-          selfCompareCard(career.self_compare),
-          heroBuildCard(career.hero_build),
-          state.careerHero === null ? rankHistoryCard(career.rank_history) : null,
-          strengthsCard
+          zone(t("zoneCompare"), t("zoneCompareHint"), [
+            careerRankCard(career),
+            state.careerHero === null ? rankHistoryCard(career.rank_history) : null,
+            opponentsCard(career.opponents),
+            state.careerHero === null ? friendCard() : null
+          ]),
+          zone(t("zoneHero"), t("zoneHeroHint"), [selfCompareCard(career.self_compare), heroBuildCard(career.hero_build)])
         ].filter(Boolean)
       )
     );
@@ -3836,7 +3902,10 @@
     );
   }
 
+  let shownWeek = null;
+
   function renderWeek(week) {
+    shownWeek = week;
     const cardEl = document.getElementById("week-card");
     const body = document.getElementById("week-body");
     if (!cardEl || !body) {
@@ -3853,9 +3922,12 @@
       const iconName = week.score_change > 0 ? "trending-up" : week.score_change < 0 ? "trending-down" : "minus";
       change = h("span", { class: `delta delta-${tone}` }, icon(iconName), h("span", { class: "num", text: `${week.score_change > 0 ? "+" : ""}${week.score_change}` }), h("span", { class: "muted", text: ` ${t("weekVsPrevious")}` }));
     }
+    // Without matches the week before there is nothing to compare: say so
+    // instead of leaving the tile half empty.
+    const scoreNote = change ? null : week.prev_games ? t("weekNoPrevScore") : t("weekNoPrevious");
     const tiles = [
-      tile(t("weekGames"), String(week.games), null, t("recordLine", week.wins, week.losses, week.games)),
-      tile(t("tiles.score"), week.avg_score == null ? "—" : String(week.avg_score), change)
+      tile(t("weekGames"), String(week.games), null, t("weekRecord", week.wins, week.losses)),
+      tile(t("tiles.score"), week.avg_score == null ? "—" : String(week.avg_score), change, scoreNote)
     ];
     if (week.best) {
       const best = h(
@@ -3906,8 +3978,29 @@
         )
       );
     }
-    body.replaceChildren(h("div", { class: "tiles week-tiles" }, tiles), ...lines);
+    // Every match of the week as a column (its score, win or loss); a click opens it.
+    const scored = (week.matches || []).filter((match) => Number.isFinite(match.score));
+    const chartHost = scored.length > 1 ? h("div", { class: "chart-host week-chart" }) : null;
+    body.replaceChildren(h("div", { class: "tiles week-tiles" }, tiles), chartHost ? h("p", { class: "week-chart-title muted small", text: t("weekChartTitle") }) : null, chartHost, ...lines);
     hydrate(body);
+    if (chartHost) {
+      window.LauncherCharts.columns(chartHost, {
+        items: scored.map((match) => ({
+          label: String(match.match_id),
+          value: match.score,
+          title: `${match.hero || "—"} · ${match.win === true ? t("win") : match.win === false ? t("loss") : "—"}`,
+          detail: relativeTime(match.start_time),
+          key: match.win === true ? "win" : match.win === false ? "loss" : null,
+          matchId: match.match_id
+        })),
+        yMax: 100,
+        height: 132,
+        color: VIZ_1,
+        valueLabel: t("scoreLabel"),
+        ariaLabel: t("weekChartTitle"),
+        onSelect: (item) => openMatch(item.matchId)
+      });
+    }
   }
 
   function onStatus(status) {
@@ -3939,6 +4032,7 @@
   }
 
   function init() {
+    document.getElementById("zone-all-matches")?.addEventListener("click", () => setView("matches"));
     for (const tab of document.querySelectorAll(".tabs [data-view]")) {
       tab.addEventListener("click", () => setView(tab.dataset.view));
     }
@@ -3984,6 +4078,8 @@
           drawMatchCharts(document.getElementById("match-root"), state.match.analysis);
         } else if (state.view === "progress" && state.career) {
           renderCareer();
+        } else if (state.view === "home" && shownWeek) {
+          renderWeek(shownWeek); // the score chart measures its column
         }
       }, 150);
     });

@@ -5,7 +5,8 @@ From the stored match table and reviews (no network): games, wins and losses,
 the average review score and how it moved against the seven days before, the
 best match of the week, the mistake that came back most often this week, and
 the focus as a short training plan: the last PLAN_MATCHES matches judged by it
-(match_result) with the drill to repeat. `now` may be a past moment (the end of
+(match_result) with the drill to repeat, and every match of the week with its
+score (`matches`, oldest first) for the chart on Home. `now` may be a past moment (the end of
 a calendar week for the Discord post): matches after it are left out.
 """
 
@@ -57,6 +58,19 @@ def weekly_summary(
         "avg_score": round(sum(scores) / len(scores)) if scores else None,
         "prev_avg_score": round(sum(previous) / len(previous)) if previous else None,
     }
+    summary["prev_games"] = len(before)
+    # Every match of the week, oldest first: the score chart on Home.
+    summary["matches"] = [
+        {
+            "match_id": m["match_id"],
+            "start_time": m.get("start_time"),
+            "hero": m.get("hero"),
+            "hero_id": m.get("hero_id"),
+            "win": m.get("win"),
+            "score": m.get("score") if isinstance(m.get("score"), (int, float)) else None,
+        }
+        for m in reversed(week)
+    ]
     if summary["avg_score"] is not None and summary["prev_avg_score"] is not None:
         summary["score_change"] = summary["avg_score"] - summary["prev_avg_score"]
     scored = [m for m in week if isinstance(m.get("score"), (int, float))]

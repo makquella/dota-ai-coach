@@ -40,6 +40,13 @@ def test_week_against_the_week_before():
     assert week["top_problem"]["id"] == "death_streak" and week["top_problem"]["count"] == 2
     assert week["top_problem"]["title"]
     assert "focus" not in week
+    # The week's matches for the score chart, oldest first; the week before counted.
+    assert [(m["match_id"], m["score"], m["win"]) for m in week["matches"]] == [
+        (4, 64, True),
+        (5, 58, False),
+        (6, 72, True),
+    ]
+    assert week["prev_games"] == 2
     assert weekly_summary(matches[-1:], NOW, "en") is None
 
 

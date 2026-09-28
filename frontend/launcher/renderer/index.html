@@ -48,6 +48,11 @@
       <!-- Wide window: what is happening now on the left, the history on the right. -->
       <div class="home-grid">
         <div class="col col-main">
+          <section class="zone" aria-labelledby="zone-now">
+          <header class="zone-head">
+            <h2 class="zone-title" id="zone-now" data-i18n="zoneNow">Now</h2>
+            <p class="zone-hint" data-i18n="zoneNowHint">The current match and the advice it got</p>
+          </header>
           <!-- First run: what is set up and what is left (hidden when done or dismissed). -->
           <section class="card setup hidden" id="setup-card" aria-labelledby="setup-heading">
             <header class="card-head">
@@ -120,6 +125,19 @@
             </div>
           </div>
         </section>
+          </section>
+          <section class="zone" aria-labelledby="zone-week">
+          <header class="zone-head">
+            <h2 class="zone-title" id="zone-week" data-i18n="zoneWeek">Your week</h2>
+            <p class="zone-hint" data-i18n="zoneWeekHint">The last seven days against the seven before</p>
+          </header>
+          <!-- Tonight's session: matches since midnight. -->
+          <p class="today-line num hidden" id="today-line"></p>
+          <!-- The last seven days: games, score against the week before, best match, focus plan. -->
+          <section class="card week-card hidden" id="week-card" aria-labelledby="zone-week">
+            <div class="card-body" id="week-body"></div>
+          </section>
+          </section>
         </div>
         <div class="col col-side">
           <!-- Once after an update: what the new version brings. -->
@@ -133,23 +151,16 @@
               <button id="whats-new-dismiss" class="btn btn-sm" type="button" data-i18n="whatsNewOk">Got it</button>
             </div>
           </section>
-          <!-- Tonight's session: matches since midnight. -->
-          <p class="today-line num hidden" id="today-line"></p>
-          <!-- The last seven days: games, score against the week before, best match, focus plan. -->
-          <section class="card week-card hidden" id="week-card" aria-labelledby="week-heading">
-            <header class="card-head">
-              <i data-icon="calendar"></i>
-              <h2 id="week-heading" data-i18n="weekTitle">This week</h2>
-            </header>
-            <div class="card-body" id="week-body"></div>
-          </section>
+          <section class="zone" aria-labelledby="zone-history">
+          <header class="zone-head">
+            <h2 class="zone-title" id="zone-history" data-i18n="zoneHistory">Last matches</h2>
+            <p class="zone-hint" data-i18n="zoneHistoryHint">Open one for its review</p>
+            <button type="button" class="btn btn-ghost btn-sm zone-extra" id="zone-all-matches"><span data-i18n="zoneAllMatches">All matches</span><i data-icon="chevron-right"></i></button>
+          </header>
           <!-- The last matches, newest first: hero, result, score (opens the review). -->
-          <section class="card recent-card hidden" id="recent-card" aria-labelledby="recent-heading">
-            <header class="card-head">
-              <i data-icon="history"></i>
-              <h2 id="recent-heading" data-i18n="recentTitle">Last matches</h2>
-            </header>
+          <section class="card recent-card hidden" id="recent-card" aria-labelledby="zone-history">
             <ul class="recent-list" id="recent-list"></ul>
+          </section>
           </section>
         </div>
       </div>
@@ -157,7 +168,21 @@
 
       <!-- Settings: overlay, advice, app, and the developer tools. -->
       <div class="view hidden" id="view-settings" role="tabpanel" aria-labelledby="tab-settings">
-      <div class="cards">
+      <header class="page-head">
+        <div class="page-head-text">
+          <h1 class="page-title" data-i18n="settingsPageTitle">Settings</h1>
+          <p class="page-sub" data-i18n="settingsPageSub">What the coach shows in the game, your data and the app</p>
+        </div>
+      </header>
+      <!-- Fixed columns (not CSS columns): opening «More» must not move cards
+           from one column to the other. -->
+      <div class="settings-grid">
+      <div class="col">
+      <section class="zone" aria-labelledby="zone-game">
+        <header class="zone-head">
+          <h2 class="zone-title" id="zone-game" data-i18n="zoneGame">In the game</h2>
+          <p class="zone-hint" data-i18n="zoneGameHint">The advice card over Dota and what it says</p>
+        </header>
         <section class="card" id="overlay-card" aria-labelledby="overlay-card-heading">
           <header class="card-head">
             <i data-icon="monitor"></i>
@@ -255,6 +280,13 @@
             </div>
           </div>
         </section>
+      </section>
+      <section class="zone" aria-labelledby="zone-data">
+        <header class="zone-head">
+          <h2 class="zone-title" id="zone-data" data-i18n="zoneData">Coach and match data</h2>
+          <p class="zone-hint" data-i18n="zoneDataHint">AI reviews and faster match history</p>
+        </header>
+        <div id="ai-settings-root"></div>
         <section class="card" id="data-card" aria-labelledby="data-card-heading">
           <header class="card-head">
             <i data-icon="history"></i>
@@ -275,7 +307,14 @@
             </div>
           </div>
         </section>
-        <div id="ai-settings-root"></div>
+      </section>
+      </div>
+      <div class="col">
+      <section class="zone" aria-labelledby="zone-app">
+        <header class="zone-head">
+          <h2 class="zone-title" id="zone-app" data-i18n="zoneApp">App</h2>
+          <p class="zone-hint" data-i18n="zoneAppHint">Language, updates, your match history and help</p>
+        </header>
         <section class="card" id="app-card" aria-labelledby="app-card-heading">
           <header class="card-head">
             <i data-icon="settings"></i>
@@ -385,6 +424,8 @@
             </details>
           </div>
         </section>
+      </section>
+      </div>
       </div>
 
       <!-- Everything technical, collapsed by default. -->
