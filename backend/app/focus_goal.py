@@ -29,6 +29,7 @@ FAMILIES = {
 REQUIRES = {
     "died_after_warning": "advice",
     "deaths_enemy_half": "map",
+    "deaths_same_place": "map",
     "counter_item_missing": "draft",
     # The last seconds before deaths exist only for live-recorded matches.
     "died_with_saver_ready": "last_moments",

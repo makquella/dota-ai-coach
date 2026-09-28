@@ -217,6 +217,10 @@ const I18N = {
     whatsNewTitle: (version) => `What's new in ${version}`,
     whatsNewOk: "Got it",
     whatsNew: {
+      "0.14.0": [
+        "Advice knows your hero: Blink to get out, Blade Fury to walk out of a fight, and how many seconds until your escape is back.",
+        "The match map rings the places where you keep dying, with a route tip."
+      ],
       "0.13.0": [
         "Advice names what to press right now: Force Staff to get out, Magic Wand with its charges, Black King Bar the moment a stun ends.",
         "After a death: the rescue item you left unpressed and the place where you keep dying."
@@ -640,6 +644,10 @@ const I18N = {
     whatsNewTitle: (version) => `Что нового в ${version}`,
     whatsNewOk: "Понятно",
     whatsNew: {
+      "0.14.0": [
+        "Подсказки знают вашего героя: Blink, чтобы уйти, Blade Fury, чтобы выйти из драки, и через сколько секунд откатится побег.",
+        "Карта матча обводит места, где вы умираете раз за разом, и подсказывает маршрут."
+      ],
       "0.13.0": [
         "Подсказки называют, что нажать прямо сейчас: Force Staff, чтобы уйти, Magic Wand с зарядами, Black King Bar сразу после оглушения.",
         "После смерти: какой спасающий предмет остался не нажат и где вы умираете раз за разом."

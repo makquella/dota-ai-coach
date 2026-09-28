@@ -237,13 +237,25 @@ FINDINGS: dict[str, dict[str, dict[str, str]]] = {
     "deaths_enemy_half": {
         "ru": {
             "title": "Смерти на половине противника",
-            "text": "{count} из {total} смертей после 10-й минуты — на половине карты противника. Туда заходили, не зная, где враги.",
+            "text": "{count} из {total} смертей после 10-й минуты — на половине карты противника. Туда заходили, не зная, где враги.{spot_suffix}",
             "drill": "Прежде чем фармить за рекой, найдите на карте хотя бы трёх героев противника. Не видно — фармите на своей половине.",
         },
         "en": {
             "title": "Deaths on the enemy half",
-            "text": "{count} of {total} deaths after minute 10 were on the enemy half of the map, walked into without knowing where the enemies were.",
+            "text": "{count} of {total} deaths after minute 10 were on the enemy half of the map, walked into without knowing where the enemies were.{spot_suffix}",
             "drill": "Before farming across the river, find at least three enemy heroes on the map. If you can't, farm on your half.",
+        },
+    },
+    "deaths_same_place": {
+        "ru": {
+            "title": "Смерти в одном месте: {place_title}",
+            "text": "{count} из {of} смертей — {place} ({times}). Здесь вас ловят раз за разом.",
+            "drill": "{route}",
+        },
+        "en": {
+            "title": "Deaths in one place: {place_title}",
+            "text": "{count} of {of} deaths were in the {place} ({times}): you get caught there again and again.",
+            "drill": "{route}",
         },
     },
     "killed_by_one": {
@@ -701,6 +713,81 @@ def _plural_ru(n: int, one: str, few: str, many: str) -> str:
     return many
 
 
+# Death places (map_analysis.zone / map_side) in words.
+PLACE_ZONES = {
+    "ru": {
+        "in": {
+            "top": "на верхней линии",
+            "mid": "на центральной линии",
+            "bot": "на нижней линии",
+            "jungle": "в лесу",
+            "base": "на базе",
+        },
+        "name": {
+            "top": "верхняя линия",
+            "mid": "центральная линия",
+            "bot": "нижняя линия",
+            "jungle": "лес",
+            "base": "база",
+        },
+    },
+    "en": {
+        "name": {
+            "top": "top lane",
+            "mid": "mid lane",
+            "bot": "bottom lane",
+            "jungle": "jungle",
+            "base": "base",
+        },
+    },
+}
+PLACE_SIDES = {
+    "ru": {"own": "на своей половине", "river": "у реки", "enemy": "на половине врага"},
+    "en": {"own": "on your side", "river": "by the river", "enemy": "on the enemy side"},
+}
+# The route drill of deaths_same_place: crossing the river, or your own half.
+PLACE_ROUTES = {
+    "ru": {
+        "river": "Реку переходите, только когда на карте видно хотя бы троих врагов; иначе фармите лес ближе к своим башням. Вард на подходе к этому месту покажет, кто идёт.",
+        "own": "Это ваша половина, но сюда за вами приходят: поставьте вард на подходе и, пока врагов не видно на карте, фармите лагеря ближе к башне.",
+    },
+    "en": {
+        "river": "Cross the river only when at least three enemies are on the map; otherwise farm the jungle near your towers. A ward on the way into this spot shows who is coming.",
+        "own": "It is your half, but enemies come here for you: ward the way in and farm the camps near your tower while the enemies are not on the map.",
+    },
+}
+
+
+def place_label(zone_id: Any, side: Any, lang: str) -> str | None:
+    """ "центральная линия у реки" / "mid lane by the river"; None for unknown ids."""
+    lang = "ru" if lang == "ru" else "en"
+    name = PLACE_ZONES[lang]["name"].get(zone_id)
+    side_text = PLACE_SIDES[lang].get(side)
+    return f"{name} {side_text}" if name and side_text else None
+
+
+def _place_params(params: dict[str, Any], lang: str) -> None:
+    zone_id, side = params.get("zone"), params.get("side")
+    title = place_label(zone_id, side, lang)
+    if title:
+        params["place_title"] = title
+        params["place"] = (
+            f"{PLACE_ZONES['ru']['in'][zone_id]} {PLACE_SIDES['ru'][side]}"
+            if lang == "ru"
+            else title
+        )
+        params["route"] = PLACE_ROUTES[lang]["river" if side == "river" else "own"]
+    spot = params.get("spot_zone")
+    if spot in PLACE_ZONES["en"]["name"]:
+        params["spot_suffix"] = (
+            f" Чаще всего — {PLACE_ZONES['ru']['in'][spot]}."
+            if lang == "ru"
+            else f" Most often in the {PLACE_ZONES['en']['name'][spot]}."
+        )
+    else:
+        params["spot_suffix"] = ""
+
+
 def _prepared_params(finding: dict[str, Any], lang: str) -> dict[str, Any]:
     params = dict(finding.get("params") or {})
     params["from_"] = params.get("from")
@@ -722,6 +809,8 @@ def _prepared_params(finding: dict[str, Any], lang: str) -> dict[str, Any]:
         params["pct_rest"] = 100 - int(params["pct"])
     if params.get("item") in SAVERS:
         params["item_label"] = saver_label(params["item"], lang)
+    if finding["id"] in {"deaths_same_place", "deaths_enemy_half"}:
+        _place_params(params, lang)
     if finding["id"] == "deaths_high":
         dead = params.get("time_dead")
         pct = params.get("dead_pct")
@@ -800,6 +889,16 @@ def render_analysis(analysis: dict[str, Any], lang: str) -> dict[str, Any]:
             **peers,
             "role_label": PEER_ROLES.get(peers.get("role", ""), {}).get(lang),
             "lobby_rank_label": rank_label(peers.get("lobby_rank_tier"), lang),
+        }
+    spots = (analysis.get("map") or {}).get("spots")
+    if spots:
+        # Places where the deaths repeat, named for the map card.
+        rendered["map"] = {
+            **analysis["map"],
+            "spots": [
+                {**spot, "label": place_label(spot.get("zone"), spot.get("side"), lang)}
+                for spot in spots
+            ],
         }
     if analysis.get("advice"):
         # Live advice is stored in English; translate it like the overlay does.

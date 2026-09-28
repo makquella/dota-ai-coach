@@ -168,8 +168,11 @@
         observer: "Observer ward",
         sentry: "Sentry ward",
         path: "Your path",
-        lane: "Laning position"
+        lane: "Laning position",
+        spot: "Where deaths repeat"
       },
+      mapSpotTitle: (count, place) => `${count} deaths · ${place}`,
+      mapSpotLine: (place, count) => `Most often: ${place} — ${count}`,
       mapDeaths: "Deaths",
       killedBy: (hero) => `Killed by ${hero}`,
       mapSide: { own: "on your half", river: "in the river", enemy: "on the enemy half" },
@@ -603,8 +606,11 @@
         observer: "Обзорный вард",
         sentry: "Сентри",
         path: "Ваш путь",
-        lane: "Позиция на линии"
+        lane: "Позиция на линии",
+        spot: "Место, где умираете снова"
       },
+      mapSpotTitle: (count, place) => `${count} ${plural(count, "смерть", "смерти", "смертей")} · ${place}`,
+      mapSpotLine: (place, count) => `Чаще всего: ${place} — ${count}`,
       mapDeaths: "Смерти",
       killedBy: (hero) => `Убил: ${hero}`,
       mapSide: { own: "на своей половине", river: "у реки", enemy: "на половине противника" },
@@ -1984,6 +1990,10 @@
           facts.push(h("p", { class: "fact-line muted small" }, h("span", { text: t(`mapSide.${side}`) }), h("span", { class: "num", text: String(bySide[side]) })));
         }
       }
+      const spot = (data.spots || [])[0];
+      if (spot && spot.label) {
+        facts.push(h("p", { class: "fact-line map-spot-line" }, h("span", { text: t("mapSpotLine", spot.label, spot.count) })));
+      }
     }
     const wards = data.wards || [];
     if (wards.length) {
@@ -2011,6 +2021,12 @@
       path: data.path,
       lane: data.lane,
       wards: data.wards,
+      // Places where the deaths repeat (map_analysis.death_spots), with their times.
+      spots: (data.spots || []).map((spot) => ({
+        ...spot,
+        title: t("mapSpotTitle", spot.count, spot.label || ""),
+        detail: (spot.times || []).map(clock).join(", ")
+      })),
       deaths: (data.deaths || []).map((death) => ({ ...death, killer: death.killer ? t("killedBy", death.killer) : "" })),
       labels: t("mapLabels"),
       clock,
