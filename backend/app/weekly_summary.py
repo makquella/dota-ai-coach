@@ -73,6 +73,15 @@ def weekly_summary(
     ]
     if summary["avg_score"] is not None and summary["prev_avg_score"] is not None:
         summary["score_change"] = summary["avg_score"] - summary["prev_avg_score"]
+    else:
+        # Why the score tile has no comparison: the side that is missing.
+        summary["score_note"] = (
+            "no_score"
+            if summary["avg_score"] is None
+            else "no_previous"
+            if not before
+            else "no_previous_score"
+        )
     scored = [m for m in week if isinstance(m.get("score"), (int, float))]
     if scored:
         best = max(scored, key=lambda m: (m["score"], m.get("start_time") or 0))

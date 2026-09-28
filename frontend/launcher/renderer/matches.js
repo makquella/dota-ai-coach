@@ -123,8 +123,11 @@
       weekGames: "Matches",
       weekVsPrevious: "vs the week before",
       weekRecord: (w, l) => `${w}W · ${l}L`,
-      weekNoPrevious: "No matches the week before to compare with",
-      weekNoPrevScore: "The week before has no reviewed matches",
+      weekScoreNote: {
+        no_score: "No reviewed matches this week yet",
+        no_previous: "No matches the week before to compare with",
+        no_previous_score: "The week before has no reviewed matches"
+      },
       weekChartTitle: "Score of every match this week",
       weekBest: "Best match",
       weekHeroes: "Heroes:",
@@ -555,8 +558,11 @@
       weekGames: "Матчи",
       weekVsPrevious: "к прошлой неделе",
       weekRecord: (w, l) => `${w} ${plural(w, "победа", "победы", "побед")} · ${l} ${plural(l, "поражение", "поражения", "поражений")}`,
-      weekNoPrevious: "Неделей раньше матчей не было — сравнить не с чем",
-      weekNoPrevScore: "Неделей раньше нет разобранных матчей",
+      weekScoreNote: {
+        no_score: "На этой неделе ещё нет разобранных матчей",
+        no_previous: "Неделей раньше матчей не было — сравнить не с чем",
+        no_previous_score: "Неделей раньше нет разобранных матчей"
+      },
       weekChartTitle: "Оценка каждого матча за неделю",
       weekBest: "Лучший матч",
       weekHeroes: "Герои:",
@@ -3922,9 +3928,9 @@
       const iconName = week.score_change > 0 ? "trending-up" : week.score_change < 0 ? "trending-down" : "minus";
       change = h("span", { class: `delta delta-${tone}` }, icon(iconName), h("span", { class: "num", text: `${week.score_change > 0 ? "+" : ""}${week.score_change}` }), h("span", { class: "muted", text: ` ${t("weekVsPrevious")}` }));
     }
-    // Without matches the week before there is nothing to compare: say so
-    // instead of leaving the tile half empty.
-    const scoreNote = change ? null : week.prev_games ? t("weekNoPrevScore") : t("weekNoPrevious");
+    // Without a comparison, say which side is missing (weekly_summary
+    // score_note) instead of leaving the tile half empty.
+    const scoreNote = change ? null : tOptional(`weekScoreNote.${week.score_note}`) || null;
     const tiles = [
       tile(t("weekGames"), String(week.games), null, t("weekRecord", week.wins, week.losses)),
       tile(t("tiles.score"), week.avg_score == null ? "—" : String(week.avg_score), change, scoreNote)
