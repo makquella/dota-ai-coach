@@ -43,6 +43,9 @@ jobs:
       - name: Byte-compile (compileall)
         run: python -m compileall -q app scripts packaging tests
 
+      - name: Site changelog matches docs/release-notes
+        run: python ../scripts/build_changelog.py --check
+
   frontend:
     name: Frontend (node --check)
     runs-on: ubuntu-latest

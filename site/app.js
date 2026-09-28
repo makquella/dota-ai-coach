@@ -100,6 +100,7 @@
     footerLabel: "Links",
     footerReleases: "Releases",
     footerIssues: "Report a problem",
+    footerChangelog: "What's new",
     footerPrivacy: "Privacy",
     legal:
       "Dota 2 is a trademark of Valve Corporation. This project is not affiliated with or endorsed by Valve. Game frames are from the Dota 2 Steam page; hero portraits are Valve's.",

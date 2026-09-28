@@ -1,0 +1,295 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Что нового — Wardly</title>
+    <meta name="description" content="Что появилось и что исправлено в каждой версии Wardly." />
+    <meta name="theme-color" content="#0c0d0f" />
+    <link rel="canonical" href="https://luhovyimvp.dev/changelog.html" />
+    <link rel="icon" href="assets/favicon.png" type="image/png" />
+    <link rel="stylesheet" href="styles.css" />
+    <style>
+      .doc {
+        max-width: 760px;
+        padding-top: 120px;
+        padding-bottom: 80px;
+      }
+      .doc h1 {
+        margin: 0 0 8px;
+        font-size: clamp(32px, 5vw, 44px);
+      }
+      .doc h2 {
+        margin: 40px 0 12px;
+        font-size: 22px;
+      }
+      .doc p,
+      .doc li {
+        color: var(--muted);
+      }
+      .doc strong {
+        color: var(--text);
+        font-weight: 600;
+      }
+      .doc ul {
+        padding-left: 20px;
+      }
+      .doc li + li {
+        margin-top: 6px;
+      }
+      .doc code {
+        padding: 1px 6px;
+        border: 1px solid var(--line-strong);
+        border-radius: 6px;
+        color: var(--text);
+        font-size: 0.9em;
+        overflow-wrap: anywhere;
+      }
+      .doc a {
+        color: var(--text);
+      }
+      .doc-updated {
+        margin: 0 0 28px;
+        color: var(--faint);
+        font-size: 14px;
+      }
+      .doc h3 {
+        margin: 20px 0 8px;
+        font-size: 16px;
+      }
+      .release {
+        padding-top: 8px;
+      }
+      .release + .release {
+        margin-top: 40px;
+        border-top: 1px solid var(--line-strong);
+      }
+      .release h2 a {
+        text-decoration: none;
+      }
+      .release p {
+        margin: 0 0 12px;
+      }
+      .release-link {
+        font-size: 14px;
+      }
+      [data-doc][hidden] {
+        display: none;
+      }
+    </style>
+  </head>
+  <body>
+    <header class="nav scrolled">
+      <div class="wrap nav-inner">
+        <a class="brand" href="./" aria-label="Wardly">
+          <img class="brand-mark" src="assets/logo-mark.png" alt="" width="28" height="28" />
+          <span class="brand-name">Wardly</span>
+        </a>
+        <div class="nav-actions">
+          <div class="lang" role="group" aria-label="Язык / Language">
+            <button type="button" data-lang="ru" aria-pressed="true">RU</button>
+            <button type="button" data-lang="en" aria-pressed="false">EN</button>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <main class="wrap doc">
+      <article data-doc="ru" lang="ru">
+        <h1>Что нового</h1>
+        <p class="doc-updated">Все версии Wardly. Установленное приложение обновляется само, когда Дота закрыта.</p>
+<section class="release" id="v0.6.0">
+<h2><a href="#v0.6.0">Версия 0.6.0</a></h2>
+<p>Тренер стал лучше понимать роли и ваших соперников.</p>
+<ul>
+  <li><strong>Разбор под роль.</strong> Для мида — руны: сколько вы подняли за игру и сколько вражеский мид («Руны забирал соперник», «Мало рун»); число рун видно рядом с цифрами линии. Для саппорта — стаки и сентри-варды («Почти нет стаков», «Ни одного сентри»). Нужен разобранный реплей матча длиннее 20 минут.</li>
+  <li><strong>Неудобные противники.</strong> На «Прогрессе» — ваш счёт против каждого вражеского героя, которого вы встречали 3+ раза: против кого сложнее всего и кого вы обыгрываете чаще всего.</li>
+  <li><strong>Спросить тренера о всей истории.</strong> На «Прогрессе» можно задать ИИ-тренеру вопрос о последних матчах: «Против каких героев мне сложнее всего?», «Какая ошибка стоит мне больше всего игр?». Ответ строится только по вашей статистике и проходит ту же проверку фактов.</li>
+  <li><strong>Подсказки мида и оффлейна в игре.</strong> На 6-м уровне до 12:00 мид получает подсказку о ротации («Сначала запушьте волну, потом с руной посмотрите на боковые линии»), оффлейн — о давлении на линии.</li>
+</ul>
+<p>Сохранённые разборы пересоберутся по новым правилам при открытии.</p>
+<p>Установщик пока без цифровой подписи: если Windows покажет «Windows защитил ваш компьютер», нажмите «Подробнее» → «Выполнить в любом случае». Установленная версия обновится сама, когда Дота будет закрыта.</p>
+<p class="release-link"><a href="https://github.com/makquella/dota-ai-coach/releases/tag/v0.6.0" rel="noopener">Скачать и подробности</a></p>
+</section>
+<section class="release" id="v0.5.0">
+<h2><a href="#v0.5.0">Версия 0.5.0</a></h2>
+<p>Dota AI Coach теперь называется <strong>Wardly</strong> — с новым логотипом. История матчей, настройки и ключи на месте: переносить ничего не нужно, приложение обновится само.</p>
+<ul>
+  <li><strong>Сравнение с другом.</strong> «Прогресс» → «Сравнение с другом»: введите Friend ID, Steam ID или ссылку на профиль друга. Его открытые матчи из OpenDota встанут рядом с вашими — последние 20 игр каждого: процент побед, убийства, смерти, помощь, золото и опыт в минуту, добивания и урон по героям в минуту. Лучшая цифра выделена. Можно сравнивать все игры, только кор или только саппорт. Ниже — общие герои и на ком друг играет чаще всего. Если друг скрыл данные матчей, приложение подскажет, где их открыть.</li>
+  <li><strong>Поделиться разбором.</strong> Кнопка «Поделиться» в разборе матча создаёт ссылку на страницу с разбором: герой, результат, оценка, цифры матча, разделы и советы, по желанию — вывод ИИ-тренера. В Discord и Telegram ссылка показывается с портретом героя. Номер матча, ваш Steam ID, ник и другие игроки не публикуются. Ссылка работает 90 дней, её можно удалить в любой момент.</li>
+  <li><strong>История матчей в файл.</strong> «Настройки → Приложение → История матчей»: «Сохранить в файл» кладёт все матчи, разборы и ответы ИИ в один файл. «Загрузить из файла» добавляет их обратно — на этом или другом компьютере. Ключи в файл не попадают, существующие данные не перезаписываются.</li>
+  <li><strong>Линия пути на карте</strong> больше не тянется от места смерти к фонтану: после смерти и телепорта она начинается заново.</li>
+</ul>
+<p>Установщик теперь называется <code>Wardly-Setup-0.5.0.exe</code>. Если вы закрепляли старый значок на панели задач, закрепите новый. «Запуск вместе с Windows» перенесётся сам.</p>
+<p>Установщик пока без цифровой подписи: если Windows покажет «Windows защитил ваш компьютер», нажмите «Подробнее» → «Выполнить в любом случае». Установленная версия обновится сама, когда Дота будет закрыта.</p>
+<p class="release-link"><a href="https://github.com/makquella/dota-ai-coach/releases/tag/v0.5.0" rel="noopener">Скачать и подробности</a></p>
+</section>
+<section class="release" id="v0.4.0">
+<h2><a href="#v0.4.0">Версия 0.4.0</a></h2>
+<p>Разбор матча стал глубже и нагляднее.</p>
+<ul>
+  <li><strong>Настоящая карта Доты.</strong> «Карта матча» в разборе рисуется на миникарте из игры: ваш путь по карте, позиция на линии, поставленные варды и места смертей. Картинка скачивается один раз и дальше работает без интернета. Если позиций в матче нет (реплей ещё не разобран), карточка так и скажет, а не пропадёт.</li>
+  <li><strong>Места смертей в драках из реплея.</strong> Для разобранных матчей место смерти берётся из командных драк реплея, так что карта и «Смерти» работают и без записи приложения.</li>
+  <li><strong>«Хороший темп» по золоту и опыту.</strong> На графике «По ходу матча» теперь есть линия цели не только для добиваний, но и для золота и опыта — видно, с какой минуты вы отстали.</li>
+  <li><strong>Карточка «Смерти».</strong> Каждая смерть с контекстом: где (линия, лес, база; своя половина или вражеская), кто убил, сколько золота было не потрачено, была ли подсказка приложения за 30 секунд до смерти и не умерли ли вы сразу после возрождения.</li>
+  <li><strong>Ошибки, которые повторяются.</strong> Под проблемой в разборе видно «3-й матч подряд» или «было и в 5 из 10 прошлых матчей» — чтобы отличить привычку от случайности.</li>
+  <li><strong>Итоги недели на главной.</strong> Матчи и победы за 7 дней, средняя оценка и как она изменилась, лучший матч недели (открывается по клику) и ошибка, которая повторялась чаще всего.</li>
+  <li><strong>Тренировочный план по фокусу.</strong> Выбранный фокус превращается в план на 3 матча: отметка за каждый матч и упражнение, которое стоит повторять.</li>
+  <li><strong>ИИ-тренер знает больше.</strong> Он видит повторяющиеся ошибки (привычку называет первой) и подробности каждой смерти.</li>
+  <li><strong>Надёжнее в игре.</strong> Каждую ночь приложение проверяется на 10 000 испорченных данных игры; найденная так ошибка с огромными числами в данных уже исправлена.</li>
+</ul>
+<p>Сохранённые разборы пересоберутся по новым правилам при открытии; разобранные матчи догрузятся из OpenDota при следующей синхронизации.</p>
+<p>Установщик пока без цифровой подписи: если Windows покажет «Windows защитил ваш компьютер», нажмите «Подробнее» → «Выполнить в любом случае». Установленная версия обновится сама, когда Дота будет закрыта.</p>
+<p class="release-link"><a href="https://github.com/makquella/dota-ai-coach/releases/tag/v0.4.0" rel="noopener">Скачать и подробности</a></p>
+</section>
+<section class="release" id="v0.3.0">
+<h2><a href="#v0.3.0">Версия 0.3.0</a></h2>
+<p>Тренер теперь помогает на любой роли, а не только керри.</p>
+<ul>
+  <li><strong>Таймеры карты.</strong> За 20 секунд до события на карточке оверлея: руны силы, воды и богатства, святилища мудрости, лотосы, Торментор, новые уровни нейтральных предметов. Тайминги сверены с патчем 7.41f. Каждой роли — только свои таймеры: мидеру руны, хардлайнеру святилища и лотосы, всем — Торментор. Если голос читает все советы, Торментор и святилище вы услышите.</li>
+  <li><strong>Роль определяется сама.</strong> По линии, где вы стоите в первые минуты, и по добиваниям: керри, мид, хардлайн или саппорт. Роль видна на главной; её можно выбрать вручную в «Настройки → Советы → Ваша роль».</li>
+  <li><strong>Подсказки саппорту.</strong> Застакать лагерь (минуты 4, 7, 10, 13, 16), взять варды, если их нет, оставить добивания керри. Советы про фарм и предметы на саппорте больше не показываются — только выживание, таймеры и эти подсказки.</li>
+  <li><strong>Свиток телепортации</strong> напомнит на любом герое, не только на керри.</li>
+  <li><strong>Отправить разработчику.</strong> В «Настройки → Приложение → Отчёт о проблеме» отчёт уходит одной кнопкой: можно дописать, что случилось, и заранее посмотреть весь текст. Ключи, ник и Steam ID вырезаются. Без интернета отчёт подождёт и уйдёт сам. Что и зачем отправляется — на странице <a href="https://luhovyimvp.dev/privacy.html">https://luhovyimvp.dev/privacy.html</a>.</li>
+  <li><strong>Драфт по позиции.</strong> «Лучше подходил» предлагает героя, на котором вы играете эту позицию: в игре на керри — только ваших керри. Роль в разборе теперь определяется по всему составу матча, а не только по добиваниям в минуту.</li>
+</ul>
+<p>Таймеры можно выключить в «Настройки → Советы → Таймеры карты». Сохранённые разборы пересоберутся по новым правилам при открытии.</p>
+<p>Установщик пока без цифровой подписи: если Windows покажет «Windows защитил ваш компьютер», нажмите «Подробнее» → «Выполнить в любом случае». Установленная версия обновится сама, когда Дота будет закрыта.</p>
+<p class="release-link"><a href="https://github.com/makquella/dota-ai-coach/releases/tag/v0.3.0" rel="noopener">Скачать и подробности</a></p>
+</section>
+<section class="release" id="v0.2.1">
+<h2><a href="#v0.2.1">Версия 0.2.1</a></h2>
+<p>Исправления по итогам проверки на настоящих матчах.</p>
+<ul>
+  <li><strong>История матчей не срывается.</strong> OpenDota иногда отвечает по полминуты — раньше приложение не дожидалось и писало «OpenDota недоступна». Теперь ждёт дольше и повторяет запрос.</li>
+  <li><strong>Подробный разбор чаще.</strong> Приложение само просит OpenDota разобрать реплеи последних матчей за неделю. В разборе появляются добивания к 10:00, сборка с процентом побед по времени покупки и график по ходу матча.</li>
+  <li><strong>Драфт по вашей роли.</strong> «Лучше подходил» теперь предлагает героя, на котором вы играете в этой роли: керри больше не советуют саппорта.</li>
+  <li><strong>Соперник по роли — тот, кто нужно.</strong> Когда линии неизвестны, роль определяется по добиваниям внутри команды, и мидер врага больше не считается «вашим соперником» у керри.</li>
+  <li><strong>Предметы против врагов.</strong> Без разбора реплея приложение смотрит на итоговый инвентарь и не пишет «нет Monkey King Bar», если он у вас был.</li>
+  <li><strong>Мелочи:</strong> все пять плиток «Прогресса» в одну строку, на главной не обрезается имя героя, текст «55 добиваний — выше цели 55» исправлен.</li>
+</ul>
+<p>Сохранённые разборы пересоберутся по новым правилам при открытии.</p>
+<p>Установщик пока без цифровой подписи: если Windows покажет «Windows защитил ваш компьютер», нажмите «Подробнее» → «Выполнить в любом случае». Установленная версия обновится сама, когда Дота будет закрыта.</p>
+<p class="release-link"><a href="https://github.com/makquella/dota-ai-coach/releases/tag/v0.2.1" rel="noopener">Скачать и подробности</a></p>
+</section>
+<section class="release" id="v0.2.0">
+<h2><a href="#v0.2.0">Версия 0.2.0</a></h2>
+<h3>Во время игры</h3>
+<ul>
+  <li><strong>Голос.</strong> Советы можно слушать: срочные или все, системным голосом Windows. Слышно даже в полноэкранном режиме, где карточку не видно. <code>Ctrl+Alt+R</code> повторяет последний совет.</li>
+  <li><strong>Частота советов:</strong> «Реже / Обычно / Чаще». Меняет только паузы между обычными советами, срочные приходят всегда.</li>
+  <li><strong>Любой герой.</strong> Раньше подсказки работали только на 21 керри. Теперь на любом герое тренер подсказывает по выживанию: мало HP, серия смертей, контроль, мана, байбэк.</li>
+  <li><strong>Байбэк.</strong> После 30-й минуты, если покупка оставила меньше золота, чем стоит байбэк, тренер напомнит нафармить его обратно — с цифрами.</li>
+  <li><strong>План на игру.</strong> С начала матча до 1:30 карточка показывает цели на героя: сколько добиваний нужно к 10:00 (и ваш средний), ключевой предмет и когда его собирает большинство, и вашу частую ошибку.</li>
+  <li><strong>Свиток телепортации.</strong> Если после 10-й минуты у героя больше минуты нет TP, тренер напомнит его купить.</li>
+  <li><strong>Золото после смерти.</strong> Если герой погиб с лишним золотом, тренер подскажет сразу купить части следующего предмета — заберёте их у фонтана. После 30-й минуты он оставит в резерве стоимость байбэка.</li>
+  <li><strong>Размер карточки:</strong> мелкий, обычный, крупный — для больших экранов.</li>
+  <li><strong>Исправлено:</strong> любое убийство на карте (смена счёта) тренер считал дракой рядом с вами и советовал «не идти в эту драку», даже когда вы спокойно фармили.</li>
+  <li><strong>Исправлено:</strong> за Силы Тьмы тренер считал, что герой всегда стоит глубоко на вражеской половине, и слишком часто предупреждал о позиции.</li>
+</ul>
+<h3>После игры</h3>
+<ul>
+  <li><strong>Карта матча:</strong> путь героя, места смертей, варды и позиция на линии. Если умираете на половине противника — это появится в разборе.</li>
+  <li><strong>Подсказки во время матча</strong> в разборе: что и когда советовал тренер. Если после срочной подсказки вы погибли в течение 30 секунд, это отмечено, а при повторах попадает в ошибки.</li>
+  <li><strong>Спросить тренера.</strong> В разборе матча можно задать свой вопрос — например, «почему я проиграл линию?». ИИ отвечает только по данным матча, ответ проходит ту же проверку фактов, что и разборы.</li>
+  <li><strong>Сохранение в PDF</strong> разбора матча и страницы «Прогресс».</li>
+  <li><strong>Сегодня</strong> на главной: сколько матчей сыграно за вечер, победы и поражения, средняя оценка и как с фокусом.</li>
+  <li><strong>Сравнение с собой.</strong> В шапке разбора — этот матч против ваших других игр на том же герое: оценка, GPM, добивания к 10:00 и смерти.</li>
+  <li><strong>Фокус.</strong> В «Прогрессе» любую повторяющуюся ошибку можно сделать своим фокусом. В каждом следующем разборе видно, получилось ли её избежать, в «Прогрессе» — счёт по матчам, а план на игру напоминает о ней в начале матча.</li>
+  <li><strong>Фильтры матчей</strong> по результату и герою, со сводкой: процент побед и средняя оценка.</li>
+  <li><strong>«Прогресс» по одному герою:</strong> тренды, ошибки и лучшие/худшие игры только на нём.</li>
+  <li>Разбор матча строится в 50 раз быстрее.</li>
+  <li><strong>Турбо и особые режимы</strong> (Ability Draft, ARDM, игры с ботами) больше не попадают в историю и тренды: нормы там другие, разбор получался неверным. Под таблицей матчей написано, сколько игр пропущено.</li>
+  <li><strong>Исправлено:</strong> реплей или чужая игра, которые вы смотрели в клиенте Доты, больше не попадают в вашу историю матчей.</li>
+  <li><strong>Исправлено:</strong> «Повторяющиеся проблемы» и план фокуса в «Прогрессе» могли меняться местами после перезапуска.</li>
+</ul>
+<h3>Приложение</h3>
+<ul>
+  <li><strong>Портреты героев и иконки предметов</strong> в матчах, разборе, драфте, сборке и прогрессе. Картинки скачиваются один раз при первом показе и дальше работают без интернета.</li>
+  <li><strong>Язык приложения</strong> можно выбрать вручную: как в системе, русский или английский.</li>
+  <li>Новая вкладка <strong>«Настройки»</strong>: оверлей, советы, ИИ-тренер (с кнопкой «Проверить ключ»), ключ OpenDota, приложение.</li>
+  <li><strong>Параметр запуска.</strong> Дота передаёт данные только с параметром <code>-gamestateintegration</code>. Приложение проверяет, есть ли он в настройках Steam, и если нет — подскажет и скопирует его одной кнопкой.</li>
+  <li><strong>Чек-лист первого запуска</strong> на главной: что уже работает и что осталось настроить.</li>
+  <li><strong>Ключ OpenDota</strong> (по желанию) — история и разборы грузятся быстрее.</li>
+  <li><strong>«Отчёт о проблеме»:</strong> один файл с журналами для разработчика, без ключей. Есть и в меню трея.</li>
+</ul>
+<p>Установщик пока без цифровой подписи: если Windows покажет «Windows защитил ваш компьютер», нажмите «Подробнее» → «Выполнить в любом случае». Установленная 0.1.0 обновится сама, когда Дота будет закрыта.</p>
+<p class="release-link"><a href="https://github.com/makquella/dota-ai-coach/releases/tag/v0.2.0" rel="noopener">Скачать и подробности</a></p>
+</section>
+      </article>
+      <article data-doc="en" lang="en" hidden>
+        <h1>What's new</h1>
+        <p class="doc-updated">Every Wardly version. The installed app updates itself while Dota is closed.</p>
+<section class="release" id="v0.6.0">
+<h2><a href="#v0.6.0">Version 0.6.0</a></h2>
+<p>Role reviews — runes for a mid (against the enemy mid), stacks and sentries for a support (parsed replays of 20+ minutes); your record against each enemy hero met 3+ times on Progress (hardest and easiest); ask the AI coach about your recent matches, fact-checked; a level-6 tip in game for a mid (rotation) and an offlaner (pressure).</p>
+<p class="release-link"><a href="https://github.com/makquella/dota-ai-coach/releases/tag/v0.6.0" rel="noopener">Download and details</a></p>
+</section>
+<section class="release" id="v0.5.0">
+<h2><a href="#v0.5.0">Version 0.5.0</a></h2>
+<p>Dota AI Coach is now <strong>Wardly</strong>, with a new logo; your history, settings and keys stay. New: compare with a friend on their public OpenDota matches (the last 20 games of each: win rate, K/D/A, GPM, XPM, last hits and damage a minute; all games, core or support; shared heroes); share a review by link (a page with an Open Graph preview; no match number, Steam ID, nickname or other players; 90 days, deletable any time); save the whole match history to a file and load it back (no keys, nothing overwritten). The path on the match map no longer runs from a death to the fountain. The installer is now <code>Wardly-Setup-0.5.0.exe</code>; re-pin the taskbar icon if you had one.</p>
+<p class="release-link"><a href="https://github.com/makquella/dota-ai-coach/releases/tag/v0.5.0" rel="noopener">Download and details</a></p>
+</section>
+<section class="release" id="v0.4.0">
+<h2><a href="#v0.4.0">Version 0.4.0</a></h2>
+<p>The match map is drawn on the real Dota minimap (path, lane position, wards, deaths; downloaded once, works offline) and says so when a match has no positions; death places from the replay's team fights; good-pace lines for gold and XP on the «Over the match» chart; a «Deaths» card with the place, killer, unspent gold, the advice shown before and deaths right after respawning; repeating mistakes are marked («3 matches in a row»); a weekly summary on Home with the best match and the most frequent mistake; the focus becomes a 3-match training plan; the AI coach hears about repeats and deaths; nightly fuzzing of live game data, with the huge-number crash it found fixed.</p>
+<p class="release-link"><a href="https://github.com/makquella/dota-ai-coach/releases/tag/v0.4.0" rel="noopener">Download and details</a></p>
+</section>
+<section class="release" id="v0.3.0">
+<h2><a href="#v0.3.0">Version 0.3.0</a></h2>
+<p>Map timers 20 s ahead on the overlay (runes, wisdom shrines, lotuses, Tormentor, neutral item tiers; patch 7.41f), filtered by your role; the role is detected from your lane in the first minutes or chosen in Settings; support tips (stack, wards, leave the last hits) and no carry farm advice on supports; the TP reminder on every hero; problem reports sent in one click (keys, nickname and Steam ID removed); draft advice keeps your position.</p>
+<p class="release-link"><a href="https://github.com/makquella/dota-ai-coach/releases/tag/v0.3.0" rel="noopener">Download and details</a></p>
+</section>
+<section class="release" id="v0.2.1">
+<h2><a href="#v0.2.1">Version 0.2.1</a></h2>
+<p>Match history no longer fails when OpenDota answers slowly; the app asks OpenDota to parse your latest matches (last hits at 10:00, build, chart); draft advice keeps your role; the same-role opponent and counter items are right without a parsed replay; Progress tiles fit one row. Stored reviews are rebuilt with the new rules.</p>
+<p class="release-link"><a href="https://github.com/makquella/dota-ai-coach/releases/tag/v0.2.1" rel="noopener">Download and details</a></p>
+</section>
+<section class="release" id="v0.2.0">
+<h2><a href="#v0.2.0">Version 0.2.0</a></h2>
+<p>A focus goal tracked match by match, each match compared with your usual numbers on the hero, a game plan card for the first 1:30 (last-hit target, key item timing, your recurring mistake), spoken advice (heard even in exclusive fullscreen, <code>Ctrl+Alt+R</code> repeats), advice frequency, survival advice for every hero, a late-game buyback reminder, a reminder to spend spare gold while dead and to carry a TP scroll, card size, a fix for Dire position zoning, no more fight warnings for kills elsewhere on the map; match map, the advice given during the match, ask-the-coach questions about a match, PDF export, match filters, progress per hero, 50x faster reviews; a check for the <code>-gamestateintegration</code> launch option, a Settings tab with the AI coach and an OpenDota key, a first-run checklist and a one-click problem report.</p>
+<p class="release-link"><a href="https://github.com/makquella/dota-ai-coach/releases/tag/v0.2.0" rel="noopener">Download and details</a></p>
+</section>
+      </article>
+    </main>
+
+    <script>
+      // Same language choice as the landing page (app.js keeps it under "dac.lang").
+      (function () {
+        var KEY = "dac.lang";
+        function apply(lang) {
+          document.documentElement.lang = lang;
+          document.title = lang === "en" ? "What's new — Wardly" : "Что нового — Wardly";
+          document.querySelectorAll("[data-doc]").forEach(function (el) {
+            el.hidden = el.dataset.doc !== lang;
+          });
+          document.querySelectorAll(".lang [data-lang]").forEach(function (button) {
+            button.setAttribute("aria-pressed", String(button.dataset.lang === lang));
+          });
+        }
+        // The app opens this page with ?lang= of its own language.
+        var lang = new URLSearchParams(location.search).get("lang") || "";
+        if (lang !== "ru" && lang !== "en") {
+          try {
+            lang = localStorage.getItem(KEY) || "";
+          } catch (error) {}
+        }
+        if (lang !== "ru" && lang !== "en") {
+          var preferred = (navigator.languages || [navigator.language || "ru"]).map(function (l) {
+            return String(l).toLowerCase();
+          });
+          lang = preferred.some(function (l) { return /^(ru|uk|be|kk)/.test(l); }) ? "ru" : "en";
+        }
+        apply(lang);
+        document.querySelectorAll(".lang [data-lang]").forEach(function (button) {
+          button.addEventListener("click", function () {
+            apply(button.dataset.lang);
+            try {
+              localStorage.setItem(KEY, button.dataset.lang);
+            } catch (error) {}
+          });
+        });
+      })();
+    </script>
+  </body>
+</html>
