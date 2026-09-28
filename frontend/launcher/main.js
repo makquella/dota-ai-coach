@@ -120,6 +120,8 @@ const settings = createSettingsStore(path.join(USER_DATA_DIR, "settings.json"), 
 });
 
 let mainWindow = null;
+let splashWindow = null;
+let splashFinishing = false;
 let tray = null;
 let isQuitting = false;
 let shutdownPromise = null;
@@ -625,6 +627,10 @@ async function pollGsiStatus() {
 
 function setBackendStatus(status) {
   processStatus.backend = status;
+  if (status !== "starting") {
+    // Running, or it could not start: either way the panel takes over from the splash.
+    finishSplash();
+  }
   if (status !== "running") {
     live.inMatch = false;
     live.details = emptyLiveDetails();
@@ -2166,7 +2172,87 @@ function createMainWindow({ show = true } = {}) {
   return mainWindow;
 }
 
+// Start-up splash (splash/): the animated logo while the backend starts. The
+// panel is created hidden behind it and shown once the backend runs (or could
+// not start), after SPLASH_MAX_MS at the latest.
+const SPLASH_MAX_MS = 25_000;
+const SPLASH_SLOW_MS = 7_000;
+
+function createSplash() {
+  splashWindow = new BrowserWindow({
+    width: 280,
+    height: 300,
+    frame: false,
+    resizable: false,
+    maximizable: false,
+    fullscreenable: false,
+    center: true,
+    show: false,
+    title: APP_NAME,
+    icon: appIcon(),
+    backgroundColor: WINDOW_BACKGROUND,
+    webPreferences: { contextIsolation: true, nodeIntegration: false, sandbox: true }
+  });
+  splashWindow.setMenuBarVisibility(false);
+  splashWindow.loadFile(path.join(__dirname, "splash", "splash.html"), { query: { lang: uiLocale() } });
+  splashWindow.once("ready-to-show", () => {
+    if (splashWindow && !splashWindow.isDestroyed()) {
+      splashWindow.show();
+    }
+  });
+  const slow = setTimeout(() => splashCall("window.splash && window.splash.status('slow')"), SPLASH_SLOW_MS);
+  const limit = setTimeout(() => finishSplash(), SPLASH_MAX_MS);
+  splashWindow.on("closed", () => {
+    clearTimeout(slow);
+    clearTimeout(limit);
+    splashWindow = null;
+    // Closed by hand (Alt+F4): open the panel right away.
+    if (!splashFinishing && !isQuitting) {
+      revealMainWindow();
+    }
+  });
+}
+
+function splashCall(code) {
+  if (!splashWindow || splashWindow.isDestroyed()) {
+    return Promise.resolve(null);
+  }
+  return splashWindow.webContents.executeJavaScript(code).catch(() => null);
+}
+
+async function finishSplash() {
+  if (!splashWindow || splashWindow.isDestroyed() || splashFinishing) {
+    return;
+  }
+  splashFinishing = true;
+  if (isQuitting) {
+    splashWindow.destroy();
+    return;
+  }
+  // The splash answers how long its exit animation needs (at most 2 s).
+  const wait = Number(await splashCall("window.splash ? window.splash.done() : 0")) || 0;
+  await delay(Math.min(Math.max(wait, 0), 2000));
+  revealMainWindow();
+  if (splashWindow && !splashWindow.isDestroyed()) {
+    splashWindow.destroy();
+  }
+}
+
+function revealMainWindow() {
+  if (!mainWindow || mainWindow.isDestroyed()) {
+    createMainWindow();
+    return;
+  }
+  mainWindow.show();
+  mainWindow.focus();
+}
+
 function showMainWindow() {
+  // While the splash is up, the panel comes after it.
+  if (splashWindow && !splashWindow.isDestroyed()) {
+    splashWindow.focus();
+    return;
+  }
   if (!mainWindow || mainWindow.isDestroyed()) {
     createMainWindow();
     return;
@@ -2696,7 +2782,8 @@ function bootstrap() {
       settings.set("startHiddenOnce", false);
     }
     if (!startHidden) {
-      createMainWindow();
+      createSplash();
+      createMainWindow({ show: false });
     }
     if (justUpdated) {
       settings.set("whatsNewPending", app.getVersion());

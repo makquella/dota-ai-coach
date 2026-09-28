@@ -111,7 +111,7 @@ Default `USE_LLM=false`. LLM providers only reword advice or run offline review.
 
 ## Frontend tooling
 
-No lint/typecheck. Verification is `node --check` on these seventeen files (CI runs exactly this; `npm run check` in `frontend/launcher/` does the same) plus dependency-free unit tests for the Electron-free modules (`npm test` = `node --test test/*.test.js`, also in CI):
+No lint/typecheck. Verification is `node --check` on these eighteen files (CI runs exactly this; `npm run check` in `frontend/launcher/` does the same) plus dependency-free unit tests for the Electron-free modules (`npm test` = `node --test test/*.test.js`, also in CI):
 ```bash
 node --check frontend/launcher/main.js
 node --check frontend/launcher/preload.js
@@ -129,6 +129,7 @@ node --check frontend/launcher/renderer/charts.js
 node --check frontend/launcher/renderer/matches.js
 node --check frontend/launcher/overlay/app.js
 node --check frontend/launcher/overlay/voice.js
+node --check frontend/launcher/splash/splash.js
 node --check frontend/launcher/assets/icons/lucide.js
 ```
 Dev: `npm install && npm run dev` inside `frontend/launcher/`. On Wayland/GNOME use `npm run dev:x11` for the overlay to stay always-on-top. Electron is pinned at 42.4.0.
@@ -212,6 +213,7 @@ Script-only env (not runtime): `SIMULATION_*`, `MATCH_SIMULATION_PATH` (`scripts
 
 One Electron app, **`frontend/launcher/`** (product name "Wardly" — formerly "Dota AI Coach" —, exe `Wardly.exe`; the internal ids keep the old name: `appId` `com.dotaai.coach`, data folder `%APPDATA%\DotaAICoach`, the repo and the backend exe, so installed apps keep their data and updates). The former separate `frontend/desktop-overlay/` app was merged into it.
 - `main.js` — single-instance lock, tray (Open / Overlay / Start with Windows / Quit), close-to-tray, autostart (`--hidden`), backend process (port pick, health wait, graceful stop, crash restart ×3), replay demo presets, GSI config, IPC, `--smoke-test`.
+- `splash/` — the start-up splash (`createSplash` in main.js; not with `--hidden` or a hidden restart after an update): a 280×300 frameless window with the logo drawn as SVG parts and CSS animation (the ring draws itself, the eye opens, then the red dot runs along the ring and the pupil blinks while the backend starts; on ready the eye widens and fades; `prefers-reduced-motion` → static logo). No preload: main calls `window.splash.status('slow')` after 7 s and `window.splash.done()` (returns the ms its exit needs) when the backend status leaves `starting` or after 25 s; the panel is created hidden behind it and shown then. `showMainWindow` focuses the splash while it is up; closing it by hand opens the panel.
 - `renderer/` + `preload.js` — control panel window, tabs «Главная / Матчи / Прогресс / Настройки». Home: one status line with a single action (e.g. «Дота не найдена» → «Указать папку Доты»), the first-run checklist, current match, recent advice (backend `GET /advice/recent`). Settings: «Оверлей» (on/off, position preset, move by hand), «Советы» (frequency, voice), «Приложение» (autostart, updates, problem report) and the collapsed «For developers» section with every other tool (backend, GSI config, live GSI, recordings, replay demos, Deep Review, logs). Texts live in the `I18N` table in `renderer/app.js` (ru/en: `settings.language` auto | ru | en from Settings → App, auto = system locale; `uiLocale()` in main decides it for the panel, the overlay, the tray and every backend `lang=` request, sent as `status.locale`); keep both languages in sync when adding strings.
 - Look: calm, neutral dark UI (no game theming, no neon, glow, gradients, glassmorphism or emoji). Design tokens live in `assets/ui/tokens.css` (colours, type scale 12/13/14/16/20/28, weights 400/500/600, 4px spacing, radii 6–10px, 120–180ms ease-out motion) and are shared by both windows — add tokens there instead of hard-coding values. One accent (`--accent`) for the primary action and active state only; `--ok/--warn/--error` only as small status dots. Font: Inter, bundled in `assets/fonts/` (OFL, no CDN — the app must work offline); numbers/timers use `tabular-nums`. Icons: Lucide subset vendored in `assets/icons/lucide.js` (`<i data-icon="name">` + `LucideIcons.hydrate()`); add an icon by copying its SVG body from `lucide-static`. Loading states are skeletons (no spinners); every control needs hover, focus-visible and disabled styles. Screenshots: `docs/screenshots/ui-v3/`.
 - `overlay-window.js` + `overlay-preload.js` + `overlay/` — transparent frameless always-on-top window; its renderer asks the main process for `/overlay/recommendation` (1000 ms) and never builds backend URLs. The window exists while the overlay is enabled; `setVisible()` decides whether it is on screen, and the always-on-top timer runs only while shown.

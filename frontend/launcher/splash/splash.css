@@ -1,0 +1,249 @@
+/*
+ * Start-up splash: the logo comes together (the ring draws itself, the eye
+ * opens), then, while the service starts, the red dot runs along the ring and
+ * the eye blinks now and then; when the app is ready the eye widens and the
+ * splash fades. Colours: the logo's own (the ring light on the dark window).
+ */
+:root {
+  --logo-ring: #d9dbe0;
+  --logo-eye: #efe5d4;
+  --logo-pupil: #a01b2a;
+  --logo-dot: #dc3a45;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  height: 100%;
+  margin: 0;
+  overflow: hidden;
+  background: var(--bg);
+  color: var(--text);
+  font-family: Inter, system-ui, sans-serif;
+  -webkit-user-select: none;
+  user-select: none;
+  /* The frameless window can be dragged by any point. */
+  -webkit-app-region: drag;
+}
+
+.splash {
+  display: flex;
+  height: 100%;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  border: 1px solid var(--border-strong);
+  border-radius: 12px;
+}
+
+.logo {
+  width: 112px;
+  height: 112px;
+  overflow: visible;
+}
+
+.logo * {
+  transform-box: view-box;
+  transform-origin: 502px 510px;
+}
+
+.ring {
+  fill: none;
+  stroke: var(--logo-ring);
+  stroke-width: 80;
+  stroke-linecap: round;
+  stroke-dasharray: 100;
+  stroke-dashoffset: 100;
+  animation: draw 700ms cubic-bezier(0.3, 0, 0.2, 1) forwards;
+}
+
+.arrow {
+  fill: var(--logo-ring);
+  opacity: 0;
+  transform-origin: 826px 246px;
+  animation: pop 320ms 520ms cubic-bezier(0.2, 0.9, 0.3, 1.3) forwards;
+}
+
+.eye {
+  fill: var(--logo-eye);
+  transform: scale(0.6);
+  opacity: 0;
+  animation: grow 420ms 180ms cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+}
+
+.pupil {
+  fill: var(--logo-pupil);
+  transform: scaleY(0.04);
+  animation: open 360ms 480ms cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+}
+
+.dot-rim {
+  fill: var(--bg);
+}
+
+.dot {
+  fill: var(--logo-dot);
+  transform-origin: 200px 770px;
+  transform: scale(0);
+  animation: pop 280ms 640ms cubic-bezier(0.2, 0.9, 0.3, 1.4) forwards;
+}
+
+.name {
+  margin: 8px 0 0;
+  font-size: 20px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  opacity: 0;
+  animation: rise 360ms 520ms ease-out forwards;
+}
+
+.status {
+  min-height: 18px;
+  margin: 0;
+  color: var(--text-3);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  transition: opacity 160ms ease-out;
+}
+
+/* Waiting for the service: the dot runs along the ring (a full turn every
+   1.8 s, easing near the gap), the eye blinks and looks around. */
+[data-phase="wait"] .orbit {
+  animation: orbit 1800ms cubic-bezier(0.45, 0.05, 0.4, 0.95) infinite;
+}
+
+[data-phase="wait"] .pupil {
+  transform: none;
+  animation: look 3600ms ease-in-out infinite;
+}
+
+/* Ready: the eye widens, the dot settles back and everything fades. */
+[data-phase="done"] .orbit {
+  animation: none;
+}
+
+[data-phase="done"] .pupil {
+  transform: none;
+  animation: widen 380ms cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+}
+
+[data-phase="done"] .logo {
+  animation: leave 380ms 120ms ease-in forwards;
+}
+
+[data-phase="done"] .name,
+[data-phase="done"] .status {
+  opacity: 1;
+  animation: fade 300ms 160ms ease-in forwards;
+}
+
+@keyframes draw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes pop {
+  from {
+    opacity: 0;
+    transform: scale(0);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes grow {
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes open {
+  to {
+    transform: scaleY(1);
+  }
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes orbit {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* A blink (the slit closes and opens), then the pupil narrows and widens. */
+@keyframes look {
+  0%,
+  20%,
+  56%,
+  64%,
+  100% {
+    transform: none;
+  }
+  35% {
+    transform: scaleX(0.72);
+  }
+  60% {
+    transform: scaleY(0.06);
+  }
+  82% {
+    transform: scaleX(1.12);
+  }
+}
+
+@keyframes widen {
+  to {
+    transform: scale(1.18, 1.04);
+  }
+}
+
+@keyframes leave {
+  to {
+    opacity: 0;
+    transform: scale(1.08);
+  }
+}
+
+@keyframes fade {
+  to {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .logo *,
+  .name,
+  [data-phase] .orbit,
+  [data-phase] .pupil,
+  [data-phase] .logo {
+    animation: none !important;
+    opacity: 1;
+    stroke-dashoffset: 0;
+    transform: none;
+  }
+  [data-phase="wait"] .status {
+    animation: pulse 1600ms ease-in-out infinite;
+  }
+  @keyframes pulse {
+    50% {
+      opacity: 0.5;
+    }
+  }
+}

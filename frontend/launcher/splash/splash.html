@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'self'; font-src 'self'; script-src 'self'" />
+    <title>Wardly</title>
+    <link rel="stylesheet" href="../assets/fonts/fonts.css" />
+    <link rel="stylesheet" href="../assets/ui/tokens.css" />
+    <link rel="stylesheet" href="./splash.css" />
+  </head>
+  <body>
+    <main class="splash" data-phase="intro">
+      <!-- The logo, drawn as parts so each can move: the ring with its arrow,
+           the eye and its slit pupil, the red dot that runs along the ring. -->
+      <svg class="logo" viewBox="0 0 1024 1024" aria-hidden="true">
+        <g class="compass">
+          <path class="ring" pathLength="100" d="M 865.9 349.3 A 395 395 0 1 1 733.2 187.6" />
+          <path class="arrow" d="M 722 240 L 928 140 Q 936 138 932 146 L 826 352 Z" />
+        </g>
+        <circle class="eye" cx="502" cy="510" r="272" />
+        <path class="pupil" d="M 502 280 Q 632 510 502 745 Q 372 510 502 280 Z" />
+        <g class="orbit">
+          <circle class="dot-rim" cx="200" cy="770" r="100" />
+          <circle class="dot" cx="200" cy="770" r="66" />
+        </g>
+      </svg>
+      <h1 class="name">Wardly</h1>
+      <p class="status" id="status" role="status" aria-live="polite"></p>
+    </main>
+    <script src="./splash.js"></script>
+  </body>
+</html>

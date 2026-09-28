@@ -79,6 +79,7 @@ jobs:
           node --check frontend/launcher/renderer/dota-data.js
           node --check frontend/launcher/overlay/app.js
           node --check frontend/launcher/overlay/voice.js
+          node --check frontend/launcher/splash/splash.js
           node --check frontend/launcher/assets/icons/lucide.js
 
       - name: Unit tests (node --test, no dependencies)
