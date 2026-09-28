@@ -420,3 +420,25 @@ def test_the_key_item_late_or_early_once():
         )
         is None
     )
+
+
+def test_a_missing_level_is_not_a_hard_lane(client):
+    """GSI without hero.level: the state's level falls back to 1, which used to read
+    as "level 1 at 6:10" and gave every offlaner «A hard lane"."""
+    set_role_setting("offlane")
+    stream = gsi_match_stream(match_id=MATCH_ID, minutes=8, death_minutes=(), positions=True)
+    for payload in stream:
+        payload["hero"].pop("level", None)
+        payload["items"] = {"slot0": {"name": "item_tango"}}
+    answer = _play_until(client, stream, 6 * 60 + 10)
+    hint = answer.get("map_hint") or {}
+    assert not str(hint.get("id", "")).startswith("offlane_hard_lane")
+    set_role_setting("auto")
+
+
+def test_a_chosen_support_knows_its_lane_before_three_minutes():
+    tracker = LiveRoleTracker()
+    set_role_setting("support")
+    _lane(tracker, _world(4000, -6500), 1, until=2 * 60)
+    assert tracker.role() == {"role": "support", "source": "setting", "lane": "safe"}
+    set_role_setting("auto")

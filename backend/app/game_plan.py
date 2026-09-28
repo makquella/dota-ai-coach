@@ -155,23 +155,26 @@ def build_game_plan(
     elif item:
         lines.append(text["item_plain"].format(item=item["name"]))
 
+    if focus:
+        # The problem the player chose to work on beats the most frequent one.
+        lines.append(text["focus"].format(title=_sentence_tail(focus)))
+    else:
+        reviewed_on_hero = [m for m in history if m.get("analysis")]
+        source = (
+            reviewed_on_hero
+            if len(reviewed_on_hero) >= MIN_HERO_REVIEWS_FOR_REMINDER
+            else all_recent
+        )
+        recurring = analyze_career(source, lang).get("recurring") or [] if source else []
+        if recurring:
+            lines.append(text["reminder"].format(title=_sentence_tail(recurring[0]["title"])))
+
+    # Last: the overlay clamps the lines under the first one, so a wrapped line
+    # cuts the end — the matchups, never the focus.
     hard = _hard_opponents(record_rows, all_recent)
     if hard:
         heroes = ", ".join(f"{row['hero']} {row['wins']}–{row['losses']}" for row in hard)
         lines.append(text["hard"].format(heroes=heroes))
-
-    if focus:
-        # The problem the player chose to work on beats the most frequent one.
-        lines.append(text["focus"].format(title=_sentence_tail(focus)))
-        return _plan(text, hero, role, lines, record_rows)
-
-    reviewed_on_hero = [m for m in history if m.get("analysis")]
-    source = (
-        reviewed_on_hero if len(reviewed_on_hero) >= MIN_HERO_REVIEWS_FOR_REMINDER else all_recent
-    )
-    recurring = analyze_career(source, lang).get("recurring") or [] if source else []
-    if recurring:
-        lines.append(text["reminder"].format(title=_sentence_tail(recurring[0]["title"])))
 
     if not lines:
         return None

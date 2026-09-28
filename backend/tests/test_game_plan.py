@@ -180,3 +180,16 @@ def test_the_key_item_for_the_live_timing_tip(client, tmp_path):
     assert item is not None and item["key"] and item["name"] and item["typical_t"] > 0
     assert service.key_item("Juggernaut") is item  # cached
     assert service.key_item("not a hero") is None
+
+
+def test_the_focus_comes_before_the_matchups():
+    """The overlay clamps the lines under the first one: the matchups go last."""
+    history = [_vs(False, [2, 25])] * 3
+    plan = build_game_plan(
+        hero="Juggernaut", history=history, all_recent=[], meta=None, lang="en", focus="Die less"
+    )
+    focus_line, matchups = plan["lines"][-2:]
+    assert focus_line == "Your focus: die less"
+    assert (
+        matchups.startswith("Hard matchups: ") and "Axe 0–3" in matchups and "Lina 0–3" in matchups
+    )
