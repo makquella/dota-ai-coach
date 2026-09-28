@@ -1145,6 +1145,45 @@ label.setting:has(.switch:disabled) {
   font-size: var(--fs-13);
 }
 
+.tilt-line {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--sp-2);
+  margin: 0 0 var(--sp-3);
+  padding: var(--sp-2) var(--sp-3);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  background: var(--surface-1);
+  color: var(--text-1);
+  font-size: var(--fs-13);
+}
+
+.tilt-line::before {
+  content: "";
+  flex: none;
+  width: 8px;
+  height: 8px;
+  margin-top: 5px;
+  border-radius: 50%;
+  background: var(--warn);
+}
+
+.goals-line {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+  margin: 0 0 var(--sp-3);
+}
+
+.goal-chip[data-met="true"] {
+  border-color: var(--ok);
+  color: var(--text-1);
+}
+
+.goal-chip .goal-count {
+  color: var(--text-1);
+}
+
 .review-banner-text {
   flex: 1;
 }
@@ -3320,7 +3359,9 @@ label.setting:has(.switch:disabled) {
 }
 
 .col > .review-banner,
-.col > .today-line {
+.col > .today-line,
+.col > .tilt-line,
+.col > .goals-line {
   margin: 0;
 }
 
@@ -3657,4 +3698,24 @@ tr.row-link[data-result="loss"] > td:first-child {
 /* The page's buttons stay on one line next to the title. */
 .page-actions {
   flex: none;
+}
+
+/* «Смотреть» next to a death or a key moment: copies the replay jump command. */
+.moment .watch-moment {
+  margin-left: auto;
+  align-self: flex-start;
+  opacity: 0.75;
+}
+
+.moment:hover .watch-moment,
+.moment .watch-moment:focus-visible,
+.moment .watch-moment.is-done {
+  opacity: 1;
+}
+
+@media print {
+  .tilt-line,
+  .goals-line {
+    display: none;
+  }
 }

@@ -288,6 +288,11 @@ class MatchTracker:
         if clock is None or clock < 0:
             return
         current["last_clock"] = clock
+        # Game time from the start of the replay minus the match clock: turns a
+        # match moment into a replay tick («watch this moment» in the review).
+        game_time = _int(map_block.get("game_time"))
+        if game_time is not None and game_time >= clock and "clock_offset" not in current:
+            current["clock_offset"] = game_time - clock
         # Team kill totals, for kill participation without OpenDota.
         for team in ("radiant", "dire"):
             score = _int(map_block.get(f"{team}_score"))

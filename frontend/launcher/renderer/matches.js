@@ -173,6 +173,13 @@
       },
       mapSpotTitle: (count, place) => `${count} deaths · ${place}`,
       mapSpotLine: (place, count) => `Most often: ${place} — ${count}`,
+      watchMoment: "Watch",
+      watchMomentHint: "Copies a Dota console command. Open this match's replay in Dota, press \\ for the console and paste it: the replay jumps to about 10 s before this moment.",
+      watchCopied: "Copied: paste in the replay console",
+      watchFailed: "Could not copy",
+      bestOnHeroLine: (score) => `Your best match on this hero (${score})`,
+      bestOnHeroNote: (score, when) => `Dashed: your best match on this hero, score ${score} (${when}).`,
+      bestOnHeroSelf: (of) => `This is your best match on this hero out of ${of}.`,
       mapDeaths: "Deaths",
       killedBy: (hero) => `Killed by ${hero}`,
       mapSide: { own: "on your half", river: "in the river", enemy: "on the enemy half" },
@@ -311,6 +318,18 @@
       opponentsHard: "Hardest to play against",
       opponentsEasy: "You beat them most often",
       opponentRecord: (w, l, wr) => `${w}–${l} · ${wr}%`,
+      poolTitle: "Your hero pool",
+      poolNote: "Your win rate on each hero (4+ games) against how players of your rank do on it.",
+      poolMore: "Play them more",
+      poolPark: "Better to park them for now",
+      poolRecord: (w, n, wr, br) => `${w} of ${n} won · ${wr}%${br == null ? "" : ` (your rank: ${br}%)`}`,
+      streakFewDeaths: (target) => `${target} matches in a row with 5 deaths or fewer`,
+      streakGoodScore: (target) => `${target} matches in a row with a score of 60+`,
+      streakProgress: (cur, target) => `${Math.min(cur, target)} of ${target}`,
+      streakMet: (cur) => `done: ${cur} in a row`,
+      streakBest: (best) => `Your best run in the last 30 matches: ${best}`,
+      tiltLosses: (n) => `${n} losses in a row. Maybe take a break, or play something just for fun.`,
+      tiltScore: (a, b, usual) => `Your last two scores are ${a} and ${b}, while you usually get about ${usual}. Maybe take a break.`,
       friendTitle: "Compare with a friend",
       friendHint: "A friend's Friend ID, Steam ID or profile link (steamcommunity.com/profiles/…). Their public OpenDota matches are compared with yours: the last 20 games of each.",
       friendPlaceholder: "Friend ID, Steam ID or profile link",
@@ -611,6 +630,13 @@
       },
       mapSpotTitle: (count, place) => `${count} ${plural(count, "смерть", "смерти", "смертей")} · ${place}`,
       mapSpotLine: (place, count) => `Чаще всего: ${place} — ${count}`,
+      watchMoment: "Смотреть",
+      watchMomentHint: "Копирует команду консоли Доты. Откройте запись этого матча в Доте, нажмите \\ (консоль) и вставьте: запись перемотается примерно за 10 с до этого момента.",
+      watchCopied: "Скопировано: вставьте в консоль записи",
+      watchFailed: "Не удалось скопировать",
+      bestOnHeroLine: (score) => `Ваш лучший матч на герое (${score})`,
+      bestOnHeroNote: (score, when) => `Пунктир — ваш лучший матч на этом герое, оценка ${score} (${when}).`,
+      bestOnHeroSelf: (of) => `Это ваш лучший матч на этом герое из ${of}.`,
       mapDeaths: "Смерти",
       killedBy: (hero) => `Убил: ${hero}`,
       mapSide: { own: "на своей половине", river: "у реки", enemy: "на половине противника" },
@@ -749,6 +775,18 @@
       opponentsHard: "Против них сложнее всего",
       opponentsEasy: "Их вы обыгрываете чаще всего",
       opponentRecord: (w, l, wr) => `${w}–${l} · ${wr}%`,
+      poolTitle: "Ваш пул героев",
+      poolNote: "Ваш процент побед на каждом герое (от 4 игр) против того, как на нём играют игроки вашего звания.",
+      poolMore: "Играйте на них чаще",
+      poolPark: "Их лучше пока отложить",
+      poolRecord: (w, n, wr, br) => `${w} из ${n} побед · ${wr}%${br == null ? "" : ` (на вашем звании ${br}%)`}`,
+      streakFewDeaths: (target) => `${target} ${plural(target, "матч", "матча", "матчей")} подряд — не больше 5 смертей`,
+      streakGoodScore: (target) => `${target} ${plural(target, "матч", "матча", "матчей")} подряд с оценкой 60+`,
+      streakProgress: (cur, target) => `${Math.min(cur, target)} из ${target}`,
+      streakMet: (cur) => `выполнено: ${cur} подряд`,
+      streakBest: (best) => `Лучшая серия за последние 30 матчей: ${best}`,
+      tiltLosses: (n) => `${n} ${plural(n, "поражение", "поражения", "поражений")} подряд. Может, перерыв — или сыграйте что-нибудь просто для удовольствия.`,
+      tiltScore: (a, b, usual) => `Две последние оценки — ${a} и ${b}, а обычно у вас около ${usual}. Может, сделать перерыв?`,
       friendTitle: "Сравнение с другом",
       friendHint: "Friend ID друга, Steam ID или ссылка на профиль (steamcommunity.com/profiles/…). Сравниваются открытые матчи из OpenDota: последние 20 игр каждого.",
       friendPlaceholder: "Friend ID, Steam ID или ссылка на профиль",
@@ -890,6 +928,7 @@
   const cssVar = (name, fallback) =>
     getComputedStyle(document.documentElement).getPropertyValue(name).trim() || fallback;
   const VIZ_1 = cssVar("--viz-1", "#3987e5");
+  const VIZ_2 = cssVar("--viz-2", "#e5963a");
   const TAB_KEY = "dota-ai-coach.tab";
   const api = window.launcherApi;
 
@@ -2067,7 +2106,14 @@
         })
       )
     );
-    return card(t("chartTitle"), "chart-line", host, toggle);
+    const best = state.match && state.match.best_on_hero;
+    let note = null;
+    if (best && best.self_best) {
+      note = h("p", { class: "muted small chart-note", text: t("bestOnHeroSelf", best.of) });
+    } else if (best && best.score) {
+      note = h("p", { class: "muted small chart-note", text: t("bestOnHeroNote", best.score, relativeTime(best.start_time)) });
+    }
+    return card(t("chartTitle"), "chart-line", note ? h("div", {}, host, note) : host, toggle);
   }
 
   function drawChart(host, analysis) {
@@ -2075,8 +2121,15 @@
     const values = { lh: series.last_hits, gold: series.gold, xp: series.xp }[state.chartMetric] || [];
     const label = { lh: t("chartLh"), gold: t("chartGold"), xp: t("chartXp") }[state.chartMetric];
     const markers = (series.deaths || []).map((seconds) => ({ x: seconds / 60, label: `${t("deathsMarker")} ${clock(seconds)}` }));
+    // The player's best match on this hero, dashed (PlayerService._best_on_hero).
+    const best = state.match && state.match.best_on_hero;
+    const bestSeries = best && best.series ? { lh: best.series.last_hits, gold: best.series.gold, xp: best.series.xp }[state.chartMetric] : null;
+    const lines = [{ label: `${t("you")} · ${label}`, values, color: VIZ_1, area: true }];
+    if (Array.isArray(bestSeries) && bestSeries.length > 2) {
+      lines.push({ label: t("bestOnHeroLine", best.score), values: bestSeries, color: VIZ_2, dashed: true });
+    }
     window.LauncherCharts.line(host, {
-      series: [{ label: `${t("you")} · ${label}`, values, color: VIZ_1, area: true }],
+      series: lines,
       reference: (() => {
         const target = { lh: series.last_hits_target, gold: series.gold_target, xp: series.xp_target }[state.chartMetric];
         return Array.isArray(target) && target.length ? { label: t("target"), values: target } : null;
@@ -2449,6 +2502,31 @@
     );
   }
 
+  // Heroes to play more and to park (career_analysis.hero_pool), all heroes only.
+  function heroPoolCard(pool) {
+    if (!pool || !(pool.play_more?.length || pool.park?.length)) {
+      return null;
+    }
+    const row = (hero) =>
+      h(
+        "li",
+        { class: "friend-hero" },
+        heroLabel(hero.hero_id, hero.hero),
+        h("span", { class: "muted num", text: t("poolRecord", hero.wins, hero.matches, hero.winrate, hero.bracket_winrate == null ? null : Math.round(hero.bracket_winrate)) })
+      );
+    return card(
+      t("poolTitle"),
+      "users",
+      h(
+        "div",
+        { class: "friend" },
+        h("p", { class: "muted small", text: t("poolNote") }),
+        pool.play_more?.length ? h("div", {}, h("p", { class: "friend-sub", text: t("poolMore") }), h("ul", { class: "friend-heroes" }, pool.play_more.map(row))) : null,
+        pool.park?.length ? h("div", {}, h("p", { class: "friend-sub", text: t("poolPark") }), h("ul", { class: "friend-heroes" }, pool.park.map(row))) : null
+      )
+    );
+  }
+
   // The rank medal over time (app/rank_history.py): shown once it has changed.
   function rankHistoryCard(history) {
     if (!history || !(history.steps || []).length || history.steps.length < 2) {
@@ -2784,11 +2862,49 @@
             ? h("span", { class: "muted small death-warning", text: t("deathWarned", clock(death.warning.t), death.warning.action || "") })
             : null,
           deathLast(death)
-        )
+        ),
+        watchButton(analysis, death.t)
       );
     });
     const body = h("div", {}, summary, h("ol", { class: "moments deaths-list" }, rows));
     return card(t("deathsTitle", deaths.length), "skull", body);
+  }
+
+  // «Watch this moment»: copies the Dota console command that jumps the replay
+  // to REPLAY_LEAD seconds before it (analysis.replay: the recording's offset
+  // between game time and the match clock; live-recorded matches only).
+  const REPLAY_LEAD = 10;
+
+  function replayTick(analysis, at) {
+    const replay = analysis && analysis.replay;
+    if (!replay || !Number.isFinite(replay.clock_offset) || !Number.isFinite(at)) {
+      return null;
+    }
+    return Math.max(0, Math.round((at + replay.clock_offset - REPLAY_LEAD) * (replay.tick_rate || 30)));
+  }
+
+  function watchButton(analysis, at) {
+    const tick = replayTick(analysis, at);
+    if (tick === null || !api.copyReplayTick) {
+      return null;
+    }
+    const label = h("span", { text: t("watchMoment") });
+    return h(
+      "button",
+      {
+        type: "button",
+        class: "btn btn-ghost btn-sm watch-moment no-print",
+        title: t("watchMomentHint"),
+        onclick: async (event) => {
+          const button = event.currentTarget;
+          const result = await api.copyReplayTick(tick);
+          label.textContent = result && result.ok ? t("watchCopied") : t("watchFailed");
+          button.classList.toggle("is-done", Boolean(result && result.ok));
+        }
+      },
+      icon("play"),
+      label
+    );
   }
 
   // The last 20 s before a death (live GSI, app/last_moments.py): an HP line,
@@ -2866,7 +2982,8 @@
         { class: `moment moment-${moment.type}` },
         h("span", { class: "moment-time num", text: clock(moment.t) }),
         h("span", { class: "moment-icon" }, icon(iconName)),
-        h("span", { class: "moment-text" }, h("span", { text }), sub ? h("span", { class: "muted", text: ` · ${sub}` }) : null)
+        h("span", { class: "moment-text" }, h("span", { text }), sub ? h("span", { class: "muted", text: ` · ${sub}` }) : null),
+        watchButton(analysis, moment.t)
       );
     });
     return card(t("momentsTitle"), "clock", h("ol", { class: "moments" }, items));
@@ -3756,7 +3873,12 @@
             // Asking needs at least one review (the backend answers not_enough without one).
             state.careerHero === null && career.analyzed ? askCard(career, true) : null
           ]),
-          zone(t("zoneGames"), t("zoneGamesHint"), [scoreCard, heroesCard, strengthsCard])
+          zone(t("zoneGames"), t("zoneGamesHint"), [
+            scoreCard,
+            heroesCard,
+            state.careerHero === null ? heroPoolCard(career.hero_pool) : null,
+            strengthsCard
+          ])
         ].filter(Boolean),
         [
           zone(t("zoneCompare"), t("zoneCompareHint"), [
@@ -3820,6 +3942,36 @@
       today.focus_total ? (ru ? `фокус ${today.focus_met} из ${today.focus_total}` : `focus ${today.focus_met} of ${today.focus_total}`) : null
     ];
     line.textContent = parts.filter(Boolean).join(" · ");
+  }
+
+  // Tilt warning and streak goals under the day line (app/player_goals.py).
+  const GOAL_TEXT = { few_deaths: "streakFewDeaths", good_score: "streakGoodScore" };
+
+  function renderGoals(status) {
+    const player = status.player || {};
+    const tiltLine = document.getElementById("tilt-line");
+    const tilt = player.linked ? player.tilt : null;
+    tiltLine.classList.toggle("hidden", !tilt);
+    if (tilt) {
+      tiltLine.textContent = tilt.reason === "losses"
+        ? t("tiltLosses", tilt.losses)
+        : t("tiltScore", tilt.scores[0], tilt.scores[1], tilt.usual);
+    }
+    const goalsLine = document.getElementById("goals-line");
+    const goals = (player.linked ? player.goals || [] : []).filter((goal) => GOAL_TEXT[goal.id]);
+    goalsLine.classList.toggle("hidden", !goals.length);
+    goalsLine.replaceChildren(
+      ...goals.map((goal) =>
+        h(
+          "span",
+          { class: "chip goal-chip", "data-met": String(Boolean(goal.met)), title: t("streakBest", goal.best) },
+          icon(goal.met ? "circle-check" : "target"),
+          h("span", { text: t(GOAL_TEXT[goal.id], goal.target) }),
+          h("span", { class: "goal-count num", text: goal.met ? t("streakMet", goal.current) : t("streakProgress", goal.current, goal.target) })
+        )
+      )
+    );
+    hydrate(goalsLine);
   }
 
   // --- home: the last seven days ---------------------------------------------------
@@ -4031,6 +4183,7 @@
     state.status = status;
     renderBanner(status);
     renderToday(status);
+    renderGoals(status);
     if (status.backend === "running" && status.player && status.player.linked) {
       refreshWeek(status).catch(() => {});
       refreshRecent(status).catch(() => {});

@@ -1431,7 +1431,9 @@ async function pollPlayerStatus() {
     aiConfigured: Boolean(status.ai && status.ai.configured),
     opendotaKey: Boolean(status.opendota_key),
     liveMatch: status.live_match || null,
-    today: status.today || null
+    today: status.today || null,
+    goals: Array.isArray(status.goals) ? status.goals : [],
+    tilt: status.tilt || null
   };
   if (live.player.accountId !== previousAccount) {
     // Launch options are per Steam account: check the linked one.
@@ -2784,6 +2786,16 @@ function registerIpc() {
   ipcMain.handle("launcher:copy-launch-option", () => {
     clipboard.writeText(GSI_LAUNCH_OPTION);
     return { ok: true, text: GSI_LAUNCH_OPTION };
+  });
+  // «Watch this moment» in a review: only a replay tick number crosses the
+  // bridge, the command text is built here.
+  ipcMain.handle("launcher:copy-replay-tick", (_event, tick) => {
+    if (!Number.isInteger(tick) || tick < 0 || tick > 10_000_000) {
+      return { ok: false };
+    }
+    const text = `demo_gototick ${tick}`;
+    clipboard.writeText(text);
+    return { ok: true, text };
   });
   ipcMain.handle("launcher:copy-logs", () => {
     clipboard.writeText(logs);
