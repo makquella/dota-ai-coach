@@ -137,3 +137,16 @@ def test_recurring_problems_keep_one_order_across_processes():
     }
     assert len(outputs) == 1
     assert outputs.pop().startswith("['lh10_low', 'lane_eff_low', 'lane_deaths'")
+
+
+def test_the_record_skips_matches_without_a_result():
+    rows = [{"win": None}] * 5 + [{"win": True}] * 15 + [{"win": False}] * 10
+    plan = build_game_plan(
+        hero="Juggernaut",
+        history=rows[:20],
+        record_history=rows,
+        all_recent=[],
+        meta=None,
+        lang="en",
+    )
+    assert plan["record"] == "15–5"  # the last 20 finished games, not 15 of 20 rows

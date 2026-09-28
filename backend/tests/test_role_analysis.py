@@ -103,3 +103,13 @@ def test_offlane_building_damage_against_the_enemy_offlaner():
     )
     lineup["players"][7]["tower_damage"] = 2400  # 2× but a small gap: nothing
     assert analyze_role(_facts(stuns=30, tower_damage=800), lineup, "offlane")[1] == []
+
+
+def test_a_dual_offlane_compares_with_the_core_not_the_support():
+    lineup = _offlane_lineup(30, 90.0)
+    # Their support also on the offlane, farming 2+ LH/min: both count as offlane.
+    support = lineup["players"][9]
+    support.update(lane_role=3, last_hits=90, hero="Crystal Maiden", stuns=5, obs_placed=2)
+    lineup["players"].insert(7, lineup["players"].pop(9))  # listed before the core
+    block, _ = analyze_role(_facts(stuns=30), lineup, "offlane")
+    assert block["enemy_offlane"] == "Mars" and block["enemy_stuns"] == 90

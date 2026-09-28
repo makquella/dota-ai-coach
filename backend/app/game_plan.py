@@ -32,6 +32,7 @@ from app.schemas import is_supported_hero
 SHOW_UNTIL_CLOCK = 90
 MIN_HERO_REVIEWS_FOR_REMINDER = 3
 MIN_RECORD_GAMES = 3
+RECORD_GAMES = 20
 
 TEXT = {
     "ru": {
@@ -78,8 +79,9 @@ def _usual_role(history: list[dict[str, Any]], hero: str) -> str | None:
 
 
 def _record(history: list[dict[str, Any]]) -> str | None:
-    """ "6–4": wins and losses on the hero; unfinished rows (no result) skipped."""
-    results = [m.get("win") for m in history if m.get("win") is not None]
+    """ "6–4": wins and losses of the last RECORD_GAMES finished games on the hero
+    (rows without a result are skipped, older ones fill their place)."""
+    results = [m.get("win") for m in history if m.get("win") is not None][:RECORD_GAMES]
     if len(results) < MIN_RECORD_GAMES:
         return None
     wins = sum(1 for won in results if won)
@@ -112,9 +114,12 @@ def build_game_plan(
     all_recent: list[dict[str, Any]],
     meta: dict[str, Any] | None,
     lang: str,
+    record_history: list[dict[str, Any]] | None = None,
 ) -> dict[str, Any] | None:
     """`history`: the player's recent matches on this hero (store rows with analysis);
-    `all_recent`: recent matches on any hero (for the reminder); `meta`: cached hero meta."""
+    `all_recent`: recent matches on any hero (for the reminder); `meta`: cached hero meta;
+    `record_history`: more rows on the hero for the record (default: `history`)."""
+    record_rows = history if record_history is None else record_history
     lang = "ru" if lang == "ru" else "en"
     text = TEXT[lang]
     lines: list[str] = []
@@ -141,7 +146,7 @@ def build_game_plan(
     if focus:
         # The problem the player chose to work on beats the most frequent one.
         lines.append(text["focus"].format(title=_sentence_tail(focus)))
-        return _plan(text, hero, role, lines, history)
+        return _plan(text, hero, role, lines, record_rows)
 
     reviewed_on_hero = [m for m in history if m.get("analysis")]
     source = (
@@ -153,7 +158,7 @@ def build_game_plan(
 
     if not lines:
         return None
-    return _plan(text, hero, role, lines, history)
+    return _plan(text, hero, role, lines, record_rows)
 
 
 def _plan(text, hero, role, lines, history) -> dict[str, Any]:

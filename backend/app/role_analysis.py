@@ -49,7 +49,9 @@ def _finding(
 def _enemy_same_role(
     opendota: dict[str, Any] | None, role_name: str, field: str
 ) -> tuple[str | None, float | None]:
-    """The enemy player of this role in the match: (hero, value of `field`)."""
+    """The enemy player of this role in the match: (hero, value of `field`).
+    A dual lane can give two enemies the role (a farming support on the
+    offlane); the one with more last hits is the core who plays it."""
     if not opendota:
         return None, None
     players = opendota.get("players") or []
@@ -58,11 +60,21 @@ def _enemy_same_role(
         return None, None
     roles = player_roles(players, opendota.get("duration"))
     my_side = bool(me.get("isRadiant", True))
-    for player, role in zip(players, roles, strict=True):
-        if role == role_name and bool(player.get("isRadiant", True)) != my_side:
-            value = player.get(field)
-            return player.get("hero"), float(value) if isinstance(value, (int, float)) else None
-    return None, None
+    candidates = [
+        player
+        for player, role in zip(players, roles, strict=True)
+        if role == role_name and bool(player.get("isRadiant", True)) != my_side
+    ]
+    if not candidates:
+        return None, None
+    player = max(candidates, key=lambda p: _last_hits(p))
+    value = player.get(field)
+    return player.get("hero"), float(value) if isinstance(value, (int, float)) else None
+
+
+def _last_hits(player: dict[str, Any]) -> float:
+    value = player.get("last_hits")
+    return float(value) if isinstance(value, (int, float)) else 0.0
 
 
 def _enemy_mid_runes(opendota: dict[str, Any] | None) -> tuple[str | None, int | None]:
