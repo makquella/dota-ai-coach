@@ -6,6 +6,7 @@ import json
 
 from match_fixtures import ME, ME_STEAM64, FakeOpenDota, opendota_match, recent_matches
 
+from app.career_analysis import analyze_career
 from app.player_api import PLAYER_SERVICE
 from app.share_progress import public_progress
 
@@ -75,3 +76,17 @@ def test_no_progress_to_share_before_a_review(client, tmp_path):
     PLAYER_SERVICE.configure(tmp_path / "empty", client=None, auto_start=False)
     answer = client.get("/player/career/share")
     assert answer.status_code == 404 and answer.json()["code"] == "no_progress"
+
+
+def test_the_period_covers_every_counted_match_not_only_the_chart():
+    # 30 matches a day apart: the chart shows the last 20, the numbers count all 30.
+    day = 86_400
+    rows = [
+        {"match_id": i, "start_time": 1_790_000_000 - i * day, "hero": "Juggernaut", "win": True}
+        for i in range(30)
+    ]
+    career = analyze_career(rows, "en")
+    assert len(career["series"]) == 20
+    assert career["period"] == {"from": 1_790_000_000 - 29 * day, "to": 1_790_000_000}
+    shared = public_progress({**career, "linked": True, "analyzed": 3}, "en", with_coach=False)
+    assert shared["period"] == {"from": "2026-08-23", "to": "2026-09-21"}

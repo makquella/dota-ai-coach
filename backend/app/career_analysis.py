@@ -85,6 +85,7 @@ def analyze_career(
         "self_compare": compare_best_worst(matches, lang),
         "opponents": opponents(analyzed),
         "series": _series(matches),
+        "period": _period(matches),
         "best_match": _best(matches),
     }
 
@@ -270,6 +271,12 @@ def _streak(decided: list[dict[str, Any]]) -> dict[str, Any] | None:
             break
         length += 1
     return {"win": first, "length": length}
+
+
+def _period(matches: list[dict[str, Any]]) -> dict[str, int] | None:
+    """The first and last start time over every counted match (the series is 20)."""
+    starts = [m["start_time"] for m in matches if isinstance(m.get("start_time"), int)]
+    return {"from": min(starts), "to": max(starts)} if starts else None
 
 
 def _series(matches: list[dict[str, Any]]) -> list[dict[str, Any]]:

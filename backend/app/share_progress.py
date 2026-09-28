@@ -54,8 +54,8 @@ def public_progress(
     """The shareable Progress, or None before the first reviewed match."""
     if not career.get("linked") or not career.get("analyzed"):
         return None
-    starts = [_int(row.get("start_time")) for row in career.get("series") or []]
-    starts = [value for value in starts if value]
+    # Every counted match, not the chart's series (the last 20 only).
+    period = career.get("period") or {}
     averages = career.get("averages") or {}
     trend = career.get("trend") or {}
     result: dict[str, Any] = {
@@ -67,7 +67,9 @@ def public_progress(
         "losses": _int(career.get("losses")),
         "winrate": _int(career.get("winrate")),
         "rank": _text(career.get("rank_bracket_label"), 30) or None,
-        "period": {"from": _day(min(starts)), "to": _day(max(starts))} if starts else None,
+        "period": {"from": _day(period.get("from")), "to": _day(period.get("to"))}
+        if period
+        else None,
         "averages": {key: _number(averages.get(key)) for key in AVERAGE_KEYS},
         "trend": [
             {
