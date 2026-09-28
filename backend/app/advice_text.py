@@ -109,6 +109,10 @@ def clean_recommendation_text(
     )
 
 
+# live_tools.low_hp_copy actions ("Use Magic Wand now, then step back.").
+LOW_HP_TOOL_PREFIXES = ("use ", "step out of enemy range and use ")
+
+
 def clean_action_text(action: str, decision_point: str | None = None) -> str:
     text = clean_visible_text(action.strip())
     key = _canonical(text)
@@ -137,6 +141,9 @@ def clean_action_text(action: str, decision_point: str | None = None) -> str:
     if decision_point == "LOW_HP":
         if key.startswith("reset hp before showing on another lane"):
             return "Reset HP before showing on another lane."
+        # The tool that is ready right now (live_tools.low_hp_copy) stays as it is.
+        if key.startswith(LOW_HP_TOOL_PREFIXES):
+            return text
         return "Leave the wave now and reset HP before rejoining."
 
     if key in ACTION_REPLACEMENTS:

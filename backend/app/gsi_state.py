@@ -14,6 +14,8 @@ from app.config import GSI_DEBUG_LOG, GSI_DEBUG_SAMPLES_DIR
 from app.hero_profiles import evaluate_laning_context
 from app.hero_safety import evaluate_hero_safety
 from app.item_timing import normalize_item_name
+from app.last_moments import ready_savers
+from app.live_tools import regen_items, wand_charges
 from app.map_hints import has_observer_ward, item_names
 from app.signal_capabilities import capability_summary, live_gsi_observed_capabilities
 from app.tp_tracker import has_teleport
@@ -446,6 +448,10 @@ def _normalize_extra_context(
         "has_observer": has_observer_ward(payload.get("items")),
         # Item names in the inventory and stash (role tips such as the mid's Bottle).
         "item_names": item_names(payload.get("items")),
+        # What can be pressed right now (live_tools.py: the survival advice names it).
+        "ready_savers": _ready_savers(payload.get("items")),
+        "wand_charges": wand_charges(payload.get("items")),
+        "regen_items": regen_items(payload.get("items")),
         # The hero level as sent (None when missing; the state's "level" falls
         # back to 1, which role tips must not read as "behind in levels").
         "hero_level": _observed_level(payload, hero_block),
@@ -466,6 +472,13 @@ def _normalize_extra_context(
         demo_values_detected=demo_values_detected,
     )
     return {key: value for key, value in context.items() if value is not None}
+
+
+def _ready_savers(items: Any) -> list[str] | None:
+    """Rescue items that can be pressed right now (None without an items block)."""
+    if not isinstance(items, dict) or not items:
+        return None
+    return ready_savers(items)
 
 
 def _normalize_mana_percent(hero_block: dict[str, Any]) -> int | None:

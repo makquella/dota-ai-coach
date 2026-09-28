@@ -52,6 +52,7 @@ from app.coach_review import (
     review_career,
     review_match,
 )
+from app.death_review import zone
 from app.diagnostics import record_error
 from app.dota_constants import (
     TURBO_GAME_MODE,
@@ -65,6 +66,7 @@ from app.focus_goal import can_focus, focus_summary, match_result, new_focus, pl
 from app.friend_compare import compare
 from app.game_plan import build_game_plan, key_item
 from app.history_backup import export_backup, import_backup
+from app.map_analysis import map_side
 from app.match_facts import facts_from_opendota, facts_from_timeline, merge_facts
 from app.match_tracker import MatchTracker, account_from_gsi
 from app.next_item import has_components, next_build_item
@@ -220,6 +222,39 @@ def _now_iso() -> str:
     return datetime.now(UTC).isoformat()
 
 
+# Deaths in the same place within this many seconds make a pattern.
+PLACE_WINDOW = 10 * 60
+
+
+def _death_place(death: dict[str, Any]) -> dict[str, Any] | None:
+    """Zone and map half of the latest death, and the deaths there lately."""
+    team = str(death.get("team") or "").lower()
+    places = [
+        p
+        for p in death.get("places") or []
+        if isinstance(p.get("x"), (int, float)) and isinstance(p.get("y"), (int, float))
+    ]
+    if team not in {"radiant", "dire"} or not places or places[-1].get("t") != death["t"]:
+        return None
+    radiant = team == "radiant"
+
+    def where(p: dict[str, Any]) -> tuple[str, str]:
+        return zone(p["x"], p["y"]), map_side(p["x"], p["y"], radiant)
+
+    here = where(places[-1])
+    same = [
+        p
+        for p in places
+        if isinstance(p.get("t"), int) and death["t"] - p["t"] <= PLACE_WINDOW and where(p) == here
+    ]
+    return {
+        "zone": here[0],
+        "side": here[1],
+        "count": len(same),
+        "minutes": max(1, -(-(death["t"] - same[0]["t"]) // 60)),
+    }
+
+
 class PlayerService:
     def __init__(
         self,
@@ -314,6 +349,18 @@ class PlayerService:
         self, clock: Any, decision_point: str, action: str, reason: str, mode: str
     ) -> None:
         self.tracker.note_advice(clock, decision_point, action, reason, mode)
+
+    def recent_death(self, clock: Any, within: int = 90) -> dict[str, Any] | None:
+        """A death of the last `within` seconds of match clock, for the live
+        death advice (live_tools.py): the rescue items left unpressed and where
+        it happened, with how many deaths of the last PLACE_WINDOW seconds were
+        in the same place (zone and map half)."""
+        death = self.tracker.last_death()
+        if not death or not isinstance(clock, int) or not isinstance(death.get("t"), int):
+            return None
+        if not 0 <= clock - death["t"] <= within:
+            return None
+        return {"items": death["usable"], "place": _death_place(death)}
 
     def check_stale(self) -> None:
         self.tracker.check_stale()
