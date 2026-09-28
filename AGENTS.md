@@ -151,6 +151,8 @@ node --check frontend/launcher/discord-weekly.js
 node --check frontend/launcher/advice-stats.js
 node --check frontend/launcher/assets/icons/lucide.js
 ```
+A new module required by `main.js` (or its modules) must also be listed in `package.json` `build.files`, or the installed app fails at start while dev works; `test/package-files.test.js` checks it.
+
 Dev: `npm install && npm run dev` inside `frontend/launcher/`. On Wayland/GNOME use `npm run dev:x11` for the overlay to stay always-on-top. Electron is pinned at 42.4.0.
 
 Runtime check without a display server: `xvfb-run -a npx electron . --no-sandbox --smoke-test=/tmp/smoke.json` (from `frontend/launcher/`) starts the backend, loads both windows, checks `/health`, stops the backend gracefully and exits 0/1.
