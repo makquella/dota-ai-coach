@@ -6,7 +6,7 @@
   const RELEASES = `https://github.com/${REPO}/releases/latest`;
   const LANG_KEY = "dac.lang";
   // Bump with every reshoot of the pictures (scripts/site-shots) and in index.html.
-  const SHOTS_VERSION = "5";
+  const SHOTS_VERSION = "6";
 
   const EN = {
     title: "Wardly — a Dota 2 coach right in your game",
