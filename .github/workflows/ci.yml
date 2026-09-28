@@ -81,6 +81,7 @@ jobs:
           node --check frontend/launcher/overlay/voice.js
           node --check frontend/launcher/splash/splash.js
           node --check frontend/launcher/transfer-code.js
+          node --check frontend/launcher/discord-presence.js
           node --check frontend/launcher/assets/icons/lucide.js
 
       - name: Unit tests (node --test, no dependencies)

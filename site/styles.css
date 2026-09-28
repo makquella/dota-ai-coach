@@ -46,9 +46,15 @@
   --text: #f3f3f4;
   --muted: #a0a2a9;
   --faint: #6d7078;
-  --accent: #f2b33d;
-  --accent-hover: #ffc457;
-  --accent-ink: #17120a;
+  /* The logo's red: a lighter tone for text and icons on the dark page (4.9:1),
+     a deeper one under white button text (4.9:1), the eye's cream for small
+     details. */
+  --accent: #f05560;
+  --accent-fill: #d23a46;
+  --accent-hover: #e0434f;
+  --accent-ink: #ffffff;
+  --accent-soft: rgba(240, 85, 96, 0.12);
+  --cream: #efe5d4;
   --radius: 14px;
   --radius-sm: 10px;
   --wrap: 1200px;
@@ -132,7 +138,7 @@ p {
   z-index: 100;
   padding: 8px 14px;
   border-radius: 8px;
-  background: var(--accent);
+  background: var(--accent-fill);
   color: var(--accent-ink);
   font-weight: 600;
   text-decoration: none;
@@ -161,7 +167,7 @@ p {
   transition: background-color 160ms var(--ease), transform 160ms var(--ease);
 }
 .btn-primary {
-  background: var(--accent);
+  background: var(--accent-fill);
   color: var(--accent-ink);
 }
 .btn-primary:hover {

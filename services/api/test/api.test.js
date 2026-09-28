@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import worker, { cleanup, config } from "../src/index.js";
+import worker, { cleanup, config, versionAtLeast } from "../src/index.js";
 import { RATE_PER_HOUR, redact, reportId, summarize, validateReport } from "../src/report.js";
 
 // In-memory stand-ins for the D1 and R2 bindings, for the statements the Worker uses.
@@ -300,6 +300,18 @@ test("a shared review is published, shown as a page and deleted by its author", 
   assert.match(answer.id, /^[2-9a-z]{10}$/);
   assert.equal(answer.url, `https://api.example/r/${answer.id}`);
   assert.equal(shares.length, 1);
+  // With a Workers route on the site, the link points at the site.
+  const siteEnv = { ...env, SHARE_ORIGIN: "https://luhovyimvp.dev" };
+  const onSite = await (
+    await worker.fetch(shareRequest({ install_id: REPORT.install_id, version: "0.9.0", review: REVIEW }), siteEnv, ctx)
+  ).json();
+  assert.match(onSite.url, /^https:\/\/luhovyimvp\.dev\/r\/[2-9a-z]{10}$/);
+  // A 0.8 launcher opens only links on the API's address: it keeps getting those.
+  const older = await (
+    await worker.fetch(shareRequest({ install_id: REPORT.install_id, version: "0.8.0", review: REVIEW }), siteEnv, ctx)
+  ).json();
+  assert.match(older.url, /^https:\/\/api\.example\/r\//);
+  shares.splice(1);
 
   const json = await (await worker.fetch(new Request(`https://api.example/v1/share/${answer.id}`), env, ctx)).json();
   assert.equal(json.review.hero, "Juggernaut");
@@ -471,4 +483,13 @@ test("guessing codes is slow", async () => {
     assert.equal((await worker.fetch(claimRequest("ZZZZ", "203.0.113.5"), env, ctx)).status, 404);
   }
   assert.equal((await worker.fetch(claimRequest("ZZZZ", "203.0.113.5"), env, ctx)).status, 429);
+});
+
+test("version gate for site links", () => {
+  assert.equal(versionAtLeast("0.9.0", [0, 9, 0]), true);
+  assert.equal(versionAtLeast("0.10.2", [0, 9, 0]), true);
+  assert.equal(versionAtLeast("1.0.0", [0, 9, 0]), true);
+  assert.equal(versionAtLeast("0.8.9", [0, 9, 0]), false);
+  assert.equal(versionAtLeast("", [0, 9, 0]), false);
+  assert.equal(versionAtLeast("dev", [0, 9, 0]), false);
 });
