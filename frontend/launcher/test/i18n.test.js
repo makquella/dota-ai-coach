@@ -12,6 +12,10 @@ const vm = require("node:vm");
 const ROOT = path.join(__dirname, "..");
 
 function tableFrom(file, declaration) {
+  return vm.runInNewContext(`(${tableSource(file, declaration)})`);
+}
+
+function tableSource(file, declaration) {
   const source = fs.readFileSync(path.join(ROOT, file), "utf8");
   const start = source.indexOf(declaration);
   assert.ok(start >= 0, `${declaration} not found in ${file}`);
@@ -35,7 +39,7 @@ function tableFrom(file, declaration) {
     } else if (char === "}") {
       depth -= 1;
       if (depth === 0) {
-        return vm.runInNewContext(`(${source.slice(open, index + 1)})`);
+        return source.slice(open, index + 1);
       }
     }
   }
@@ -55,6 +59,76 @@ function assertSameKeys(table, name) {
   assert.deepEqual([...en].filter((key) => !ru.has(key)), [], `${name}: missing in ru`);
   assert.deepEqual([...ru].filter((key) => !en.has(key)), [], `${name}: missing in en`);
 }
+
+// Keys written twice in one object: the later one silently wins (a
+// "buildTitle" function once replaced the plain title of another card).
+function duplicateKeys(text) {
+  const found = [];
+  const stack = [];
+  let quote = null;
+  let expectKey = false;
+  for (let index = 0; index < text.length; index += 1) {
+    const char = text[index];
+    if (quote) {
+      if (char === "\\") {
+        index += 1;
+      } else if (char === quote) {
+        quote = null;
+      }
+      continue;
+    }
+    if (char === "/" && text[index + 1] === "/") {
+      index = text.indexOf("\n", index);
+      if (index < 0) {
+        break;
+      }
+      continue;
+    }
+    if (char === "{") {
+      stack.push(new Set());
+      expectKey = true;
+      continue;
+    }
+    if (char === "}") {
+      stack.pop();
+      expectKey = false;
+      continue;
+    }
+    if (char === ",") {
+      expectKey = true;
+      continue;
+    }
+    if (/\s/.test(char)) {
+      continue;
+    }
+    if (expectKey) {
+      expectKey = false;
+      const match = /^(?:"([^"]+)"|([A-Za-z_$][\w$]*))\s*:/.exec(text.slice(index));
+      if (match && stack.length) {
+        const key = match[1] || match[2];
+        const keys = stack[stack.length - 1];
+        if (keys.has(key)) {
+          found.push(key);
+        }
+        keys.add(key);
+      }
+    }
+    if (char === '"' || char === "'" || char === "`") {
+      quote = char;
+    }
+  }
+  return found;
+}
+
+test("no text key is written twice in one table", () => {
+  for (const [file, declaration] of [
+    ["renderer/app.js", "const I18N ="],
+    ["renderer/matches.js", "const TEXT ="],
+    ["overlay/app.js", "const OVERLAY_TEXT ="]
+  ]) {
+    assert.deepEqual(duplicateKeys(tableSource(file, declaration)), [], file);
+  }
+});
 
 test("control panel texts exist in both languages", () => {
   assertSameKeys(tableFrom("renderer/app.js", "const I18N ="), "renderer/app.js");

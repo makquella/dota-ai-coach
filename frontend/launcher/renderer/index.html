@@ -45,49 +45,27 @@
         </button>
       </section>
 
-      <!-- First run: what is set up and what is left (hidden when done or dismissed). -->
-      <section class="card setup hidden" id="setup-card" aria-labelledby="setup-heading">
-        <header class="card-head">
-          <i data-icon="list-checks"></i>
-          <h2 id="setup-heading" data-i18n="setupTitle">Getting started</h2>
-          <span class="card-head-extra">
-            <span class="num" id="setup-count"></span>
-            <button id="setup-dismiss" class="btn btn-ghost btn-sm btn-icon" type="button" data-i18n-title="setupHide" title="Hide"><i data-icon="x"></i></button>
-          </span>
-        </header>
-        <ol class="setup-steps" id="setup-steps"></ol>
-      </section>
-
-      <!-- Once after an update: what the new version brings. -->
-      <section class="card whats-new hidden" id="whats-new-card" aria-labelledby="whats-new-heading">
-        <header class="card-head">
-          <i data-icon="sparkles"></i>
-          <h2 id="whats-new-heading"></h2>
-        </header>
-        <div class="card-body">
-          <ul class="whats-new-list" id="whats-new-list"></ul>
-          <button id="whats-new-dismiss" class="btn btn-sm" type="button" data-i18n="whatsNewOk">Got it</button>
-        </div>
-      </section>
-
-      <!-- Shown after a match: link to its post-match review. -->
-      <button type="button" class="review-banner hidden" id="review-banner">
-        <i data-icon="trophy"></i>
-        <span class="review-banner-text" id="review-banner-text"></span>
-        <i data-icon="chevron-right"></i>
-      </button>
-      <!-- Tonight's session: matches since midnight. -->
-      <p class="today-line num hidden" id="today-line"></p>
-      <!-- The last seven days: games, score against the week before, best match, focus plan. -->
-      <section class="card week-card hidden" id="week-card" aria-labelledby="week-heading">
-        <header class="card-head">
-          <i data-icon="calendar"></i>
-          <h2 id="week-heading" data-i18n="weekTitle">This week</h2>
-        </header>
-        <div class="card-body" id="week-body"></div>
-      </section>
-
-      <div class="cards">
+      <!-- Wide window: what is happening now on the left, the history on the right. -->
+      <div class="home-grid">
+        <div class="col col-main">
+          <!-- First run: what is set up and what is left (hidden when done or dismissed). -->
+          <section class="card setup hidden" id="setup-card" aria-labelledby="setup-heading">
+            <header class="card-head">
+              <i data-icon="list-checks"></i>
+              <h2 id="setup-heading" data-i18n="setupTitle">Getting started</h2>
+              <span class="card-head-extra">
+                <span class="num" id="setup-count"></span>
+                <button id="setup-dismiss" class="btn btn-ghost btn-sm btn-icon" type="button" data-i18n-title="setupHide" title="Hide"><i data-icon="x"></i></button>
+              </span>
+            </header>
+            <ol class="setup-steps" id="setup-steps"></ol>
+          </section>
+          <!-- Shown after a match: link to its post-match review. -->
+          <button type="button" class="review-banner hidden" id="review-banner">
+            <i data-icon="trophy"></i>
+            <span class="review-banner-text" id="review-banner-text"></span>
+            <i data-icon="chevron-right"></i>
+          </button>
         <!-- Current match -->
         <section class="card" id="match-card" aria-labelledby="match-heading">
           <header class="card-head">
@@ -142,6 +120,38 @@
             </div>
           </div>
         </section>
+        </div>
+        <div class="col col-side">
+          <!-- Once after an update: what the new version brings. -->
+          <section class="card whats-new hidden" id="whats-new-card" aria-labelledby="whats-new-heading">
+            <header class="card-head">
+              <i data-icon="sparkles"></i>
+              <h2 id="whats-new-heading"></h2>
+            </header>
+            <div class="card-body">
+              <ul class="whats-new-list" id="whats-new-list"></ul>
+              <button id="whats-new-dismiss" class="btn btn-sm" type="button" data-i18n="whatsNewOk">Got it</button>
+            </div>
+          </section>
+          <!-- Tonight's session: matches since midnight. -->
+          <p class="today-line num hidden" id="today-line"></p>
+          <!-- The last seven days: games, score against the week before, best match, focus plan. -->
+          <section class="card week-card hidden" id="week-card" aria-labelledby="week-heading">
+            <header class="card-head">
+              <i data-icon="calendar"></i>
+              <h2 id="week-heading" data-i18n="weekTitle">This week</h2>
+            </header>
+            <div class="card-body" id="week-body"></div>
+          </section>
+          <!-- The last matches, newest first: hero, result, score (opens the review). -->
+          <section class="card recent-card hidden" id="recent-card" aria-labelledby="recent-heading">
+            <header class="card-head">
+              <i data-icon="history"></i>
+              <h2 id="recent-heading" data-i18n="recentTitle">Last matches</h2>
+            </header>
+            <ul class="recent-list" id="recent-list"></ul>
+          </section>
+        </div>
       </div>
       </div>
 

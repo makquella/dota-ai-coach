@@ -301,11 +301,11 @@
       friendHeroGames: (g1, w1, g2, w2) => `you ${g1} · ${w1 ?? "—"}%   friend ${g2} · ${w2 ?? "—"}%`,
       friendTheirHeroes: (name) => `Most played by ${name}`,
       friendNote: "Averages per game, public OpenDota data, ranked and normal modes only. Core or support is judged by last hits a minute.",
-      rankTitle: "Your rank medal",
+      rankHistoryTitle: "Your rank medal",
       rankUp: (from, to, since) => `Up from ${from} to ${to} since ${since}.`,
       rankDown: (from, to, since) => `Down from ${from} to ${to} since ${since}.`,
       rankNote: "Noted at every sync with OpenDota when the medal changes.",
-      buildTitle: (hero) => `Your build on ${hero}`,
+      heroBuildTitle: (hero) => `Your build on ${hero}`,
       buildNote: (n, wins) => `Your items in ${n} reviewed games on the hero (${wins} wins): when they come in wins and in losses, and how often you win with and without them.`,
       buildItem: "Item",
       buildGames: "Games",
@@ -705,11 +705,11 @@
       friendHeroGames: (g1, w1, g2, w2) => `вы ${g1} · ${w1 ?? "—"}%   друг ${g2} · ${w2 ?? "—"}%`,
       friendTheirHeroes: (name) => `Чаще всего играет ${name}`,
       friendNote: "Средние за игру, открытые данные OpenDota, только рейтинговые и обычные режимы. Кор или саппорт — по добиваниям в минуту.",
-      rankTitle: "Ваше звание",
+      rankHistoryTitle: "Ваше звание",
       rankUp: (from, to, since) => `С ${since} вы поднялись с ${from} до ${to}.`,
       rankDown: (from, to, since) => `С ${since} звание снизилось с ${from} до ${to}.`,
       rankNote: "Приложение записывает звание при каждой синхронизации с OpenDota, когда оно меняется.",
-      buildTitle: (hero) => `Ваш билд на ${hero}`,
+      heroBuildTitle: (hero) => `Ваш билд на ${hero}`,
       buildNote: (n, wins) => `Ваши предметы в ${n} разобранных матчах на герое (побед: ${wins}): когда они приходят в победах и в поражениях и как часто вы выигрываете с ними и без них.`,
       buildItem: "Предмет",
       buildGames: "Игр",
@@ -1598,53 +1598,33 @@
     if (!analysis) {
       parts.push(card(t("reviewLoading"), "hourglass", emptyState("hourglass", t("reviewPending"), tOptional(`parseStatus.${detail.parse_status}`) || "")));
     } else {
-      const coach = coachCard(detail.coach, "match");
-      if (coach) {
-        parts.push(coach);
-      }
-      const ask = askCard(detail);
-      if (ask) {
-        parts.push(ask);
-      }
-      parts.push(focusCard(analysis, detail));
-      parts.push(sectionsCard(analysis));
-      const build = buildCard(analysis);
-      if (build) {
-        parts.push(build);
-      }
-      const rank = rankCard(analysis);
-      if (rank) {
-        parts.push(rank);
-      }
-      const draft = draftCard(analysis);
-      if (draft) {
-        parts.push(draft);
-      }
-      const chart = chartCard(analysis);
-      if (chart) {
-        parts.push(chart);
-      }
-      const gameMap = mapCard(analysis);
-      if (gameMap) {
-        parts.push(gameMap);
-      }
-      const deathsReview = deathsCard(analysis);
-      if (deathsReview) {
-        parts.push(deathsReview);
-      }
-      parts.push(findingsCard(t("strengthsTitle"), "sparkles", analysis.strengths, t("nothingStrong"), false));
+      // The story of the match on the left, the side facts on the right (one
+      // column in a narrow window, main first).
+      const main = [];
+      const side = [];
+      const add = (list, element) => {
+        if (element) {
+          list.push(element);
+        }
+      };
+      add(main, coachCard(detail.coach, "match"));
+      add(main, askCard(detail));
+      add(main, focusCard(analysis, detail));
+      add(side, sectionsCard(analysis));
+      add(main, chartCard(analysis));
+      add(side, mapCard(analysis));
+      add(main, deathsCard(analysis));
       const rest = (analysis.improvements || []).filter((f) => !(analysis.focus || []).includes(f.id));
       if (rest.length) {
-        parts.push(findingsCard(t("improveTitle"), "target", rest, "", true, detail.repeats));
+        add(main, findingsCard(t("improveTitle"), "target", rest, "", true, detail.repeats));
       }
-      const moments = momentsCard(analysis);
-      if (moments) {
-        parts.push(moments);
-      }
-      const adviceLog = adviceLogCard(analysis);
-      if (adviceLog) {
-        parts.push(adviceLog);
-      }
+      add(side, findingsCard(t("strengthsTitle"), "sparkles", analysis.strengths, t("nothingStrong"), false));
+      add(side, buildCard(analysis));
+      add(side, rankCard(analysis));
+      add(side, draftCard(analysis));
+      add(side, momentsCard(analysis));
+      add(main, adviceLogCard(analysis));
+      parts.push(twoColumns(main, side));
     }
     if (detail.scoreboard) {
       parts.push(scoreboardCard(detail.scoreboard));
@@ -1653,6 +1633,11 @@
     hydrate(root);
     // Charts measure their container, so draw after insertion.
     drawMatchCharts(root, analysis);
+  }
+
+  // Main and side cards as two columns (styles.css .layout-2).
+  function twoColumns(main, side) {
+    return h("div", { class: "layout-2" }, h("div", { class: "col col-main" }, main), h("div", { class: "col col-side" }, side));
   }
 
   // Each chart host by its kind (also on window resize).
@@ -1736,9 +1721,8 @@
         score !== null && score !== undefined
           ? h(
               "div",
-              { class: "score-block" },
-              h("span", { class: "score-value", text: String(score) }),
-              h("span", { class: "score-of", text: t("scoreOf") }),
+              { class: "score-block", title: `${score} ${t("scoreOf")}` },
+              scoreRing(score, "lg"),
               gradeLetter(score)
             )
           : null
@@ -2371,7 +2355,7 @@
       ? t("rankUp", history.first, history.current, day(history.since))
       : t("rankDown", history.first, history.current, day(history.since));
     return card(
-      t("rankTitle"),
+      t("rankHistoryTitle"),
       "trending-up",
       h(
         "div",
@@ -2395,7 +2379,7 @@
     const pct = (value) => (value == null ? "—" : `${value}%`);
     const time = (value) => (value == null ? "—" : clock(value));
     return card(
-      t("buildTitle", build.hero),
+      t("heroBuildTitle", build.hero),
       "coins",
       h(
         "div",
@@ -3666,20 +3650,26 @@
       ),
       sharePanel,
       tiles,
-      coachCard(career.coach, "career") || "",
-      // Asking needs at least one review (the backend answers not_enough without one).
-      state.careerHero === null && career.analyzed ? askCard(career, true) || "" : "",
-      scoreCard,
-      careerRankCard(career),
-      state.careerHero === null ? friendCard() : "",
-      opponentsCard(career.opponents) || "",
-      selfCompareCard(career.self_compare) || "",
-      heroBuildCard(career.hero_build) || "",
-      state.careerHero === null ? rankHistoryCard(career.rank_history) || "" : "",
-      goalCard(career.focus) || "",
-      planCard,
-      strengthsCard || "",
-      heroesCard || ""
+      twoColumns(
+        [
+          coachCard(career.coach, "career"),
+          // Asking needs at least one review (the backend answers not_enough without one).
+          state.careerHero === null && career.analyzed ? askCard(career, true) : null,
+          scoreCard,
+          goalCard(career.focus),
+          planCard,
+          heroesCard
+        ].filter(Boolean),
+        [
+          careerRankCard(career),
+          state.careerHero === null ? friendCard() : null,
+          opponentsCard(career.opponents),
+          selfCompareCard(career.self_compare),
+          heroBuildCard(career.hero_build),
+          state.careerHero === null ? rankHistoryCard(career.rank_history) : null,
+          strengthsCard
+        ].filter(Boolean)
+      )
     );
     hydrate(root);
     const items = (career.series || []).map((match) => ({
@@ -3748,6 +3738,88 @@
     state.weekAt = Date.now();
     const result = await call("week");
     renderWeek(result.ok ? result.data.week : null);
+  }
+
+  // «Последние матчи» on Home: the newest reviewed games, asked again when a new
+  // review is written (the same key as the week) or after a minute.
+  const RECENT_MATCHES = 6;
+
+  async function refreshRecent(status) {
+    const review = status.player && status.player.lastReview;
+    const key = `${review ? review.match_id : ""}|${status.player && status.player.accountId}`;
+    if (state.recentKey === key && Date.now() - (state.recentAt || 0) < WEEK_REFRESH_MS) {
+      return;
+    }
+    state.recentKey = key;
+    state.recentAt = Date.now();
+    const result = await call("matches", { limit: RECENT_MATCHES });
+    renderRecent(result.ok ? result.data.items || [] : []);
+  }
+
+  function renderRecent(rows) {
+    const cardEl = document.getElementById("recent-card");
+    const list = document.getElementById("recent-list");
+    if (!cardEl || !list) {
+      return;
+    }
+    cardEl.classList.toggle("hidden", !rows.length);
+    list.replaceChildren(
+      ...rows.map((row) => {
+        const kda = row.kills == null ? null : `${row.kills}/${row.deaths}/${row.assists}`;
+        const facts = [kda, row.duration ? clock(row.duration) : null, relativeTime(row.start_time)].filter(Boolean).join(" · ");
+        const result = row.win === true ? "win" : row.win === false ? "loss" : "unknown";
+        return h(
+          "li",
+          {},
+          h(
+            "button",
+            {
+              type: "button",
+              class: "recent-item",
+              dataset: { result },
+              "aria-label": `${row.hero || ""} ${row.win === true ? t("win") : row.win === false ? t("loss") : ""}`,
+              onclick: () => openMatch(row.match_id)
+            },
+            window.DotaIcons ? window.DotaIcons.heroPicture(document, row.hero_id || row.hero, "md") : null,
+            h(
+              "span",
+              { class: "recent-text" },
+              h("span", { class: "recent-hero", text: row.hero || "—" }),
+              h("span", { class: "recent-facts muted num", text: facts })
+            ),
+            scoreRing(row.score, "sm")
+          )
+        );
+      })
+    );
+  }
+
+  // The review score as a small ring (0–100) in the grade's tone; "—" without one.
+  function scoreRing(score, size = "md") {
+    const known = Number.isFinite(score);
+    const tone = !known ? "idle" : score >= 65 ? "good" : score >= 50 ? "warn" : "bad";
+    const radius = 15.5;
+    const length = 2 * Math.PI * radius;
+    const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    svg.setAttribute("viewBox", "0 0 36 36");
+    svg.setAttribute("aria-hidden", "true");
+    for (const [cls, dash] of [["ring-track", null], ["ring-value", known ? (Math.max(0, Math.min(100, score)) / 100) * length : 0]]) {
+      const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+      circle.setAttribute("cx", "18");
+      circle.setAttribute("cy", "18");
+      circle.setAttribute("r", String(radius));
+      circle.setAttribute("class", cls);
+      if (dash !== null) {
+        circle.setAttribute("stroke-dasharray", `${dash} ${length}`);
+      }
+      svg.append(circle);
+    }
+    return h(
+      "span",
+      { class: `score-ring score-ring-${size}`, dataset: { tone }, title: known ? `${t("scoreLabel")}: ${score}` : "" },
+      svg,
+      h("span", { class: "score-ring-value num", text: known ? String(Math.round(score)) : "—" })
+    );
   }
 
   function renderWeek(week) {
@@ -3832,8 +3904,10 @@
     renderToday(status);
     if (status.backend === "running" && status.player && status.player.linked) {
       refreshWeek(status).catch(() => {});
+      refreshRecent(status).catch(() => {});
     } else {
       renderWeek(null);
+      renderRecent([]);
     }
     if (localeChanged) {
       // Texts from the backend (reviews, progress) come in the new language only
