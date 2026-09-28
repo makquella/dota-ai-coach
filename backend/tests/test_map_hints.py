@@ -8,7 +8,7 @@ from match_fixtures import MATCH_ID, gsi_match_stream
 
 from app.advice_context import MAP_CENTER
 from app.live_role import LiveRoleTracker, lane_kind, lane_of, set_role_setting
-from app.map_hints import RoleTips, has_observer_ward, map_hint, next_timer, timers
+from app.map_hints import RoleTips, has_observer_ward, item_names, map_hint, next_timer, timers
 from app.match_memory import MATCH_MEMORY
 
 
@@ -70,7 +70,9 @@ def test_the_setting_wins():
     tracker = LiveRoleTracker()
     _lane(tracker, _world(4000, -6500), 6)
     set_role_setting("support")
-    assert tracker.role() == {"role": "support", "source": "setting"}
+    # The lane read stays known (a safe-lane support gets pull tips).
+    assert tracker.role() == {"role": "support", "source": "setting", "lane": "safe"}
+    assert LiveRoleTracker().role() == {"role": "support", "source": "setting"}
     assert set_role_setting("jungle") == "auto"
     assert tracker.role()["role"] == "carry"
 
@@ -246,3 +248,107 @@ def test_level_six_tip_for_mid_and_offlane_once_before_minute_twelve():
         7 * 60 + 30, "carry", RoleTips(), alive=True, has_ward=None, lang="en", level=6
     )
     assert carry is None or not carry["id"].startswith(("mid_six", "offlane_six"))
+
+
+def test_mid_last_hit_pace_and_bottle():
+    tips = RoleTips()
+    slow = tips.tip(300, "mid", alive=True, has_ward=None, lang="ru", last_hits=14)
+    assert slow["title"] == "14 добиваний к 5:00" and "25+" in slow["hint"]
+    # The count of the first second stays on the card while it is shown.
+    assert tips.tip(310, "mid", alive=True, has_ward=None, lang="ru", last_hits=16)["title"] == (
+        "14 добиваний к 5:00"
+    )
+    assert tips.tip(330, "mid", alive=True, has_ward=None, lang="ru", last_hits=16) is None
+    assert RoleTips().tip(300, "mid", alive=True, has_ward=None, lang="en", last_hits=28) is None
+    late = RoleTips().tip(480, "mid", alive=True, has_ward=None, lang="en", last_hits=30)
+    assert late["title"] == "30 last hits by 8:00"
+    few = RoleTips().tip(480, "mid", alive=True, has_ward=None, lang="ru", last_hits=24)
+    assert few["title"] == "24 добивания к 8:00"
+    one = RoleTips().tip(300, "mid", alive=True, has_ward=None, lang="ru", last_hits=21)
+    assert one["title"] == "21 добивание к 5:00"
+    # No Bottle between 3:30 and 6:00: once per match.
+    bottle = RoleTips()
+    first = bottle.tip(220, "mid", alive=True, has_ward=None, lang="en", items=["item_tango"])
+    assert first["title"] == "No Bottle yet"
+    assert (
+        bottle.tip(250, "mid", alive=True, has_ward=None, lang="en", items=["item_tango"]) is None
+    )
+    assert (
+        RoleTips().tip(220, "mid", alive=True, has_ward=None, lang="en", items=["item_bottle"])
+        is None
+    )
+    assert RoleTips().tip(220, "mid", alive=True, has_ward=None, lang="en", items=None) is None
+
+
+def test_the_power_rune_is_a_rotation_for_a_mid_with_level_six():
+    early = map_hint(8 * 60 - 10, "mid", RoleTips(), alive=True, has_ward=None, lang="en", level=5)
+    assert early["title"] == "Power rune" and "rotate" not in early["hint"]
+    tips = RoleTips()
+    tips.observe_level(5)
+    tips._shown["mid_six"] = 0  # the level-6 tip was already shown
+    rune = map_hint(8 * 60 - 10, "mid", tips, alive=True, has_ward=None, lang="ru", level=6)
+    assert rune["title"] == "Руна силы" and "боковую линию" in rune["hint"]
+
+
+def test_offlane_hard_lane_once():
+    tips = RoleTips()
+
+    def hint(clock, deaths=0, level=5):
+        return tips.tip(
+            clock, "offlane", alive=True, has_ward=None, lang="ru", deaths=deaths, level=level
+        )
+
+    assert hint(4 * 60 + 30, deaths=1) is None
+    first = hint(4 * 60 + 40, deaths=2)
+    assert first["title"] == "Тяжёлая линия" and first["id"] == "offlane_hard_lane@280"
+    assert hint(4 * 60 + 60, deaths=2) is not None  # 25 s on screen
+    assert hint(5 * 60 + 30, deaths=3) is None  # once per match
+    # Level 4 at 6:00 without deaths is a lost lane too; level 5 is not.
+    assert RoleTips().tip(
+        6 * 60 + 5, "offlane", alive=True, has_ward=None, lang="en", deaths=0, level=4
+    )["title"] == ("A hard lane")
+    assert (
+        RoleTips().tip(
+            6 * 60 + 5, "offlane", alive=True, has_ward=None, lang="en", deaths=0, level=5
+        )
+        is None
+    )
+    # After 9:00 it is no longer about the lane.
+    assert (
+        RoleTips().tip(10 * 60, "offlane", alive=True, has_ward=None, lang="en", deaths=3, level=4)
+        is None
+    )
+
+
+def test_support_pull_in_the_safe_lane_and_unspent_gold():
+    tips = RoleTips()
+    pull = tips.tip(3 * 60 + 36, "support", alive=True, has_ward=True, lang="ru", lane="safe")
+    assert pull["title"] == "Пул на 3:45" and pull["in_seconds"] == 9
+    # At most every two minutes, and only in the safe lane.
+    assert (
+        tips.tip(4 * 60 + 6, "support", alive=True, has_ward=True, lang="ru", lane="safe") is None
+    )
+    assert (
+        RoleTips().tip(3 * 60 + 36, "support", alive=True, has_ward=True, lang="en", lane="off")
+        is None
+    )
+    assert RoleTips().tip(3 * 60 + 36, "support", alive=True, has_ward=True, lang="en") is None
+    gold = RoleTips().tip(9 * 60, "support", alive=True, has_ward=True, lang="en", gold=1680)
+    assert gold["title"] == "1600 gold unspent"
+    assert RoleTips().tip(9 * 60, "support", alive=True, has_ward=True, lang="en", gold=900) is None
+    assert (
+        RoleTips().tip(6 * 60, "support", alive=True, has_ward=True, lang="en", gold=2000) is None
+    )
+
+
+def test_item_names_from_the_raw_items():
+    items = {
+        "slot0": {"name": "item_bottle", "charges": 2},
+        "slot1": {"name": "empty"},
+        "stash0": {"name": "item_boots"},
+        "teleport0": {"name": "item_tpscroll"},
+        "neutral0": {"name": "item_trusty_shovel"},
+        "slot2": {"name": ["broken"]},
+    }
+    assert item_names(items) == ["item_bottle", "item_boots"]
+    assert item_names({}) is None and item_names("x") is None

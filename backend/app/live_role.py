@@ -136,7 +136,11 @@ class LiveRoleTracker:
     def role(self, prior: dict[str, Any] | None = None) -> dict[str, Any] | None:
         """{"role", "source": setting|lane|history|hero, "lane"?} or None (unknown)."""
         if _setting != "auto":
-            return {"role": _setting, "source": "setting"}
+            chosen: dict[str, Any] = {"role": _setting, "source": "setting"}
+            # The lane read still tells a safe-lane support (pulls) from a roamer.
+            if self._current is not None and self._current.get("lane"):
+                chosen["lane"] = self._current["lane"]
+            return chosen
         if self._current is not None:
             return dict(self._current)
         if prior and prior.get("role") in POSITIONS:
