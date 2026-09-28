@@ -14,7 +14,8 @@ death on the timeline:
 - ready: the saving items that were ready at the last alive tick;
 - usable: the saving items that were ready on a second of the last
   FREE_WINDOW when the hero was not disabled — readiness and the chance to
-  press it on the same sample, so only these count as "not used";
+  press it on the same sample — and still ready at the last alive tick (one
+  pressed in those seconds went on cooldown), so only these count as "not used";
 - free_s: seconds of the last FREE_WINDOW the hero was not disabled;
 - burst_s: seconds from BURST_FROM % HP or more to the death (a burst kill),
   when that is BURST_SECONDS or less.
@@ -147,6 +148,9 @@ class LastSeconds:
         for entry in recent:
             if not entry["disabled"]:
                 usable.extend(name for name in entry["ready"] if name not in usable)
+        # Still ready at the last alive tick: an item pressed in those seconds
+        # went on cooldown (or a wand lost its charges) and was not left unused.
+        usable = [name for name in usable if name in last["ready"]]
         result: dict[str, Any] = {
             "hp": [[e["t"] - death_clock, e["hp"]] for e in entries],
             "ready": list(last["ready"]),

@@ -120,7 +120,7 @@ def test_every_new_text_has_russian():
         "Use Magic Wand now, then step back.",
         "Magic Wand has 14 charges: that HP is yours right now.",
         "Magic Wand is charged: that HP is yours right now.",
-        "Satanic is ready and heals you at once.",
+        "Guardian Greaves is ready and heals you at once.",
         "Faerie Fire heals you at once.",
         "Step out of enemy range and use Healing Salve.",
         "Consider: step out of enemy range and use Healing Salve.",
@@ -182,3 +182,20 @@ def test_one_death_on_the_enemy_half_says_to_farm_your_own():
     text = _fallback_text(_request(both), "break_repeated_death_pattern")
     assert text["action"] == "After respawn, stay away from the mid lane by the river."
     assert text["reason"].startswith("You died with Black King Bar ready")
+
+
+def test_satanic_is_not_an_instant_heal():
+    """Satanic heals through lifesteal while attacking: never «press it and step back»."""
+    satanic = {"name": "item_satanic", **READY}
+    copy_ = low_hp_copy(_extra(satanic))
+    assert copy_ is None or "Satanic" not in copy_[0]
+    greaves = {"name": "item_guardian_greaves", **READY}
+    assert low_hp_copy(_extra(greaves))[0] == "Use Guardian Greaves now, then step back."
+
+
+def test_low_hp_while_stunned_waits_for_the_disable_to_end():
+    """No item can be pressed while stunned, hexed or muted."""
+    for flag in ("stunned", "hexed", "muted"):
+        action, _ = low_hp_copy(_extra(FORCE, **{flag: True}))
+        assert action == "The moment the disable ends, use Force Staff."
+    assert low_hp_copy(_extra(WAND, stunned=True)) is None  # a wand is no way out of a stun

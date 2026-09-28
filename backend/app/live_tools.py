@@ -42,10 +42,10 @@ ESCAPES = (
     "item_overwhelming_blink",
     "item_black_king_bar",
 )
+# Only real instant heals: Satanic and Bloodstone heal through lifesteal while
+# attacking or casting, so "press it and step back" would heal nothing.
 INSTANT_HEALS = (
     "item_magic_wand",
-    "item_satanic",
-    "item_bloodstone",
     "item_guardian_greaves",
 )
 # Consumables that heal: instant first, then over time (use out of sight).
@@ -132,11 +132,19 @@ def _ready(extra: Mapping[str, Any]) -> list[str] | None:
     return [name for name in ready if isinstance(name, str)]
 
 
+def _items_blocked(extra: Mapping[str, Any]) -> bool:
+    """Stunned, hexed or muted: no item can be used right now."""
+    return any(extra.get(flag) is True for flag in ("stunned", "hexed", "muted"))
+
+
 def low_hp_copy(extra: Mapping[str, Any]) -> tuple[str, str] | None:
-    """(action, reason) naming the tool to press at low HP; None without one."""
+    """(action, reason) naming the tool to press at low HP; None without one.
+    Stunned, hexed or muted, no item can be pressed: the post-disable wording."""
     ready = _ready(extra)
     if ready is None:
         return None
+    if _items_blocked(extra):
+        return disabled_copy(extra)
     escape = _first(ready, ESCAPES)
     if escape:
         name = _label(escape)
@@ -177,7 +185,7 @@ def disabled_copy(extra: Mapping[str, Any]) -> tuple[str, str] | None:
     ready = _ready(extra)
     if not ready:
         return None
-    blocked = any(extra.get(flag) is True for flag in ("stunned", "hexed", "muted"))
+    blocked = _items_blocked(extra)
     tool = _first(ready, DISPELS)
     if not blocked and extra.get("silenced") is True and tool:
         name = _label(tool)
