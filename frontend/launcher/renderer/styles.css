@@ -3322,20 +3322,10 @@ label.setting:has(.switch:disabled) {
     gap: var(--sp-6);
   }
 
-  /* Settings: the cards flow into two columns; developer tools stay full width. */
-  #view-settings > .cards {
-    display: block;
-    columns: 2 400px;
-    column-gap: var(--sp-3);
-  }
-
-  #view-settings > .cards > * {
-    break-inside: avoid;
-    margin-bottom: var(--sp-3);
-  }
-
-  #view-settings > .cards > :empty {
-    display: none;
+  /* Settings: two fixed columns (the game on the left, the app on the right);
+     developer tools stay full width below. */
+  .settings-grid {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   }
 }
 
@@ -3487,4 +3477,155 @@ tr.row-link[data-result="loss"] > td:first-child {
 
 .score-ring-lg .score-ring-value {
   font-size: var(--fs-20);
+}
+
+/* Page structure: a title per tab, then zones — a small heading over a group
+   of cards, with more room between zones than between cards, so each tab
+   reads as a few areas instead of one stack of equal cards. */
+.page-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--sp-3) var(--sp-6);
+  margin-bottom: var(--sp-6);
+}
+
+.page-head-text {
+  display: grid;
+  gap: var(--sp-1);
+  min-width: 0;
+}
+
+.page-title {
+  font-size: var(--fs-28);
+  font-weight: var(--fw-semibold);
+  line-height: 1.2;
+}
+
+.page-sub {
+  color: var(--text-2);
+  font-size: var(--fs-14);
+}
+
+.page-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sp-2);
+}
+
+.zone {
+  display: grid;
+  gap: var(--sp-3);
+  align-content: start;
+  min-width: 0;
+}
+
+.zone > * {
+  min-width: 0;
+}
+
+.zone + .zone {
+  margin-top: var(--sp-8);
+}
+
+.zone-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--sp-1) var(--sp-3);
+  padding: 0 var(--sp-1) var(--sp-2);
+  border-bottom: 1px solid var(--border);
+}
+
+.zone-title {
+  color: var(--text);
+  font-size: var(--fs-16);
+  font-weight: var(--fw-semibold);
+}
+
+.zone-hint {
+  color: var(--text-3);
+  font-size: var(--fs-13);
+}
+
+.zone-head .zone-extra {
+  margin-left: auto;
+}
+
+.zone > :empty {
+  display: none;
+}
+
+/* A zone whose cards are all hidden (no account linked yet) hides its heading too. */
+.zone:not(:has(> :not(.zone-head):not(.hidden):not([hidden]):not(:empty))) {
+  display: none;
+}
+
+.settings-grid {
+  display: grid;
+  gap: var(--sp-8) var(--sp-6);
+  align-items: start;
+}
+
+.settings-grid > .col,
+.col:has(> .zone) {
+  gap: 0;
+}
+
+/* A page's zones and column pairs: the same room between them (ids: the
+   page roots' own "* + *" spacing is an id rule too). */
+#match-root > .layout-2 + .zone,
+#progress-root > .zone + .layout-2,
+#view-settings > .settings-grid + * {
+  margin-top: var(--sp-8);
+}
+
+/* Wide window: more air between the two columns of zones. */
+@media screen and (min-width: 1240px) {
+  .home-grid,
+  .layout-2 {
+    column-gap: var(--sp-6);
+  }
+}
+
+@media print {
+  .zone-hint {
+    display: none;
+  }
+
+  .zone + .zone {
+    margin-top: var(--sp-5);
+  }
+}
+
+/* «Ваша неделя»: the score of every match under the tiles. */
+.week-chart-title {
+  margin: var(--sp-5) 0 var(--sp-1);
+}
+
+.week-chart {
+  min-height: 132px;
+}
+
+/* The App card sits alone under the «Приложение» zone heading: no second title. */
+#app-card > .card-head {
+  display: none;
+}
+
+/* A zone heading with a button: the hint goes under the title, the button
+   stays on the title's line. */
+.zone-head:has(> .zone-extra) .zone-hint {
+  flex-basis: 100%;
+  order: 3;
+}
+
+.zone-head .zone-extra {
+  flex: none;
+}
+
+/* The page's buttons stay on one line next to the title. */
+.page-actions {
+  flex: none;
 }

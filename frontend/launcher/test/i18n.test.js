@@ -150,3 +150,13 @@ test("match screen texts exist in both languages", () => {
 test("overlay texts exist in both languages", () => {
   assertSameKeys(tableFrom("overlay/app.js", "const OVERLAY_TEXT ="), "overlay/app.js");
 });
+
+test("text functions get their arguments through t(), never t(key)(…)", () => {
+  // t() already calls a text function (with no arguments here) and returns a
+  // string; calling that string threw and left the review on its skeleton.
+  for (const file of ["renderer/app.js", "renderer/matches.js", "overlay/app.js"]) {
+    const source = fs.readFileSync(path.join(ROOT, file), "utf8");
+    const calls = source.match(/\bt\(\s*["'`][\w.]+["'`]\s*\)\s*\(/g) || [];
+    assert.deepEqual(calls, [], `${file} calls a translated text as a function`);
+  }
+});

@@ -85,6 +85,9 @@ def build_post_laning_advice(
         reason = _tp_reason(tp_missing)
     elif category == "post_laning_farm_recovery":
         reason = _farm_pace_reason(state, extra) or reason
+    elif category == "post_laning_safe_farm_route":
+        # A core with a known build: name the next item and the gold it needs.
+        action, reason = _next_item_copy(state, extra) or (action, reason)
     elif category == "post_laning_death_route_reset":
         # Same category (one death review per death in the scheduler), but with
         # gold to spend the first thing to do while dead is to buy.
@@ -357,6 +360,47 @@ def _spend_copy(spend: Mapping[str, int]) -> tuple[str, str]:
         "then choose a safer route than the one you died on."
     )
     return action, reason
+
+
+# Below this the pace is too uncertain to turn gold into minutes.
+NEXT_ITEM_MIN_GPM = 150
+
+
+def _next_item_copy(state: Mapping[str, Any], extra: Mapping[str, Any]) -> tuple[str, str] | None:
+    """ "Keep farming toward Black King Bar" with the gold still missing and the
+    minutes at the player's pace, or "it can be bought now" when the gold is there
+    (after minute 30 the buyback cost stays aside). `extra.next_item` comes from
+    app/next_item.py. The actions start with "Use" / "Keep" so that the UX policy
+    leaves them as they are ("Buy …" would read as autopilot)."""
+    item = extra.get("next_item")
+    if not isinstance(item, Mapping) or not isinstance(item.get("name"), str):
+        return None
+    name = item["name"]
+    left = _to_int(item.get("gold_left"), 0)
+    gold = extra.get("available_gold", state.get("gold"))
+    if left <= 0 or gold is None:
+        return None
+    reserve = 0
+    if _to_int(state.get("minute"), 0) >= BUYBACK_RESERVE_MINUTE:
+        cost = extra.get("buyback_cost")
+        if cost is None:
+            return None  # can't tell what to keep for buyback
+        reserve = _to_int(cost, 0)
+    spare = max(0, _to_int(gold, 0) - reserve)
+    if spare >= left:
+        extra_gold = f"you have {spare} beyond your buyback" if reserve else f"you have {spare}"
+        return (
+            f"Use your gold: {name} can be bought now.",
+            f"Its missing parts cost {left} gold and {extra_gold}.",
+        )
+    need = left - spare
+    reason = f"{name} is next in most builds: {need} gold to go"
+    gpm = _to_int(extra.get("gpm"), 0)
+    if gpm >= NEXT_ITEM_MIN_GPM:
+        minutes = max(1, -(-need // gpm))
+        noun = "minute" if minutes == 1 else "minutes"
+        reason += f", about {minutes} {noun} at your {gpm} gold per minute"
+    return f"Keep farming toward {name} on the safest waves and camps.", reason + "."
 
 
 def _buyback_reason(signal: Mapping[str, Any]) -> str:

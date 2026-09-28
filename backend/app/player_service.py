@@ -67,6 +67,7 @@ from app.game_plan import build_game_plan, key_item
 from app.history_backup import export_backup, import_backup
 from app.match_facts import facts_from_opendota, facts_from_timeline, merge_facts
 from app.match_tracker import MatchTracker, account_from_gsi
+from app.next_item import has_components, next_build_item
 from app.opendota import (
     TRIM_VERSION,
     OpenDotaClient,
@@ -338,7 +339,7 @@ class PlayerService:
             history=on_hero[:20],
             record_history=on_hero,
             all_recent=self.store.matches_for_career(primary, limit=RECENT_MATCHES_LIMIT),
-            meta=self._hero_meta(hero_id),
+            meta=self._live_meta(hero_id),
             lang=lang,
         )
         self._plans[key] = (now, plan)
@@ -356,10 +357,35 @@ class PlayerService:
         now = time.monotonic()
         if cached is not None and now - cached[0] < GAME_PLAN_CACHE_SECONDS:
             return cached[1]
-        item = key_item(self._hero_meta(hero_id))
+        item = key_item(self._live_meta(hero_id))
         result = item if item and item.get("typical_t") else None
         self._plans[key] = (now, result)
         return result
+
+    def next_item(self, hero: str, owned: list[str] | None) -> dict[str, Any] | None:
+        """The next item of the hero's usual build and the gold its missing parts
+        cost (app/next_item.py) for a core's live farm advice; None when unknown."""
+        hero_id = hero_id_from_name(hero)
+        if hero_id is None or owned is None:
+            return None
+        return next_build_item(self._live_meta(hero_id), owned)
+
+    def _live_meta(self, hero_id: int) -> dict[str, Any] | None:
+        """The hero's cached build data for live tips, read once a minute (they
+        are polled every second). A hero with nothing cached yet (never reviewed)
+        gets it fetched on the job thread, so the next read has it."""
+        key = ("meta", hero_id)
+        cached = self._plans.get(key)
+        now = time.monotonic()
+        if cached is not None and now - cached[0] < GAME_PLAN_CACHE_SECONDS:
+            return cached[1]
+        meta = self._hero_meta(hero_id)
+        if self.client is not None and (
+            not meta or meta.get("popularity") is None or not has_components(meta["constants"])
+        ):
+            self.jobs.submit(f"meta:{hero_id}", lambda: self._ensure_hero_meta(hero_id))
+        self._plans[key] = (now, meta)
+        return meta
 
     def week(
         self, lang: str, until: float | None = None, since: float | None = None
@@ -1470,8 +1496,12 @@ class PlayerService:
             "timings": self.store.cache_get(f"{TIMINGS_KEY}:{int(hero_id)}"),
         }
 
-    def _refresh(self, key: str, ttl: float, fetch: Callable[[], Any]) -> None:
-        if self.client is None or self.store.cache_get(key, max_age=ttl) is not None:
+    def _refresh(
+        self, key: str, ttl: float, fetch: Callable[[], Any], *, force: bool = False
+    ) -> None:
+        if self.client is None or (
+            not force and self.store.cache_get(key, max_age=ttl) is not None
+        ):
             return
         with contextlib.suppress(OpenDotaError):
             self.store.cache_set(key, fetch())
@@ -1535,7 +1565,14 @@ class PlayerService:
         if client is None or not hero_id:
             return
         hero = int(hero_id)
-        self._refresh(ITEM_CONSTANTS_KEY, META_TTL_SECONDS, client.item_constants)
+        constants = self.store.cache_get(ITEM_CONSTANTS_KEY)
+        self._refresh(
+            ITEM_CONSTANTS_KEY,
+            META_TTL_SECONDS,
+            client.item_constants,
+            # Cached before the components were kept: the live next-item advice needs them.
+            force=constants is not None and not has_components(constants),
+        )
         self._refresh(
             f"{POPULARITY_KEY}:{hero}", META_TTL_SECONDS, lambda: client.item_popularity(hero)
         )

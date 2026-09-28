@@ -503,6 +503,37 @@ _RU_PATTERNS: tuple[tuple[re.Pattern[str], str], ...] = (
         "Сначала восстановите фарм, потом ищите драки.",
     ),
     (
+        re.compile(r"^Use your gold: (?P<name>.+) can be bought now\.$"),
+        "Потратьте золото: {name} уже можно купить.",
+    ),
+    (
+        re.compile(
+            r"^Its missing parts cost (?P<left>\d+) gold and you have (?P<spare>\d+) "
+            r"beyond your buyback\.$"
+        ),
+        "Недостающие части стоят {left} золота, у вас {spare} сверх байбэка.",
+    ),
+    (
+        re.compile(r"^Its missing parts cost (?P<left>\d+) gold and you have (?P<spare>\d+)\.$"),
+        "Недостающие части стоят {left} золота, у вас {spare}.",
+    ),
+    (
+        re.compile(r"^Keep farming toward (?P<name>.+) on the safest waves and camps\.$"),
+        "Фармите на {name} на самых безопасных волнах и лагерях.",
+    ),
+    (
+        re.compile(
+            r"^(?P<name>.+) is next in most builds: (?P<need>\d+) gold to go, "
+            r"about (?P<m>\d+) minutes? at your (?P<gpm>\d+) gold per minute\.$"
+        ),
+        "{name} — следующий предмет в большинстве сборок: не хватает {need} золота, "
+        "это около {m} мин при {gpm} золота в минуту.",
+    ),
+    (
+        re.compile(r"^(?P<name>.+) is next in most builds: (?P<need>\d+) gold to go\.$"),
+        "{name} — следующий предмет в большинстве сборок: не хватает {need} золота.",
+    ),
+    (
         re.compile(r"^Low mana reduces (?P<name>.+)'s effective survivability\.$"),
         "У {name} мало маны — выживаемость заметно ниже.",
     ),

@@ -40,6 +40,13 @@ def test_week_against_the_week_before():
     assert week["top_problem"]["id"] == "death_streak" and week["top_problem"]["count"] == 2
     assert week["top_problem"]["title"]
     assert "focus" not in week
+    # The week's matches for the score chart, oldest first; the week before counted.
+    assert [(m["match_id"], m["score"], m["win"]) for m in week["matches"]] == [
+        (4, 64, True),
+        (5, 58, False),
+        (6, 72, True),
+    ]
+    assert week["prev_games"] == 2
     assert weekly_summary(matches[-1:], NOW, "en") is None
 
 
@@ -103,3 +110,18 @@ def test_the_period_can_be_a_local_calendar_week():
     matches = [_match(2, 3, 60, True), {**_match(1, 0, 50, False), "start_time": since + 60}]
     assert weekly_summary(matches, NOW, "en", since=since)["games"] == 2
     assert weekly_summary(matches, NOW, "en")["games"] == 1
+
+
+def test_the_score_note_names_the_side_without_a_score():
+    """Before, an unreviewed week against a reviewed one read as "the week before
+    has no reviewed matches"."""
+    reviewed_before = [_match(2, 9, 60, True)]
+    unreviewed = _match(3, 1, None, False)
+    assert weekly_summary([unreviewed, *reviewed_before], NOW, "en")["score_note"] == "no_score"
+    reviewed = _match(4, 1, 70, True)
+    assert weekly_summary([reviewed], NOW, "en")["score_note"] == "no_previous"
+    unreviewed_before = _match(5, 9, None, False)
+    week = weekly_summary([reviewed, unreviewed_before], NOW, "en")
+    assert week["score_note"] == "no_previous_score"
+    week = weekly_summary([reviewed, *reviewed_before], NOW, "en")
+    assert "score_note" not in week and week["score_change"] == 10

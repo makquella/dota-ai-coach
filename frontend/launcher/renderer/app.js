@@ -105,8 +105,6 @@ const I18N = {
     frequencyCalm: "Less",
     frequencyNormal: "Normal",
     frequencyActive: "More",
-    weekTitle: "This week",
-    recentTitle: "Last matches",
     roleTitle: "Your role",
     roleAuto: "Auto",
     roleCarry: "Carry",
@@ -163,6 +161,21 @@ const I18N = {
       rejected: (error) => `Discord did not accept the status: ${error}`
     },
     settingsMore: "More",
+    settingsPageTitle: "Settings",
+    settingsPageSub: "What the coach shows in the game, your data and the app",
+    zoneNow: "Now",
+    zoneNowHint: "The current match and the advice it got",
+    zoneHistory: "Last matches",
+    zoneHistoryHint: "Open one for its review",
+    zoneWeek: "Your week",
+    zoneWeekHint: "The last seven days against the seven before",
+    zoneAllMatches: "All matches",
+    zoneGame: "In the game",
+    zoneGameHint: "The advice card over Dota and what it says",
+    zoneData: "Coach and match data",
+    zoneDataHint: "AI reviews and faster match history",
+    zoneApp: "App",
+    zoneAppHint: "Language, updates, your match history and help",
     weeklyTitle: "The week in Discord",
     weeklyHint:
       "Every Monday your matches, results and average score of the week go to a channel of your Discord server. Channel settings → Integrations → Webhooks → New webhook → Copy webhook URL, then paste it here.",
@@ -204,6 +217,12 @@ const I18N = {
     whatsNewTitle: (version) => `What's new in ${version}`,
     whatsNewOk: "Got it",
     whatsNew: {
+      "0.12.0": [
+        "Every tab is split into clear areas: what to look at first, then the details.",
+        "Your week on Home: the score against the week before and a chart of every match.",
+        "Farm advice for carries names your next item, the gold it needs and how long to farm it.",
+        "Fixed: some reviews stayed on «Loading the match» forever."
+      ],
       "0.11.0": [
         "The app uses the whole window: side navigation, two columns, both teams side by side.",
         "Last matches on Home, score rings in reviews and the match table.",
@@ -505,8 +524,6 @@ const I18N = {
     frequencyCalm: "Реже",
     frequencyNormal: "Обычно",
     frequencyActive: "Чаще",
-    weekTitle: "Неделя",
-    recentTitle: "Последние матчи",
     roleTitle: "Ваша роль",
     roleAuto: "Авто",
     roleCarry: "Керри",
@@ -563,6 +580,21 @@ const I18N = {
       rejected: (error) => `Discord не принял статус: ${error}`
     },
     settingsMore: "Дополнительно",
+    settingsPageTitle: "Настройки",
+    settingsPageSub: "Что тренер показывает в игре, ваши данные и приложение",
+    zoneNow: "Сейчас",
+    zoneNowHint: "Текущий матч и подсказки в нём",
+    zoneHistory: "Последние матчи",
+    zoneHistoryHint: "Откройте матч, чтобы увидеть разбор",
+    zoneWeek: "Ваша неделя",
+    zoneWeekHint: "Последние семь дней против семи до них",
+    zoneAllMatches: "Все матчи",
+    zoneGame: "В игре",
+    zoneGameHint: "Карточка советов поверх Доты и что в ней",
+    zoneData: "Тренер и данные матчей",
+    zoneDataHint: "Разборы ИИ и быстрая загрузка истории",
+    zoneApp: "Приложение",
+    zoneAppHint: "Язык, обновления, история матчей и помощь",
     weeklyTitle: "Неделя в Discord",
     weeklyHint:
       "Каждый понедельник матчи, результаты и средняя оценка за неделю приходят в канал вашего сервера Discord. Настройки канала → Интеграция → Вебхуки → Новый вебхук → Копировать URL вебхука, затем вставьте ссылку сюда.",
@@ -604,6 +636,12 @@ const I18N = {
     whatsNewTitle: (version) => `Что нового в ${version}`,
     whatsNewOk: "Понятно",
     whatsNew: {
+      "0.12.0": [
+        "Каждая вкладка разбита на понятные зоны: сначала главное, потом детали.",
+        "«Ваша неделя» на Главной: оценка против прошлой недели и график каждого матча.",
+        "Совет по фарму для керри называет следующий предмет, сколько золота не хватает и сколько его фармить.",
+        "Исправлено: некоторые разборы бесконечно показывали «Загружаем матч…»."
+      ],
       "0.11.0": [
         "Приложение на весь экран: навигация слева, две колонки, обе команды рядом.",
         "«Последние матчи» на Главной, оценка кольцом в разборе и таблице матчей.",
