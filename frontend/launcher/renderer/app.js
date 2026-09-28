@@ -230,6 +230,10 @@ const I18N = {
     whatsNewTitle: (version) => `What's new in ${version}`,
     whatsNewOk: "Got it",
     whatsNew: {
+      "0.17.0": [
+        "Optional anonymous statistics (Settings → App, off by default): which advice was shown and which warnings came before a death, to make the advice better. «What is sent» shows the exact text.",
+        "«Delete my data on the server» removes your problem reports, shared links and statistics in one press."
+      ],
       "0.16.0": [
         "In a review, «Watch» next to a death or a key moment copies the replay command that jumps 10 s before it.",
         "The match chart shows your best match on this hero as a dashed line.",
@@ -681,6 +685,10 @@ const I18N = {
     whatsNewTitle: (version) => `Что нового в ${version}`,
     whatsNewOk: "Понятно",
     whatsNew: {
+      "0.17.0": [
+        "Анонимная статистика по желанию («Настройки → Приложение», по умолчанию выключена): какие подсказки показаны и после каких предупреждений была смерть — чтобы сделать подсказки лучше. «Что отправляется» показывает точный текст.",
+        "«Удалить мои данные на сервере» одним нажатием стирает ваши отчёты о проблемах, ссылки «Поделиться» и статистику."
+      ],
       "0.16.0": [
         "В разборе кнопка «Смотреть» у смерти и ключевого момента копирует команду повтора, которая переносит за 10 с до него.",
         "На графике матча пунктиром — ваш лучший матч на этом герое.",
