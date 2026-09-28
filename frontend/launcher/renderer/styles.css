@@ -1177,6 +1177,15 @@ label.setting:has(.switch:disabled) {
   flex-wrap: wrap;
 }
 
+/* «Неделя в Discord»: the link form gives way to «Send now / Disconnect» once connected. */
+.weekly-row [hidden] {
+  display: none;
+}
+
+.weekly-form .input {
+  width: 260px;
+}
+
 .transfer-form .input {
   width: 164px;
   text-transform: uppercase;
@@ -3133,6 +3142,20 @@ label.setting:has(.switch:disabled) {
 .week-line {
   margin: 0 0 var(--sp-2);
   font-size: var(--fs-13);
+}
+
+/* «Герои: Juggernaut 2–1 · Lina 1–1» under the week's tiles. */
+.week-heroes {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sp-1) var(--sp-3);
+}
+
+.week-hero {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-1);
 }
 
 .week-plan-row {

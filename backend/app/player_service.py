@@ -340,22 +340,27 @@ class PlayerService:
         self._plans[key] = (now, plan)
         return plan
 
-    def week(self, lang: str) -> dict[str, Any] | None:
+    def week(
+        self, lang: str, until: float | None = None, since: float | None = None
+    ) -> dict[str, Any] | None:
         """The home screen's last seven days (app/weekly_summary.py); cached a
-        minute like the game plan, since Home asks for it on every visit."""
+        minute like the game plan, since Home asks for it on every visit.
+        `since` / `until`: another period (the launcher's weekly Discord post
+        asks for the local calendar week that just ended)."""
         primary = self.store.primary_account_id()
         if primary is None:
             return None
-        key = ("week", primary, lang)
+        key = ("week", primary, lang, until, since)
         cached = self._plans.get(key)
         now = time.monotonic()
         if cached is not None and now - cached[0] < GAME_PLAN_CACHE_SECONDS:
             return cached[1]
         summary = weekly_summary(
             self.store.matches_for_career(primary, limit=RECENT_MATCHES_LIMIT),
-            time.time(),
+            time.time() if until is None else until,
             lang,
             focus=self._focus(primary),
+            since=since,
         )
         self._plans[key] = (now, summary)
         return summary

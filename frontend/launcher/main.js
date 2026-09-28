@@ -24,6 +24,7 @@ const zlib = require("node:zlib");
 const { SCHEME: DOTA_ASSET_SCHEME, createAssetHandler } = require("./dota-assets");
 const transferCode = require("./transfer-code");
 const discordPresence = require("./discord-presence");
+const discordWeekly = require("./discord-weekly");
 const { createDotaWatcher } = require("./dota-watcher");
 const { createOverlayController, OVERLAY_DEFAULTS } = require("./overlay-window");
 const {
@@ -118,6 +119,11 @@ const settings = createSettingsStore(path.join(USER_DATA_DIR, "settings.json"), 
   mapHints: true,
   // Rich Presence on the player's Discord profile («Матч на Juggernaut · с тренером Wardly»).
   discordPresence: true,
+  // The week in Discord: the player's channel webhook link (discord-weekly.js),
+  // the end (ms) of the last calendar week handled, and the last post's result.
+  discordWebhook: "",
+  discordWeeklyLast: 0,
+  discordWeeklyStatus: null,
   // UI language: auto (system) | ru | en.
   language: "auto",
   overlay: { ...OVERLAY_DEFAULTS }
@@ -451,6 +457,7 @@ function publicStatus() {
     adviceRole: adviceRole(),
     mapHints: mapHintsEnabled(),
     discordPresence: settings.get("discordPresence") !== false,
+    discordWeekly: discordWeeklyState(),
     overlayLocked: !overlay.isUnlocked(),
     dotaRunning: dota.running,
     dotaFocused: dota.focused,
@@ -592,6 +599,157 @@ function setDiscordPresence(enabled) {
   settings.set("discordPresence", Boolean(enabled));
   refreshDiscord();
   return publicStatus();
+}
+
+// ---------------------------------------------------------------------------
+// The week in Discord (discord-weekly.js): every Monday the calendar week that
+// ended goes to the player's channel webhook, straight from this computer.
+// ---------------------------------------------------------------------------
+
+const DISCORD_WEEKLY_FIRST_CHECK_MS = 90 * 1000;
+const DISCORD_WEEKLY_CHECK_MS = 30 * 60 * 1000;
+const DISCORD_POST_TIMEOUT_MS = 20_000;
+let discordWeeklyTimer = null;
+let discordWeeklyBusy = false;
+
+function discordWeeklyState() {
+  const url = settings.get("discordWebhook") || "";
+  return {
+    configured: Boolean(url),
+    hint: discordWeekly.webhookHint(url),
+    last: settings.get("discordWeeklyStatus") || null
+  };
+}
+
+// One post: the week from the backend, the message, the webhook. `period` in ms.
+async function postWeekToDiscord(period) {
+  const url = settings.get("discordWebhook");
+  if (!url) {
+    return { ok: false, code: "not_configured" };
+  }
+  const lang = uiLocale();
+  let week;
+  try {
+    const payload = await requestBackendJson(discordWeekly.weekQuery(period, lang), "GET", undefined, 15000);
+    week = payload.week;
+  } catch {
+    return { ok: false, code: "backend_down" };
+  }
+  const message = discordWeekly.buildWeeklyMessage(week, { lang, period });
+  if (!message) {
+    return { ok: true, sent: false, code: "no_matches" };
+  }
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), DISCORD_POST_TIMEOUT_MS);
+  try {
+    const response = await electronNet.fetch(`${url}?wait=true`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(message),
+      signal: controller.signal
+    });
+    if (response.ok) {
+      return { ok: true, sent: true, games: week.games };
+    }
+    // 401/404: the webhook was deleted in Discord; 429: Discord's rate limit.
+    const code = [401, 403, 404].includes(response.status) ? "webhook_gone" : response.status === 429 ? "rate_limited" : `http_${response.status}`;
+    return { ok: false, code };
+  } catch {
+    return { ok: false, code: "offline" };
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+function noteDiscordWeekly(result, manual) {
+  if (discordWeekly.postOutcome(result).disconnect) {
+    // Deleted in Discord: stop posting; the panel says so and asks for a new link.
+    settings.set("discordWebhook", "");
+  }
+  settings.set("discordWeeklyStatus", {
+    at: new Date().toISOString(),
+    ok: Boolean(result.ok),
+    sent: Boolean(result.sent),
+    code: result.code || "",
+    manual: Boolean(manual)
+  });
+  appendLog(
+    "discord",
+    result.ok ? (result.sent ? `Week posted to Discord (${result.games} matches).` : "No matches this week: nothing posted.") : `Week not posted: ${result.code}.`,
+    { force: true }
+  );
+}
+
+// Scheduled: the week that ended on Monday, once. Offline or a busy backend
+// tries again at the next check; a deleted webhook is noted and not retried.
+async function checkDiscordWeekly() {
+  if (IS_SMOKE_TEST || discordWeeklyBusy || !settings.get("discordWebhook") || processStatus.backend !== "running") {
+    return;
+  }
+  const due = discordWeekly.dueWeek(Date.now(), settings.get("discordWeeklyLast"));
+  if (!due) {
+    return;
+  }
+  discordWeeklyBusy = true;
+  try {
+    const result = await postWeekToDiscord(due);
+    if (discordWeekly.postOutcome(result).done) {
+      settings.set("discordWeeklyLast", due.end);
+      noteDiscordWeekly(result, false);
+      updateStatus();
+    }
+  } finally {
+    discordWeeklyBusy = false;
+  }
+}
+
+function startDiscordWeekly() {
+  if (IS_SMOKE_TEST || discordWeeklyTimer) {
+    return;
+  }
+  setTimeout(() => checkDiscordWeekly().catch(() => {}), DISCORD_WEEKLY_FIRST_CHECK_MS).unref?.();
+  discordWeeklyTimer = setInterval(() => checkDiscordWeekly().catch(() => {}), DISCORD_WEEKLY_CHECK_MS);
+  discordWeeklyTimer.unref?.();
+}
+
+// The panel: connect a link (the first post comes next Monday), send the last
+// seven days now (a check), or disconnect.
+async function discordWeeklyAction(request) {
+  const action = request && request.action;
+  if (action === "set") {
+    const url = discordWeekly.parseWebhookUrl(request.url);
+    if (!url) {
+      return { ok: false, code: "bad_url", status: publicStatus() };
+    }
+    settings.set("discordWebhook", url);
+    settings.set("discordWeeklyLast", discordWeekly.weekStart(Date.now()));
+    settings.set("discordWeeklyStatus", null);
+    appendLog("discord", "Weekly post connected to a Discord webhook.", { force: true });
+    return { ok: true, status: publicStatus() };
+  }
+  if (action === "clear") {
+    settings.set("discordWebhook", "");
+    settings.set("discordWeeklyStatus", null);
+    appendLog("discord", "Weekly post disconnected.", { force: true });
+    return { ok: true, status: publicStatus() };
+  }
+  if (action === "send") {
+    if (discordWeeklyBusy) {
+      return { ok: false, code: "busy", status: publicStatus() };
+    }
+    discordWeeklyBusy = true;
+    try {
+      const now = Date.now();
+      const result = await postWeekToDiscord({ start: now - 7 * 24 * 3600 * 1000, end: now });
+      if (discordWeekly.postOutcome(result).done) {
+        noteDiscordWeekly(result, true);
+      }
+      return { ...result, status: publicStatus() };
+    } finally {
+      discordWeeklyBusy = false;
+    }
+  }
+  return { ok: false, code: "bad_request", status: publicStatus() };
 }
 
 // The backend decides whether GSI is fresh and comes from a match
@@ -2609,6 +2767,7 @@ function registerIpc() {
   ipcMain.handle("launcher:set-language", (_event, value) => setLanguage(String(value || "")));
   ipcMain.handle("launcher:set-advice-frequency", (_event, value) => setAdviceFrequency(String(value || "")));
   ipcMain.handle("launcher:set-discord-presence", (_event, enabled) => setDiscordPresence(Boolean(enabled)));
+  ipcMain.handle("launcher:discord-weekly", (_event, request) => discordWeeklyAction(request));
   ipcMain.handle("launcher:set-advice-preferences", (_event, patch) =>
     setAdvicePreferences(patch && typeof patch === "object" ? patch : {})
   );
@@ -2954,6 +3113,7 @@ function bootstrap() {
     startBackend();
     updater.start();
     startOutbox();
+    startDiscordWeekly();
     app.on("activate", showMainWindow);
   });
 

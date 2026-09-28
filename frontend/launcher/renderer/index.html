@@ -290,6 +290,20 @@
               </span>
               <input id="discord-presence" type="checkbox" class="switch" role="switch" />
             </label>
+            <div class="setting setting-wrap weekly-row">
+              <span class="setting-text">
+                <span class="setting-title" data-i18n="weeklyTitle">The week in Discord</span>
+                <span class="setting-hint" id="weekly-hint" aria-live="polite"></span>
+              </span>
+              <div class="setting-controls transfer-controls">
+                <form id="weekly-form" class="link-form weekly-form">
+                  <input id="weekly-input" class="input" type="text" inputmode="url" autocomplete="off" spellcheck="false" maxlength="300" placeholder="https://discord.com/api/webhooks/…" data-i18n-aria="weeklyInputLabel" aria-label="Webhook link" />
+                  <button id="weekly-connect" class="btn" type="submit"><i data-icon="link"></i><span data-i18n="weeklyConnect">Connect</span></button>
+                </form>
+                <button id="weekly-send" class="btn" type="button" hidden><i data-icon="send"></i><span data-i18n="weeklySendNow">Send now</span></button>
+                <button id="weekly-clear" class="btn btn-ghost" type="button" hidden><i data-icon="unlink"></i><span data-i18n="weeklyDisconnect">Disconnect</span></button>
+              </div>
+            </div>
             <label class="setting">
               <span class="setting-text">
                 <span class="setting-title" data-i18n="autostart">Start with Windows</span>

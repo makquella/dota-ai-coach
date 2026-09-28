@@ -153,6 +153,27 @@ const I18N = {
     moveDone: "Done",
     discordTitle: "Status in Discord",
     discordHint: "Your Discord friends see «Playing Juggernaut · with the Wardly coach» while Dota runs",
+    weeklyTitle: "The week in Discord",
+    weeklyHint:
+      "Every Monday your matches, results and average score of the week go to a channel of your Discord server. Channel settings → Integrations → Webhooks → New webhook → Copy webhook URL, then paste it here.",
+    weeklyInputLabel: "Webhook link",
+    weeklyConnect: "Connect",
+    weeklySendNow: "Send now",
+    weeklyDisconnect: "Disconnect",
+    weeklySending: "Sending…",
+    weeklyConnected: (hint) => `Connected (${hint}). The week goes to Discord every Monday.`,
+    weeklySent: (date) => `Last post: ${date}.`,
+    weeklyEmpty: (date) => `${date}: no matches in that week, nothing was posted.`,
+    weeklyNoMatchesNow: "No matches in the last seven days: nothing to post yet.",
+    weeklyErrors: {
+      bad_url: "This is not a Discord webhook link: it starts with https://discord.com/api/webhooks/.",
+      webhook_gone: "The webhook was deleted in Discord: create a new one and connect it again.",
+      rate_limited: "Discord asks to wait: try again in a minute.",
+      offline: "No connection to Discord: check the internet.",
+      backend_down: "The service is not running yet: try again in a moment.",
+      busy: "Already sending…",
+      fallback: "Could not post: try again later."
+    },
     autostart: "Start with Windows",
     autostartOn: "Starts hidden in the tray",
     autostartOff: "Start it yourself before playing",
@@ -173,6 +194,11 @@ const I18N = {
     whatsNewTitle: (version) => `What's new in ${version}`,
     whatsNewOk: "Got it",
     whatsNew: {
+      "0.10.0": [
+        "The week in Discord: every Monday your matches, score and heroes of the week go to your server's channel. Settings → App → The week in Discord.",
+        "The Week card on Home shows the heroes you played.",
+        "Problem reports no longer include the delete tokens of your shared links."
+      ],
       "0.9.0": [
         "Status in Discord: your friends see «Playing <hero> · with the Wardly coach». Switch it off in Settings → App.",
         "Links to reviews and progress are shorter now: luhovyimvp.dev/r/…",
@@ -511,6 +537,27 @@ const I18N = {
     moveDone: "Готово",
     discordTitle: "Статус в Discord",
     discordHint: "Друзья в Discord видят «Матч на Juggernaut · с тренером Wardly», пока запущена Дота",
+    weeklyTitle: "Неделя в Discord",
+    weeklyHint:
+      "Каждый понедельник матчи, результаты и средняя оценка за неделю приходят в канал вашего сервера Discord. Настройки канала → Интеграция → Вебхуки → Новый вебхук → Копировать URL вебхука, затем вставьте ссылку сюда.",
+    weeklyInputLabel: "Ссылка вебхука",
+    weeklyConnect: "Подключить",
+    weeklySendNow: "Отправить сейчас",
+    weeklyDisconnect: "Отключить",
+    weeklySending: "Отправляю…",
+    weeklyConnected: (hint) => `Подключено (${hint}). Неделя приходит в Discord каждый понедельник.`,
+    weeklySent: (date) => `Последняя отправка: ${date}.`,
+    weeklyEmpty: (date) => `${date}: за ту неделю матчей не было, ничего не отправлено.`,
+    weeklyNoMatchesNow: "За последние семь дней матчей нет: отправлять пока нечего.",
+    weeklyErrors: {
+      bad_url: "Это не ссылка вебхука Discord: она начинается с https://discord.com/api/webhooks/.",
+      webhook_gone: "Вебхук удалён в Discord: создайте новый и подключите заново.",
+      rate_limited: "Discord просит подождать: попробуйте через минуту.",
+      offline: "Нет связи с Discord: проверьте интернет.",
+      backend_down: "Сервис ещё не запущен: попробуйте через минуту.",
+      busy: "Уже отправляю…",
+      fallback: "Не удалось отправить: попробуйте позже."
+    },
     autostart: "Автозапуск с Windows",
     autostartOn: "Запускается скрыто в трее",
     autostartOff: "Запускайте сами перед игрой",
@@ -531,6 +578,11 @@ const I18N = {
     whatsNewTitle: (version) => `Что нового в ${version}`,
     whatsNewOk: "Понятно",
     whatsNew: {
+      "0.10.0": [
+        "Неделя в Discord: по понедельникам матчи, оценка и герои недели приходят в канал вашего сервера. «Настройки → Приложение → Неделя в Discord».",
+        "В карточке «Неделя» на Главной видно, на каких героях вы играли.",
+        "В «Отчёт о проблеме» больше не попадают ключи удаления ваших ссылок «Поделиться»."
+      ],
       "0.9.0": [
         "Статус в Discord: друзья видят «Матч на <герой> · с тренером Wardly». Выключается в «Настройках → Приложение».",
         "Ссылки на разборы и прогресс теперь короче: luhovyimvp.dev/r/…",
@@ -761,6 +813,12 @@ const els = {
   moveHint: $("#move-hint"),
   autostart: $("#autostart"),
   discordPresence: $("#discord-presence"),
+  weeklyHint: $("#weekly-hint"),
+  weeklyForm: $("#weekly-form"),
+  weeklyInput: $("#weekly-input"),
+  weeklyConnect: $("#weekly-connect"),
+  weeklySend: $("#weekly-send"),
+  weeklyClear: $("#weekly-clear"),
   autostartHint: $("#autostart-hint"),
   updateHint: $("#update-hint"),
   updateAction: $("#update-action"),
@@ -847,6 +905,11 @@ let openDotaLoaded = false;
 let reportSticky = false;
 // A transfer by code is on its way: keep its hint on re-renders.
 let transferBusy = false;
+// The week in Discord: the answer of the last button press, shown instead of
+// the stored state until the next press; the stored state from the status.
+let weeklyMessage = "";
+let weeklyBusy = false;
+let lastWeekly = null;
 let reportPreviewLoaded = false;
 const seenAdvice = new Set();
 
@@ -869,6 +932,35 @@ function tr(key, ...args) {
 function trOr(key, fallback) {
   const value = lookup(I18N[locale], key) ?? lookup(I18N.en, key);
   return typeof value === "string" ? value : fallback;
+}
+
+function renderWeekly(state) {
+  lastWeekly = state;
+  const configured = Boolean(state && state.configured);
+  els.weeklyForm.hidden = configured;
+  els.weeklySend.hidden = !configured;
+  els.weeklyClear.hidden = !configured;
+  if (weeklyMessage) {
+    els.weeklyHint.textContent = weeklyMessage;
+    return;
+  }
+  if (!configured) {
+    // A webhook deleted in Discord was disconnected by the launcher: say why.
+    const gone = state && state.last && state.last.code === "webhook_gone";
+    els.weeklyHint.textContent = gone ? `${tr("weeklyErrors.webhook_gone")} ${tr("weeklyHint")}` : tr("weeklyHint");
+    return;
+  }
+  const last = state.last;
+  const date = last && last.at ? new Date(last.at).toLocaleDateString(locale === "ru" ? "ru-RU" : "en-GB", { day: "numeric", month: "long" }) : "";
+  if (last && !last.ok) {
+    els.weeklyHint.textContent = trOr(`weeklyErrors.${last.code}`, tr("weeklyErrors.fallback"));
+  } else if (last && last.sent) {
+    els.weeklyHint.textContent = `${tr("weeklyConnected", state.hint)} ${tr("weeklySent", date)}`;
+  } else if (last && !last.manual) {
+    els.weeklyHint.textContent = `${tr("weeklyConnected", state.hint)} ${tr("weeklyEmpty", date)}`;
+  } else {
+    els.weeklyHint.textContent = tr("weeklyConnected", state.hint);
+  }
 }
 
 function applyStaticTexts() {
@@ -1145,6 +1237,46 @@ async function init() {
   els.discordPresence.addEventListener("change", () =>
     run(async () => renderStatus(await window.launcherApi.setDiscordPresence(els.discordPresence.checked)))
   );
+  async function weeklyRun(button, action, url) {
+    if (weeklyBusy) {
+      return;
+    }
+    weeklyBusy = true;
+    button.disabled = true;
+    if (action === "send") {
+      weeklyMessage = tr("weeklySending");
+      renderWeekly(lastWeekly);
+    }
+    try {
+      const result = await window.launcherApi.discordWeekly(action, url);
+      if (result && result.ok) {
+        weeklyMessage = action === "send" && !result.sent ? tr("weeklyNoMatchesNow") : "";
+        if (action === "set") {
+          els.weeklyInput.value = "";
+        }
+      } else {
+        weeklyMessage = trOr(`weeklyErrors.${result?.code}`, tr("weeklyErrors.fallback"));
+      }
+      if (result && result.status) {
+        renderStatus(result.status);
+      }
+    } finally {
+      weeklyBusy = false;
+      button.disabled = false;
+      renderWeekly(lastWeekly);
+    }
+  }
+  els.weeklyForm.addEventListener("submit", (event) => {
+    event.preventDefault();
+    const url = els.weeklyInput.value.trim();
+    if (!url) {
+      els.weeklyInput.focus();
+      return;
+    }
+    run(() => weeklyRun(els.weeklyConnect, "set", url));
+  });
+  els.weeklySend.addEventListener("click", () => run(() => weeklyRun(els.weeklySend, "send")));
+  els.weeklyClear.addEventListener("click", () => run(() => weeklyRun(els.weeklyClear, "clear")));
   els.autostart.addEventListener("change", () =>
     run(async () => {
       await window.launcherApi.setAutostart(els.autostart.checked);
@@ -1753,6 +1885,7 @@ function renderOverlaySettings(status) {
   els.moveHint.textContent = moving ? tr("moveActiveHint") : tr("moveHint");
 
   els.discordPresence.checked = status.discordPresence !== false;
+  renderWeekly(status.discordWeekly || null);
   els.autostart.checked = Boolean(status.autostart);
   els.autostart.disabled = !status.autostartSupported;
   els.autostartHint.textContent = !status.autostartSupported

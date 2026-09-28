@@ -34,6 +34,24 @@ test("redact removes every provider key format", () => {
   assert.match(result, /"provider": "gemini"/);
 });
 
+test("share delete tokens and the Discord webhook stay out of the report", () => {
+  const hook = "https://discord.com/api/webhooks/123456789012345678/" + "Tok3n_-".repeat(10);
+  const report = buildReport({
+    app: { version: "0.10.0" },
+    status: {},
+    settings: {
+      shares: { progress: { id: "abc123defg", url: "https://luhovyimvp.dev/r/abc123defg", token: "0123456789abcdef0123abcd" } },
+      discordWebhook: hook
+    },
+    watcher: {},
+    diagnostics: null,
+    launcherLog: `[discord] posting to ${hook}\n`
+  });
+  assert.ok(!report.includes("0123456789abcdef0123abcd"), "share delete token");
+  assert.ok(!report.includes("Tok3n_-"), "webhook token");
+  assert.match(report, /luhovyimvp\.dev\/r\/abc123defg/, "the public link itself may stay");
+});
+
 test("tail keeps the last lines", () => {
   const log = Array.from({ length: LOG_TAIL_LINES + 50 }, (_, index) => `line ${index}`).join("\n");
   const lines = tail(`${log}\n\n`).split("\n");

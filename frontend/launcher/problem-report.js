@@ -11,9 +11,12 @@ const SECRET_PATTERNS = [
   /gsk_[\w-]{16,}/g, // Groq
   /sk-[\w-]{16,}/g, // OpenRouter and other OpenAI-style keys
   /Bearer\s+[\w.-]{12,}/g,
-  /(?<=api_key=)[^&\s'"]+/g // OpenDota key in a URL
+  /(?<=api_key=)[^&\s'"]+/g, // OpenDota key in a URL
+  /(?<=\/api\/(?:v\d+\/)?webhooks\/\d+\/)[\w-]+/g // Discord webhook token (the week in Discord)
 ];
-const KEY_FIELD = /("api_?key"\s*:\s*")[^"]*"/gi;
+// JSON fields holding a secret: API keys, the delete tokens of shared links
+// (settings.shares) and the Discord webhook link.
+const KEY_FIELD = /("(?:api_?key|token|delete_?token|discord_?webhook)"\s*:\s*")[^"]*"/gi;
 
 const LOG_TAIL_LINES = 600;
 

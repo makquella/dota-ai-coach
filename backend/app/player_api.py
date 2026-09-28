@@ -155,8 +155,14 @@ def share_progress(lang: str = "en", coach: bool = False):
 
 
 @router.get("/week", summary="The last seven days for the home screen")
-def player_week(lang: str = "en"):
-    return {"week": PLAYER_SERVICE.week(normalize_lang(lang))}
+def player_week(
+    lang: str = "en",
+    until: Annotated[float | None, Query(gt=0, lt=1e11)] = None,
+    since: Annotated[float | None, Query(gt=0, lt=1e11)] = None,
+):
+    if since is not None and (until is None or not until - 8 * 86400 <= since < until):
+        return JSONResponse(status_code=422, content={"status": "error", "code": "bad_period"})
+    return {"week": PLAYER_SERVICE.week(normalize_lang(lang), until, since)}
 
 
 @router.get("/backup", summary="The whole history as one backup (no keys)")

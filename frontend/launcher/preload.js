@@ -27,6 +27,7 @@ contextBridge.exposeInMainWorld("launcherApi", {
   setLanguage: (value) => ipcRenderer.invoke("launcher:set-language", value),
   setAdviceFrequency: (value) => ipcRenderer.invoke("launcher:set-advice-frequency", value),
   setDiscordPresence: (enabled) => ipcRenderer.invoke("launcher:set-discord-presence", Boolean(enabled)),
+  discordWeekly: (action, url) => ipcRenderer.invoke("launcher:discord-weekly", { action: String(action), url: typeof url === "string" ? url : "" }),
   setAdvicePreferences: (patch) => ipcRenderer.invoke("launcher:set-advice-preferences", patch),
   setOverlaySize: (name) => ipcRenderer.invoke("launcher:set-overlay-size", name),
   setOverlayVoice: (mode, volume) => ipcRenderer.invoke("launcher:set-overlay-voice", mode, volume),

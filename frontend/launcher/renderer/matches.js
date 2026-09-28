@@ -99,6 +99,8 @@
       weekGames: "Matches",
       weekVsPrevious: "vs the week before",
       weekBest: "Best match",
+      weekHeroes: "Heroes:",
+      weekHeroTitle: (hero, games, wins) => `${hero}: ${games} ${games === 1 ? "match" : "matches"}, ${wins} ${wins === 1 ? "win" : "wins"}`,
       weekProblem: "Most often:",
       weekProblemText: (title, count, of) => `${title} — in ${count} of ${of} matches`,
       weekFocus: "Focus:",
@@ -501,6 +503,8 @@
       weekGames: "Матчи",
       weekVsPrevious: "к прошлой неделе",
       weekBest: "Лучший матч",
+      weekHeroes: "Герои:",
+      weekHeroTitle: (hero, games, wins) => `${hero}: матчей ${games}, побед ${wins}`,
       weekProblem: "Чаще всего:",
       weekProblemText: (title, count, of) => `${title} — в ${count} из ${of} матчей`,
       weekFocus: "Фокус:",
@@ -3778,6 +3782,25 @@
       tiles.push(best);
     }
     const lines = [];
+    const heroes = (week.heroes || []).filter((hero) => hero && hero.hero);
+    if (heroes.length > 1) {
+      lines.push(
+        h(
+          "p",
+          { class: "week-line week-heroes" },
+          h("span", { class: "muted", text: `${t("weekHeroes")} ` }),
+          heroes.map((hero) =>
+            h(
+              "span",
+              { class: "week-hero", title: t("weekHeroTitle", hero.hero, hero.games, hero.wins) },
+              window.DotaIcons?.hero(hero.hero) ? window.DotaIcons.heroPicture(document, hero.hero, "sm") : null,
+              h("span", { text: hero.hero }),
+              h("span", { class: "muted num", text: `${hero.wins}–${hero.games - hero.wins}` })
+            )
+          )
+        )
+      );
+    }
     if (week.top_problem) {
       lines.push(h("p", { class: "week-line" }, h("span", { class: "muted", text: `${t("weekProblem")} ` }), h("span", { text: t("weekProblemText", week.top_problem.title, week.top_problem.count, week.top_problem.of) })));
     }
