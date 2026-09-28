@@ -299,6 +299,14 @@
       friendHeroGames: (g1, w1, g2, w2) => `you ${g1} · ${w1 ?? "—"}%   friend ${g2} · ${w2 ?? "—"}%`,
       friendTheirHeroes: (name) => `Most played by ${name}`,
       friendNote: "Averages per game, public OpenDota data, ranked and normal modes only. Core or support is judged by last hits a minute.",
+      buildTitle: (hero) => `Your build on ${hero}`,
+      buildNote: (n, wins) => `Your items in ${n} reviewed games on the hero (${wins} wins): when they come in wins and in losses, and how often you win with and without them.`,
+      buildItem: "Item",
+      buildGames: "Games",
+      buildWinrate: "Wins with it",
+      buildWithout: "Without it",
+      buildWinTime: "In wins",
+      buildLossTime: "In losses",
       selfTitle: (hero) => `Your best vs your worst games on ${hero}`,
       selfNote: (n) => `The best third of your last ${n} reviewed games on the hero against the worst third, by review score.`,
       selfBest: "Best",
@@ -689,6 +697,14 @@
       friendHeroGames: (g1, w1, g2, w2) => `вы ${g1} · ${w1 ?? "—"}%   друг ${g2} · ${w2 ?? "—"}%`,
       friendTheirHeroes: (name) => `Чаще всего играет ${name}`,
       friendNote: "Средние за игру, открытые данные OpenDota, только рейтинговые и обычные режимы. Кор или саппорт — по добиваниям в минуту.",
+      buildTitle: (hero) => `Ваш билд на ${hero}`,
+      buildNote: (n, wins) => `Ваши предметы в ${n} разобранных матчах на герое (побед: ${wins}): когда они приходят в победах и в поражениях и как часто вы выигрываете с ними и без них.`,
+      buildItem: "Предмет",
+      buildGames: "Игр",
+      buildWinrate: "Побед с ним",
+      buildWithout: "Без него",
+      buildWinTime: "В победах",
+      buildLossTime: "В поражениях",
       selfTitle: (hero) => `Лучшие и худшие матчи на ${hero}`,
       selfNote: (n) => `Лучшая треть из ${n} последних разобранных матчей на герое против худшей трети, по оценке разбора.`,
       selfBest: "Лучшие",
@@ -2333,6 +2349,63 @@
     );
   }
 
+  // The player's own build on the hero (app/hero_build.py).
+  function heroBuildCard(build) {
+    if (!build || !(build.items || []).length) {
+      return null;
+    }
+    const pct = (value) => (value == null ? "—" : `${value}%`);
+    const time = (value) => (value == null ? "—" : clock(value));
+    return card(
+      t("buildTitle", build.hero),
+      "coins",
+      h(
+        "div",
+        { class: "draft" },
+        h("p", { class: "muted small", text: t("buildNote", build.matches, build.wins) }),
+        build.highlights.length ? coachList(build.highlights, "idle") : null,
+        h(
+          "div",
+          { class: "table-wrap table-wrap-tight" },
+          h(
+            "table",
+            { class: "table" },
+            h(
+              "thead",
+              {},
+              h(
+                "tr",
+                {},
+                h("th", { text: t("buildItem") }),
+                h("th", { class: "num-col", text: t("buildGames") }),
+                h("th", { class: "num-col", text: t("buildWinrate") }),
+                h("th", { class: "num-col hide-narrow", text: t("buildWithout") }),
+                h("th", { class: "num-col", text: t("buildWinTime") }),
+                h("th", { class: "num-col", text: t("buildLossTime") })
+              )
+            ),
+            h(
+              "tbody",
+              {},
+              build.items.map((row) =>
+                h(
+                  "tr",
+                  {},
+                  h("td", {}, itemLabel(row.item, row.item)),
+                  h("td", { class: "num-col num", text: String(row.games) }),
+                  h("td", { class: "num-col num", text: pct(row.winrate) }),
+                  h("td", { class: "num-col num muted hide-narrow", text: pct(row.winrate_without) }),
+                  h("td", { class: "num-col num", text: time(row.t_win) }),
+                  h("td", { class: "num-col num muted", text: time(row.t_loss) })
+                )
+              )
+            )
+          )
+        )
+      )
+    );
+  }
+
   function selfCompareCard(compare) {
     if (!compare) {
       return null;
@@ -3560,6 +3633,7 @@
       state.careerHero === null ? friendCard() : "",
       opponentsCard(career.opponents) || "",
       selfCompareCard(career.self_compare) || "",
+      heroBuildCard(career.hero_build) || "",
       goalCard(career.focus) || "",
       planCard,
       strengthsCard || "",

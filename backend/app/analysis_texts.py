@@ -661,6 +661,22 @@ SELF_COMPARE = {
     },
 }
 
+# The player's own build on a hero (hero_build.py): one line per clear gap.
+HERO_BUILD = {
+    "ru": {
+        "timing": "{item} в победах у вас к {win}, в поражениях — к {loss}.",
+        "with_better": "С {item} вы выигрываете {winrate}% ({games_text}), без него — {without}% ({without_text}).",
+        "without_better": "С {item} у вас {winrate}% побед ({games_text}), без него — {without}% ({without_text}): проверьте, когда он нужен.",
+        "first": "Первый большой предмет в победах — чаще {win}, в поражениях — {loss}.",
+    },
+    "en": {
+        "timing": "{item} comes by {win} in your wins and by {loss} in your losses.",
+        "with_better": "With {item} you win {winrate}% ({games_text}), without it {without}% ({without_text}).",
+        "without_better": "With {item} you win {winrate}% ({games_text}), without it {without}% ({without_text}): check when you need it.",
+        "first": "Your first big item in wins is most often {win}, in losses {loss}.",
+    },
+}
+
 # Why an enemy hero needs a counter item (draft_analysis.COUNTERS).
 COUNTER_REASONS = {
     "evasion": {"ru": "уклонение", "en": "evasion"},

@@ -260,6 +260,24 @@ def career_facts(career: dict[str, Any], recent: list[dict[str, Any]]) -> dict[s
                 row["key"]: {"best": row["best"], "worst": row["worst"]} for row in compare["rows"]
             },
         }
+    build = career.get("hero_build")
+    if build:
+        facts["your_build_on_your_main_hero"] = {
+            "hero": build["hero"],
+            "matches": build["matches"],
+            "wins": build["wins"],
+            "items": [
+                {
+                    "item": row["item"],
+                    "games": row["games"],
+                    "winrate_percent_with_it": row["winrate"],
+                    "winrate_percent_without_it": row["winrate_without"],
+                    "median_time_in_wins": clock(row["t_win"]) if row["t_win"] else None,
+                    "median_time_in_losses": clock(row["t_loss"]) if row["t_loss"] else None,
+                }
+                for row in build["items"]
+            ],
+        }
     rank = career.get("rank")
     if rank:
         facts["rank"] = rank.get("rank_label")
