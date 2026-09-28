@@ -269,12 +269,14 @@ function showPlan(data) {
   shell.className = "overlay-shell plan coaching";
   labelEl.textContent = data.game_plan.title || tr("plan");
   const heroName = data.game_plan.hero || "";
+  // "Juggernaut · 6–4": the player's record on the hero, when there is one.
+  const heroLabel = data.game_plan.record ? `${heroName} · ${data.game_plan.record}` : heroName;
   if (heroName && window.DotaIcons?.hero(heroName)) {
     const name = document.createElement("span");
-    name.textContent = heroName;
+    name.textContent = heroLabel;
     priorityEl.replaceChildren(window.DotaIcons.heroPicture(document, heroName, "sm"), name);
   } else {
-    priorityEl.textContent = heroName;
+    priorityEl.textContent = heroLabel;
   }
   actionEl.textContent = first;
   reasonEl.textContent = rest.join("\n");

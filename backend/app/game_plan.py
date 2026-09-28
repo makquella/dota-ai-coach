@@ -10,6 +10,9 @@ Three short lines built from data the app already has, nothing guessed:
 - the mistake that keeps coming back in their reviews (on this hero if it has
   enough reviewed games, else overall).
 
+Next to the hero's name: the player's record on it over the last 20 matches
+(`record`, "6–4"), from 3 finished games.
+
 Every line is optional; with nothing to say there is no plan.
 """
 
@@ -28,6 +31,7 @@ from app.schemas import is_supported_hero
 # The window: from hero pick (negative clock) until this game time.
 SHOW_UNTIL_CLOCK = 90
 MIN_HERO_REVIEWS_FOR_REMINDER = 3
+MIN_RECORD_GAMES = 3
 
 TEXT = {
     "ru": {
@@ -71,6 +75,15 @@ def _usual_role(history: list[dict[str, Any]], hero: str) -> str | None:
     if roles:
         return roles.most_common(1)[0][0]
     return "core" if is_supported_hero(hero) else None
+
+
+def _record(history: list[dict[str, Any]]) -> str | None:
+    """ "6–4": wins and losses on the hero; unfinished rows (no result) skipped."""
+    results = [m.get("win") for m in history if m.get("win") is not None]
+    if len(results) < MIN_RECORD_GAMES:
+        return None
+    wins = sum(1 for won in results if won)
+    return f"{wins}–{len(results) - wins}"
 
 
 def _key_item(meta: dict[str, Any] | None) -> dict[str, Any] | None:
@@ -128,7 +141,7 @@ def build_game_plan(
     if focus:
         # The problem the player chose to work on beats the most frequent one.
         lines.append(text["focus"].format(title=_sentence_tail(focus)))
-        return {"title": text["title"], "hero": hero, "role": role, "lines": lines}
+        return _plan(text, hero, role, lines, history)
 
     reviewed_on_hero = [m for m in history if m.get("analysis")]
     source = (
@@ -140,4 +153,12 @@ def build_game_plan(
 
     if not lines:
         return None
-    return {"title": text["title"], "hero": hero, "role": role, "lines": lines}
+    return _plan(text, hero, role, lines, history)
+
+
+def _plan(text, hero, role, lines, history) -> dict[str, Any]:
+    plan = {"title": text["title"], "hero": hero, "role": role, "lines": lines}
+    record = _record(history)
+    if record:
+        plan["record"] = record
+    return plan
