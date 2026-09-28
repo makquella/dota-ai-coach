@@ -60,3 +60,23 @@ def test_the_focus_as_a_three_match_plan():
 
 def test_week_endpoint(client):
     assert client.get("/player/week?lang=ru").json() == {"week": None}
+    assert client.get("/player/week?until=1790000000").json() == {"week": None}
+    assert client.get("/player/week?until=-5").status_code == 422
+
+
+def test_a_past_week_leaves_out_later_matches_and_names_the_heroes():
+    """The Discord post asks for the calendar week that just ended."""
+    lina = {**_match(7, 0.2, 80, True), "hero": "Lina", "hero_id": 25}
+    matches = [
+        lina,
+        _match(6, 1.5, 60, True),
+        _match(5, 2, 58, False),
+        {**_match(4, 3, 64, True), "hero": "Lina", "hero_id": 25},
+    ]
+    week = weekly_summary(matches, NOW - 86400, "en")
+    assert week["games"] == 3, "the match after the week's end is not in it"
+    assert week["best"]["match_id"] == 4
+    assert week["heroes"] == [
+        {"hero": "Juggernaut", "hero_id": 8, "games": 2, "wins": 1},
+        {"hero": "Lina", "hero_id": 25, "games": 1, "wins": 1},
+    ]

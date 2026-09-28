@@ -155,8 +155,8 @@ def share_progress(lang: str = "en", coach: bool = False):
 
 
 @router.get("/week", summary="The last seven days for the home screen")
-def player_week(lang: str = "en"):
-    return {"week": PLAYER_SERVICE.week(normalize_lang(lang))}
+def player_week(lang: str = "en", until: Annotated[float | None, Query(gt=0, lt=1e11)] = None):
+    return {"week": PLAYER_SERVICE.week(normalize_lang(lang), until)}
 
 
 @router.get("/backup", summary="The whole history as one backup (no keys)")

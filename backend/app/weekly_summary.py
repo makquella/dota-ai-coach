@@ -5,7 +5,8 @@ From the stored match table and reviews (no network): games, wins and losses,
 the average review score and how it moved against the seven days before, the
 best match of the week, the mistake that came back most often this week, and
 the focus as a short training plan: the last PLAN_MATCHES matches judged by it
-(match_result) with the drill to repeat.
+(match_result) with the drill to repeat. `now` may be a past moment (the end of
+a calendar week for the Discord post): matches after it are left out.
 """
 
 from __future__ import annotations
@@ -21,6 +22,7 @@ PLAN_MATCHES = 3
 # Findings that describe one lineup, not a habit.
 NOT_A_HABIT = {"draft_better_pick", *NOT_FOCUSABLE}
 MIN_REPEATS = 2
+TOP_HEROES = 3
 
 
 def _scores(rows: list[dict[str, Any]]) -> list[float]:
@@ -35,7 +37,7 @@ def weekly_summary(
 ) -> dict[str, Any] | None:
     """`matches`: newest first with their analysis (PlayerStore.matches_for_career).
     None when no match was played in the last seven days."""
-    week = [m for m in matches if (m.get("start_time") or 0) >= now - WEEK_SECONDS]
+    week = [m for m in matches if now - WEEK_SECONDS <= (m.get("start_time") or 0) < now]
     if not week:
         return None
     before = [
@@ -65,6 +67,19 @@ def weekly_summary(
             "score": best["score"],
             "win": best.get("win"),
         }
+    heroes: dict[str, dict[str, Any]] = {}
+    for match in week:
+        if not match.get("hero"):
+            continue
+        row = heroes.setdefault(
+            match["hero"],
+            {"hero": match["hero"], "hero_id": match.get("hero_id"), "games": 0, "wins": 0},
+        )
+        row["games"] += 1
+        row["wins"] += 1 if match.get("win") else 0
+    summary["heroes"] = sorted(heroes.values(), key=lambda h: (-h["games"], -h["wins"]))[
+        :TOP_HEROES
+    ]
     counts: Counter[str] = Counter()
     latest: dict[str, dict[str, Any]] = {}
     for match in week:  # newest first: `latest` keeps the newest wording
