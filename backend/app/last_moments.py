@@ -12,8 +12,10 @@ At a death, summarize() turns the buffer into a small record kept with the
 death on the timeline:
 - hp: the HP curve (seconds before the death, percent), at most WINDOW points;
 - ready: the saving items that were ready at the last alive tick;
-- free_s: seconds of the last FREE_WINDOW the hero was not disabled (a ready
-  item only counts as "not used" when there was time to press it);
+- usable: the saving items that were ready on a second of the last
+  FREE_WINDOW when the hero was not disabled — readiness and the chance to
+  press it on the same sample, so only these count as "not used";
+- free_s: seconds of the last FREE_WINDOW the hero was not disabled;
 - burst_s: seconds from BURST_FROM % HP or more to the death (a burst kill),
   when that is BURST_SECONDS or less.
 
@@ -140,9 +142,14 @@ class LastSeconds:
             return None
         last = entries[-1]
         recent = [e for e in entries if death_clock - e["t"] <= FREE_WINDOW]
+        usable: list[str] = []
+        for entry in recent:
+            if not entry["disabled"]:
+                usable.extend(name for name in entry["ready"] if name not in usable)
         result: dict[str, Any] = {
             "hp": [[e["t"] - death_clock, e["hp"]] for e in entries],
             "ready": list(last["ready"]),
+            "usable": usable,
             "free_s": sum(1 for e in recent if not e["disabled"]),
         }
         high = [e for e in entries if e["hp"] >= BURST_FROM]

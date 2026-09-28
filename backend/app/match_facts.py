@@ -406,6 +406,7 @@ def _last_moments(value: Any) -> dict[str, Any] | None:
     result: dict[str, Any] = {
         "hp": hp,
         "ready": [str(name) for name in value.get("ready") or [] if isinstance(name, str)],
+        "usable": [str(name) for name in value.get("usable") or [] if isinstance(name, str)],
         "free_s": _int(value.get("free_s")) or 0,
     }
     if _int(value.get("burst_s")):

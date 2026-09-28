@@ -2723,15 +2723,18 @@
     if (last.burst_s) {
       lines.push(h("span", { class: "muted small", text: t("deathBurst", last.burst_s) }));
     }
-    const names = last.ready_names || [];
-    if (names.length) {
-      const used = (death.notes || []).includes("saver_ready");
+    // Ready while the hero could act (the same second): "not pressed"; ready only
+    // while disabled: said as such.
+    const unpressed = (death.notes || []).includes("saver_ready");
+    const keys = unpressed ? last.usable || [] : last.ready || [];
+    const names = (unpressed ? last.usable_names : last.ready_names) || [];
+    if (keys.length) {
       lines.push(
         h(
           "span",
           { class: "muted small death-ready" },
-          h("span", { text: t(used ? "deathReady" : "deathReadyStunned") }),
-          (last.ready || []).map((key, index) =>
+          h("span", { text: t(unpressed ? "deathReady" : "deathReadyStunned") }),
+          keys.map((key, index) =>
             h("span", { class: "death-item" }, window.DotaIcons ? window.DotaIcons.itemPicture(document, key, "sm", names[index]) : null, h("span", { text: names[index] || key }))
           )
         )

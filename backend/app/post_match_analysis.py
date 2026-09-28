@@ -251,7 +251,7 @@ def _last_moment_findings(death_block: dict[str, Any] | None) -> list[dict[str, 
     found: list[dict[str, Any]] = []
     unused = [row for row in rows if "saver_ready" in row["notes"]]
     if len(unused) >= SAVER_DEATHS:
-        items = Counter(name for row in unused for name in row["last"]["ready"])
+        items = Counter(name for row in unused for name in row["last"]["usable"])
         _finding(
             found,
             "died_with_saver_ready",

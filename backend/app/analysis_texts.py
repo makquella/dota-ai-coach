@@ -826,6 +826,10 @@ def render_analysis(analysis: dict[str, Any], lang: str) -> dict[str, Any]:
                                     saver_label(name, lang)
                                     for name in row["last"].get("ready") or []
                                 ],
+                                "usable_names": [
+                                    saver_label(name, lang)
+                                    for name in row["last"].get("usable") or []
+                                ],
                             }
                         }
                         if row.get("last")

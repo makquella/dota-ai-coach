@@ -5,6 +5,7 @@ from __future__ import annotations
 from match_fixtures import gsi_match_stream
 
 from app.analysis_texts import render_finding
+from app.death_review import review_deaths
 from app.focus_goal import match_result, new_focus
 from app.last_moments import LastSeconds, ready_savers
 from app.match_facts import facts_from_timeline
@@ -41,6 +42,7 @@ def test_summary_of_the_last_seconds():
     summary = buffer.summarize(120)
     assert summary["hp"][0] == [-20, 90] and summary["hp"][-2:] == [[-2, 35], [-1, 10]]
     assert summary["ready"] == ["item_black_king_bar"]
+    assert summary["usable"] == []  # the BKB only while stunned
     assert summary["free_s"] == 3  # 115-117 free, 118-119 stunned
     assert summary["burst_s"] == 3
     assert buffer.summarize(120) is None  # used once per death
@@ -95,3 +97,30 @@ def test_one_unused_saver_is_not_a_habit_and_old_matches_cannot_show_it(tmp_path
     assert match_result(analysis, focus) is True
     # A match without the last seconds (OpenDota only, or recorded before 0.8).
     assert match_result({**analysis, "last_moments": 0}, focus) is None
+
+
+def test_ready_only_while_disabled_is_not_an_unpressed_item():
+    # Free seconds without the item, then BKB comes off cooldown on the last
+    # tick while the hero is stunned: never ready and usable on the same second.
+    buffer = LastSeconds()
+    hero = {"alive": True, "health_percent": 60, "mana_percent": 50}
+    for t in range(100, 118):
+        buffer.observe(t, hero, {})
+    buffer.observe(118, {**hero, "health_percent": 20, "stunned": True}, {})
+    buffer.observe(119, {**hero, "health_percent": 5, "stunned": True}, {"slot0": BKB})
+    last = buffer.summarize(120)
+    assert last["ready"] == ["item_black_king_bar"] and last["usable"] == []
+    assert last["free_s"] == 3
+    review = review_deaths({"deaths_log": [{"t": 120, "last": last}]})
+    assert "saver_ready" not in review["deaths"][0]["notes"]
+
+    # Ready on a free second, then stunned: that one was not pressed.
+    for t in range(200, 218):
+        buffer.observe(t, hero, {"slot0": BKB} if t == 216 else {})
+    buffer.observe(218, {**hero, "stunned": True}, {"slot0": BKB})
+    last = buffer.summarize(219)
+    assert last["usable"] == ["item_black_king_bar"]
+    assert (
+        "saver_ready"
+        in review_deaths({"deaths_log": [{"t": 219, "last": last}]})["deaths"][0]["notes"]
+    )

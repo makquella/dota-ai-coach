@@ -643,7 +643,7 @@ def _deaths_facts(review: dict[str, Any]) -> dict[str, Any]:
         last = death.get("last") or {}
         if "saver_ready" in (death.get("notes") or []):
             row["saving_items_ready_not_used"] = [
-                saver_label(n, "en") for n in last.get("ready") or []
+                saver_label(n, "en") for n in last.get("usable") or []
             ]
         if last.get("burst_s"):
             row["killed_from_70_percent_hp_within_seconds"] = last["burst_s"]

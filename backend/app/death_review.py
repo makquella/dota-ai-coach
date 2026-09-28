@@ -11,8 +11,8 @@ For each death (facts.deaths_log, merged from OpenDota and the GSI timeline):
 - a death soon after respawning from the previous one;
 - the last seconds before it (GSI, last_moments.py): the HP curve, a burst kill
   (`burst`), and saving items that were ready while the hero could still act
-  (`saver_ready`: ready at the last alive tick and FREE_SECONDS+ of the last 5 s
-  without a stun, hex or mute).
+  (`saver_ready`: ready on a second of the last 5 s without a stun, hex or
+  mute — `usable`, the same sample).
 
 Only facts, no guesses: a missing value stays out. The launcher renders the
 zone and note ids in the review language («Смерти» card).
@@ -30,7 +30,6 @@ WARNING_WINDOW = 30
 UNSPENT_GOLD = 1000
 SOON_AFTER_RESPAWN = 60
 LANING_END = 10 * 60
-FREE_SECONDS = 1
 
 # Centred world units: lanes run along the map edges (about ±6400), mid along
 # x == y, bases fill the corners; everything else is jungle.
@@ -107,12 +106,13 @@ def review_deaths(facts: dict[str, Any]) -> dict[str, Any] | None:
             row["last"] = {
                 "hp": last["hp"],
                 "ready": list(last.get("ready") or []),
+                "usable": list(last.get("usable") or []),
                 "free_s": last.get("free_s", 0),
             }
             if last.get("burst_s"):
                 row["last"]["burst_s"] = last["burst_s"]
                 notes.append("burst")
-            if last.get("ready") and (last.get("free_s") or 0) >= FREE_SECONDS:
+            if last.get("usable"):
                 notes.append("saver_ready")
         row["notes"] = notes
         rows.append(row)
