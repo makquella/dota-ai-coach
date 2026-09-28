@@ -171,6 +171,12 @@ const I18N = {
     whatsNewTitle: (version) => `What's new in ${version}`,
     whatsNewOk: "Got it",
     whatsNew: {
+      "0.8.0": [
+        "Death reviews: HP in the last 20 seconds and the saving item that was ready but not pressed.",
+        "Progress: your build on the hero — when items come in your wins and in your losses.",
+        "After a match the overlay shows the summary right on the score screen.",
+        "Move your history to another computer with a one-time code."
+      ],
       "0.7.0": [
         "Progress → Share: a link to a page with your progress — matches, wins, averages, top heroes, what goes well and what to work on.",
         "A new start-up splash: the logo comes alive while the service starts."
@@ -516,6 +522,12 @@ const I18N = {
     whatsNewTitle: (version) => `Что нового в ${version}`,
     whatsNewOk: "Понятно",
     whatsNew: {
+      "0.8.0": [
+        "Разбор смертей: здоровье за последние 20 секунд и спасающий предмет, который был готов, но не нажат.",
+        "«Прогресс»: ваш билд на герое — когда предметы приходят в победах и в поражениях.",
+        "После матча оверлей показывает итог прямо на экране со счётом.",
+        "Перенос истории на другой компьютер по одноразовому коду."
+      ],
       "0.7.0": [
         "«Прогресс» → «Поделиться»: ссылка на страницу с вашим прогрессом — матчи, победы, средние цифры, главные герои, что получается и над чем работать.",
         "Новая заставка при запуске: логотип оживает, пока запускается служба."
