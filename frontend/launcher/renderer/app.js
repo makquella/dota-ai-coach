@@ -161,6 +161,7 @@ const I18N = {
       shown: "Shown in Discord. Friends do not see it? Discord → Settings → Activity Privacy → «Share your detected activities with others».",
       rejected: (error) => `Discord did not accept the status: ${error}`
     },
+    settingsMore: "More",
     weeklyTitle: "The week in Discord",
     weeklyHint:
       "Every Monday your matches, results and average score of the week go to a channel of your Discord server. Channel settings → Integrations → Webhooks → New webhook → Copy webhook URL, then paste it here.",
@@ -553,6 +554,7 @@ const I18N = {
       shown: "Статус показан в Discord. Друзья не видят? Discord → Настройки → Конфиденциальность активности → «Делиться своей активностью».",
       rejected: (error) => `Discord не принял статус: ${error}`
     },
+    settingsMore: "Дополнительно",
     weeklyTitle: "Неделя в Discord",
     weeklyHint:
       "Каждый понедельник матчи, результаты и средняя оценка за неделю приходят в канал вашего сервера Discord. Настройки канала → Интеграция → Вебхуки → Новый вебхук → Копировать URL вебхука, затем вставьте ссылку сюда.",
@@ -1903,7 +1905,8 @@ function renderOverlaySettings(status) {
 
   els.discordPresence.checked = status.discordPresence !== false;
   const discordState = status.discordState || { state: "idle" };
-  els.discordState.hidden = status.discordPresence === false;
+  // "Waiting for Dota" repeats the hint above: only the other states are shown.
+  els.discordState.hidden = status.discordPresence === false || discordState.state === "idle";
   els.discordState.textContent =
     discordState.state === "rejected"
       ? tr("discordStates.rejected", discordState.error || "?")
