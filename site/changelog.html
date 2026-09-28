@@ -98,6 +98,16 @@
       <article data-doc="ru" lang="ru">
         <h1>Что нового</h1>
         <p class="doc-updated">Все версии Wardly. Установленное приложение обновляется само, когда Дота закрыта.</p>
+<section class="release" id="v0.10.1">
+<h2><a href="#v0.10.1">Версия 0.10.1</a></h2>
+<ul>
+  <li><strong>Запись матча не теряет секунды на необычных данных от Доты.</strong> Если Дота присылала имя предмета или ник не текстом, этот момент матча пропадал из записи, а по такому первому пакету Steam-аккаунт мог не привязаться. Теперь такие поля просто пропускаются.</li>
+  <li><strong>«Поделиться разбором»</strong> больше не отвечает внутренней ошибкой на слишком длинный номер матча.</li>
+  <li>Проверка приложения искажёнными данными GSI теперь ловит и ошибки записи матча, а не только ответы с ошибкой.</li>
+</ul>
+<p>Установщик пока без цифровой подписи: если Windows покажет «Windows защитил ваш компьютер», нажмите «Подробнее» → «Выполнить в любом случае». Установленная версия обновится сама, когда Дота будет закрыта.</p>
+<p class="release-link"><a href="https://github.com/makquella/dota-ai-coach/releases/tag/v0.10.1" rel="noopener">Скачать и подробности</a></p>
+</section>
 <section class="release" id="v0.10.0">
 <h2><a href="#v0.10.0">Версия 0.10.0</a></h2>
 <ul>
@@ -274,6 +284,11 @@
       <article data-doc="en" lang="en" hidden>
         <h1>What's new</h1>
         <p class="doc-updated">Every Wardly version. The installed app updates itself while Dota is closed.</p>
+<section class="release" id="v0.10.1">
+<h2><a href="#v0.10.1">Version 0.10.1</a></h2>
+<p>Match recording no longer loses a tick when Dota sends an item name or nickname that is not text (and the Steam account still links from such a first payload); the share route answers a too-long match id with 422 instead of a server error; the GSI fuzzer now fails on match-recording errors too.</p>
+<p class="release-link"><a href="https://github.com/makquella/dota-ai-coach/releases/tag/v0.10.1" rel="noopener">Download and details</a></p>
+</section>
 <section class="release" id="v0.10.0">
 <h2><a href="#v0.10.0">Version 0.10.0</a></h2>
 <p>The week in Discord: every Monday last week's matches, record, average score, heroes, best match, most repeated mistake and focus go to a channel of your own Discord server through a webhook you create (Settings → App → The week in Discord; sent from your computer straight to Discord, no nickname, Steam ID or match ids; «Send now» posts the last seven days); the heroes of the week on the Home card; fixed: problem reports no longer include the delete tokens of your shared links.</p>

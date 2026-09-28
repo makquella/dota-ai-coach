@@ -270,6 +270,20 @@ def _service(tmp_path, client):
     return PLAYER_SERVICE
 
 
+def test_a_broken_gsi_name_still_links_the_player(client, tmp_path):
+    """A list as `player.name` used to raise in the SQLite insert after the
+    account was marked as seen: it was never linked (found by the GSI fuzzer)."""
+    _service(tmp_path, FakeOpenDota(matches={}))
+    first, *rest = gsi_match_stream(win=False)
+    first["player"]["name"] = [1, 2]
+    assert client.post("/gsi", json=first).status_code == 200
+    status = client.get("/player").json()
+    assert status["linked"] and status["account_id"] == ME
+    for payload in rest[:5]:
+        client.post("/gsi", json=payload)
+    assert PLAYER_SERVICE.tracker.current()["hero"]
+
+
 def test_gsi_links_the_player_and_reviews_the_match(client, tmp_path):
     fake = FakeOpenDota(matches={MATCH_ID: opendota_match(good=False)})
     service = _service(tmp_path, fake)

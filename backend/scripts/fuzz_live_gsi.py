@@ -144,16 +144,46 @@ def mutate(payload: dict[str, Any], rng: random.Random) -> dict[str, Any]:
 
 
 def run(payloads: int, seed: int, data_dir: Path | None = None) -> list[dict[str, Any]]:
-    """Returns the failures (empty when every answer was below 500)."""
-    from fastapi.testclient import TestClient
+    """Returns the failures (empty when every answer was below 500 and the match
+    recording never raised: /gsi swallows those errors to keep the live path
+    up, so a broken payload would silently drop recorded ticks)."""
 
-    from app.main import app
     from app.player_api import PLAYER_SERVICE
 
     PLAYER_SERVICE.configure(data_dir or Path(tempfile.mkdtemp()), client=None, auto_start=False)
     rng = random.Random(seed)
     streams = base_streams()
     failures: list[dict[str, Any]] = []
+    observe = PLAYER_SERVICE.observe_gsi
+    current: list[dict[str, Any]] = [{}]
+
+    def checked_observe(payload: dict[str, Any]) -> None:
+        try:
+            observe(payload)
+        except Exception as error:
+            failures.append(
+                {"request": "match recording", "error": repr(error), "payload": current[0]}
+            )
+            raise
+
+    PLAYER_SERVICE.observe_gsi = checked_observe  # type: ignore[method-assign]
+    try:
+        return _send(payloads, rng, streams, failures, current)
+    finally:
+        del PLAYER_SERVICE.observe_gsi
+
+
+def _send(
+    payloads: int,
+    rng: random.Random,
+    streams: list[list[dict[str, Any]]],
+    failures: list[dict[str, Any]],
+    current: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    from fastapi.testclient import TestClient
+
+    from app.main import app
+
     with TestClient(app, raise_server_exceptions=False) as client:
         sent = 0
         while sent < payloads:
@@ -163,6 +193,7 @@ def run(payloads: int, seed: int, data_dir: Path | None = None) -> list[dict[str
                 if sent >= payloads:
                     break
                 body = mutate(payload, rng) if rng.random() < 0.7 else payload
+                current[0] = body
                 sent += 1
                 answers = [("POST /gsi", client.post("/gsi", json=body))]
                 for path in (

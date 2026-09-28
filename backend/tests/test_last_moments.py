@@ -30,6 +30,13 @@ def test_ready_savers_only_what_gsi_says_is_castable():
     assert "item_magic_wand" in ready_savers(items)
 
 
+def test_broken_item_names_are_skipped_not_raised():
+    """A list or dict as an item name used to raise inside the match recording
+    (found by scripts/fuzz_live_gsi.py): the whole GSI tick was lost."""
+    items = {"slot0": {**BKB, "name": ["item_black_king_bar"]}, "slot1": {"name": {}}, "slot2": BKB}
+    assert ready_savers(items) == ["item_black_king_bar"]
+
+
 def test_summary_of_the_last_seconds():
     buffer = LastSeconds()
     hero = {"alive": True, "health_percent": 90, "mana_percent": 50}

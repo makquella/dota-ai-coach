@@ -54,3 +54,10 @@ def test_coach_summary_only_when_asked_and_ready():
 def test_share_of_an_unknown_match(client, tmp_path):
     _reviewed(client, tmp_path)
     assert client.get("/player/matches/123/share").status_code == 404
+
+
+def test_a_match_id_beyond_sqlite_is_rejected_not_a_server_error(client):
+    """A 20-digit id overflowed the SQLite integer (HTTP 500) on this route only."""
+    answer = client.get("/player/matches/99999999999999999999/share")
+    assert answer.status_code == 422
+    assert client.get("/player/matches/123/share").status_code == 404
