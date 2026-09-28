@@ -508,6 +508,10 @@ _RU_PATTERNS: tuple[tuple[re.Pattern[str], str], ...] = (
     ),
     # live_tools.py: the hero's own abilities and their cooldowns.
     (
+        re.compile(r"^Use (?P<name>.+) now: a mute blocks items, not spells\.$"),
+        "Используйте {name} сейчас: немота мешает предметам, а не способностям.",
+    ),
+    (
         re.compile(r"^Use (?P<name>.+) now and walk out of the fight\.$"),
         "Используйте {name} сейчас и выходите из драки.",
     ),

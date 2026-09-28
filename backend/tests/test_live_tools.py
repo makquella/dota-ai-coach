@@ -294,3 +294,37 @@ def test_the_ability_texts_have_russian():
         "Blade Fury is back in 9 s: until then, disables and slows are harder to avoid.",
     ):
         assert translate_ru(text), text
+
+
+def test_only_abilities_that_can_be_pressed_as_a_save_count():
+    """A target is needed (Sunder, Phantom Strike) or it is passive (Dispersion)."""
+    cases = {
+        "Terrorblade": {"ability0": _ability("terrorblade_sunder")},
+        "Phantom Assassin": {"ability0": _ability("phantom_assassin_phantom_strike")},
+        "Spectre": {"ability0": _ability("spectre_dispersion")},
+    }
+    for hero, abilities in cases.items():
+        extra = _extra(FORCE, abilities=abilities)
+        assert hero_tools(hero, extra["abilities"])["ready"] == [], hero
+        assert low_hp_copy(extra, hero)[0] == "Use Force Staff now to get out, then reset HP."
+    blur = _extra(abilities={"ability0": _ability("phantom_assassin_blur")})
+    assert hero_tools("Phantom Assassin", blur["abilities"])["ready"] == [("Blur", "defensive")]
+
+
+def test_a_mute_stops_items_not_the_heros_spells():
+    muted = _extra(FORCE, abilities=BLADE_FURY, muted=True)
+    assert low_hp_copy(muted, "Juggernaut")[0] == "Use Blade Fury now and walk out of the fight."
+    assert disabled_copy(muted, "Juggernaut")[0] == (
+        "Use Blade Fury now: a mute blocks items, not spells."
+    )
+    # Muted with no spell ready: the items wait for the mute to end.
+    muted_items = _extra(FORCE, muted=True)
+    assert low_hp_copy(muted_items, "Juggernaut")[0] == (
+        "The moment the disable ends, use Force Staff."
+    )
+    # Silenced: the spell cannot be cast, the items can.
+    silenced = _extra(FORCE, abilities=BLADE_FURY, silenced=True)
+    assert low_hp_copy(silenced, "Juggernaut")[0] == (
+        "Use Force Staff now to get out, then reset HP."
+    )
+    assert translate_ru("Use Blade Fury now: a mute blocks items, not spells.")

@@ -69,8 +69,33 @@ DISPELS = (
     "item_disperser",
 )
 
-# Profile "defensive" abilities that cannot be pressed (passive in current patches).
-PASSIVE_SAFETY = {"mana shield"}
+# Profile abilities that can be pressed as a save right now: no target needed
+# (or a point / self cast) and not passive. Target-dependent skills (Sunder,
+# Phantom Strike, Tree Dance, Fire Remnant), passives (Dispersion, Mana Shield)
+# and toggles (Attribute Shift) never count, in live advice or as "unpressed".
+USABLE_SAFETY = {
+    "blink",
+    "blade fury",
+    "rage",
+    "shadow dance",
+    "dark pact",
+    "pounce",
+    "waveform",
+    "blur",
+    "gust",
+    "warcry",
+    "grappling claw",
+    "raptor dance",
+    "enrage",
+    "mischief",
+    "doppelganger",
+    "mirror image",
+    "song of the siren",
+    "concussive grenade",
+    "pierce the veil",
+    "flame guard",
+    "sleight of fist",
+}
 
 LOW_HP_ACTION_TYPES = {
     "retreat_reset",
@@ -107,7 +132,7 @@ def hero_tools(hero: Any, abilities: Any) -> dict[str, Any]:
     key = get_key_safety_abilities(hero)
     for kind in ("escape", "defensive"):
         for name in key[kind]:
-            if name.lower() in PASSIVE_SAFETY:
+            if name.lower() not in USABLE_SAFETY:
                 continue
             ability = find_ability(abilities, name)
             if not ability or not (_number(ability.get("level")) or 0) > 0:
@@ -175,12 +200,23 @@ def _items_blocked(extra: Mapping[str, Any]) -> bool:
     return any(extra.get(flag) is True for flag in ("stunned", "hexed", "muted"))
 
 
+def _abilities_blocked(extra: Mapping[str, Any]) -> bool:
+    """Stunned, hexed or silenced: no ability can be cast (a mute stops items only)."""
+    return any(extra.get(flag) is True for flag in ("stunned", "hexed", "silenced"))
+
+
+def _own_ready(extra: Mapping[str, Any], hero: Any) -> list[tuple[str, str]]:
+    if _abilities_blocked(extra):
+        return []
+    return hero_tools(hero, extra.get("abilities"))["ready"]
+
+
 def low_hp_copy(extra: Mapping[str, Any], hero: Any = None) -> tuple[str, str] | None:
     """(action, reason) naming the tool to press at low HP; None without one.
     Stunned, hexed or muted, no item can be pressed: the post-disable wording."""
-    if _items_blocked(extra):
+    if extra.get("stunned") is True or extra.get("hexed") is True:
         return disabled_copy(extra, hero)
-    own = hero_tools(hero, extra.get("abilities"))["ready"]
+    own = _own_ready(extra, hero)
     if own:
         name, kind = own[0]
         if kind == "escape":
@@ -192,6 +228,8 @@ def low_hp_copy(extra: Mapping[str, Any], hero: Any = None) -> tuple[str, str] |
             f"Use {name} now and walk out of the fight.",
             f"{name} is ready: it buys you the seconds to get away.",
         )
+    if _items_blocked(extra):  # muted: the items wait until it ends
+        return disabled_copy(extra, hero)
     # Items: only what the GSI items block shows (none → nothing claimed).
     ready = _ready(extra) or []
     escape = _first(ready, ESCAPES)
@@ -241,7 +279,20 @@ def disabled_copy(extra: Mapping[str, Any], hero: Any = None) -> tuple[str, str]
             f"Use {name} now: it removes the silence.",
             "A silence does not stop items: get rid of it before the next spell lands.",
         )
-    own = [name for name, _ in hero_tools(hero, extra.get("abilities"))["ready"]]
+    own = [name for name, _ in _own_ready(extra, hero)]
+    if (
+        own
+        and blocked
+        and extra.get("muted") is True
+        and not (extra.get("stunned") is True or extra.get("hexed") is True)
+    ):
+        # Muted only: items wait, the hero's spells do not.
+        return (
+            f"Use {own[0]} now: a mute blocks items, not spells.",
+            f"{own[0]} is ready: it buys you the seconds to get away.",
+        )
+    if not own:
+        own = [n for n, _ in hero_tools(hero, extra.get("abilities"))["ready"]]
     name = _label(tool) if tool else (own[0] if own else None)
     if name is None and _first(ready, ESCAPES):
         name = _label(_first(ready, ESCAPES) or "")
