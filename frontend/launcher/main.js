@@ -630,12 +630,7 @@ async function postWeekToDiscord(period) {
   const lang = uiLocale();
   let week;
   try {
-    const payload = await requestBackendJson(
-      `/player/week?lang=${lang}&until=${Math.floor(period.end / 1000)}`,
-      "GET",
-      undefined,
-      15000
-    );
+    const payload = await requestBackendJson(discordWeekly.weekQuery(period, lang), "GET", undefined, 15000);
     week = payload.week;
   } catch {
     return { ok: false, code: "backend_down" };
@@ -667,6 +662,10 @@ async function postWeekToDiscord(period) {
 }
 
 function noteDiscordWeekly(result, manual) {
+  if (discordWeekly.postOutcome(result).disconnect) {
+    // Deleted in Discord: stop posting; the panel says so and asks for a new link.
+    settings.set("discordWebhook", "");
+  }
   settings.set("discordWeeklyStatus", {
     at: new Date().toISOString(),
     ok: Boolean(result.ok),
@@ -694,7 +693,7 @@ async function checkDiscordWeekly() {
   discordWeeklyBusy = true;
   try {
     const result = await postWeekToDiscord(due);
-    if (result.ok || result.code === "webhook_gone") {
+    if (discordWeekly.postOutcome(result).done) {
       settings.set("discordWeeklyLast", due.end);
       noteDiscordWeekly(result, false);
       updateStatus();
@@ -742,7 +741,7 @@ async function discordWeeklyAction(request) {
     try {
       const now = Date.now();
       const result = await postWeekToDiscord({ start: now - 7 * 24 * 3600 * 1000, end: now });
-      if (result.ok || result.code === "webhook_gone") {
+      if (discordWeekly.postOutcome(result).done) {
         noteDiscordWeekly(result, true);
       }
       return { ...result, status: publicStatus() };

@@ -34,17 +34,19 @@ def weekly_summary(
     now: float,
     lang: str,
     focus: dict[str, Any] | None = None,
+    since: float | None = None,
 ) -> dict[str, Any] | None:
     """`matches`: newest first with their analysis (PlayerStore.matches_for_career).
-    None when no match was played in the last seven days."""
-    week = [m for m in matches if now - WEEK_SECONDS <= (m.get("start_time") or 0) < now]
+    The week is [since, now): `since` defaults to seven days before `now` (a
+    local calendar week can be an hour longer or shorter around a clock change).
+    None when no match was played in it."""
+    start = now - WEEK_SECONDS if since is None else since
+    # Nothing after the week's end, the focus plan included.
+    matches = [m for m in matches if (m.get("start_time") or 0) < now]
+    week = [m for m in matches if start <= (m.get("start_time") or 0)]
     if not week:
         return None
-    before = [
-        m
-        for m in matches
-        if now - 2 * WEEK_SECONDS <= (m.get("start_time") or 0) < now - WEEK_SECONDS
-    ]
+    before = [m for m in matches if start - WEEK_SECONDS <= (m.get("start_time") or 0) < start]
     decided = [m for m in week if m.get("win") is not None]
     wins = sum(1 for m in decided if m["win"])
     scores, previous = _scores(week), _scores(before)

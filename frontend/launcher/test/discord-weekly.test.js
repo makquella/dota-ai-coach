@@ -1,7 +1,7 @@
 const assert = require("node:assert/strict");
 const test = require("node:test");
 
-const { buildWeeklyMessage, dueWeek, parseWebhookUrl, webhookHint, weekStart } = require("../discord-weekly");
+const { buildWeeklyMessage, dueWeek, parseWebhookUrl, postOutcome, webhookHint, weekQuery, weekStart } = require("../discord-weekly");
 
 const TOKEN = "a".repeat(30) + "B-c_" + "d".repeat(34);
 const HOOK = `https://discord.com/api/webhooks/123456789012345678/${TOKEN}`;
@@ -77,4 +77,21 @@ test("the message: numbers and heroes, no match ids, no pings", () => {
   assert.deepEqual(en.embeds[0].fields, []);
   assert.equal(buildWeeklyMessage({ games: 0 }, { lang: "en", period }), null);
   assert.equal(buildWeeklyMessage(null, { lang: "en", period }), null);
+});
+
+test("the query names both ends of a local week, 169 hours long across a clock change", () => {
+  // Europe: clocks go back on Sunday 25 Oct 2026, so that week is an hour longer.
+  const period = { start: Date.UTC(2026, 9, 18, 22), end: Date.UTC(2026, 9, 25, 23) };
+  assert.equal(weekQuery(period, "ru"), "/player/week?lang=ru&since=1792360800&until=1792969200");
+  assert.equal((period.end - period.start) / 3600000, 169);
+  assert.match(weekQuery(period, "de"), /lang=en/);
+});
+
+test("a webhook deleted in Discord is disconnected, not posted to again", () => {
+  assert.deepEqual(postOutcome({ ok: false, code: "webhook_gone" }), { done: true, disconnect: true });
+  assert.deepEqual(postOutcome({ ok: true, sent: true }), { done: true, disconnect: false });
+  assert.deepEqual(postOutcome({ ok: true, sent: false, code: "no_matches" }), { done: true, disconnect: false });
+  for (const code of ["offline", "rate_limited", "backend_down", "http_500"]) {
+    assert.deepEqual(postOutcome({ ok: false, code }), { done: false, disconnect: false }, code);
+  }
 });

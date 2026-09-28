@@ -55,6 +55,21 @@ function dueWeek(now, lastWeekEnd) {
   return { start: weekStart(end - DAY_MS), end };
 }
 
+/** The backend path for a period: both ends, since a local week is not always 168 hours. */
+function weekQuery(period, lang) {
+  return `/player/week?lang=${lang === "ru" ? "ru" : "en"}&since=${Math.floor(period.start / 1000)}&until=${Math.floor(period.end / 1000)}`;
+}
+
+/**
+ * What a post's result means for the schedule: `done` — the week is handled
+ * (posted, nothing to post, or the webhook is gone); `disconnect` — Discord
+ * says the webhook no longer exists, so it is not tried again next Monday.
+ */
+function postOutcome(result) {
+  const gone = Boolean(result) && result.code === "webhook_gone";
+  return { done: Boolean(result && result.ok) || gone, disconnect: gone };
+}
+
 const TEXT = {
   ru: {
     title: (from, to) => `Неделя в Dota 2 · ${from} – ${to}`,
@@ -157,4 +172,4 @@ function buildWeeklyMessage(week, { lang, period }) {
   };
 }
 
-module.exports = { buildWeeklyMessage, dueWeek, parseWebhookUrl, webhookHint, weekStart };
+module.exports = { buildWeeklyMessage, dueWeek, parseWebhookUrl, postOutcome, webhookHint, weekQuery, weekStart };

@@ -945,7 +945,9 @@ function renderWeekly(state) {
     return;
   }
   if (!configured) {
-    els.weeklyHint.textContent = tr("weeklyHint");
+    // A webhook deleted in Discord was disconnected by the launcher: say why.
+    const gone = state && state.last && state.last.code === "webhook_gone";
+    els.weeklyHint.textContent = gone ? `${tr("weeklyErrors.webhook_gone")} ${tr("weeklyHint")}` : tr("weeklyHint");
     return;
   }
   const last = state.last;
