@@ -32,7 +32,9 @@ from app.peer_analysis import match_peers, peer_findings, player_roles
 from app.role_analysis import analyze_role
 
 # Bump when the rules change: stored reviews of an older version are rebuilt on read.
-ANALYSIS_VERSION = 13
+ANALYSIS_VERSION = 14
+# Dota replays run at 30 ticks a second.
+REPLAY_TICK_RATE = 30
 # Last seconds before deaths (last_moments.py, via death_review.py).
 SAVER_DEATHS = 2
 BURST_DEATHS = 3
@@ -232,6 +234,10 @@ def analyze_match(
         "draft": draft_block,
         "map": map_block,
         "death_review": death_block,
+        # «Watch this moment»: a match clock → a replay tick (live-recorded matches).
+        "replay": {"clock_offset": facts["clock_offset"], "tick_rate": REPLAY_TICK_RATE}
+        if isinstance(facts.get("clock_offset"), int)
+        else None,
         # Deaths with their last seconds recorded (live GSI): focus_goal REQUIRES it.
         "last_moments": (death_block or {}).get("with_last") or 0,
         "advice": (facts.get("advice_log") or [])[:MAX_ADVICE_SHOWN],

@@ -2785,6 +2785,16 @@ function registerIpc() {
     clipboard.writeText(GSI_LAUNCH_OPTION);
     return { ok: true, text: GSI_LAUNCH_OPTION };
   });
+  // «Watch this moment» in a review: only a replay tick number crosses the
+  // bridge, the command text is built here.
+  ipcMain.handle("launcher:copy-replay-tick", (_event, tick) => {
+    if (!Number.isInteger(tick) || tick < 0 || tick > 10_000_000) {
+      return { ok: false };
+    }
+    const text = `demo_gototick ${tick}`;
+    clipboard.writeText(text);
+    return { ok: true, text };
+  });
   ipcMain.handle("launcher:copy-logs", () => {
     clipboard.writeText(logs);
     return true;

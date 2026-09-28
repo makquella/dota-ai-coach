@@ -3658,3 +3658,16 @@ tr.row-link[data-result="loss"] > td:first-child {
 .page-actions {
   flex: none;
 }
+
+/* «Смотреть» next to a death or a key moment: copies the replay jump command. */
+.moment .watch-moment {
+  margin-left: auto;
+  align-self: flex-start;
+  opacity: 0.75;
+}
+
+.moment:hover .watch-moment,
+.moment .watch-moment:focus-visible,
+.moment .watch-moment.is-done {
+  opacity: 1;
+}

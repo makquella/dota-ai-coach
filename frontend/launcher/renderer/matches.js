@@ -173,6 +173,10 @@
       },
       mapSpotTitle: (count, place) => `${count} deaths · ${place}`,
       mapSpotLine: (place, count) => `Most often: ${place} — ${count}`,
+      watchMoment: "Watch",
+      watchMomentHint: "Copies a Dota console command. Open this match's replay in Dota, press \\ for the console and paste it: the replay jumps to about 10 s before this moment.",
+      watchCopied: "Copied: paste in the replay console",
+      watchFailed: "Could not copy",
       mapDeaths: "Deaths",
       killedBy: (hero) => `Killed by ${hero}`,
       mapSide: { own: "on your half", river: "in the river", enemy: "on the enemy half" },
@@ -611,6 +615,10 @@
       },
       mapSpotTitle: (count, place) => `${count} ${plural(count, "смерть", "смерти", "смертей")} · ${place}`,
       mapSpotLine: (place, count) => `Чаще всего: ${place} — ${count}`,
+      watchMoment: "Смотреть",
+      watchMomentHint: "Копирует команду консоли Доты. Откройте запись этого матча в Доте, нажмите \\ (консоль) и вставьте: запись перемотается примерно за 10 с до этого момента.",
+      watchCopied: "Скопировано: вставьте в консоль записи",
+      watchFailed: "Не удалось скопировать",
       mapDeaths: "Смерти",
       killedBy: (hero) => `Убил: ${hero}`,
       mapSide: { own: "на своей половине", river: "у реки", enemy: "на половине противника" },
@@ -2784,11 +2792,49 @@
             ? h("span", { class: "muted small death-warning", text: t("deathWarned", clock(death.warning.t), death.warning.action || "") })
             : null,
           deathLast(death)
-        )
+        ),
+        watchButton(analysis, death.t)
       );
     });
     const body = h("div", {}, summary, h("ol", { class: "moments deaths-list" }, rows));
     return card(t("deathsTitle", deaths.length), "skull", body);
+  }
+
+  // «Watch this moment»: copies the Dota console command that jumps the replay
+  // to REPLAY_LEAD seconds before it (analysis.replay: the recording's offset
+  // between game time and the match clock; live-recorded matches only).
+  const REPLAY_LEAD = 10;
+
+  function replayTick(analysis, at) {
+    const replay = analysis && analysis.replay;
+    if (!replay || !Number.isFinite(replay.clock_offset) || !Number.isFinite(at)) {
+      return null;
+    }
+    return Math.max(0, Math.round((at + replay.clock_offset - REPLAY_LEAD) * (replay.tick_rate || 30)));
+  }
+
+  function watchButton(analysis, at) {
+    const tick = replayTick(analysis, at);
+    if (tick === null || !api.copyReplayTick) {
+      return null;
+    }
+    const label = h("span", { text: t("watchMoment") });
+    return h(
+      "button",
+      {
+        type: "button",
+        class: "btn btn-ghost btn-sm watch-moment no-print",
+        title: t("watchMomentHint"),
+        onclick: async (event) => {
+          const button = event.currentTarget;
+          const result = await api.copyReplayTick(tick);
+          label.textContent = result && result.ok ? t("watchCopied") : t("watchFailed");
+          button.classList.toggle("is-done", Boolean(result && result.ok));
+        }
+      },
+      icon("play"),
+      label
+    );
   }
 
   // The last 20 s before a death (live GSI, app/last_moments.py): an HP line,
@@ -2866,7 +2912,8 @@
         { class: `moment moment-${moment.type}` },
         h("span", { class: "moment-time num", text: clock(moment.t) }),
         h("span", { class: "moment-icon" }, icon(iconName)),
-        h("span", { class: "moment-text" }, h("span", { text }), sub ? h("span", { class: "muted", text: ` · ${sub}` }) : null)
+        h("span", { class: "moment-text" }, h("span", { text }), sub ? h("span", { class: "muted", text: ` · ${sub}` }) : null),
+        watchButton(analysis, moment.t)
       );
     });
     return card(t("momentsTitle"), "clock", h("ol", { class: "moments" }, items));

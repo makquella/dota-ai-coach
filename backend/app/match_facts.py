@@ -42,6 +42,8 @@ def empty_facts(match_id: int) -> dict[str, Any]:
     return {
         "match_id": int(match_id),
         "sources": [],
+        # game_time - clock_time of the recording (GSI only): replay ticks.
+        "clock_offset": None,
         "parsed": False,
         "hero": None,
         "hero_id": None,
@@ -282,6 +284,7 @@ def facts_from_timeline(timeline: dict[str, Any]) -> dict[str, Any]:
             "hero": timeline.get("hero"),
             "hero_id": _int(timeline.get("hero_id")),
             "duration": duration,
+            "clock_offset": _int(timeline.get("clock_offset")),
             "win": timeline.get("win"),
             "is_radiant": (str(timeline.get("team") or "").lower() == "radiant")
             if timeline.get("team")
