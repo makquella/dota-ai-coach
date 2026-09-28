@@ -7,6 +7,9 @@ Three short lines built from data the app already has, nothing guessed:
   their own average on it when they have played it;
 - the key item most players buy on this hero and when most of them finish it
   (OpenDota public matches, cached), with the win rate at that timing;
+- the enemy heroes the player loses to most (lineups of their own reviewed
+  OpenDota matches, met 3+ times: on this hero when it has such records, else
+  on any hero), so they know what to watch for once they see the enemy draft;
 - the mistake that keeps coming back in their reviews (on this hero if it has
   enough reviewed games, else overall).
 
@@ -23,7 +26,7 @@ from statistics import mean
 from typing import Any
 
 from app.analysis_texts import clock
-from app.career_analysis import analyze_career
+from app.career_analysis import analyze_career, opponents
 from app.hero_meta import popular_build, timing_verdict
 from app.post_match_analysis import TARGETS
 from app.schemas import is_supported_hero
@@ -33,6 +36,7 @@ SHOW_UNTIL_CLOCK = 90
 MIN_HERO_REVIEWS_FOR_REMINDER = 3
 MIN_RECORD_GAMES = 3
 RECORD_GAMES = 20
+HARD_OPPONENTS_SHOWN = 2
 
 TEXT = {
     "ru": {
@@ -43,6 +47,7 @@ TEXT = {
         "item_plain": "Ключевой предмет: {item}",
         "reminder": "Частая ошибка: {title}",
         "focus": "Ваш фокус: {title}",
+        "hard": "Тяжело против: {heroes}",
     },
     "en": {
         "title": "Plan for this game",
@@ -52,6 +57,7 @@ TEXT = {
         "item_plain": "Key item: {item}",
         "reminder": "Common mistake: {title}",
         "focus": "Your focus: {title}",
+        "hard": "Hard matchups: {heroes}",
     },
 }
 
@@ -143,6 +149,11 @@ def build_game_plan(
     elif item:
         lines.append(text["item_plain"].format(item=item["name"]))
 
+    hard = _hard_opponents(record_rows, all_recent)
+    if hard:
+        heroes = ", ".join(f"{row['hero']} {row['wins']}–{row['losses']}" for row in hard)
+        lines.append(text["hard"].format(heroes=heroes))
+
     if focus:
         # The problem the player chose to work on beats the most frequent one.
         lines.append(text["focus"].format(title=_sentence_tail(focus)))
@@ -159,6 +170,18 @@ def build_game_plan(
     if not lines:
         return None
     return _plan(text, hero, role, lines, record_rows)
+
+
+def _hard_opponents(
+    on_hero: list[dict[str, Any]], all_recent: list[dict[str, Any]]
+) -> list[dict[str, Any]]:
+    """The enemy heroes with the worst record (met 3+ times, under 50 % wins):
+    on this hero when it has such records, else on any hero."""
+    for rows in (on_hero, all_recent):
+        found = (opponents([m for m in rows if m.get("analysis")]) or {}).get("hard") or []
+        if found:
+            return found[:HARD_OPPONENTS_SHOWN]
+    return []
 
 
 def _plan(text, hero, role, lines, history) -> dict[str, Any]:

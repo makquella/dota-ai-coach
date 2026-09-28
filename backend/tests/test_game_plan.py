@@ -139,6 +139,28 @@ def test_recurring_problems_keep_one_order_across_processes():
     assert outputs.pop().startswith("['lh10_low', 'lane_eff_low', 'lane_deaths'")
 
 
+def _vs(win: bool, enemies: list[int]) -> dict:
+    return {"win": win, "analysis": {"role": "core", "enemy_heroes": enemies, "improvements": []}}
+
+
+def test_the_plan_names_the_enemy_heroes_the_player_loses_to():
+    # Lina (25) 0–3, Axe (2) 1–3, Pudge (14) 2–3: the two worst are shown.
+    on_hero = (
+        [_vs(False, [2, 25, 14])] * 3 + [_vs(True, [2, 14])] + [_vs(True, [14]), _vs(True, [8])]
+    )
+    plan = build_game_plan(hero="Juggernaut", history=on_hero, all_recent=[], meta=None, lang="ru")
+    assert "Тяжело против: Lina 0–3, Axe 1–3" in plan["lines"]
+    # Too few meetings on this hero: the record over every hero is used.
+    everywhere = [_vs(False, [2])] * 3
+    plan = build_game_plan(hero="Lina", history=[], all_recent=everywhere, meta=None, lang="en")
+    assert "Hard matchups: Axe 0–3" in plan["lines"]
+    # No lineups at all (GSI-only matches): no line.
+    plan = build_game_plan(
+        hero="Juggernaut", history=[_vs(False, [])] * 4, all_recent=[], meta=None, lang="en"
+    )
+    assert not any(line.startswith("Hard matchups") for line in plan["lines"])
+
+
 def test_the_record_skips_matches_without_a_result():
     rows = [{"win": None}] * 5 + [{"win": True}] * 15 + [{"win": False}] * 10
     plan = build_game_plan(
