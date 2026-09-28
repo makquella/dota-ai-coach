@@ -404,7 +404,8 @@ def _game_plan_for_overlay(response: dict[str, object], lang: str) -> dict[str, 
 
 def _death_screen_for_overlay(response: dict[str, object], lang: str) -> dict[str, object] | None:
     """While the player is dead (live GSI): how it happened and what to do now."""
-    if response.get("demo_mode"):
+    # A frozen "dead" snapshot must not hide the lost-connection status.
+    if response.get("demo_mode") or response.get("status") in {"waiting_for_gsi", "stale_gsi"}:
         return None
     current = get_current_state()
     state = current.get("state") if isinstance(current.get("state"), dict) else {}

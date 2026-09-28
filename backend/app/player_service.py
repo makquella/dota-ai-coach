@@ -390,7 +390,7 @@ class PlayerService:
             if next_item_for_hero
             else None
         )
-        return build_death_screen(
+        card = build_death_screen(
             death=death,
             place=_death_place(death),
             respawn=extra.get("respawn_seconds"),
@@ -400,6 +400,10 @@ class PlayerService:
             next_item=item,
             lang=lang,
         )
+        if card is not None:
+            # Stable per death (the lines change with the gold): the overlay reads it once.
+            card["id"] = f"{death.get('match_id') or ''}:{death['t']}"
+        return card
 
     def check_stale(self) -> None:
         self.tracker.check_stale()

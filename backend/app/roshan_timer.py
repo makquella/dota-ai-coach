@@ -71,6 +71,8 @@ class RoshanTimer:
     def reset(self) -> None:
         self.killed_at: int | None = None  # match clock of the last Roshan kill
         self.aegis_at: int | None = None  # match clock the player got the Aegis
+        self._picked_up_at: int | None = None  # match clock of the last Aegis pickup event
+        self._seen_without_aegis = False  # the hero was seen without it this match
         self._seen: set[tuple[str, int]] = set()
 
     def observe(self, extra: dict[str, Any]) -> None:
@@ -89,11 +91,23 @@ class RoshanTimer:
             self._seen.add((kind, at))
             if kind == "roshan_killed":
                 self.killed_at = at - offset
+            else:
+                self._picked_up_at = at - offset
         has_aegis = extra.get("has_aegis")
         if has_aegis is True and self.aegis_at is None and clock is not None:
-            self.aegis_at = clock
+            self.aegis_at = self._pickup_clock(clock)
         elif has_aegis is False:
             self.aegis_at = None
+            self._seen_without_aegis = True
+
+    def _pickup_clock(self, clock: int) -> int | None:
+        """When the player got the Aegis: the pickup event when it fits, else now if
+        the hero was seen without it just before; unknown (a restart mid-match with
+        no event) → no expiry is claimed."""
+        pickup = self._picked_up_at
+        if pickup is not None and 0 <= clock - pickup <= _settings()["aegis"]:
+            return pickup
+        return clock if self._seen_without_aegis else None
 
     def hint(self, clock: int | None, lang: str) -> dict[str, Any] | None:
         if clock is None:

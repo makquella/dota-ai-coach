@@ -200,6 +200,7 @@ class MatchTracker:
             death = self._current["deaths"][-1]
             last = death.get("last") or {}
             return {
+                "match_id": self._current.get("match_id"),
                 "t": death.get("t"),
                 "usable": list(last.get("usable") or []),
                 "burst_s": last.get("burst_s"),

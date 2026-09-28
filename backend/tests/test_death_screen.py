@@ -64,3 +64,38 @@ def test_the_live_card_while_dead(client):
     card = body["death_screen"]
     assert card["title"] == "Возрождение через 20 с"
     assert "Black King Bar был готов и не нажат" in card["lines"][0]
+
+
+def _dead_client(client):
+    stream = gsi_match_stream(death_minutes=(18,), step_seconds=1, minutes=19)[:-1]
+    last = None
+    for payload in stream:
+        if 0 < 18 * 60 - payload["map"]["clock_time"] <= 6:
+            payload["items"]["slot5"] = dict(BKB)
+        if payload["map"]["clock_time"] > 18 * 60 + 5:
+            break
+        client.post("/gsi", json=payload)
+        last = payload
+    return last
+
+
+def test_the_card_id_stays_while_the_gold_changes(client):
+    last = _dead_client(client)
+    first = client.get("/overlay/recommendation?lang=ru").json()["death_screen"]
+    last["hero"]["gold"] = last["player"]["gold"] = (last["player"].get("gold") or 0) + 250
+    last["player"]["gold_unreliable"] = (last["player"].get("gold_unreliable") or 0) + 250
+    last["map"]["clock_time"] += 1
+    client.post("/gsi", json=last)
+    second = client.get("/overlay/recommendation?lang=ru").json()["death_screen"]
+    assert first["id"] and second["id"] == first["id"]
+
+
+def test_no_death_card_when_gsi_is_stale(client, monkeypatch):
+    from app import main
+
+    _dead_client(client)
+    assert client.get("/overlay/recommendation?lang=ru").json().get("death_screen")
+    monkeypatch.setattr(main, "_seconds_since_timestamp", lambda _timestamp: 60.0)
+    body = client.get("/overlay/recommendation?lang=ru").json()
+    assert body["status"] == "stale_gsi"
+    assert "death_screen" not in body

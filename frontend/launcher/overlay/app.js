@@ -306,8 +306,8 @@ function showDeathScreen(data) {
   reasonEl.textContent = rest.join("\n");
   renderStatusRow(data);
   reveal();
-  // Read once per death when the voice reads every advice.
-  const key = `death|${data.match_death_count || ""}|${first}`;
+  // Read once per death when the voice reads every advice (the id stays while the gold changes).
+  const key = `death|${card.id || data.match_death_count || ""}`;
   if (!speaker || spokenDeaths.has(key)) {
     return;
   }

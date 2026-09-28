@@ -45,6 +45,7 @@ def test_a_kill_opens_the_respawn_window_eight_to_eleven_minutes_later():
 
 def test_the_aegis_warns_a_minute_before_it_expires():
     timer = RoshanTimer()
+    timer.observe(_extra(20 * 60 - 1, aegis=False))
     timer.observe(_extra(20 * 60, aegis=True))
     assert timer.hint(23 * 60 + 59, "en") is None
     hint = timer.hint(24 * 60, "ru")
@@ -52,6 +53,20 @@ def test_the_aegis_warns_a_minute_before_it_expires():
     # Used (a death) or expired: gone.
     timer.observe(_extra(24 * 60 + 10, aegis=False))
     assert timer.hint(24 * 60 + 20, "en") is None
+
+
+def test_the_aegis_expiry_follows_the_pickup_event_after_a_restart():
+    # The backend starts at 22:00 while the hero already holds an Aegis taken at 20:00.
+    pickup = {"type": "aegis_picked_up", "game_time": 20 * 60 + OFFSET}
+    timer = RoshanTimer()
+    timer.observe(_extra(22 * 60, [pickup], aegis=True))
+    assert timer.aegis_at == 20 * 60
+    assert timer.hint(24 * 60, "en")["title"] == "Aegis expires in 60 s"
+    # No pickup event and never seen without it: the expiry is unknown, no warning.
+    timer = RoshanTimer()
+    timer.observe(_extra(22 * 60, aegis=True))
+    assert timer.aegis_at is None
+    assert timer.hint(26 * 60, "en") is None
 
 
 def test_no_kill_event_no_roshan_hint():
