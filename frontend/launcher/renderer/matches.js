@@ -260,6 +260,10 @@
       shareExpires: (date) => `Works until ${date}.`,
       shareWithCoach: "With the AI coach's summary.",
       shareFailed: (code) => `Could not do it${code ? ` (${code})` : ""}: check the internet and try again.`,
+      shareTitleProgress: "Share your progress",
+      shareWhatProgress: "A page with your progress over all heroes: matches, win rate, averages, the last 10 against the 10 before, top heroes, what goes well and what to work on. Anyone with the link can open it.",
+      shareNotProgress: "Not published: match numbers, your Steam ID, nickname, the other players and your questions to the coach. The link works for 90 days, and you can delete it at any time.",
+      shareLinkProgress: "Link to your progress",
       opponentsTitle: "Enemy heroes",
       opponentsNote: (n, min) => `Your record against each enemy hero in ${n} matches with a known lineup (heroes met ${min}+ times).`,
       opponentsHard: "Hardest to play against",
@@ -640,6 +644,10 @@
       shareExpires: (date) => `Работает до ${date}.`,
       shareWithCoach: "С выводом ИИ-тренера.",
       shareFailed: (code) => `Не получилось${code ? ` (${code})` : ""}: проверьте интернет и попробуйте ещё раз.`,
+      shareTitleProgress: "Поделиться прогрессом",
+      shareWhatProgress: "Страница с вашим прогрессом по всем героям: матчи, процент побед, средние цифры, последние 10 матчей против 10 до них, главные герои, что получается и над чем работать. Открыть её сможет любой, у кого есть ссылка.",
+      shareNotProgress: "Не публикуется: номера матчей, ваш Steam ID, ник, другие игроки и ваши вопросы тренеру. Ссылка работает 90 дней, её можно удалить в любой момент.",
+      shareLinkProgress: "Ссылка на прогресс",
       opponentsTitle: "Вражеские герои",
       opponentsNote: (n, min) => `Ваш счёт против каждого вражеского героя в ${n} матчах с известным составом (герои, встреченные ${min}+ раза).`,
       opponentsHard: "Против них сложнее всего",
@@ -1415,7 +1423,8 @@
 
   // Saves the current view as a PDF (light print theme, see @media print).
   // «Поделиться разбором»: a link to the public part of the review (main.js createShare).
-  function shareButton(panel, detail) {
+  // `kind` "progress": the same panel for the Progress page (main.js keys it "progress").
+  function shareButton(panel, detail, kind = "match") {
     const button = h("button", { class: "btn btn-ghost btn-sm", type: "button", "aria-expanded": "false" }, icon("share-2"), h("span", { text: t("shareButton") }));
     button.addEventListener("click", async () => {
       const open = panel.hidden;
@@ -1423,28 +1432,33 @@
       button.setAttribute("aria-expanded", String(open));
       if (open) {
         panel.replaceChildren(skeletonRows(2));
-        const status = await api.shareStatus(String(detail.match_id));
-        renderSharePanel(panel, detail, status && status.ok ? status.share : null, "");
+        const status = await api.shareStatus(shareKey(detail, kind));
+        renderSharePanel(panel, detail, status && status.ok ? status.share : null, "", kind);
       }
     });
     return button;
   }
 
-  function renderSharePanel(panel, detail, share, message) {
-    const matchId = String(detail.match_id);
+  function shareKey(detail, kind) {
+    return kind === "progress" ? "progress" : String(detail.match_id);
+  }
+
+  function renderSharePanel(panel, detail, share, message, kind = "match") {
+    const matchId = shareKey(detail, kind);
+    const text = (key, ...args) => t(kind === "progress" && TEXT.en[`${key}Progress`] ? `${key}Progress` : key, ...args);
     const coachReady = detail.coach && detail.coach.state === "ready";
     const note = h("p", { class: "muted small share-note", role: "status", text: message || "" });
     let body;
     if (share) {
       const expires = new Date(share.expiresAt).toLocaleDateString(state.locale === "ru" ? "ru-RU" : "en-GB");
-      const link = h("input", { class: "input share-link", type: "text", readonly: true, value: share.url, "aria-label": t("shareLink") });
+      const link = h("input", { class: "input share-link", type: "text", readonly: true, value: share.url, "aria-label": text("shareLink") });
       link.addEventListener("focus", () => link.select());
       body = h(
         "div",
         { class: "share-body" },
         h("div", { class: "link-form" }, link, h("button", { class: "btn btn-primary", type: "button", onclick: async () => {
           const copied = await api.shareCopy(matchId);
-          renderSharePanel(panel, detail, share, copied ? t("shareCopied") : "");
+          renderSharePanel(panel, detail, share, copied ? t("shareCopied") : "", kind);
         } }, icon("copy"), h("span", { text: t("shareCopy") }))),
         h("p", { class: "muted small", text: t("shareExpires", expires) + (share.withCoach ? ` ${t("shareWithCoach")}` : "") }),
         h(
@@ -1454,7 +1468,7 @@
           h("button", { class: "btn btn-ghost btn-sm", type: "button", onclick: async (event) => {
             event.currentTarget.disabled = true;
             const result = await api.shareDelete(matchId);
-            renderSharePanel(panel, detail, result && result.ok ? null : share, result && result.ok ? t("shareDeleted") : t("shareFailed", result?.code || ""));
+            renderSharePanel(panel, detail, result && result.ok ? null : share, result && result.ok ? t("shareDeleted") : t("shareFailed", result?.code || ""), kind);
           } }, icon("trash-2"), h("span", { text: t("shareDelete") }))
         )
       );
@@ -1465,19 +1479,19 @@
         create.disabled = true;
         note.textContent = t("shareCreating");
         const result = await api.shareCreate(matchId, Boolean(coach && coach.checked));
-        renderSharePanel(panel, detail, result && result.ok ? result.share : null, result && result.ok ? "" : t("shareFailed", result?.code || ""));
+        renderSharePanel(panel, detail, result && result.ok ? result.share : null, result && result.ok ? "" : t("shareFailed", result?.code || ""), kind);
       });
       body = h(
         "div",
         { class: "share-body" },
-        h("p", { text: t("shareWhat") }),
-        h("p", { class: "muted small", text: t("shareNot") }),
+        h("p", { text: text("shareWhat") }),
+        h("p", { class: "muted small", text: text("shareNot") }),
         coach ? h("label", { class: "share-check" }, coach, h("span", { text: t("shareCoach") })) : null,
         h("div", { class: "toolbar-actions" }, create)
       );
     }
     panel.replaceChildren(
-      h("header", { class: "card-head" }, icon("share-2"), h("h2", { text: t("shareTitle") })),
+      h("header", { class: "card-head" }, icon("share-2"), h("h2", { text: text("shareTitle") })),
       h("div", { class: "card-body" }, body, note)
     );
     hydrate(panel);
@@ -3467,13 +3481,22 @@
         )
       : null;
 
+    const sharePanel = h("section", { class: "card share-panel no-print", hidden: true });
     root.replaceChildren(
       h(
         "div",
         { class: "review-toolbar" },
         h("p", { class: "muted small progress-note", text: t("analyzed", career.analyzed, career.matches) }),
-        h("span", { class: "toolbar-actions no-print" }, careerHeroSelect(career), pdfButton("career"))
+        h(
+          "span",
+          { class: "toolbar-actions no-print" },
+          careerHeroSelect(career),
+          // Progress over all heroes only: that is what the page shows.
+          state.careerHero === null && career.analyzed ? shareButton(sharePanel, career, "progress") : "",
+          pdfButton("career")
+        )
       ),
+      sharePanel,
       tiles,
       coachCard(career.coach, "career") || "",
       // Asking needs at least one review (the backend answers not_enough without one).

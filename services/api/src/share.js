@@ -51,6 +51,10 @@ export function validateShare(body) {
   if (!/^[a-z0-9-]{8,64}$/.test(installId)) {
     return { ok: false, code: "bad_install_id", status: 400 };
   }
+  if (body.progress !== undefined) {
+    const progress = validateProgress(body.progress);
+    return progress ? { ok: true, share: { installId, version: text(body.version, 32), review: progress } } : { ok: false, code: "bad_progress", status: 400 };
+  }
   const input = body.review;
   if (!input || typeof input !== "object") {
     return { ok: false, code: "bad_review", status: 400 };
@@ -92,6 +96,76 @@ export function validateShare(body) {
     return { ok: false, code: "bad_review", status: 400 };
   }
   return { ok: true, share: { installId, version: text(body.version, 32), review } };
+}
+
+const TREND_KEYS = ["score", "winrate", "gpm", "lh_10", "deaths"];
+const AVERAGE_KEYS = ["kda", "gpm", "xpm", "lh_10", "deaths", "score"];
+
+function number(value, min, max) {
+  return typeof value === "number" && Number.isFinite(value) && value >= min && value <= max ? Math.round(value * 10) / 10 : null;
+}
+
+function isoDay(value) {
+  return /^\d{4}-\d{2}-\d{2}$/.test(String(value || "")) ? value : null;
+}
+
+/** «Поделиться прогрессом» (backend/app/share_progress.py): a new object from known fields. */
+export function validateProgress(input) {
+  if (!input || typeof input !== "object") {
+    return null;
+  }
+  const analyzed = int(input.analyzed, 1, 10_000);
+  if (analyzed === null) {
+    return null;
+  }
+  const averages = {};
+  for (const key of AVERAGE_KEYS) {
+    averages[key] = number(input.averages?.[key], 0, 100_000);
+  }
+  const recurring = (items, max, drill) =>
+    list(items, max).map((r) => ({
+      title: text(r.title, 120),
+      count: int(r.count, 0, 1000),
+      of: int(r.of, 0, 1000),
+      ...(drill ? { drill: text(r.drill, 300) || null } : {})
+    }));
+  const trendInput = list(input.trend, TREND_KEYS.length);
+  return {
+    kind: "progress",
+    lang: input.lang === "ru" ? "ru" : "en",
+    matches: int(input.matches, 0, 10_000),
+    analyzed,
+    wins: int(input.wins, 0, 10_000),
+    losses: int(input.losses, 0, 10_000),
+    winrate: int(input.winrate, 0, 100),
+    rank: text(input.rank, 30) || null,
+    period:
+      input.period && typeof input.period === "object"
+        ? { from: isoDay(input.period.from), to: isoDay(input.period.to) }
+        : null,
+    averages,
+    trend: TREND_KEYS.map((key) => trendInput.find((t) => t.key === key))
+      .filter(Boolean)
+      .map((t) => ({
+        key: t.key,
+        recent: number(t.recent, 0, 100_000),
+        previous: number(t.previous, 0, 100_000),
+        better: typeof t.better === "boolean" ? t.better : null
+      })),
+    heroes: list(input.heroes, 5).map((h) => ({
+      hero: text(h.hero, 40),
+      hero_key: /^[a-z0-9_]{1,40}$/.test(String(h.hero_key || "")) ? h.hero_key : null,
+      matches: int(h.matches, 0, 10_000),
+      winrate: int(h.winrate, 0, 100)
+    })),
+    strengths: recurring(input.strengths, 3, false),
+    problems: recurring(input.problems, 3, true),
+    focus:
+      input.focus && typeof input.focus === "object" && text(input.focus.title, 120)
+        ? { title: text(input.focus.title, 120), met: int(input.focus.met, 0, 1000) ?? 0, total: int(input.focus.total, 0, 1000) ?? 0 }
+        : null,
+    coach: text(input.coach, 800) || null
+  };
 }
 
 // --- the page -----------------------------------------------------------------------
@@ -189,7 +263,7 @@ h2{font-size:16px;margin:0 0 12px}.row{display:grid;grid-template-columns:120px 
 .row b{text-align:right;font-variant-numeric:tabular-nums}ul{list-style:none;margin:0;padding:0}li{margin:0 0 14px}li:last-child{margin:0}
 li b{display:block}li p{margin:4px 0 0;color:var(--muted)}.drill{margin-top:8px;padding:8px 12px;border-radius:8px;background:rgba(255,255,255,.04);color:var(--muted);font-size:14px}
 .coach{white-space:pre-line}.foot{color:var(--muted);font-size:14px}.cta{display:inline-block;margin-top:12px;padding:10px 18px;border-radius:10px;background:var(--accent);color:#17120a;font-weight:600;text-decoration:none}
-.small{color:var(--faint);font-size:13px;margin-top:12px}@media (max-width:520px){.head{flex-wrap:wrap}.score{margin-left:0;text-align:left}.row{grid-template-columns:96px 1fr 28px}}`;
+.small{color:var(--faint);font-size:13px;margin-top:12px}.trend{grid-template-columns:1fr auto}.heroes li{display:flex;gap:12px;align-items:center}.heroes img{width:64px;height:36px;border-radius:6px;object-fit:cover;background:#222}@media (max-width:520px){.head{flex-wrap:wrap}.score{margin-left:0;text-align:left}.row{grid-template-columns:96px 1fr 28px}}`;
 
 function page({ lang, title, description, image, url, body }) {
   return `<!doctype html>
@@ -217,8 +291,124 @@ ${body}
 </html>`;
 }
 
+const PROGRESS_TEXTS = {
+  ru: {
+    heading: "Прогресс в Dota 2",
+    matches: (p) => `${p.matches ?? p.analyzed} матчей, из них разобрано ${p.analyzed}`,
+    period: (from, to) => `${from} — ${to}`,
+    record: "Победы / поражения",
+    winrate: "Процент побед",
+    score: "Средняя оценка",
+    kda: "KDA",
+    gpm: "Золото / опыт в мин",
+    lh10: "Добивания к 10:00",
+    deaths: "Смертей за игру",
+    trend: "Последние 10 матчей против 10 до них",
+    trendKeys: { score: "Оценка", winrate: "Победы, %", gpm: "Золото в мин", lh_10: "Добивания к 10:00", deaths: "Смерти" },
+    heroes: "Герои",
+    heroGames: (h) => `${h.matches} матчей · ${h.winrate ?? "—"}% побед`,
+    strengths: "Что получается",
+    problems: "Над чем работать",
+    inMatches: (r) => (r.count !== null && r.of !== null ? `В ${r.count} из ${r.of} разобранных матчей` : ""),
+    drill: "Упражнение",
+    focus: "Фокус",
+    focusResult: (f) => `Выполнен в ${f.met} из ${f.total} матчей`,
+    coach: "Вывод ИИ-тренера",
+    title: (p) => `Прогресс в Dota 2 · ${p.matches ?? p.analyzed} матчей${p.winrate !== null ? ` · ${p.winrate}% побед` : ""}`,
+    description: "Прогресс игрока Dota 2 в Wardly: цифры, герои, что получается и над чем работать."
+  },
+  en: {
+    heading: "Dota 2 progress",
+    matches: (p) => `${p.matches ?? p.analyzed} matches, ${p.analyzed} of them reviewed`,
+    period: (from, to) => `${from} — ${to}`,
+    record: "Wins / losses",
+    winrate: "Win rate",
+    score: "Average score",
+    kda: "KDA",
+    gpm: "GPM / XPM",
+    lh10: "Last hits at 10:00",
+    deaths: "Deaths a game",
+    trend: "Last 10 matches against the 10 before",
+    trendKeys: { score: "Score", winrate: "Wins, %", gpm: "GPM", lh_10: "Last hits at 10:00", deaths: "Deaths" },
+    heroes: "Heroes",
+    heroGames: (h) => `${h.matches} matches · ${h.winrate ?? "—"}% wins`,
+    strengths: "What goes well",
+    problems: "What to work on",
+    inMatches: (r) => (r.count !== null && r.of !== null ? `In ${r.count} of ${r.of} reviewed matches` : ""),
+    drill: "Drill",
+    focus: "Focus",
+    focusResult: (f) => `Met in ${f.met} of ${f.total} matches`,
+    coach: "AI coach summary",
+    title: (p) => `Dota 2 progress · ${p.matches ?? p.analyzed} matches${p.winrate !== null ? ` · ${p.winrate}% wins` : ""}`,
+    description: "A Dota 2 player's progress in Wardly: numbers, heroes, what goes well and what to work on."
+  }
+};
+
+function renderProgressPage(p, { url, expiresAt }) {
+  const t = PROGRESS_TEXTS[p.lang] || PROGRESS_TEXTS.en;
+  const base = TEXTS[p.lang] || TEXTS.en;
+  const top = p.heroes.find((h) => h.hero_key);
+  const image = top ? `${PORTRAIT}/${top.hero_key}.png` : `${SITE_URL}/assets/og.jpg`;
+  const a = p.averages || {};
+  const period = p.period && p.period.from && p.period.to ? t.period(day(p.period.from, p.lang), day(p.period.to, p.lang)) : "";
+  const meta = [escapeHtml(t.matches(p)), escapeHtml(p.rank || ""), escapeHtml(period)].filter(Boolean).join(" · ");
+  const trend = p.trend.length
+    ? `<section class="card"><h2>${t.trend}</h2>${p.trend
+        .map((x) => {
+          const tone = x.better === true ? "var(--good)" : x.better === false ? "var(--bad)" : "var(--faint)";
+          return `<div class="row trend"><span>${escapeHtml(t.trendKeys[x.key] || x.key)}</span><span class="meta">${num(x.previous)} → <b style="color:${tone}">${num(x.recent)}</b></span></div>`;
+        })
+        .join("")}</section>`
+    : "";
+  const heroes = p.heroes.length
+    ? `<section class="card"><h2>${t.heroes}</h2><ul class="heroes">${p.heroes
+        .map(
+          (h) =>
+            `<li>${h.hero_key ? `<img src="${PORTRAIT}/${escapeHtml(h.hero_key)}.png" alt="" />` : ""}<div><b>${escapeHtml(h.hero)}</b><p>${escapeHtml(t.heroGames(h))}</p></div></li>`
+        )
+        .join("")}</ul></section>`
+    : "";
+  const recurring = (title, items) =>
+    items.length
+      ? `<section class="card"><h2>${title}</h2><ul>${items
+          .map(
+            (r) =>
+              `<li><b>${escapeHtml(r.title)}</b><p>${escapeHtml(t.inMatches(r))}</p>${r.drill ? `<div class="drill">${t.drill}: ${escapeHtml(r.drill)}</div>` : ""}</li>`
+          )
+          .join("")}</ul></section>`
+      : "";
+  const body = `
+<section class="card">
+  <div class="head">
+    <img src="${escapeHtml(image)}" alt="" />
+    <div><h1>${t.heading}</h1><div class="meta">${meta}</div></div>
+    ${p.winrate !== null ? `<div class="score"><b>${num(p.winrate)}%</b><span>${t.winrate}</span></div>` : ""}
+  </div>
+  <div class="stats">
+    <div><p>${t.record}</p><b>${num(p.wins)} / ${num(p.losses)}</b></div>
+    <div><p>${t.score}</p><b>${num(a.score)}</b></div>
+    <div><p>${t.kda}</p><b>${num(a.kda)}</b></div>
+    <div><p>${t.gpm}</p><b>${num(a.gpm)} / ${num(a.xpm)}</b></div>
+    <div><p>${t.lh10}</p><b>${num(a.lh_10)}</b></div>
+    <div><p>${t.deaths}</p><b>${num(a.deaths)}</b></div>
+  </div>
+</section>
+${p.coach ? `<section class="card"><h2>${t.coach}</h2><p class="coach">${escapeHtml(p.coach)}</p></section>` : ""}
+${p.focus ? `<section class="card"><h2>${t.focus}</h2><ul><li><b>${escapeHtml(p.focus.title)}</b><p>${escapeHtml(t.focusResult(p.focus))}</p></li></ul></section>` : ""}
+${trend}
+${recurring(t.problems, p.problems)}
+${recurring(t.strengths, p.strengths)}
+${heroes}
+<section class="card foot">${base.made}<br /><a class="cta" href="${SITE_URL}/">${base.cta}</a>
+<p class="small">${escapeHtml(base.expires(day(new Date(expiresAt).toISOString().slice(0, 10), p.lang)))}</p></section>`;
+  return page({ lang: p.lang, title: t.title(p), description: p.coach ? p.coach.slice(0, 200) : t.description, image, url, body });
+}
+
 export function renderSharePage(review, { url, expiresAt }) {
   const t = TEXTS[review.lang] || TEXTS.en;
+  if (review.kind === "progress") {
+    return renderProgressPage(review, { url, expiresAt });
+  }
   const portrait = review.hero_key ? `${PORTRAIT}/${review.hero_key}.png` : `${SITE_URL}/assets/og.jpg`;
   const result = review.win === true ? t.win : review.win === false ? t.loss : "";
   const tone = review.win === true ? "var(--good)" : "var(--bad)";

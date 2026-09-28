@@ -1870,8 +1870,9 @@ async function exportPdf(kind, id) {
 }
 
 // ---------------------------------------------------------------------------
-// Share a review: the public part (backend share_review.py) goes to the API,
-// which answers with a link; the delete token stays in settings.shares.
+// Share a review or the Progress page: the public part (backend share_review.py /
+// share_progress.py) goes to the API, which answers with a link; the delete
+// token stays in settings.shares (keyed by match id, or "progress").
 // ---------------------------------------------------------------------------
 
 const SHARE_TIMEOUT_MS = 30_000;
@@ -1892,16 +1893,21 @@ function shareStatus(matchId) {
   return { ok: true, share: publicShare(shareRecords()[matchId]) };
 }
 
+// `matchId` "progress": the Progress page (backend share_progress.py) instead of a match.
 async function createShare(matchId, withCoach) {
-  let review;
+  const progress = matchId === "progress";
+  const coach = withCoach ? "true" : "false";
+  let content;
   try {
     const payload = await requestBackendJson(
-      `/player/matches/${matchId}/share?lang=${uiLocale()}&coach=${withCoach ? "true" : "false"}`,
+      progress
+        ? `/player/career/share?lang=${uiLocale()}&coach=${coach}`
+        : `/player/matches/${matchId}/share?lang=${uiLocale()}&coach=${coach}`,
       "GET",
       undefined,
       15000
     );
-    review = payload.review;
+    content = progress ? { progress: payload.progress } : { review: payload.review };
   } catch (error) {
     return { ok: false, code: (error.payload && error.payload.code) || "backend_down" };
   }
@@ -1911,7 +1917,7 @@ async function createShare(matchId, withCoach) {
     const response = await electronNet.fetch(`${apiUrl()}/v1/share`, {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ install_id: installId(), version: app.getVersion(), review }),
+      body: JSON.stringify({ install_id: installId(), version: app.getVersion(), ...content }),
       signal: controller.signal
     });
     let answer = {};
@@ -1931,7 +1937,7 @@ async function createShare(matchId, withCoach) {
       withCoach: Boolean(withCoach)
     };
     settings.set("shares", { ...shareRecords(), [matchId]: record });
-    appendLog("launcher", `Review of match ${matchId} shared: ${record.url}`, { force: true });
+    appendLog("launcher", `${progress ? "Progress" : `Review of match ${matchId}`} shared: ${record.url}`, { force: true });
     return { ok: true, share: publicShare(record) };
   } catch (error) {
     return { ok: false, code: "offline", error: error.message };
@@ -1960,13 +1966,13 @@ async function deleteShareLink(matchId) {
   }
   delete records[matchId];
   settings.set("shares", records);
-  appendLog("launcher", `Shared review of match ${matchId} deleted.`, { force: true });
+  appendLog("launcher", `Shared ${matchId === "progress" ? "progress" : `review of match ${matchId}`} deleted.`, { force: true });
   return { ok: true, share: null };
 }
 
 function shareMatchArg(value) {
   const text = String(value || "");
-  return /^\d{1,20}$/.test(text) ? text : null;
+  return /^\d{1,20}$/.test(text) || text === "progress" ? text : null;
 }
 
 // ---------------------------------------------------------------------------

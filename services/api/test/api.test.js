@@ -325,3 +325,50 @@ test("shares are checked, limited, expire and go with the installation", async (
   assert.equal(shares.length, 0);
   assert.equal((await worker.fetch(new Request("https://api.example/r/not-an-id!"), env, ctx)).status, 404);
 });
+
+// --- «Поделиться прогрессом» ----------------------------------------------------------
+
+const PROGRESS = {
+  kind: "progress",
+  lang: "ru",
+  matches: 14,
+  analyzed: 12,
+  wins: 9,
+  losses: 5,
+  winrate: 64,
+  rank: "Легенда",
+  period: { from: "2026-09-01", to: "2026-09-21" },
+  averages: { kda: 8, gpm: 578.6, xpm: 632.9, lh_10: 58.7, deaths: 4.6, score: 70.3 },
+  trend: [
+    { key: "score", recent: 66.4, previous: 90, better: false },
+    { key: "hacked", recent: 1, previous: 2, better: true }
+  ],
+  heroes: [{ hero: "Juggernaut", hero_key: "juggernaut", matches: 13, winrate: 62, match_id: 8012345678 }],
+  strengths: [{ title: "Сильная линия", count: 8, of: 12, drill: "not for strengths" }],
+  problems: [{ title: "Фарм ниже <b>соперника</b>", count: 4, of: 12, drill: "Не отдавайте волны" }],
+  focus: { title: "Смерти на линии", met: 2, total: 3, results: [{ match_id: 1 }] },
+  coach: "Стабильный фарм. Steam 76561198000000001",
+  series: [{ match_id: 8012345678 }]
+};
+
+test("a shared progress page is checked field by field and rendered", async () => {
+  const { env } = fakeEnv();
+  const response = await worker.fetch(shareRequest({ install_id: REPORT.install_id, version: "0.7.0", progress: PROGRESS }), env, ctx);
+  assert.equal(response.status, 201);
+  const answer = await response.json();
+  const { review } = await (await worker.fetch(new Request(`https://api.example/v1/share/${answer.id}`), env, ctx)).json();
+  assert.equal(review.kind, "progress");
+  assert.deepEqual(review.trend.map((t) => t.key), ["score"], "unknown trend keys are dropped");
+  assert.ok(!("series" in review) && !("match_id" in review.heroes[0]) && !("results" in review.focus));
+  assert.ok(!("drill" in review.strengths[0]));
+  assert.ok(!review.coach.includes("76561198000000001"));
+  const html = await (await worker.fetch(new Request(`https://api.example/r/${answer.id}`), env, ctx)).text();
+  assert.match(html, /<meta property="og:title" content="Прогресс в Dota 2 · 14 матчей · 64% побед"/);
+  assert.match(html, /heroes\/juggernaut\.png/);
+  assert.ok(html.includes("Фарм ниже &lt;b&gt;соперника&lt;/b&gt;"), "texts are escaped");
+  assert.ok(html.includes("Выполнен в 2 из 3 матчей"));
+
+  const bad = await worker.fetch(shareRequest({ install_id: REPORT.install_id, progress: { analyzed: 0 } }), env, ctx);
+  assert.equal(bad.status, 400);
+  assert.equal((await bad.json()).code, "bad_progress");
+});
