@@ -217,6 +217,12 @@ const I18N = {
     whatsNewTitle: (version) => `What's new in ${version}`,
     whatsNewOk: "Got it",
     whatsNew: {
+      "0.16.0": [
+        "In a review, «Watch» next to a death or a key moment copies the replay command that jumps 10 s before it.",
+        "The match chart shows your best match on this hero as a dashed line.",
+        "Home: streak goals (5 matches in a row with 5 deaths or fewer) and a gentle note after 3 losses in a row.",
+        "Progress: heroes to play more and heroes to park, against your rank."
+      ],
       "0.15.0": [
         "Roshan and Aegis timers: the respawn window after a kill, and your Aegis warns a minute before it expires.",
         "While you wait to respawn: how you died, what was left unpressed, what to buy now.",
@@ -649,6 +655,12 @@ const I18N = {
     whatsNewTitle: (version) => `Что нового в ${version}`,
     whatsNewOk: "Понятно",
     whatsNew: {
+      "0.16.0": [
+        "В разборе кнопка «Смотреть» у смерти и ключевого момента копирует команду повтора, которая переносит за 10 с до него.",
+        "На графике матча пунктиром — ваш лучший матч на этом герое.",
+        "На главной — цели-серии (5 матчей подряд не больше 5 смертей) и мягкое предупреждение после 3 поражений подряд.",
+        "В «Прогрессе» — на каких героях играть чаще, а каких лучше отложить, по сравнению с вашим званием."
+      ],
       "0.15.0": [
         "Таймеры Рошана и Аегиса: окно появления после убийства и предупреждение за минуту до того, как сгорит ваш Аегис.",
         "Пока ждёте возрождения: как вас убили, что осталось не нажато и что купить сейчас.",
