@@ -139,7 +139,7 @@ def refresh_match(match_id: MatchId):
 
 
 @router.get("/matches/{match_id}/share", summary="The public part of a review, to share")
-def share_payload(match_id: Annotated[int, Path(ge=1)], lang: str = "en", coach: bool = False):
+def share_payload(match_id: MatchId, lang: str = "en", coach: bool = False):
     review = PLAYER_SERVICE.share_payload(match_id, normalize_lang(lang), with_coach=coach)
     if review is None:
         return JSONResponse(status_code=404, content={"status": "error", "code": "no_review"})

@@ -293,7 +293,11 @@ class PlayerService:
         )
         account_id, steam64 = account_from_gsi(player)
         if account_id:
-            self._note_detected(account_id, steam64, player.get("name"))
+            # Broken GSI can send anything as the name; only text is stored.
+            name = player.get("name")
+            self._note_detected(
+                account_id, steam64, name.strip()[:64] or None if isinstance(name, str) else None
+            )
         self.tracker.observe(payload)
 
     def _note_detected(self, account_id: int, steam64: str | None, name: Any) -> None:

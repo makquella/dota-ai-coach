@@ -84,7 +84,8 @@ def ready_savers(items: dict[str, Any]) -> list[str]:
             continue
         item = _dict(value)
         name = item.get("name")
-        if name not in SAVERS or name in _NOT_PRESSED or name in ready:
+        # Broken GSI can put a list or a dict there (unhashable for the checks below).
+        if not isinstance(name, str) or name not in SAVERS or name in _NOT_PRESSED or name in ready:
             continue
         if item.get("passive") is True:
             continue
