@@ -77,6 +77,12 @@ PULL_UNTIL = 8 * 60
 PULL_WINDOWS = ((5, 15), (35, 45))  # (from second, pull at second)
 PULL_EVERY = 2 * 60
 PULL_SHOW = 10
+# Cores: the hero's key item (OpenDota's most bought, with its typical finish
+# time) — late by this much, or finished this much before the typical time.
+KEY_ITEM_LATE = 2 * 60
+KEY_ITEM_EARLY = 2 * 60
+KEY_ITEM_SHOW = 25
+CORE_ROLES = {"carry", "mid", "offlane"}
 # Support: gold kept instead of wards, dust, smoke and a save item.
 SPEND_FROM = 8 * 60
 SPEND_GOLD = 1500
@@ -158,6 +164,26 @@ TIPS = {
         "ru": (
             "Пул на {at_label}",
             "Отведите малый лагерь в свою волну: линия встанет у вашей вышки.",
+        ),
+    },
+    "item_late": {
+        "en": (
+            "{item} is late",
+            "Most players finish it by {time}. Farm camps between waves and skip fights until you have it.",
+        ),
+        "ru": (
+            "{item} опаздывает",
+            "Обычно его собирают к {time}. Фармите лагеря между волнами и не лезьте в драки без него.",
+        ),
+    },
+    "item_early": {
+        "en": (
+            "{item} ahead of time",
+            "Most players have it by {time}: this is your window — push and look for fights.",
+        ),
+        "ru": (
+            "{item} раньше обычного",
+            "Обычно его собирают к {time}: сейчас ваше окно — давите и ищите драки.",
         ),
     },
     "spend_gold": {
@@ -299,6 +325,7 @@ class RoleTips:
         gold: int | None = None,
         lane: str | None = None,
         items: list[str] | None = None,
+        key_item: dict[str, Any] | None = None,
     ) -> dict[str, Any] | None:
         if not alive or role is None:
             return None
@@ -313,6 +340,10 @@ class RoleTips:
                 start = self._shown.setdefault(key, clock)
                 if 0 <= clock - start <= POWER_SPIKE_SHOW:
                     return _tip(key, f"{key}@{start}", lang)
+        if role in CORE_ROLES and key_item and items is not None:
+            timing = self._key_item(clock, lang, key_item, items)
+            if timing is not None:
+                return timing
         if role == "mid":
             return self._mid(clock, lang, last_hits, items)
         if role == "offlane":
@@ -354,6 +385,31 @@ class RoleTips:
         """Once per match: the start while within `show` seconds of it."""
         start = self._shown.setdefault(key, clock)
         return start if 0 <= clock - start <= show else None
+
+    def _key_item(
+        self, clock: int, lang: str, item: dict[str, Any], items: list[str]
+    ) -> dict[str, Any] | None:
+        """Once per match: the key item finished 2+ minutes before its typical
+        time, or not finished 2 minutes after it."""
+        typical = int(item["typical_t"])
+        params = {"item": item["name"], "time": clock_label(typical)}
+        for key in ("item_early", "item_late"):
+            if key in self._shown:
+                start = self._once(key, clock, KEY_ITEM_SHOW)
+                return _tip(key, f"{key}@{start}", lang, **params) if start is not None else None
+        has_it = f"item_{item['key']}" in items
+        if has_it and clock <= typical - KEY_ITEM_EARLY:
+            key = "item_early"
+        elif not has_it and clock >= typical + KEY_ITEM_LATE:
+            key = "item_late"
+        else:
+            if has_it:
+                self._shown["item_on_time"] = clock  # bought: never "late" later on
+            return None
+        if "item_on_time" in self._shown:
+            return None
+        start = self._once(key, clock, KEY_ITEM_SHOW)
+        return _tip(key, f"{key}@{start}", lang, **params) if start is not None else None
 
     def _mid(
         self, clock: int, lang: str, last_hits: int | None, items: list[str] | None
@@ -443,6 +499,7 @@ def map_hint(
     gold: int | None = None,
     lane: str | None = None,
     items: list[str] | None = None,
+    key_item: dict[str, Any] | None = None,
 ) -> dict[str, Any] | None:
     """A timer, but a role tip over a minor one (runes, lotus); None before the
     horn or without a role."""
@@ -475,5 +532,6 @@ def map_hint(
         gold=gold,
         lane=lane,
         items=items,
+        key_item=key_item,
     )
     return tip or timer

@@ -172,3 +172,11 @@ def test_the_record_skips_matches_without_a_result():
         lang="en",
     )
     assert plan["record"] == "15–5"  # the last 20 finished games, not 15 of 20 rows
+
+
+def test_the_key_item_for_the_live_timing_tip(client, tmp_path):
+    service = _synced(client, tmp_path)
+    item = service.key_item("Juggernaut")
+    assert item is not None and item["key"] and item["name"] and item["typical_t"] > 0
+    assert service.key_item("Juggernaut") is item  # cached
+    assert service.key_item("not a hero") is None

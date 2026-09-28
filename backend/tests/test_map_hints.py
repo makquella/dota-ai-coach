@@ -352,3 +352,71 @@ def test_item_names_from_the_raw_items():
     }
     assert item_names(items) == ["item_bottle", "item_boots"]
     assert item_names({}) is None and item_names("x") is None
+
+
+MAELSTROM = {"key": "maelstrom", "name": "Maelstrom", "typical_t": 20 * 60}
+
+
+def test_the_key_item_late_or_early_once():
+    tips = RoleTips()
+
+    def hint(clock, items, role="carry"):
+        return tips.tip(
+            clock, role, alive=True, has_ward=None, lang="ru", items=items, key_item=MAELSTROM
+        )
+
+    assert hint(21 * 60, ["item_power_treads"]) is None  # within the 2 minutes
+    late = hint(22 * 60, ["item_power_treads"])
+    assert late["title"] == "Maelstrom опаздывает" and "к 20:00" in late["hint"]
+    assert hint(22 * 60 + 20, ["item_power_treads"]) is not None  # 25 s on screen
+    assert hint(23 * 60, ["item_power_treads"]) is None  # once per match
+    # Two minutes ahead: "your window", once.
+    early = RoleTips().tip(
+        17 * 60,
+        "mid",
+        alive=True,
+        has_ward=None,
+        lang="en",
+        items=["item_maelstrom"],
+        key_item=MAELSTROM,
+    )
+    assert early["title"] == "Maelstrom ahead of time"
+    # Bought on time: nothing now, and never "late" afterwards.
+    on_time = RoleTips()
+    assert (
+        on_time.tip(
+            19 * 60,
+            "carry",
+            alive=True,
+            has_ward=None,
+            lang="en",
+            items=["item_maelstrom"],
+            key_item=MAELSTROM,
+        )
+        is None
+    )
+    assert (
+        on_time.tip(
+            23 * 60,
+            "carry",
+            alive=True,
+            has_ward=None,
+            lang="en",
+            items=["item_mjollnir"],
+            key_item=MAELSTROM,
+        )
+        is None
+    )
+    # Supports and unknown items: no timing tip.
+    assert (
+        RoleTips().tip(
+            23 * 60, "support", alive=True, has_ward=True, lang="en", items=[], key_item=MAELSTROM
+        )
+        is None
+    )
+    assert (
+        RoleTips().tip(
+            23 * 60, "carry", alive=True, has_ward=None, lang="en", items=None, key_item=MAELSTROM
+        )
+        is None
+    )

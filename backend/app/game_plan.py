@@ -94,6 +94,11 @@ def _record(history: list[dict[str, Any]]) -> str | None:
     return f"{wins}–{len(results) - wins}"
 
 
+def key_item(meta: dict[str, Any] | None) -> dict[str, Any] | None:
+    """The hero's key item with its typical timing (live tip «Maelstrom is late»)."""
+    return _key_item(meta)
+
+
 def _key_item(meta: dict[str, Any] | None) -> dict[str, Any] | None:
     if not meta:
         return None
@@ -105,11 +110,12 @@ def _key_item(meta: dict[str, Any] | None) -> dict[str, Any] | None:
     verdict = timing_verdict(meta.get("timings"), item["key"], 0)
     if verdict:
         return {
+            "key": item["key"],
             "name": item["name"],
             "typical_t": verdict["typical_bucket"],
             "winrate": verdict["typical_winrate"],
         }
-    return {"name": item["name"], "typical_t": None, "winrate": None}
+    return {"key": item["key"], "name": item["name"], "typical_t": None, "winrate": None}
 
 
 def build_game_plan(

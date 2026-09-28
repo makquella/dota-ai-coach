@@ -366,6 +366,9 @@ def _live_role_and_hint(response: dict[str, object], lang: str) -> dict[str, obj
             gold=state.get("gold") if isinstance(state.get("gold"), int) else None,
             lane=role.get("lane") if role else None,
             items=extra.get("item_names") if isinstance(extra.get("item_names"), list) else None,
+            key_item=PLAYER_SERVICE.key_item(str(state.get("hero") or ""))
+            if role and role.get("role") != "support"
+            else None,
         )
         if hint is not None:
             result["map_hint"] = hint

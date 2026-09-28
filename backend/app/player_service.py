@@ -63,7 +63,7 @@ from app.draft_analysis import pool_heroes
 from app.finding_history import finding_history
 from app.focus_goal import can_focus, focus_summary, match_result, new_focus, played_after
 from app.friend_compare import compare
-from app.game_plan import build_game_plan
+from app.game_plan import build_game_plan, key_item
 from app.history_backup import export_backup, import_backup
 from app.match_facts import facts_from_opendota, facts_from_timeline, merge_facts
 from app.match_tracker import MatchTracker, account_from_gsi
@@ -343,6 +343,23 @@ class PlayerService:
         )
         self._plans[key] = (now, plan)
         return plan
+
+    def key_item(self, hero: str) -> dict[str, Any] | None:
+        """The hero's most bought mid/early item and its typical finish time
+        (cached OpenDota meta, app/game_plan.key_item) for the live timing tip;
+        None without cached meta or a timing. Polled every second: cached."""
+        hero_id = hero_id_from_name(hero)
+        if hero_id is None:
+            return None
+        key = ("key_item", hero_id)
+        cached = self._plans.get(key)
+        now = time.monotonic()
+        if cached is not None and now - cached[0] < GAME_PLAN_CACHE_SECONDS:
+            return cached[1]
+        item = key_item(self._hero_meta(hero_id))
+        result = item if item and item.get("typical_t") else None
+        self._plans[key] = (now, result)
+        return result
 
     def week(
         self, lang: str, until: float | None = None, since: float | None = None
