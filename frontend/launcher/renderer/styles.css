@@ -2682,6 +2682,35 @@ label.setting:has(.switch:disabled) {
   stroke-linecap: round;
 }
 
+/* A place where the deaths repeat (map_analysis.death_spots). */
+.map-spot circle {
+  fill: color-mix(in srgb, var(--error) 14%, transparent);
+  stroke: var(--error);
+  stroke-width: 1.5;
+  stroke-dasharray: 4 3;
+}
+
+.map-spot-count {
+  fill: var(--text);
+  font-size: var(--fs-12);
+  font-weight: var(--fw-semibold);
+  paint-order: stroke;
+  stroke: var(--bg);
+  stroke-width: 3px;
+}
+
+.map-spot:focus-visible {
+  outline: none;
+}
+
+.map-spot.is-active circle {
+  stroke-width: 2.5;
+}
+
+.map-spot-line {
+  color: var(--text);
+}
+
 .map-hit {
   cursor: default;
 }

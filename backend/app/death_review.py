@@ -23,33 +23,12 @@ from __future__ import annotations
 from collections import Counter
 from typing import Any
 
-from app.advice_context import MAP_CENTER
-from app.map_analysis import map_side
+from app.map_analysis import map_side, zone
 
 WARNING_WINDOW = 30
 UNSPENT_GOLD = 1000
 SOON_AFTER_RESPAWN = 60
 LANING_END = 10 * 60
-
-# Centred world units: lanes run along the map edges (about ±6400), mid along
-# x == y, bases fill the corners; everything else is jungle.
-EDGE_LANE = 5000
-MID_BAND = 900  # |x - y|: about 640 units either side of the mid lane
-BASE_EDGE = 5000
-
-
-def zone(x: float, y: float) -> str:
-    """top / mid / bot lane, base or jungle for absolute replay coordinates."""
-    u, v = x - MAP_CENTER, y - MAP_CENTER
-    if abs(u) > BASE_EDGE and abs(v) > BASE_EDGE and (u > 0) == (v > 0):
-        return "base"
-    if u < -EDGE_LANE or v > EDGE_LANE:
-        return "top"
-    if v < -EDGE_LANE or u > EDGE_LANE:
-        return "bot"
-    if abs(u - v) < MID_BAND:
-        return "mid"
-    return "jungle"
 
 
 def review_deaths(facts: dict[str, Any]) -> dict[str, Any] | None:

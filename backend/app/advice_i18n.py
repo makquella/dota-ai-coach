@@ -506,6 +506,33 @@ _RU_PATTERNS: tuple[tuple[re.Pattern[str], str], ...] = (
         "Добиваний к {m}-й минуте: {lh}, хороший темп — {low}+. "
         "Сначала восстановите фарм, потом ищите драки.",
     ),
+    # live_tools.py: the hero's own abilities and their cooldowns.
+    (
+        re.compile(r"^Use (?P<name>.+) now: a mute blocks items, not spells\.$"),
+        "Используйте {name} сейчас: немота мешает предметам, а не способностям.",
+    ),
+    (
+        re.compile(r"^Use (?P<name>.+) now and walk out of the fight\.$"),
+        "Используйте {name} сейчас и выходите из драки.",
+    ),
+    (
+        re.compile(r"^(?P<name>.+) is ready: it buys you the seconds to get away\.$"),
+        "{name} уже можно нажать: это даст секунды, чтобы уйти.",
+    ),
+    (
+        re.compile(
+            r"^(?P<name>.+) is back in (?P<n>\d+) s: without it, escaping a bad trade "
+            r"or fight is harder\.$"
+        ),
+        "{name} откатится через {n} с: без него сложнее уйти из неудачного размена или драки.",
+    ),
+    (
+        re.compile(
+            r"^(?P<name>.+) is back in (?P<n>\d+) s: until then, disables and slows "
+            r"are harder to avoid\.$"
+        ),
+        "{name} откатится через {n} с: до этого сложнее избежать контроля и замедлений.",
+    ),
     # live_tools.py: the tool that is ready right now.
     (
         re.compile(r"^Use (?P<name>.+) now to get out, then reset HP\.$"),

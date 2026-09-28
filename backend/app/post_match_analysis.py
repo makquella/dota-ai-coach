@@ -32,7 +32,7 @@ from app.peer_analysis import match_peers, peer_findings, player_roles
 from app.role_analysis import analyze_role
 
 # Bump when the rules change: stored reviews of an older version are rebuilt on read.
-ANALYSIS_VERSION = 12
+ANALYSIS_VERSION = 13
 # Last seconds before deaths (last_moments.py, via death_review.py).
 SAVER_DEATHS = 2
 BURST_DEATHS = 3

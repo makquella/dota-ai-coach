@@ -52,7 +52,6 @@ from app.coach_review import (
     review_career,
     review_match,
 )
-from app.death_review import zone
 from app.diagnostics import record_error
 from app.dota_constants import (
     TURBO_GAME_MODE,
@@ -66,7 +65,7 @@ from app.focus_goal import can_focus, focus_summary, match_result, new_focus, pl
 from app.friend_compare import compare
 from app.game_plan import build_game_plan, key_item
 from app.history_backup import export_backup, import_backup
-from app.map_analysis import map_side
+from app.map_analysis import map_side, zone
 from app.match_facts import facts_from_opendota, facts_from_timeline, merge_facts
 from app.match_tracker import MatchTracker, account_from_gsi
 from app.next_item import has_components, next_build_item

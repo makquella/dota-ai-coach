@@ -12,6 +12,7 @@ from app.live_tools import (
     LOW_HP_ACTION_TYPES,
     death_copy,
     disabled_copy,
+    hero_tools,
     low_hp_copy,
 )
 from app.post_laning_coach import build_post_laning_advice, spend_while_dead_sentence
@@ -183,9 +184,9 @@ def _fallback_text(req: GameSituationRequest, action_type: str) -> dict[str, str
     # when GSI shows nothing ready.
     tool = None
     if action_type in LOW_HP_ACTION_TYPES:
-        tool = low_hp_copy(extra)
+        tool = low_hp_copy(extra, req.hero)
     elif action_type == "wait_out_disable":
-        tool = disabled_copy(extra)
+        tool = disabled_copy(extra, req.hero)
     if tool is not None:
         text = {**text, "action": tool[0], "reason": tool[1]}
     if action_type in DEATH_ACTION_TYPES and not text["action"].startswith("Buy parts"):
@@ -384,11 +385,16 @@ def _hero_safety_fallback_text(req: GameSituationRequest) -> dict[str, str]:
             ),
         }
 
+    seconds = _cooldown_left(req, ability)
     if ability and ("escape_on_cooldown" in flags or kind == "escape"):
         return {
             "action": _truncate(f"Avoid committing forward until {ability} is ready.", 100),
             "reason": _truncate(
-                f"Without {ability}, escaping a bad trade or fight is harder.", 180
+                f"{ability} is back in {seconds} s: without it, escaping a bad trade "
+                "or fight is harder."
+                if seconds
+                else f"Without {ability}, escaping a bad trade or fight is harder.",
+                180,
             ),
             "risk": _risk_from_constraint(
                 constraint, FALLBACK_TEXT["respect_hero_safety_window"]["risk"]
@@ -396,7 +402,7 @@ def _hero_safety_fallback_text(req: GameSituationRequest) -> dict[str, str]:
         }
 
     if ability and ("defensive_ability_on_cooldown" in flags or kind == "defensive"):
-        return _ability_cooldown_text(ability, constraint)
+        return _ability_cooldown_text(ability, constraint, seconds)
 
     text = dict(FALLBACK_TEXT["respect_hero_safety_window"])
     if reason:
@@ -421,15 +427,30 @@ def _ability_safety_fallback_text(req: GameSituationRequest) -> dict[str, str]:
         ability = str(inferred_laning_context.get("key_safety_ability") or "").strip()
 
     if ability:
-        return _ability_cooldown_text(ability, "")
+        return _ability_cooldown_text(ability, "", _cooldown_left(req, ability))
 
     return FALLBACK_TEXT["respect_defensive_ability_cooldown"]
 
 
-def _ability_cooldown_text(ability: str, constraint: str) -> dict[str, str]:
+def _cooldown_left(req: GameSituationRequest, ability: str) -> int | None:
+    """Seconds until the hero's safety ability is back (live GSI), when known."""
+    if not ability:
+        return None
+    cooldowns = hero_tools(req.hero, (req.extra_context or {}).get("abilities"))["cooldowns"]
+    return cooldowns.get(ability)
+
+
+def _ability_cooldown_text(
+    ability: str, constraint: str, seconds: int | None = None
+) -> dict[str, str]:
+    reason = (
+        f"{ability} is back in {seconds} s: until then, disables and slows are harder to avoid."
+        if seconds
+        else f"Without {ability}, disables and slows are harder to avoid."
+    )
     return {
         "action": _truncate(f"Avoid risky trades until {ability} is ready.", 100),
-        "reason": _truncate(f"Without {ability}, disables and slows are harder to avoid.", 180),
+        "reason": _truncate(reason, 180),
         "risk": _risk_from_constraint(
             constraint,
             FALLBACK_TEXT["respect_defensive_ability_cooldown"]["risk"],

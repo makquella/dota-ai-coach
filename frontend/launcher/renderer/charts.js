@@ -471,6 +471,22 @@
       legendItems.push({ label: labels.sentry || "", color: "var(--viz-2)", kind: "ring" });
     }
 
+    // Places where the deaths repeat: a dashed ring with the count.
+    const spots = options.spots || [];
+    for (const spot of spots) {
+      const x = px(spot.x);
+      const y = py(spot.y);
+      const r = Math.min(34, 12 + 4 * spot.count) * (size / 360);
+      const group = el("g", { class: "map-spot" }, svg);
+      el("circle", { cx: x, cy: y, r: r.toFixed(1) }, group);
+      const count = el("text", { x: (x + r * 0.72).toFixed(1), y: (y - r * 0.72).toFixed(1), class: "map-spot-count", "text-anchor": "middle", "dominant-baseline": "central" }, group);
+      count.textContent = String(spot.count);
+      addMark(group, x, y, spot.title || "", spot.detail ? [{ label: spot.detail, value: "", kind: "none" }] : []);
+    }
+    if (spots.length) {
+      legendItems.push({ label: labels.spot || "", color: "var(--error)", kind: "ring" });
+    }
+
     const deaths = options.deaths || [];
     for (const death of deaths) {
       const x = px(death.x);
