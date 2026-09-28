@@ -529,6 +529,7 @@ def _overlay_recommendation_payload() -> dict[str, object]:
             **_overlay_live_context(state),
         }
 
+    state = _with_next_item(state, coverage, decision_point)
     try:
         request = GameSituationRequest(**state)
     except ValidationError as exc:
@@ -855,6 +856,7 @@ def _overlay_response_for_state(
             **_overlay_live_context(state),
         }
 
+    state = _with_next_item(state, coverage, decision_point)
     try:
         game_request = GameSituationRequest(**state)
     except ValidationError as exc:
@@ -893,6 +895,36 @@ def _overlay_response_for_state(
         log_filename = log_path.name
 
     return _overlay_response(scheduled, timestamp, log_filename, state, record_history=False)
+
+
+# Decisions that can become the post-laning "safe farm route" advice.
+FARM_ROUTE_DECISIONS = {"SAFE_FARMING", "LANING_FARM_CHECK", "FARMING_PHASE_PRESSURE"}
+
+
+def _with_next_item(
+    state: dict[str, object], coverage: str | None, decision_point: str
+) -> dict[str, object]:
+    """A core's farm advice names the next item of the hero's usual build and the
+    gold it still needs (app/next_item.py, post_laning_coach._next_item_copy)."""
+    raw_extra = state.get("extra_context")
+    if (
+        decision_point not in FARM_ROUTE_DECISIONS
+        or coverage != "full"
+        or not isinstance(raw_extra, dict)
+        or _plays_support(state)
+    ):
+        return state
+    names = raw_extra.get("item_names")
+    try:
+        item = PLAYER_SERVICE.next_item(
+            str(state.get("hero") or ""), names if isinstance(names, list) else None
+        )
+    except Exception as error:  # noqa: BLE001 - never breaks the live path
+        record_error("next-item", error)
+        return state
+    if item is None:
+        return state
+    return {**state, "extra_context": {**raw_extra, "next_item": item}}
 
 
 def _overlay_status_message(scheduled: ScheduledAdvice) -> str | None:

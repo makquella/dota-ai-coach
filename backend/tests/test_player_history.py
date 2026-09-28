@@ -456,7 +456,12 @@ def test_opendota_meta_endpoints_are_parsed():
     fake = FakeOpenDota()
     items = fake.item_constants()
     assert items["by_id"]["145"] == "bfury"
-    assert items["items"]["bfury"] == {"name": "Battle Fury", "cost": 4100, "assembled": True}
+    assert items["items"]["bfury"] == {
+        "name": "Battle Fury",
+        "cost": 4100,
+        "assembled": True,
+        "components": ["quelling_blade"],
+    }
     assert items["items"]["demon_edge"]["assembled"] is False
     timings = fake.item_timings(8)
     assert {"item": "bfury", "time": 900, "games": 900, "wins": 513} in timings

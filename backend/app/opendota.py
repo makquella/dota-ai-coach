@@ -202,7 +202,8 @@ class OpenDotaClient:
     # --- meta data for build advice and rank comparison (cached by the caller) --
 
     def item_constants(self) -> dict[str, Any]:
-        """/constants/items -> {"by_id": {id: key}, "items": {key: {name, cost, assembled}}}."""
+        """/constants/items -> {"by_id": {id: key},
+        "items": {key: {name, cost, assembled, components}}} (components: item keys)."""
         data = self._get("/constants/items")
         if not isinstance(data, dict):
             raise OpenDotaError("bad_response", "Unexpected OpenDota response for items.")
@@ -217,6 +218,7 @@ class OpenDotaClient:
                 "name": item.get("dname") or key,
                 "cost": item.get("cost") or 0,
                 "assembled": bool(item.get("components")),
+                "components": [c for c in item.get("components") or [] if isinstance(c, str)],
             }
         return {"by_id": by_id, "items": items}
 
