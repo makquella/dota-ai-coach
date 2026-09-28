@@ -1431,7 +1431,9 @@ async function pollPlayerStatus() {
     aiConfigured: Boolean(status.ai && status.ai.configured),
     opendotaKey: Boolean(status.opendota_key),
     liveMatch: status.live_match || null,
-    today: status.today || null
+    today: status.today || null,
+    goals: Array.isArray(status.goals) ? status.goals : [],
+    tilt: status.tilt || null
   };
   if (live.player.accountId !== previousAccount) {
     // Launch options are per Steam account: check the linked one.

@@ -66,6 +66,7 @@ def analyze_career(
         rank["rank_label"] = rank_label(rank.get("rank_tier"), lang)
         rank["role_label"] = PEER_ROLES.get(rank["role"], {}).get(lang)
     bracket = rank["bracket"] if rank else rank_bracket(rank_tier)
+    heroes = _heroes(matches, hero_stats, bracket)
     return {
         "matches": len(matches),
         "analyzed": len(analyzed),
@@ -75,7 +76,8 @@ def analyze_career(
         "streak": _streak(decided),
         "averages": _averages(matches),
         "trend": _trend(matches),
-        "heroes": _heroes(matches, hero_stats, bracket),
+        "heroes": heroes,
+        "hero_pool": hero_pool(heroes),
         "rank": rank,
         "rank_bracket_label": rank_label(bracket * 10 if bracket else None, lang),
         "recurring": _recurring(analyzed, "improve", lang),
@@ -214,6 +216,44 @@ def _heroes(
             }
         )
     return sorted(rows, key=lambda r: (-int(r["matches"]), -int(r["winrate"] or 0)))[:12]
+
+
+POOL_MIN_GAMES = 4
+POOL_GOOD_WINRATE = 55
+POOL_BAD_WINRATE = 40
+POOL_BRACKET_EDGE = 5  # points over / under the hero's win rate at the player's rank
+POOL_MAX = 3
+
+
+def hero_pool(heroes: list[dict[str, Any]]) -> dict[str, Any] | None:
+    """Heroes to play more (won 55 %+ and above the hero's win rate at the rank, when
+    known) and to park for now (40 % or less and below it), 4+ decided games each."""
+    play_more, park = [], []
+    for row in heroes:
+        winrate, bracket = row.get("winrate"), row.get("bracket_winrate")
+        if winrate is None or row.get("matches", 0) < POOL_MIN_GAMES:
+            continue
+        entry = {
+            "hero": row["hero"],
+            "hero_id": row.get("hero_id"),
+            "matches": row["matches"],
+            "wins": row["wins"],
+            "winrate": winrate,
+            "bracket_winrate": bracket,
+        }
+        if winrate >= POOL_GOOD_WINRATE and (
+            bracket is None or winrate >= bracket + POOL_BRACKET_EDGE
+        ):
+            play_more.append(entry)
+        elif winrate <= POOL_BAD_WINRATE and (
+            bracket is None or winrate <= bracket - POOL_BRACKET_EDGE
+        ):
+            park.append(entry)
+    if not play_more and not park:
+        return None
+    play_more.sort(key=lambda e: (-e["winrate"], -e["matches"]))
+    park.sort(key=lambda e: (e["winrate"], -e["matches"]))
+    return {"play_more": play_more[:POOL_MAX], "park": park[:POOL_MAX]}
 
 
 def _recurring(analyzed: list[dict[str, Any]], kind: str, lang: str) -> list[dict[str, Any]]:

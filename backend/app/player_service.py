@@ -80,6 +80,7 @@ from app.opendota import (
 )
 from app.personal_baseline import MAX_GAMES as MAX_BASELINE_GAMES
 from app.personal_baseline import personal_baseline
+from app.player_goals import goal_streaks, tilt
 from app.player_store import PlayerStore
 from app.post_game import post_game_card
 from app.post_match_analysis import ANALYSIS_VERSION, analyze_match
@@ -116,6 +117,7 @@ FOCUS_META = "focus"
 FRIEND_META = "friend"
 FRIEND_CACHE = "friend:matches"
 TODAY_MAX_MATCHES = 30
+GOAL_MATCHES = 30  # rows read for the streak goals and the tilt warning
 # Earlier matches read for a repeating problem (some cannot show every problem).
 REPEATS_LOOKUP = 25
 # "Ask the coach": the last questions per match, and how long the player waits.
@@ -584,7 +586,15 @@ class PlayerService:
             "ai": {"configured": self.ai_configured()},
             "opendota_key": bool(self._opendota_key()[0]),
             "today": self._today(primary) if primary else None,
+            **self._goals_and_tilt(primary),
         }
+
+    def _goals_and_tilt(self, account_id: int | None) -> dict[str, Any]:
+        """Streak goals and the tilt warning (player_goals.py) from the match table."""
+        if account_id is None:
+            return {"goals": [], "tilt": None}
+        rows = self.store.list_matches(account_id, limit=GOAL_MATCHES)
+        return {"goals": goal_streaks(rows), "tilt": tilt(rows, int(time.time()))}
 
     def _today(self, account_id: int) -> dict[str, Any] | None:
         """Tonight's session on the home screen: matches since local midnight."""

@@ -318,6 +318,18 @@
       opponentsHard: "Hardest to play against",
       opponentsEasy: "You beat them most often",
       opponentRecord: (w, l, wr) => `${w}–${l} · ${wr}%`,
+      poolTitle: "Your hero pool",
+      poolNote: "Your win rate on each hero (4+ games) against how players of your rank do on it.",
+      poolMore: "Play them more",
+      poolPark: "Better to park them for now",
+      poolRecord: (w, n, wr, br) => `${w} of ${n} won · ${wr}%${br == null ? "" : ` (your rank: ${br}%)`}`,
+      streakFewDeaths: (target) => `${target} matches in a row with 5 deaths or fewer`,
+      streakGoodScore: (target) => `${target} matches in a row with a score of 60+`,
+      streakProgress: (cur, target) => `${Math.min(cur, target)} of ${target}`,
+      streakMet: (cur) => `done: ${cur} in a row`,
+      streakBest: (best) => `Your best run in the last 30 matches: ${best}`,
+      tiltLosses: (n) => `${n} losses in a row. Maybe take a break, or play something just for fun.`,
+      tiltScore: (a, b, usual) => `Your last two scores are ${a} and ${b}, while you usually get about ${usual}. Maybe take a break.`,
       friendTitle: "Compare with a friend",
       friendHint: "A friend's Friend ID, Steam ID or profile link (steamcommunity.com/profiles/…). Their public OpenDota matches are compared with yours: the last 20 games of each.",
       friendPlaceholder: "Friend ID, Steam ID or profile link",
@@ -763,6 +775,18 @@
       opponentsHard: "Против них сложнее всего",
       opponentsEasy: "Их вы обыгрываете чаще всего",
       opponentRecord: (w, l, wr) => `${w}–${l} · ${wr}%`,
+      poolTitle: "Ваш пул героев",
+      poolNote: "Ваш процент побед на каждом герое (от 4 игр) против того, как на нём играют игроки вашего звания.",
+      poolMore: "Играйте на них чаще",
+      poolPark: "Их лучше пока отложить",
+      poolRecord: (w, n, wr, br) => `${w} из ${n} побед · ${wr}%${br == null ? "" : ` (на вашем звании ${br}%)`}`,
+      streakFewDeaths: (target) => `${target} ${plural(target, "матч", "матча", "матчей")} подряд — не больше 5 смертей`,
+      streakGoodScore: (target) => `${target} ${plural(target, "матч", "матча", "матчей")} подряд с оценкой 60+`,
+      streakProgress: (cur, target) => `${Math.min(cur, target)} из ${target}`,
+      streakMet: (cur) => `выполнено: ${cur} подряд`,
+      streakBest: (best) => `Лучшая серия за последние 30 матчей: ${best}`,
+      tiltLosses: (n) => `${n} ${plural(n, "поражение", "поражения", "поражений")} подряд. Может, перерыв — или сыграйте что-нибудь просто для удовольствия.`,
+      tiltScore: (a, b, usual) => `Две последние оценки — ${a} и ${b}, а обычно у вас около ${usual}. Может, сделать перерыв?`,
       friendTitle: "Сравнение с другом",
       friendHint: "Friend ID друга, Steam ID или ссылка на профиль (steamcommunity.com/profiles/…). Сравниваются открытые матчи из OpenDota: последние 20 игр каждого.",
       friendPlaceholder: "Friend ID, Steam ID или ссылка на профиль",
@@ -2478,6 +2502,31 @@
     );
   }
 
+  // Heroes to play more and to park (career_analysis.hero_pool), all heroes only.
+  function heroPoolCard(pool) {
+    if (!pool || !(pool.play_more?.length || pool.park?.length)) {
+      return null;
+    }
+    const row = (hero) =>
+      h(
+        "li",
+        { class: "friend-hero" },
+        heroLabel(hero.hero_id, hero.hero),
+        h("span", { class: "muted num", text: t("poolRecord", hero.wins, hero.matches, hero.winrate, hero.bracket_winrate == null ? null : Math.round(hero.bracket_winrate)) })
+      );
+    return card(
+      t("poolTitle"),
+      "users",
+      h(
+        "div",
+        { class: "friend" },
+        h("p", { class: "muted small", text: t("poolNote") }),
+        pool.play_more?.length ? h("div", {}, h("p", { class: "friend-sub", text: t("poolMore") }), h("ul", { class: "friend-heroes" }, pool.play_more.map(row))) : null,
+        pool.park?.length ? h("div", {}, h("p", { class: "friend-sub", text: t("poolPark") }), h("ul", { class: "friend-heroes" }, pool.park.map(row))) : null
+      )
+    );
+  }
+
   // The rank medal over time (app/rank_history.py): shown once it has changed.
   function rankHistoryCard(history) {
     if (!history || !(history.steps || []).length || history.steps.length < 2) {
@@ -3824,7 +3873,12 @@
             // Asking needs at least one review (the backend answers not_enough without one).
             state.careerHero === null && career.analyzed ? askCard(career, true) : null
           ]),
-          zone(t("zoneGames"), t("zoneGamesHint"), [scoreCard, heroesCard, strengthsCard])
+          zone(t("zoneGames"), t("zoneGamesHint"), [
+            scoreCard,
+            heroesCard,
+            state.careerHero === null ? heroPoolCard(career.hero_pool) : null,
+            strengthsCard
+          ])
         ].filter(Boolean),
         [
           zone(t("zoneCompare"), t("zoneCompareHint"), [
@@ -3888,6 +3942,36 @@
       today.focus_total ? (ru ? `фокус ${today.focus_met} из ${today.focus_total}` : `focus ${today.focus_met} of ${today.focus_total}`) : null
     ];
     line.textContent = parts.filter(Boolean).join(" · ");
+  }
+
+  // Tilt warning and streak goals under the day line (app/player_goals.py).
+  const GOAL_TEXT = { few_deaths: "streakFewDeaths", good_score: "streakGoodScore" };
+
+  function renderGoals(status) {
+    const player = status.player || {};
+    const tiltLine = document.getElementById("tilt-line");
+    const tilt = player.linked ? player.tilt : null;
+    tiltLine.classList.toggle("hidden", !tilt);
+    if (tilt) {
+      tiltLine.textContent = tilt.reason === "losses"
+        ? t("tiltLosses", tilt.losses)
+        : t("tiltScore", tilt.scores[0], tilt.scores[1], tilt.usual);
+    }
+    const goalsLine = document.getElementById("goals-line");
+    const goals = (player.linked ? player.goals || [] : []).filter((goal) => GOAL_TEXT[goal.id]);
+    goalsLine.classList.toggle("hidden", !goals.length);
+    goalsLine.replaceChildren(
+      ...goals.map((goal) =>
+        h(
+          "span",
+          { class: "chip goal-chip", "data-met": String(Boolean(goal.met)), title: t("streakBest", goal.best) },
+          icon(goal.met ? "circle-check" : "target"),
+          h("span", { text: t(GOAL_TEXT[goal.id], goal.target) }),
+          h("span", { class: "goal-count num", text: goal.met ? t("streakMet", goal.current) : t("streakProgress", goal.current, goal.target) })
+        )
+      )
+    );
+    hydrate(goalsLine);
   }
 
   // --- home: the last seven days ---------------------------------------------------
@@ -4099,6 +4183,7 @@
     state.status = status;
     renderBanner(status);
     renderToday(status);
+    renderGoals(status);
     if (status.backend === "running" && status.player && status.player.linked) {
       refreshWeek(status).catch(() => {});
       refreshRecent(status).catch(() => {});
