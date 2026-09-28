@@ -79,6 +79,7 @@ from app.personal_baseline import personal_baseline
 from app.player_store import PlayerStore
 from app.post_match_analysis import ANALYSIS_VERSION, analyze_match
 from app.schemas import is_supported_hero
+from app.share_progress import public_progress
 from app.share_review import public_review
 from app.steam_ids import parse_account_id, steam64_from_account_id
 from app.weekly_summary import weekly_summary
@@ -584,6 +585,13 @@ class PlayerService:
             return None
         detail = self.match_detail(match_id, lang)
         return public_review(detail, lang, with_coach=with_coach) if detail else None
+
+    def share_progress_payload(
+        self, lang: str, *, with_coach: bool = False
+    ) -> dict[str, Any] | None:
+        """The public part of Progress (all heroes); None before a reviewed match."""
+        career = self.career(lang)
+        return public_progress(career, lang, with_coach=with_coach)
 
     # --- history backup (history_backup.py) ---------------------------------------------
 

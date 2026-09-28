@@ -146,6 +146,14 @@ def share_payload(match_id: Annotated[int, Path(ge=1)], lang: str = "en", coach:
     return {"review": review}
 
 
+@router.get("/career/share", summary="The public part of Progress, to share")
+def share_progress(lang: str = "en", coach: bool = False):
+    progress = PLAYER_SERVICE.share_progress_payload(normalize_lang(lang), with_coach=coach)
+    if progress is None:
+        return JSONResponse(status_code=404, content={"status": "error", "code": "no_progress"})
+    return {"progress": progress}
+
+
 @router.get("/week", summary="The last seven days for the home screen")
 def player_week(lang: str = "en"):
     return {"week": PLAYER_SERVICE.week(normalize_lang(lang))}

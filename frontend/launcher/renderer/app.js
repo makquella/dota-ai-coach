@@ -171,6 +171,10 @@ const I18N = {
     whatsNewTitle: (version) => `What's new in ${version}`,
     whatsNewOk: "Got it",
     whatsNew: {
+      "0.7.0": [
+        "Progress → Share: a link to a page with your progress — matches, wins, averages, top heroes, what goes well and what to work on.",
+        "A new start-up splash: the logo comes alive while the service starts."
+      ],
       "0.6.1": [
         "Offlaner reviews: stuns and building damage against the enemy offlaner of the same match.",
         "The plan for the game shows your record on the hero next to its name.",
@@ -494,6 +498,10 @@ const I18N = {
     whatsNewTitle: (version) => `Что нового в ${version}`,
     whatsNewOk: "Понятно",
     whatsNew: {
+      "0.7.0": [
+        "«Прогресс» → «Поделиться»: ссылка на страницу с вашим прогрессом — матчи, победы, средние цифры, главные герои, что получается и над чем работать.",
+        "Новая заставка при запуске: логотип оживает, пока запускается служба."
+      ],
       "0.6.1": [
         "Разбор хардлайнера: оглушения и урон по строениям против вражеского хардлайнера того же матча.",
         "В плане на игру рядом с героем — ваш счёт на нём.",
