@@ -171,6 +171,11 @@ const I18N = {
     whatsNewTitle: (version) => `What's new in ${version}`,
     whatsNewOk: "Got it",
     whatsNew: {
+      "0.6.1": [
+        "Offlaner reviews: stuns and building damage against the enemy offlaner of the same match.",
+        "The plan for the game shows your record on the hero next to its name.",
+        "All versions and their changes are on the website: luhovyimvp.dev/changelog.html."
+      ],
       "0.6.0": [
         "Role reviews: runes for a mid against the enemy mid, stacks and sentries for a support.",
         "Progress: your record against each enemy hero — who is hardest for you and whom you beat most.",
@@ -489,6 +494,11 @@ const I18N = {
     whatsNewTitle: (version) => `Что нового в ${version}`,
     whatsNewOk: "Понятно",
     whatsNew: {
+      "0.6.1": [
+        "Разбор хардлайнера: оглушения и урон по строениям против вражеского хардлайнера того же матча.",
+        "В плане на игру рядом с героем — ваш счёт на нём.",
+        "Все версии и что в них изменилось — на сайте: luhovyimvp.dev/changelog.html."
+      ],
       "0.6.0": [
         "Разбор под роль: руны мида против вражеского мида, стаки и сентри саппорта.",
         "«Прогресс»: ваш счёт против каждого вражеского героя — кто неудобен и кого вы обыгрываете.",
