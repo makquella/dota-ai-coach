@@ -31,7 +31,7 @@ from app.peer_analysis import match_peers, peer_findings, player_roles
 from app.role_analysis import analyze_role
 
 # Bump when the rules change: stored reviews of an older version are rebuilt on read.
-ANALYSIS_VERSION = 10
+ANALYSIS_VERSION = 11
 MAX_ADVICE_SHOWN = 40
 
 # Static targets when OpenDota benchmarks are missing (GSI-only matches).
@@ -168,6 +168,8 @@ def analyze_match(
         sections["fights"]["stuns"] = role_block["stuns"]
         if role_block.get("enemy_stuns") is not None:
             sections["fights"]["enemy_stuns"] = role_block["enemy_stuns"]
+    if role_block and role_block.get("enemy_tower_damage") is not None and "fights" in sections:
+        sections["fights"]["enemy_tower_damage"] = role_block["enemy_tower_damage"]
     findings = _dedupe(findings)
 
     weights = SECTION_WEIGHTS[role]

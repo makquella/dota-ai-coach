@@ -423,6 +423,18 @@ FINDINGS: dict[str, dict[str, dict[str, str]]] = {
             "text": "{stuns} s of stuns against {enemy_stuns} s for the enemy offlaner — you set up the fights.",
         },
     },
+    "towers_behind": {
+        "ru": {
+            "title": "Мало давления на строения",
+            "text": "{damage} урона по строениям у вас против {enemy_damage} у {hero}. Хардлайнер, который не давит вышки, отдаёт карту.",
+            "drill": "После выигранной драки или когда враги показались на другой линии — сразу бейте ближайшую вышку, а не уходите в лес.",
+        },
+        "en": {
+            "title": "Little pressure on buildings",
+            "text": "{damage} building damage for you against {enemy_damage} for {hero}. An offlaner who does not hit towers gives up the map.",
+            "drill": "After a won fight, or when the enemies show on another lane, hit the nearest tower right away instead of going back to the jungle.",
+        },
+    },
     "stacks_good": {
         "ru": {
             "title": "Стаки для команды",

@@ -8,9 +8,10 @@ Parsed replays only (OpenDota counts runes, stacks and wards from the replay):
   tempo, so the findings sit in the laning section;
 - support: camps stacked and sentry wards over the whole game (a support with
   no sentries cannot answer invisible heroes or dewarding);
-- offlane: seconds of stuns against the enemy offlaner of the same match (the
-  offlaner's job in fights is control; heroes without stuns compare low on both
-  sides, so only a clear gap counts).
+- offlane: seconds of stuns and damage to buildings against the enemy offlaner
+  of the same match (control in fights and pressure on towers are the
+  offlaner's job; heroes without stuns compare low on both sides, so only a
+  clear gap counts).
 
 Returns (block, findings): the block is stored as analysis["role_play"] and shown
 in the review's laning / vision facts; the findings use _finding's shape.
@@ -29,6 +30,7 @@ MIN_MINUTES = 20
 STACKS_LOW_MAX = 1
 STACKS_MIN_MINUTES = 25
 STUNS_GAP_SECONDS = 15
+TOWER_GAP = 2000
 
 
 def _finding(
@@ -139,6 +141,7 @@ def _offlane(
     mine = round(stuns)
     block: dict[str, Any] = {"stuns": mine}
     findings: list[dict[str, Any]] = []
+    findings.extend(_offlane_towers(facts, opendota, block))
     if enemy_stuns is None:
         return block, findings
     theirs = round(enemy_stuns)
@@ -160,3 +163,29 @@ def _offlane(
             _finding("stuns_good", "strength", "fights", stuns=mine, enemy_stuns=theirs)
         )
     return block, findings
+
+
+def _offlane_towers(
+    facts: dict[str, Any], opendota: dict[str, Any] | None, block: dict[str, Any]
+) -> list[dict[str, Any]]:
+    """Damage to buildings against the enemy offlaner: a clear gap only."""
+    towers = facts.get("tower_damage")
+    enemy_hero, enemy_towers = _enemy_same_role(opendota, "offlane", "tower_damage")
+    if not isinstance(towers, int) or enemy_towers is None:
+        return []
+    theirs = round(enemy_towers)
+    block.update(tower_damage=towers, enemy_tower_damage=theirs)
+    if theirs >= towers + TOWER_GAP and theirs >= 2 * max(towers, 1):
+        return [
+            _finding(
+                "towers_behind",
+                "improve",
+                "fights",
+                severity=1,
+                weight=0.8,
+                damage=towers,
+                enemy_damage=theirs,
+                hero=enemy_hero,
+            )
+        ]
+    return []
