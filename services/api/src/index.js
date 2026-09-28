@@ -9,6 +9,9 @@
 //   GET    /v1/share/<id>           -> the shared review as JSON
 //   DELETE /v1/share/<id>           -> deletes it (header x-delete-token)
 //   GET    /r/<id>                  -> the shared review as a page (with an Open Graph preview)
+//   PUT    /v1/transfer/<id>        -> keeps an encrypted history backup for 15 minutes (src/transfer.js)
+//   POST   /v1/transfer/<id>/claim  -> hands it over (3 downloads at most)
+//   DELETE /v1/transfer/<id>        -> the receiving launcher deletes it once imported
 //   GET    /v1/admin/reports        -> latest reports (Bearer ADMIN_TOKEN; off without the secret)
 //   GET    /v1/admin/report/<id>    -> one report as text (same)
 //   cron                            -> deletes reports older than RETENTION_DAYS, expired shares, old rate counters
@@ -38,6 +41,14 @@ import {
   shareId,
   validateShare
 } from "./share.js";
+import {
+  TRANSFER_MAX_BYTES,
+  TRANSFER_MINUTES,
+  TRANSFER_RATE_PER_HOUR,
+  TRANSFER_TRIES,
+  isSealed,
+  isTransferId
+} from "./transfer.js";
 
 const JSON_HEADERS = { "content-type": "application/json; charset=utf-8", "cache-control": "no-store" };
 const HTML_HEADERS = {
@@ -64,6 +75,8 @@ export function config(env) {
   return {
     reports: flag(env.REPORTS_ENABLED, true),
     shares: flag(env.SHARES_ENABLED, true),
+    transfers: flag(env.TRANSFERS_ENABLED, true),
+    transfer_minutes: TRANSFER_MINUTES,
     share_days: SHARE_DAYS,
     stats: false,
     sessions: false,
@@ -255,6 +268,91 @@ export async function sharePage(request, id, env, now = Date.now()) {
   return new Response(html, { headers: { ...HTML_HEADERS, "cache-control": "public, max-age=300" } });
 }
 
+function clientAddress(request) {
+  return request.headers.get("cf-connecting-ip") || "unknown";
+}
+
+export async function putTransfer(request, id, env, now = Date.now()) {
+  if (!config(env).transfers) {
+    return json({ ok: false, code: "disabled" }, 503);
+  }
+  if (!isTransferId(id)) {
+    return json({ ok: false, code: "bad_id" }, 400);
+  }
+  const installId = String(request.headers.get("x-install-id") || "").toLowerCase();
+  if (!/^[a-z0-9-]{8,64}$/.test(installId)) {
+    return json({ ok: false, code: "bad_install_id" }, 400);
+  }
+  const length = Number(request.headers.get("content-length") || 0);
+  if (length > TRANSFER_MAX_BYTES) {
+    return json({ ok: false, code: "too_big" }, 413);
+  }
+  const body = new Uint8Array(await request.arrayBuffer());
+  if (body.length > TRANSFER_MAX_BYTES) {
+    return json({ ok: false, code: "too_big" }, 413);
+  }
+  if (!isSealed(body)) {
+    return json({ ok: false, code: "bad_body" }, 400);
+  }
+  const address = await sha256(`dac-rate:${clientAddress(request)}`);
+  const allowed =
+    (await allow(env, `transfer:install:${installId}`, TRANSFER_RATE_PER_HOUR.install, now)) &&
+    (await allow(env, `transfer:address:${address}`, TRANSFER_RATE_PER_HOUR.address, now));
+  if (!allowed) {
+    return json({ ok: false, code: "rate_limited" }, 429);
+  }
+  await env.DB.prepare("DELETE FROM transfers WHERE expires_at < ?1").bind(now).run();
+  const taken = await env.DB.prepare("SELECT id FROM transfers WHERE id = ?1").bind(id).first();
+  if (taken) {
+    return json({ ok: false, code: "taken" }, 409);
+  }
+  const expiresAt = now + TRANSFER_MINUTES * 60_000;
+  await env.DB.prepare(
+    "INSERT INTO transfers (id, created_at, expires_at, install_id, size, body) VALUES (?1, ?2, ?3, ?4, ?5, ?6)"
+  )
+    .bind(id, now, expiresAt, installId, body.length, body)
+    .run();
+  return json({ ok: true, id, expires_at: expiresAt }, 201);
+}
+
+export async function claimTransfer(request, id, env, now = Date.now()) {
+  if (!config(env).transfers) {
+    return json({ ok: false, code: "disabled" }, 503);
+  }
+  const address = await sha256(`dac-rate:${clientAddress(request)}`);
+  // Every claim counts, found or not: guessing ids is slow.
+  if (!(await allow(env, `transfer:claim:${address}`, TRANSFER_RATE_PER_HOUR.claim, now))) {
+    return json({ ok: false, code: "rate_limited" }, 429);
+  }
+  if (!isTransferId(id)) {
+    return json({ ok: false, code: "not_found" }, 404);
+  }
+  const row = await env.DB.prepare("SELECT body, expires_at, tries FROM transfers WHERE id = ?1").bind(id).first();
+  if (!row || Number(row.expires_at) < now) {
+    await env.DB.prepare("DELETE FROM transfers WHERE id = ?1").bind(id).run();
+    return json({ ok: false, code: "not_found" }, 404);
+  }
+  if (Number(row.tries) + 1 >= TRANSFER_TRIES) {
+    await env.DB.prepare("DELETE FROM transfers WHERE id = ?1").bind(id).run();
+  } else {
+    await env.DB.prepare("UPDATE transfers SET tries = tries + 1 WHERE id = ?1").bind(id).run();
+  }
+  return new Response(new Uint8Array(row.body), {
+    headers: { "content-type": "application/octet-stream", "cache-control": "no-store" }
+  });
+}
+
+export async function deleteTransfer(request, id, env, now = Date.now()) {
+  const address = await sha256(`dac-rate:${clientAddress(request)}`);
+  if (!(await allow(env, `transfer:claim:${address}`, TRANSFER_RATE_PER_HOUR.claim, now))) {
+    return json({ ok: false, code: "rate_limited" }, 429);
+  }
+  if (isTransferId(id)) {
+    await env.DB.prepare("DELETE FROM transfers WHERE id = ?1").bind(id).run();
+  }
+  return json({ ok: true });
+}
+
 export async function deleteDevice(installId, env) {
   const id = String(installId || "").toLowerCase();
   if (!/^[a-z0-9-]{8,64}$/.test(id)) {
@@ -265,6 +363,7 @@ export async function deleteDevice(installId, env) {
   await deleteObjects(env, rows);
   await env.DB.prepare("DELETE FROM reports WHERE install_id = ?1").bind(id).run();
   await env.DB.prepare("DELETE FROM shares WHERE install_id = ?1").bind(id).run();
+  await env.DB.prepare("DELETE FROM transfers WHERE install_id = ?1").bind(id).run();
   return json({ ok: true, deleted: rows.length });
 }
 
@@ -326,6 +425,7 @@ export async function cleanup(env, now = Date.now()) {
     }
   }
   await env.DB.prepare("DELETE FROM shares WHERE expires_at < ?1").bind(now).run();
+  await env.DB.prepare("DELETE FROM transfers WHERE expires_at < ?1").bind(now).run();
   await env.DB.prepare("DELETE FROM rate WHERE hour < ?1").bind(hourWindow(now) - 48).run();
   return removed;
 }
@@ -356,6 +456,16 @@ export default {
         return shared
           ? json({ ok: true, review: shared.review, expires_at: shared.expiresAt })
           : json({ ok: false, code: "not_found" }, 404);
+      }
+      const transfer = path.match(/^\/v1\/transfer\/([^/]{1,8})(\/claim)?$/);
+      if (transfer && request.method === "PUT" && !transfer[2]) {
+        return await putTransfer(request, transfer[1], env);
+      }
+      if (transfer && request.method === "POST" && transfer[2]) {
+        return await claimTransfer(request, transfer[1], env);
+      }
+      if (transfer && request.method === "DELETE" && !transfer[2]) {
+        return await deleteTransfer(request, transfer[1], env);
       }
       const pageMatch = path.match(/^\/r\/([^/]{1,40})$/);
       if (pageMatch && (request.method === "GET" || request.method === "HEAD")) {

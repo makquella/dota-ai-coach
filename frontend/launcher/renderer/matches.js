@@ -113,8 +113,14 @@
         enemy_half: "on the enemy half",
         unspent_gold: "with 1000+ unspent gold",
         warned: "after a warning",
-        soon_after_respawn: "right after respawning"
+        soon_after_respawn: "right after respawning",
+        saver_ready: "a saving item was ready",
+        burst: "killed in under 3 s"
       },
+      deathLastTitle: "HP in the last 20 s",
+      deathBurst: (seconds) => `From 70%+ HP to death in ${seconds} s`,
+      deathReady: "Ready and not used:",
+      deathReadyStunned: "Ready, but you were disabled:",
       deathZone: { top: "top lane", mid: "mid lane", bot: "bottom lane", jungle: "jungle", base: "base" },
       mapEmpty: "No positions for this match yet. They come from a parsed replay (the app asks OpenDota to parse your 5 newest matches of the week) or from a match played with the app running: your path and where you died.",
       mapHint: {
@@ -293,6 +299,18 @@
       friendHeroGames: (g1, w1, g2, w2) => `you ${g1} · ${w1 ?? "—"}%   friend ${g2} · ${w2 ?? "—"}%`,
       friendTheirHeroes: (name) => `Most played by ${name}`,
       friendNote: "Averages per game, public OpenDota data, ranked and normal modes only. Core or support is judged by last hits a minute.",
+      rankTitle: "Your rank medal",
+      rankUp: (from, to, since) => `Up from ${from} to ${to} since ${since}.`,
+      rankDown: (from, to, since) => `Down from ${from} to ${to} since ${since}.`,
+      rankNote: "Noted at every sync with OpenDota when the medal changes.",
+      buildTitle: (hero) => `Your build on ${hero}`,
+      buildNote: (n, wins) => `Your items in ${n} reviewed games on the hero (${wins} wins): when they come in wins and in losses, and how often you win with and without them.`,
+      buildItem: "Item",
+      buildGames: "Games",
+      buildWinrate: "Wins with it",
+      buildWithout: "Without it",
+      buildWinTime: "In wins",
+      buildLossTime: "In losses",
       selfTitle: (hero) => `Your best vs your worst games on ${hero}`,
       selfNote: (n) => `The best third of your last ${n} reviewed games on the hero against the worst third, by review score.`,
       selfBest: "Best",
@@ -497,8 +515,14 @@
         enemy_half: "на половине врага",
         unspent_gold: "с 1000+ непотраченного золота",
         warned: "после предупреждения",
-        soon_after_respawn: "сразу после возрождения"
+        soon_after_respawn: "сразу после возрождения",
+        saver_ready: "спасающий предмет был готов",
+        burst: "убиты быстрее 3 с"
       },
+      deathLastTitle: "Здоровье за последние 20 с",
+      deathBurst: (seconds) => `С 70%+ здоровья до смерти за ${seconds} с`,
+      deathReady: "Был готов и не нажат:",
+      deathReadyStunned: "Был готов, но герой был в контроле:",
       deathZone: { top: "верхняя линия", mid: "центр", bot: "нижняя линия", jungle: "лес", base: "база" },
       mapEmpty: "Для этого матча пока нет позиций. Они берутся из разобранного реплея (приложение само просит OpenDota разобрать 5 последних матчей за неделю) или из матча, сыгранного с запущенным приложением: ваш путь и места смертей.",
       mapHint: {
@@ -677,6 +701,18 @@
       friendHeroGames: (g1, w1, g2, w2) => `вы ${g1} · ${w1 ?? "—"}%   друг ${g2} · ${w2 ?? "—"}%`,
       friendTheirHeroes: (name) => `Чаще всего играет ${name}`,
       friendNote: "Средние за игру, открытые данные OpenDota, только рейтинговые и обычные режимы. Кор или саппорт — по добиваниям в минуту.",
+      rankTitle: "Ваше звание",
+      rankUp: (from, to, since) => `С ${since} вы поднялись с ${from} до ${to}.`,
+      rankDown: (from, to, since) => `С ${since} звание снизилось с ${from} до ${to}.`,
+      rankNote: "Приложение записывает звание при каждой синхронизации с OpenDota, когда оно меняется.",
+      buildTitle: (hero) => `Ваш билд на ${hero}`,
+      buildNote: (n, wins) => `Ваши предметы в ${n} разобранных матчах на герое (побед: ${wins}): когда они приходят в победах и в поражениях и как часто вы выигрываете с ними и без них.`,
+      buildItem: "Предмет",
+      buildGames: "Игр",
+      buildWinrate: "Побед с ним",
+      buildWithout: "Без него",
+      buildWinTime: "В победах",
+      buildLossTime: "В поражениях",
       selfTitle: (hero) => `Лучшие и худшие матчи на ${hero}`,
       selfNote: (n) => `Лучшая треть из ${n} последних разобранных матчей на герое против худшей трети, по оценке разбора.`,
       selfBest: "Лучшие",
@@ -2321,6 +2357,89 @@
     );
   }
 
+  // The rank medal over time (app/rank_history.py): shown once it has changed.
+  function rankHistoryCard(history) {
+    if (!history || !(history.steps || []).length || history.steps.length < 2) {
+      return null;
+    }
+    const day = (iso) => new Date(`${iso}T12:00:00Z`).toLocaleDateString(state.locale === "ru" ? "ru-RU" : "en-GB");
+    const line = history.change >= 0
+      ? t("rankUp", history.first, history.current, day(history.since))
+      : t("rankDown", history.first, history.current, day(history.since));
+    return card(
+      t("rankTitle"),
+      "trending-up",
+      h(
+        "div",
+        { class: "draft" },
+        h("p", { text: line }),
+        h(
+          "div",
+          { class: "death-summary" },
+          history.steps.map((step) => h("span", { class: "chip" }, h("span", { text: step.label || "—" }), h("span", { class: "muted num", text: ` · ${day(step.date)}` })))
+        ),
+        h("p", { class: "muted small", text: t("rankNote") })
+      )
+    );
+  }
+
+  // The player's own build on the hero (app/hero_build.py).
+  function heroBuildCard(build) {
+    if (!build || !(build.items || []).length) {
+      return null;
+    }
+    const pct = (value) => (value == null ? "—" : `${value}%`);
+    const time = (value) => (value == null ? "—" : clock(value));
+    return card(
+      t("buildTitle", build.hero),
+      "coins",
+      h(
+        "div",
+        { class: "draft" },
+        h("p", { class: "muted small", text: t("buildNote", build.matches, build.wins) }),
+        build.highlights.length ? coachList(build.highlights, "idle") : null,
+        h(
+          "div",
+          { class: "table-wrap table-wrap-tight" },
+          h(
+            "table",
+            { class: "table" },
+            h(
+              "thead",
+              {},
+              h(
+                "tr",
+                {},
+                h("th", { text: t("buildItem") }),
+                h("th", { class: "num-col", text: t("buildGames") }),
+                h("th", { class: "num-col", text: t("buildWinrate") }),
+                h("th", { class: "num-col hide-narrow", text: t("buildWithout") }),
+                h("th", { class: "num-col", text: t("buildWinTime") }),
+                h("th", { class: "num-col", text: t("buildLossTime") })
+              )
+            ),
+            h(
+              "tbody",
+              {},
+              build.items.map((row) =>
+                h(
+                  "tr",
+                  {},
+                  h("td", {}, itemLabel(row.item, row.item)),
+                  h("td", { class: "num-col num", text: String(row.games) }),
+                  h("td", { class: "num-col num", text: pct(row.winrate) }),
+                  h("td", { class: "num-col num muted hide-narrow", text: pct(row.winrate_without) }),
+                  h("td", { class: "num-col num", text: time(row.t_win) }),
+                  h("td", { class: "num-col num muted", text: time(row.t_loss) })
+                )
+              )
+            )
+          )
+        )
+      )
+    );
+  }
+
   function selfCompareCard(compare) {
     if (!compare) {
       return null;
@@ -2571,12 +2690,57 @@
           h("span", { text: facts.join(" · ") || t("deathNoFacts") }),
           death.warning
             ? h("span", { class: "muted small death-warning", text: t("deathWarned", clock(death.warning.t), death.warning.action || "") })
-            : null
+            : null,
+          deathLast(death)
         )
       );
     });
     const body = h("div", {}, summary, h("ol", { class: "moments deaths-list" }, rows));
     return card(t("deathsTitle", deaths.length), "skull", body);
+  }
+
+  // The last 20 s before a death (live GSI, app/last_moments.py): an HP line,
+  // a burst kill and the saving items that were ready.
+  function deathLast(death) {
+    const last = death.last;
+    if (!last || !Array.isArray(last.hp) || !last.hp.length) {
+      return null;
+    }
+    const W = 160;
+    const H = 32;
+    const x = (s) => ((20 + Math.max(-20, Math.min(0, s))) / 20) * W;
+    const y = (hp) => H - 2 - (Math.max(0, Math.min(100, hp)) / 100) * (H - 4);
+    const points = [...last.hp, [0, 0]].map(([s, hp]) => `${x(s).toFixed(1)},${y(hp).toFixed(1)}`).join(" ");
+    const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+    svg.setAttribute("class", "death-hp");
+    svg.setAttribute("role", "img");
+    svg.setAttribute("aria-label", `${t("deathLastTitle")}: ${last.hp.map(([, hp]) => `${hp}%`).join(", ")}`);
+    const line = document.createElementNS("http://www.w3.org/2000/svg", "polyline");
+    line.setAttribute("points", points);
+    svg.append(line);
+    const lines = [];
+    if (last.burst_s) {
+      lines.push(h("span", { class: "muted small", text: t("deathBurst", last.burst_s) }));
+    }
+    // Ready while the hero could act (the same second): "not pressed"; ready only
+    // while disabled: said as such.
+    const unpressed = (death.notes || []).includes("saver_ready");
+    const keys = unpressed ? last.usable || [] : last.ready || [];
+    const names = (unpressed ? last.usable_names : last.ready_names) || [];
+    if (keys.length) {
+      lines.push(
+        h(
+          "span",
+          { class: "muted small death-ready" },
+          h("span", { text: t(unpressed ? "deathReady" : "deathReadyStunned") }),
+          keys.map((key, index) =>
+            h("span", { class: "death-item" }, window.DotaIcons ? window.DotaIcons.itemPicture(document, key, "sm", names[index]) : null, h("span", { text: names[index] || key }))
+          )
+        )
+      );
+    }
+    return h("span", { class: "death-last", title: t("deathLastTitle") }, svg, lines.length ? h("span", { class: "death-last-text" }, lines) : null);
   }
 
   function momentsCard(analysis) {
@@ -3506,6 +3670,8 @@
       state.careerHero === null ? friendCard() : "",
       opponentsCard(career.opponents) || "",
       selfCompareCard(career.self_compare) || "",
+      heroBuildCard(career.hero_build) || "",
+      state.careerHero === null ? rankHistoryCard(career.rank_history) || "" : "",
       goalCard(career.focus) || "",
       planCard,
       strengthsCard || "",

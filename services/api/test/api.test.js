@@ -8,6 +8,7 @@ import { RATE_PER_HOUR, redact, reportId, summarize, validateReport } from "../s
 function fakeEnv(vars = {}, { r2 = true } = {}) {
   const reports = [];
   const shares = [];
+  const transfers = [];
   const rate = new Map();
   const objects = new Map();
   const DB = {
@@ -29,6 +30,9 @@ function fakeEnv(vars = {}, { r2 = true } = {}) {
           }
           if (sql.startsWith("SELECT body, expires_at, lang FROM shares WHERE id") || sql.startsWith("SELECT delete_hash FROM shares WHERE id")) {
             return shares.find((r) => r.id === args[0]) || null;
+          }
+          if (sql.startsWith("SELECT id FROM transfers WHERE id") || sql.startsWith("SELECT body, expires_at, tries FROM transfers WHERE id")) {
+            return transfers.find((r) => r.id === args[0]) || null;
           }
           throw new Error(`unexpected first(): ${sql}`);
         },
@@ -55,6 +59,17 @@ function fakeEnv(vars = {}, { r2 = true } = {}) {
             shares.splice(0, shares.length, ...shares.filter((r) => r.install_id !== args[0]));
           } else if (sql.startsWith("DELETE FROM shares WHERE expires_at")) {
             shares.splice(0, shares.length, ...shares.filter((r) => r.expires_at >= args[0]));
+          } else if (sql.startsWith("INSERT INTO transfers")) {
+            const [id, created_at, expires_at, install_id, size, body] = args;
+            transfers.push({ id, created_at, expires_at, install_id, size, tries: 0, body: [...body] });
+          } else if (sql.startsWith("UPDATE transfers SET tries")) {
+            transfers.find((r) => r.id === args[0]).tries += 1;
+          } else if (sql.startsWith("DELETE FROM transfers WHERE id")) {
+            transfers.splice(0, transfers.length, ...transfers.filter((r) => r.id !== args[0]));
+          } else if (sql.startsWith("DELETE FROM transfers WHERE install_id")) {
+            transfers.splice(0, transfers.length, ...transfers.filter((r) => r.install_id !== args[0]));
+          } else if (sql.startsWith("DELETE FROM transfers WHERE expires_at")) {
+            transfers.splice(0, transfers.length, ...transfers.filter((r) => r.expires_at >= args[0]));
           } else if (sql.startsWith("INSERT INTO reports")) {
             const [id, created_at, install_id, version, os, lang, size, summary, r2_key, body] = args;
             // D1 returns a BLOB as an array of bytes.
@@ -89,7 +104,7 @@ function fakeEnv(vars = {}, { r2 = true } = {}) {
       for (const key of [].concat(keys)) objects.delete(key);
     }
   };
-  return { env: { DB, ...(r2 ? { REPORTS } : {}), ...vars }, reports, shares, objects };
+  return { env: { DB, ...(r2 ? { REPORTS } : {}), ...vars }, reports, shares, transfers, objects };
 }
 
 const ctx = { waitUntil: (promise) => promise };
@@ -169,7 +184,16 @@ test("bad bodies, rate limits and the kill switch", async () => {
   assert.equal(config(off.env).reports, false);
   assert.equal((await worker.fetch(upload(REPORT), off.env, ctx)).status, 503);
   const answer = await (await worker.fetch(new Request("https://api.example/v1/config"), off.env, ctx)).json();
-  assert.deepEqual(answer, { reports: false, shares: true, share_days: 90, stats: false, sessions: false, retention_days: 180 });
+  assert.deepEqual(answer, {
+    reports: false,
+    shares: true,
+    transfers: true,
+    transfer_minutes: 15,
+    share_days: 90,
+    stats: false,
+    sessions: false,
+    retention_days: 180
+  });
 });
 
 test("a player can delete their reports; old ones expire", async () => {
@@ -371,4 +395,80 @@ test("a shared progress page is checked field by field and rendered", async () =
   const bad = await worker.fetch(shareRequest({ install_id: REPORT.install_id, progress: { analyzed: 0 } }), env, ctx);
   assert.equal(bad.status, 400);
   assert.equal((await bad.json()).code, "bad_progress");
+});
+
+
+// --- «Перенос истории по коду» --------------------------------------------------------
+
+function sealed(size = 64) {
+  const bytes = new Uint8Array(size);
+  bytes.set([0x57, 0x44, 0x54, 0x31]);
+  return bytes;
+}
+
+function putTransferRequest(id, body, { install = REPORT.install_id, ip = "198.51.100.9" } = {}) {
+  return new Request(`https://api.example/v1/transfer/${id}`, {
+    method: "PUT",
+    headers: { "content-type": "application/octet-stream", "x-install-id": install, "cf-connecting-ip": ip },
+    body
+  });
+}
+
+function claimRequest(id, ip = "198.51.100.10") {
+  return new Request(`https://api.example/v1/transfer/${id}/claim`, { method: "POST", headers: { "cf-connecting-ip": ip } });
+}
+
+test("an encrypted history is kept 15 minutes, downloaded and deleted by the receiver", async () => {
+  const { env, transfers } = fakeEnv();
+  const put = await worker.fetch(putTransferRequest("AB2C", sealed()), env, ctx);
+  assert.equal(put.status, 201);
+  assert.equal((await put.json()).id, "AB2C");
+  assert.equal(transfers.length, 1);
+  assert.equal((await worker.fetch(putTransferRequest("AB2C", sealed()), env, ctx)).status, 409, "the id is taken");
+
+  const claim = await worker.fetch(claimRequest("AB2C"), env, ctx);
+  assert.equal(claim.status, 200);
+  const bytes = new Uint8Array(await claim.arrayBuffer());
+  assert.deepEqual([...bytes.slice(0, 4)], [0x57, 0x44, 0x54, 0x31]);
+  assert.equal(transfers.length, 1, "kept for a retry after a mistyped code");
+  const done = await worker.fetch(new Request("https://api.example/v1/transfer/AB2C", { method: "DELETE" }), env, ctx);
+  assert.equal(done.status, 200);
+  assert.equal(transfers.length, 0);
+  assert.equal((await worker.fetch(claimRequest("AB2C"), env, ctx)).status, 404);
+});
+
+test("three downloads at most", async () => {
+  const { env, transfers } = fakeEnv();
+  await worker.fetch(putTransferRequest("EF3G", sealed()), env, ctx);
+  for (let i = 0; i < 3; i += 1) {
+    assert.equal((await worker.fetch(claimRequest("EF3G"), env, ctx)).status, 200);
+  }
+  assert.equal(transfers.length, 0);
+  assert.equal((await worker.fetch(claimRequest("EF3G"), env, ctx)).status, 404);
+});
+
+test("transfers refuse other bodies, big files and expire", async () => {
+  const { env, transfers } = fakeEnv();
+  assert.equal((await worker.fetch(putTransferRequest("AB2C", new Uint8Array(64)), env, ctx)).status, 400);
+  assert.equal((await worker.fetch(putTransferRequest("ab2c", sealed()), env, ctx)).status, 400, "lowercase is not an id");
+  assert.equal((await worker.fetch(putTransferRequest("AB2C", sealed(1_600_000)), env, ctx)).status, 413);
+  assert.equal((await worker.fetch(putTransferRequest("AB2C", sealed(), { install: "x" }), env, ctx)).status, 400);
+  const off = await worker.fetch(putTransferRequest("AB2C", sealed()), { ...env, TRANSFERS_ENABLED: "false" }, ctx);
+  assert.equal(off.status, 503);
+
+  await worker.fetch(putTransferRequest("CD3E", sealed()), env, ctx);
+  assert.equal(transfers.length, 1);
+  await cleanup(env, Date.now() + 16 * 60_000);
+  assert.equal(transfers.length, 0);
+  await worker.fetch(putTransferRequest("CD3E", sealed()), env, ctx);
+  await worker.fetch(new Request(`https://api.example/v1/device/${REPORT.install_id}`, { method: "DELETE" }), env, ctx);
+  assert.equal(transfers.length, 0, "the device delete removes it too");
+});
+
+test("guessing codes is slow", async () => {
+  const { env } = fakeEnv();
+  for (let i = 0; i < 30; i += 1) {
+    assert.equal((await worker.fetch(claimRequest("ZZZZ", "203.0.113.5"), env, ctx)).status, 404);
+  }
+  assert.equal((await worker.fetch(claimRequest("ZZZZ", "203.0.113.5"), env, ctx)).status, 429);
 });

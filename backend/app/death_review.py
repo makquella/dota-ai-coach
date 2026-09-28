@@ -8,7 +8,11 @@ For each death (facts.deaths_log, merged from OpenDota and the GSI timeline):
 - who killed the hero (OpenDota kill logs);
 - unspent gold at the moment of death (GSI only);
 - the advice shown in the WARNING_WINDOW seconds before it (the live advice log);
-- a death soon after respawning from the previous one.
+- a death soon after respawning from the previous one;
+- the last seconds before it (GSI, last_moments.py): the HP curve, a burst kill
+  (`burst`), and saving items that were ready while the hero could still act
+  (`saver_ready`: ready on a second of the last 5 s without a stun, hex or
+  mute — `usable`, the same sample).
 
 Only facts, no guesses: a missing value stays out. The launcher renders the
 zone and note ids in the review language («Смерти» card).
@@ -97,8 +101,27 @@ def review_deaths(facts: dict[str, Any]) -> dict[str, Any] | None:
             if 0 <= t - back <= SOON_AFTER_RESPAWN:
                 row["after_respawn"] = t - back
                 notes.append("soon_after_respawn")
+        last = death.get("last")
+        if isinstance(last, dict) and last.get("hp"):
+            row["last"] = {
+                "hp": last["hp"],
+                "ready": list(last.get("ready") or []),
+                "usable": list(last.get("usable") or []),
+                "free_s": last.get("free_s", 0),
+            }
+            if last.get("burst_s"):
+                row["last"]["burst_s"] = last["burst_s"]
+                notes.append("burst")
+            if last.get("usable"):
+                notes.append("saver_ready")
         row["notes"] = notes
         rows.append(row)
         previous = death
     counts = Counter(note for row in rows for note in row["notes"])
-    return {"deaths": rows, "notes": dict(counts), "window": WARNING_WINDOW}
+    return {
+        "deaths": rows,
+        "notes": dict(counts),
+        "window": WARNING_WINDOW,
+        # How many deaths have their last seconds (live GSI only).
+        "with_last": sum(1 for row in rows if "last" in row),
+    }

@@ -305,6 +305,7 @@ def facts_from_timeline(timeline: dict[str, Any]) -> dict[str, Any]:
                     "level": _int(death.get("level")),
                     "x": _int(death.get("x")),
                     "y": _int(death.get("y")),
+                    "last": _last_moments(death.get("last")),
                 }
                 for death in timeline.get("deaths") or []
                 if isinstance(death, dict) and _int(death.get("t")) is not None
@@ -389,6 +390,30 @@ def merge_facts(
     return merged
 
 
+def _last_moments(value: Any) -> dict[str, Any] | None:
+    """The stored last seconds before a death (last_moments.py), re-checked."""
+    if not isinstance(value, dict):
+        return None
+    hp = [
+        [int(point[0]), int(point[1])]
+        for point in value.get("hp") or []
+        if isinstance(point, list)
+        and len(point) == 2
+        and all(isinstance(v, (int, float)) and not isinstance(v, bool) for v in point)
+    ]
+    if not hp:
+        return None
+    result: dict[str, Any] = {
+        "hp": hp,
+        "ready": [str(name) for name in value.get("ready") or [] if isinstance(name, str)],
+        "usable": [str(name) for name in value.get("usable") or [] if isinstance(name, str)],
+        "free_s": _int(value.get("free_s")) or 0,
+    }
+    if _int(value.get("burst_s")):
+        result["burst_s"] = _int(value.get("burst_s"))
+    return result
+
+
 def _merge_deaths(
     od_deaths: list[dict[str, Any]], gsi_deaths: list[dict[str, Any]]
 ) -> list[dict[str, Any]]:
@@ -403,7 +428,7 @@ def _merge_deaths(
         )
         entry = dict(death)
         if near and abs((near.get("t") or 0) - (death.get("t") or 0)) <= 20:
-            for key in ("gold", "respawn", "level", "x", "y"):
+            for key in ("gold", "respawn", "level", "x", "y", "last"):
                 if entry.get(key) is None and near.get(key) is not None:
                     entry[key] = near[key]
         result.append(entry)

@@ -18,6 +18,7 @@ players of the same hero) are preferred over the static targets below.
 
 from __future__ import annotations
 
+from collections import Counter
 from datetime import UTC, datetime
 from typing import Any
 
@@ -31,7 +32,10 @@ from app.peer_analysis import match_peers, peer_findings, player_roles
 from app.role_analysis import analyze_role
 
 # Bump when the rules change: stored reviews of an older version are rebuilt on read.
-ANALYSIS_VERSION = 11
+ANALYSIS_VERSION = 12
+# Last seconds before deaths (last_moments.py, via death_review.py).
+SAVER_DEATHS = 2
+BURST_DEATHS = 3
 MAX_ADVICE_SHOWN = 40
 
 # Static targets when OpenDota benchmarks are missing (GSI-only matches).
@@ -156,6 +160,8 @@ def analyze_match(
     findings.extend(map_findings)
     follow_block, follow_findings = analyze_advice_follow(facts)
     findings.extend(follow_findings)
+    death_block = review_deaths(facts)
+    findings.extend(_last_moment_findings(death_block))
     role_block, role_findings = analyze_role(facts, opendota, position)
     findings.extend(role_findings)
     if role_block and "runes" in role_block and "laning" in sections:
@@ -225,13 +231,50 @@ def analyze_match(
         "peers": peers,
         "draft": draft_block,
         "map": map_block,
-        "death_review": review_deaths(facts),
+        "death_review": death_block,
+        # Deaths with their last seconds recorded (live GSI): focus_goal REQUIRES it.
+        "last_moments": (death_block or {}).get("with_last") or 0,
         "advice": (facts.get("advice_log") or [])[:MAX_ADVICE_SHOWN],
         "advice_follow": follow_block,
         "role_play": role_block,
         # The enemy lineup (OpenDota), for the career's hardest opponents.
         "enemy_heroes": _enemy_heroes(opendota),
     }
+
+
+def _last_moment_findings(death_block: dict[str, Any] | None) -> list[dict[str, Any]]:
+    """From the last seconds before deaths (GSI): a saving item left unpressed
+    (SAVER_DEATHS+ deaths) and burst deaths (BURST_DEATHS+)."""
+    if not death_block or not death_block.get("with_last"):
+        return []
+    rows = [row for row in death_block["deaths"] if "last" in row]
+    found: list[dict[str, Any]] = []
+    unused = [row for row in rows if "saver_ready" in row["notes"]]
+    if len(unused) >= SAVER_DEATHS:
+        items = Counter(name for row in unused for name in row["last"]["usable"])
+        _finding(
+            found,
+            "died_with_saver_ready",
+            "improve",
+            "survival",
+            severity=2,
+            weight=1.4,
+            count=len(unused),
+            item=items.most_common(1)[0][0],
+            times=[row["t"] for row in unused],
+        )
+    bursts = [row for row in rows if "burst" in row["notes"]]
+    if len(bursts) >= BURST_DEATHS:
+        _finding(
+            found,
+            "burst_deaths",
+            "improve",
+            "survival",
+            severity=1,
+            count=len(bursts),
+            of=len(rows),
+        )
+    return found
 
 
 def _enemy_heroes(opendota: dict[str, Any] | None) -> list[int]:

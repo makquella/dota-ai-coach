@@ -22,6 +22,7 @@ const path = require("node:path");
 const zlib = require("node:zlib");
 
 const { SCHEME: DOTA_ASSET_SCHEME, createAssetHandler } = require("./dota-assets");
+const transferCode = require("./transfer-code");
 const { createDotaWatcher } = require("./dota-watcher");
 const { createOverlayController, OVERLAY_DEFAULTS } = require("./overlay-window");
 const {
@@ -158,6 +159,7 @@ let dotaLocatePromise = null;
 let autoInstallRunning = false;
 const live = {
   inMatch: false,
+  postGame: false,
   pollTimer: null,
   polling: false,
   details: emptyLiveDetails(),
@@ -408,7 +410,7 @@ function gsiEndpoint() {
 }
 
 function emptyLiveDetails() {
-  return { connected: false, inMatch: false, hero: null, coverage: null, role: null, clockTime: null, secondsSinceLastGsi: null, stage: "unknown" };
+  return { connected: false, inMatch: false, postGame: false, hero: null, coverage: null, role: null, clockTime: null, secondsSinceLastGsi: null, stage: "unknown" };
 }
 
 // "auto" follows the system language; the player can pick one in Settings.
@@ -524,7 +526,8 @@ function refreshPresence() {
     unlocked: overlay.isUnlocked(),
     demoRunning: processStatus.demo === "running",
     dota,
-    inMatch: live.inMatch
+    inMatch: live.inMatch,
+    postGame: live.postGame
   });
   overlay.setVisible(decision.visible);
   const status = dotaStatus({ dota, inMatch: live.inMatch });
@@ -573,6 +576,7 @@ async function pollGsiStatus() {
       details = {
         connected: Boolean(status.gsi_connected),
         inMatch: Boolean(status.in_match),
+        postGame: Boolean(status.post_game),
         hero: status.hero && status.hero !== "Unknown" ? String(status.hero) : null,
         // "full" carry advisor or "safety" (survival advice only) for this hero.
         coverage: status.hero_coverage || null,
@@ -615,8 +619,9 @@ async function pollGsiStatus() {
   }
   const detailsChanged = recentChanged || JSON.stringify(details) !== JSON.stringify(live.details);
   live.details = details;
-  if (details.inMatch !== live.inMatch) {
+  if (details.inMatch !== live.inMatch || details.postGame !== live.postGame) {
     live.inMatch = details.inMatch;
+    live.postGame = details.postGame;
     refreshPresence();
   }
   if (detailsChanged) {
@@ -633,6 +638,7 @@ function setBackendStatus(status) {
   }
   if (status !== "running") {
     live.inMatch = false;
+    live.postGame = false;
     live.details = emptyLiveDetails();
     live.recentAdvice = [];
     refreshPresence();
@@ -2055,6 +2061,96 @@ async function importHistory() {
 }
 
 // ---------------------------------------------------------------------------
+// History by code: the backup, gzipped and encrypted with the secret part of a
+// one-time code (transfer-code.js), kept 15 minutes by the API; the other
+// computer downloads it with the code, decrypts, imports and deletes it.
+// ---------------------------------------------------------------------------
+
+const TRANSFER_TIMEOUT_MS = 60_000;
+const TRANSFER_MAX_BYTES = 1_500_000;
+
+async function transferFetch(url, options) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), TRANSFER_TIMEOUT_MS);
+  try {
+    return await electronNet.fetch(url, { ...options, signal: controller.signal });
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+async function sendHistoryByCode() {
+  let data;
+  try {
+    data = await requestBackendJson("/player/backup", "GET", undefined, BACKUP_TIMEOUT_MS);
+  } catch (error) {
+    return backupFailure(error);
+  }
+  const packed = zlib.gzipSync(JSON.stringify(data));
+  try {
+    // A new code when its id is taken (a 4-character id; the API says 409).
+    for (let attempt = 0; attempt < 3; attempt += 1) {
+      const code = transferCode.newTransferCode();
+      const box = transferCode.seal(packed, code);
+      if (box.length > TRANSFER_MAX_BYTES) {
+        return { ok: false, code: "too_big" };
+      }
+      const response = await transferFetch(`${apiUrl()}/v1/transfer/${code.id}`, {
+        method: "PUT",
+        headers: { "content-type": "application/octet-stream", "x-install-id": installId() },
+        body: box
+      });
+      if (response.status === 409) {
+        continue;
+      }
+      const answer = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        return { ok: false, code: answer.code || `http_${response.status}` };
+      }
+      appendLog("launcher", `History sent by code (${(data.counts && data.counts.matches) || 0} matches).`, { force: true });
+      return { ok: true, code: code.code, expiresAt: Number(answer.expires_at) || null, matches: (data.counts && data.counts.matches) || 0 };
+    }
+    return { ok: false, code: "taken" };
+  } catch (error) {
+    return { ok: false, code: "offline", error: error.message };
+  }
+}
+
+async function receiveHistoryByCode(input) {
+  const code = transferCode.parseTransferCode(input);
+  if (!code) {
+    return { ok: false, code: "bad_code" };
+  }
+  let box;
+  try {
+    const response = await transferFetch(`${apiUrl()}/v1/transfer/${code.id}/claim`, { method: "POST" });
+    if (!response.ok) {
+      const answer = await response.json().catch(() => ({}));
+      return { ok: false, code: answer.code || `http_${response.status}` };
+    }
+    box = Buffer.from(await response.arrayBuffer());
+  } catch (error) {
+    return { ok: false, code: "offline", error: error.message };
+  }
+  let data;
+  try {
+    const packed = transferCode.open(box, code);
+    data = JSON.parse(zlib.gunzipSync(packed, { maxOutputLength: BACKUP_MAX_BYTES }).toString("utf8"));
+  } catch (error) {
+    return { ok: false, code: error.code === "bad_code" ? "bad_code" : "not_backup" };
+  }
+  try {
+    const result = await requestBackendJson("/player/backup", "POST", data, BACKUP_TIMEOUT_MS);
+    // Imported: nothing left to keep on the server.
+    transferFetch(`${apiUrl()}/v1/transfer/${code.id}`, { method: "DELETE" }).catch(() => {});
+    appendLog("launcher", "History received by code.", { force: true });
+    return { ok: true, ...result };
+  } catch (error) {
+    return backupFailure(error);
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Advice frequency (sent at backend start and on change)
 // ---------------------------------------------------------------------------
 
@@ -2528,6 +2624,8 @@ function registerIpc() {
   });
   ipcMain.handle("launcher:backup-export", () => exportHistory());
   ipcMain.handle("launcher:backup-import", () => importHistory());
+  ipcMain.handle("launcher:transfer-send", () => sendHistoryByCode());
+  ipcMain.handle("launcher:transfer-receive", (_event, code) => receiveHistoryByCode(String(code || "").slice(0, 40)));
   ipcMain.handle("launcher:export-pdf", (_event, kind, id) =>
     exportPdf(kind === "match" ? "match" : "career", String(id || ""))
   );

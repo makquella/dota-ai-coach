@@ -171,6 +171,12 @@ const I18N = {
     whatsNewTitle: (version) => `What's new in ${version}`,
     whatsNewOk: "Got it",
     whatsNew: {
+      "0.8.0": [
+        "Death reviews: HP in the last 20 seconds and the saving item that was ready but not pressed.",
+        "Progress: your build on the hero — when items come in your wins and in your losses.",
+        "After a match the overlay shows the summary right on the score screen.",
+        "Move your history to another computer with a one-time code."
+      ],
       "0.7.0": [
         "Progress → Share: a link to a page with your progress — matches, wins, averages, top heroes, what goes well and what to work on.",
         "A new start-up splash: the logo comes alive while the service starts."
@@ -246,6 +252,24 @@ const I18N = {
     backupNotBackup: "This file is not a Wardly history backup.",
     backupNewer: "The backup was made by a newer version: update the app first.",
     backupFailed: "Could not do it: the service is not running or the disk is not available.",
+    transferTitle: "Move to another computer",
+    transferHint: "Get a code here and enter it in Wardly on the other computer. The history is encrypted with the code: our server keeps it for 15 minutes and cannot read it. Keys are not sent.",
+    transferSend: "Get a code",
+    transferReceive: "Load",
+    transferInputLabel: "Code from the other computer",
+    transferSending: "Encrypting and sending…",
+    transferReady: (matches, time) => `Code for ${matches} matches, valid until ${time}. On the other computer: Settings → App → Move to another computer.`,
+    transferReceiving: "Downloading and decrypting…",
+    transferErrors: {
+      bad_code: "Check the code: three groups of four letters and digits, as shown on the other computer.",
+      not_found: "No history under this code: it has expired (15 minutes) or was already loaded. Get a new code.",
+      too_big: "The history is too big to send by code: save it to a file instead.",
+      rate_limited: "Too many tries for now: wait an hour or move it with a file.",
+      disabled: "Moving by code is switched off right now: use a file.",
+      not_backup: "The code opened something that is not a Wardly history.",
+      offline: "No connection to the server: check the internet.",
+      fallback: "Could not do it: try again or use a file."
+    },
     reportSaving: "Collecting…",
     reportSaved: (name) => `Saved: ${name}. Send this file to the developer.`,
     reportFailed: "Could not save the file",
@@ -498,6 +522,12 @@ const I18N = {
     whatsNewTitle: (version) => `Что нового в ${version}`,
     whatsNewOk: "Понятно",
     whatsNew: {
+      "0.8.0": [
+        "Разбор смертей: здоровье за последние 20 секунд и спасающий предмет, который был готов, но не нажат.",
+        "«Прогресс»: ваш билд на герое — когда предметы приходят в победах и в поражениях.",
+        "После матча оверлей показывает итог прямо на экране со счётом.",
+        "Перенос истории на другой компьютер по одноразовому коду."
+      ],
       "0.7.0": [
         "«Прогресс» → «Поделиться»: ссылка на страницу с вашим прогрессом — матчи, победы, средние цифры, главные герои, что получается и над чем работать.",
         "Новая заставка при запуске: логотип оживает, пока запускается служба."
@@ -573,6 +603,24 @@ const I18N = {
     backupNotBackup: "Это не файл истории Wardly.",
     backupNewer: "Файл сделан более новой версией: сначала обновите приложение.",
     backupFailed: "Не получилось: служба не запущена или диск недоступен.",
+    transferTitle: "Перенос на другой компьютер",
+    transferHint: "Получите код здесь и введите его в Wardly на другом компьютере. История шифруется этим кодом: наш сервер хранит её 15 минут и не может прочитать. Ключи не передаются.",
+    transferSend: "Получить код",
+    transferReceive: "Загрузить",
+    transferInputLabel: "Код с другого компьютера",
+    transferSending: "Шифрую и отправляю…",
+    transferReady: (matches, time) => `Код для ${matches} матчей, действует до ${time}. На другом компьютере: Настройки → Приложение → Перенос на другой компьютер.`,
+    transferReceiving: "Скачиваю и расшифровываю…",
+    transferErrors: {
+      bad_code: "Проверьте код: три группы по четыре буквы и цифры, как на другом компьютере.",
+      not_found: "По этому коду ничего нет: он устарел (15 минут) или история уже загружена. Получите новый код.",
+      too_big: "История слишком большая для переноса по коду: сохраните её в файл.",
+      rate_limited: "Слишком много попыток: подождите час или перенесите файлом.",
+      disabled: "Перенос по коду сейчас выключен: воспользуйтесь файлом.",
+      not_backup: "Код открыл что-то, что не похоже на историю Wardly.",
+      offline: "Нет связи с сервером: проверьте интернет.",
+      fallback: "Не получилось: попробуйте ещё раз или перенесите файлом."
+    },
     reportSaving: "Собираем…",
     reportSaved: (name) => `Сохранено: ${name}. Отправьте этот файл разработчику.`,
     reportFailed: "Не удалось сохранить файл",
@@ -720,6 +768,12 @@ const els = {
   backupExport: $("#backup-export"),
   backupImport: $("#backup-import"),
   backupHint: $("#backup-hint"),
+  transferHint: $("#transfer-hint"),
+  transferCode: $("#transfer-code"),
+  transferSend: $("#transfer-send"),
+  transferForm: $("#transfer-form"),
+  transferInput: $("#transfer-input"),
+  transferReceive: $("#transfer-receive"),
   reportHint: $("#report-hint"),
   reportOpen: $("#report-open"),
   reportPanel: $("#report-panel"),
@@ -776,6 +830,8 @@ let voiceListChecked = false;
 let openDotaLoaded = false;
 // Problem report row: a result message stays until the panel is opened again.
 let reportSticky = false;
+// A transfer by code is on its way: keep its hint on re-renders.
+let transferBusy = false;
 let reportPreviewLoaded = false;
 const seenAdvice = new Set();
 
@@ -817,6 +873,9 @@ function applyStaticTexts() {
     element.setAttribute("aria-label", element.title);
   }
   els.backupHint.textContent = tr("backupHint");
+  if (!transferBusy && els.transferCode.hidden) {
+    els.transferHint.textContent = tr("transferHint");
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -959,6 +1018,54 @@ async function init() {
     }
   }
   els.backupExport.addEventListener("click", () => run(() => backupRun(() => window.launcherApi.exportHistory())));
+  // The same history by a one-time code (main.js sendHistoryByCode / receiveHistoryByCode).
+  const transferError = (code) => trOr(`transferErrors.${code}`, tr("transferErrors.fallback"));
+  async function transferRun(button, busyText, action) {
+    transferBusy = true;
+    button.disabled = true;
+    els.transferCode.hidden = true;
+    els.transferHint.textContent = busyText;
+    try {
+      await action();
+    } finally {
+      transferBusy = false;
+      button.disabled = false;
+    }
+  }
+  els.transferSend.addEventListener("click", () =>
+    run(() =>
+      transferRun(els.transferSend, tr("transferSending"), async () => {
+        const result = await window.launcherApi.sendHistoryByCode();
+        if (result && result.ok) {
+          const time = result.expiresAt ? new Date(result.expiresAt).toLocaleTimeString(locale === "ru" ? "ru-RU" : "en-GB", { hour: "2-digit", minute: "2-digit" }) : "—";
+          els.transferCode.textContent = result.code;
+          els.transferCode.hidden = false;
+          els.transferHint.textContent = tr("transferReady", result.matches, time);
+        } else {
+          els.transferHint.textContent = result?.code === "backend_down" ? tr("backupFailed") : transferError(result?.code);
+        }
+      })
+    )
+  );
+  els.transferForm.addEventListener("submit", (event) => {
+    event.preventDefault();
+    const code = els.transferInput.value.trim();
+    if (!code) {
+      els.transferInput.focus();
+      return;
+    }
+    run(() =>
+      transferRun(els.transferReceive, tr("transferReceiving"), async () => {
+        const result = await window.launcherApi.receiveHistoryByCode(code);
+        if (result && result.ok) {
+          els.transferInput.value = "";
+          els.transferHint.textContent = tr("backupLoaded", result.imported?.matches?.added ?? 0, result.linked);
+        } else {
+          els.transferHint.textContent = result?.code === "newer_version" ? tr("backupNewer") : result?.code === "backend_down" ? tr("backupFailed") : transferError(result?.code);
+        }
+      })
+    );
+  });
   els.backupImport.addEventListener("click", () => run(() => backupRun(() => window.launcherApi.importHistory())));
   els.reportAction.addEventListener("click", () =>
     run(async () => {

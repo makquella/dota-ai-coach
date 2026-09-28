@@ -128,6 +128,13 @@ body:not(.locked) .overlay-shell {
   -webkit-line-clamp: 3;
 }
 
+/* Match summary on the score screen: the main tip, then its drill, the focus
+   result and a pointer to the full review. */
+.post-game .reason {
+  white-space: normal;
+  -webkit-line-clamp: 3;
+}
+
 /* Map hint card (timer or role tip) while there is no advice. */
 .hint .action {
   font-size: var(--fs-14);

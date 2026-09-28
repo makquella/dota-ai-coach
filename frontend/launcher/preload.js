@@ -49,6 +49,9 @@ contextBridge.exposeInMainWorld("launcherApi", {
   shareOpen: (matchId) => ipcRenderer.invoke("launcher:share-open", matchId),
   exportHistory: () => ipcRenderer.invoke("launcher:backup-export"),
   importHistory: () => ipcRenderer.invoke("launcher:backup-import"),
+  // The same history to another computer by a one-time code (encrypted, 15 minutes).
+  sendHistoryByCode: () => ipcRenderer.invoke("launcher:transfer-send"),
+  receiveHistoryByCode: (code) => ipcRenderer.invoke("launcher:transfer-receive", String(code || "")),
   dismissSetup: () => ipcRenderer.invoke("launcher:dismiss-setup"),
   dismissWhatsNew: () => ipcRenderer.invoke("launcher:dismiss-whats-new"),
   saveProblemReport: () => ipcRenderer.invoke("launcher:save-problem-report"),

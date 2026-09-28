@@ -40,3 +40,13 @@ test("a tracked but exited Dota is not reported in game while GSI is still fresh
   // Without process tracking, fresh match data is trusted.
   assert.equal(dotaStatus({ dota: { supported: false, running: false }, inMatch: true }), DOTA_STATUS.IN_GAME);
 });
+
+test("the score screen with a fresh review shows the summary, only in focused Dota", () => {
+  const scoreScreen = { ...base, inMatch: false, postGame: true };
+  const shown = overlayVisibility(scoreScreen);
+  assert.equal(shown.visible, true);
+  assert.equal(shown.code, "post_game");
+  assert.equal(overlayVisibility({ ...scoreScreen, dota: { ...IN_DOTA, focused: false } }).visible, false);
+  assert.equal(overlayVisibility({ ...scoreScreen, enabled: false }).visible, false);
+  assert.equal(dotaStatus({ dota: IN_DOTA, inMatch: false }), DOTA_STATUS.WAITING);
+});

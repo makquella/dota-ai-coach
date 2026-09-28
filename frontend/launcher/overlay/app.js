@@ -160,6 +160,11 @@ let currentHint = null;
 const spokenHints = new Set();
 
 function renderOverlay(data) {
+  // The score screen after a match: the summary of its review, nothing else.
+  if (data.post_game && data.post_game.main) {
+    showPostGame(data);
+    return;
+  }
   currentHint = data.map_hint && data.map_hint.title ? data.map_hint : null;
   speakHint(currentHint);
   if (data.recommendation && (data.status === "active_advice" || data.status === "cooldown")) {
@@ -262,6 +267,26 @@ function renderAdvice(data, options = { refreshTimer: true }) {
 
 const PLAN_STATUSES = new Set(["no_advice", "monitoring", "unsupported_hero"]);
 const spokenPlans = new Set();
+
+function showPostGame(data) {
+  clearTimeout(hideTimer);
+  const card = data.post_game;
+  // A win gets the green dot; a loss keeps the neutral one (no alarm after the game).
+  shell.className = `overlay-shell plan post-game${card.win === true ? " priority-safe" : ""}`;
+  labelEl.textContent = card.title;
+  const top = [card.hero, card.result, card.score_text].filter(Boolean).join(" · ");
+  if (card.hero && window.DotaIcons?.hero(card.hero)) {
+    const name = document.createElement("span");
+    name.textContent = top;
+    priorityEl.replaceChildren(window.DotaIcons.heroPicture(document, card.hero, "sm"), name);
+  } else {
+    priorityEl.textContent = top;
+  }
+  actionEl.textContent = card.main;
+  reasonEl.textContent = (card.detail || []).join(" ");
+  renderStatusRow(data);
+  reveal();
+}
 
 function showPlan(data) {
   clearTimeout(hideTimer);

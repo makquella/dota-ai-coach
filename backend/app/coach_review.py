@@ -25,6 +25,7 @@ from typing import Any
 from app.analysis_texts import clock
 from app.coach_llm import CoachLLMError, parse_json_object
 from app.dota_constants import HEROES
+from app.last_moments import saver_label
 
 COACH_VERSION = 1
 # Share of the text that may be dropped by the fact check before a retry.
@@ -258,6 +259,24 @@ def career_facts(career: dict[str, Any], recent: list[dict[str, Any]]) -> dict[s
             "metrics": {
                 row["key"]: {"best": row["best"], "worst": row["worst"]} for row in compare["rows"]
             },
+        }
+    build = career.get("hero_build")
+    if build:
+        facts["your_build_on_your_main_hero"] = {
+            "hero": build["hero"],
+            "matches": build["matches"],
+            "wins": build["wins"],
+            "items": [
+                {
+                    "item": row["item"],
+                    "games": row["games"],
+                    "winrate_percent_with_it": row["winrate"],
+                    "winrate_percent_without_it": row["winrate_without"],
+                    "median_time_in_wins": clock(row["t_win"]) if row["t_win"] else None,
+                    "median_time_in_losses": clock(row["t_loss"]) if row["t_loss"] else None,
+                }
+                for row in build["items"]
+            ],
         }
     rank = career.get("rank")
     if rank:
@@ -621,6 +640,13 @@ def _deaths_facts(review: dict[str, Any]) -> dict[str, Any]:
             row["advice_shown_before"] = f"{clock(warning.get('t'))} {warning['action']}"
         if death.get("after_respawn") is not None:
             row["seconds_after_respawn"] = death["after_respawn"]
+        last = death.get("last") or {}
+        if "saver_ready" in (death.get("notes") or []):
+            row["saving_items_ready_not_used"] = [
+                saver_label(n, "en") for n in last.get("usable") or []
+            ]
+        if last.get("burst_s"):
+            row["killed_from_70_percent_hp_within_seconds"] = last["burst_s"]
         rows.append(row)
     return {
         "count": len(rows),
@@ -628,6 +654,8 @@ def _deaths_facts(review: dict[str, Any]) -> dict[str, Any]:
         "with_1000_plus_unspent_gold": notes.get("unspent_gold"),
         "after_the_apps_warning": notes.get("warned"),
         "within_60s_after_respawn": notes.get("soon_after_respawn"),
+        "with_a_saving_item_ready_not_used": notes.get("saver_ready"),
+        "burst_deaths_under_3s": notes.get("burst"),
         "list": rows[:15],
     }
 
