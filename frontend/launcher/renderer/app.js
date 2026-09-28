@@ -204,6 +204,12 @@ const I18N = {
     whatsNewTitle: (version) => `What's new in ${version}`,
     whatsNewOk: "Got it",
     whatsNew: {
+      "0.11.0": [
+        "The app uses the whole window: side navigation, two columns, both teams side by side.",
+        "Last matches on Home, score rings in reviews and the match table.",
+        "More in-game tips for every role: mid rotations and last hits, offlane hard lanes, support pulls, your key item's timing.",
+        "Hard matchups in the game plan."
+      ],
       "0.10.0": [
         "The week in Discord: every Monday your matches, score and heroes of the week go to your server's channel. Settings → App → The week in Discord.",
         "The Week card on Home shows the heroes you played.",
@@ -598,6 +604,12 @@ const I18N = {
     whatsNewTitle: (version) => `Что нового в ${version}`,
     whatsNewOk: "Понятно",
     whatsNew: {
+      "0.11.0": [
+        "Приложение на весь экран: навигация слева, две колонки, обе команды рядом.",
+        "«Последние матчи» на Главной, оценка кольцом в разборе и таблице матчей.",
+        "Больше подсказок в игре для каждой роли: ротации и добивания мида, тяжёлая линия хардлайна, пулы саппорта, тайминг ключевого предмета.",
+        "«Тяжело против» в плане на игру."
+      ],
       "0.10.0": [
         "Неделя в Discord: по понедельникам матчи, оценка и герои недели приходят в канал вашего сервера. «Настройки → Приложение → Неделя в Discord».",
         "В карточке «Неделя» на Главной видно, на каких героях вы играли.",
