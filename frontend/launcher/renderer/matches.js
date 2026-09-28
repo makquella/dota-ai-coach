@@ -113,8 +113,14 @@
         enemy_half: "on the enemy half",
         unspent_gold: "with 1000+ unspent gold",
         warned: "after a warning",
-        soon_after_respawn: "right after respawning"
+        soon_after_respawn: "right after respawning",
+        saver_ready: "a saving item was ready",
+        burst: "killed in under 3 s"
       },
+      deathLastTitle: "HP in the last 20 s",
+      deathBurst: (seconds) => `From 70%+ HP to death in ${seconds} s`,
+      deathReady: "Ready and not used:",
+      deathReadyStunned: "Ready, but you were disabled:",
       deathZone: { top: "top lane", mid: "mid lane", bot: "bottom lane", jungle: "jungle", base: "base" },
       mapEmpty: "No positions for this match yet. They come from a parsed replay (the app asks OpenDota to parse your 5 newest matches of the week) or from a match played with the app running: your path and where you died.",
       mapHint: {
@@ -497,8 +503,14 @@
         enemy_half: "на половине врага",
         unspent_gold: "с 1000+ непотраченного золота",
         warned: "после предупреждения",
-        soon_after_respawn: "сразу после возрождения"
+        soon_after_respawn: "сразу после возрождения",
+        saver_ready: "спасающий предмет был готов",
+        burst: "убиты быстрее 3 с"
       },
+      deathLastTitle: "Здоровье за последние 20 с",
+      deathBurst: (seconds) => `С 70%+ здоровья до смерти за ${seconds} с`,
+      deathReady: "Был готов и не нажат:",
+      deathReadyStunned: "Был готов, но герой был в контроле:",
       deathZone: { top: "верхняя линия", mid: "центр", bot: "нижняя линия", jungle: "лес", base: "база" },
       mapEmpty: "Для этого матча пока нет позиций. Они берутся из разобранного реплея (приложение само просит OpenDota разобрать 5 последних матчей за неделю) или из матча, сыгранного с запущенным приложением: ваш путь и места смертей.",
       mapHint: {
@@ -2571,12 +2583,54 @@
           h("span", { text: facts.join(" · ") || t("deathNoFacts") }),
           death.warning
             ? h("span", { class: "muted small death-warning", text: t("deathWarned", clock(death.warning.t), death.warning.action || "") })
-            : null
+            : null,
+          deathLast(death)
         )
       );
     });
     const body = h("div", {}, summary, h("ol", { class: "moments deaths-list" }, rows));
     return card(t("deathsTitle", deaths.length), "skull", body);
+  }
+
+  // The last 20 s before a death (live GSI, app/last_moments.py): an HP line,
+  // a burst kill and the saving items that were ready.
+  function deathLast(death) {
+    const last = death.last;
+    if (!last || !Array.isArray(last.hp) || !last.hp.length) {
+      return null;
+    }
+    const W = 160;
+    const H = 32;
+    const x = (s) => ((20 + Math.max(-20, Math.min(0, s))) / 20) * W;
+    const y = (hp) => H - 2 - (Math.max(0, Math.min(100, hp)) / 100) * (H - 4);
+    const points = [...last.hp, [0, 0]].map(([s, hp]) => `${x(s).toFixed(1)},${y(hp).toFixed(1)}`).join(" ");
+    const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+    svg.setAttribute("class", "death-hp");
+    svg.setAttribute("role", "img");
+    svg.setAttribute("aria-label", `${t("deathLastTitle")}: ${last.hp.map(([, hp]) => `${hp}%`).join(", ")}`);
+    const line = document.createElementNS("http://www.w3.org/2000/svg", "polyline");
+    line.setAttribute("points", points);
+    svg.append(line);
+    const lines = [];
+    if (last.burst_s) {
+      lines.push(h("span", { class: "muted small", text: t("deathBurst", last.burst_s) }));
+    }
+    const names = last.ready_names || [];
+    if (names.length) {
+      const used = (death.notes || []).includes("saver_ready");
+      lines.push(
+        h(
+          "span",
+          { class: "muted small death-ready" },
+          h("span", { text: t(used ? "deathReady" : "deathReadyStunned") }),
+          (last.ready || []).map((key, index) =>
+            h("span", { class: "death-item" }, window.DotaIcons ? window.DotaIcons.itemPicture(document, key, "sm", names[index]) : null, h("span", { text: names[index] || key }))
+          )
+        )
+      );
+    }
+    return h("span", { class: "death-last", title: t("deathLastTitle") }, svg, lines.length ? h("span", { class: "death-last-text" }, lines) : null);
   }
 
   function momentsCard(analysis) {

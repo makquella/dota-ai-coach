@@ -9,7 +9,9 @@ timeline of every match it sees, with no replay parser and no internet:
 - deaths (clock, unspent gold, level, respawn time), buybacks;
 - items, by the clock they first appeared in the inventory/stash;
 - the hero's position in every sample and where each death happened (absolute
-  map coordinates, see map_position()).
+  map coordinates, see map_position());
+- the last seconds before each death: HP, disables, saving items ready
+  (last_moments.py, one entry per second, kept with the death as `last`).
 
 A match is finished when Dota reports POST_GAME (win/loss known), when GSI
 starts reporting another match id, or when no GSI arrived for STALE_AFTER
@@ -32,6 +34,7 @@ from pathlib import Path
 from typing import Any
 
 from app.dota_constants import hero_id_from_name, hero_name_from_npc
+from app.last_moments import LastSeconds
 from app.steam_ids import STEAM64_BASE
 
 TIMELINE_VERSION = 1
@@ -126,6 +129,8 @@ class MatchTracker:
         self._current: dict[str, Any] | None = None
         self._last_seen = 0.0
         self._unsaved_samples = 0
+        # Not saved to disk: after a restart the next deaths fill it again.
+        self._last_seconds = LastSeconds()
         self._load()
 
     # --- public ---------------------------------------------------------------
@@ -149,6 +154,7 @@ class MatchTracker:
                     # Opening the app on a score screen: nothing to record.
                     return
                 self._current = self._new_match(match_id, player, payload)
+                self._last_seconds.reset()
             self._last_seen = self._clock()
             self._update_locked(payload, map_block, player)
             if map_block.get("game_state") == POST_GAME_STATE and finished is None:
@@ -283,6 +289,7 @@ class MatchTracker:
         if position is not None and snapshot["alive"] is not False:
             snapshot["x"], snapshot["y"] = position
         last = current["_last"]
+        self._last_seconds.observe(clock, hero, _dict(payload.get("items")))
         self._track_deaths(current, snapshot, hero, last)
         self._track_buyback(current, clock, hero, last)
         self._track_items(current, clock, _dict(payload.get("items")))
@@ -333,6 +340,9 @@ class MatchTracker:
                     "y": last.get("y"),
                 }
             )
+            moments = self._last_seconds.summarize(snapshot["t"])
+            if moments:
+                current["deaths"][-1]["last"] = moments
             self._save_locked()
         elif current["deaths"] and snapshot["alive"] is False:
             # respawn_seconds is sometimes only filled a tick after the death.

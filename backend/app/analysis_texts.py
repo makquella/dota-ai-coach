@@ -12,6 +12,7 @@ from __future__ import annotations
 from typing import Any
 
 from app.advice_i18n import translate_ru
+from app.last_moments import SAVERS, saver_label
 
 
 def clock(seconds: Any) -> str:
@@ -207,6 +208,30 @@ FINDINGS: dict[str, dict[str, dict[str, str]]] = {
             "title": "Died after a warning",
             "text": "{count} times you died within {window} s of urgent advice (first at {t_text}). The warning came in time, but the retreat did not.",
             "drill": "Treat urgent advice as a signal to turn back at once: step away first, think second. Practise it next game.",
+        },
+    },
+    "died_with_saver_ready": {
+        "ru": {
+            "title": "Спасающий предмет не нажат",
+            "text": "{count} {count_times} вы погибли, когда {item_label} был готов, а у героя было время его нажать ({times}).",
+            "drill": "Держите {item_label} на удобной клавише и решайте заранее: ниже половины здоровья в драке — нажимаю сразу, не жду.",
+        },
+        "en": {
+            "title": "Saving item not pressed",
+            "text": "{count} times you died with {item_label} ready and time to press it ({times}).",
+            "drill": "Keep {item_label} on a key you reach easily and decide in advance: below half HP in a fight, press it at once, don't wait.",
+        },
+    },
+    "burst_deaths": {
+        "ru": {
+            "title": "Быстрые смерти",
+            "text": "{count} из {of} смертей случились меньше чем за 3 с с 70% здоровья и выше: вас ловили раньше, чем можно было ответить.",
+            "drill": "Такие смерти решаются до драки: не стойте один там, где врагов не видно на карте, держитесь ближе к союзникам и вардам.",
+        },
+        "en": {
+            "title": "Burst deaths",
+            "text": "{count} of {of} deaths came in under 3 s from 70% HP or more: you were caught before you could answer.",
+            "drill": "These deaths are decided before the fight: don't stand alone where the enemies are not on the map, stay near your allies and wards.",
         },
     },
     "deaths_enemy_half": {
@@ -679,6 +704,8 @@ def _prepared_params(finding: dict[str, Any], lang: str) -> dict[str, Any]:
             )
     if "pct" in params and params["pct"] is not None:
         params["pct_rest"] = 100 - int(params["pct"])
+    if params.get("item") in SAVERS:
+        params["item_label"] = saver_label(params["item"], lang)
     if finding["id"] == "deaths_high":
         dead = params.get("time_dead")
         pct = params.get("dead_pct")
@@ -775,6 +802,19 @@ def render_analysis(analysis: dict[str, Any], lang: str) -> dict[str, Any]:
             "deaths": [
                 {
                     **row,
+                    **(
+                        {
+                            "last": {
+                                **row["last"],
+                                "ready_names": [
+                                    saver_label(name, lang)
+                                    for name in row["last"].get("ready") or []
+                                ],
+                            }
+                        }
+                        if row.get("last")
+                        else {}
+                    ),
                     **(
                         {
                             "warning": {

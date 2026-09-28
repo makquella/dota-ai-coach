@@ -3023,6 +3023,49 @@ label.setting:has(.switch:disabled) {
   min-width: 0;
 }
 
+.death-last {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sp-2) var(--sp-3);
+  margin-top: var(--sp-1);
+}
+
+.death-hp {
+  width: 160px;
+  height: 32px;
+  flex: none;
+  border-bottom: 1px solid var(--viz-axis);
+}
+
+.death-hp polyline {
+  fill: none;
+  stroke: var(--viz-2);
+  stroke-width: 1.5;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+}
+
+.death-last-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.death-ready {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sp-2);
+}
+
+.death-item {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-1);
+  color: var(--text);
+}
+
 .death-warning {
   overflow-wrap: anywhere;
 }

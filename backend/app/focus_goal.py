@@ -30,6 +30,9 @@ REQUIRES = {
     "died_after_warning": "advice",
     "deaths_enemy_half": "map",
     "counter_item_missing": "draft",
+    # The last seconds before deaths exist only for live-recorded matches.
+    "died_with_saver_ready": "last_moments",
+    "burst_deaths": "last_moments",
 }
 MAX_RESULTS = 10
 # Findings whose title names one item or hero ("Late Battle Fury"). The check works

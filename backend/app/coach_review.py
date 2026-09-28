@@ -25,6 +25,7 @@ from typing import Any
 from app.analysis_texts import clock
 from app.coach_llm import CoachLLMError, parse_json_object
 from app.dota_constants import HEROES
+from app.last_moments import saver_label
 
 COACH_VERSION = 1
 # Share of the text that may be dropped by the fact check before a retry.
@@ -621,6 +622,13 @@ def _deaths_facts(review: dict[str, Any]) -> dict[str, Any]:
             row["advice_shown_before"] = f"{clock(warning.get('t'))} {warning['action']}"
         if death.get("after_respawn") is not None:
             row["seconds_after_respawn"] = death["after_respawn"]
+        last = death.get("last") or {}
+        if "saver_ready" in (death.get("notes") or []):
+            row["saving_items_ready_not_used"] = [
+                saver_label(n, "en") for n in last.get("ready") or []
+            ]
+        if last.get("burst_s"):
+            row["killed_from_70_percent_hp_within_seconds"] = last["burst_s"]
         rows.append(row)
     return {
         "count": len(rows),
@@ -628,6 +636,8 @@ def _deaths_facts(review: dict[str, Any]) -> dict[str, Any]:
         "with_1000_plus_unspent_gold": notes.get("unspent_gold"),
         "after_the_apps_warning": notes.get("warned"),
         "within_60s_after_respawn": notes.get("soon_after_respawn"),
+        "with_a_saving_item_ready_not_used": notes.get("saver_ready"),
+        "burst_deaths_under_3s": notes.get("burst"),
         "list": rows[:15],
     }
 
