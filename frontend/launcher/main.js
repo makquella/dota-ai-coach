@@ -22,6 +22,7 @@ const path = require("node:path");
 const zlib = require("node:zlib");
 
 const { SCHEME: DOTA_ASSET_SCHEME, createAssetHandler } = require("./dota-assets");
+const transferCode = require("./transfer-code");
 const { createDotaWatcher } = require("./dota-watcher");
 const { createOverlayController, OVERLAY_DEFAULTS } = require("./overlay-window");
 const {
@@ -2060,6 +2061,96 @@ async function importHistory() {
 }
 
 // ---------------------------------------------------------------------------
+// History by code: the backup, gzipped and encrypted with the secret part of a
+// one-time code (transfer-code.js), kept 15 minutes by the API; the other
+// computer downloads it with the code, decrypts, imports and deletes it.
+// ---------------------------------------------------------------------------
+
+const TRANSFER_TIMEOUT_MS = 60_000;
+const TRANSFER_MAX_BYTES = 1_500_000;
+
+async function transferFetch(url, options) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), TRANSFER_TIMEOUT_MS);
+  try {
+    return await electronNet.fetch(url, { ...options, signal: controller.signal });
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+async function sendHistoryByCode() {
+  let data;
+  try {
+    data = await requestBackendJson("/player/backup", "GET", undefined, BACKUP_TIMEOUT_MS);
+  } catch (error) {
+    return backupFailure(error);
+  }
+  const packed = zlib.gzipSync(JSON.stringify(data));
+  try {
+    // A new code when its id is taken (a 4-character id; the API says 409).
+    for (let attempt = 0; attempt < 3; attempt += 1) {
+      const code = transferCode.newTransferCode();
+      const box = transferCode.seal(packed, code);
+      if (box.length > TRANSFER_MAX_BYTES) {
+        return { ok: false, code: "too_big" };
+      }
+      const response = await transferFetch(`${apiUrl()}/v1/transfer/${code.id}`, {
+        method: "PUT",
+        headers: { "content-type": "application/octet-stream", "x-install-id": installId() },
+        body: box
+      });
+      if (response.status === 409) {
+        continue;
+      }
+      const answer = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        return { ok: false, code: answer.code || `http_${response.status}` };
+      }
+      appendLog("launcher", `History sent by code (${(data.counts && data.counts.matches) || 0} matches).`, { force: true });
+      return { ok: true, code: code.code, expiresAt: Number(answer.expires_at) || null, matches: (data.counts && data.counts.matches) || 0 };
+    }
+    return { ok: false, code: "taken" };
+  } catch (error) {
+    return { ok: false, code: "offline", error: error.message };
+  }
+}
+
+async function receiveHistoryByCode(input) {
+  const code = transferCode.parseTransferCode(input);
+  if (!code) {
+    return { ok: false, code: "bad_code" };
+  }
+  let box;
+  try {
+    const response = await transferFetch(`${apiUrl()}/v1/transfer/${code.id}/claim`, { method: "POST" });
+    if (!response.ok) {
+      const answer = await response.json().catch(() => ({}));
+      return { ok: false, code: answer.code || `http_${response.status}` };
+    }
+    box = Buffer.from(await response.arrayBuffer());
+  } catch (error) {
+    return { ok: false, code: "offline", error: error.message };
+  }
+  let data;
+  try {
+    const packed = transferCode.open(box, code);
+    data = JSON.parse(zlib.gunzipSync(packed, { maxOutputLength: BACKUP_MAX_BYTES }).toString("utf8"));
+  } catch (error) {
+    return { ok: false, code: error.code === "bad_code" ? "bad_code" : "not_backup" };
+  }
+  try {
+    const result = await requestBackendJson("/player/backup", "POST", data, BACKUP_TIMEOUT_MS);
+    // Imported: nothing left to keep on the server.
+    transferFetch(`${apiUrl()}/v1/transfer/${code.id}`, { method: "DELETE" }).catch(() => {});
+    appendLog("launcher", "History received by code.", { force: true });
+    return { ok: true, ...result };
+  } catch (error) {
+    return backupFailure(error);
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Advice frequency (sent at backend start and on change)
 // ---------------------------------------------------------------------------
 
@@ -2533,6 +2624,8 @@ function registerIpc() {
   });
   ipcMain.handle("launcher:backup-export", () => exportHistory());
   ipcMain.handle("launcher:backup-import", () => importHistory());
+  ipcMain.handle("launcher:transfer-send", () => sendHistoryByCode());
+  ipcMain.handle("launcher:transfer-receive", (_event, code) => receiveHistoryByCode(String(code || "").slice(0, 40)));
   ipcMain.handle("launcher:export-pdf", (_event, kind, id) =>
     exportPdf(kind === "match" ? "match" : "career", String(id || ""))
   );

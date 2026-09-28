@@ -1162,6 +1162,27 @@ label.setting:has(.switch:disabled) {
   gap: var(--sp-2);
 }
 
+/* «Перенос на другой компьютер»: the code is read off one screen and typed on another. */
+.transfer-code {
+  display: block;
+  margin-top: var(--sp-2);
+  color: var(--text);
+  font-size: var(--fs-20);
+  font-weight: var(--fw-semibold);
+  letter-spacing: 0.08em;
+  user-select: all;
+}
+
+.transfer-controls {
+  flex-wrap: wrap;
+}
+
+.transfer-form .input {
+  width: 164px;
+  text-transform: uppercase;
+  font-variant-numeric: tabular-nums;
+}
+
 .input-lg {
   height: 32px;
   font-size: var(--fs-13);

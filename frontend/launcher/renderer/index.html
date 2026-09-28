@@ -307,6 +307,20 @@
                 <button id="backup-import" class="btn btn-ghost" type="button"><i data-icon="upload"></i><span data-i18n="backupImport">Load from file</span></button>
               </div>
             </div>
+            <div class="setting setting-wrap transfer-row">
+              <span class="setting-text">
+                <span class="setting-title" data-i18n="transferTitle">Move to another computer</span>
+                <span class="setting-hint" id="transfer-hint" aria-live="polite"></span>
+                <span class="transfer-code num" id="transfer-code" hidden></span>
+              </span>
+              <div class="setting-controls transfer-controls">
+                <button id="transfer-send" class="btn" type="button"><i data-icon="send"></i><span data-i18n="transferSend">Get a code</span></button>
+                <form id="transfer-form" class="link-form transfer-form">
+                  <input id="transfer-input" class="input" type="text" autocomplete="off" spellcheck="false" maxlength="16" placeholder="ABCD-EFGH-JKMN" data-i18n-aria="transferInputLabel" aria-label="Code from the other computer" />
+                  <button id="transfer-receive" class="btn btn-ghost" type="submit"><i data-icon="download"></i><span data-i18n="transferReceive">Load</span></button>
+                </form>
+              </div>
+            </div>
             <div class="setting setting-wrap report-row">
               <span class="setting-text">
                 <span class="setting-title" data-i18n="reportTitle">Problem report</span>
