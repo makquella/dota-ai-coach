@@ -198,9 +198,11 @@ class MatchTracker:
             if not self._current or not self._current["deaths"]:
                 return None
             death = self._current["deaths"][-1]
+            last = death.get("last") or {}
             return {
                 "t": death.get("t"),
-                "usable": list((death.get("last") or {}).get("usable") or []),
+                "usable": list(last.get("usable") or []),
+                "burst_s": last.get("burst_s"),
                 "team": self._current.get("team"),
                 # Every death of the match so far with its position (repeated places).
                 "places": [

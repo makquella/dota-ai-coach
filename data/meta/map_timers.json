@@ -109,5 +109,12 @@
       "hint_en": "Clear camps for Madstone and craft the last neutral item.",
       "hint_ru": "Зачищайте лагеря ради Madstone и создайте последний нейтральный предмет."
     }
-  ]
+  ],
+  "roshan": {
+    "comment": "Seconds. Roshan respawns at random between respawn_min and respawn_max after a kill; the Aegis expires aegis_seconds after it is picked up (a warning aegis_warn seconds before).",
+    "respawn_min": 480,
+    "respawn_max": 660,
+    "aegis_seconds": 300,
+    "aegis_warn": 60
+  }
 }

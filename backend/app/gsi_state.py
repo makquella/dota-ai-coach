@@ -448,6 +448,9 @@ def _normalize_extra_context(
         "has_observer": has_observer_ward(payload.get("items")),
         # Item names in the inventory and stash (role tips such as the mid's Bottle).
         "item_names": item_names(payload.get("items")),
+        # Roshan kills and Aegis pickups (roshan_timer.py), and the player's Aegis.
+        "gsi_events": _objective_events(payload.get("events")),
+        "has_aegis": _has_aegis(hero_block, payload.get("items")),
         # What can be pressed right now (live_tools.py: the survival advice names it).
         "ready_savers": _ready_savers(payload.get("items")),
         "wand_charges": wand_charges(payload.get("items")),
@@ -472,6 +475,34 @@ def _normalize_extra_context(
         demo_values_detected=demo_values_detected,
     )
     return {key: value for key, value in context.items() if value is not None}
+
+
+OBJECTIVE_EVENTS = {"roshan_killed", "aegis_picked_up", "aegis_denied"}
+
+
+def _objective_events(value: Any) -> list[dict[str, Any]] | None:
+    """GSI `events` of Roshan and the Aegis: [{type, game_time}] (None without any)."""
+    if not isinstance(value, list):
+        return None
+    events = []
+    for event in value[-20:]:
+        if not isinstance(event, dict) or event.get("event_type") not in OBJECTIVE_EVENTS:
+            continue
+        game_time = _optional_int(event.get("game_time"))
+        if game_time is not None:
+            events.append({"type": event["event_type"], "game_time": game_time})
+    return events or None
+
+
+def _has_aegis(hero_block: dict[str, Any], items: Any) -> bool | None:
+    """The player's hero holds the Aegis (hero flag, else the item); None if unknown."""
+    flag = hero_block.get("aegis")
+    if isinstance(flag, bool):
+        return flag
+    names = item_names(items)
+    if names is None:
+        return None
+    return "item_aegis" in names
 
 
 def _ready_savers(items: Any) -> list[str] | None:
