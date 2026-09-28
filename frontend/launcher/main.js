@@ -158,6 +158,7 @@ let dotaLocatePromise = null;
 let autoInstallRunning = false;
 const live = {
   inMatch: false,
+  postGame: false,
   pollTimer: null,
   polling: false,
   details: emptyLiveDetails(),
@@ -408,7 +409,7 @@ function gsiEndpoint() {
 }
 
 function emptyLiveDetails() {
-  return { connected: false, inMatch: false, hero: null, coverage: null, role: null, clockTime: null, secondsSinceLastGsi: null, stage: "unknown" };
+  return { connected: false, inMatch: false, postGame: false, hero: null, coverage: null, role: null, clockTime: null, secondsSinceLastGsi: null, stage: "unknown" };
 }
 
 // "auto" follows the system language; the player can pick one in Settings.
@@ -524,7 +525,8 @@ function refreshPresence() {
     unlocked: overlay.isUnlocked(),
     demoRunning: processStatus.demo === "running",
     dota,
-    inMatch: live.inMatch
+    inMatch: live.inMatch,
+    postGame: live.postGame
   });
   overlay.setVisible(decision.visible);
   const status = dotaStatus({ dota, inMatch: live.inMatch });
@@ -573,6 +575,7 @@ async function pollGsiStatus() {
       details = {
         connected: Boolean(status.gsi_connected),
         inMatch: Boolean(status.in_match),
+        postGame: Boolean(status.post_game),
         hero: status.hero && status.hero !== "Unknown" ? String(status.hero) : null,
         // "full" carry advisor or "safety" (survival advice only) for this hero.
         coverage: status.hero_coverage || null,
@@ -615,8 +618,9 @@ async function pollGsiStatus() {
   }
   const detailsChanged = recentChanged || JSON.stringify(details) !== JSON.stringify(live.details);
   live.details = details;
-  if (details.inMatch !== live.inMatch) {
+  if (details.inMatch !== live.inMatch || details.postGame !== live.postGame) {
     live.inMatch = details.inMatch;
+    live.postGame = details.postGame;
     refreshPresence();
   }
   if (detailsChanged) {
@@ -633,6 +637,7 @@ function setBackendStatus(status) {
   }
   if (status !== "running") {
     live.inMatch = false;
+    live.postGame = false;
     live.details = emptyLiveDetails();
     live.recentAdvice = [];
     refreshPresence();

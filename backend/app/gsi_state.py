@@ -172,6 +172,21 @@ def is_in_match() -> bool:
     return str(game_state) in _IN_MATCH_GAME_STATES
 
 
+def post_game_match_id() -> int | None:
+    """The match id while Dota shows the score screen after a match (POST_GAME)."""
+    if not _latest_raw_payload:
+        return None
+    map_block = _latest_raw_payload.get("map")
+    if not isinstance(map_block, dict):
+        return None
+    if map_block.get("game_state") != "DOTA_GAMERULES_STATE_POST_GAME":
+        return None
+    try:
+        return int(str(map_block.get("matchid")))
+    except (TypeError, ValueError):
+        return None
+
+
 def get_current_state() -> dict[str, Any]:
     if _latest_normalized_state is None:
         return {

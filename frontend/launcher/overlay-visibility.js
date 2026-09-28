@@ -14,9 +14,10 @@ const DOTA_STATUS = {
  * @param {boolean} input.demoRunning  replay demo is playing (no Dota needed)
  * @param {object}  input.dota         watcher state { supported, running, focused }
  * @param {boolean} input.inMatch      backend /gsi/status in_match (fresh GSI from a match)
+ * @param {boolean} input.postGame     backend /gsi/status post_game (score screen with a fresh review)
  * @returns {{ visible: boolean, reason: string, code: string }}
  */
-function overlayVisibility({ enabled, unlocked, demoRunning, dota = {}, inMatch }) {
+function overlayVisibility({ enabled, unlocked, demoRunning, dota = {}, inMatch, postGame = false }) {
   if (!enabled) {
     return { visible: false, reason: "overlay switched off", code: "off" };
   }
@@ -34,6 +35,9 @@ function overlayVisibility({ enabled, unlocked, demoRunning, dota = {}, inMatch 
   }
   if (!dota.focused) {
     return { visible: false, reason: "Dota 2 is not the active window", code: "dota_not_focused" };
+  }
+  if (!inMatch && postGame) {
+    return { visible: true, reason: "match summary on the score screen", code: "post_game" };
   }
   if (!inMatch) {
     return { visible: false, reason: "no fresh GSI from a match", code: "no_match" };

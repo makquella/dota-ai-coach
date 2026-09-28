@@ -37,6 +37,7 @@ from app.gsi_state import (
     get_gsi_debug_fields,
     get_gsi_debug_latest,
     is_in_match,
+    post_game_match_id,
     update_latest_gsi,
 )
 from app.live_role import SETTINGS as ROLE_SETTINGS
@@ -304,6 +305,9 @@ def overlay_recommendation(lang: str = "en"):
     plan = _game_plan_for_overlay(response, lang)
     if plan is not None:
         response = {**response, "game_plan": plan}
+    post_game = _post_game_for_overlay(response, lang)
+    if post_game is not None:
+        response = {**response, "post_game": post_game}
     try:
         response = {**response, **_live_role_and_hint(response, lang)}
     except Exception as error:  # noqa: BLE001 - never breaks the live path
@@ -383,6 +387,17 @@ def _game_plan_for_overlay(response: dict[str, object], lang: str) -> dict[str, 
         return PLAYER_SERVICE.game_plan(str(state.get("hero") or ""), lang)
     except Exception as error:  # noqa: BLE001 - never breaks the live path
         record_error("game-plan", error)
+        return None
+
+
+def _post_game_for_overlay(response: dict[str, object], lang: str) -> dict[str, object] | None:
+    """The match summary while Dota shows the score screen (post_game.py)."""
+    if response.get("demo_mode"):
+        return None
+    try:
+        return PLAYER_SERVICE.post_game_card(post_game_match_id(), lang)
+    except Exception as error:  # noqa: BLE001 - never breaks the live path
+        record_error("post-game", error)
         return None
 
 
@@ -915,6 +930,8 @@ def _gsi_status_response() -> dict[str, object]:
     return {
         "gsi_connected": connected,
         "in_match": connected and is_in_match(),
+        # The score screen with a fresh review: the overlay shows the summary card.
+        "post_game": connected and _post_game_for_overlay({}, "en") is not None,
         "last_gsi_received_at": timestamp,
         "seconds_since_last_gsi": round(seconds_since, 2) if seconds_since is not None else None,
         "hero": state.get("hero"),

@@ -77,6 +77,7 @@ from app.opendota import (
 from app.personal_baseline import MAX_GAMES as MAX_BASELINE_GAMES
 from app.personal_baseline import personal_baseline
 from app.player_store import PlayerStore
+from app.post_game import post_game_card
 from app.post_match_analysis import ANALYSIS_VERSION, analyze_match
 from app.schemas import is_supported_hero
 from app.share_progress import public_progress
@@ -104,6 +105,8 @@ MATCHUPS_KEY = "opendota:matchups"
 META_TTL_SECONDS = 7 * 24 * 3600
 HERO_STATS_TTL_SECONDS = 24 * 3600
 GAME_PLAN_CACHE_SECONDS = 60
+# The score screen card (post_game.py): shown this long after the review is written.
+POST_GAME_CARD_SECONDS = 150
 SKIPPED_MODES_META = "skipped_modes"
 FOCUS_META = "focus"
 FRIEND_META = "friend"
@@ -1519,6 +1522,31 @@ class PlayerService:
             if self._rebuild_analysis(primary, row["match_id"]) is not None:
                 count += 1
         return count
+
+    def post_game_card(self, match_id: int | None, lang: str) -> dict[str, Any] | None:
+        """The overlay's summary while Dota shows the score screen of `match_id`:
+        the result, the review score and the top tip, for POST_GAME_CARD_SECONDS
+        after the review was written (the live-recorded match, reviewed at once)."""
+        primary = self.store.primary_account_id()
+        last = self._last_review()
+        if primary is None or last is None or match_id is None or last["match_id"] != match_id:
+            return None
+        try:
+            written = datetime.fromisoformat(last["at"])
+        except (TypeError, ValueError):
+            return None
+        if (datetime.now(UTC) - written).total_seconds() > POST_GAME_CARD_SECONDS:
+            return None
+        key = ("post_game", primary, match_id, lang)
+        cached = self._plans.get(key)
+        now = time.monotonic()
+        if cached is not None and now - cached[0] < GAME_PLAN_CACHE_SECONDS:
+            return cached[1]
+        record = self.store.get_match(primary, match_id)
+        analysis = (record or {}).get("analysis")
+        card = post_game_card(analysis, lang, focus_met=last.get("focus_met")) if analysis else None
+        self._plans[key] = (now, card)
+        return card
 
     def _last_review(self) -> dict[str, Any] | None:
         primary = self.store.primary_account_id()
