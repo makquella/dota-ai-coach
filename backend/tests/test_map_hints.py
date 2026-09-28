@@ -213,3 +213,32 @@ def test_tp_and_last_hit_tips():
     lh = RoleTips().tip(300, "support", alive=True, has_ward=True, lang="en", last_hits=15)
     assert lh["title"] == "Leave the last hits to your carry"
     assert RoleTips().tip(300, "support", alive=True, has_ward=True, lang="en", last_hits=5) is None
+
+
+def test_level_six_tip_for_mid_and_offlane_once_before_minute_twelve():
+    tips = RoleTips()
+
+    def hint(clock, role="mid", level=6):
+        return map_hint(clock, role, tips, alive=True, has_ward=None, lang="ru", level=level)
+
+    # Level 5: nothing yet (the minute is chosen away from any timer).
+    assert hint(7 * 60 + 30, level=5) is None
+    first = hint(7 * 60 + 31)
+    assert first["id"] == "mid_six@451" and first["title"] == "6-й уровень: время ротации"
+    assert hint(7 * 60 + 50)["id"] == "mid_six@451"  # shown for 25 s
+    # Then never again this match (a rune timer may still show).
+    for clock in (7 * 60 + 58, 9 * 60 + 30):
+        again = hint(clock)
+        assert again is None or not again["id"].startswith("mid_six")
+    other = RoleTips()
+    assert (
+        map_hint(13 * 60 + 30, "mid", other, alive=True, has_ward=None, lang="en", level=6) is None
+    )  # after 12:00 it is no longer a spike
+    off = map_hint(
+        7 * 60 + 30, "offlane", RoleTips(), alive=True, has_ward=None, lang="en", level=7
+    )
+    assert off["title"] == "Level 6: pressure the lane"
+    carry = map_hint(
+        7 * 60 + 30, "carry", RoleTips(), alive=True, has_ward=None, lang="en", level=6
+    )
+    assert carry is None or not carry["id"].startswith(("mid_six", "offlane_six"))

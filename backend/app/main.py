@@ -357,6 +357,7 @@ def _live_role_and_hint(response: dict[str, object], lang: str) -> dict[str, obj
             tp_missing=MATCH_MEMORY.tp.signal() is not None,
             carry_advisor=carry_advisor,
             last_hits=last_hits if isinstance(last_hits, int) else None,
+            level=state.get("level") if isinstance(state.get("level"), int) else None,
         )
         if hint is not None:
             result["map_hint"] = hint
