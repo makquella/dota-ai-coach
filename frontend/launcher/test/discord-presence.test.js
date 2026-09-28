@@ -5,7 +5,7 @@ const os = require("node:os");
 const path = require("node:path");
 const test = require("node:test");
 
-const { CLIENT_ID, OP, buildActivity, createDiscordPresence, decode, encode, ipcPath } = require("../discord-presence");
+const { CLIENT_ID, OP, buildActivity, createDiscordPresence, decode, encode, ipcPath, trackMatchStart } = require("../discord-presence");
 
 test("frames: int32 op, int32 length, JSON; partial frames wait for the rest", () => {
   const one = encode(OP.FRAME, { cmd: "SET_ACTIVITY" });
@@ -34,6 +34,19 @@ test("the activity: a match with the hero and its start, the menu, nothing witho
   assert.equal(menu.details, "In the Dota 2 menu");
   assert.ok(!("timestamps" in menu));
   assert.equal(buildActivity({ dotaRunning: false, inMatch: false, hero: null, startedAt: null, lang: "en" }), null);
+});
+
+test("the timer starts at the horn, not at pre-game, and stays put", () => {
+  let state = trackMatchStart(null, { inMatch: true, hero: "Lina", clock: -75, now: 1_000_000 });
+  assert.equal(state.startedAt, null, "strategy time / pre-game: no timer yet");
+  state = trackMatchStart(state, { inMatch: true, hero: "Lina", clock: 3, now: 1_080_000 });
+  assert.equal(state.startedAt, 1_077_000);
+  state = trackMatchStart(state, { inMatch: true, hero: "Lina", clock: 64, now: 1_141_500 });
+  assert.equal(state.startedAt, 1_077_000, "later polls do not move it");
+  state = trackMatchStart(state, { inMatch: false, hero: null, clock: null, now: 2_000_000 });
+  assert.deepEqual(state, { hero: null, startedAt: null });
+  state = trackMatchStart(state, { inMatch: true, hero: "Axe", clock: 600, now: 3_000_000 });
+  assert.equal(state.startedAt, 2_400_000, "joined mid-game: counted back from the clock");
 });
 
 test("the client shakes hands, sets the activity once per change and clears it", async (t) => {

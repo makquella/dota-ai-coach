@@ -562,7 +562,7 @@ function refreshPresence() {
 const discord = discordPresence.createDiscordPresence({
   log: (message) => appendLog("discord", message)
 });
-const discordMatch = { hero: null, startedAt: null };
+let discordMatch = { hero: null, startedAt: null };
 
 function refreshDiscord() {
   if (IS_SMOKE_TEST || settings.get("discordPresence") === false) {
@@ -571,15 +571,12 @@ function refreshDiscord() {
   }
   const dota = dotaWatcher.getState();
   const hero = live.inMatch ? live.details.hero : null;
-  if (!live.inMatch) {
-    discordMatch.hero = null;
-    discordMatch.startedAt = null;
-  } else if (hero !== discordMatch.hero || discordMatch.startedAt === null) {
-    // The start is fixed once per match (the clock would move it every poll).
-    const clock = live.details.clockTime;
-    discordMatch.hero = hero;
-    discordMatch.startedAt = Number.isFinite(clock) && clock > 0 ? Date.now() - clock * 1000 : Date.now();
-  }
+  discordMatch = discordPresence.trackMatchStart(discordMatch, {
+    inMatch: live.inMatch,
+    hero,
+    clock: live.details.clockTime,
+    now: Date.now()
+  });
   discord.update(
     discordPresence.buildActivity({
       dotaRunning: Boolean(dota.running),

@@ -94,6 +94,22 @@ function buildActivity({ dotaRunning, inMatch, hero, startedAt, lang }) {
 }
 
 /**
+ * The match start for the timer, kept across polls: reset when the match or
+ * hero changes, fixed at the horn (the first clock of 0 or more; before it —
+ * strategy time, pre-game — there is no timer), never moved by later polls.
+ */
+function trackMatchStart(previous, { inMatch, hero, clock, now }) {
+  let state = previous || { hero: null, startedAt: null };
+  if (!inMatch || hero !== state.hero) {
+    state = { hero: inMatch ? hero : null, startedAt: null };
+  }
+  if (inMatch && state.startedAt === null && Number.isFinite(clock) && clock >= 0) {
+    state = { ...state, startedAt: now - clock * 1000 };
+  }
+  return state;
+}
+
+/**
  * A small client: connects when there is something to show, sends the latest
  * activity (same one twice is sent once), reconnects every RETRY_MS while
  * Discord is closed. `log(message)` gets connection changes only.
@@ -232,4 +248,4 @@ function createDiscordPresence({
   };
 }
 
-module.exports = { CLIENT_ID, OP, buildActivity, createDiscordPresence, decode, encode, ipcPath };
+module.exports = { CLIENT_ID, OP, buildActivity, createDiscordPresence, decode, encode, ipcPath, trackMatchStart };

@@ -243,9 +243,23 @@ export async function handleShare(request, env, now = Date.now()) {
     .run();
   // SHARE_ORIGIN: the site's own address when a Workers route sends /r/* there
   // (luhovyimvp.dev/r/<id>); the pages work on the API's address too.
-  const origin = /^https:\/\/[a-z0-9.-]+$/.test(String(env.SHARE_ORIGIN || "")) ? env.SHARE_ORIGIN : new URL(request.url).origin;
+  // Launchers before 0.9.0 open only links on the API's own address.
+  const siteLinks = /^https:\/\/[a-z0-9.-]+$/.test(String(env.SHARE_ORIGIN || "")) && versionAtLeast(version, SITE_LINKS_SINCE);
+  const origin = siteLinks ? env.SHARE_ORIGIN : new URL(request.url).origin;
   const url = `${origin}/r/${id}`;
   return json({ ok: true, id, url, delete_token: token, expires_at: expiresAt }, 201);
+}
+
+const SITE_LINKS_SINCE = [0, 9, 0];
+
+/** "0.9.1" >= [0, 9, 0]; anything that is not a version is older. */
+export function versionAtLeast(version, [major, minor, patch]) {
+  const parts = String(version || "").match(/^(\d+)\.(\d+)\.(\d+)/);
+  if (!parts) {
+    return false;
+  }
+  const [a, b, c] = parts.slice(1).map(Number);
+  return a !== major ? a > major : b !== minor ? b > minor : c >= patch;
 }
 
 export async function deleteShare(request, id, env) {
