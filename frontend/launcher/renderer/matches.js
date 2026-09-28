@@ -73,6 +73,8 @@
       pdfFailed: "Could not save the PDF",
       reviewLoading: "Loading the match…",
       reviewPending: "The review appears once the match data is loaded.",
+      reviewError: "Could not open the match",
+      reviewRenderFailed: "This is a bug in the app. Please send a problem report (Settings → App) so it can be fixed.",
       scoreOf: "of 100",
       sourcesParsed: "Full replay parsed by OpenDota",
       sourcesBasic: "OpenDota totals — replay not parsed yet",
@@ -477,6 +479,8 @@
       pdfFailed: "Не удалось сохранить PDF",
       reviewLoading: "Загружаем матч…",
       reviewPending: "Разбор появится, когда загрузятся данные матча.",
+      reviewError: "Не удалось открыть матч",
+      reviewRenderFailed: "Это ошибка приложения. Отправьте отчёт о проблеме (Настройки → Приложение), чтобы её исправили.",
       scoreOf: "из 100",
       sourcesParsed: "Полный разбор реплея (OpenDota)",
       sourcesBasic: "Итоги из OpenDota — реплей ещё не разобран",
@@ -1561,7 +1565,21 @@
     return h("span", { class: "pdf-action" }, note, button);
   }
 
+  // A review that fails to draw must say so: before, the loading skeleton
+  // stayed on screen forever.
   function renderMatch() {
+    try {
+      drawMatch();
+    } catch (error) {
+      console.error("review render failed", error);
+      const root = document.getElementById("match-root");
+      const back = h("div", { class: "review-toolbar no-print" }, h("button", { class: "btn btn-ghost btn-sm back", type: "button", onclick: () => setView("matches") }, icon("chevron-left"), h("span", { text: t("back") })));
+      root.replaceChildren(back, card(t("reviewError"), "circle-alert", emptyState("circle-alert", t("reviewRenderFailed"), String(error && error.message ? error.message : error))));
+      hydrate(root);
+    }
+  }
+
+  function drawMatch() {
     const root = document.getElementById("match-root");
     const backButton = h("button", { class: "btn btn-ghost btn-sm back", type: "button", onclick: () => setView("matches") }, icon("chevron-left"), h("span", { text: t("back") }));
     const detail = state.match;
@@ -1580,7 +1598,7 @@
       return;
     }
     if (detail.error) {
-      root.replaceChildren(back, card(t("reviewLoading"), "circle-alert", emptyState("circle-alert", t("reviewPending"), detail.error)));
+      root.replaceChildren(back, card(t("reviewError"), "circle-alert", emptyState("circle-alert", t("reviewPending"), detail.error)));
       hydrate(root);
       return;
     }
@@ -1761,7 +1779,7 @@
     if (!repeat) {
       return null;
     }
-    const text = repeat.in_a_row >= 3 ? t("repeatInARow")(repeat.in_a_row) : t("repeatInLast")(repeat.in_last, repeat.of);
+    const text = repeat.in_a_row >= 3 ? t("repeatInARow", repeat.in_a_row) : t("repeatInLast", repeat.in_last, repeat.of);
     return h("p", { class: "finding-repeat" }, icon("repeat"), h("span", { text }));
   }
 
