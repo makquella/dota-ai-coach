@@ -2438,7 +2438,7 @@ function appIcon() {
 
 // The panel opens wide (side navigation, two columns) but never larger than
 // 90 % of the screen; the size and "maximized" are remembered between runs.
-const MAIN_WINDOW_DEFAULT = { width: 1240, height: 820 };
+const MAIN_WINDOW_DEFAULT = { width: 1280, height: 840 };
 // A panel created hidden (behind the splash, or --hidden) is maximized when first shown.
 let maximizeOnShow = false;
 

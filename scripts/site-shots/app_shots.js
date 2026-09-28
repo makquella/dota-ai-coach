@@ -35,7 +35,10 @@ async function serveDotaAssets(page) {
 }
 
 const [outDir = "out", BACKEND = "http://127.0.0.1:8777", APP = "http://127.0.0.1:8766"] = process.argv.slice(2);
-const SIZE = { width: 720, height: 620 };
+// Whole views in the wide layout (side navigation, two columns from 1240 px);
+// single cards from the narrow window, where they are larger on the site.
+const SIZE = { width: 1280, height: 800 };
+const CARD_SIZE = { width: 720, height: 620 };
 
 const ADVICE = {
   ru: [
@@ -66,7 +69,7 @@ function status(lang) {
     dotaRunning: true,
     dotaFocused: true,
     dotaFullscreen: false,
-    appVersion: "0.2.0",
+    appVersion: "0.11.0",
     update: { state: "idle" },
     player: { linked: true, name: "farm_or_die", accountId: 52079950, lastReview: null, aiConfigured: true, opendotaKey: false, liveMatch: null, today: null },
     setup: { gsiSeen: true, dismissed: true },
@@ -91,7 +94,10 @@ function status(lang) {
     llm: "off",
     logMode: "normal",
     autostart: true,
-    autostartSupported: true
+    autostartSupported: true,
+    discordPresence: true,
+    discordState: { state: "shown", error: null },
+    discordWeekly: { configured: false, hint: "", last: null }
   };
 }
 
@@ -142,8 +148,8 @@ const CARDS = {
   chart: { ru: "По ходу матча", en: "Over the match" }
 };
 
-async function openPage(browser, lang, label) {
-  const page = await browser.newPage({ viewport: SIZE, deviceScaleFactor: 2, locale: lang === "ru" ? "ru-RU" : "en-US" });
+async function openPage(browser, lang, label, size = SIZE) {
+  const page = await browser.newPage({ viewport: size, deviceScaleFactor: 2, locale: lang === "ru" ? "ru-RU" : "en-US" });
   page.on("pageerror", (error) => console.error(`${lang}/${label}:`, error.message));
   await serveDotaAssets(page);
   await page.exposeFunction("__player", async (op, args) => {
@@ -204,7 +210,7 @@ async function loadPictures(page) {
       console.log(`${lang}-${name}.png`);
       await page.close();
     }
-    const page = await openPage(browser, lang, "cards");
+    const page = await openPage(browser, lang, "cards", CARD_SIZE);
     await page.click("#tab-matches");
     await page.waitForTimeout(1500);
     await page.click("tr.row-link");

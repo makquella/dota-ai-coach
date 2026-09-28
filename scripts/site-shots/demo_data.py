@@ -132,6 +132,7 @@ def vary(recent: list[dict[str, Any]]) -> dict[int, dict[str, Any]]:
                 str(x): {str(y): 4 + (x * 7 + y * 3) % 23 for y in range(74, 86, 2)}
                 for x in range(150, 176, 2)
             }
+            match["start_time"] = row["start_time"]
             matches[row["match_id"]] = match
             row.update(hero_id=8)
             continue

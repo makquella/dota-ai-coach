@@ -11,6 +11,7 @@ from __future__ import annotations
 import os
 import sys
 import tempfile
+import time
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
@@ -31,6 +32,11 @@ from demo_data import DemoLLM, friend_row, vary, with_route  # noqa: E402
 def main() -> None:
     port = int(sys.argv[1]) if len(sys.argv) > 1 else 8777
     recent = recent_matches(20)
+    # Played this week (the newest three hours ago, then every nine hours), so
+    # Home has a week, "today" and fresh "last matches" like a regular player.
+    now = int(time.time())
+    for index, row in enumerate(recent):
+        row["start_time"] = now - 3 * 3600 - index * 9 * 3600
     fake = FakeOpenDota(matches=vary(recent), recent=recent)
     profile = fake.player
     fake.player = lambda account_id: {

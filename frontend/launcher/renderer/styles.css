@@ -214,8 +214,8 @@ h1 {
 /* Match stats */
 .stats {
   display: grid;
-  /* The hero's name needs the most room. */
-  grid-template-columns: minmax(0, 1.6fr) repeat(3, minmax(0, 1fr));
+  /* The hero's name needs the most room; the others wrap before they cut. */
+  grid-template-columns: minmax(0, 1.6fr) repeat(3, minmax(max-content, 1fr));
   gap: var(--sp-4);
 }
 
@@ -3284,15 +3284,32 @@ label.setting:has(.switch:disabled) {
   min-width: 0;
 }
 
+/* Grid items keep their min-content width by default: a card with a long
+   header row would push past its column and under the next one. */
+.col > * {
+  min-width: 0;
+}
+
 .col > .review-banner,
 .col > .today-line {
   margin: 0;
 }
 
-@media screen and (min-width: 1100px) {
+@media screen and (min-width: 1240px) {
   .home-grid,
   .layout-2 {
-    grid-template-columns: minmax(0, 1.6fr) minmax(320px, 1fr);
+    grid-template-columns: minmax(0, 1.6fr) minmax(360px, 1fr);
+  }
+
+  /* Tables in the narrower side column: tighter cells, a size smaller. */
+  .col-side .table {
+    font-size: var(--fs-13);
+  }
+
+  .col-side .table th,
+  .col-side .table td {
+    padding-right: var(--sp-2);
+    padding-left: var(--sp-2);
   }
 
   .layout-2 > .col-wide {

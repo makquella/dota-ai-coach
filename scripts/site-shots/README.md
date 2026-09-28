@@ -27,8 +27,11 @@ backend/.venv/bin/python scripts/site-shots/game_frames.py /tmp/site-shots/raw
 ```
 
 - `app_shots.js` — Home, Matches, a match review (top and the AI coach card),
-  Progress (top and the AI coach card) and the map / build / chart cards,
-  720×620 at 2x (the launcher's default window is 760 wide), both languages.
+  Progress (top and the AI coach card) at 1280×800 at 2x (the wide layout:
+  side navigation and two columns; `export.py` makes them 1600×1000, and the
+  site opens them at full size on click), and the map / build / chart cards
+  from a 720×620 window (larger on the page), both languages. The demo
+  matches are dated this week (the newest three hours ago) so Home has a week.
   Hero portraits and item icons go through the app's own `dota-assets.js`
   handler (cached in `$ASSET_CACHE`, default the system temp folder).
 - `overlay_shots.js` — one overlay card per case in `overlay_cases.json`, at the
