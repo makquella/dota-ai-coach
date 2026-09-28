@@ -3322,6 +3322,34 @@ label.setting:has(.switch:disabled) {
   }
 }
 
+/* Match table: a result stripe on each row, the score as a ring and letter. */
+tr.row-link > td:first-child {
+  box-shadow: inset 3px 0 0 var(--idle);
+}
+
+tr.row-link[data-result="win"] > td:first-child {
+  box-shadow: inset 3px 0 0 var(--ok);
+}
+
+tr.row-link[data-result="loss"] > td:first-child {
+  box-shadow: inset 3px 0 0 var(--error);
+}
+
+.score-cell {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+}
+
+.score-cell .score-ring {
+  width: 30px;
+  height: 30px;
+}
+
+.score-cell .score-ring-value {
+  font-size: 11px;
+}
+
 /* «Последние матчи» on Home. */
 .recent-list {
   margin: 0;

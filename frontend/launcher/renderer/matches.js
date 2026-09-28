@@ -992,15 +992,6 @@
     return h("span", { class: "result" }, h("span", { class: "dot", "data-tone": tone }), h("span", { text: win === true ? t("win") : win === false ? t("loss") : t("unknownResult") }));
   }
 
-  function gradeBadge(score) {
-    if (score === null || score === undefined) {
-      return h("span", { class: "grade grade-none", text: "—" });
-    }
-    const letter = score >= 80 ? "A" : score >= 65 ? "B" : score >= 50 ? "C" : "D";
-    const tone = score >= 65 ? "good" : score >= 50 ? "warn" : "bad";
-    return h("span", { class: "grade" }, h("span", { class: "dot", "data-tone": tone }), h("span", { class: "num", text: `${letter} · ${score}` }));
-  }
-
   function gradeLetter(score) {
     const letter = score >= 80 ? "A" : score >= 65 ? "B" : score >= 50 ? "C" : "D";
     const tone = score >= 65 ? "good" : score >= 50 ? "warn" : "bad";
@@ -1384,6 +1375,7 @@
             class: "row-link",
             tabindex: 0,
             role: "button",
+            dataset: { result: row.win === true ? "win" : row.win === false ? "loss" : "unknown" },
             "aria-label": `${row.hero || ""} ${row.win === true ? t("win") : row.win === false ? t("loss") : ""}`,
             onclick: open,
             onkeydown: (event) => {
@@ -1399,7 +1391,7 @@
           h("td", { class: "num-col num", text: number(row.gpm) }),
           h("td", { class: "num-col num hide-narrow", text: number(row.lh_10) }),
           h("td", { class: "num-col num", text: clock(row.duration) }),
-          h("td", {}, gradeBadge(row.score)),
+          h("td", {}, h("span", { class: "score-cell" }, scoreRing(row.score, "sm"), row.score == null ? null : gradeLetter(row.score))),
           h("td", { class: "muted hide-narrow", text: relativeTime(row.start_time) })
         )
       );
@@ -3803,7 +3795,11 @@
     const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
     svg.setAttribute("viewBox", "0 0 36 36");
     svg.setAttribute("aria-hidden", "true");
-    for (const [cls, dash] of [["ring-track", null], ["ring-value", known ? (Math.max(0, Math.min(100, score)) / 100) * length : 0]]) {
+    const arcs = [["ring-track", null]];
+    if (known && score > 0) {
+      arcs.push(["ring-value", (Math.min(100, score) / 100) * length]);
+    }
+    for (const [cls, dash] of arcs) {
       const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
       circle.setAttribute("cx", "18");
       circle.setAttribute("cy", "18");
