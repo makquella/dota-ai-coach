@@ -60,6 +60,9 @@ SAVERS: dict[str, dict[str, str]] = {
     "item_disperser": {"ru": "Disperser", "en": "Disperser"},
     "item_magic_wand": {"ru": "Magic Wand", "en": "Magic Wand"},
 }
+# The hero's own safety abilities in `ready` (live_tools.ready_abilities):
+# "ability:Blade Fury". Labels are the ability names.
+ABILITY_PREFIX = "ability:"
 # Passive or needing a target: never "not used" from GSI alone.
 _NOT_PRESSED = {"item_sphere"}
 _ITEM_SLOTS = ("slot",)
@@ -117,7 +120,14 @@ class LastSeconds:
     def reset(self) -> None:
         self._entries.clear()
 
-    def observe(self, clock: int, hero: dict[str, Any], items: dict[str, Any]) -> None:
+    def observe(
+        self,
+        clock: int,
+        hero: dict[str, Any],
+        items: dict[str, Any],
+        abilities: list[str] | tuple[str, ...] = (),
+    ) -> None:
+        """`abilities`: the hero's safety abilities ready on this tick."""
         if hero.get("alive") is not True:
             return
         hp = _number(hero.get("health_percent"))
@@ -128,7 +138,7 @@ class LastSeconds:
             "hp": round(hp),
             "mp": round(_number(hero.get("mana_percent")) or 0),
             "disabled": is_disabled(hero),
-            "ready": ready_savers(items),
+            "ready": ready_savers(items) + [f"{ABILITY_PREFIX}{name}" for name in abilities],
         }
         if self._entries and self._entries[-1]["t"] == clock:
             self._entries[-1] = entry  # the latest tick of that second
@@ -167,5 +177,7 @@ class LastSeconds:
 
 
 def saver_label(name: str, lang: str) -> str:
+    if name.startswith(ABILITY_PREFIX):
+        return name[len(ABILITY_PREFIX) :]
     names = SAVERS.get(name)
     return names["ru" if lang == "ru" else "en"] if names else name

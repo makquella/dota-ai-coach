@@ -34,7 +34,9 @@ from pathlib import Path
 from typing import Any
 
 from app.dota_constants import hero_id_from_name, hero_name_from_npc
+from app.gsi_state import normalize_abilities
 from app.last_moments import LastSeconds
+from app.live_tools import ready_abilities
 from app.steam_ids import STEAM64_BASE
 
 TIMELINE_VERSION = 1
@@ -307,7 +309,9 @@ class MatchTracker:
         if position is not None and snapshot["alive"] is not False:
             snapshot["x"], snapshot["y"] = position
         last = current["_last"]
-        self._last_seconds.observe(clock, hero, _dict(payload.get("items")))
+        # The hero's own escape / defensive abilities ready now (live_tools.py).
+        ready = ready_abilities(hero.get("name"), normalize_abilities(payload.get("abilities")))
+        self._last_seconds.observe(clock, hero, _dict(payload.get("items")), ready)
         self._track_deaths(current, snapshot, hero, last)
         self._track_buyback(current, clock, hero, last)
         self._track_items(current, clock, _dict(payload.get("items")))

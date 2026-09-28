@@ -23,7 +23,8 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Any
 
-from app.last_moments import SAVERS
+from app.hero_profiles import find_ability, get_key_safety_abilities
+from app.last_moments import ABILITY_PREFIX, SAVERS, saver_label
 
 # Low HP: first a way out, then an instant heal.
 ESCAPES = (
@@ -68,6 +69,9 @@ DISPELS = (
     "item_disperser",
 )
 
+# Profile "defensive" abilities that cannot be pressed (passive in current patches).
+PASSIVE_SAFETY = {"mana shield"}
+
 LOW_HP_ACTION_TYPES = {
     "retreat_reset",
     "play_back_and_regen",
@@ -84,6 +88,41 @@ def _count(value: Any) -> int:
     if isinstance(value, bool) or not isinstance(value, (int, float)) or value != value:
         return 0
     return int(value) if 0 <= value < 1000 else 0
+
+
+def _number(value: Any) -> float | None:
+    if isinstance(value, bool) or not isinstance(value, (int, float)) or value != value:
+        return None
+    return float(value)
+
+
+def hero_tools(hero: Any, abilities: Any) -> dict[str, Any]:
+    """The hero's own escape and defensive abilities (hero_profiles.json) from the
+    live GSI abilities: `ready` [(name, kind)] — learned, off cooldown and not
+    marked uncastable — escapes first, and `cooldowns` {name: seconds left}."""
+    ready: list[tuple[str, str]] = []
+    cooldowns: dict[str, int] = {}
+    if not isinstance(hero, str) or not hero or not isinstance(abilities, list):
+        return {"ready": ready, "cooldowns": cooldowns}
+    key = get_key_safety_abilities(hero)
+    for kind in ("escape", "defensive"):
+        for name in key[kind]:
+            if name.lower() in PASSIVE_SAFETY:
+                continue
+            ability = find_ability(abilities, name)
+            if not ability or not (_number(ability.get("level")) or 0) > 0:
+                continue
+            cooldown = _number(ability.get("cooldown"))
+            if cooldown is not None and cooldown > 0:
+                cooldowns[name] = int(-(-cooldown // 1))
+            elif ability.get("can_cast") is not False and cooldown is not None:
+                ready.append((name, kind))
+    return {"ready": ready, "cooldowns": cooldowns}
+
+
+def ready_abilities(hero: Any, abilities: Any) -> list[str]:
+    """Names of the hero's safety abilities that could be pressed now."""
+    return [name for name, _ in hero_tools(hero, abilities)["ready"]]
 
 
 def regen_items(items: Any) -> list[str] | None:
@@ -115,9 +154,8 @@ def wand_charges(items: Any) -> int | None:
 
 
 def _label(name: str) -> str:
-    saver = SAVERS.get(name)
-    if saver:
-        return saver["en"]
+    if name.startswith(ABILITY_PREFIX) or name in SAVERS:
+        return saver_label(name, "en")
     return REGEN_INSTANT.get(name) or REGEN_OVER_TIME.get(name) or name
 
 
@@ -137,14 +175,25 @@ def _items_blocked(extra: Mapping[str, Any]) -> bool:
     return any(extra.get(flag) is True for flag in ("stunned", "hexed", "muted"))
 
 
-def low_hp_copy(extra: Mapping[str, Any]) -> tuple[str, str] | None:
+def low_hp_copy(extra: Mapping[str, Any], hero: Any = None) -> tuple[str, str] | None:
     """(action, reason) naming the tool to press at low HP; None without one.
     Stunned, hexed or muted, no item can be pressed: the post-disable wording."""
-    ready = _ready(extra)
-    if ready is None:
-        return None
     if _items_blocked(extra):
-        return disabled_copy(extra)
+        return disabled_copy(extra, hero)
+    own = hero_tools(hero, extra.get("abilities"))["ready"]
+    if own:
+        name, kind = own[0]
+        if kind == "escape":
+            return (
+                f"Use {name} now to get out, then reset HP.",
+                f"Your HP is low and {name} is ready: use it before the next hit, not after.",
+            )
+        return (
+            f"Use {name} now and walk out of the fight.",
+            f"{name} is ready: it buys you the seconds to get away.",
+        )
+    # Items: only what the GSI items block shows (none → nothing claimed).
+    ready = _ready(extra) or []
     escape = _first(ready, ESCAPES)
     if escape:
         name = _label(escape)
@@ -180,11 +229,10 @@ def low_hp_copy(extra: Mapping[str, Any]) -> tuple[str, str] | None:
     return None
 
 
-def disabled_copy(extra: Mapping[str, Any]) -> tuple[str, str] | None:
-    """(action, reason) for a disable when a dispel or escape is ready."""
-    ready = _ready(extra)
-    if not ready:
-        return None
+def disabled_copy(extra: Mapping[str, Any], hero: Any = None) -> tuple[str, str] | None:
+    """(action, reason) for a disable when a dispel or escape is ready: a dispel
+    item, then the hero's own escape or defensive ability, then an escape item."""
+    ready = _ready(extra) or []
     blocked = _items_blocked(extra)
     tool = _first(ready, DISPELS)
     if not blocked and extra.get("silenced") is True and tool:
@@ -193,10 +241,12 @@ def disabled_copy(extra: Mapping[str, Any]) -> tuple[str, str] | None:
             f"Use {name} now: it removes the silence.",
             "A silence does not stop items: get rid of it before the next spell lands.",
         )
-    tool = tool or _first(ready, ESCAPES)
-    if not blocked or not tool:
+    own = [name for name, _ in hero_tools(hero, extra.get("abilities"))["ready"]]
+    name = _label(tool) if tool else (own[0] if own else None)
+    if name is None and _first(ready, ESCAPES):
+        name = _label(_first(ready, ESCAPES) or "")
+    if not blocked or not name:
         return None
-    name = _label(tool)
     return (
         f"The moment the disable ends, use {name}.",
         f"{name} is ready: the second after a disable is when most kills finish.",
@@ -212,7 +262,11 @@ def death_items_reason(extra: Mapping[str, Any]) -> str | None:
     items = extra.get("death_items")
     if not isinstance(items, list):
         return None
-    names = [_label(n) for n in items if isinstance(n, str) and n in SAVERS]
+    names = [
+        _label(n)
+        for n in items
+        if isinstance(n, str) and (n in SAVERS or n.startswith(ABILITY_PREFIX))
+    ]
     if not names:
         return None
     return f"You died with {names[0]} ready: next time use it at the first big hit."

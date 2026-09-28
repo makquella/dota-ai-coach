@@ -706,6 +706,11 @@ def _normalize_item_name(value: Any) -> str:
     return normalize_item_name(key)
 
 
+def normalize_abilities(value: Any) -> list[dict[str, Any]]:
+    """The raw GSI abilities block as a list of {name, raw_name, level, cooldown, can_cast}."""
+    return _normalize_abilities(value)
+
+
 def _normalize_abilities(value: Any) -> list[dict[str, Any]]:
     if isinstance(value, list):
         raw_abilities = value

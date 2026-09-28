@@ -8,7 +8,13 @@ from match_fixtures import gsi_match_stream
 
 from app.advice_i18n import translate_ru
 from app.gsi_state import normalize_gsi_payload
-from app.live_tools import death_items_reason, disabled_copy, low_hp_copy, regen_items
+from app.live_tools import (
+    death_items_reason,
+    disabled_copy,
+    hero_tools,
+    low_hp_copy,
+    regen_items,
+)
 from app.player_api import PLAYER_SERVICE
 from app.recommender import _fallback_text
 from app.schemas import GameSituationRequest
@@ -21,10 +27,13 @@ MANTA = {"name": "item_manta", **READY}
 SALVE = {"name": "item_flask", "charges": 1, **READY}
 
 
-def _extra(*items, **flags):
+def _extra(*items, abilities=None, hero="npc_dota_hero_juggernaut", **flags):
     raw = {f"slot{i}": item for i, item in enumerate(items)}
     payload = copy.deepcopy(gsi_match_stream(minutes=20, death_minutes=())[-1])
     payload["items"] = raw
+    payload["hero"]["name"] = hero
+    if abilities is not None:
+        payload["abilities"] = abilities
     return normalize_gsi_payload(payload)["extra_context"] | flags
 
 
@@ -58,10 +67,10 @@ def test_regen_needs_a_usable_item():
     assert regen_items({}) is None
 
 
-def _request(extra):
+def _request(extra, hero="Juggernaut"):
     payload = copy.deepcopy(gsi_match_stream(minutes=20, death_minutes=())[-1])
     state = normalize_gsi_payload(payload)
-    return GameSituationRequest(**{**state, "hp_percent": 15, "extra_context": extra})
+    return GameSituationRequest(**{**state, "hero": hero, "hp_percent": 15, "extra_context": extra})
 
 
 def test_the_cards_use_the_tools_and_keep_the_plain_text_without_them():
@@ -199,3 +208,89 @@ def test_low_hp_while_stunned_waits_for_the_disable_to_end():
         action, _ = low_hp_copy(_extra(FORCE, **{flag: True}))
         assert action == "The moment the disable ends, use Force Staff."
     assert low_hp_copy(_extra(WAND, stunned=True)) is None  # a wand is no way out of a stun
+
+
+def _ability(name, cooldown=0, level=1, can_cast=True):
+    return {
+        "name": name,
+        "level": level,
+        "can_cast": can_cast,
+        "passive": False,
+        "ability_active": True,
+        "cooldown": cooldown,
+        "ultimate": False,
+    }
+
+
+BLADE_FURY = {"ability0": _ability("juggernaut_blade_fury")}
+
+
+def test_the_heros_own_ability_comes_before_items():
+    extra = _extra(FORCE, abilities=BLADE_FURY)
+    assert low_hp_copy(extra, "Juggernaut") == (
+        "Use Blade Fury now and walk out of the fight.",
+        "Blade Fury is ready: it buys you the seconds to get away.",
+    )
+    blink = {"ability0": _ability("antimage_blink")}
+    extra = _extra(abilities=blink, hero="npc_dota_hero_antimage")
+    assert low_hp_copy(extra, "Anti-Mage")[0] == "Use Blink now to get out, then reset HP."
+    # On cooldown or not learned: the items decide.
+    on_cooldown = _extra(FORCE, abilities={"ability0": _ability("juggernaut_blade_fury", 7)})
+    assert low_hp_copy(on_cooldown, "Juggernaut")[0].startswith("Use Force Staff")
+    unlearned = _extra(abilities={"ability0": _ability("juggernaut_blade_fury", level=0)})
+    assert low_hp_copy(unlearned, "Juggernaut") is None
+
+
+def test_hero_tools_reads_cooldowns_and_skips_passives():
+    extra = _extra(abilities={"ability0": _ability("antimage_blink", 5.2)})
+    tools = hero_tools("Anti-Mage", extra["abilities"])
+    assert tools == {"ready": [], "cooldowns": {"Blink": 6}}
+    shield = _extra(abilities={"ability0": _ability("medusa_mana_shield")})
+    assert hero_tools("Medusa", shield["abilities"])["ready"] == []
+
+
+def test_a_stun_names_the_ability_to_press_when_it_ends():
+    extra = _extra(abilities=BLADE_FURY, stunned=True)
+    assert disabled_copy(extra, "Juggernaut")[0] == "The moment the disable ends, use Blade Fury."
+    assert low_hp_copy(extra, "Juggernaut")[0] == "The moment the disable ends, use Blade Fury."
+
+
+def test_the_escape_cooldown_card_says_when_it_is_back():
+    extra = _extra(abilities={"ability0": _ability("antimage_blink", 6)}) | {
+        "hero_safety_ability": "Blink",
+        "hero_safety_kind": "escape",
+        "hero_safety_flags": ["escape_on_cooldown"],
+    }
+    text = _fallback_text(_request(extra, "Anti-Mage"), "respect_hero_safety_window")
+    assert text["reason"] == (
+        "Blink is back in 6 s: without it, escaping a bad trade or fight is harder."
+    )
+    assert translate_ru(text["reason"]).startswith("Blink откатится через 6 с")
+
+
+def test_a_death_with_the_heros_ability_ready_is_named(tmp_path):
+    from app.match_tracker import MatchTracker
+
+    tracker = MatchTracker(tmp_path / "live.json", on_finished=lambda _: None)
+    # The last payload is the score screen, which closes the recording: left out.
+    for payload in gsi_match_stream(death_minutes=(18,), step_seconds=1, minutes=19)[:-1]:
+        before = 18 * 60 - payload["map"]["clock_time"]
+        payload["abilities"] = BLADE_FURY
+        if 0 < before <= 6:
+            payload["hero"]["health_percent"] = 12 * before
+        tracker.observe(payload)
+    usable = tracker.last_death()["usable"]
+    assert usable == ["ability:Blade Fury"]
+    assert death_items_reason({"death_items": usable}) == (
+        "You died with Blade Fury ready: next time use it at the first big hit."
+    )
+
+
+def test_the_ability_texts_have_russian():
+    for text in (
+        "Use Blade Fury now and walk out of the fight.",
+        "Blade Fury is ready: it buys you the seconds to get away.",
+        "Blink is back in 6 s: without it, escaping a bad trade or fight is harder.",
+        "Blade Fury is back in 9 s: until then, disables and slows are harder to avoid.",
+    ):
+        assert translate_ru(text), text
