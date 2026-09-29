@@ -14,8 +14,8 @@ const I18N = {
     languageTitle: "Language",
     languageHint: "Advice, reviews and the whole app",
     languageAuto: "Auto",
-    dataTitle: "Match data",
-    odTitle: "Faster match history (optional)",
+    dataTitle: "Match history",
+    odTitle: "Faster match history",
     odPlaceholder: "OpenDota key",
     odSave: "Save",
     odGet: "Get a key on opendota.com",
@@ -24,7 +24,7 @@ const I18N = {
     odHintOn: (hint) => `Key ${hint} saved: your matches load faster.`,
     odHintEnv: "A key is already set in the app's settings file.",
     odBad: "This does not look like an OpenDota key.",
-    appTitle: "App",
+    appTitle: "Main",
     service: "Coach",
     serviceStates: { running: "running", starting: "starting…", stopping: "stopping…", stopped: "stopped" },
     status: {
@@ -80,7 +80,7 @@ const I18N = {
     adviceEmptyHint: "Advice shows up here as it appears over the game.",
     priority: { high: "urgent", urgent: "urgent", medium: "important", low: "tip", safe: "calm" },
     stages: { laning: "Lanes", "post-laning": "After the lanes", macro: "Mid and late game" },
-    overlayTitle: "Card over the game",
+    overlayTitle: "Advice card",
     overlayShow: "Show advice over the game",
     overlayReason: {
       off: "Off",
@@ -92,7 +92,7 @@ const I18N = {
       no_match: "Appears when a match starts",
       in_game: "On screen now"
     },
-    overlayPosition: "Position",
+    overlayPosition: "Where on the screen",
     positionHint: "Away from the minimap and the hero panel",
     positionCustom: "Custom position, pick a preset to reset",
     posLeft: "Left",
@@ -102,7 +102,7 @@ const I18N = {
     overlaySizeHint: "Larger on big and high-resolution screens",
     overlayTimers: "Timer strip",
     overlayTimersHint: "Always under the card: how long until the next runes, stacks, Roshan and Aegis for your role",
-    overlayCompact: "Compact card",
+    overlayCompact: "Short advice",
     overlayCompactHint: "Only what to do, without the reason: less to read during a fight",
     sizeSmall: "Small",
     sizeNormal: "Normal",
@@ -156,8 +156,8 @@ const I18N = {
     moveActiveHint: "Drag the card, then press Done",
     moveStart: "Move",
     moveDone: "Done",
-    statsTitle: "Anonymous statistics",
-    statsHint: "Once a day: which advice the coach showed and which warnings came before a death. No heroes, matches, nickname or keys. Helps make the advice better.",
+    statsTitle: "Help improve the advice",
+    statsHint: "Once a day the app sends anonymous counts: which advice was shown and which warnings came before a death. No heroes, matches, nickname or keys. Off by default.",
     statsPreview: "What is sent (today so far)",
     statsTerms: "Kept for a year.",
     statsOff: "Off: nothing is sent.",
@@ -179,9 +179,9 @@ const I18N = {
       shown: "Shown in Discord. Friends do not see it? Discord → Settings → Activity Privacy → «Share your detected activities with others».",
       rejected: (error) => `Discord did not accept the status: ${error}`
     },
-    settingsMore: "More",
+    settingsMore: "More settings",
     settingsPageTitle: "Settings",
-    settingsPageSub: "What the coach shows in the game, your data and the app",
+    settingsPageSub: "Everything already works. Change only what you want to.",
     zoneNow: "Now",
     zoneNowHint: "The current match and the advice it got",
     zoneHistory: "Last matches",
@@ -190,11 +190,11 @@ const I18N = {
     zoneWeekHint: "The last seven days against the seven before",
     zoneAllMatches: "All matches",
     zoneGame: "In the game",
-    zoneGameHint: "The advice card over Dota and what it says",
-    zoneData: "Coach and match data",
-    zoneDataHint: "A review of every match written by the AI coach, and your match history",
+    zoneGameHint: "What you see and hear during a match",
+    zoneData: "After the match",
+    zoneDataHint: "A review of every match in plain words, written by the AI coach",
     zoneApp: "App",
-    zoneAppHint: "Language, updates, your match history and help",
+    zoneAppHint: "Language, start with Windows, updates",
     weeklyTitle: "The week in Discord",
     weeklyHint:
       "Every Monday the week's matches, results and average score are posted to a channel of your Discord server. You need the channel's webhook link: in Discord open the channel settings → Integrations → Webhooks → New webhook → Copy webhook URL, and paste it here.",
@@ -217,8 +217,8 @@ const I18N = {
       fallback: "Could not post: try again later."
     },
     autostart: "Start with Windows",
-    autostartOn: "Starts hidden in the tray",
-    autostartOff: "Start it yourself before playing",
+    autostartOn: "Wardly opens by itself when the computer starts and waits quietly next to the clock, so you never forget it before a game.",
+    autostartOff: "Wardly opens by itself when the computer starts and waits quietly next to the clock, so you never forget it before a game.",
     autostartUnavailable: "Available in the installed app",
     updates: "Updates",
     updateCheck: "Check",
@@ -281,15 +281,15 @@ const I18N = {
         },
         done: {
           title: "All set",
-          text: "Start Dota and play a match: the first advice appears by itself. This tour can be opened again in Settings → App."
+          text: "Start Dota and play a match: the first advice appears by itself. This tour can be opened again in Settings → Help."
         }
       }
     },
     summaryTitle: "Summary",
     sessionTitle: "Your evening",
     sessionHide: "Hide",
-    tourTitle: "Tour of the app",
-    tourHint: "A minute-long look at what is where",
+    tourTitle: "How to use Wardly",
+    tourHint: "A short tour of the app, one minute",
     tourStart: "Show",
     whatsNew: {
       "0.20.0": [
@@ -420,25 +420,33 @@ const I18N = {
       ai: ["AI coach (optional)", "With a free Google key the AI writes a review of every match in plain words."]
     },
     setupActions: { dota: "Choose folder", gsi: "Connect", launch: "Copy", account: "Link", ai: "Set up" },
-    reportTitle: "Problem report",
-    reportHint: "Something does not work? Send the developer a report in one click: the app's log and settings, with keys and passwords cut out.",
-    reportSave: "Save file",
-    backupTitle: "Match history",
-    backupHint: "Every match, review and AI answer in one file: to keep a copy or move to another computer. Keys are not saved.",
+    reportTitle: "Report a problem",
+    reportHint: "Something does not work? Press «Report» and describe it in a few words: the developer gets the app's log. Keys and passwords are cut out.",
+    reportSave: "Save as a file instead",
+    backupTitle: "Spare copy in a file",
+    backupHint: "Saves all your matches and reviews into one file, for example before reinstalling Windows. Open it later in Wardly on any computer. Keys are not saved.",
     backupExport: "Save to file",
-    backupImport: "Load from file",
+    backupImport: "Open a file",
     backupSaved: (count, file) => `Saved ${count} matches: ${file}`,
     backupLoaded: (added, linked) => `Loaded: ${added} new matches${linked ? ", account linked" : ""}. Nothing was overwritten.`,
     backupNotBackup: "This file is not a Wardly history backup.",
     backupNewer: "The backup was made by a newer version: update the app first.",
     backupFailed: "Could not do it: the coach is not running or the disk is not available.",
     transferTitle: "Move to another computer",
-    transferHint: "Get a code here and enter it in Wardly on the other computer. The history is encrypted with the code: our server keeps it for 15 minutes and cannot read it. Keys are not sent.",
+    zoneMyData: "Your matches",
+    zoneMyDataHint: "So your history is not lost when you change computers",
+    zoneHelp: "Help",
+    zoneHelpHint: "How to use the app, and what to do if something breaks",
+    transferIntro: "Installed Wardly on a new computer? Move your matches and reviews there, it takes a minute.",
+    transferStep1: "Here, press «Get a code».",
+    transferStep2: "On the new computer: Wardly → Settings → Move to another computer → «I have a code», and type it in.",
+    transferHave: "I have a code",
+    transferHint: "The code works for 15 minutes. Your matches travel encrypted; keys are not moved.",
     transferSend: "Get a code",
     transferReceive: "Load",
     transferInputLabel: "Code from the other computer",
     transferSending: "Encrypting and sending…",
-    transferReady: (matches, time) => `Code for ${matches} matches, valid until ${time}. On the other computer: Settings → App → Move to another computer.`,
+    transferReady: (matches, time) => `The code works until ${time}. Type it in on the new computer (matches: ${matches}).`,
     transferReceiving: "Downloading and decrypting…",
     transferErrors: {
       bad_code: "Check the code: three groups of four letters and digits, as shown on the other computer.",
@@ -453,7 +461,7 @@ const I18N = {
     reportSaving: "Collecting…",
     reportSaved: (name) => `Saved: ${name}. Send this file to the developer.`,
     reportFailed: "Could not save the file",
-    reportSend: "Send to developer",
+    reportSend: "Report",
     reportNoteLabel: "What happened? (optional)",
     reportNotePlaceholder: "For example: no advice shows in a match",
     reportPreview: "What will be sent",
@@ -545,8 +553,8 @@ const I18N = {
     languageTitle: "Язык",
     languageHint: "Советы, разборы и всё приложение",
     languageAuto: "Как в системе",
-    dataTitle: "Данные матчей",
-    odTitle: "Быстрая загрузка истории (по желанию)",
+    dataTitle: "История матчей",
+    odTitle: "Быстрая загрузка истории",
     odPlaceholder: "Ключ OpenDota",
     odSave: "Сохранить",
     odGet: "Получить ключ на opendota.com",
@@ -555,7 +563,7 @@ const I18N = {
     odHintOn: (hint) => `Ключ ${hint} сохранён: матчи загружаются быстрее.`,
     odHintEnv: "Ключ уже задан в файле настроек приложения.",
     odBad: "Это не похоже на ключ OpenDota.",
-    appTitle: "Приложение",
+    appTitle: "Основное",
     service: "Тренер",
     serviceStates: { running: "работает", starting: "запускается…", stopping: "останавливается…", stopped: "остановлен" },
     status: {
@@ -611,7 +619,7 @@ const I18N = {
     adviceEmptyHint: "Здесь появятся подсказки, которые показывались поверх игры.",
     priority: { high: "срочно", urgent: "срочно", medium: "важно", low: "совет", safe: "спокойно" },
     stages: { laning: "Линии", "post-laning": "После линий", macro: "Середина и конец игры" },
-    overlayTitle: "Карточка в игре",
+    overlayTitle: "Карточка с подсказками",
     overlayShow: "Показывать подсказки поверх игры",
     overlayReason: {
       off: "Выключено",
@@ -623,7 +631,7 @@ const I18N = {
       no_match: "Появится, когда начнётся матч",
       in_game: "Сейчас на экране"
     },
-    overlayPosition: "Положение",
+    overlayPosition: "Где на экране",
     positionHint: "В стороне от миникарты и панели героя",
     positionCustom: "Своё положение — выберите вариант, чтобы вернуть",
     posLeft: "Слева",
@@ -633,7 +641,7 @@ const I18N = {
     overlaySizeHint: "Крупнее — для больших экранов и высокого разрешения",
     overlayTimers: "Полоса таймеров",
     overlayTimersHint: "Всегда под карточкой: сколько осталось до ближайших рун, стаков, Рошана и Аегиса для вашей роли",
-    overlayCompact: "Компактная карточка",
+    overlayCompact: "Короткие подсказки",
     overlayCompactHint: "Только что делать, без объяснения: меньше читать во время драки",
     sizeSmall: "Мелкий",
     sizeNormal: "Обычный",
@@ -687,8 +695,8 @@ const I18N = {
     moveActiveHint: "Перетащите карточку и нажмите «Готово»",
     moveStart: "Переместить",
     moveDone: "Готово",
-    statsTitle: "Анонимная статистика",
-    statsHint: "Раз в день: какие подсказки показал тренер и после каких предупреждений была смерть. Без героев, матчей, ника и ключей. Помогает сделать подсказки лучше.",
+    statsTitle: "Помочь улучшить подсказки",
+    statsHint: "Раз в день приложение отправляет анонимные счётчики: какие подсказки показывались и после каких предупреждений была смерть. Без героев, матчей, ника и ключей. По умолчанию выключено.",
     statsPreview: "Что отправляется (за сегодня)",
     statsTerms: "Хранится год.",
     statsOff: "Выключено: ничего не отправляется.",
@@ -710,9 +718,9 @@ const I18N = {
       shown: "Статус показан в Discord. Друзья не видят? Discord → Настройки → Конфиденциальность активности → «Делиться своей активностью».",
       rejected: (error) => `Discord не принял статус: ${error}`
     },
-    settingsMore: "Дополнительно",
+    settingsMore: "Ещё настройки",
     settingsPageTitle: "Настройки",
-    settingsPageSub: "Что тренер показывает в игре, ваши данные и приложение",
+    settingsPageSub: "Всё уже работает. Меняйте только то, что хочется.",
     zoneNow: "Сейчас",
     zoneNowHint: "Текущий матч и подсказки в нём",
     zoneHistory: "Последние матчи",
@@ -721,11 +729,11 @@ const I18N = {
     zoneWeekHint: "Последние семь дней против семи до них",
     zoneAllMatches: "Все матчи",
     zoneGame: "В игре",
-    zoneGameHint: "Карточка советов поверх Доты и что в ней",
-    zoneData: "Тренер и данные матчей",
-    zoneDataHint: "Разбор каждого матча от ИИ-тренера и история ваших матчей",
+    zoneGameHint: "Что вы видите и слышите во время матча",
+    zoneData: "После матча",
+    zoneDataHint: "Разбор каждого матча простыми словами от ИИ-тренера",
     zoneApp: "Приложение",
-    zoneAppHint: "Язык, обновления, история матчей и помощь",
+    zoneAppHint: "Язык, автозапуск, обновления",
     weeklyTitle: "Неделя в Discord",
     weeklyHint:
       "Каждый понедельник матчи, результаты и средняя оценка за неделю приходят в канал вашего сервера Discord. Для этого нужна ссылка канала (вебхук): в Discord откройте настройки канала → Интеграция → Вебхуки → Новый вебхук → Копировать URL вебхука и вставьте её сюда.",
@@ -748,8 +756,8 @@ const I18N = {
       fallback: "Не удалось отправить: попробуйте позже."
     },
     autostart: "Автозапуск с Windows",
-    autostartOn: "Запускается скрыто в трее",
-    autostartOff: "Запускайте сами перед игрой",
+    autostartOn: "Wardly сам откроется при включении компьютера и будет тихо ждать возле часов. Так вы не забудете запустить его перед игрой.",
+    autostartOff: "Wardly сам откроется при включении компьютера и будет тихо ждать возле часов. Так вы не забудете запустить его перед игрой.",
     autostartUnavailable: "Доступно в установленном приложении",
     updates: "Обновления",
     updateCheck: "Проверить",
@@ -812,15 +820,15 @@ const I18N = {
         },
         done: {
           title: "Всё готово",
-          text: "Запусти Доту и начни матч — первая подсказка появится сама. Обучение можно открыть снова в Настройках → Приложение."
+          text: "Запусти Доту и начни матч — первая подсказка появится сама. Обучение можно открыть снова в «Настройки → Помощь»."
         }
       }
     },
     summaryTitle: "Сводка",
     sessionTitle: "Итог вечера",
     sessionHide: "Скрыть",
-    tourTitle: "Обучение",
-    tourHint: "Минутная экскурсия: что где находится",
+    tourTitle: "Как пользоваться Wardly",
+    tourHint: "Короткая экскурсия по приложению, на минуту",
     tourStart: "Показать",
     whatsNew: {
       "0.20.0": [
@@ -951,25 +959,33 @@ const I18N = {
       ai: ["ИИ-тренер (по желанию)", "С бесплатным ключом Google ИИ напишет разбор каждого матча простыми словами."]
     },
     setupActions: { dota: "Указать папку", gsi: "Подключить", launch: "Скопировать", account: "Привязать", ai: "Настроить" },
-    reportTitle: "Отчёт о проблеме",
-    reportHint: "Что-то не работает? Отправьте разработчику отчёт одной кнопкой: журнал приложения и настройки, ключи и пароли из него вырезаются.",
-    reportSave: "Сохранить файл",
-    backupTitle: "История матчей",
-    backupHint: "Все матчи, разборы и ответы ИИ одним файлом: для копии или переноса на другой компьютер. Ключи не сохраняются.",
+    reportTitle: "Сообщить о проблеме",
+    reportHint: "Что-то не работает? Нажмите «Сообщить» и опишите в двух словах: разработчик получит журнал приложения. Ключи и пароли из него вырезаются.",
+    reportSave: "Сохранить в файл вместо отправки",
+    backupTitle: "Запасная копия в файле",
+    backupHint: "Сохраняет все матчи и разборы в один файл — например, перед переустановкой Windows. Потом его можно открыть в Wardly на любом компьютере. Ключи в файл не попадают.",
     backupExport: "Сохранить в файл",
-    backupImport: "Загрузить из файла",
+    backupImport: "Открыть файл",
     backupSaved: (count, file) => `Сохранено матчей: ${count}. Файл ${file}`,
     backupLoaded: (added, linked) => `Загружено новых матчей: ${added}${linked ? ", аккаунт привязан" : ""}. Ничего не перезаписано.`,
     backupNotBackup: "Это не файл истории Wardly.",
     backupNewer: "Файл сделан более новой версией: сначала обновите приложение.",
     backupFailed: "Не получилось: тренер не запущен или диск недоступен.",
     transferTitle: "Перенос на другой компьютер",
-    transferHint: "Получите код здесь и введите его в Wardly на другом компьютере. История шифруется этим кодом: наш сервер хранит её 15 минут и не может прочитать. Ключи не передаются.",
+    zoneMyData: "Ваши матчи",
+    zoneMyDataHint: "Чтобы история не потерялась при смене компьютера",
+    zoneHelp: "Помощь",
+    zoneHelpHint: "Как пользоваться приложением и что делать, если что-то сломалось",
+    transferIntro: "Поставили Wardly на новый компьютер? Перенесите туда свои матчи и разборы — это займёт минуту.",
+    transferStep1: "Здесь нажмите «Получить код».",
+    transferStep2: "На новом компьютере: Wardly → Настройки → «Перенос на другой компьютер» → «У меня есть код» — и введите его.",
+    transferHave: "У меня есть код",
+    transferHint: "Код действует 15 минут. Матчи передаются в зашифрованном виде, ключи не переносятся.",
     transferSend: "Получить код",
     transferReceive: "Загрузить",
     transferInputLabel: "Код с другого компьютера",
     transferSending: "Шифрую и отправляю…",
-    transferReady: (matches, time) => `Код для ${matches} матчей, действует до ${time}. На другом компьютере: Настройки → Приложение → Перенос на другой компьютер.`,
+    transferReady: (matches, time) => `Код действует до ${time}. Введите его на новом компьютере (матчей: ${matches}).`,
     transferReceiving: "Скачиваю и расшифровываю…",
     transferErrors: {
       bad_code: "Проверьте код: три группы по четыре буквы и цифры, как на другом компьютере.",
@@ -984,7 +1000,7 @@ const I18N = {
     reportSaving: "Собираем…",
     reportSaved: (name) => `Сохранено: ${name}. Отправьте этот файл разработчику.`,
     reportFailed: "Не удалось сохранить файл",
-    reportSend: "Отправить разработчику",
+    reportSend: "Сообщить",
     reportNoteLabel: "Что случилось? (необязательно)",
     reportNotePlaceholder: "Например: в матче не видно подсказок",
     reportPreview: "Что будет отправлено",
@@ -1146,6 +1162,7 @@ const els = {
   transferHint: $("#transfer-hint"),
   transferCode: $("#transfer-code"),
   transferSend: $("#transfer-send"),
+  transferHave: $("#transfer-have"),
   transferForm: $("#transfer-form"),
   transferInput: $("#transfer-input"),
   transferReceive: $("#transfer-receive"),
@@ -1481,6 +1498,16 @@ async function init() {
       })
     )
   );
+  // «I have a code» opens the field on the receiving computer; the sending
+  // one never needs it, so it stays folded.
+  els.transferHave.addEventListener("click", () => {
+    const open = els.transferForm.hidden;
+    els.transferForm.hidden = !open;
+    els.transferHave.setAttribute("aria-expanded", String(open));
+    if (open) {
+      els.transferInput.focus();
+    }
+  });
   els.transferForm.addEventListener("submit", (event) => {
     event.preventDefault();
     const code = els.transferInput.value.trim();

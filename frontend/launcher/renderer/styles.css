@@ -344,8 +344,8 @@ h1 {
   align-items: center;
   justify-content: space-between;
   gap: var(--sp-4);
-  min-height: 56px;
-  padding: var(--sp-2) 0;
+  min-height: 64px;
+  padding: var(--sp-3) 0;
   border-top: 1px solid var(--border);
 }
 
@@ -359,19 +359,36 @@ label.setting {
 
 .setting-text {
   display: grid;
-  gap: 2px;
+  gap: var(--sp-1);
   min-width: 0;
 }
 
 .setting-title {
   color: var(--text);
-  font-size: var(--fs-14);
+  font-size: var(--fs-15);
   font-weight: var(--fw-medium);
 }
 
 .setting-hint {
-  color: var(--text-3);
-  font-size: var(--fs-12);
+  max-width: 62ch;
+  color: var(--text-2);
+  font-size: var(--fs-13);
+  line-height: 1.45;
+}
+
+.setting-hint:empty {
+  display: none;
+}
+
+/* Numbered steps under a setting (moving to another computer). */
+.setting-steps {
+  display: grid;
+  gap: 2px;
+  margin: var(--sp-1) 0 0;
+  padding-left: 1.3em;
+  color: var(--text-2);
+  font-size: var(--fs-13);
+  line-height: 1.45;
 }
 
 .setting-controls {
@@ -426,16 +443,17 @@ label.setting {
   resize: vertical;
 }
 
-/* «Дополнительно» at the end of Settings → App: rarely needed rows. */
+/* «Ещё настройки» at the end of Settings: rarely needed rows, folded. */
 .settings-more {
-  padding-top: var(--sp-3);
-  border-top: 1px solid var(--border);
+  margin-top: var(--sp-3);
 }
 
 .settings-more > summary {
   width: fit-content;
+  padding: var(--sp-2) 0;
   color: var(--text-2);
-  font-size: var(--fs-13);
+  font-size: var(--fs-14);
+  font-weight: var(--fw-medium);
   cursor: pointer;
 }
 
@@ -1222,6 +1240,19 @@ label.setting:has(.switch:disabled) {
 
 .transfer-controls {
   flex-wrap: wrap;
+}
+
+.transfer-form[hidden] {
+  display: none;
+}
+
+/* The code field opens on its own line under the two buttons. */
+.transfer-row .transfer-controls {
+  flex: 1 1 100%;
+}
+
+.transfer-row .transfer-form {
+  flex: 1 1 100%;
 }
 
 /* «Неделя в Discord»: the link form gives way to «Send now / Disconnect» once connected. */
