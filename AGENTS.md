@@ -126,7 +126,7 @@ Default `USE_LLM=false`. LLM providers only reword advice or run offline review.
 
 ## Frontend tooling
 
-No lint/typecheck. Verification is `node --check` on these twenty-two files (CI runs exactly this; `npm run check` in `frontend/launcher/` does the same) plus dependency-free unit tests for the Electron-free modules (`npm test` = `node --test test/*.test.js`, also in CI):
+No lint/typecheck. Verification is `node --check` on these twenty-three files (CI runs exactly this; `npm run check` in `frontend/launcher/` does the same) plus dependency-free unit tests for the Electron-free modules (`npm test` = `node --test test/*.test.js`, also in CI):
 ```bash
 node --check frontend/launcher/main.js
 node --check frontend/launcher/preload.js
@@ -141,6 +141,7 @@ node --check frontend/launcher/updater.js
 node --check frontend/launcher/problem-report.js
 node --check frontend/launcher/renderer/app.js
 node --check frontend/launcher/renderer/charts.js
+node --check frontend/launcher/renderer/tour.js
 node --check frontend/launcher/renderer/matches.js
 node --check frontend/launcher/overlay/app.js
 node --check frontend/launcher/overlay/voice.js

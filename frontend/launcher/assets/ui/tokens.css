@@ -77,6 +77,9 @@
   --dur: 160ms;
   --dur-slow: 180ms;
   --ease: cubic-bezier(0.16, 1, 0.3, 1);
+
+  /* The dimmed panel around the element the first-run tour points at. */
+  --scrim: rgba(0, 0, 0, 0.62);
 }
 
 /* Print (PDF export of a review): the same layout on a light page. The chart

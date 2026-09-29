@@ -117,6 +117,8 @@ const settings = createSettingsStore(path.join(USER_DATA_DIR, "settings.json"), 
   // the third), and whether the card was answered (copied or «not now»).
   liveReviews: 0,
   inviteDone: false,
+  // The first-run tour of the panel was shown (finished or skipped).
+  tourDone: false,
   // How often coaching advice may appear: calm | normal | active (backend scheduler).
   adviceFrequency: "normal",
   // Position for map timers and role tips (auto = from the lane), and the timers switch.
@@ -467,6 +469,11 @@ function inviteDue() {
   return !settings.get("inviteDone") && (Number(settings.get("liveReviews")) || 0) >= INVITE_AFTER_REVIEWS;
 }
 
+/** The first-run tour: once, on a fresh install (a player who already has game data or hid the checklist knows the app). */
+function tourDue() {
+  return !settings.get("tourDone") && !settings.get("gsiSeenAt") && !settings.get("setupDismissed") && !IS_SMOKE_TEST;
+}
+
 function publicStatus() {
   const dota = dotaWatcher.getState();
   return {
@@ -496,6 +503,7 @@ function publicStatus() {
     report: { last: settings.get("lastReport") || null, queued: outboxCount },
     whatsNew: settings.get("whatsNewPending") === app.getVersion() ? app.getVersion() : "",
     invite: inviteDue() ? inviteUrl() : "",
+    tour: tourDue(),
     overlayReasonCode: presence.code,
     backend: processStatus.backend,
     backendPort: backend.port,
@@ -1624,12 +1632,18 @@ async function pollPlayerStatus() {
     refreshLaunchOptions();
   }
   if (!first && reviewKey && reviewKey !== previousKey) {
-    settings.set("liveReviews", (Number(settings.get("liveReviews")) || 0) + 1);
+    const reviewsBefore = Number(settings.get("liveReviews")) || 0;
+    settings.set("liveReviews", reviewsBefore + 1);
     const score = review.score !== null && review.score !== undefined ? ` ${review.score}/100` : "";
     appendLog("player", `Post-match review ready for match ${review.match_id}${score}.`, { force: true });
     pendingReviewOpen = review.match_id;
     showTrayBalloon(t("reviewReady", score, review.focus_met));
     send("launcher:player-event", { type: "review-ready", matchId: review.match_id, score: review.score });
+    if (reviewsBefore === 0 && !(mainWindow && !mainWindow.isDestroyed() && mainWindow.isFocused())) {
+      // The very first review: the panel turns to it (never pulled over the game),
+      // so it is the first thing the player sees when they open the app.
+      send("launcher:player-event", { type: "open-match", matchId: review.match_id });
+    }
   }
   updateStatus();
 }
@@ -3061,6 +3075,10 @@ function registerIpc() {
     if (action === "copy" || action === "dismiss") {
       settings.set("inviteDone", true);
     }
+    return publicStatus();
+  });
+  ipcMain.handle("launcher:tour-done", () => {
+    settings.set("tourDone", true);
     return publicStatus();
   });
   ipcMain.handle("launcher:dismiss-whats-new", () => {
