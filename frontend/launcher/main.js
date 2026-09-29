@@ -515,6 +515,7 @@ function publicStatus() {
     recentAdvice: live.recentAdvice,
     overlayPosition: overlay.position(),
     overlayVoice: overlay.voice(),
+    overlayDisplay: overlay.display(),
     overlaySize: overlay.size(),
     adviceFrequency: adviceFrequency(),
     adviceRole: adviceRole(),
@@ -3073,6 +3074,10 @@ function registerIpc() {
   );
   ipcMain.handle("launcher:set-overlay-size", (_event, name) => {
     overlay.setSize(String(name || ""));
+    return publicStatus();
+  });
+  ipcMain.handle("launcher:set-overlay-display", (_event, patch) => {
+    overlay.setDisplay(patch && typeof patch === "object" ? patch : {});
     return publicStatus();
   });
   ipcMain.handle("launcher:set-overlay-voice", (_event, mode, volume) => {

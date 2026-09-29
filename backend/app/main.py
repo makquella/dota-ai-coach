@@ -46,7 +46,7 @@ from app.live_session_recorder import LIVE_SESSION_RECORDER
 from app.live_tools import disabled_copy
 from app.llm_provider import generate_llm_recommendation, is_llm_provider_enabled
 from app.logger import log_recommendation, prune_logs
-from app.map_hints import map_hint
+from app.map_hints import map_hint, timer_strip
 from app.match_memory import MATCH_MEMORY
 from app.player_api import PLAYER_SERVICE
 from app.player_api import router as player_router
@@ -389,6 +389,15 @@ def _live_role_and_hint(response: dict[str, object], lang: str) -> dict[str, obj
         )
         if hint is not None:
             result["map_hint"] = hint
+        # The overlay's strip of the next events (runes, stacks, Roshan, Aegis).
+        strip = timer_strip(
+            clock if isinstance(clock, int) else None,
+            role.get("role") if role else None,
+            lang,
+            MATCH_MEMORY.roshan.strip(clock if isinstance(clock, int) else None, lang),
+        )
+        if strip:
+            result["timer_strip"] = strip
     return result
 
 

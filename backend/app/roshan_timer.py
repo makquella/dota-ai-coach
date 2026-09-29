@@ -19,7 +19,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from app.map_hints import clock_label, timers
+from app.map_hints import clock_label, strip_item, timers
 
 TEXT = {
     "window": {
@@ -131,6 +131,25 @@ class RoshanTimer:
                 title, hint = TEXT["alive"][lang]
                 return _timer("roshan_up", closes, clock, title, hint, speak=False)
         return None
+
+    def strip(self, clock: int | None, lang: str) -> list[dict[str, Any]]:
+        """For the overlay's timer strip: the player's Aegis until it expires, and
+        Roshan's respawn window (until it opens, then while it is open)."""
+        if clock is None:
+            return []
+        cfg = _settings()
+        items = []
+        if self.aegis_at is not None and clock <= self.aegis_at + cfg["aegis"]:
+            items.append(strip_item("aegis", self.aegis_at + cfg["aegis"], clock, lang))
+        if self.killed_at is not None:
+            opens, closes = self.killed_at + cfg["min"], self.killed_at + cfg["max"]
+            if clock < opens:
+                items.append(
+                    strip_item("roshan", opens, clock, lang, until_label=clock_label(closes))
+                )
+            elif clock <= closes:
+                items.append(strip_item("roshan_maybe", closes, clock, lang))
+        return items
 
 
 def _timer(kind: str, at: int, clock: int, title: str, hint: str, *, speak: bool) -> dict[str, Any]:

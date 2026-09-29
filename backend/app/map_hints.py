@@ -248,6 +248,80 @@ TIPS = {
 }
 
 
+# The overlay's timer strip: the next events for the position, at most this many,
+# within this many seconds (Roshan and the Aegis at any distance).
+STRIP_SIZE = 3
+STRIP_AHEAD = 3 * 60
+STRIP_LABELS = {
+    "water_rune": ("Водная руна", "Water rune"),
+    "power_rune": ("Руна", "Rune"),
+    "bounty_rune": ("Богатство", "Bounty"),
+    "wisdom_shrine": ("Мудрость", "Wisdom"),
+    "lotus": ("Лотос", "Lotus"),
+    "tormentor": ("Торментор", "Tormentor"),
+    "neutral_tier_2": ("Нейтралки", "Neutrals"),
+    "neutral_tier_3": ("Нейтралки", "Neutrals"),
+    "neutral_tier_4": ("Нейтралки", "Neutrals"),
+    "neutral_tier_5": ("Нейтралки", "Neutrals"),
+    "stack": ("Стак", "Stack"),
+    "roshan": ("Рошан", "Roshan"),
+    "roshan_maybe": ("Рошан?", "Roshan?"),
+    "aegis": ("Аегис", "Aegis"),
+}
+
+
+def strip_item(kind: str, at: int, clock: int, lang: str, **extra: Any) -> dict[str, Any]:
+    ru, en = STRIP_LABELS[kind]
+    return {
+        "id": f"{kind}@{at}",
+        "kind": kind,
+        "label": ru if lang == "ru" else en,
+        "at": at,
+        "at_label": clock_label(at),
+        "in_seconds": at - clock,
+        **extra,
+    }
+
+
+def timer_strip(
+    clock: int | None,
+    role: str | None,
+    lang: str,
+    objectives: list[dict[str, Any]] | None = None,
+) -> list[dict[str, Any]]:
+    """The next events for this position (one per kind, soonest first) and the
+    Roshan / Aegis timers (`objectives`, roshan_timer.RoshanTimer.strip)."""
+    if clock is None or clock < 0:
+        return []
+    items: list[dict[str, Any]] = []
+    for event in timers().get("events") or []:
+        until = (event.get("roles") or {}).get(role or "")
+        if until is None:
+            continue
+        upcoming = [at for at in _times(event, int(until)) if clock <= at <= clock + STRIP_AHEAD]
+        if upcoming and event["id"] in STRIP_LABELS:
+            items.append(strip_item(event["id"], upcoming[0], clock, lang))
+    if role == "support":
+        minute, second = divmod(clock, 60)
+        stacks = [
+            m * 60 + STACK_UNTIL_SECOND
+            for m in STACK_MINUTES
+            if clock <= m * 60 + STACK_UNTIL_SECOND <= clock + STRIP_AHEAD
+        ]
+        if stacks:
+            items.append(strip_item("stack", stacks[0], clock, lang))
+    # Neutral item tiers share a label: only the next one.
+    seen: set[str] = set()
+    unique = []
+    for item in sorted(items, key=lambda row: row["in_seconds"]):
+        if item["label"] in seen:
+            continue
+        seen.add(item["label"])
+        unique.append(item)
+    fixed = [dict(item) for item in objectives or []]
+    return (fixed + unique)[:STRIP_SIZE]
+
+
 @lru_cache(maxsize=1)
 def timers() -> dict[str, Any]:
     try:

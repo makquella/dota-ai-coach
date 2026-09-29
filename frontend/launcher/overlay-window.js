@@ -9,7 +9,7 @@ const { anchorArea, isReachable, presetBounds, sameBounds } = require("./overlay
 
 const WINDOW_WIDTH = 420;
 // Room for a 3-line action + 2-line reason (Russian text runs ~25% longer).
-const WINDOW_HEIGHT = 176;
+const WINDOW_HEIGHT = 212; // the card and, under it, the timer strip
 const ALWAYS_ON_TOP_LEVEL = "screen-saver";
 const ENFORCE_ALWAYS_ON_TOP_MS = 2500;
 const MUTE_MS = 5 * 60 * 1000;
@@ -28,7 +28,10 @@ const OVERLAY_DEFAULTS = {
   // Spoken advice: "off" | "urgent" | "all" (overlay/voice.js).
   voice: "off",
   voiceVolume: 1,
-  size: "normal"
+  size: "normal",
+  // The strip of the next events under the card, and a card with the action only.
+  timers: true,
+  compact: false
 };
 const VOICE_MODES = ["off", "urgent", "all"];
 
@@ -347,6 +350,24 @@ function createOverlayController({
     onChange();
   }
 
+  // What the card shows: the timer strip, and the compact card (the action only).
+  function setDisplay(patch) {
+    const next = {};
+    for (const key of ["timers", "compact"]) {
+      if (typeof patch?.[key] === "boolean") {
+        next[key] = patch[key];
+      }
+    }
+    updateConfig(next);
+    send("overlay-config-updated", publicConfig());
+    onChange();
+  }
+
+  function display() {
+    const current = config();
+    return { timers: current.timers !== false, compact: current.compact === true };
+  }
+
   function voice() {
     const current = config();
     return {
@@ -474,7 +495,8 @@ function createOverlayController({
       autoHideMs: current.autoHideMs,
       urgentAutoHideMs: current.urgentAutoHideMs,
       voice: voice().mode,
-      voiceVolume: voice().volume
+      voiceVolume: voice().volume,
+      ...display()
     };
   }
 
@@ -501,6 +523,8 @@ function createOverlayController({
     position,
     setVoice,
     voice,
+    setDisplay,
+    display,
     setSize,
     size: sizeName,
     refreshPlacement,

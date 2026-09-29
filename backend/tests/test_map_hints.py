@@ -442,3 +442,36 @@ def test_a_chosen_support_knows_its_lane_before_three_minutes():
     _lane(tracker, _world(4000, -6500), 1, until=2 * 60)
     assert tracker.role() == {"role": "support", "source": "setting", "lane": "safe"}
     set_role_setting("auto")
+
+
+def test_the_timer_strip_shows_the_next_events_of_the_position():
+    from app.map_hints import timer_strip
+
+    support = timer_strip(5 * 60 + 10, "support", "ru")
+    assert [(row["label"], row["in_seconds"]) for row in support] == [
+        ("Руна", 50),
+        ("Лотос", 50),
+        ("Мудрость", 110),
+    ]
+    # A carry has only the shared timers; a stack is a support's.
+    assert [row["kind"] for row in timer_strip(19 * 60, "carry", "en")] == ["tormentor"]
+    assert timer_strip(-20, "mid", "en") == [] and timer_strip(300, None, "en") == []
+    stack = timer_strip(7 * 60 + 40, "support", "en")
+    assert stack[0]["kind"] == "stack" and stack[0]["at_label"] == "7:53"
+
+
+def test_roshan_and_the_aegis_lead_the_strip():
+    from app.map_hints import timer_strip
+    from app.roshan_timer import RoshanTimer
+
+    roshan = RoshanTimer()
+    roshan.killed_at = 20 * 60
+    roshan.aegis_at = 20 * 60 + 5
+    items = timer_strip(22 * 60, "carry", "en", roshan.strip(22 * 60, "en"))
+    # Roshan and the Aegis first, then the next shared timer (tier 3 at 25:00).
+    assert [row["kind"] for row in items] == ["aegis", "roshan", "neutral_tier_3"]
+    assert items[0]["at_label"] == "25:05"
+    assert items[1]["at_label"] == "28:00" and items[1]["until_label"] == "31:00"
+    # Inside the window: «Roshan?» until it closes; after that, nothing.
+    assert [row["kind"] for row in roshan.strip(29 * 60, "en")] == ["roshan_maybe"]
+    assert roshan.strip(32 * 60, "en") == []

@@ -100,6 +100,10 @@ const I18N = {
     posBottom: "Bottom",
     overlaySize: "Card size",
     overlaySizeHint: "Larger on big and high-resolution screens",
+    overlayTimers: "Timer strip",
+    overlayTimersHint: "Under the card: the next runes, stacks, Roshan and the Aegis for your position",
+    overlayCompact: "Compact card",
+    overlayCompactHint: "Only what to do, without the reason: less to read during a fight",
     sizeSmall: "Small",
     sizeNormal: "Normal",
     sizeLarge: "Large",
@@ -621,6 +625,10 @@ const I18N = {
     posBottom: "Снизу",
     overlaySize: "Размер карточки",
     overlaySizeHint: "Крупнее — для больших экранов и высокого разрешения",
+    overlayTimers: "Полоса таймеров",
+    overlayTimersHint: "Под карточкой: ближайшие руны, стаки, Рошан и Аегис для вашей позиции",
+    overlayCompact: "Компактная карточка",
+    overlayCompactHint: "Только что делать, без объяснения: меньше читать во время драки",
     sizeSmall: "Мелкий",
     sizeNormal: "Обычный",
     sizeLarge: "Крупный",
@@ -1072,6 +1080,8 @@ const els = {
   positionButtons: [...document.querySelectorAll("#position-group [data-position]")],
   positionHint: $("#position-hint"),
   sizeButtons: [...document.querySelectorAll("#size-group [data-size]")],
+  overlayTimers: $("#overlay-timers"),
+  overlayCompact: $("#overlay-compact"),
   languageButtons: [...document.querySelectorAll("#language-group [data-language]")],
   frequencyButtons: [...document.querySelectorAll("#frequency-group [data-frequency]")],
   roleButtons: [...document.querySelectorAll("#role-group [data-role]")],
@@ -1332,6 +1342,11 @@ async function init() {
   for (const button of els.sizeButtons) {
     button.addEventListener("click", () =>
       run(async () => renderStatus(await window.launcherApi.setOverlaySize(button.dataset.size)))
+    );
+  }
+  for (const [input, key] of [[els.overlayTimers, "timers"], [els.overlayCompact, "compact"]]) {
+    input.addEventListener("change", () =>
+      run(async () => renderStatus(await window.launcherApi.setOverlayDisplay({ [key]: input.checked })))
     );
   }
   for (const button of els.frequencyButtons) {
@@ -2261,6 +2276,12 @@ function renderOverlaySettings(status) {
     button.setAttribute("aria-checked", String(button.dataset.size === size));
     button.disabled = !enabled;
   }
+
+  const display = status.overlayDisplay || { timers: true, compact: false };
+  els.overlayTimers.checked = display.timers !== false;
+  els.overlayCompact.checked = display.compact === true;
+  els.overlayTimers.disabled = !enabled;
+  els.overlayCompact.disabled = !enabled;
 
   const frequency = status.adviceFrequency || "normal";
   for (const button of els.frequencyButtons) {
