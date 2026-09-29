@@ -25,7 +25,7 @@
     <link rel="apple-touch-icon" href="assets/icon.png" />
     <link rel="preload" href="assets/fonts/montserrat-cyrillic-wght-normal.woff2" as="font" type="font/woff2" crossorigin />
     <link rel="preload" href="assets/fonts/inter-cyrillic-wght-normal.woff2" as="font" type="font/woff2" crossorigin />
-    <link rel="stylesheet" href="styles.css?v=6" />
+    <link rel="stylesheet" href="styles.css?v=7" />
   </head>
   <body>
     <a class="skip" href="#main" data-i18n="skip">Перейти к содержанию</a>
@@ -40,6 +40,7 @@
           <a href="#ingame" data-i18n="navIngame">В игре</a>
           <a href="#how" data-i18n="navHow">Как это работает</a>
           <a href="#review" data-i18n="navReview">Разбор</a>
+          <a href="heroes.html" data-i18n="navHeroes">Герои</a>
           <a href="#faq" data-i18n="navFaq">Вопросы</a>
         </nav>
         <div class="nav-actions">
@@ -137,65 +138,11 @@
             <svg class="i" aria-hidden="true"><use href="#i-volume" /></svg>
             <span data-i18n="voiceNote">Советы можно слушать голосом Windows — их слышно даже в полноэкранном режиме, где карточку не видно.</span>
           </p>
-        </div>
-      </section>
-
-      <!-- Heroes: the full advisor. -->
-      <section class="section" id="heroes">
-        <div class="wrap">
-          <header class="section-head">
-            <h2 data-i18n="heroesTitle">Полные подсказки для 39 героев</h2>
-            <p class="sub" data-i18n="heroesSub">Керри, мидеры и хардлайнеры: фарм, предметы, цели и способности. На любом другом герое — выживание, таймеры карты и подсказки роли.</p>
-          </header>
-          <h3 class="heroes-group" id="heroes-carry" data-i18n="heroesCarry">Керри</h3>
-          <ul class="heroes" aria-labelledby="heroes-carry">
-            <li><img src="assets/heroes/antimage.webp" alt="" width="256" height="144" loading="lazy" /><span>Anti-Mage</span></li>
-            <li><img src="assets/heroes/drow_ranger.webp" alt="" width="256" height="144" loading="lazy" /><span>Drow Ranger</span></li>
-            <li><img src="assets/heroes/ember_spirit.webp" alt="" width="256" height="144" loading="lazy" /><span>Ember Spirit</span></li>
-            <li><img src="assets/heroes/gyrocopter.webp" alt="" width="256" height="144" loading="lazy" /><span>Gyrocopter</span></li>
-            <li><img src="assets/heroes/juggernaut.webp" alt="" width="256" height="144" loading="lazy" /><span>Juggernaut</span></li>
-            <li><img src="assets/heroes/kez.webp" alt="" width="256" height="144" loading="lazy" /><span>Kez</span></li>
-            <li><img src="assets/heroes/life_stealer.webp" alt="" width="256" height="144" loading="lazy" /><span>Lifestealer</span></li>
-            <li><img src="assets/heroes/luna.webp" alt="" width="256" height="144" loading="lazy" /><span>Luna</span></li>
-            <li><img src="assets/heroes/medusa.webp" alt="" width="256" height="144" loading="lazy" /><span>Medusa</span></li>
-            <li><img src="assets/heroes/monkey_king.webp" alt="" width="256" height="144" loading="lazy" /><span>Monkey King</span></li>
-            <li><img src="assets/heroes/morphling.webp" alt="" width="256" height="144" loading="lazy" /><span>Morphling</span></li>
-            <li><img src="assets/heroes/muerta.webp" alt="" width="256" height="144" loading="lazy" /><span>Muerta</span></li>
-            <li><img src="assets/heroes/naga_siren.webp" alt="" width="256" height="144" loading="lazy" /><span>Naga Siren</span></li>
-            <li><img src="assets/heroes/phantom_assassin.webp" alt="" width="256" height="144" loading="lazy" /><span>Phantom Assassin</span></li>
-            <li><img src="assets/heroes/phantom_lancer.webp" alt="" width="256" height="144" loading="lazy" /><span>Phantom Lancer</span></li>
-            <li><img src="assets/heroes/slark.webp" alt="" width="256" height="144" loading="lazy" /><span>Slark</span></li>
-            <li><img src="assets/heroes/sniper.webp" alt="" width="256" height="144" loading="lazy" /><span>Sniper</span></li>
-            <li><img src="assets/heroes/spectre.webp" alt="" width="256" height="144" loading="lazy" /><span>Spectre</span></li>
-            <li><img src="assets/heroes/sven.webp" alt="" width="256" height="144" loading="lazy" /><span>Sven</span></li>
-            <li><img src="assets/heroes/terrorblade.webp" alt="" width="256" height="144" loading="lazy" /><span>Terrorblade</span></li>
-            <li><img src="assets/heroes/ursa.webp" alt="" width="256" height="144" loading="lazy" /><span>Ursa</span></li>
-          </ul>
-          <h3 class="heroes-group" id="heroes-mid" data-i18n="heroesMid">Мид</h3>
-          <ul class="heroes" aria-labelledby="heroes-mid">
-            <li><img src="assets/heroes/dragon_knight.webp" alt="" width="256" height="144" loading="lazy" /><span>Dragon Knight</span></li>
-            <li><img src="assets/heroes/obsidian_destroyer.webp" alt="" width="256" height="144" loading="lazy" /><span>Outworld Destroyer</span></li>
-            <li><img src="assets/heroes/puck.webp" alt="" width="256" height="144" loading="lazy" /><span>Puck</span></li>
-            <li><img src="assets/heroes/queenofpain.webp" alt="" width="256" height="144" loading="lazy" /><span>Queen of Pain</span></li>
-            <li><img src="assets/heroes/nevermore.webp" alt="" width="256" height="144" loading="lazy" /><span>Shadow Fiend</span></li>
-            <li><img src="assets/heroes/storm_spirit.webp" alt="" width="256" height="144" loading="lazy" /><span>Storm Spirit</span></li>
-            <li><img src="assets/heroes/templar_assassin.webp" alt="" width="256" height="144" loading="lazy" /><span>Templar Assassin</span></li>
-            <li><img src="assets/heroes/void_spirit.webp" alt="" width="256" height="144" loading="lazy" /><span>Void Spirit</span></li>
-          </ul>
-          <h3 class="heroes-group" id="heroes-offlane" data-i18n="heroesOfflane">Хардлайн</h3>
-          <ul class="heroes" aria-labelledby="heroes-offlane">
-            <li><img src="assets/heroes/axe.webp" alt="" width="256" height="144" loading="lazy" /><span>Axe</span></li>
-            <li><img src="assets/heroes/bristleback.webp" alt="" width="256" height="144" loading="lazy" /><span>Bristleback</span></li>
-            <li><img src="assets/heroes/centaur.webp" alt="" width="256" height="144" loading="lazy" /><span>Centaur Warrunner</span></li>
-            <li><img src="assets/heroes/legion_commander.webp" alt="" width="256" height="144" loading="lazy" /><span>Legion Commander</span></li>
-            <li><img src="assets/heroes/mars.webp" alt="" width="256" height="144" loading="lazy" /><span>Mars</span></li>
-            <li><img src="assets/heroes/pangolier.webp" alt="" width="256" height="144" loading="lazy" /><span>Pangolier</span></li>
-            <li><img src="assets/heroes/primal_beast.webp" alt="" width="256" height="144" loading="lazy" /><span>Primal Beast</span></li>
-            <li><img src="assets/heroes/slardar.webp" alt="" width="256" height="144" loading="lazy" /><span>Slardar</span></li>
-            <li><img src="assets/heroes/tidehunter.webp" alt="" width="256" height="144" loading="lazy" /><span>Tidehunter</span></li>
-            <li><img src="assets/heroes/shredder.webp" alt="" width="256" height="144" loading="lazy" /><span>Timbersaw</span></li>
-          </ul>
-          <p class="note" data-i18n="heroesNote">Разбор матча, карта, сборка и прогресс работают для всех 127 героев.</p>
+          <a class="heroes-strip" href="heroes.html">
+            <span class="faces" aria-hidden="true"><img src="assets/heroes/juggernaut.webp" alt="" width="256" height="144" loading="lazy" /><img src="assets/heroes/queenofpain.webp" alt="" width="256" height="144" loading="lazy" /><img src="assets/heroes/axe.webp" alt="" width="256" height="144" loading="lazy" /><img src="assets/heroes/phantom_assassin.webp" alt="" width="256" height="144" loading="lazy" /><img src="assets/heroes/storm_spirit.webp" alt="" width="256" height="144" loading="lazy" /><img src="assets/heroes/legion_commander.webp" alt="" width="256" height="144" loading="lazy" /></span>
+            <span class="strip-text"><b data-i18n="stripTitle">Полные подсказки для 39 героев</b> <span data-i18n="stripText">— керри, мидеров и хардлайнеров. На остальных — выживание и таймеры карты.</span></span>
+            <span class="strip-link"><span data-i18n="stripLink">Все герои</span> <span aria-hidden="true">→</span></span>
+          </a>
         </div>
       </section>
 
@@ -296,7 +243,7 @@
             </details>
             <details>
               <summary data-i18n="q4">Для каких героев есть подсказки?</summary>
-              <p data-i18n="a4">Полные подсказки (фарм, предметы, цели, способности) — для 39 героев: керри, мидеров и хардлайнеров. На любом другом герое тренер подсказывает по выживанию (мало HP, серия смертей, контроль, мана, байбэк), даёт таймеры карты и подсказки роли. Разбор матча и прогресс работают для всех.</p>
+              <p data-i18n-html="a4">Полные подсказки (фарм, предметы, цели, способности) — для <a href="heroes.html">39 героев</a>: керри, мидеров и хардлайнеров. На любом другом герое тренер подсказывает по выживанию (мало HP, серия смертей, контроль, мана, байбэк), даёт таймеры карты и подсказки роли. Разбор матча и прогресс работают для всех.</p>
             </details>
             <details>
               <summary data-i18n="q5">Откуда берётся история матчей?</summary>
@@ -337,6 +284,7 @@
           <a href="https://github.com/makquella/dota-ai-coach" rel="noopener">GitHub</a>
           <a href="https://github.com/makquella/dota-ai-coach/releases" rel="noopener" data-i18n="footerReleases">Версии</a>
           <a href="https://github.com/makquella/dota-ai-coach/issues" rel="noopener" data-i18n="footerIssues">Сообщить о проблеме</a>
+          <a href="heroes.html" data-i18n="navHeroes">Герои</a>
           <a href="changelog.html" data-i18n="footerChangelog">Что нового</a>
           <a href="privacy.html" data-i18n="footerPrivacy">Конфиденциальность</a>
         </nav>
@@ -362,6 +310,6 @@
       </defs>
     </svg>
 
-    <script src="app.js?v=6" defer></script>
+    <script src="app.js?v=7" defer></script>
   </body>
 </html>

@@ -119,3 +119,47 @@ def test_farm_pressure_uses_the_same_position_pace():
     assert low("Juggernaut", 15, 60, 330) is True
     # Far behind even for an offlaner still counts.
     assert low("Axe", 15, 40, 250) is True
+
+
+def test_the_site_heroes_page_lists_exactly_the_full_advisor(repo_root):
+    """site/heroes.html: every supported hero once, in its position's group,
+    with its portrait and the saves the coach can name (nothing more)."""
+    import html
+    import re
+
+    from app.hero_profiles import load_hero_profile
+
+    page = (repo_root / "site" / "heroes.html").read_text(encoding="utf-8")
+    groups = dict(
+        re.findall(
+            r'<h3 class="heroes-group[^"]*" id="heroes-(\w+)">.*?</h3>\s*<ul[^>]*>(.*?)</ul>',
+            page,
+            re.S,
+        )
+    )
+    assert set(groups) == {"carry", "mid", "offlane"}
+    listed = {}
+    for position, block in groups.items():
+        cards = re.findall(
+            r'<img src="assets/heroes/(\w+)\.webp"[^>]*/><span><b>([^<]+)</b>(?:<small>([^<]+)</small>)?',
+            block,
+        )
+        heading = re.search(rf'id="heroes-{position}">.*?· (\d+)</h3>', page, re.S)
+        assert heading and int(heading.group(1)) == len(cards), position
+        for key, name, saves in cards:
+            name = html.unescape(name)
+            assert (repo_root / "site" / "assets" / "heroes" / f"{key}.webp").is_file(), key
+            assert get_hero_position(name) == position, name
+            profile = load_hero_profile(name)
+            expected = [
+                a
+                for a in profile["key_escape_abilities"] + profile["key_defensive_abilities"]
+                if a.lower() in USABLE_SAFETY
+            ]
+            assert html.unescape(saves) == ", ".join(expected), name
+            listed[name] = position
+    assert sorted(listed) == sorted(SUPPORTED_HEROES)
+    count = str(len(SUPPORTED_HEROES))
+    assert f"для {count} героев" in page
+    landing = (repo_root / "site" / "index.html").read_text(encoding="utf-8")
+    assert f"для {count} героев" in landing and 'href="heroes.html"' in landing

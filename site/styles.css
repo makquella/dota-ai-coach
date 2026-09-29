@@ -842,16 +842,83 @@ h2 {
   }
 }
 
-/* The heroes with the full advisor, by position: real portraits. */
+/* heroes.html: what each hero gets, then the heroes with the full advisor by
+   position (real portraits, the hero's own saves under the name). */
+.nav-links a[aria-current="page"] {
+  color: var(--text);
+}
+.page-head {
+  padding: 72px 0 8px;
+}
+.page-head .lead {
+  margin-top: 20px;
+  max-width: 44em;
+}
+.section-tight {
+  padding: 56px 0 96px;
+}
+.legend {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 18px 0 0;
+  color: var(--faint);
+  font-size: 14px;
+}
+.legend::before {
+  content: "";
+  width: 18px;
+  height: 3px;
+  border-radius: 2px;
+  background: var(--accent);
+}
+.modes {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 20px;
+}
+.mode {
+  padding: 28px 28px 32px;
+  border-radius: var(--radius);
+  background: var(--card);
+  border: 1px solid var(--line);
+}
+.mode-full {
+  border-color: rgba(240, 85, 96, 0.4);
+}
+.mode-tag {
+  margin: 0 0 8px;
+  color: var(--accent);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.mode h2 {
+  font-size: 26px;
+}
+.mode .checks {
+  margin-top: 22px;
+  gap: 12px;
+}
+.mode .checks li {
+  font-size: 15px;
+  color: var(--muted);
+}
+.mode .checks .i {
+  width: 18px;
+  height: 18px;
+  margin-top: 2px;
+}
 .heroes-group {
-  margin: 28px 0 12px;
+  margin: 36px 0 14px;
   font-size: 13px;
   font-weight: 600;
   letter-spacing: 0.04em;
   text-transform: uppercase;
   color: var(--muted);
 }
-.heroes-group:first-of-type {
+.heroes-group.first {
   margin-top: 0;
 }
 .heroes {
@@ -859,45 +926,126 @@ h2 {
   margin: 0;
   padding: 0;
   display: grid;
-  grid-template-columns: repeat(7, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
   gap: 12px;
 }
 .heroes li {
-  position: relative;
   border-radius: var(--radius-sm);
   overflow: hidden;
   background: var(--card);
   border: 1px solid var(--line);
+  transition: border-color 160ms var(--ease);
+}
+.heroes li:hover {
+  border-color: var(--line-strong);
 }
 .heroes img {
+  display: block;
   width: 100%;
   aspect-ratio: 16 / 9;
   object-fit: cover;
-  transition: transform 300ms var(--ease);
 }
-.heroes li:hover img {
-  transform: scale(1.06);
+.heroes li > span {
+  display: grid;
+  gap: 2px;
+  padding: 8px 10px 10px;
 }
-.heroes span {
-  position: absolute;
-  inset: auto 0 0;
-  padding: 18px 8px 6px;
-  background: linear-gradient(transparent, rgba(0, 0, 0, 0.85));
-  font-size: 12px;
+.heroes b {
+  font-size: 13px;
   font-weight: 600;
-  text-align: center;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  line-height: 1.3;
+}
+.heroes small {
+  color: var(--accent);
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+/* The landing's pointer to heroes.html: a few portraits and one line. */
+.heroes-strip {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  max-width: 1000px;
+  margin: 28px auto 0;
+  padding: 14px 20px;
+  border-radius: var(--radius);
+  background: var(--card);
+  border: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 15px;
+  text-decoration: none;
+  transition: background-color 160ms var(--ease), border-color 160ms var(--ease);
+}
+.heroes-strip:hover {
+  background: var(--card-hover);
+  border-color: var(--line-strong);
+}
+.heroes-strip:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.heroes-strip b {
+  color: var(--text);
+  font-weight: 600;
+}
+.faces {
+  display: flex;
+  flex: none;
+}
+.faces {
+  gap: 4px;
+}
+.faces img {
+  width: 56px;
+  height: 32px;
+  object-fit: cover;
+  border-radius: 6px;
+}
+.strip-text {
+  flex: 1;
+  min-width: 0;
+}
+.strip-link {
+  flex: none;
+  color: var(--accent);
+  font-weight: 600;
+}
+.faq details p a {
+  color: var(--text);
 }
 @media (max-width: 1080px) {
-  .heroes {
-    grid-template-columns: repeat(5, minmax(0, 1fr));
+  .modes {
+    grid-template-columns: 1fr;
+    max-width: 640px;
+    margin-inline: auto;
   }
 }
 @media (max-width: 720px) {
+  .page-head {
+    padding-top: 48px;
+  }
   .heroes {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 8px;
+  }
+  .heroes-strip {
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  .strip-text {
+    flex-basis: 100%;
+    order: 2;
+  }
+  .strip-link {
+    order: 1;
+    margin-left: auto;
+  }
+  .faces img {
+    width: 44px;
+    height: 26px;
+  }
+  .faces img:nth-child(n + 5) {
+    display: none;
   }
 }

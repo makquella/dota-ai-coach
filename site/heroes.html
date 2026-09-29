@@ -1,0 +1,209 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Герои — Wardly</title>
+    <meta
+      name="description"
+      content="Для каких героев Dota 2 Wardly даёт полные подсказки: 21 керри, 8 мидеров и 10 хардлайнеров. На остальных — выживание, таймеры карты и разбор матча."
+    />
+    <meta name="theme-color" content="#0c0d0f" />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Герои — Wardly" />
+    <meta property="og:description" content="Полные подсказки для 39 героев Dota 2; разбор матча — для всех." />
+    <link rel="canonical" href="https://luhovyimvp.dev/heroes.html" />
+    <meta property="og:url" content="https://luhovyimvp.dev/heroes.html" />
+    <meta property="og:image" content="https://luhovyimvp.dev/assets/og.jpg?v=6" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <link rel="icon" href="assets/favicon.png" type="image/png" />
+    <link rel="apple-touch-icon" href="assets/icon.png" />
+    <link rel="preload" href="assets/fonts/montserrat-cyrillic-wght-normal.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href="assets/fonts/inter-cyrillic-wght-normal.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="stylesheet" href="styles.css?v=7" />
+  </head>
+  <body data-title="heroesPageTitle">
+    <a class="skip" href="#main" data-i18n="skip">Перейти к содержанию</a>
+
+    <header class="nav" id="top">
+      <div class="wrap nav-inner">
+        <a class="brand" href="./" aria-label="Wardly">
+          <img class="brand-mark" src="assets/logo-mark.png" alt="" width="28" height="28" />
+          <span class="brand-name">Wardly</span>
+        </a>
+        <nav class="nav-links" aria-label="Разделы" data-i18n-aria="navLabel">
+          <a href="./#ingame" data-i18n="navIngame">В игре</a>
+          <a href="./#how" data-i18n="navHow">Как это работает</a>
+          <a href="./#review" data-i18n="navReview">Разбор</a>
+          <a href="heroes.html" aria-current="page" data-i18n="navHeroes">Герои</a>
+          <a href="./#faq" data-i18n="navFaq">Вопросы</a>
+        </nav>
+        <div class="nav-actions">
+          <div class="lang" role="group" aria-label="Язык" data-i18n-aria="langLabel">
+            <button type="button" data-lang="ru" aria-pressed="true">RU</button>
+            <button type="button" data-lang="en" aria-pressed="false">EN</button>
+          </div>
+          <a class="btn btn-primary btn-sm js-download" href="https://github.com/makquella/dota-ai-coach/releases/latest">
+            <svg class="i" aria-hidden="true"><use href="#i-windows" /></svg>
+            <span data-i18n="navDownload">Скачать</span>
+          </a>
+        </div>
+      </div>
+    </header>
+
+    <main id="main">
+      <section class="page-head">
+        <div class="wrap">
+          <h1 data-i18n="heroesTitle">Полные подсказки для 39 героев</h1>
+          <p class="lead" data-i18n="heroesLead">
+            Керри, мидеры и хардлайнеры получают всё: темп фарма для своей позиции, следующий предмет и свои способности
+            для спасения. На любом другом герое тренер тоже работает — подсказывает, как выжить, и ведёт таймеры карты.
+          </p>
+          <p class="legend" data-i18n="heroesLegend">Под именем героя — способности, которые тренер назовёт, когда мало HP.</p>
+        </div>
+      </section>
+
+      <!-- The heroes with the full advisor, by position. -->
+      <section class="section section-tight">
+        <div class="wrap">
+          <h3 class="heroes-group first" id="heroes-carry"><span data-i18n="heroesCarry">Керри</span> · 21</h3>
+          <ul class="heroes" aria-labelledby="heroes-carry">
+              <li><img src="assets/heroes/antimage.webp" alt="" width="256" height="144" loading="lazy" /><span><b>Anti-Mage</b><small>Blink</small></span></li>
+              <li><img src="assets/heroes/drow_ranger.webp" alt="" width="256" height="144" loading="lazy" /><span><b>Drow Ranger</b><small>Gust</small></span></li>
+              <li><img src="assets/heroes/ember_spirit.webp" alt="" width="256" height="144" loading="lazy" /><span><b>Ember Spirit</b><small>Flame Guard, Sleight of Fist</small></span></li>
+              <li><img src="assets/heroes/gyrocopter.webp" alt="" width="256" height="144" loading="lazy" /><span><b>Gyrocopter</b></span></li>
+              <li><img src="assets/heroes/juggernaut.webp" alt="" width="256" height="144" loading="lazy" /><span><b>Juggernaut</b><small>Blade Fury</small></span></li>
+              <li><img src="assets/heroes/kez.webp" alt="" width="256" height="144" loading="lazy" /><span><b>Kez</b><small>Grappling Claw, Raptor Dance</small></span></li>
+              <li><img src="assets/heroes/life_stealer.webp" alt="" width="256" height="144" loading="lazy" /><span><b>Lifestealer</b><small>Rage</small></span></li>
+              <li><img src="assets/heroes/luna.webp" alt="" width="256" height="144" loading="lazy" /><span><b>Luna</b></span></li>
+              <li><img src="assets/heroes/medusa.webp" alt="" width="256" height="144" loading="lazy" /><span><b>Medusa</b></span></li>
+              <li><img src="assets/heroes/monkey_king.webp" alt="" width="256" height="144" loading="lazy" /><span><b>Monkey King</b><small>Mischief</small></span></li>
+              <li><img src="assets/heroes/morphling.webp" alt="" width="256" height="144" loading="lazy" /><span><b>Morphling</b><small>Waveform</small></span></li>
+              <li><img src="assets/heroes/muerta.webp" alt="" width="256" height="144" loading="lazy" /><span><b>Muerta</b><small>Pierce the Veil</small></span></li>
+              <li><img src="assets/heroes/naga_siren.webp" alt="" width="256" height="144" loading="lazy" /><span><b>Naga Siren</b><small>Mirror Image, Song of the Siren</small></span></li>
+              <li><img src="assets/heroes/phantom_assassin.webp" alt="" width="256" height="144" loading="lazy" /><span><b>Phantom Assassin</b><small>Blur</small></span></li>
+              <li><img src="assets/heroes/phantom_lancer.webp" alt="" width="256" height="144" loading="lazy" /><span><b>Phantom Lancer</b><small>Doppelganger</small></span></li>
+              <li><img src="assets/heroes/slark.webp" alt="" width="256" height="144" loading="lazy" /><span><b>Slark</b><small>Pounce, Dark Pact, Shadow Dance</small></span></li>
+              <li><img src="assets/heroes/sniper.webp" alt="" width="256" height="144" loading="lazy" /><span><b>Sniper</b><small>Concussive Grenade</small></span></li>
+              <li><img src="assets/heroes/spectre.webp" alt="" width="256" height="144" loading="lazy" /><span><b>Spectre</b></span></li>
+              <li><img src="assets/heroes/sven.webp" alt="" width="256" height="144" loading="lazy" /><span><b>Sven</b><small>Warcry</small></span></li>
+              <li><img src="assets/heroes/terrorblade.webp" alt="" width="256" height="144" loading="lazy" /><span><b>Terrorblade</b></span></li>
+              <li><img src="assets/heroes/ursa.webp" alt="" width="256" height="144" loading="lazy" /><span><b>Ursa</b><small>Enrage</small></span></li>
+          </ul>
+          <h3 class="heroes-group" id="heroes-mid"><span data-i18n="heroesMid">Мид</span> · 8</h3>
+          <ul class="heroes" aria-labelledby="heroes-mid">
+              <li><img src="assets/heroes/dragon_knight.webp" alt="" width="256" height="144" loading="lazy" /><span><b>Dragon Knight</b></span></li>
+              <li><img src="assets/heroes/obsidian_destroyer.webp" alt="" width="256" height="144" loading="lazy" /><span><b>Outworld Destroyer</b></span></li>
+              <li><img src="assets/heroes/puck.webp" alt="" width="256" height="144" loading="lazy" /><span><b>Puck</b><small>Phase Shift</small></span></li>
+              <li><img src="assets/heroes/queenofpain.webp" alt="" width="256" height="144" loading="lazy" /><span><b>Queen of Pain</b><small>Blink</small></span></li>
+              <li><img src="assets/heroes/nevermore.webp" alt="" width="256" height="144" loading="lazy" /><span><b>Shadow Fiend</b></span></li>
+              <li><img src="assets/heroes/storm_spirit.webp" alt="" width="256" height="144" loading="lazy" /><span><b>Storm Spirit</b><small>Ball Lightning</small></span></li>
+              <li><img src="assets/heroes/templar_assassin.webp" alt="" width="256" height="144" loading="lazy" /><span><b>Templar Assassin</b><small>Refraction</small></span></li>
+              <li><img src="assets/heroes/void_spirit.webp" alt="" width="256" height="144" loading="lazy" /><span><b>Void Spirit</b><small>Dissimilate</small></span></li>
+          </ul>
+          <h3 class="heroes-group" id="heroes-offlane"><span data-i18n="heroesOfflane">Хардлайн</span> · 10</h3>
+          <ul class="heroes" aria-labelledby="heroes-offlane">
+              <li><img src="assets/heroes/axe.webp" alt="" width="256" height="144" loading="lazy" /><span><b>Axe</b></span></li>
+              <li><img src="assets/heroes/bristleback.webp" alt="" width="256" height="144" loading="lazy" /><span><b>Bristleback</b></span></li>
+              <li><img src="assets/heroes/centaur.webp" alt="" width="256" height="144" loading="lazy" /><span><b>Centaur Warrunner</b><small>Stampede</small></span></li>
+              <li><img src="assets/heroes/legion_commander.webp" alt="" width="256" height="144" loading="lazy" /><span><b>Legion Commander</b></span></li>
+              <li><img src="assets/heroes/mars.webp" alt="" width="256" height="144" loading="lazy" /><span><b>Mars</b></span></li>
+              <li><img src="assets/heroes/pangolier.webp" alt="" width="256" height="144" loading="lazy" /><span><b>Pangolier</b><small>Swashbuckle</small></span></li>
+              <li><img src="assets/heroes/primal_beast.webp" alt="" width="256" height="144" loading="lazy" /><span><b>Primal Beast</b></span></li>
+              <li><img src="assets/heroes/slardar.webp" alt="" width="256" height="144" loading="lazy" /><span><b>Slardar</b><small>Guardian Sprint</small></span></li>
+              <li><img src="assets/heroes/tidehunter.webp" alt="" width="256" height="144" loading="lazy" /><span><b>Tidehunter</b></span></li>
+              <li><img src="assets/heroes/shredder.webp" alt="" width="256" height="144" loading="lazy" /><span><b>Timbersaw</b><small>Timber Chain</small></span></li>
+          </ul>
+          <p class="note" data-i18n="heroesMore">Список растёт с каждым обновлением — приложение обновится само.</p>
+        </div>
+      </section>
+
+      <!-- What a hero gets: three levels. -->
+      <section class="section section-alt">
+        <div class="wrap">
+          <header class="section-head">
+            <h2 data-i18n="modesTitle">Что получает каждый герой</h2>
+            <p class="sub" data-i18n="modesSub">На любом герое тренер помогает выжить, а разбор после матча есть для всех.</p>
+          </header>
+          <div class="modes">
+            <article class="mode mode-full">
+              <p class="mode-tag" data-i18n="modeFullTag">39 героев из списка</p>
+              <h2 data-i18n="modeFullTitle">Полный тренер</h2>
+              <ul class="checks">
+                <li><svg class="i" aria-hidden="true"><use href="#i-check" /></svg><span data-i18n="modeFull1">Темп фарма для позиции: у хардлайнера своя планка, не керри</span></li>
+                <li><svg class="i" aria-hidden="true"><use href="#i-check" /></svg><span data-i18n="modeFull2">Следующий предмет сборки и сколько золота до него</span></li>
+                <li><svg class="i" aria-hidden="true"><use href="#i-check" /></svg><span data-i18n="modeFull3">При мало HP — своя способность: «Используй Blink сейчас»</span></li>
+                <li><svg class="i" aria-hidden="true"><use href="#i-check" /></svg><span data-i18n="modeFull4">Цель по добиваниям к 10:00 в плане на игру</span></li>
+                <li><svg class="i" aria-hidden="true"><use href="#i-check" /></svg><span data-i18n="modeFull5">Всё, что есть у остальных героев</span></li>
+              </ul>
+            </article>
+            <article class="mode">
+              <p class="mode-tag" data-i18n="modeSafetyTag">Любой другой герой</p>
+              <h2 data-i18n="modeSafetyTitle">Выживание и карта</h2>
+              <ul class="checks">
+                <li><svg class="i" aria-hidden="true"><use href="#i-check" /></svg><span data-i18n="modeSafety1">Мало HP, серия смертей, контроль, мана, байбэк</span></li>
+                <li><svg class="i" aria-hidden="true"><use href="#i-check" /></svg><span data-i18n="modeSafety2">Таймеры карты: руны, лотосы, Торментор, Рошан</span></li>
+                <li><svg class="i" aria-hidden="true"><use href="#i-check" /></svg><span data-i18n="modeSafety3">Подсказки роли: саппорту — стаки, пуллы и варды</span></li>
+                <li><svg class="i" aria-hidden="true"><use href="#i-check" /></svg><span data-i18n="modeSafety4">Экран смерти: от чего умер и что купить</span></li>
+              </ul>
+            </article>
+            <article class="mode">
+              <p class="mode-tag" data-i18n="modeAllTag">Все 127 героев</p>
+              <h2 data-i18n="modeAllTitle">Разбор после матча</h2>
+              <ul class="checks">
+                <li><svg class="i" aria-hidden="true"><use href="#i-check" /></svg><span data-i18n="modeAll1">Оценка матча и что исправить в следующей игре</span></li>
+                <li><svg class="i" aria-hidden="true"><use href="#i-check" /></svg><span data-i18n="modeAll2">Карта: где ходил и где умирал</span></li>
+                <li><svg class="i" aria-hidden="true"><use href="#i-check" /></svg><span data-i18n="modeAll3">Сборка против статистики OpenDota</span></li>
+                <li><svg class="i" aria-hidden="true"><use href="#i-check" /></svg><span data-i18n="modeAll4">Прогресс, ИИ-тренер и сравнение с другом</span></li>
+              </ul>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <!-- Final CTA -->
+      <section class="final">
+        <div class="wrap final-inner">
+          <h2 data-i18n-html="finalTitle">Следующая игра — <span class="accent">уже с тренером</span></h2>
+          <p data-i18n="finalText">Две минуты на установку. Дальше приложение всё сделает само и обновится без тебя.</p>
+          <a class="btn btn-primary btn-lg js-download" href="https://github.com/makquella/dota-ai-coach/releases/latest">
+            <svg class="i" aria-hidden="true"><use href="#i-windows" /></svg>
+            <span data-i18n="ctaDownload">Скачать для Windows</span>
+          </a>
+        </div>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <div class="wrap footer-inner">
+        <a class="brand" href="./" aria-label="Wardly">
+          <img class="brand-mark" src="assets/logo-mark.png" alt="" width="24" height="24" />
+          <span class="brand-name">Wardly</span>
+        </a>
+        <nav class="footer-links" aria-label="Ссылки" data-i18n-aria="footerLabel">
+          <a href="https://github.com/makquella/dota-ai-coach" rel="noopener">GitHub</a>
+          <a href="https://github.com/makquella/dota-ai-coach/releases" rel="noopener" data-i18n="footerReleases">Версии</a>
+          <a href="https://github.com/makquella/dota-ai-coach/issues" rel="noopener" data-i18n="footerIssues">Сообщить о проблеме</a>
+          <a href="heroes.html" data-i18n="navHeroes">Герои</a>
+          <a href="changelog.html" data-i18n="footerChangelog">Что нового</a>
+          <a href="privacy.html" data-i18n="footerPrivacy">Конфиденциальность</a>
+        </nav>
+        <p class="footer-legal" data-i18n="legal">
+          Dota 2 — товарный знак Valve Corporation. Проект не связан с Valve и не одобрен ею. Кадры игры — со страницы Dota 2 в Steam, портреты — Valve.
+        </p>
+      </div>
+    </footer>
+
+    <!-- Icons: Lucide (ISC); Windows logo drawn as four squares. -->
+    <svg width="0" height="0" style="position: absolute" aria-hidden="true">
+      <defs>
+        <symbol id="i-windows" viewBox="0 0 24 24"><path d="M3 5.5 10.5 4.4v7.1H3zM11.5 4.3 21 3v8.5h-9.5zM3 12.5h7.5v7.1L3 18.5zM11.5 12.5H21V21l-9.5-1.3z" fill="currentColor" stroke="none" /></symbol>
+        <symbol id="i-check" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" /><path d="m9 12 2 2 4-4" /></symbol>
+      </defs>
+    </svg>
+
+    <script src="app.js?v=7" defer></script>
+  </body>
+</html>
