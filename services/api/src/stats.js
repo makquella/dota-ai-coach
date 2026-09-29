@@ -117,9 +117,12 @@ export function aggregateStats(rows) {
     ai: {},
     settings: { voice: {}, frequency: {}, role: {}, overlay: {}, map_hints: {}, discord: {} },
     fullscreen: 0,
-    sync_errors: {}
+    sync_errors: {},
+    // Per day, oldest first: devices that sent it, matches, advice shown, warnings before a death.
+    by_day: []
   };
   const devices = new Set();
+  const days = new Map();
   for (const stored of rows) {
     let body;
     try {
@@ -141,8 +144,15 @@ export function aggregateStats(rows) {
     }
     result.fullscreen += body.fullscreen ? 1 : 0;
     tally(result.sync_errors, body.sync_error);
+    const day = days.get(stored.day) || { day: stored.day, devices: 0, matches: 0, advice: 0, ignored: 0 };
+    day.devices += 1;
+    day.matches += body.matches || 0;
+    day.advice += Object.values(body.advice || {}).reduce((a, b) => a + b, 0);
+    day.ignored += Object.values(body.ignored || {}).reduce((a, b) => a + b, 0);
+    days.set(stored.day, day);
   }
   result.devices = devices.size;
+  result.by_day = [...days.values()].sort((a, b) => (a.day < b.day ? -1 : 1));
   // Per decision point: how often a shown urgent warning was followed by a death.
   result.ignored_share = Object.fromEntries(
     Object.entries(result.ignored).map(([kind, n]) => [kind, result.advice[kind] ? Math.round((100 * n) / result.advice[kind]) : null])
