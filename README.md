@@ -4,11 +4,22 @@
 
 Wardly (formerly Dota AI Coach) is a Dota 2 coach for Windows that watches your game with you: short advice over the game (and out loud) during the match, and an honest review after it — where the farm went, why you died, when your item came, what the player of your rank did. Free, local, open source.
 
-**[Download the latest version](https://github.com/makquella/dota-ai-coach/releases/latest)** · [Website](https://luhovyimvp.dev) ([source](site/)) · [Release notes](docs/release-notes/)
+[![Latest release](https://img.shields.io/github/v/release/makquella/dota-ai-coach?label=version&color=d23a46)](https://github.com/makquella/dota-ai-coach/releases/latest)
+[![Downloads](https://img.shields.io/github/downloads/makquella/dota-ai-coach/total?color=2f3542)](https://github.com/makquella/dota-ai-coach/releases)
+[![License](https://img.shields.io/github/license/makquella/dota-ai-coach?color=2f3542)](LICENSE)
+[![Windows 10 / 11](https://img.shields.io/badge/Windows-10%20%7C%2011-2f3542)](https://luhovyimvp.dev/en/?ref=github)
+
+**[Download for Windows](https://github.com/makquella/dota-ai-coach/releases/latest)** · [Website](https://luhovyimvp.dev/en/?ref=github) ([на русском](https://luhovyimvp.dev/?ref=github)) · [The 39 heroes with full advice](https://luhovyimvp.dev/en/heroes.html?ref=github) · [What's new](https://luhovyimvp.dev/changelog.html) · [Privacy](https://luhovyimvp.dev/privacy.html)
+
+Free, no ads, no subscription, no Overwolf. The installer is not code-signed yet: [VirusTotal report](https://www.virustotal.com/gui/file/e91036b9220b954b5f42c9c42a282a3038bb11aae9ed43d94bc1565802cc0a7d) of 0.18.0 (0 of 67 engines); each release links its own report in its notes.
 
 Live advice comes from deterministic, tested rules on top of Valve's official Game State Integration (no memory reading, no inputs on your behalf). An optional AI coach (free Google Gemini key) writes the post-match review in plain words, and every number, time, hero and item it writes is checked against the match data.
 
 ![The plan for this game over a real Dota 2 match](site/assets/game/ingame-en.jpg)
+
+| Low HP | Behind on farm | Map timers |
+|---|---|---|
+| ![Urgent advice: leave the wave and reset HP](site/assets/overlay/en/lowhp.webp) | ![Farm advice with the last-hit pace](site/assets/overlay/en/farm.webp) | ![Map timer: the Tormentor in 15 seconds](site/assets/overlay/en/timer.webp) |
 
 | Review with the AI coach | Match map | Build timing |
 |---|---|---|
@@ -43,7 +54,7 @@ App
 
 ## Current Status
 
-**v0.2.0** — see [release notes](docs/release-notes/v0.2.0.md).
+The latest version and its changes: [releases](https://github.com/makquella/dota-ai-coach/releases/latest) · [what's new, every version](https://luhovyimvp.dev/changelog.html) ([notes in the repo](docs/release-notes/)).
 
 - FastAPI backend runs locally on `127.0.0.1` (port 8000 by default; the desktop app picks a free port automatically).
 - Dota 2 GSI posts live game state to `/gsi`; rule-based recommender and scheduler produce compact advice.
