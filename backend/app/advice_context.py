@@ -10,7 +10,7 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Any
 
-from app.hero_profiles import get_hero_position
+from app.hero_profiles import farm_pace
 
 LH_RANGE_POINTS = (
     (3, 8, 15),
@@ -22,9 +22,7 @@ LH_RANGE_POINTS = (
     (30, 220, 260),
 )
 MAP_CENTER = 16384.0
-# The pace above is a carry's; an offlaner farms about 70 % of it (TARGETS in
-# post_match_analysis.py: 4.0 against 5.5 last hits a minute). Mids keep it.
-POSITION_PACE = {"offlane": 0.7}
+# The pace above is a carry's; hero_profiles.farm_pace scales it by position.
 
 
 def build_advice_context(state: Mapping[str, Any] | Any) -> dict[str, Any]:
@@ -37,7 +35,7 @@ def build_advice_context(state: Mapping[str, Any] | Any) -> dict[str, Any]:
     team = _selected_team(data, extra)
 
     context: dict[str, Any] = {}
-    pace = POSITION_PACE.get(get_hero_position(str(data.get("hero") or "")) or "", 1.0)
+    pace = farm_pace(str(data.get("hero") or ""))
     context.update(_farm_quality_context(minute, last_hits, pace))
     context.update(_hp_pressure_context(hp_percent, game_state, extra))
     context.update(_position_context(extra.get("xpos"), extra.get("ypos"), team))

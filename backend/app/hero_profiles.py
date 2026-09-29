@@ -50,6 +50,16 @@ def hero_aliases() -> dict[str, list[str]]:
     }
 
 
+# A carry's farm pace is the reference; an offlaner farms about 70 % of it
+# (TARGETS in post_match_analysis.py: 4.0 against 5.5 last hits a minute). Mids keep it.
+POSITION_PACE = {"offlane": 0.7}
+
+
+def farm_pace(hero_name: str) -> float:
+    """The share of a carry's farm pace (last hits, GPM) this hero is held to."""
+    return POSITION_PACE.get(get_hero_position(hero_name) or "", 1.0)
+
+
 def get_hero_position(hero_name: str) -> str | None:
     """The usual position of a profiled hero: carry (default), mid or offlane; None
     for a hero without a profile."""

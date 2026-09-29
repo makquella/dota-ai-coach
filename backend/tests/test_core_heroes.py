@@ -102,3 +102,20 @@ def test_an_offlaner_is_held_to_an_offlaner_farm_pace():
     axe, jugg = quality("Axe"), quality("Juggernaut")
     assert axe["expected_lh_range"] == [52, 66] and axe["farm_quality"] == "okay"
     assert jugg["expected_lh_range"] == [75, 95] and jugg["farm_quality"] == "low"
+
+
+def test_farm_pressure_uses_the_same_position_pace():
+    from app.decision_points import _is_low_farm_rate
+
+    def low(hero, minute, last_hits, gpm):
+        return _is_low_farm_rate(
+            {"hero": hero, "minute": minute, "extra_context": {"last_hits": last_hits, "gpm": gpm}}
+        )
+
+    # Axe on an offlaner's pace is not "behind"; the same numbers are for a carry.
+    assert low("Axe", 10, 38, 380) is False
+    assert low("Axe", 15, 60, 330) is False
+    assert low("Juggernaut", 10, 38, 380) is True
+    assert low("Juggernaut", 15, 60, 330) is True
+    # Far behind even for an offlaner still counts.
+    assert low("Axe", 15, 40, 250) is True
