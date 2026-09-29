@@ -292,6 +292,11 @@ const I18N = {
     tourHint: "A minute-long look at what is where",
     tourStart: "Show",
     whatsNew: {
+      "0.20.0": [
+        "Full advice for 25 supports (positions 4 and 5) with their own saves, reminders to place the wards in your bag and to get a save item, and a support review: your save item's timing and the wards you placed.",
+        "Overlay 2.0: a timer strip under the card (runes, stacks, Roshan, Aegis for your role), a compact card and a soft fade-in — Settings → Overlay.",
+        "A new Home: one card with your last match, today, streaks and focus. Progress gets a Goals zone."
+      ],
       "0.19.0": [
         "Your evening: after two or more matches, Home sums up the sitting once Dota is closed, with a text to copy for friends.",
         "Progress shows where you die over the last 20 matches, and your hero's key item timing game by game.",
@@ -818,6 +823,11 @@ const I18N = {
     tourHint: "Минутная экскурсия: что где находится",
     tourStart: "Показать",
     whatsNew: {
+      "0.20.0": [
+        "Полные подсказки для 25 саппортов (четвёрки и пятёрки): их спасения, напоминания поставить варды из инвентаря и собрать предмет спасения, а в разборе — тайминг этого предмета и сколько вардов вы поставили.",
+        "Оверлей 2.0: полоска таймеров под карточкой (руны, стаки, Рошан, Аегис для вашей роли), компактная карточка и плавное появление — «Настройки → Оверлей».",
+        "Новая Главная: одна карточка с последним матчем, сегодняшним днём, сериями и фокусом. В «Прогрессе» — зона «Цели»."
+      ],
       "0.19.0": [
         "Итог вечера: после двух и больше матчей, когда Дота закрыта, на Главной — сводка вечера и текст, который можно скопировать друзьям.",
         "В «Прогрессе» — карта ваших смертей за последние 20 матчей и тайминг ключевого предмета героя по играм.",
