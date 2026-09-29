@@ -130,7 +130,7 @@ FALLBACK_TEXT = {
         "risk": "Low risk if you avoid unnecessary fights and unsafe areas.",
     },
     "no_advice": {
-        "action": "No urgent carry action.",
+        "action": "No urgent action.",
         "reason": "There is no clear threat, objective, or timing decision right now.",
         "risk": "Low risk if you keep playing safely.",
     },

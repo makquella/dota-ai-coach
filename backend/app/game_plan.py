@@ -28,6 +28,7 @@ from typing import Any
 from app.analysis_texts import clock
 from app.career_analysis import analyze_career, opponents
 from app.hero_meta import popular_build, timing_verdict
+from app.hero_profiles import get_hero_position
 from app.post_match_analysis import TARGETS
 from app.schemas import is_supported_hero
 
@@ -81,7 +82,9 @@ def _usual_role(history: list[dict[str, Any]], hero: str) -> str | None:
     )
     if roles:
         return roles.most_common(1)[0][0]
-    return "core" if is_supported_hero(hero) else None
+    if not is_supported_hero(hero):
+        return None
+    return "offlane" if get_hero_position(hero) == "offlane" else "core"
 
 
 def _record(history: list[dict[str, Any]]) -> str | None:

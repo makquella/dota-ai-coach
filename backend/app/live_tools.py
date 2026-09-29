@@ -95,6 +95,15 @@ USABLE_SAFETY = {
     "pierce the veil",
     "flame guard",
     "sleight of fist",
+    # Mid and offlane cores.
+    "ball lightning",
+    "phase shift",
+    "refraction",
+    "dissimilate",
+    "stampede",
+    "guardian sprint",
+    "timber chain",
+    "swashbuckle",
 }
 
 LOW_HP_ACTION_TYPES = {

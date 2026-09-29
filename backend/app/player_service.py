@@ -65,6 +65,7 @@ from app.finding_history import finding_history
 from app.focus_goal import can_focus, focus_summary, match_result, new_focus, played_after
 from app.friend_compare import compare
 from app.game_plan import build_game_plan, key_item
+from app.hero_profiles import get_hero_position
 from app.history_backup import export_backup, import_backup
 from app.map_analysis import map_side, zone
 from app.match_facts import facts_from_opendota, facts_from_timeline, merge_facts
@@ -1873,7 +1874,10 @@ def _role_prior(history: list[dict[str, Any]], tags: list[str], hero: str) -> di
             return {"role": position, "source": "history"}
     if "Support" in tags and "Carry" not in tags:
         return {"role": "support", "source": "hero"}
-    if "Carry" in tags or is_supported_hero(hero):
+    if is_supported_hero(hero):
+        # A profiled core: its usual position (carry, mid or offlane).
+        return {"role": get_hero_position(hero) or "carry", "source": "hero"}
+    if "Carry" in tags:
         return {"role": "carry", "source": "hero"}
     return None
 

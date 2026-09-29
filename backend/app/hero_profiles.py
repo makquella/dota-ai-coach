@@ -41,6 +41,25 @@ def load_hero_profile(hero_name: str) -> dict[str, Any]:
     return dict(profile)
 
 
+def hero_aliases() -> dict[str, list[str]]:
+    """Every profiled hero with its aliases (npc and short names)."""
+    return {
+        str(profile.get("hero")): _string_list(profile.get("aliases"))
+        for profile in _load_profiles()
+        if isinstance(profile, Mapping) and profile.get("hero")
+    }
+
+
+def get_hero_position(hero_name: str) -> str | None:
+    """The usual position of a profiled hero: carry (default), mid or offlane; None
+    for a hero without a profile."""
+    profile = _profiles_by_alias().get(_profile_key(hero_name))
+    if not profile:
+        return None
+    position = str(profile.get("position") or "carry")
+    return position if position in {"carry", "mid", "offlane"} else "carry"
+
+
 def get_hero_archetype(hero_name: str) -> str:
     return str(load_hero_profile(hero_name).get("archetype") or "generic_carry")
 

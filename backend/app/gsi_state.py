@@ -11,6 +11,7 @@ from typing import Any
 
 from app.advice_context import MAP_CENTER, build_advice_context
 from app.config import GSI_DEBUG_LOG, GSI_DEBUG_SAMPLES_DIR
+from app.dota_constants import NPC_TO_HERO_ID, hero_name
 from app.hero_profiles import evaluate_laning_context
 from app.hero_safety import evaluate_hero_safety
 from app.item_timing import normalize_item_name
@@ -125,6 +126,7 @@ _ABILITY_NAME_MAP = {
     "kez_ravens_veil": "Raven's Veil",
     "kez_kazurai_katana": "Kazurai Katana",
     "kez_switch_weapons": "Switch Weapons",
+    "slardar_sprint": "Guardian Sprint",
 }
 
 
@@ -702,6 +704,9 @@ def _normalize_hero_name(value: Any) -> str:
     if key in _HERO_NAME_MAP:
         return _HERO_NAME_MAP[key]
     if key.startswith("npc_dota_hero_"):
+        hero_id = NPC_TO_HERO_ID.get(key)
+        if hero_id is not None:
+            return hero_name(hero_id)
         key = key.removeprefix("npc_dota_hero_")
     return _title_from_token(key) if key else "Unknown"
 

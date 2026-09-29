@@ -63,7 +63,7 @@ const I18N = {
       copied: "Copied"
     },
     matchTitle: "Current match",
-    coverageSafety: "Farm and item advice is for carry heroes; on this hero the coach gives survival advice, map timers and role tips.",
+    coverageSafety: "Farm and item advice is for 39 carry, mid and offlane heroes; on this hero the coach gives survival advice, map timers and role tips.",
     statHero: "Hero",
     statClock: "Match time",
     statStage: "Stage",
@@ -518,7 +518,7 @@ const I18N = {
       copied: "Скопировано"
     },
     matchTitle: "Текущий матч",
-    coverageSafety: "Советы по фарму и предметам — для керри; на этом герое тренер подсказывает по выживанию, таймерам карты и роли.",
+    coverageSafety: "Советы по фарму и предметам — для 39 героев керри, мида и хардлайна; на этом герое тренер подсказывает по выживанию, таймерам карты и роли.",
     statHero: "Герой",
     statClock: "Время матча",
     statStage: "Стадия",

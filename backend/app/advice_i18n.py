@@ -132,8 +132,8 @@ _RU_EXACT: dict[str, str] = {
     "Move closer to a safer lane area before contesting the next wave.": (
         "Перед следующей волной сместитесь в более безопасную часть линии."
     ),
-    "No urgent carry action.": "Срочных действий не нужно.",
-    "No urgent carry decision is needed.": "Срочных решений не нужно.",
+    "No urgent action.": "Срочных действий не нужно.",
+    "No urgent decision is needed.": "Срочных решений не нужно.",
     "Only consider the objective if your team is already grouped nearby.": (
         "Идите к цели, только если команда уже собралась рядом."
     ),
@@ -371,7 +371,7 @@ _RU_EXACT: dict[str, str] = {
     "You took heavy damage recently, so another trade can turn into a death.": (
         "Вы недавно получили много урона: следующий размен может закончиться смертью."
     ),
-    "Your carry farm pace is behind for this minute, but HP is stable, so the fastest recovery is clean last hitting.": (
+    "Your farm pace is behind for this minute, but HP is stable, so the fastest recovery is clean last hitting.": (
         "Для этой минуты фарма мало, но HP в норме — быстрее всего догнать чистыми добиваниями."
     ),
     "Your farm pace is stable now, so keep using safe routes instead of forcing uncertain fights.": (

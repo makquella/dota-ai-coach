@@ -157,7 +157,7 @@ def _default_reason(decision_point: str) -> str:
     if decision_point == "LOW_HP":
         return "Low health makes extra action too risky."
     if decision_point == "NO_ADVICE":
-        return "No urgent carry decision is needed."
+        return "No urgent decision is needed."
     return "This reduces risk while keeping your carry game stable."
 
 
