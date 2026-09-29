@@ -3710,16 +3710,21 @@ label.setting:has(.switch:disabled) {
 }
 
 /* Match table: a result stripe on each row, the score as a ring and letter. */
+/* A stripe shorter than the row, so the stripes of two rows never join. */
 tr.row-link > td:first-child {
-  box-shadow: inset 3px 0 0 var(--idle);
+  --stripe: var(--idle);
+  background-image: linear-gradient(var(--stripe), var(--stripe));
+  background-position: left center;
+  background-repeat: no-repeat;
+  background-size: 3px calc(100% - 8px);
 }
 
 tr.row-link[data-result="win"] > td:first-child {
-  box-shadow: inset 3px 0 0 var(--ok);
+  --stripe: var(--ok);
 }
 
 tr.row-link[data-result="loss"] > td:first-child {
-  box-shadow: inset 3px 0 0 var(--error);
+  --stripe: var(--error);
 }
 
 .score-cell {
@@ -3739,6 +3744,8 @@ tr.row-link[data-result="loss"] > td:first-child {
 
 /* «Последние матчи» on Home. */
 .recent-list {
+  display: grid;
+  gap: var(--sp-1);
   margin: 0;
   padding: var(--sp-2);
   list-style: none;
