@@ -285,6 +285,7 @@ const I18N = {
         }
       }
     },
+    summaryTitle: "Summary",
     sessionTitle: "Your evening",
     sessionHide: "Hide",
     tourTitle: "Tour of the app",
@@ -810,6 +811,7 @@ const I18N = {
         }
       }
     },
+    summaryTitle: "Сводка",
     sessionTitle: "Итог вечера",
     sessionHide: "Скрыть",
     tourTitle: "Обучение",
@@ -1116,6 +1118,7 @@ const els = {
   inviteCopy: $("#invite-copy"),
   inviteDismiss: $("#invite-dismiss"),
   tourStart: $("#tour-start"),
+  nowZone: $("#now-zone"),
   setupCard: $("#setup-card"),
   setupSteps: $("#setup-steps"),
   setupCount: $("#setup-count"),
@@ -1791,6 +1794,13 @@ function renderStatus(status) {
   renderSetup(status);
   renderWhatsNew(status);
   els.inviteCard.classList.toggle("hidden", !status.invite);
+  // «Now» (current match, recent advice) only while Dota runs or there is advice
+  // to show; with Dota closed the summary and the week lead.
+  const live = status.live || {};
+  els.nowZone.classList.toggle(
+    "hidden",
+    !(status.dotaRunning || live.inMatch || live.connected || (status.recentAdvice || []).length || status.demo === "running")
+  );
   if (status.tour && !tourShown) {
     // The first start: the tour opens once the panel has drawn its first status.
     tourShown = true;

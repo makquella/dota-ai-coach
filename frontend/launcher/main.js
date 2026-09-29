@@ -1525,6 +1525,7 @@ const PLAYER_OPS = {
   refreshMatch: (args) => ["POST", `/player/matches/${matchIdArg(args)}/refresh`],
   week: () => ["GET", `/player/week?lang=${uiLocale()}`],
   session: () => ["GET", `/player/session?lang=${uiLocale()}`],
+  summary: () => ["GET", `/player/summary?lang=${uiLocale()}`],
   // Compare with a friend (their public OpenDota matches, fetched by the backend).
   friend: (args) => ["GET", `/player/friend?lang=${uiLocale()}&group=${friendGroupArg(args)}`],
   friendSet: (args) => ["POST", `/player/friend?lang=${uiLocale()}`, { steam: String(args.steam || "").slice(0, 200) }],

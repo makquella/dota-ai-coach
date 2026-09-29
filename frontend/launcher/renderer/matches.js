@@ -353,6 +353,21 @@
       poolMore: "Play them more",
       poolPark: "Better to park them for now",
       poolRecord: (w, n, wr, br) => `${w} of ${n} won · ${wr}%${br == null ? "" : ` (your rank: ${br}%)`}`,
+      goalsTitle: "Your goals",
+      streaksTitle: "Streaks",
+      goalMakeTop: (title) => `Make it the focus: ${title}`,
+      zoneGoals: "Goals",
+      zoneGoalsHint: "What you work on and how the last matches went",
+      summaryLast: "Last match",
+      summaryTip: "Main thing to fix",
+      summaryStrength: "What went well",
+      summaryOpen: "Open the review",
+      summaryToday: "Today",
+      summaryNoGames: "No matches yet today",
+      summaryFocus: "Your focus",
+      summaryFocusProgress: (met, total) => `done in ${met} of ${total}`,
+      summaryNoFocus: "Pick one problem to work on: the coach checks every match against it.",
+      summaryPickFocus: "Pick in Progress",
       streakFewDeaths: (target) => `${target} matches in a row with 5 deaths or fewer`,
       streakGoodScore: (target) => `${target} matches in a row with a score of 60+`,
       streakProgress: (cur, target) => `${Math.min(cur, target)} of ${target}`,
@@ -840,6 +855,21 @@
       poolMore: "Играйте на них чаще",
       poolPark: "Их лучше пока отложить",
       poolRecord: (w, n, wr, br) => `${w} из ${n} побед · ${wr}%${br == null ? "" : ` (на вашем звании ${br}%)`}`,
+      goalsTitle: "Ваши цели",
+      streaksTitle: "Серии",
+      goalMakeTop: (title) => `Сделать фокусом: ${title}`,
+      zoneGoals: "Цели",
+      zoneGoalsHint: "Над чем вы работаете и как прошли последние матчи",
+      summaryLast: "Последний матч",
+      summaryTip: "Главное исправить",
+      summaryStrength: "Что получилось",
+      summaryOpen: "Открыть разбор",
+      summaryToday: "Сегодня",
+      summaryNoGames: "Сегодня матчей ещё не было",
+      summaryFocus: "Ваш фокус",
+      summaryFocusProgress: (met, total) => `получилось в ${met} из ${total}`,
+      summaryNoFocus: "Выберите одну проблему, над которой работать: тренер проверит по ней каждый матч.",
+      summaryPickFocus: "Выбрать в «Прогрессе»",
       streakFewDeaths: (target) => `${target} ${plural(target, "матч", "матча", "матчей")} подряд — не больше 5 смертей`,
       streakGoodScore: (target) => `${target} ${plural(target, "матч", "матча", "матчей")} подряд с оценкой 60+`,
       streakProgress: (cur, target) => `${Math.min(cur, target)} из ${target}`,
@@ -2679,7 +2709,7 @@
           { class: "table-wrap table-wrap-tight" },
           h(
             "table",
-            { class: "table" },
+            { class: "table table-wrapping" },
             h(
               "thead",
               {},
@@ -2781,7 +2811,7 @@
           { class: "table-wrap table-wrap-tight" },
           h(
             "table",
-            { class: "table" },
+            { class: "table table-wrapping" },
             h("thead", {}, h("tr", {}, h("th", { text: t("colMetric") }), groupHead(t("selfBest"), compare.best), groupHead(t("selfWorst"), compare.worst))),
             h(
               "tbody",
@@ -3835,11 +3865,51 @@
     }
   }
 
+  // «Goals» at the top of Progress: the focus (or the most repeated problem to
+  // make one) and the streak goals of the status (app/player_goals.py).
+  function goalsCard(career) {
+    const left = career.focus ? goalBody(career.focus) : noFocusBody(career);
+    const goals = ((state.status && state.status.player && state.status.player.goals) || []).filter((goal) => GOAL_TEXT[goal.id]);
+    const streaks = goals.length
+      ? h(
+          "div",
+          { class: "streaks" },
+          h("p", { class: "friend-sub", text: t("streaksTitle") }),
+          goals.map((goal) =>
+            h(
+              "div",
+              { class: "streak", dataset: { met: String(Boolean(goal.met)) } },
+              h("p", { class: "streak-head" }, h("span", { text: t(GOAL_TEXT[goal.id], goal.target) }), h("span", { class: "num muted", text: goal.met ? t("streakMet", goal.current) : t("streakProgress", goal.current, goal.target) })),
+              h("span", { class: "streak-bar", role: "img", "aria-label": t("streakProgress", goal.current, goal.target) }, h("span", { style: `width: ${Math.min(100, Math.round((100 * goal.current) / goal.target))}%` })),
+              h("p", { class: "muted small", text: t("streakBest", goal.best) })
+            )
+          )
+        )
+      : null;
+    return card(t("goalsTitle"), "target", h("div", { class: "goals-grid" }, left, streaks));
+  }
+
+  function noFocusBody(career) {
+    // The most repeated problem with a drill: one click makes it the focus.
+    const top = (career.recurring || []).find((item) => item.id && item.drill);
+    return h(
+      "div",
+      { class: "goal" },
+      h("p", { class: "friend-sub", text: t("goalTitle") }),
+      h("p", { class: "muted small", text: t("summaryNoFocus") }),
+      top
+        ? h(
+            "button",
+            { type: "button", class: "btn btn-sm goal-make no-print", onclick: (event) => setGoal(top.id, event.currentTarget) },
+            icon("target"),
+            h("span", { text: t("goalMakeTop", top.title) })
+          )
+        : null
+    );
+  }
+
   // The problem the player chose to work on and how the matches since went.
-  function goalCard(focus) {
-    if (!focus) {
-      return null;
-    }
+  function goalBody(focus) {
     const since = focus.since ? new Date(focus.since).toLocaleDateString(state.locale === "ru" ? "ru-RU" : "en-GB", { day: "numeric", month: "long" }) : "";
     const marks = (focus.results || []).map((result) =>
       h("button", {
@@ -3854,20 +3924,16 @@
     const progress = focus.total
       ? [t("goalProgress", focus.met, focus.total), focus.streak >= 2 ? t("goalStreak", focus.streak) : null].filter(Boolean).join(" · ")
       : t("goalWaiting");
-    return card(
-      t("goalTitle"),
-      "target",
-      h(
+    return h(
         "div",
         { class: "goal" },
+        h("p", { class: "friend-sub", text: t("goalTitle") }),
         h("p", { class: "finding-title" }, h("span", { text: focus.title }), focus.section_label ? h("span", { class: "tag", text: focus.section_label }) : null),
         focus.drill ? h("p", { class: "finding-drill" }, icon("lightbulb"), h("span", {}, h("strong", { text: `${t("drill")}: ` }), focus.drill)) : null,
         marks.length ? h("div", { class: "goal-marks" }, marks) : null,
         h("p", { class: "muted small num", text: since ? `${progress} · ${t("goalSince", since)}` : progress }),
         h("div", { class: "row no-print" }, h("button", { class: "btn btn-ghost btn-sm", type: "button", onclick: clearGoal }, h("span", { text: t("goalClear") })))
-      ),
-      null
-    );
+      );
   }
 
   function renderCareer() {
@@ -4017,11 +4083,11 @@
       ].filter(Boolean)),
       sharePanel,
       zone(t("zoneSummary"), t("zoneSummaryHint"), [tiles]),
+      zone(t("zoneGoals"), t("zoneGoalsHint"), [goalsCard(career)]),
       twoColumns(
         [
           zone(t("zoneCoach"), t("zoneCoachHint"), [
             coachCard(career.coach, "career"),
-            goalCard(career.focus),
             planCard,
             // Asking needs at least one review (the backend answers not_enough without one).
             state.careerHero === null && career.analyzed ? askCard(career, true) : null
@@ -4072,58 +4138,41 @@
     });
   }
 
-  // --- home banner + status ----------------------------------------------------------
+  // --- home: the summary (app/home_summary.py) -------------------------------------------
 
-  function renderBanner(status) {
-    const banner = document.getElementById("review-banner");
-    const text = document.getElementById("review-banner-text");
+  // Tilt warning and streak goals (app/player_goals.py) inside the summary.
+  const GOAL_TEXT = { few_deaths: "streakFewDeaths", good_score: "streakGoodScore" };
+  const SUMMARY_REFRESH_MS = 60 * 1000;
+
+  async function refreshSummary(status) {
     const review = status.player && status.player.lastReview;
-    const fresh = review && Date.now() - Date.parse(review.at || "") < 6 * 3600 * 1000;
-    banner.classList.toggle("hidden", !fresh);
-    if (fresh) {
-      const score = review.score !== null && review.score !== undefined ? ` · ${review.score}/100` : "";
-      text.textContent = state.locale === "ru" ? `Разбор последнего матча готов${score}` : `Your last match review is ready${score}`;
-      banner.onclick = () => openMatch(review.match_id);
-    }
-  }
-
-  function renderToday(status) {
-    const line = document.getElementById("today-line");
     const today = status.player && status.player.today;
-    line.classList.toggle("hidden", !today);
-    if (!today) {
+    const key = [state.locale, review ? `${review.match_id}|${review.at}` : "", status.player && status.player.accountId, today ? today.games : 0].join("|");
+    if (state.summaryKey === key && Date.now() - (state.summaryAt || 0) < SUMMARY_REFRESH_MS) {
       return;
     }
-    const ru = state.locale === "ru";
-    const parts = [
-      ru ? `Сегодня: ${today.games} ${plural(today.games, "матч", "матча", "матчей")}` : `Today: ${today.games} ${today.games === 1 ? "match" : "matches"}`,
-      ru
-        ? `${today.wins} ${plural(today.wins, "победа", "победы", "побед")}, ${today.losses} ${plural(today.losses, "поражение", "поражения", "поражений")}`
-        : `${today.wins} ${today.wins === 1 ? "win" : "wins"}, ${today.losses} ${today.losses === 1 ? "loss" : "losses"}`,
-      today.avg_score == null ? null : ru ? `средняя оценка ${today.avg_score}` : `average score ${today.avg_score}`,
-      today.focus_total ? (ru ? `фокус ${today.focus_met} из ${today.focus_total}` : `focus ${today.focus_met} of ${today.focus_total}`) : null
-    ];
-    line.textContent = parts.filter(Boolean).join(" · ");
+    state.summaryKey = key;
+    state.summaryAt = Date.now();
+    const result = await call("summary");
+    renderSummary(result.ok ? result.data.summary : null);
   }
 
-  // Tilt warning and streak goals under the day line (app/player_goals.py).
-  const GOAL_TEXT = { few_deaths: "streakFewDeaths", good_score: "streakGoodScore" };
-
-  function renderGoals(status) {
-    const player = status.player || {};
-    const tiltLine = document.getElementById("tilt-line");
-    const tilt = player.linked ? player.tilt : null;
-    tiltLine.classList.toggle("hidden", !tilt);
-    if (tilt) {
-      tiltLine.textContent = tilt.reason === "losses"
-        ? t("tiltLosses", tilt.losses)
-        : t("tiltScore", tilt.scores[0], tilt.scores[1], tilt.usual);
+  function todayLine(today) {
+    const ru = state.locale === "ru";
+    if (!today) {
+      return t("summaryNoGames");
     }
-    const goalsLine = document.getElementById("goals-line");
-    const goals = (player.linked ? player.goals || [] : []).filter((goal) => GOAL_TEXT[goal.id]);
-    goalsLine.classList.toggle("hidden", !goals.length);
-    goalsLine.replaceChildren(
-      ...goals.map((goal) =>
+    return [
+      ru ? `${today.games} ${plural(today.games, "матч", "матча", "матчей")}` : `${today.games} ${today.games === 1 ? "match" : "matches"}`,
+      `${today.wins}–${today.losses}`,
+      today.avg_score == null ? null : ru ? `средняя оценка ${today.avg_score}` : `average score ${today.avg_score}`
+    ].filter(Boolean).join(" · ");
+  }
+
+  function goalChips(goals) {
+    return (goals || [])
+      .filter((goal) => GOAL_TEXT[goal.id])
+      .map((goal) =>
         h(
           "span",
           { class: "chip goal-chip", "data-met": String(Boolean(goal.met)), title: t("streakBest", goal.best) },
@@ -4131,9 +4180,100 @@
           h("span", { text: t(GOAL_TEXT[goal.id], goal.target) }),
           h("span", { class: "goal-count num", text: goal.met ? t("streakMet", goal.current) : t("streakProgress", goal.current, goal.target) })
         )
-      )
+      );
+  }
+
+  function renderSummary(summary) {
+    const cardEl = document.getElementById("summary-card");
+    const body = document.getElementById("summary-body");
+    if (!cardEl || !body) {
+      return;
+    }
+    cardEl.classList.toggle("hidden", !summary);
+    if (!summary) {
+      body.replaceChildren();
+      return;
+    }
+    const last = summary.last;
+    const result = last.win === true ? "win" : last.win === false ? "loss" : "unknown";
+    const facts = [
+      last.kills == null ? null : `${last.kills}/${last.deaths}/${last.assists}`,
+      last.duration ? clock(last.duration) : null,
+      relativeTime(last.start_time)
+    ].filter(Boolean).join(" · ");
+    const tip = last.tip || last.strength;
+    const lastBlock = h(
+      "button",
+      { type: "button", class: "summary-last", dataset: { result }, onclick: () => openMatch(last.match_id) },
+      h(
+        "span",
+        { class: "summary-last-head" },
+        window.DotaIcons ? window.DotaIcons.heroPicture(document, last.hero_id || last.hero, "md") : null,
+        h(
+          "span",
+          { class: "summary-last-text" },
+          h("span", { class: "summary-label", text: t("summaryLast") }),
+          h("span", { class: "summary-hero" }, h("span", { text: last.hero || "—" }), h("span", { class: `result-tag result-${result}`, text: last.win === true ? t("win") : last.win === false ? t("loss") : "—" })),
+          h("span", { class: "muted small num", text: facts })
+        ),
+        scoreRing(last.score, "md")
+      ),
+      tip
+        ? h(
+            "span",
+            { class: "summary-tip" },
+            h("span", { class: "summary-tip-label", text: last.tip ? t("summaryTip") : t("summaryStrength") }),
+            h("span", { class: "summary-tip-title", text: tip.title || "" }),
+            last.tip && tip.drill ? h("span", { class: "muted small", text: tip.drill }) : null
+          )
+        : null,
+      h("span", { class: "summary-open" }, h("span", { text: t("summaryOpen") }), icon("chevron-right"))
     );
-    hydrate(goalsLine);
+    const tilt = summary.tilt
+      ? h("p", { class: "tilt-line", role: "status", text: summary.tilt.reason === "losses" ? t("tiltLosses", summary.tilt.losses) : t("tiltScore", summary.tilt.scores[0], summary.tilt.scores[1], summary.tilt.usual) })
+      : null;
+    const chips = goalChips(summary.goals);
+    const today = h(
+      "div",
+      { class: "summary-block" },
+      h("p", { class: "summary-label", text: t("summaryToday") }),
+      h("p", { class: "summary-value num", text: todayLine(summary.today) }),
+      tilt,
+      chips.length ? h("div", { class: "goals-line" }, chips) : null
+    );
+    let focusBlock;
+    if (summary.focus) {
+      const focus = summary.focus;
+      const marks = focus.results.map((row) =>
+        h("button", {
+          type: "button",
+          class: "goal-mark",
+          dataset: { met: String(row.met) },
+          title: `${row.hero || "—"}: ${row.met ? t("goalMet") : t("goalMissed")}`,
+          "aria-label": `${row.hero || "—"}: ${row.met ? t("goalMet") : t("goalMissed")}`,
+          onclick: () => openMatch(row.match_id)
+        })
+      );
+      focusBlock = h(
+        "div",
+        { class: "summary-block" },
+        h("p", { class: "summary-label", text: t("summaryFocus") }),
+        h("p", { class: "summary-value", text: focus.title || "" }),
+        marks.length
+          ? h("div", { class: "week-plan-row" }, h("div", { class: "goal-marks" }, marks), h("span", { class: "muted small num", text: t("summaryFocusProgress", focus.met, focus.total) }))
+          : h("p", { class: "muted small", text: t("goalWaiting") })
+      );
+    } else {
+      focusBlock = h(
+        "div",
+        { class: "summary-block" },
+        h("p", { class: "summary-label", text: t("summaryFocus") }),
+        h("p", { class: "muted small", text: t("summaryNoFocus") }),
+        h("button", { type: "button", class: "btn btn-sm", onclick: () => setView("progress") }, h("span", { text: t("summaryPickFocus") }))
+      );
+    }
+    body.replaceChildren(h("div", { class: "summary-grid" }, lastBlock, h("div", { class: "summary-side" }, today, focusBlock)));
+    hydrate(body);
   }
 
   // --- home: the last seven days ---------------------------------------------------
@@ -4460,14 +4600,13 @@
     const localeChanged = state.locale !== (status.locale === "ru" ? "ru" : "en");
     state.locale = status.locale === "ru" ? "ru" : "en";
     state.status = status;
-    renderBanner(status);
-    renderToday(status);
-    renderGoals(status);
     if (status.backend === "running" && status.player && status.player.linked) {
+      refreshSummary(status).catch(() => {});
       refreshWeek(status).catch(() => {});
       refreshRecent(status).catch(() => {});
       refreshSession(status).catch(() => {});
     } else {
+      renderSummary(null);
       renderWeek(null);
       renderRecent([]);
       renderSession(null, status);

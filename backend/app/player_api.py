@@ -165,6 +165,11 @@ def player_week(
     return {"week": PLAYER_SERVICE.week(normalize_lang(lang), until, since)}
 
 
+@router.get("/summary", summary="The card at the top of Home: last match, day, goals, focus")
+def player_summary(lang: str = "en"):
+    return {"summary": PLAYER_SERVICE.summary(normalize_lang(lang))}
+
+
 @router.get("/session", summary="The games of the latest sitting («итог вечера»)")
 def player_session(lang: str = "en"):
     return {"session": PLAYER_SERVICE.session(normalize_lang(lang))}
