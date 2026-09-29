@@ -280,6 +280,8 @@ const I18N = {
         }
       }
     },
+    sessionTitle: "Your evening",
+    sessionHide: "Hide",
     tourTitle: "Tour of the app",
     tourHint: "A minute-long look at what is where",
     tourStart: "Show",
@@ -793,6 +795,8 @@ const I18N = {
         }
       }
     },
+    sessionTitle: "Итог вечера",
+    sessionHide: "Скрыть",
     tourTitle: "Обучение",
     tourHint: "Минутная экскурсия: что где находится",
     tourStart: "Показать",

@@ -86,6 +86,7 @@ from app.player_store import PlayerStore
 from app.post_game import post_game_card
 from app.post_match_analysis import ANALYSIS_VERSION, analyze_match
 from app.schemas import is_supported_hero
+from app.session_summary import session_summary
 from app.share_progress import public_progress
 from app.share_review import public_review
 from app.steam_ids import parse_account_id, steam64_from_account_id
@@ -506,6 +507,26 @@ class PlayerService:
             lang,
             focus=self._focus(primary),
             since=since,
+        )
+        self._plans[key] = (now, summary)
+        return summary
+
+    def session(self, lang: str) -> dict[str, Any] | None:
+        """The latest sitting of 2+ games with a text to share (app/session_summary.py);
+        cached a minute like the week."""
+        primary = self.store.primary_account_id()
+        if primary is None:
+            return None
+        key = ("session", primary, lang)
+        cached = self._plans.get(key)
+        now = time.monotonic()
+        if cached is not None and now - cached[0] < GAME_PLAN_CACHE_SECONDS:
+            return cached[1]
+        summary = session_summary(
+            self.store.matches_for_career(primary, limit=RECENT_MATCHES_LIMIT),
+            time.time(),
+            lang,
+            focus=self._focus(primary),
         )
         self._plans[key] = (now, summary)
         return summary

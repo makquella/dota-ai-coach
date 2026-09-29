@@ -144,6 +144,17 @@
           </section>
         </div>
         <div class="col col-side">
+          <!-- «Итог вечера»: the latest sitting of 2+ games, shown once Dota is closed. -->
+          <section class="card session-card hidden" id="session-card" aria-labelledby="session-heading">
+            <header class="card-head">
+              <i data-icon="moon"></i>
+              <h2 id="session-heading" data-i18n="sessionTitle">Your evening</h2>
+              <span class="card-head-extra">
+                <button id="session-dismiss" class="btn btn-ghost btn-sm btn-icon" type="button" data-i18n-title="sessionHide" title="Hide"><i data-icon="x"></i></button>
+              </span>
+            </header>
+            <div class="card-body" id="session-body"></div>
+          </section>
           <!-- Once after an update: what the new version brings. -->
           <section class="card whats-new hidden" id="whats-new-card" aria-labelledby="whats-new-heading">
             <header class="card-head">

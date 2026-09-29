@@ -119,6 +119,9 @@ const settings = createSettingsStore(path.join(USER_DATA_DIR, "settings.json"), 
   inviteDone: false,
   // The first-run tour of the panel was shown (finished or skipped).
   tourDone: false,
+  // «Итог вечера»: the sitting whose card was closed, and the one the tray told about.
+  sessionSeen: "",
+  sessionNotified: "",
   // How often coaching advice may appear: calm | normal | active (backend scheduler).
   adviceFrequency: "normal",
   // Position for map timers and role tips (auto = from the lane), and the timers switch.
@@ -223,6 +226,8 @@ const dotaWatcher = createDotaWatcher({
   log: (message) => appendLog("dota", message, { force: true })
 });
 let dotaWasRunning = false;
+let sessionTimer = null;
+const SESSION_NOTICE_DELAY_MS = 3 * 60 * 1000;
 dotaWatcher.on("change", (state) => {
   appendLog(
     "dota",
@@ -231,6 +236,12 @@ dotaWatcher.on("change", (state) => {
   if (state.running && !dotaWasRunning) {
     // The player may have just added the launch option in Steam.
     refreshLaunchOptions();
+    clearTimeout(sessionTimer);
+  }
+  if (!state.running && dotaWasRunning) {
+    // Dota closed: once the last review had time to be written, tell about the evening.
+    clearTimeout(sessionTimer);
+    sessionTimer = setTimeout(() => notifySession().catch(() => {}), SESSION_NOTICE_DELAY_MS);
   }
   dotaWasRunning = state.running;
   if (state.running && !dotaInstall.dotaDir && dotaDirFromExecutable(state.exePath)) {
@@ -297,6 +308,8 @@ const TRAY_TEXT = {
     updated: (version) => `Updated to ${version}.`,
     reviewReady: (score, focusMet) =>
       `Post-match review is ready${score ? `: score${score}` : ""}.${focusMet === true ? " Your focus: done." : focusMet === false ? " Your focus: it happened again." : ""} Click to open it.`,
+    sessionReady: (games, wins, losses, score) =>
+      `Your evening: ${games} matches, ${wins}–${losses}${score !== null && score !== undefined ? `, average score ${score}` : ""}. Click to see it and copy it for friends.`,
     problemReport: "Save a problem report",
     reportSentLater: (id) => `Your problem report was sent. Number: ${id}.`,
     voice: "Voice",
@@ -325,6 +338,8 @@ const TRAY_TEXT = {
     updated: (version) => `Обновлено до версии ${version}.`,
     reviewReady: (score, focusMet) =>
       `Разбор матча готов${score ? `: оценка${score}` : ""}.${focusMet === true ? " Фокус: получилось." : focusMet === false ? " Фокус: снова повторилось." : ""} Нажмите, чтобы открыть.`,
+    sessionReady: (games, wins, losses, score) =>
+      `Итог вечера: ${games} ${games % 10 >= 2 && games % 10 <= 4 && (games % 100 < 12 || games % 100 > 14) ? "матча" : games % 10 === 1 && games % 100 !== 11 ? "матч" : "матчей"}, ${wins}–${losses}${score !== null && score !== undefined ? `, средняя оценка ${score}` : ""}. Нажмите, чтобы посмотреть и скопировать для друзей.`,
     problemReport: "Сохранить отчёт о проблеме",
     reportSentLater: (id) => `Отчёт о проблеме отправлен. Номер: ${id}.`,
     voice: "Голос",
@@ -458,6 +473,21 @@ function setLanguage(value) {
   return publicStatus();
 }
 
+/** «Итог вечера» in the tray once per sitting, after Dota is closed (2+ games). */
+async function notifySession() {
+  if (dotaWatcher.getState().running) {
+    return;
+  }
+  const result = await playerRequest("session");
+  const session = result.ok && result.data ? result.data.session : null;
+  if (!session || !session.id || settings.get("sessionNotified") === session.id || settings.get("sessionSeen") === session.id) {
+    return;
+  }
+  settings.set("sessionNotified", session.id);
+  appendLog("player", `Evening summary: ${session.games} matches.`, { force: true });
+  showTrayBalloon(t("sessionReady", session.games, session.wins, session.losses, session.avg_score));
+}
+
 const INVITE_AFTER_REVIEWS = 3;
 
 /** The site link a player sends to a friend: their language, tagged for the source count. */
@@ -504,6 +534,7 @@ function publicStatus() {
     whatsNew: settings.get("whatsNewPending") === app.getVersion() ? app.getVersion() : "",
     invite: inviteDue() ? inviteUrl() : "",
     tour: tourDue(),
+    sessionSeen: settings.get("sessionSeen") || "",
     overlayReasonCode: presence.code,
     backend: processStatus.backend,
     backendPort: backend.port,
@@ -1490,6 +1521,7 @@ const PLAYER_OPS = {
   match: (args) => ["GET", `/player/matches/${matchIdArg(args)}?lang=${uiLocale()}`, undefined, 15000],
   refreshMatch: (args) => ["POST", `/player/matches/${matchIdArg(args)}/refresh`],
   week: () => ["GET", `/player/week?lang=${uiLocale()}`],
+  session: () => ["GET", `/player/session?lang=${uiLocale()}`],
   // Compare with a friend (their public OpenDota matches, fetched by the backend).
   friend: (args) => ["GET", `/player/friend?lang=${uiLocale()}&group=${friendGroupArg(args)}`],
   friendSet: (args) => ["POST", `/player/friend?lang=${uiLocale()}`, { steam: String(args.steam || "").slice(0, 200) }],
@@ -3076,6 +3108,24 @@ function registerIpc() {
       settings.set("inviteDone", true);
     }
     return publicStatus();
+  });
+  // «Итог вечера»: copy its text (built by the backend, re-read here, never taken
+  // from the page) or hide the card of that sitting.
+  ipcMain.handle("launcher:session", async (_event, action) => {
+    if (action === "copy") {
+      const result = await playerRequest("session");
+      const session = result.ok && result.data ? result.data.session : null;
+      if (!session || typeof session.text !== "string") {
+        return { ok: false };
+      }
+      clipboard.writeText(session.text);
+      return { ok: true };
+    }
+    if (action && typeof action === "object" && typeof action.dismiss === "string" && action.dismiss.length <= 64) {
+      settings.set("sessionSeen", action.dismiss);
+      return { ok: true, status: publicStatus() };
+    }
+    return { ok: false };
   });
   ipcMain.handle("launcher:tour-done", () => {
     settings.set("tourDone", true);

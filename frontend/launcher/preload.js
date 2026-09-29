@@ -62,6 +62,7 @@ contextBridge.exposeInMainWorld("launcherApi", {
   dismissWhatsNew: () => ipcRenderer.invoke("launcher:dismiss-whats-new"),
   invite: (action) => ipcRenderer.invoke("launcher:invite", action),
   tourDone: () => ipcRenderer.invoke("launcher:tour-done"),
+  session: (action) => ipcRenderer.invoke("launcher:session", action),
   saveProblemReport: () => ipcRenderer.invoke("launcher:save-problem-report"),
   previewProblemReport: () => ipcRenderer.invoke("launcher:preview-problem-report"),
   sendProblemReport: (note) => ipcRenderer.invoke("launcher:send-problem-report", note),

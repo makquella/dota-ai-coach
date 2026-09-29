@@ -165,6 +165,11 @@ def player_week(
     return {"week": PLAYER_SERVICE.week(normalize_lang(lang), until, since)}
 
 
+@router.get("/session", summary="The games of the latest sitting («итог вечера»)")
+def player_session(lang: str = "en"):
+    return {"session": PLAYER_SERVICE.session(normalize_lang(lang))}
+
+
 @router.get("/usage", summary="Advice counts of a period for the opt-in anonymous statistics")
 def player_usage(
     since: Annotated[float, Query(gt=0, lt=1e11)],
