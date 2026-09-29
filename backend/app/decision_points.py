@@ -5,7 +5,7 @@ decision_points.py — tiny event detector for GSI-driven overlay advice.
 from collections.abc import Mapping
 from typing import Any, Literal
 
-from app.hero_profiles import evaluate_laning_context
+from app.hero_profiles import evaluate_laning_context, farm_pace
 from app.hero_safety import evaluate_hero_safety
 from app.item_timing import contains_meaningful_item_reference, is_meaningful_item_timing
 from app.match_memory import DEATH_DECISION_POINTS, MATCH_MEMORY
@@ -304,15 +304,17 @@ def _is_low_farm_rate(state: Mapping[str, Any]) -> bool:
     if gpm_number is not None and gpm_number > 2000:
         return False
 
+    # A carry's thresholds, scaled by the hero's position (an offlaner: 70 %).
+    pace = farm_pace(str(state.get("hero") or ""))
     thresholds = ((25, 170), (20, 120), (15, 80), (10, 45))
     if any(
         minute >= threshold_minute
         and last_hits_number is not None
-        and last_hits_number < threshold_lh
+        and last_hits_number < round(threshold_lh * pace)
         for threshold_minute, threshold_lh in thresholds
     ):
         return True
-    return minute >= 15 and gpm_number is not None and gpm_number < 400
+    return minute >= 15 and gpm_number is not None and gpm_number < round(400 * pace)
 
 
 def detect_decision_point(state: Mapping[str, Any] | None) -> DecisionPoint:

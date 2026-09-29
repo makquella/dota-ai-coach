@@ -192,3 +192,36 @@ test("the admin summary and the weekly note", async () => {
 test("aggregate skips broken rows", () => {
   assert.equal(aggregateStats([{ install_hash: "a", day: "2026-09-27", version: "0.17.0", body: "{" }]).rows, 0);
 });
+
+test("the statistics page: no data in it, a strict CSP, hidden without a token", async () => {
+  const { env } = fakeEnv({ ADMIN_TOKEN: "t0ken" });
+  const page = await worker.fetch(new Request("https://api.example/admin"), env, ctx);
+  assert.equal(page.status, 200);
+  const csp = page.headers.get("content-security-policy");
+  assert.ok(csp.includes("script-src 'self'") && csp.includes("default-src 'none'"), csp);
+  assert.equal(page.headers.get("x-robots-tag"), "noindex, nofollow");
+  const html = await page.text();
+  assert.ok(html.includes('<script src="/admin/app.js"></script>'));
+  assert.ok(!html.includes("t0ken"));
+  const script = await worker.fetch(new Request("https://api.example/admin/app.js"), env, ctx);
+  assert.match(script.headers.get("content-type"), /javascript/);
+  const code = await script.text();
+  assert.ok(code.includes("/v1/admin/stats?days=") && code.includes("authorization"));
+  // The script parses (the page would be blank otherwise).
+  assert.doesNotThrow(() => new Function(code));
+  const hidden = fakeEnv();
+  assert.equal((await worker.fetch(new Request("https://api.example/admin"), hidden.env, ctx)).status, 404);
+});
+
+test("the summary has a row per day", () => {
+  const body = (matches, advice, ignored) => JSON.stringify({ matches, advice, ignored });
+  const summary = aggregateStats([
+    { install_hash: "a", day: "2026-09-27", version: "0.17.0", body: body(2, { A_B: 3 }, { A_B: 1 }) },
+    { install_hash: "b", day: "2026-09-26", version: "0.17.0", body: body(1, { A_B: 1 }, {}) },
+    { install_hash: "b", day: "2026-09-27", version: "0.17.0", body: body(4, { C_D: 2 }, {}) }
+  ]);
+  assert.deepEqual(summary.by_day, [
+    { day: "2026-09-26", devices: 1, matches: 1, advice: 1, ignored: 0 },
+    { day: "2026-09-27", devices: 2, matches: 6, advice: 5, ignored: 1 }
+  ]);
+});

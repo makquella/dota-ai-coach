@@ -85,7 +85,7 @@ def test_consider_prefix_dash_and_whitespace_variants():
 
 def test_truncated_text_uses_full_translation():
     source = (
-        "Your carry farm pace is behind for this minute, but HP is stable, "
+        "Your farm pace is behind for this minute, but HP is stable, "
         "so the fastest recovery is clean last hitting."
     )
     truncated = source[:80].rstrip() + "..."

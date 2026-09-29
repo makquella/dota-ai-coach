@@ -19,7 +19,7 @@ Live advice comes from deterministic, tested rules on top of Valve's official Ga
 During the match
 - Advice card over the game: urgent advice at once, tips with pauses; frequency Less / Normal / More.
 - Spoken advice with the Windows voices (heard even in exclusive fullscreen); `Ctrl+Alt+R` repeats the last one.
-- The full carry advisor for 21 carries (farm, items, objectives, hero abilities); survival advice (low HP, deaths, disables, mana, buyback) for every other hero.
+- The full advisor for 39 heroes: 21 carries, 8 mids and 10 offlaners (farm, items, objectives, the hero's own saves, a farm pace for the position); survival advice (low HP, deaths, disables, mana, buyback) for every other hero.
 - A plan at the start of each match (until 1:30): last-hit target at 10:00 with your own average, the key item and when most players finish it, your focus.
 - Late-game reminders: farm stalls, the pace you should be at, keeping buyback gold; spend spare gold while dead.
 

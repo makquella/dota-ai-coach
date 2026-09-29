@@ -16,6 +16,8 @@
 //   GET    /v1/admin/reports        -> latest reports (Bearer ADMIN_TOKEN; off without the secret)
 //   GET    /v1/admin/report/<id>    -> one report as text (same)
 //   GET    /v1/admin/stats?days=N   -> the statistics summed over the last N days (same)
+//   GET    /admin, /admin/app.js    -> the statistics page (src/admin-page.js; asks for the token, holds no data;
+//                                      404 while ADMIN_TOKEN is not set)
 //   cron                            -> deletes reports older than RETENTION_DAYS, expired shares, old rate counters,
 //                                      statistics older than STATS_RETENTION_DAYS; on Mondays a stats note to Telegram
 //
@@ -44,6 +46,7 @@ import {
   shareId,
   validateShare
 } from "./share.js";
+import { ADMIN_HEADERS, ADMIN_HTML, ADMIN_JS, ADMIN_SCRIPT_HEADERS } from "./admin-page.js";
 import {
   STATS_ADMIN_MAX_DAYS,
   STATS_MAX_BYTES,
@@ -580,6 +583,14 @@ export default {
       const device = path.match(/^\/v1\/device\/([^/]+)$/);
       if (request.method === "DELETE" && device) {
         return await deleteDevice(decodeURIComponent(device[1]), env);
+      }
+      if (request.method === "GET" && (path === "/admin" || path === "/admin/app.js")) {
+        if (!env.ADMIN_TOKEN) {
+          return json({ ok: false, code: "not_found" }, 404);
+        }
+        return path === "/admin"
+          ? new Response(ADMIN_HTML, { headers: ADMIN_HEADERS })
+          : new Response(ADMIN_JS, { headers: ADMIN_SCRIPT_HEADERS });
       }
       if (path.startsWith("/v1/admin/")) {
         if (!isAdmin(request, env)) {

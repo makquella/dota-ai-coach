@@ -10,6 +10,8 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Any
 
+from app.hero_profiles import farm_pace
+
 LH_RANGE_POINTS = (
     (3, 8, 15),
     (5, 18, 30),
@@ -20,6 +22,7 @@ LH_RANGE_POINTS = (
     (30, 220, 260),
 )
 MAP_CENTER = 16384.0
+# The pace above is a carry's; hero_profiles.farm_pace scales it by position.
 
 
 def build_advice_context(state: Mapping[str, Any] | Any) -> dict[str, Any]:
@@ -32,7 +35,8 @@ def build_advice_context(state: Mapping[str, Any] | Any) -> dict[str, Any]:
     team = _selected_team(data, extra)
 
     context: dict[str, Any] = {}
-    context.update(_farm_quality_context(minute, last_hits))
+    pace = farm_pace(str(data.get("hero") or ""))
+    context.update(_farm_quality_context(minute, last_hits, pace))
     context.update(_hp_pressure_context(hp_percent, game_state, extra))
     context.update(_position_context(extra.get("xpos"), extra.get("ypos"), team))
     return context
@@ -48,8 +52,10 @@ def enrich_state_with_advice_context(state: dict[str, Any]) -> dict[str, Any]:
     return enriched
 
 
-def _farm_quality_context(minute: int, last_hits: int | None) -> dict[str, Any]:
+def _farm_quality_context(minute: int, last_hits: int | None, pace: float = 1.0) -> dict[str, Any]:
     expected = _expected_lh_range(minute)
+    if expected is not None and pace != 1.0:
+        expected = [round(expected[0] * pace), round(expected[1] * pace)]
     if expected is None or last_hits is None:
         return {
             "farm_quality": "unknown",

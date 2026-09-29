@@ -1,7 +1,7 @@
 """
 Real Dota 2 pictures for the website: gameplay frames from the Dota 2 Steam
 page (tile backgrounds and the in-game view with the real overlay card) and the
-portraits of the 21 carries with the full advisor (Valve's CDN). Needs the
+portraits of the heroes with the full advisor (Valve's CDN). Needs the
 overlay card renders from overlay_shots.js and Pillow.
 
     python scripts/site-shots/game_frames.py <raw-dir>

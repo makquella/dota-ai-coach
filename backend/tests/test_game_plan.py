@@ -77,12 +77,20 @@ def test_a_hero_never_played_still_gets_the_target_and_overall_reminder(client, 
     assert "record" not in plan
 
 
-def test_an_unplayed_non_carry_hero_gets_no_guessed_target(client, tmp_path):
+def test_an_unplayed_hero_without_a_profile_gets_no_guessed_target(client, tmp_path):
     service = _synced(client, tmp_path)
-    for hero in ("Lion", "Axe"):
+    for hero in ("Lion", "Crystal Maiden"):
         plan = service.game_plan(hero, "en")
         assert plan is not None and plan["role"] is None
         assert not any("last hits" in line for line in plan["lines"])
+
+
+def test_an_unplayed_profiled_core_gets_its_position_target(client, tmp_path):
+    service = _synced(client, tmp_path)
+    axe = service.game_plan("Axe", "en")
+    assert axe["role"] == "offlane" and axe["lines"][0] == "38 last hits by 10:00"
+    storm = service.game_plan("Storm Spirit", "en")
+    assert storm["role"] == "core" and storm["lines"][0] == "55 last hits by 10:00"
 
 
 def test_supports_get_no_last_hit_target():

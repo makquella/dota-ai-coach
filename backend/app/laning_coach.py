@@ -180,7 +180,7 @@ def _copy_for_category(category: str, minute: int) -> tuple[str, str, str]:
         return (
             "Secure the next wave first and avoid trading unless it protects last hits.",
             (
-                "Your carry farm pace is behind for this minute, but HP is stable, "
+                "Your farm pace is behind for this minute, but HP is stable, "
                 "so the fastest recovery is clean last hitting."
             ),
             "Medium risk if you trade instead of recovering lane farm.",

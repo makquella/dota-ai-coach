@@ -63,7 +63,7 @@ const I18N = {
       copied: "Copied"
     },
     matchTitle: "Current match",
-    coverageSafety: "Farm and item advice is for carry heroes; on this hero the coach gives survival advice, map timers and role tips.",
+    coverageSafety: "Farm and item advice is for 39 carry, mid and offlane heroes; on this hero the coach gives survival advice, map timers and role tips.",
     statHero: "Hero",
     statClock: "Match time",
     statStage: "Stage",
@@ -230,6 +230,10 @@ const I18N = {
     whatsNewTitle: (version) => `What's new in ${version}`,
     whatsNewOk: "Got it",
     whatsNew: {
+      "0.18.0": [
+        "Full advice for 18 more heroes: 8 mids (Shadow Fiend, Storm Spirit, Queen of Pain, Puck and others) and 10 offlaners (Axe, Mars, Legion Commander, Centaur and others).",
+        "The coach knows their own saves (Blink, Ball Lightning, Refraction, Guardian Sprint…), and an offlaner's farm is measured against an offlaner's pace, not a carry's."
+      ],
       "0.17.0": [
         "Optional anonymous statistics (Settings → App, off by default): which advice was shown and which warnings came before a death, to make the advice better. «What is sent» shows the exact text.",
         "«Delete my data on the server» removes your problem reports, shared links and statistics in one press."
@@ -518,7 +522,7 @@ const I18N = {
       copied: "Скопировано"
     },
     matchTitle: "Текущий матч",
-    coverageSafety: "Советы по фарму и предметам — для керри; на этом герое тренер подсказывает по выживанию, таймерам карты и роли.",
+    coverageSafety: "Советы по фарму и предметам — для 39 героев керри, мида и хардлайна; на этом герое тренер подсказывает по выживанию, таймерам карты и роли.",
     statHero: "Герой",
     statClock: "Время матча",
     statStage: "Стадия",
@@ -685,6 +689,10 @@ const I18N = {
     whatsNewTitle: (version) => `Что нового в ${version}`,
     whatsNewOk: "Понятно",
     whatsNew: {
+      "0.18.0": [
+        "Полные подсказки ещё для 18 героев: 8 мидеров (Shadow Fiend, Storm Spirit, Queen of Pain, Puck и другие) и 10 хардлайнеров (Axe, Mars, Legion Commander, Centaur и другие).",
+        "Тренер знает их собственные спасения (Blink, Ball Lightning, Refraction, Guardian Sprint…), а фарм хардлайнера сравнивается с темпом хардлайнера, а не керри."
+      ],
       "0.17.0": [
         "Анонимная статистика по желанию («Настройки → Приложение», по умолчанию выключена): какие подсказки показаны и после каких предупреждений была смерть — чтобы сделать подсказки лучше. «Что отправляется» показывает точный текст.",
         "«Удалить мои данные на сервере» одним нажатием стирает ваши отчёты о проблемах, ссылки «Поделиться» и статистику."

@@ -7,6 +7,7 @@ from typing import Any, Literal
 from pydantic import BaseModel, Field, field_validator
 
 from app.dota_constants import NPC_TO_HERO_ID, hero_id_from_name, hero_name
+from app.hero_profiles import hero_aliases
 
 SUPPORTED_HEROES = (
     "Anti-Mage",
@@ -30,6 +31,25 @@ SUPPORTED_HEROES = (
     "Sven",
     "Terrorblade",
     "Ursa",
+    # Mid and offlane cores (position in hero_profiles.json).
+    "Shadow Fiend",
+    "Storm Spirit",
+    "Queen of Pain",
+    "Puck",
+    "Templar Assassin",
+    "Void Spirit",
+    "Outworld Destroyer",
+    "Dragon Knight",
+    "Axe",
+    "Mars",
+    "Legion Commander",
+    "Bristleback",
+    "Centaur Warrunner",
+    "Tidehunter",
+    "Slardar",
+    "Timbersaw",
+    "Pangolier",
+    "Primal Beast",
 )
 _SUPPORTED_HERO_LOOKUP = {hero.lower(): hero for hero in SUPPORTED_HEROES}
 _SUPPORTED_HERO_LOOKUP.update(
@@ -65,6 +85,15 @@ _SUPPORTED_HERO_LOOKUP.update(
         "npc_dota_hero_ursa": "Ursa",
         "npc_dota_hero_ember_spirit": "Ember Spirit",
         "ember": "Ember Spirit",
+    }
+)
+# Every alias of the profiled heroes (npc names, short names: "sf", "qop", "lc").
+_SUPPORTED_HERO_LOOKUP.update(
+    {
+        alias.lower(): hero
+        for hero, aliases in hero_aliases().items()
+        if hero in SUPPORTED_HEROES
+        for alias in aliases
     }
 )
 

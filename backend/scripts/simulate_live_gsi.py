@@ -153,6 +153,9 @@ def main() -> None:
     parser.add_argument(
         "--role", default="auto", help="position setting: auto|carry|mid|offlane|support"
     )
+    parser.add_argument(
+        "--hero", default="", help="synthetic hero npc name, e.g. npc_dota_hero_axe"
+    )
     args = parser.parse_args()
 
     if args.session:
@@ -160,6 +163,9 @@ def main() -> None:
     else:
         deaths = tuple(int(m) for m in args.deaths.split(",") if m.strip())
         payloads = synthetic_stream(args.minutes, deaths, args.lh)
+        if args.hero:
+            for payload in payloads:
+                payload["hero"]["name"] = args.hero
     cards = simulate(payloads, args.lang, hints=args.hints, role=args.role)
     for card in cards:
         print(f"{_clock_label(card['clock'])}  {card['decision_point']:<26} {card['action']}")
