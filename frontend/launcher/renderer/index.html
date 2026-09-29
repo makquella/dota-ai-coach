@@ -382,6 +382,26 @@
                 </form>
               </div>
             </div>
+            <!-- Opt-in anonymous statistics (advice-stats.js): off by default. -->
+            <div class="setting setting-wrap stats-row">
+              <span class="setting-text">
+                <label class="setting-title" for="share-stats" data-i18n="statsTitle">Anonymous statistics</label>
+                <span class="setting-hint" data-i18n="statsHint">Once a day: which advice the coach showed and which warnings came before a death. No heroes, matches, nickname or keys. Helps make the advice better.</span>
+                <span class="setting-hint" id="stats-hint" aria-live="polite"></span>
+              </span>
+              <input id="share-stats" type="checkbox" class="switch" role="switch" />
+              <details class="report-preview stats-preview" id="stats-preview">
+                <summary data-i18n="statsPreview">What is sent (today so far)</summary>
+                <pre id="stats-preview-text" class="report-preview-text" tabindex="0"></pre>
+                <p class="report-terms">
+                  <span data-i18n="statsTerms">Kept for a year.</span>
+                  <button id="stats-privacy" class="report-link" type="button" data-i18n="reportPrivacy">Privacy</button>
+                </p>
+                <div class="report-actions">
+                  <button id="server-delete" class="btn btn-ghost" type="button"><i data-icon="x"></i><span data-i18n="serverDelete">Delete my data on the server</span></button>
+                </div>
+              </details>
+            </div>
             <div class="setting setting-wrap report-row">
               <span class="setting-text">
                 <span class="setting-title" data-i18n="reportTitle">Problem report</span>

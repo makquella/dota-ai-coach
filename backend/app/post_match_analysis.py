@@ -30,9 +30,10 @@ from app.item_timing import classify_item_timing, normalize_item_name
 from app.map_analysis import analyze_map
 from app.peer_analysis import match_peers, peer_findings, player_roles
 from app.role_analysis import analyze_role
+from app.usage_stats import advice_counts
 
 # Bump when the rules change: stored reviews of an older version are rebuilt on read.
-ANALYSIS_VERSION = 14
+ANALYSIS_VERSION = 15
 # Dota replays run at 30 ticks a second.
 REPLAY_TICK_RATE = 30
 # Last seconds before deaths (last_moments.py, via death_review.py).
@@ -241,6 +242,8 @@ def analyze_match(
         # Deaths with their last seconds recorded (live GSI): focus_goal REQUIRES it.
         "last_moments": (death_block or {}).get("with_last") or 0,
         "advice": (facts.get("advice_log") or [])[:MAX_ADVICE_SHOWN],
+        # Counts over the whole log (the opt-in anonymous statistics, usage_stats.py).
+        "advice_counts": advice_counts(facts.get("advice_log"), follow_block),
         "advice_follow": follow_block,
         "role_play": role_block,
         # The enemy lineup (OpenDota), for the career's hardest opponents.

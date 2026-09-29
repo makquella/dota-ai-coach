@@ -9,6 +9,7 @@ function fakeEnv(vars = {}, { r2 = true } = {}) {
   const reports = [];
   const shares = [];
   const transfers = [];
+  const daily = new Map();
   const rate = new Map();
   const objects = new Map();
   const DB = {
@@ -44,6 +45,9 @@ function fakeEnv(vars = {}, { r2 = true } = {}) {
             const limit = Number(sql.match(/LIMIT (\d+)/)[1]);
             return { results: reports.filter((r) => r.created_at < args[0]).slice(0, limit) };
           }
+          if (sql.startsWith("SELECT install_hash, day, version, body FROM daily_stats WHERE day >=")) {
+            return { results: [...daily.values()].filter((r) => r.day >= args[0]) };
+          }
           if (sql.startsWith("SELECT id, created_at")) {
             return { results: [...reports].reverse() };
           }
@@ -70,6 +74,13 @@ function fakeEnv(vars = {}, { r2 = true } = {}) {
             transfers.splice(0, transfers.length, ...transfers.filter((r) => r.install_id !== args[0]));
           } else if (sql.startsWith("DELETE FROM transfers WHERE expires_at")) {
             transfers.splice(0, transfers.length, ...transfers.filter((r) => r.expires_at >= args[0]));
+          } else if (sql.startsWith("INSERT INTO daily_stats")) {
+            const [install_hash, day, created_at, version, body] = args;
+            daily.set(`${install_hash}|${day}`, { install_hash, day, created_at, version, body });
+          } else if (sql.startsWith("DELETE FROM daily_stats WHERE install_hash")) {
+            for (const [key, row] of [...daily]) if (row.install_hash === args[0]) daily.delete(key);
+          } else if (sql.startsWith("DELETE FROM daily_stats WHERE day <")) {
+            for (const [key, row] of [...daily]) if (row.day < args[0]) daily.delete(key);
           } else if (sql.startsWith("INSERT INTO reports")) {
             const [id, created_at, install_id, version, os, lang, size, summary, r2_key, body] = args;
             // D1 returns a BLOB as an array of bytes.
@@ -104,7 +115,7 @@ function fakeEnv(vars = {}, { r2 = true } = {}) {
       for (const key of [].concat(keys)) objects.delete(key);
     }
   };
-  return { env: { DB, ...(r2 ? { REPORTS } : {}), ...vars }, reports, shares, transfers, objects };
+  return { env: { DB, ...(r2 ? { REPORTS } : {}), ...vars }, reports, shares, transfers, objects, daily };
 }
 
 const ctx = { waitUntil: (promise) => promise };
@@ -190,7 +201,7 @@ test("bad bodies, rate limits and the kill switch", async () => {
     transfers: true,
     transfer_minutes: 15,
     share_days: 90,
-    stats: false,
+    stats: true,
     sessions: false,
     retention_days: 180
   });

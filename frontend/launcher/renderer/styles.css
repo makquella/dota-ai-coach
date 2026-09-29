@@ -401,6 +401,18 @@ label.setting {
   display: none;
 }
 
+/* Anonymous statistics: the switch stays beside the text, the preview opens under the row. */
+.stats-row .setting-text {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+.stats-preview {
+  display: grid;
+  flex-basis: 100%;
+  gap: var(--sp-2);
+}
+
 .report-label {
   color: var(--text-2);
   font-size: var(--fs-12);

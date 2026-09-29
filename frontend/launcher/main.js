@@ -25,6 +25,7 @@ const { SCHEME: DOTA_ASSET_SCHEME, createAssetHandler } = require("./dota-assets
 const transferCode = require("./transfer-code");
 const discordPresence = require("./discord-presence");
 const discordWeekly = require("./discord-weekly");
+const adviceStats = require("./advice-stats");
 const { createDotaWatcher } = require("./dota-watcher");
 const { createOverlayController, OVERLAY_DEFAULTS } = require("./overlay-window");
 const {
@@ -124,6 +125,14 @@ const settings = createSettingsStore(path.join(USER_DATA_DIR, "settings.json"), 
   discordWebhook: "",
   discordWeeklyLast: 0,
   discordWeeklyStatus: null,
+  // Opt-in anonymous statistics (advice-stats.js): off by default; the end (ms) of
+  // the last local day sent, when it was sent, and the day Dota ran in exclusive fullscreen.
+  shareStats: false,
+  statsLastDay: 0,
+  // Nothing before this moment (ms) is counted: switching on, or a server delete.
+  statsSince: 0,
+  statsSentAt: "",
+  fullscreenSeenDay: "",
   // UI language: auto (system) | ru | en.
   language: "auto",
   overlay: { ...OVERLAY_DEFAULTS }
@@ -459,6 +468,8 @@ function publicStatus() {
     discordPresence: settings.get("discordPresence") !== false,
     discordState: discord.getState(),
     discordWeekly: discordWeeklyState(),
+    shareStats: Boolean(settings.get("shareStats")),
+    statsSentAt: settings.get("statsSentAt") || "",
     overlayLocked: !overlay.isUnlocked(),
     dotaRunning: dota.running,
     dotaFocused: dota.focused,
@@ -516,6 +527,9 @@ function noteExclusiveFullscreen(state) {
   if (!state.running) {
     fullscreenBalloonShown = false;
     return;
+  }
+  if (state.exclusiveFullscreen) {
+    settings.set("fullscreenSeenDay", adviceStats.localDay(adviceStats.dayStart(Date.now())));
   }
   if (!state.exclusiveFullscreen || fullscreenBalloonShown) {
     return;
@@ -602,6 +616,160 @@ function setDiscordPresence(enabled) {
   settings.set("discordPresence", Boolean(enabled));
   refreshDiscord();
   return publicStatus();
+}
+
+// ---------------------------------------------------------------------------
+// Opt-in anonymous statistics (advice-stats.js): yesterday's advice counts and
+// a few settings to services/api once a day, only while the switch is on.
+// ---------------------------------------------------------------------------
+
+const STATS_FIRST_CHECK_MS = 2 * 60 * 1000;
+const STATS_CHECK_MS = 30 * 60 * 1000;
+const STATS_TIMEOUT_MS = 20_000;
+let statsTimer = null;
+let statsBusy = false;
+
+async function statsBody(period) {
+  const payload = await requestBackendJson(adviceStats.usageQuery(period), "GET", undefined, 15000);
+  let syncError = null;
+  try {
+    const player = await requestBackendJson("/player", "GET", undefined, 5000);
+    syncError = (player.sync && player.sync.error_code) || null;
+  } catch {
+    // The day's counts matter; the sync state is optional.
+  }
+  return adviceStats.buildStats({
+    installId: installId(),
+    day: period.day,
+    version: app.getVersion(),
+    platform: process.platform,
+    lang: uiLocale(),
+    usage: payload.usage,
+    settings: {
+      overlay: overlay.isEnabled(),
+      voice: overlay.voice().mode,
+      frequency: adviceFrequency(),
+      role: adviceRole(),
+      mapHints: mapHintsEnabled(),
+      discord: settings.get("discordPresence") !== false
+    },
+    ai: Boolean(live.player && live.player.aiConfigured),
+    opendotaKey: Boolean(live.player && live.player.opendotaKey),
+    fullscreen: settings.get("fullscreenSeenDay") === period.day,
+    syncError
+  });
+}
+
+async function postStats(body) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), STATS_TIMEOUT_MS);
+  try {
+    const response = await electronNet.fetch(`${apiUrl()}/v1/stats`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(body),
+      signal: controller.signal
+    });
+    let answer = {};
+    try {
+      answer = await response.json();
+    } catch {
+      // Not JSON: the status decides.
+    }
+    return { ok: response.ok, status: response.status, code: answer.code || "" };
+  } catch (error) {
+    return { ok: false, code: "offline", error: error.message };
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+async function checkAdviceStats() {
+  if (IS_SMOKE_TEST || statsBusy || !settings.get("shareStats") || processStatus.backend !== "running") {
+    return;
+  }
+  const due = adviceStats.dueDay(Date.now(), settings.get("statsLastDay"), settings.get("statsSince"));
+  if (!due) {
+    return;
+  }
+  statsBusy = true;
+  try {
+    const result = await postStats(await statsBody(due));
+    if (adviceStats.uploadOutcome(result).done) {
+      settings.set("statsLastDay", due.end);
+      if (result.ok) {
+        settings.set("statsSentAt", new Date().toISOString());
+      }
+      appendLog("launcher", `Anonymous statistics for ${due.day}: ${result.ok ? "sent" : result.code}.`, { force: true });
+      updateStatus();
+    }
+  } catch (error) {
+    appendLog("launcher", `Anonymous statistics not sent: ${error.message}`, { force: true });
+  } finally {
+    statsBusy = false;
+  }
+}
+
+function startAdviceStats() {
+  if (IS_SMOKE_TEST || statsTimer) {
+    return;
+  }
+  setTimeout(() => checkAdviceStats().catch(() => {}), STATS_FIRST_CHECK_MS).unref?.();
+  statsTimer = setInterval(() => checkAdviceStats().catch(() => {}), STATS_CHECK_MS);
+  statsTimer.unref?.();
+}
+
+function restartStatsCount() {
+  const schedule = adviceStats.startFrom(Date.now());
+  settings.set("statsLastDay", schedule.statsLastDay);
+  settings.set("statsSince", schedule.statsSince);
+}
+
+// On: counting starts now (the first upload tomorrow is what happened after this), never earlier.
+function setShareStats(enabled) {
+  settings.set("shareStats", Boolean(enabled));
+  if (enabled) {
+    restartStatsCount();
+  }
+  appendLog("launcher", `Anonymous statistics ${enabled ? "on" : "off"}.`, { force: true });
+  return publicStatus();
+}
+
+// «Удалить мои данные на сервере»: every report, shared link, transfer and
+// statistics row of this installation (DELETE /v1/device/<install id>).
+async function deleteServerData() {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), STATS_TIMEOUT_MS);
+  try {
+    const response = await electronNet.fetch(`${apiUrl()}/v1/device/${encodeURIComponent(installId())}`, {
+      method: "DELETE",
+      signal: controller.signal
+    });
+    if (!response.ok) {
+      return { ok: false, code: `http_${response.status}`, status: publicStatus() };
+    }
+    // The shared links are gone with it, and what was counted before is never sent again.
+    settings.set("shares", {});
+    restartStatsCount();
+    appendLog("launcher", "Server data of this installation deleted.", { force: true });
+    return { ok: true, status: publicStatus() };
+  } catch {
+    return { ok: false, code: "offline", status: publicStatus() };
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+// «Что будет отправлено»: the body for today so far, exactly as it would go.
+async function statsPreview() {
+  const day = adviceStats.dayStart(Date.now());
+  const start = Math.max(day, Number(settings.get("statsSince")) || 0);
+  try {
+    const body = await statsBody({ start, end: Date.now(), day: adviceStats.localDay(day) });
+    return { ok: true, text: JSON.stringify(body, null, 2) };
+  } catch {
+    return { ok: false, code: "backend_down" };
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -2831,6 +2999,9 @@ function registerIpc() {
   ipcMain.handle("launcher:set-language", (_event, value) => setLanguage(String(value || "")));
   ipcMain.handle("launcher:set-advice-frequency", (_event, value) => setAdviceFrequency(String(value || "")));
   ipcMain.handle("launcher:set-discord-presence", (_event, enabled) => setDiscordPresence(Boolean(enabled)));
+  ipcMain.handle("launcher:set-share-stats", (_event, enabled) => setShareStats(Boolean(enabled)));
+  ipcMain.handle("launcher:stats-preview", () => statsPreview());
+  ipcMain.handle("launcher:delete-server-data", () => deleteServerData());
   ipcMain.handle("launcher:discord-weekly", (_event, request) => discordWeeklyAction(request));
   ipcMain.handle("launcher:set-advice-preferences", (_event, patch) =>
     setAdvicePreferences(patch && typeof patch === "object" ? patch : {})
@@ -3178,6 +3349,7 @@ function bootstrap() {
     updater.start();
     startOutbox();
     startDiscordWeekly();
+    startAdviceStats();
     app.on("activate", showMainWindow);
   });
 

@@ -9,12 +9,15 @@
 //   GET    /v1/share/<id>           -> the shared review as JSON
 //   DELETE /v1/share/<id>           -> deletes it (header x-delete-token)
 //   GET    /r/<id>                  -> the shared review as a page (with an Open Graph preview)
+//   POST   /v1/stats                -> the opt-in anonymous daily statistics (src/stats.js), one row per installation and day
 //   PUT    /v1/transfer/<id>        -> keeps an encrypted history backup for 15 minutes (src/transfer.js)
 //   POST   /v1/transfer/<id>/claim  -> hands it over (3 downloads at most)
 //   DELETE /v1/transfer/<id>        -> the receiving launcher deletes it once imported
 //   GET    /v1/admin/reports        -> latest reports (Bearer ADMIN_TOKEN; off without the secret)
 //   GET    /v1/admin/report/<id>    -> one report as text (same)
-//   cron                            -> deletes reports older than RETENTION_DAYS, expired shares, old rate counters
+//   GET    /v1/admin/stats?days=N   -> the statistics summed over the last N days (same)
+//   cron                            -> deletes reports older than RETENTION_DAYS, expired shares, old rate counters,
+//                                      statistics older than STATS_RETENTION_DAYS; on Mondays a stats note to Telegram
 //
 // Bindings: DB (D1), REPORTS (R2, optional: without it the gzipped report is
 // kept in the D1 row, which is enough for the free tier's 5 GB). Secrets (optional): TELEGRAM_BOT_TOKEN,
@@ -41,6 +44,16 @@ import {
   shareId,
   validateShare
 } from "./share.js";
+import {
+  STATS_ADMIN_MAX_DAYS,
+  STATS_MAX_BYTES,
+  STATS_RATE_PER_HOUR,
+  STATS_RETENTION_DAYS,
+  aggregateStats,
+  isoDay,
+  validateStats,
+  weeklyStatsText
+} from "./stats.js";
 import {
   TRANSFER_MAX_BYTES,
   TRANSFER_MINUTES,
@@ -78,7 +91,7 @@ export function config(env) {
     transfers: flag(env.TRANSFERS_ENABLED, true),
     transfer_minutes: TRANSFER_MINUTES,
     share_days: SHARE_DAYS,
-    stats: false,
+    stats: flag(env.STATS_ENABLED, true),
     sessions: false,
     retention_days: RETENTION_DAYS
   };
@@ -370,6 +383,75 @@ export async function deleteTransfer(request, id, env, now = Date.now()) {
   return json({ ok: true });
 }
 
+function statsHash(installId) {
+  return sha256(`dac-stats:${installId}`);
+}
+
+export async function handleStats(request, env, now = Date.now()) {
+  if (!config(env).stats) {
+    return json({ ok: false, code: "disabled" }, 503);
+  }
+  const raw = await request.text();
+  if (raw.length > STATS_MAX_BYTES) {
+    return json({ ok: false, code: "too_large" }, 413);
+  }
+  let body;
+  try {
+    body = JSON.parse(raw);
+  } catch {
+    return json({ ok: false, code: "bad_json" }, 400);
+  }
+  const checked = validateStats(body, now);
+  if (!checked.ok) {
+    return json({ ok: false, code: checked.code }, checked.status);
+  }
+  const address = await sha256(`dac-rate:${clientAddress(request)}`);
+  // The install id is kept only as the salted hash, the rate counter included.
+  const installHash = await statsHash(checked.installId);
+  const underLimit =
+    (await allow(env, `stats:install:${installHash}`, STATS_RATE_PER_HOUR.install, now)) &&
+    (await allow(env, `stats:address:${address}`, STATS_RATE_PER_HOUR.address, now));
+  if (!underLimit) {
+    return json({ ok: false, code: "rate_limited" }, 429);
+  }
+  // One row per installation and day: sending the same day again replaces it.
+  await env.DB.prepare(
+    "INSERT INTO daily_stats (install_hash, day, created_at, version, body) VALUES (?1, ?2, ?3, ?4, ?5) " +
+      "ON CONFLICT(install_hash, day) DO UPDATE SET created_at = excluded.created_at, version = excluded.version, body = excluded.body"
+  )
+    .bind(installHash, checked.day, now, checked.version, JSON.stringify(checked.row))
+    .run();
+  return json({ ok: true, day: checked.day, retention_days: STATS_RETENTION_DAYS }, 201);
+}
+
+async function statsSummary(env, days, now) {
+  const { results } = await env.DB.prepare("SELECT install_hash, day, version, body FROM daily_stats WHERE day >= ?1")
+    .bind(isoDay(now - days * 24 * 3_600_000))
+    .all();
+  return aggregateStats(results || []);
+}
+
+async function adminStats(url, env, now = Date.now()) {
+  const days = Math.min(Math.max(Number.parseInt(url.searchParams.get("days") || "30", 10) || 30, 1), STATS_ADMIN_MAX_DAYS);
+  return json({ ok: true, days, stats: await statsSummary(env, days, now) });
+}
+
+export async function sendWeeklyStats(env, now = Date.now()) {
+  if (!env.TELEGRAM_BOT_TOKEN || !env.TELEGRAM_CHAT_ID || new Date(now).getUTCDay() !== 1) {
+    return false;
+  }
+  const summary = await statsSummary(env, 7, now);
+  if (!summary.rows) {
+    return false;
+  }
+  const response = await fetch(`https://api.telegram.org/bot${env.TELEGRAM_BOT_TOKEN}/sendMessage`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ chat_id: String(env.TELEGRAM_CHAT_ID), text: weeklyStatsText(summary) })
+  });
+  return response.ok;
+}
+
 export async function deleteDevice(installId, env) {
   const id = String(installId || "").toLowerCase();
   if (!/^[a-z0-9-]{8,64}$/.test(id)) {
@@ -381,6 +463,7 @@ export async function deleteDevice(installId, env) {
   await env.DB.prepare("DELETE FROM reports WHERE install_id = ?1").bind(id).run();
   await env.DB.prepare("DELETE FROM shares WHERE install_id = ?1").bind(id).run();
   await env.DB.prepare("DELETE FROM transfers WHERE install_id = ?1").bind(id).run();
+  await env.DB.prepare("DELETE FROM daily_stats WHERE install_hash = ?1").bind(await statsHash(id)).run();
   return json({ ok: true, deleted: rows.length });
 }
 
@@ -443,6 +526,9 @@ export async function cleanup(env, now = Date.now()) {
   }
   await env.DB.prepare("DELETE FROM shares WHERE expires_at < ?1").bind(now).run();
   await env.DB.prepare("DELETE FROM transfers WHERE expires_at < ?1").bind(now).run();
+  await env.DB.prepare("DELETE FROM daily_stats WHERE day < ?1")
+    .bind(isoDay(now - STATS_RETENTION_DAYS * 24 * 3_600_000))
+    .run();
   await env.DB.prepare("DELETE FROM rate WHERE hour < ?1").bind(hourWindow(now) - 48).run();
   return removed;
 }
@@ -460,6 +546,9 @@ export default {
       }
       if (request.method === "POST" && path === "/v1/report") {
         return await handleReport(request, env, ctx);
+      }
+      if (request.method === "POST" && path === "/v1/stats") {
+        return await handleStats(request, env);
       }
       if (request.method === "POST" && path === "/v1/share") {
         return await handleShare(request, env);
@@ -499,6 +588,9 @@ export default {
         if (request.method === "GET" && path === "/v1/admin/reports") {
           return await adminList(env);
         }
+        if (request.method === "GET" && path === "/v1/admin/stats") {
+          return await adminStats(url, env);
+        }
         const one = path.match(/^\/v1\/admin\/report\/(R-[A-Z0-9]{6})$/);
         if (request.method === "GET" && one) {
           return await adminReport(one[1], env);
@@ -513,5 +605,6 @@ export default {
 
   async scheduled(_event, env, ctx) {
     ctx.waitUntil(cleanup(env).then((count) => console.log(`cleanup: ${count} old reports`)));
+    ctx.waitUntil(sendWeeklyStats(env).catch((error) => console.log(`weekly stats: ${error.message}`)));
   }
 };
