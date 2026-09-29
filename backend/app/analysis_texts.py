@@ -33,7 +33,7 @@ FINDINGS: dict[str, dict[str, dict[str, str]]] = {
     "lh10_great": {
         "ru": {
             "title": "Сильная линия",
-            "text": "{lh10} добиваний к 10-й минуте при цели {target}. Вы вышли из лайнинга с хорошим запасом золота.",
+            "text": "{lh10} добиваний к 10-й минуте при цели {target}. Линию вы закончили с хорошим запасом золота.",
         },
         "en": {
             "title": "Strong lane",
@@ -647,7 +647,7 @@ FINDINGS.update(
 PEER_ROLES = {
     "carry": {"ru": "керри", "en": "carry"},
     "mid": {"ru": "мидера", "en": "mid"},
-    "offlane": {"ru": "хардлейнера", "en": "offlaner"},
+    "offlane": {"ru": "хардлайнера", "en": "offlaner"},
     "support": {"ru": "саппорта", "en": "support"},
 }
 
@@ -733,7 +733,7 @@ COUNTER_REASONS = {
 
 ROLES = {
     "core": {"ru": "кор", "en": "core"},
-    "offlane": {"ru": "хардлейн", "en": "offlane"},
+    "offlane": {"ru": "хардлайн", "en": "offlane"},
     "support": {"ru": "саппорт", "en": "support"},
 }
 

@@ -19,7 +19,7 @@
         vanity_url: "Custom links (steamcommunity.com/id/…) can't be resolved. Use your Friend ID from the Dota profile.",
         unrecognized: "This doesn't look like a Steam account.",
         out_of_range: "This number is not a valid Steam account.",
-        backend_down: "The coach service is not running.",
+        backend_down: "The coach is not running.",
         request_failed: "Could not link the account."
       },
       detected: (name) => `Playing now: ${name}.`,
@@ -67,8 +67,8 @@
       colResult: "Result",
       colHero: "Hero",
       colKda: "K / D / A",
-      colGpm: "GPM",
-      colLh10: "LH@10",
+      colGpm: "Gold/min",
+      colLh10: "LH at 10",
       colDuration: "Time",
       colScore: "Score",
       colWhen: "Played",
@@ -99,13 +99,13 @@
       reviewRenderFailed: "This is a bug in the app. Please send a problem report (Settings → App) so it can be fixed.",
       scoreOf: "of 100",
       sourcesParsed: "Full replay parsed by OpenDota",
-      sourcesBasic: "OpenDota totals — replay not parsed yet",
+      sourcesBasic: "Match totals only — the full replay review is not ready yet",
       sourcesGsi: "Recorded by the app during the match",
       parseStatus: {
         waiting_opendota: "Full replay review in a few minutes (OpenDota).",
-        parsing: "OpenDota is parsing the replay — the review will update by itself.",
+        parsing: "OpenDota is studying the replay — the review fills in by itself.",
         basic: "Replay not parsed: no minute-by-minute data.",
-        not_parsed: "OpenDota could not parse the replay.",
+        not_parsed: "OpenDota could not study the replay, so the review is shorter.",
         gsi_only: "Only the app's own recording is available (OpenDota is off).",
         private: "This match is private on OpenDota. In Dota: Settings → Social → Expose Public Match Data (works for the next matches); the review uses the app's own recording meanwhile.",
         "error:not_found": "OpenDota doesn't have this match yet — try again in a few minutes.",
@@ -117,6 +117,13 @@
       parseRequested: "Requested — it usually takes 2–10 minutes.",
       focusTitle: "Focus for the next game",
       sectionsTitle: "Breakdown",
+      explainTitle: "What does this mean?",
+      explainScore:
+        "The score (0 to 100) shows how close the match was to good play for your role: lane, farm, survival, fights, items and, for a support, vision, each on its own scale. 65+ is good (B), 80+ is great (A), under 50 is a match to learn from (D). A win or a loss does not change it: you can lose with 80 and win with 30.",
+      explainRank:
+        "Matchmaking puts players of about the same rank into one game, so the player of your role in this match (on either side) shows what is usual at your rank. Above them — you did better than your rank; below — there is room to grow.",
+      explainFocus:
+        "The focus is the one mistake you work on. After every match the coach checks whether it happened again: a green mark means it did not. One thing at a time is easier to fix than everything at once.",
       chartTitle: "Over the match",
       mapTitle: "Match map",
       deathsTitle: (count) => `Deaths · ${count}`,
@@ -230,15 +237,15 @@
       colDmg: "Damage",
       stats: {
         kda: "K / D / A",
-        gpm: "GPM / XPM",
-        lh: "LH / DN",
+        gpm: "Gold and XP per minute",
+        lh: "Last hits / denies",
         nw: "Net worth",
         dmg: "Hero damage",
         duration: "Duration"
       },
       sectionFacts: {
-        laning: (s) => [s.lh10 != null && `${s.lh10} LH by 10:00`, s.lane_efficiency != null && `lane efficiency ${Math.round(s.lane_efficiency)}%`, s.lane_deaths ? `${s.lane_deaths} deaths in lane` : null, s.runes != null && `${s.runes} runes${s.enemy_runes != null ? ` (enemy mid ${s.enemy_runes})` : ""}`],
-        farm: (s) => [s.gpm != null && `${s.gpm} GPM`, s.gpm_pct != null && `better than ${Math.round(s.gpm_pct * 100)}%`],
+        laning: (s) => [s.lh10 != null && `${s.lh10} last hits by 10:00`, s.lane_efficiency != null && `lane efficiency ${Math.round(s.lane_efficiency)}%`, s.lane_deaths ? `${s.lane_deaths} deaths in lane` : null, s.runes != null && `${s.runes} runes${s.enemy_runes != null ? ` (enemy mid ${s.enemy_runes})` : ""}`],
+        farm: (s) => [s.gpm != null && `${s.gpm} gold a minute`, s.gpm_pct != null && `better than ${Math.round(s.gpm_pct * 100)}%`],
         survival: (s) => [`${s.deaths} deaths`, s.deaths_per_10 != null && `${s.deaths_per_10} per 10 min`],
         fights: (s) => [s.kill_participation != null && `${s.kill_participation}% kill participation`, s.stuns != null && `${s.stuns} s of stuns${s.enemy_stuns != null ? ` (enemy offlaner ${s.enemy_stuns} s)` : ""}`, s.enemy_tower_damage != null && s.tower_damage != null && `${s.tower_damage} building damage (enemy offlaner ${s.enemy_tower_damage})`],
         items: (s) => [
@@ -250,7 +257,7 @@
       },
       progressEmptyTitle: "Not enough matches yet",
       progressEmptyHint: "Statistics appear after a few reviewed matches. Refresh your history on the Matches tab.",
-      tiles: { winrate: "Win rate", kda: "KDA", gpm: "GPM", lh10: "LH at 10:00", score: "Avg. score" },
+      tiles: { winrate: "Win rate", kda: "KDA", gpm: "Gold per minute", lh10: "Last hits at 10:00", score: "Avg. score" },
       vsPrevious: (n) => `vs previous ${n}`,
       streakWin: (n) => `${n} wins in a row`,
       streakLoss: (n) => `${n} losses in a row`,
@@ -261,7 +268,7 @@
       winKey: "win",
       lossKey: "loss",
       baselineIntro: (games, hero) => `Against your ${games} other ${games === 1 ? "match" : "matches"} on ${hero}:`,
-      baselineLabels: { score: "score", gpm: "GPM", lh_10: "last hits at 10", deaths: "deaths" },
+      baselineLabels: { score: "score", gpm: "gold/min", lh_10: "last hits at 10", deaths: "deaths" },
       baselineSame: "as usual",
       baselineTitle: (average) => `Your average: ${average}`,
       goalTitle: "Your focus",
@@ -304,7 +311,7 @@
       colOpponent: "Opponent",
       colPeers: "Your rank",
       colDiff: "Difference",
-      metrics: { gpm: "GPM", xpm: "XPM", lh_10: "LH at 10:00", lh_per_min: "LH per minute", deaths: "Deaths", kda: "KDA", damage_per_min: "Damage per minute", net_worth: "Net worth" },
+      metrics: { gpm: "Gold per minute", xpm: "XP per minute", lh_10: "Last hits at 10:00", lh_per_min: "Last hits per minute", deaths: "Deaths", kda: "KDA", damage_per_min: "Damage per minute", net_worth: "Net worth" },
       rankCareerTitle: "You and players of your rank",
       rankCareerNote: (rank, role, n) => `${rank || "Your rank"} · ${role} · same-role players in your ${n} reviewed matches`,
       rankCareerEmpty: "Appears after a few matches reviewed with OpenDota data.",
@@ -402,7 +409,7 @@
       rankHistoryTitle: "Your rank medal",
       rankUp: (from, to, since) => `Up from ${from} to ${to} since ${since}.`,
       rankDown: (from, to, since) => `Down from ${from} to ${to} since ${since}.`,
-      rankNote: "Noted at every sync with OpenDota when the medal changes.",
+      rankNote: "The app notes your medal every time it updates your history, and marks when it changes.",
       heroBuildTitle: (hero) => `Your build on ${hero}`,
       buildNote: (n, wins) => `Your items in ${n} reviewed games on the hero (${wins} wins): when they come in wins and in losses, and how often you win with and without them.`,
       buildItem: "Item",
@@ -417,16 +424,16 @@
       selfWorst: "Worst",
       selfGroup: (count, wr) => `${count} games · ${wr}% wins`,
       selfMetrics: {
-        lh_10: "LH at 10:00",
-        gpm: "GPM",
+        lh_10: "Last hits at 10:00",
+        gpm: "Gold/min",
         deaths: "Deaths",
         lane_deaths: "Lane deaths",
         kill_participation: "Kill participation",
         first_item_t: "First big item"
       },
       draftTitle: "Draft",
-      draftNote: (hero) => `${hero}'s win rate against each enemy hero (OpenDota matchup statistics).`,
-      draftNoData: "No matchup statistics yet: they are loaded with the next OpenDota sync.",
+      draftNote: (hero) => `How often ${hero} wins against each enemy hero (public match statistics from OpenDota).`,
+      draftNoData: "No statistics for these heroes yet: they load the next time your history updates.",
       draftEnemy: "Enemy",
       draftWinrate: "Your win rate",
       draftGames: "games",
@@ -443,7 +450,7 @@
       coachTag: "AI",
       coachPending: "The coach is writing the review. It takes up to a minute.",
       coachCareerPending: "The coach is looking through your recent matches. It takes up to a minute.",
-      coachWaiting: "The coach will review the match when OpenDota has parsed the replay: then there is more data.",
+      coachWaiting: "The AI waits until OpenDota has studied the replay (usually a few minutes): then it has more to go on.",
       coachNow: "Review now",
       coachUpdating: "Updating with the new data…",
       coachRetry: "Try again",
@@ -459,14 +466,14 @@
       coachPlan: "Plan for the next games",
       coachFooter: (provider, model) => `Written by AI (${provider} · ${model}) from the data of the review. Numbers, times, heroes and items are checked against it.`,
       coachErrors: {
-        rate_limited: "The free limit of the AI service is used up for now. Try again in a few minutes.",
-        busy: "The AI service is overloaded right now. Try again in a few minutes.",
-        invalid_key: "The AI service rejected the key. Check it in the AI settings.",
-        region: "This AI service does not work from your country. Choose another service (OpenRouter, for example) or turn on a VPN; the key is kept.",
-        timeout: "The AI service took too long to answer.",
-        offline: "No connection to the AI service.",
+        rate_limited: "The free AI limit is used up for now. Try again in a few minutes.",
+        busy: "The AI is overloaded right now. Try again in a few minutes.",
+        invalid_key: "The key did not work. Check it in the AI coach settings.",
+        region: "This AI does not work from your country. Choose another one (OpenRouter, for example) or turn on a VPN; the key is kept.",
+        timeout: "The AI took too long to answer.",
+        offline: "No connection to the AI: check the internet.",
         unverified: "The AI answer mentioned facts that are not in the data, so it was not shown. Try again.",
-        bad_response: "The AI service answered with an error.",
+        bad_response: "The AI answered with an error. Try again later.",
         no_key: "No key yet."
       },
       askTitle: "Ask the coach",
@@ -490,22 +497,23 @@
       aiCheckNow: "Check key",
       aiCheckOk: "The key works.",
       aiOffTitle: "AI coach is off",
-      aiOffHint: "Explains the match in plain words, like a coach watching the replay. Free with a Google Gemini, Groq or OpenRouter key.",
+      aiOffHint: "After every match the AI explains in plain words what went well and what to fix, like a coach watching your replay. Free: you only need a key from Google (Gemini), Groq or OpenRouter.",
       aiTurnOn: "Turn on",
-      aiSetupHint: "Get a free key (takes a minute, no card) and paste it here. The coach only explains: every number still comes from the review. The match data (without your Steam ID) is sent to the chosen service.",
-      aiService: "Service",
-      aiKey: "API key",
+      aiSetupHint: "A key is like a password that lets the app use the AI. Get a free one (a minute, no card) and paste it here. The AI only explains: every number still comes from the review. Your match data (without your Steam ID) goes to the site you chose.",
+      aiService: "Where the key is from",
+      aiKey: "Key",
       aiKeyPlaceholder: "Paste the key",
-      aiModel: "Model",
-      aiModelHint: "optional",
+      aiModel: "AI model",
+      aiAdvanced: "For advanced users",
+      aiModelHint: "leave empty for the default",
       aiGetKey: "Get a free key",
       aiSave: "Check and save",
       aiChecking: "Checking the key…",
       aiSaved: "The key works. The coach is on.",
       aiSavedWarn: (reason) => `Key saved, but the check failed: ${reason}`,
       aiSettings: "AI settings",
-      aiCurrent: (provider, model, hint) => `${provider} · ${model}${hint ? ` · key ${hint}` : ""}`,
-      aiEnvKey: "The key comes from the .env file.",
+      aiCurrent: (provider, model, hint) => [provider, model, hint ? `key ${hint}` : ""].filter(Boolean).join(" · "),
+      aiEnvKey: "A key is already set in the settings file of the app.",
       aiChangeKey: "Change key",
       aiDisable: "Turn off",
       aiCancel: "Cancel"
@@ -521,7 +529,7 @@
         vanity_url: "Короткие ссылки (steamcommunity.com/id/…) не распознать. Возьмите Friend ID из профиля в Доте.",
         unrecognized: "Это не похоже на аккаунт Steam.",
         out_of_range: "Такого аккаунта Steam не бывает.",
-        backend_down: "Сервис тренера не запущен.",
+        backend_down: "Тренер не запущен.",
         request_failed: "Не удалось привязать аккаунт."
       },
       detected: (name) => `Сейчас в Доте: ${name}.`,
@@ -569,7 +577,7 @@
       colResult: "Итог",
       colHero: "Герой",
       colKda: "У / С / П",
-      colGpm: "GPM",
+      colGpm: "Золото/мин",
       colLh10: "Добив. к 10",
       colDuration: "Время",
       colScore: "Оценка",
@@ -601,13 +609,13 @@
       reviewRenderFailed: "Это ошибка приложения. Отправьте отчёт о проблеме (Настройки → Приложение), чтобы её исправили.",
       scoreOf: "из 100",
       sourcesParsed: "Полный разбор реплея (OpenDota)",
-      sourcesBasic: "Итоги из OpenDota — реплей ещё не разобран",
+      sourcesBasic: "Пока только итоги матча — полный разбор реплея ещё не готов",
       sourcesGsi: "Записано приложением во время матча",
       parseStatus: {
         waiting_opendota: "Полный разбор реплея будет через несколько минут (OpenDota).",
-        parsing: "OpenDota разбирает реплей — разбор обновится сам.",
+        parsing: "OpenDota изучает реплей — разбор дополнится сам.",
         basic: "Реплей не разобран: нет данных по минутам.",
-        not_parsed: "OpenDota не смог разобрать реплей.",
+        not_parsed: "OpenDota не смог изучить реплей, поэтому разбор короче.",
         gsi_only: "Есть только запись приложения (OpenDota выключен).",
         private: "Матч скрыт в OpenDota. В Доте: Настройки → Социальное → включите общий доступ к данным матчей (Expose Public Match Data) (сработает для следующих матчей); пока разбор строится по записи приложения.",
         "error:not_found": "OpenDota пока не знает этот матч — попробуйте через несколько минут.",
@@ -619,6 +627,13 @@
       parseRequested: "Запрос отправлен — обычно это 2–10 минут.",
       focusTitle: "Главное на следующую игру",
       sectionsTitle: "По разделам",
+      explainTitle: "Что это значит?",
+      explainScore:
+        "Оценка от 0 до 100 — насколько матч похож на хорошую игру на вашей роли: линия, фарм, выживание, драки, предметы, а у саппорта ещё и обзор, у каждой части своя шкала. 65 и выше — хорошо (B), 80 и выше — отлично (A), ниже 50 — матч, на котором стоит поучиться (D). Победа или поражение на оценку не влияют: можно проиграть с 80 и выиграть с 30.",
+      explainRank:
+        "Подбор матчей собирает в одну игру игроков примерно одного ранга, поэтому игрок вашей роли в этом матче (из любой команды) показывает, как обычно играют на вашем ранге. Вы выше него — сыграли лучше своего ранга; ниже — есть куда расти.",
+      explainFocus:
+        "Фокус — одна ошибка, над которой вы работаете. После каждого матча тренер проверяет, повторилась ли она: зелёная отметка — не повторилась. Одну вещь исправить проще, чем всё сразу.",
       chartTitle: "По ходу матча",
       mapTitle: "Карта матча",
       deathsTitle: (count) => `Смерти · ${count}`,
@@ -732,15 +747,15 @@
       colDmg: "Урон",
       stats: {
         kda: "У / С / П",
-        gpm: "GPM / XPM",
-        lh: "Добив. / денаи",
+        gpm: "Золото и опыт в минуту",
+        lh: "Добивания / денаи",
         nw: "Ценность",
         dmg: "Урон по героям",
         duration: "Длительность"
       },
       sectionFacts: {
         laning: (s) => [s.lh10 != null && `${s.lh10} добиваний к 10:00`, s.lane_efficiency != null && `эффективность ${Math.round(s.lane_efficiency)}%`, s.lane_deaths ? `смертей на линии: ${s.lane_deaths}` : null, s.runes != null && `рун: ${s.runes}${s.enemy_runes != null ? ` (у вражеского мида ${s.enemy_runes})` : ""}`],
-        farm: (s) => [s.gpm != null && `${s.gpm} GPM`, s.gpm_pct != null && `лучше ${Math.round(s.gpm_pct * 100)}% игроков`],
+        farm: (s) => [s.gpm != null && `${s.gpm} золота в минуту`, s.gpm_pct != null && `лучше ${Math.round(s.gpm_pct * 100)}% игроков`],
         survival: (s) => [`смертей: ${s.deaths}`, s.deaths_per_10 != null && `${s.deaths_per_10} за 10 мин`],
         fights: (s) => [s.kill_participation != null && `участие в убийствах ${s.kill_participation}%`, s.stuns != null && `оглушений ${s.stuns} с${s.enemy_stuns != null ? ` (у вражеского хардлайнера ${s.enemy_stuns} с)` : ""}`, s.enemy_tower_damage != null && s.tower_damage != null && `урон по строениям ${s.tower_damage} (у вражеского хардлайнера ${s.enemy_tower_damage})`],
         items: (s) => [
@@ -752,7 +767,7 @@
       },
       progressEmptyTitle: "Пока мало матчей",
       progressEmptyHint: "Статистика появится после нескольких разобранных матчей. Обновите историю на вкладке «Матчи».",
-      tiles: { winrate: "Винрейт", kda: "KDA", gpm: "GPM", lh10: "Добивания к 10:00", score: "Средняя оценка" },
+      tiles: { winrate: "Винрейт", kda: "KDA", gpm: "Золото в минуту", lh10: "Добивания к 10:00", score: "Средняя оценка" },
       vsPrevious: (n) => `к прошлым ${n}`,
       streakWin: (n) => `${n} ${plural(n, "победа", "победы", "побед")} подряд`,
       streakLoss: (n) => `${n} ${plural(n, "поражение", "поражения", "поражений")} подряд`,
@@ -763,7 +778,7 @@
       winKey: "победа",
       lossKey: "поражение",
       baselineIntro: (games, hero) => `Против ваших ${games} ${plural(games, "другого матча", "других матчей", "других матчей")} на ${hero}:`,
-      baselineLabels: { score: "оценка", gpm: "GPM", lh_10: "добиваний к 10", deaths: "смертей" },
+      baselineLabels: { score: "оценка", gpm: "золото/мин", lh_10: "добиваний к 10", deaths: "смертей" },
       baselineSame: "как обычно",
       baselineTitle: (average) => `Ваш средний: ${average}`,
       goalTitle: "Ваш фокус",
@@ -806,7 +821,7 @@
       colOpponent: "Соперник",
       colPeers: "Ваш ранг",
       colDiff: "Разница",
-      metrics: { gpm: "GPM", xpm: "XPM", lh_10: "Добивания к 10:00", lh_per_min: "Добиваний в минуту", deaths: "Смерти", kda: "KDA", damage_per_min: "Урон в минуту", net_worth: "Ценность" },
+      metrics: { gpm: "Золото в минуту", xpm: "Опыт в минуту", lh_10: "Добивания к 10:00", lh_per_min: "Добиваний в минуту", deaths: "Смерти", kda: "KDA", damage_per_min: "Урон в минуту", net_worth: "Ценность" },
       rankCareerTitle: "Вы и игроки вашего ранга",
       rankCareerNote: (rank, role, n) => `${rank || "Ваш ранг"} · ${role} · игроки той же роли в ваших ${n} разобранных матчах`,
       rankCareerEmpty: "Появится после нескольких матчей, разобранных по данным OpenDota.",
@@ -904,7 +919,7 @@
       rankHistoryTitle: "Ваше звание",
       rankUp: (from, to, since) => `С ${since} вы поднялись с ${from} до ${to}.`,
       rankDown: (from, to, since) => `С ${since} звание снизилось с ${from} до ${to}.`,
-      rankNote: "Приложение записывает звание при каждой синхронизации с OpenDota, когда оно меняется.",
+      rankNote: "Приложение запоминает ваше звание каждый раз, когда обновляет историю, и отмечает, когда оно меняется.",
       heroBuildTitle: (hero) => `Ваш билд на ${hero}`,
       buildNote: (n, wins) => `Ваши предметы в ${n} разобранных матчах на герое (побед: ${wins}): когда они приходят в победах и в поражениях и как часто вы выигрываете с ними и без них.`,
       buildItem: "Предмет",
@@ -920,15 +935,15 @@
       selfGroup: (count, wr) => `${count} матча · ${wr}% побед`,
       selfMetrics: {
         lh_10: "Добивания к 10:00",
-        gpm: "GPM",
+        gpm: "Золото/мин",
         deaths: "Смерти",
         lane_deaths: "Смерти на линии",
         kill_participation: "Участие в убийствах",
         first_item_t: "Первый большой предмет"
       },
       draftTitle: "Драфт",
-      draftNote: (hero) => `Винрейт ${hero} против каждого вражеского героя (статистика матчапов OpenDota).`,
-      draftNoData: "Статистики матчапов пока нет: она загрузится при следующей синхронизации с OpenDota.",
+      draftNote: (hero) => `Как часто ${hero} побеждает каждого вражеского героя (статистика публичных матчей OpenDota).`,
+      draftNoData: "Статистики по этим героям пока нет: она загрузится при следующем обновлении истории.",
       draftEnemy: "Враг",
       draftWinrate: "Ваш винрейт",
       draftGames: "игр",
@@ -945,7 +960,7 @@
       coachTag: "ИИ",
       coachPending: "Тренер пишет разбор. Это занимает до минуты.",
       coachCareerPending: "Тренер смотрит ваши последние матчи. Это занимает до минуты.",
-      coachWaiting: "Тренер разберёт матч, когда OpenDota разберёт реплей: тогда данных больше.",
+      coachWaiting: "ИИ ждёт, пока OpenDota изучит реплей (обычно несколько минут): так у него больше данных.",
       coachNow: "Разобрать сейчас",
       coachUpdating: "Обновляется по новым данным…",
       coachRetry: "Повторить",
@@ -961,14 +976,14 @@
       coachPlan: "План на следующие игры",
       coachFooter: (provider, model) => `Написано ИИ (${provider} · ${model}) по данным разбора. Числа, время, герои и предметы сверены с ними.`,
       coachErrors: {
-        rate_limited: "Бесплатный лимит ИИ-сервиса пока исчерпан. Попробуйте через несколько минут.",
-        busy: "ИИ-сервис сейчас перегружен. Попробуйте через несколько минут.",
-        invalid_key: "ИИ-сервис не принял ключ. Проверьте его в настройках ИИ.",
-        region: "Этот ИИ-сервис не работает из вашей страны. Выберите другой (например, OpenRouter) или включите VPN; ключ сохранён.",
-        timeout: "ИИ-сервис слишком долго отвечал.",
-        offline: "Нет связи с ИИ-сервисом.",
+        rate_limited: "Бесплатный лимит ИИ пока исчерпан. Попробуйте через несколько минут.",
+        busy: "ИИ сейчас перегружен. Попробуйте через несколько минут.",
+        invalid_key: "Ключ не подошёл. Проверьте его в настройках ИИ-тренера.",
+        region: "Этот ИИ не работает из вашей страны. Выберите другой (например, OpenRouter) или включите VPN; ключ сохранён.",
+        timeout: "ИИ слишком долго отвечал.",
+        offline: "Нет связи с ИИ: проверьте интернет.",
         unverified: "В ответе ИИ были факты, которых нет в данных, поэтому он не показан. Попробуйте ещё раз.",
-        bad_response: "ИИ-сервис ответил ошибкой.",
+        bad_response: "ИИ ответил ошибкой. Попробуйте позже.",
         no_key: "Ключ ещё не указан."
       },
       askTitle: "Спросить тренера",
@@ -992,22 +1007,23 @@
       aiCheckNow: "Проверить ключ",
       aiCheckOk: "Ключ работает.",
       aiOffTitle: "ИИ-тренер выключен",
-      aiOffHint: "Объясняет матч простыми словами, как тренер, который смотрит реплей. Бесплатно с ключом Google Gemini, Groq или OpenRouter.",
+      aiOffHint: "После каждого матча ИИ простыми словами объясняет, что получилось и что исправить, — как тренер, который посмотрел ваш реплей. Бесплатно: нужен только ключ от Google (Gemini), Groq или OpenRouter.",
       aiTurnOn: "Включить",
-      aiSetupHint: "Получите бесплатный ключ (минута, без карты) и вставьте его сюда. Тренер только объясняет: все числа по-прежнему берутся из разбора. Данные матча (без вашего Steam ID) отправляются в выбранный сервис.",
-      aiService: "Сервис",
-      aiKey: "API-ключ",
+      aiSetupHint: "Ключ — это как пароль, с которым приложение может обращаться к ИИ. Получите бесплатный (минута, без карты) и вставьте сюда. ИИ только объясняет: все числа по-прежнему берутся из разбора. Данные матча (без вашего Steam ID) уходят на выбранный сайт.",
+      aiService: "Откуда ключ",
+      aiKey: "Ключ",
       aiKeyPlaceholder: "Вставьте ключ",
-      aiModel: "Модель",
-      aiModelHint: "необязательно",
+      aiModel: "Модель ИИ",
+      aiAdvanced: "Для опытных",
+      aiModelHint: "оставьте пустым — будет по умолчанию",
       aiGetKey: "Получить бесплатный ключ",
       aiSave: "Проверить и сохранить",
       aiChecking: "Проверяем ключ…",
       aiSaved: "Ключ работает. Тренер включён.",
       aiSavedWarn: (reason) => `Ключ сохранён, но проверка не прошла: ${reason}`,
       aiSettings: "Настройки ИИ",
-      aiCurrent: (provider, model, hint) => `${provider} · ${model}${hint ? ` · ключ ${hint}` : ""}`,
-      aiEnvKey: "Ключ берётся из файла .env.",
+      aiCurrent: (provider, model, hint) => [provider, model, hint ? `ключ ${hint}` : ""].filter(Boolean).join(" · "),
+      aiEnvKey: "Ключ уже задан в файле настроек приложения.",
       aiChangeKey: "Сменить ключ",
       aiDisable: "Отключить",
       aiCancel: "Отмена"
@@ -1187,6 +1203,12 @@
   function resultBadge(win) {
     const tone = win === true ? "good" : win === false ? "bad" : "idle";
     return h("span", { class: "result" }, h("span", { class: "dot", "data-tone": tone }), h("span", { text: win === true ? t("win") : win === false ? t("loss") : t("unknownResult") }));
+  }
+
+  // «What does this mean?» under a card whose numbers are not obvious: a
+  // folded explanation, so it costs one line until someone asks.
+  function explain(key) {
+    return h("details", { class: "explain no-print" }, h("summary", {}, icon("circle-help"), h("span", { text: t("explainTitle") })), h("p", { text: t(key) }));
   }
 
   function gradeLetter(score) {
@@ -2085,7 +2107,7 @@
           h("span", { class: "section-facts", text: facts })
         );
       });
-    return card(t("sectionsTitle"), "gauge", h("div", { class: "sections" }, rows));
+    return card(t("sectionsTitle"), "gauge", h("div", {}, h("div", { class: "sections" }, rows), explain("explainScore")));
   }
 
   // Schematic map: path and deaths from the app's own recording, laning
@@ -2965,7 +2987,8 @@
             h("thead", {}, h("tr", {}, h("th", { text: t("colMetric") }), h("th", { class: "num-col", text: t("colYou") }), h("th", { class: "num-col", text: t("colOpponent") }), h("th", { class: "num-col", text: t("colDiff") }))),
             h("tbody", {}, rows)
           )
-        )
+        ),
+        explain("explainRank")
       )
     );
   }
@@ -3718,7 +3741,6 @@
         }
       },
       h("div", { class: "ai-form-row" }, h("span", { class: "ai-label", text: t("aiService") }), choice),
-      h("div", { class: "ai-form-row" }, h("span", { class: "ai-label", text: t("aiModel") }), modelInput),
       h("div", { class: "ai-form-row" }, input, save),
       h(
         "button",
@@ -3726,6 +3748,8 @@
         icon("external-link"),
         h("span", { text: t("aiGetKey") })
       ),
+      // The model id is for people who know which one they want: folded away.
+      h("details", { class: "ai-advanced" }, h("summary", { text: t("aiAdvanced") }), h("div", { class: "ai-form-row" }, h("span", { class: "ai-label", text: t("aiModel") }), modelInput)),
       status
     );
     if (message) {
@@ -3904,7 +3928,8 @@
             icon("target"),
             h("span", { text: t("goalMakeTop", top.title) })
           )
-        : null
+        : null,
+      explain("explainFocus")
     );
   }
 
@@ -3932,7 +3957,8 @@
         focus.drill ? h("p", { class: "finding-drill" }, icon("lightbulb"), h("span", {}, h("strong", { text: `${t("drill")}: ` }), focus.drill)) : null,
         marks.length ? h("div", { class: "goal-marks" }, marks) : null,
         h("p", { class: "muted small num", text: since ? `${progress} · ${t("goalSince", since)}` : progress }),
-        h("div", { class: "row no-print" }, h("button", { class: "btn btn-ghost btn-sm", type: "button", onclick: clearGoal }, h("span", { text: t("goalClear") })))
+        h("div", { class: "row no-print" }, h("button", { class: "btn btn-ghost btn-sm", type: "button", onclick: clearGoal }, h("span", { text: t("goalClear") }))),
+        explain("explainFocus")
       );
   }
 

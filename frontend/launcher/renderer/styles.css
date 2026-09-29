@@ -2327,6 +2327,27 @@ label.setting:has(.switch:disabled) {
   justify-self: start;
 }
 
+.ai-advanced > summary {
+  width: fit-content;
+  color: var(--text-3);
+  font-size: var(--fs-12);
+  cursor: pointer;
+}
+
+.ai-advanced > summary:hover {
+  color: var(--text-2);
+}
+
+.ai-advanced > summary:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: var(--r-sm);
+}
+
+.ai-advanced[open] > summary {
+  margin-bottom: var(--sp-2);
+}
+
 .ai-message {
   min-height: 1em;
   font-size: var(--fs-12);
@@ -2837,6 +2858,49 @@ label.setting:has(.switch:disabled) {
 
 .skipped-note {
   margin: var(--sp-3) 0 0;
+}
+
+/* «What does this mean?»: a folded explanation under a card ------------------ */
+.explain {
+  margin-top: var(--sp-3);
+  color: var(--text-2);
+  font-size: var(--fs-13);
+}
+
+.explain > summary {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-1);
+  width: fit-content;
+  color: var(--text-3);
+  font-size: var(--fs-12);
+  cursor: pointer;
+  list-style: none;
+}
+
+.explain > summary::-webkit-details-marker {
+  display: none;
+}
+
+.explain > summary svg {
+  width: 14px;
+  height: 14px;
+}
+
+.explain > summary:hover {
+  color: var(--text-2);
+}
+
+.explain > summary:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: var(--r-sm);
+}
+
+.explain > p {
+  max-width: 68ch;
+  margin: var(--sp-2) 0 0;
+  line-height: 1.5;
 }
 
 /* Goals zone on Progress: the focus next to the streak goals --------------- */
