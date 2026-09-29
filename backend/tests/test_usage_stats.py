@@ -57,3 +57,34 @@ def test_the_usage_endpoint(client):
     assert body["usage"] == {"matches": 0, "with_advice": 0, "advice": {}, "ignored": {}}
     assert client.get(f"/player/usage?since={SINCE}&until={SINCE - 1}").status_code == 422
     assert client.get(f"/player/usage?since={SINCE}&until={SINCE + 9 * DAY}").status_code == 422
+
+
+def test_counts_cover_the_whole_advice_log_not_the_40_cards_shown(tmp_path):
+    from match_fixtures import gsi_match_stream
+
+    from app.match_facts import facts_from_timeline
+    from app.match_tracker import MatchTracker
+    from app.post_match_analysis import analyze_match
+
+    finished = []
+    tracker = MatchTracker(tmp_path / "live.json", on_finished=finished.append)
+    noted = False
+    for payload in gsi_match_stream(death_minutes=(28,)):
+        tracker.observe(payload)
+        if not noted and payload["map"]["clock_time"] >= 20 * 60:
+            noted = True
+            for i in range(49):  # more coaching cards than the review shows
+                tracker.note_advice(
+                    60 + 10 * i, "LANING_FARM_CHECK", "Farm the wave.", "", "coaching"
+                )
+            # The 50th card, urgent, and the death 10 s later: past the first 40.
+            tracker.note_advice(28 * 60 - 10, "LOW_HP_WARNING", "Back off now.", "", "urgent")
+    analysis = analyze_match(facts_from_timeline(finished[0]))
+    assert len(analysis["advice"]) == 40
+    assert analysis["advice_counts"] == {
+        "shown": {"LANING_FARM_CHECK": 49, "LOW_HP_WARNING": 1},
+        "ignored": {"LOW_HP_WARNING": 1},
+    }
+    usage = usage_stats([{"start_time": SINCE + 60, "analysis": analysis}], SINCE, SINCE + DAY)
+    assert usage["advice"] == {"LANING_FARM_CHECK": 49, "LOW_HP_WARNING": 1}
+    assert usage["ignored"] == {"LOW_HP_WARNING": 1}

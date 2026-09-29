@@ -406,8 +406,10 @@ export async function handleStats(request, env, now = Date.now()) {
     return json({ ok: false, code: checked.code }, checked.status);
   }
   const address = await sha256(`dac-rate:${clientAddress(request)}`);
+  // The install id is kept only as the salted hash, the rate counter included.
+  const installHash = await statsHash(checked.installId);
   const underLimit =
-    (await allow(env, `stats:install:${checked.installId}`, STATS_RATE_PER_HOUR.install, now)) &&
+    (await allow(env, `stats:install:${installHash}`, STATS_RATE_PER_HOUR.install, now)) &&
     (await allow(env, `stats:address:${address}`, STATS_RATE_PER_HOUR.address, now));
   if (!underLimit) {
     return json({ ok: false, code: "rate_limited" }, 429);
@@ -417,7 +419,7 @@ export async function handleStats(request, env, now = Date.now()) {
     "INSERT INTO daily_stats (install_hash, day, created_at, version, body) VALUES (?1, ?2, ?3, ?4, ?5) " +
       "ON CONFLICT(install_hash, day) DO UPDATE SET created_at = excluded.created_at, version = excluded.version, body = excluded.body"
   )
-    .bind(await statsHash(checked.installId), checked.day, now, checked.version, JSON.stringify(checked.row))
+    .bind(installHash, checked.day, now, checked.version, JSON.stringify(checked.row))
     .run();
   return json({ ok: true, day: checked.day, retention_days: STATS_RETENTION_DAYS }, 201);
 }

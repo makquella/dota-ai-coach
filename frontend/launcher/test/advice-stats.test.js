@@ -56,3 +56,19 @@ test("which results end the day", () => {
   assert.equal(stats.uploadOutcome({ ok: false, status: 429, code: "rate_limited" }).done, false);
   assert.equal(stats.uploadOutcome({ ok: false, code: "offline" }).done, false);
 });
+
+test("nothing from before the consent (or a server delete) is counted", () => {
+  const consent = new Date(2026, 8, 27, 20, 15).getTime();
+  const schedule = stats.startFrom(consent);
+  assert.deepEqual(schedule, { statsLastDay: new Date(2026, 8, 27).getTime(), statsSince: consent });
+  // The first upload the next day covers the evening after the switch, not the whole day.
+  const due = stats.dueDay(new Date(2026, 8, 28, 9).getTime(), schedule.statsLastDay, schedule.statsSince);
+  assert.equal(due.day, "2026-09-27");
+  assert.equal(due.start, consent);
+  assert.equal(due.end, new Date(2026, 8, 28).getTime());
+  // A later day is whole again.
+  assert.equal(stats.dueDay(new Date(2026, 8, 29, 9).getTime(), due.end, schedule.statsSince).start, new Date(2026, 8, 28).getTime());
+  // Deleted just after midnight, with yesterday not sent yet: yesterday is never sent.
+  const deleted = stats.startFrom(new Date(2026, 8, 28, 0, 5).getTime());
+  assert.equal(stats.dueDay(new Date(2026, 8, 28, 0, 10).getTime(), deleted.statsLastDay, deleted.statsSince), null);
+});

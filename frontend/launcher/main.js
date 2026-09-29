@@ -129,6 +129,8 @@ const settings = createSettingsStore(path.join(USER_DATA_DIR, "settings.json"), 
   // the last local day sent, when it was sent, and the day Dota ran in exclusive fullscreen.
   shareStats: false,
   statsLastDay: 0,
+  // Nothing before this moment (ms) is counted: switching on, or a server delete.
+  statsSince: 0,
   statsSentAt: "",
   fullscreenSeenDay: "",
   // UI language: auto (system) | ru | en.
@@ -686,7 +688,7 @@ async function checkAdviceStats() {
   if (IS_SMOKE_TEST || statsBusy || !settings.get("shareStats") || processStatus.backend !== "running") {
     return;
   }
-  const due = adviceStats.dueDay(Date.now(), settings.get("statsLastDay"));
+  const due = adviceStats.dueDay(Date.now(), settings.get("statsLastDay"), settings.get("statsSince"));
   if (!due) {
     return;
   }
@@ -717,11 +719,17 @@ function startAdviceStats() {
   statsTimer.unref?.();
 }
 
-// On: counting starts today (the first upload tomorrow is today's), never earlier days.
+function restartStatsCount() {
+  const schedule = adviceStats.startFrom(Date.now());
+  settings.set("statsLastDay", schedule.statsLastDay);
+  settings.set("statsSince", schedule.statsSince);
+}
+
+// On: counting starts now (the first upload tomorrow is what happened after this), never earlier.
 function setShareStats(enabled) {
   settings.set("shareStats", Boolean(enabled));
   if (enabled) {
-    settings.set("statsLastDay", adviceStats.dayStart(Date.now()));
+    restartStatsCount();
   }
   appendLog("launcher", `Anonymous statistics ${enabled ? "on" : "off"}.`, { force: true });
   return publicStatus();
@@ -740,8 +748,9 @@ async function deleteServerData() {
     if (!response.ok) {
       return { ok: false, code: `http_${response.status}`, status: publicStatus() };
     }
-    // The shared links are gone with it.
+    // The shared links are gone with it, and what was counted before is never sent again.
     settings.set("shares", {});
+    restartStatsCount();
     appendLog("launcher", "Server data of this installation deleted.", { force: true });
     return { ok: true, status: publicStatus() };
   } catch {
@@ -753,9 +762,10 @@ async function deleteServerData() {
 
 // «Что будет отправлено»: the body for today so far, exactly as it would go.
 async function statsPreview() {
-  const start = adviceStats.dayStart(Date.now());
+  const day = adviceStats.dayStart(Date.now());
+  const start = Math.max(day, Number(settings.get("statsSince")) || 0);
   try {
-    const body = await statsBody({ start, end: Date.now(), day: adviceStats.localDay(start) });
+    const body = await statsBody({ start, end: Date.now(), day: adviceStats.localDay(day) });
     return { ok: true, text: JSON.stringify(body, null, 2) };
   } catch {
     return { ok: false, code: "backend_down" };

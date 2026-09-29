@@ -81,7 +81,7 @@ function fakeEnv(vars = {}) {
       return stmt;
     }
   };
-  return { env: { DB, ...vars }, daily };
+  return { env: { DB, ...vars }, daily, rate };
 }
 
 const ctx = { waitUntil: (promise) => promise };
@@ -122,7 +122,7 @@ test("only allowlisted fields and counts are kept", () => {
 });
 
 test("one row per installation and day; the device delete and the cleanup remove it", async () => {
-  const { env, daily } = fakeEnv();
+  const { env, daily, rate } = fakeEnv();
   const first = await worker.fetch(post(STATS), env, ctx);
   assert.equal(first.status, 201);
   // Sent again (a retry): replaced, not added.
@@ -132,6 +132,8 @@ test("one row per installation and day; the device delete and the cleanup remove
   assert.equal(JSON.parse(row.body).matches, 4);
   assert.notEqual(row.install_hash, INSTALL);
   assert.ok(!row.body.includes(INSTALL));
+  // Nor in the rate counters: the install id is stored only as its hash.
+  assert.ok([...rate.keys()].every((key) => !key.includes(INSTALL)), [...rate.keys()].join());
 
   await worker.fetch(new Request(`https://api.example/v1/device/${INSTALL}`, { method: "DELETE" }), env, ctx);
   assert.equal(daily.size, 0);

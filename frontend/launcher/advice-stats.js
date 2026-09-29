@@ -26,15 +26,27 @@ function localDay(start) {
 /**
  * The day to send now, or null: yesterday, once (`lastDayEnd` = the end of the
  * day already sent). A computer that was off for a week sends yesterday only.
+ * `since` (ms): nothing before it counts — the moment the player switched the
+ * statistics on, or deleted their server data.
  */
-function dueDay(now, lastDayEnd) {
+function dueDay(now, lastDayEnd, since = 0) {
   const end = dayStart(now);
   if (Number(lastDayEnd) >= end) {
     return null;
   }
   // 12 hours back is inside yesterday even around a clock change.
-  const start = dayStart(end - 12 * HOUR_MS);
-  return { start, end, day: localDay(start) };
+  const dayBegins = dayStart(end - 12 * HOUR_MS);
+  const start = Math.min(Math.max(dayBegins, Number(since) || 0), end);
+  return { start, end, day: localDay(dayBegins) };
+}
+
+/**
+ * The schedule from `now` on: switching the statistics on, or deleting the
+ * server data, starts counting at that moment; the first upload comes the next
+ * day and carries only what happened after it.
+ */
+function startFrom(now) {
+  return { statsLastDay: dayStart(now), statsSince: now };
 }
 
 /** The backend path with the day's counts. */
@@ -96,4 +108,4 @@ function uploadOutcome(result) {
   return { done: status === 400 || status === 413 || Boolean(result && result.code === "disabled") };
 }
 
-module.exports = { buildStats, dayStart, dueDay, localDay, uploadOutcome, usageQuery };
+module.exports = { buildStats, dayStart, dueDay, localDay, startFrom, uploadOutcome, usageQuery };

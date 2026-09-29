@@ -6,7 +6,8 @@ switched «Анонимная статистика» on; this is its advice part
 matches that started in [since, until):
 - `matches`: analysed matches, `with_advice`: those with live advice (recorded
   by the app);
-- `advice`: live advice shown per decision point (the review's advice log);
+- `advice`: live advice shown per decision point (the whole advice log of each
+  match, `analysis.advice_counts`, not only the 40 cards the review shows);
 - `ignored`: urgent advice followed by a death within 30 s (advice_follow), per
   decision point: which warnings come too late or are not believed.
 Counts only: no match ids, heroes, times, texts or account.
@@ -26,6 +27,30 @@ def _kind(value: Any) -> str | None:
     return value if isinstance(value, str) and DECISION_POINT.match(value) else None
 
 
+def advice_counts(
+    advice_log: list[dict[str, Any]] | None, follow: dict[str, Any] | None
+) -> dict[str, dict[str, int]]:
+    """Per decision point over the whole advice log of a match (the review shows
+    only the first 40 cards): `shown`, and `ignored` = urgent advice followed by a
+    death (advice_follow). Stored on the analysis as `advice_counts`."""
+    shown: Counter[str] = Counter()
+    ignored: Counter[str] = Counter()
+    urgent_at: dict[Any, str] = {}
+    for item in advice_log or []:
+        if not isinstance(item, dict):
+            continue
+        kind = _kind(item.get("dp"))
+        if kind:
+            shown[kind] += 1
+            if item.get("mode") == "urgent":
+                urgent_at.setdefault(item.get("t"), kind)
+    for miss in (follow or {}).get("ignored") or []:
+        kind = urgent_at.get(miss.get("t")) if isinstance(miss, dict) else None
+        if kind:
+            ignored[kind] += 1
+    return {"shown": dict(shown), "ignored": dict(ignored)}
+
+
 def usage_stats(matches: list[dict[str, Any]], since: int, until: int) -> dict[str, Any]:
     advice: Counter[str] = Counter()
     ignored: Counter[str] = Counter()
@@ -36,20 +61,17 @@ def usage_stats(matches: list[dict[str, Any]], since: int, until: int) -> dict[s
         if not isinstance(start, int) or not since <= start < until or not analysis:
             continue
         counted += 1
-        log = [a for a in analysis.get("advice") or [] if isinstance(a, dict)]
-        if log:
+        if analysis.get("advice"):
             with_advice += 1
-        kinds_at: dict[Any, str] = {}
-        for item in log:
-            kind = _kind(item.get("dp"))
-            if kind:
-                advice[kind] += 1
-                if item.get("mode") == "urgent":
-                    kinds_at.setdefault(item.get("t"), kind)
-        for miss in (analysis.get("advice_follow") or {}).get("ignored") or []:
-            kind = kinds_at.get(miss.get("t")) if isinstance(miss, dict) else None
-            if kind:
-                ignored[kind] += 1
+        # The whole log's counts (ANALYSIS_VERSION 15+); older reviews only have
+        # the first 40 cards shown in the review.
+        counts = analysis.get("advice_counts")
+        if not isinstance(counts, dict):
+            counts = advice_counts(analysis.get("advice"), analysis.get("advice_follow"))
+        for target, key in ((advice, "shown"), (ignored, "ignored")):
+            for kind, n in (counts.get(key) or {}).items():
+                if _kind(kind) and isinstance(n, int) and n > 0:
+                    target[kind] += n
     return {
         "matches": counted,
         "with_advice": with_advice,
