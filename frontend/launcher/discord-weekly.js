@@ -162,7 +162,7 @@ function buildWeeklyMessage(week, { lang, period }) {
     embeds: [
       {
         title: clip(t.title(day(period.start, lang), day(period.end - DAY_MS, lang)), 250),
-        url: SITE_URL,
+        url: `${SITE_URL}/${lang === "ru" ? "" : "en/"}?ref=discord-week`,
         description: lines.join("\n"),
         color: COLOR,
         fields,

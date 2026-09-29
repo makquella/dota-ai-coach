@@ -84,7 +84,9 @@ function buildActivity({ dotaRunning, inMatch, hero, startedAt, lang }) {
     details: inMatch ? t.match(hero) : t.menu,
     state: t.coach,
     assets: { large_image: "wardly", large_text: t.large },
-    buttons: [{ label: t.button, url: SITE_URL }],
+    // Friends who click it land on the site in the player's language; ?ref= lets
+    // the site count them (see site/app.js).
+    buttons: [{ label: t.button, url: `${SITE_URL}/${lang === "ru" ? "" : "en/"}?ref=discord` }],
     instance: false
   };
   if (inMatch && Number.isFinite(startedAt)) {

@@ -113,6 +113,10 @@ const settings = createSettingsStore(path.join(USER_DATA_DIR, "settings.json"), 
   setupDismissed: false,
   // Version whose "What's new" card is still to be shown (set by an update).
   whatsNewPending: "",
+  // Matches played with the app and reviewed (the invite card on Home shows from
+  // the third), and whether the card was answered (copied or «not now»).
+  liveReviews: 0,
+  inviteDone: false,
   // How often coaching advice may appear: calm | normal | active (backend scheduler).
   adviceFrequency: "normal",
   // Position for map timers and role tips (auto = from the lane), and the timers switch.
@@ -452,6 +456,17 @@ function setLanguage(value) {
   return publicStatus();
 }
 
+const INVITE_AFTER_REVIEWS = 3;
+
+/** The site link a player sends to a friend: their language, tagged for the source count. */
+function inviteUrl() {
+  return `https://luhovyimvp.dev/${uiLocale() === "ru" ? "" : "en/"}?ref=invite`;
+}
+
+function inviteDue() {
+  return !settings.get("inviteDone") && (Number(settings.get("liveReviews")) || 0) >= INVITE_AFTER_REVIEWS;
+}
+
 function publicStatus() {
   const dota = dotaWatcher.getState();
   return {
@@ -480,6 +495,7 @@ function publicStatus() {
     setup: { gsiSeen: Boolean(settings.get("gsiSeenAt")), dismissed: Boolean(settings.get("setupDismissed")) },
     report: { last: settings.get("lastReport") || null, queued: outboxCount },
     whatsNew: settings.get("whatsNewPending") === app.getVersion() ? app.getVersion() : "",
+    invite: inviteDue() ? inviteUrl() : "",
     overlayReasonCode: presence.code,
     backend: processStatus.backend,
     backendPort: backend.port,
@@ -1608,6 +1624,7 @@ async function pollPlayerStatus() {
     refreshLaunchOptions();
   }
   if (!first && reviewKey && reviewKey !== previousKey) {
+    settings.set("liveReviews", (Number(settings.get("liveReviews")) || 0) + 1);
     const score = review.score !== null && review.score !== undefined ? ` ${review.score}/100` : "";
     appendLog("player", `Post-match review ready for match ${review.match_id}${score}.`, { force: true });
     pendingReviewOpen = review.match_id;
@@ -3035,6 +3052,17 @@ function registerIpc() {
   ipcMain.handle("launcher:preview-problem-report", () => collectProblemReport());
   ipcMain.handle("launcher:send-problem-report", (_event, note) => sendProblemReport(String(note || "")));
   ipcMain.handle("launcher:open-privacy", () => shell.openExternal(`${PRIVACY_URL}?lang=${uiLocale()}`));
+  // The invite card: «copy the link» puts the site link (tagged ?ref=invite, in
+  // the player's language) on the clipboard; either answer hides the card for good.
+  ipcMain.handle("launcher:invite", (_event, action) => {
+    if (action === "copy") {
+      clipboard.writeText(inviteUrl());
+    }
+    if (action === "copy" || action === "dismiss") {
+      settings.set("inviteDone", true);
+    }
+    return publicStatus();
+  });
   ipcMain.handle("launcher:dismiss-whats-new", () => {
     settings.set("whatsNewPending", "");
     return publicStatus();

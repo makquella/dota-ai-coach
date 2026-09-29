@@ -10,6 +10,11 @@ export const SHARE_DAYS = 90;
 export const SHARE_LIMITS = { bodyBytes: 64 * 1024 };
 export const SHARE_RATE_PER_HOUR = { install: 20, address: 40 };
 export const SITE_URL = "https://luhovyimvp.dev";
+
+/** The site in the page's language, tagged so the site counts where the visit came from. */
+export function siteHome(lang) {
+  return `${SITE_URL}/${lang === "en" ? "en/" : ""}?ref=share`;
+}
 const PORTRAIT = "https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/heroes";
 
 const STEAM64 = /7656119\d{10}/g;
@@ -252,7 +257,7 @@ const STYLE = `
 :root{--bg:#0c0d0f;--card:#17181c;--line:rgba(255,255,255,.08);--text:#f3f3f4;--muted:#a0a2a9;--faint:#6d7078;--accent:#d23a46;--cream:#efe5d4;--good:#4fbf7f;--bad:#e5484d;color-scheme:dark}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:15px/1.55 Inter,system-ui,-apple-system,"Segoe UI",sans-serif}
 main{max-width:760px;margin:0 auto;padding:24px 16px 48px}a{color:inherit}
-.top{display:flex;align-items:center;gap:10px;margin-bottom:24px;text-decoration:none}.top img{width:28px;height:28px}.top b{font-size:18px}
+.top{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:24px}.brand{display:flex;align-items:center;gap:10px;color:var(--text);text-decoration:none}.brand img{width:28px;height:28px}.brand b{font-size:18px}.try{padding:8px 14px;border-radius:10px;background:var(--accent);color:#fff;font-size:14px;font-weight:600;text-decoration:none;white-space:nowrap}.try:hover{filter:brightness(1.08)}
 .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:20px;margin-bottom:16px}
 .head{display:flex;gap:16px;align-items:center}.head img{width:112px;height:63px;border-radius:8px;object-fit:cover;background:#222}
 .head h1{margin:0;font-size:24px}.meta{color:var(--muted);font-size:14px}.dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px}
@@ -285,7 +290,7 @@ ${url ? `<meta property="og:url" content="${escapeHtml(url)}" />` : ""}
 <style>${STYLE}</style>
 </head>
 <body><main>
-<a class="top" href="${SITE_URL}/?ref=share"><img src="${SITE_URL}/assets/logo-mark.png" alt="" /><b>Wardly</b></a>
+<header class="top"><a class="brand" href="${siteHome(lang)}"><img src="${SITE_URL}/assets/logo-mark.png" alt="" /><b>Wardly</b></a><a class="try" href="${siteHome(lang)}">${lang === "en" ? "Try it free" : "Попробовать бесплатно"}</a></header>
 ${body}
 </main></body>
 </html>`;
@@ -399,7 +404,7 @@ ${trend}
 ${recurring(t.problems, p.problems)}
 ${recurring(t.strengths, p.strengths)}
 ${heroes}
-<section class="card foot">${base.made}<br /><a class="cta" href="${SITE_URL}/?ref=share">${base.cta}</a>
+<section class="card foot">${base.made}<br /><a class="cta" href="${siteHome(p.lang)}">${base.cta}</a>
 <p class="small">${escapeHtml(base.expires(day(new Date(expiresAt).toISOString().slice(0, 10), p.lang)))}</p></section>`;
   return page({ lang: p.lang, title: t.title(p), description: p.coach ? p.coach.slice(0, 200) : t.description, image, url, body });
 }
@@ -460,7 +465,7 @@ ${review.coach ? `<section class="card"><h2>${t.coach}</h2><p class="coach">${es
 ${sections}
 ${findings(t.improvements, review.improvements, true)}
 ${findings(t.strengths, review.strengths, false)}
-<section class="card foot">${t.made}<br /><a class="cta" href="${SITE_URL}/?ref=share">${t.cta}</a>
+<section class="card foot">${t.made}<br /><a class="cta" href="${siteHome(review.lang)}">${t.cta}</a>
 <p class="small">${escapeHtml(t.expires(day(new Date(expiresAt).toISOString().slice(0, 10), review.lang)))}</p></section>`;
   return page({
     lang: review.lang,
@@ -480,6 +485,6 @@ export function renderMissingPage(lang = "ru") {
     description: t.missing,
     image: `${SITE_URL}/assets/og.jpg`,
     url: null,
-    body: `<section class="card"><h2>${t.missingTitle}</h2><p class="foot">${t.missing}</p><a class="cta" href="${SITE_URL}/?ref=share">${t.home}</a></section>`
+    body: `<section class="card"><h2>${t.missingTitle}</h2><p class="foot">${t.missing}</p><a class="cta" href="${siteHome(lang)}">${t.home}</a></section>`
   });
 }

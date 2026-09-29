@@ -29,9 +29,11 @@ test("the activity: a match with the hero and its start, the menu, nothing witho
   assert.equal(match.state, "С тренером Wardly");
   assert.deepEqual(match.timestamps, { start: 1_790_000_000_500 }, "milliseconds, as the RPC server reads them");
   assert.equal(match.assets.large_image, "wardly");
-  assert.ok(match.buttons[0].label.length <= 32 && match.buttons[0].url === "https://luhovyimvp.dev");
+  assert.ok(match.buttons[0].label.length <= 32);
+  assert.equal(match.buttons[0].url, "https://luhovyimvp.dev/?ref=discord", "friends who click it are counted");
   const menu = buildActivity({ dotaRunning: true, inMatch: false, hero: null, startedAt: null, lang: "en" });
   assert.equal(menu.details, "In the Dota 2 menu");
+  assert.equal(menu.buttons[0].url, "https://luhovyimvp.dev/en/?ref=discord");
   assert.ok(!("timestamps" in menu));
   assert.equal(buildActivity({ dotaRunning: false, inMatch: false, hero: null, startedAt: null, lang: "en" }), null);
 });

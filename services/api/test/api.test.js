@@ -3,6 +3,7 @@ import test from "node:test";
 
 import worker, { cleanup, config, versionAtLeast } from "../src/index.js";
 import { RATE_PER_HOUR, redact, reportId, summarize, validateReport } from "../src/report.js";
+import { siteHome } from "../src/share.js";
 
 // In-memory stand-ins for the D1 and R2 bindings, for the statements the Worker uses.
 function fakeEnv(vars = {}, { r2 = true } = {}) {
@@ -340,6 +341,9 @@ test("a shared review is published, shown as a page and deleted by its author", 
   assert.match(html, /heroes\/juggernaut\.png/);
   assert.ok(!html.includes("<script>alert(1)</script>"), "texts are escaped");
   assert.ok(html.includes("&lt;script&gt;"));
+  // A visible way to try it, leading to the site in the review's language, tagged.
+  assert.match(html, /<a class="try" href="https:\/\/luhovyimvp\.dev\/\?ref=share">Попробовать бесплатно<\/a>/);
+  assert.ok(!html.includes('href="https://luhovyimvp.dev/"'), "every site link carries ?ref=share");
 
   const noToken = await worker.fetch(new Request(`https://api.example/v1/share/${answer.id}`, { method: "DELETE" }), env, ctx);
   assert.equal(noToken.status, 403);
@@ -352,6 +356,8 @@ test("a shared review is published, shown as a page and deleted by its author", 
   const gone = await worker.fetch(new Request(`https://api.example/r/${answer.id}`, { headers: { "accept-language": "ru-RU" } }), env, ctx);
   assert.equal(gone.status, 404);
   assert.match(await gone.text(), /Разбор не найден/);
+  assert.equal(siteHome("en"), "https://luhovyimvp.dev/en/?ref=share");
+  assert.equal(siteHome("ru"), "https://luhovyimvp.dev/?ref=share");
 });
 
 test("shares are checked, limited, expire and go with the installation", async () => {

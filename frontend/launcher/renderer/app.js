@@ -229,6 +229,11 @@ const I18N = {
     },
     whatsNewTitle: (version) => `What's new in ${version}`,
     whatsNewOk: "Got it",
+    inviteTitle: "Like Wardly?",
+    inviteText: "Send the link to a friend: the app is free, and playing together it is easier to follow the advice.",
+    inviteCopy: "Copy the link",
+    inviteLater: "Not now",
+    inviteCopied: "Link copied",
     whatsNew: {
       "0.18.0": [
         "Full advice for 18 more heroes: 8 mids (Shadow Fiend, Storm Spirit, Queen of Pain, Puck and others) and 10 offlaners (Axe, Mars, Legion Commander, Centaur and others).",
@@ -688,6 +693,11 @@ const I18N = {
     },
     whatsNewTitle: (version) => `Что нового в ${version}`,
     whatsNewOk: "Понятно",
+    inviteTitle: "Нравится Wardly?",
+    inviteText: "Скинь ссылку другу: приложение бесплатное, а играя вместе, проще следовать подсказкам.",
+    inviteCopy: "Скопировать ссылку",
+    inviteLater: "Не сейчас",
+    inviteCopied: "Ссылка скопирована",
     whatsNew: {
       "0.18.0": [
         "Полные подсказки ещё для 18 героев: 8 мидеров (Shadow Fiend, Storm Spirit, Queen of Pain, Puck и другие) и 10 хардлайнеров (Axe, Mars, Legion Commander, Centaur и другие).",
@@ -978,6 +988,9 @@ const els = {
   whatsNewHeading: $("#whats-new-heading"),
   whatsNewList: $("#whats-new-list"),
   whatsNewDismiss: $("#whats-new-dismiss"),
+  inviteCard: $("#invite-card"),
+  inviteCopy: $("#invite-copy"),
+  inviteDismiss: $("#invite-dismiss"),
   setupCard: $("#setup-card"),
   setupSteps: $("#setup-steps"),
   setupCount: $("#setup-count"),
@@ -1258,6 +1271,17 @@ async function init() {
   document.querySelector("#tab-settings")?.addEventListener("click", () => run(refreshOpenDota));
   els.whatsNewDismiss.addEventListener("click", () =>
     run(async () => renderStatus(await window.launcherApi.dismissWhatsNew()))
+  );
+  // The invite: the link goes to the clipboard, the button says so, then the card goes.
+  els.inviteCopy.addEventListener("click", () =>
+    run(async () => {
+      const status = await window.launcherApi.invite("copy");
+      flashLabel(els.inviteCopy.querySelector("span"), tr("inviteCopied"));
+      setTimeout(() => renderStatus(status), 1400);
+    })
+  );
+  els.inviteDismiss.addEventListener("click", () =>
+    run(async () => renderStatus(await window.launcherApi.invite("dismiss")))
   );
   els.setupDismiss.addEventListener("click", () =>
     run(async () => renderStatus(await window.launcherApi.dismissSetup()))
@@ -1585,6 +1609,7 @@ function renderStatus(status) {
   renderStatusLine(status);
   renderSetup(status);
   renderWhatsNew(status);
+  els.inviteCard.classList.toggle("hidden", !status.invite);
   renderReport(status);
   if (status.backend === "running" && !openDotaLoaded) {
     openDotaLoaded = true;
