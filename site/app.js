@@ -15,6 +15,7 @@
     navIngame: "In game",
     navHow: "How it works",
     navReview: "Review",
+    navHeroes: "Heroes",
     navFaq: "FAQ",
     langLabel: "Language",
     navDownload: "Download",
@@ -48,12 +49,9 @@
     timerTitle: "Map timers",
     timerText: "20 seconds ahead: runes, shrines, lotuses, the Tormentor. Stacks and wards for a support. The coach finds your role from your lane.",
     timerAlt: "Map timer: the Tormentor in 15 seconds",
-    heroesTitle: "Full advice for 39 heroes",
-    heroesCarry: "Carry",
-    heroesMid: "Mid",
-    heroesOfflane: "Offlane",
-    heroesSub: "Carries, mids and offlaners: farm, items, objectives and abilities. On any other hero: survival, map timers and role tips.",
-    heroesNote: "Match reviews, the map, the build and progress work for all 127 heroes.",
+    stripTitle: "Full advice for 39 heroes",
+    stripText: "— carries, mids and offlaners. On the rest: survival and map timers.",
+    stripLink: "All heroes",
     voiceNote: "Advice can be spoken with the Windows voice — heard even in exclusive fullscreen, where the card cannot be shown.",
     howTitle: "Install it and play",
     howSub: "No accounts, no setup. The app connects to Dota by itself.",
@@ -91,7 +89,7 @@
     q3: "I can't see the advice over the game",
     a3: "Windows doesn't draw windows over exclusive fullscreen. In Dota: Settings → Video → “Borderless window”. Or turn on the voice — it is heard in any mode.",
     q4: "Which heroes get advice?",
-    a4: "Full advice (farm, items, objectives, abilities) for 39 heroes: carries, mids and offlaners. On any other hero the coach helps you survive (low HP, death streaks, disables, mana, buyback) and gives map timers and tips for your role. Match reviews and progress work for every hero.",
+    a4: 'Full advice (farm, items, objectives, abilities) for <a href="heroes.html">39 heroes</a>: carries, mids and offlaners. On any other hero the coach helps you survive (low HP, death streaks, disables, mana, buyback) and gives map timers and tips for your role. Match reviews and progress work for every hero.',
     q5: "Where does the match history come from?",
     a5: "The app records every match by itself and fills it in with OpenDota data. For that, Expose Public Match Data must be on in Dota 2.",
     q6: "Do I need the internet?",
@@ -107,6 +105,37 @@
     footerPrivacy: "Privacy",
     legal:
       "Dota 2 is a trademark of Valve Corporation. This project is not affiliated with or endorsed by Valve. Game frames are from the Dota 2 Steam page; hero portraits are Valve's.",
+    // heroes.html
+    heroesPageTitle: "Heroes — Wardly",
+    heroesTitle: "Full advice for 39 heroes",
+    heroesLead:
+      "Carries, mids and offlaners get everything: the farm pace for their position, the next item and their own abilities to survive. On any other hero the coach still works: it tells you how to stay alive and keeps the map timers.",
+    modeFullTag: "39 heroes on the list",
+    modeFullTitle: "The full coach",
+    modeFull1: "Farm pace for the position: an offlaner is not held to a carry's bar",
+    modeFull2: "The next item of the build and the gold still needed for it",
+    modeFull3: "At low HP, the hero's own ability: “Use Blink now”",
+    modeFull4: "A last-hit target for 10:00 in the plan for the game",
+    modeFull5: "Everything the other heroes get",
+    modeSafetyTag: "Any other hero",
+    modeSafetyTitle: "Survival and the map",
+    modeSafety1: "Low HP, death streaks, disables, mana, buyback",
+    modeSafety2: "Map timers: runes, lotuses, the Tormentor, Roshan",
+    modeSafety3: "Role tips: stacks, pulls and wards for a support",
+    modeSafety4: "The death screen: what killed you and what to buy",
+    modeAllTag: "All 127 heroes",
+    modeAllTitle: "The review after the match",
+    modeAll1: "A score for the match and what to fix next game",
+    modeAll2: "The map: where you went and where you died",
+    modeAll3: "The build against OpenDota statistics",
+    modeAll4: "Progress, the AI coach and a comparison with a friend",
+    heroesLegend: "Under each hero's name: the abilities the coach names when your HP is low.",
+    modesTitle: "What every hero gets",
+    modesSub: "On any hero the coach helps you survive, and every hero gets the review after the match.",
+    heroesCarry: "Carry",
+    heroesMid: "Mid",
+    heroesOfflane: "Offlane",
+    heroesMore: "The list grows with every update, and the app updates by itself.",
     version: (v, mb) => `Version ${v} · Windows 10 and 11 · ${mb} MB`
   };
   const RU = {};
@@ -154,8 +183,10 @@
         }
       });
     }
-    remember("title", document.title);
-    document.title = table.title || RU.title;
+    // Each page names its own title key (<body data-title>), the landing uses "title".
+    const titleKey = document.body.dataset.title || "title";
+    remember(titleKey, document.title);
+    document.title = table[titleKey] || RU[titleKey];
     // Screenshots exist in both languages. SHOTS_VERSION (also in index.html) is
     // bumped with every reshoot, so browsers do not keep the old pictures.
     document.querySelectorAll("img[data-img]").forEach((img) => {
@@ -244,7 +275,7 @@
   window.addEventListener("scroll", onScroll, { passive: true });
   onScroll();
 
-  const revealed = document.querySelectorAll(".section-head, .tile, .step, .split-copy, .split-stage, .heroes, .final-inner");
+  const revealed = document.querySelectorAll(".section-head, .tile, .step, .split-copy, .split-stage, .mode, .heroes, .final-inner");
   if ("IntersectionObserver" in window) {
     const observer = new IntersectionObserver(
       (entries) => {
