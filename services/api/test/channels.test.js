@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import worker, { cleanup, handleDownload, handleHit } from "../src/index.js";
+import worker, { cleanup, handleDownload, handleHit, sendWeeklyStats } from "../src/index.js";
 import {
   CHANNEL_MAX_SOURCES,
   CHANNEL_RATE_PER_HOUR,
@@ -43,8 +43,8 @@ function fakeEnv(vars = {}) {
           throw new Error(`unexpected first(): ${sql}`);
         },
         async all() {
-          if (sql.startsWith("SELECT day, src, visits, downloads FROM channel_counts WHERE day >=")) {
-            return { results: [...counts.values()].filter((r) => r.day >= args[0]) };
+          if (sql.startsWith("SELECT day, src, visits, downloads FROM channel_counts WHERE day >= ?1 AND day < ?2")) {
+            return { results: [...counts.values()].filter((r) => r.day >= args[0] && r.day < args[1]) };
           }
           if (sql.startsWith("SELECT install_hash, day, version, body FROM daily_stats")) {
             return { results: [] };
@@ -228,4 +228,61 @@ test("the cleanup drops source counts after a year", async () => {
   env.DB.counts.set("new|y", { day: isoDay(NOW - 10 * DAY), src: "y", visits: 1, downloads: 0 });
   await cleanup(env, NOW);
   assert.deepEqual([...env.DB.counts.keys()], ["new|y"]);
+});
+
+test("a HEAD probe gets the redirect but is not counted as a download", async () => {
+  const env = fakeEnv();
+  resetInstallerCache();
+  const realFetch = globalThis.fetch;
+  globalThis.fetch = githubRedirect("v0.18.0");
+  try {
+    const probe = await worker.fetch(new Request("https://api.luhovyimvp.dev/d/pikabu", { method: "HEAD" }), env);
+    assert.equal(probe.status, 302);
+    assert.equal(env.DB.counts.size, 0);
+    await worker.fetch(new Request("https://api.luhovyimvp.dev/d/pikabu"), env);
+    assert.equal(env.DB.counts.get(`${isoDay(Date.now())}|pikabu`).downloads, 1);
+  } finally {
+    globalThis.fetch = realFetch;
+  }
+});
+
+test("the admin range is the last N dates with today; the weekly note the 7 finished days", async () => {
+  const env = fakeEnv({ TELEGRAM_BOT_TOKEN: "t", TELEGRAM_CHAT_ID: "1" });
+  const now = Date.now();
+  for (let back = 0; back <= 8; back += 1) {
+    const day = isoDay(now - back * DAY);
+    env.DB.counts.set(`${day}|d${back}`, { day, src: `d${back}`, visits: 1, downloads: 0 });
+  }
+  const admin = async (days) => {
+    const response = await worker.fetch(
+      new Request(`https://api.luhovyimvp.dev/v1/admin/stats?days=${days}`, { headers: { authorization: "Bearer secret" } }),
+      env
+    );
+    return (await response.json()).stats.channels.map((c) => c.src).sort();
+  };
+  assert.deepEqual(await admin(1), ["d0"]);
+  assert.deepEqual(await admin(7), ["d0", "d1", "d2", "d3", "d4", "d5", "d6"]);
+  // Monday's note: the 7 finished days before it. The dates just outside have
+  // the most visits, so they would lead the list if the range were wrong.
+  const weekly = fakeEnv({ TELEGRAM_BOT_TOKEN: "t", TELEGRAM_CHAT_ID: "1" });
+  const monday = now + ((8 - new Date(now).getUTCDay()) % 7) * DAY;
+  const visits = { 0: 9, 1: 5, 7: 5, 8: 9 };
+  for (let back = 0; back <= 8; back += 1) {
+    const day = isoDay(monday - back * DAY);
+    weekly.DB.counts.set(`${day}|m${back}`, { day, src: `m${back}`, visits: visits[back] || 1, downloads: 0 });
+  }
+  const sent = [];
+  const realFetch = globalThis.fetch;
+  globalThis.fetch = async (_url, init) => {
+    sent.push(JSON.parse(init.body).text);
+    return new Response("{}");
+  };
+  try {
+    assert.equal(await sendWeeklyStats(weekly, monday), true);
+  } finally {
+    globalThis.fetch = realFetch;
+  }
+  const line = sent[0].split("\n").find((l) => l.startsWith("Sources"));
+  assert.match(line, /^Sources \(visits → downloads\): m1 5→0, m7 5→0, m2 1→0/);
+  assert.doesNotMatch(line, /m0|m8/);
 });

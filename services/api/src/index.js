@@ -486,9 +486,10 @@ export async function handleHit(request, env, now = Date.now()) {
 }
 
 // Always redirects: counting is best effort and never blocks the download.
+// Only a GET counts: a HEAD (link checkers, previews) gets the redirect alone.
 export async function handleDownload(request, src, env, now = Date.now(), fetchImpl = fetch) {
   const name = channelSource(src) || "site";
-  if (config(env).channels) {
+  if (config(env).channels && request.method === "GET") {
     try {
       if (await underChannelLimit(request, env, "download", now)) {
         await countChannel(env, name, "download", now);
@@ -503,14 +504,22 @@ export async function handleDownload(request, src, env, now = Date.now(), fetchI
   });
 }
 
-async function statsSummary(env, days, now) {
-  const since = isoDay(now - days * 24 * 3_600_000);
+// The daily statistics hold finished days only (the launcher sends yesterday),
+// so `days` back from today covers `days` of them. Source counts start today:
+// the admin page shows the last `days` dates with today; the weekly note
+// (`finished`) the `days` dates before today, the same week as the statistics.
+async function statsSummary(env, days, now, { finished = false } = {}) {
+  const DAY = 24 * 3_600_000;
   const { results } = await env.DB.prepare("SELECT install_hash, day, version, body FROM daily_stats WHERE day >= ?1")
-    .bind(since)
+    .bind(isoDay(now - days * DAY))
     .all();
   const summary = aggregateStats(results || []);
-  const channels = await env.DB.prepare("SELECT day, src, visits, downloads FROM channel_counts WHERE day >= ?1")
-    .bind(since)
+  const from = isoDay(now - (finished ? days : days - 1) * DAY);
+  const until = isoDay(now + (finished ? 0 : DAY));
+  const channels = await env.DB.prepare(
+    "SELECT day, src, visits, downloads FROM channel_counts WHERE day >= ?1 AND day < ?2"
+  )
+    .bind(from, until)
     .all();
   summary.channels = aggregateChannels(channels.results || []);
   return summary;
@@ -525,7 +534,7 @@ export async function sendWeeklyStats(env, now = Date.now()) {
   if (!env.TELEGRAM_BOT_TOKEN || !env.TELEGRAM_CHAT_ID || new Date(now).getUTCDay() !== 1) {
     return false;
   }
-  const summary = await statsSummary(env, 7, now);
+  const summary = await statsSummary(env, 7, now, { finished: true });
   if (!summary.rows && !summary.channels.length) {
     return false;
   }
