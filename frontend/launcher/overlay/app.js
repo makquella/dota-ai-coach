@@ -144,13 +144,17 @@ function startPolling() {
 }
 
 async function poll() {
+  // Muted or no answer: no fresh timers, so none are shown (a chip left from the
+  // last answer would count down from a frozen value).
   if (Date.now() < mutedUntil) {
+    renderStrip([]);
     showStatus(tr("mutedFor", secondsUntil(mutedUntil)));
     return;
   }
 
   const result = await window.overlayApi.fetchRecommendation();
   if (!result.ok) {
+    renderStrip([]);
     showStatus(config.backendStatus === "stopped" ? tr("backendStopped") : tr("waitingBackend"));
     return;
   }

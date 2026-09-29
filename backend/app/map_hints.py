@@ -343,31 +343,29 @@ def item_names(items: Any) -> list[str] | None:
     return names
 
 
+def _observers(item: Any) -> int:
+    """Observer wards in one inventory item: its `charges` (the combined dispenser
+    counts its observers there, sentries in `secondary_charges`, so 0 is a real
+    zero); a ward without a usable count is one."""
+    name = item.get("name") if isinstance(item, dict) else item
+    if str(name or "") not in WARD_ITEMS:
+        return 0
+    charges = item.get("charges") if isinstance(item, dict) else None
+    valid = isinstance(charges, int) and not isinstance(charges, bool)
+    return charges if valid and 0 <= charges < 100 else 1
+
+
 def observer_charges(items: Any) -> int | None:
-    """Observer wards carried in the inventory (a ward without a charge count is
-    one); None without an items block."""
+    """Observer wards carried in the inventory; None without an items block."""
     if not isinstance(items, dict) or not items:
         return None
-    total = 0
-    for slot, item in items.items():
-        if not str(slot).startswith("slot") or not isinstance(item, dict):
-            continue
-        if str(item.get("name") or "") in WARD_ITEMS:
-            charges = item.get("charges")
-            valid = isinstance(charges, int) and not isinstance(charges, bool)
-            total += charges if valid and 0 < charges < 100 else 1
-    return total
+    return sum(_observers(item) for slot, item in items.items() if str(slot).startswith("slot"))
 
 
 def has_observer_ward(items: Any) -> bool | None:
     """From a raw GSI items block; None without one (stash and neutral slots skipped)."""
-    if not isinstance(items, dict) or not items:
-        return None
-    for slot, item in items.items():
-        name = item.get("name") if isinstance(item, dict) else item
-        if str(slot).startswith("slot") and str(name or "") in WARD_ITEMS:
-            return True
-    return False
+    count = observer_charges(items)
+    return None if count is None else count > 0
 
 
 def _times(event: dict[str, Any], until: int) -> list[int]:

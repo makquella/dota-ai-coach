@@ -4165,7 +4165,9 @@
     return [
       ru ? `${today.games} ${plural(today.games, "матч", "матча", "матчей")}` : `${today.games} ${today.games === 1 ? "match" : "matches"}`,
       `${today.wins}–${today.losses}`,
-      today.avg_score == null ? null : ru ? `средняя оценка ${today.avg_score}` : `average score ${today.avg_score}`
+      today.avg_score == null ? null : ru ? `средняя оценка ${today.avg_score}` : `average score ${today.avg_score}`,
+      // Today's matches judged by the focus (the focus block below spans days).
+      today.focus_total ? (ru ? `фокус ${today.focus_met} из ${today.focus_total}` : `focus ${today.focus_met} of ${today.focus_total}`) : null
     ].filter(Boolean).join(" · ");
   }
 

@@ -10,7 +10,7 @@ from app.gsi_state import _normalize_hero_name
 from app.hero_profiles import get_hero_position, get_support_position
 from app.live_tools import low_hp_copy
 from app.main import SUPPORT_DECISIONS, _covered_decision_point
-from app.map_hints import RoleTips, map_hint, observer_charges
+from app.map_hints import RoleTips, has_observer_ward, map_hint, observer_charges
 from app.match_memory import MATCH_MEMORY
 from app.player_api import PLAYER_SERVICE
 from app.schemas import SUPPORTED_HEROES, hero_coverage
@@ -78,6 +78,20 @@ def test_observer_charges_from_the_raw_items():
         "stash0": {"name": "item_ward_observer", "charges": 4},
     }
     assert observer_charges(items) == 3  # the stash does not count
+
+
+def test_a_dispenser_with_only_sentries_carries_no_observer():
+    # The combined dispenser reports its observers as `charges` (sentries as
+    # `secondary_charges`): zero observers is a real zero, not a missing count.
+    only_sentries = {"slot1": {"name": "item_ward_dispenser", "charges": 0, "secondary_charges": 2}}
+    assert observer_charges(only_sentries) == 0
+    assert has_observer_ward(only_sentries) is False
+    one = {"slot1": {"name": "item_ward_dispenser", "charges": 1, "secondary_charges": 1}}
+    assert observer_charges(one) == 1
+    assert has_observer_ward(one) is True
+    # A broken count still means one ward.
+    assert observer_charges({"slot0": {"name": "item_ward_observer", "charges": "x"}}) == 1
+    assert observer_charges({"slot0": {"name": "item_ward_observer", "charges": -3}}) == 1
 
 
 def test_a_ward_kept_in_the_bag_for_two_minutes():
