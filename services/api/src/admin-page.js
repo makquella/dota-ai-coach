@@ -1,4 +1,5 @@
-// The developer's statistics page (GET /admin): which advice the app shows and
+// The developer's statistics page (GET /admin): where players come from (visits
+// and downloads per source, src/channels.js), which advice the app shows and
 // which urgent warnings come right before a death, from the opt-in anonymous
 // statistics (src/stats.js). The page holds no data: it asks for the admin
 // token (kept in sessionStorage only) and reads /v1/admin/stats?days=N with it.
@@ -57,6 +58,7 @@ export const ADMIN_HTML = `<!doctype html>
   .days span { flex: 1; background: var(--accent); border-radius: 3px 3px 0 0; min-height: 2px; }
   .hidden { display: none; }
   .error { color: var(--accent); }
+  code { font-size: 12px; color: var(--text); }
 </style>
 </head>
 <body>
@@ -74,6 +76,7 @@ export const ADMIN_HTML = `<!doctype html>
   </form>
   <section id="view" class="hidden">
     <div class="tiles" id="tiles"></div>
+    <div class="card"><h2>Откуда приходят</h2><table id="channels"></table><p class="muted">Источник — <code>?ref=</code> в ссылке на сайт (luhovyimvp.dev/?ref=pikabu). Без него: search — поисковики, direct — без перехода, other — другие сайты; site — скачивание по кнопке на сайте, когда источник неизвестен.</p></div>
     <div class="card"><h2>По дням</h2><div class="days" id="days-chart" role="img" aria-label="Устройства по дням"></div><p class="muted" id="days-note"></p></div>
     <div class="card"><h2>Подсказки: показано и смерть в течение 30 с после срочной</h2><table id="advice"></table></div>
     <div class="grid" id="dists"></div>
@@ -166,6 +169,27 @@ function adminApp() {
       ...perDay.map((d) => el("span", { title: `${d.day}: ${d.devices} устр., ${d.matches} матчей, ${d.advice} подсказок`, style: `height:${Math.round((100 * d.devices) / maxDay)}%` }))
     );
     $("days-note").textContent = perDay.length ? `${perDay[0].day} — ${perDay[perDay.length - 1].day}, за ${days} дн.` : "Пока нет данных";
+
+    const channels = stats.channels || [];
+    $("channels").replaceChildren(
+      el("thead", {}, el("tr", {}, el("th", { text: "Источник" }), el("th", { class: "n", text: "Заходы" }), el("th", { class: "n", text: "Скачивания" }), el("th", { class: "n", text: "Конверсия" }))),
+      el(
+        "tbody",
+        {},
+        ...(channels.length
+          ? channels.map((c) =>
+              el(
+                "tr",
+                {},
+                el("td", { text: c.src }),
+                el("td", { class: "n", text: String(c.visits) }),
+                el("td", { class: "n", text: String(c.downloads) }),
+                el("td", { class: "n", text: c.rate != null ? `${c.rate}%` : "—" })
+              )
+            )
+          : [el("tr", {}, el("td", { class: "muted", text: "Пока нет данных" }))])
+      )
+    );
 
     const rows = Object.entries(stats.advice || {}).sort((a, b) => b[1] - a[1]);
     const table = $("advice");

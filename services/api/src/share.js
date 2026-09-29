@@ -285,7 +285,7 @@ ${url ? `<meta property="og:url" content="${escapeHtml(url)}" />` : ""}
 <style>${STYLE}</style>
 </head>
 <body><main>
-<a class="top" href="${SITE_URL}/"><img src="${SITE_URL}/assets/logo-mark.png" alt="" /><b>Wardly</b></a>
+<a class="top" href="${SITE_URL}/?ref=share"><img src="${SITE_URL}/assets/logo-mark.png" alt="" /><b>Wardly</b></a>
 ${body}
 </main></body>
 </html>`;
@@ -399,7 +399,7 @@ ${trend}
 ${recurring(t.problems, p.problems)}
 ${recurring(t.strengths, p.strengths)}
 ${heroes}
-<section class="card foot">${base.made}<br /><a class="cta" href="${SITE_URL}/">${base.cta}</a>
+<section class="card foot">${base.made}<br /><a class="cta" href="${SITE_URL}/?ref=share">${base.cta}</a>
 <p class="small">${escapeHtml(base.expires(day(new Date(expiresAt).toISOString().slice(0, 10), p.lang)))}</p></section>`;
   return page({ lang: p.lang, title: t.title(p), description: p.coach ? p.coach.slice(0, 200) : t.description, image, url, body });
 }
@@ -460,7 +460,7 @@ ${review.coach ? `<section class="card"><h2>${t.coach}</h2><p class="coach">${es
 ${sections}
 ${findings(t.improvements, review.improvements, true)}
 ${findings(t.strengths, review.strengths, false)}
-<section class="card foot">${t.made}<br /><a class="cta" href="${SITE_URL}/">${t.cta}</a>
+<section class="card foot">${t.made}<br /><a class="cta" href="${SITE_URL}/?ref=share">${t.cta}</a>
 <p class="small">${escapeHtml(t.expires(day(new Date(expiresAt).toISOString().slice(0, 10), review.lang)))}</p></section>`;
   return page({
     lang: review.lang,
@@ -480,6 +480,6 @@ export function renderMissingPage(lang = "ru") {
     description: t.missing,
     image: `${SITE_URL}/assets/og.jpg`,
     url: null,
-    body: `<section class="card"><h2>${t.missingTitle}</h2><p class="foot">${t.missing}</p><a class="cta" href="${SITE_URL}/">${t.home}</a></section>`
+    body: `<section class="card"><h2>${t.missingTitle}</h2><p class="foot">${t.missing}</p><a class="cta" href="${SITE_URL}/?ref=share">${t.home}</a></section>`
   });
 }

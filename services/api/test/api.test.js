@@ -81,6 +81,8 @@ function fakeEnv(vars = {}, { r2 = true } = {}) {
             for (const [key, row] of [...daily]) if (row.install_hash === args[0]) daily.delete(key);
           } else if (sql.startsWith("DELETE FROM daily_stats WHERE day <")) {
             for (const [key, row] of [...daily]) if (row.day < args[0]) daily.delete(key);
+          } else if (sql.startsWith("DELETE FROM channel_counts WHERE day <")) {
+            // Source counts (test/channels.test.js) are not kept by this fake.
           } else if (sql.startsWith("INSERT INTO reports")) {
             const [id, created_at, install_id, version, os, lang, size, summary, r2_key, body] = args;
             // D1 returns a BLOB as an array of bytes.
@@ -202,6 +204,7 @@ test("bad bodies, rate limits and the kill switch", async () => {
     transfer_minutes: 15,
     share_days: 90,
     stats: true,
+    channels: true,
     sessions: false,
     retention_days: 180
   });

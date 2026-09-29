@@ -16,10 +16,13 @@
 //   GET    /v1/admin/reports        -> latest reports (Bearer ADMIN_TOKEN; off without the secret)
 //   GET    /v1/admin/report/<id>    -> one report as text (same)
 //   GET    /v1/admin/stats?days=N   -> the statistics summed over the last N days (same)
+//   POST   /v1/hit                  -> +1 visit of the site for a source (src/channels.js; the site sends it once per visit)
+//   GET    /d/<source>              -> +1 download for that source, then a redirect to the latest installer
 //   GET    /admin, /admin/app.js    -> the statistics page (src/admin-page.js; asks for the token, holds no data;
 //                                      404 while ADMIN_TOKEN is not set)
 //   cron                            -> deletes reports older than RETENTION_DAYS, expired shares, old rate counters,
-//                                      statistics older than STATS_RETENTION_DAYS; on Mondays a stats note to Telegram
+//                                      statistics older than STATS_RETENTION_DAYS, source counts older than
+//                                      CHANNEL_RETENTION_DAYS; on Mondays a stats note to Telegram
 //
 // Bindings: DB (D1), REPORTS (R2, optional: without it the gzipped report is
 // kept in the D1 row, which is enough for the free tier's 5 GB). Secrets (optional): TELEGRAM_BOT_TOKEN,
@@ -58,6 +61,14 @@ import {
   weeklyStatsText
 } from "./stats.js";
 import {
+  CHANNEL_MAX_SOURCES,
+  CHANNEL_RATE_PER_HOUR,
+  CHANNEL_RETENTION_DAYS,
+  aggregateChannels,
+  channelSource,
+  latestInstaller
+} from "./channels.js";
+import {
   TRANSFER_MAX_BYTES,
   TRANSFER_MINUTES,
   TRANSFER_RATE_PER_HOUR,
@@ -95,6 +106,7 @@ export function config(env) {
     transfer_minutes: TRANSFER_MINUTES,
     share_days: SHARE_DAYS,
     stats: flag(env.STATS_ENABLED, true),
+    channels: flag(env.CHANNELS_ENABLED, true),
     sessions: false,
     retention_days: RETENTION_DAYS
   };
@@ -427,11 +439,81 @@ export async function handleStats(request, env, now = Date.now()) {
   return json({ ok: true, day: checked.day, retention_days: STATS_RETENTION_DAYS }, 201);
 }
 
+/** +1 visit or download for a source today; a flood of new names counts as "other". */
+async function countChannel(env, src, kind, now) {
+  const day = isoDay(now);
+  const seen = await env.DB.prepare(
+    "SELECT COUNT(*) AS sources, SUM(src = ?2) AS known FROM channel_counts WHERE day = ?1"
+  )
+    .bind(day, src)
+    .first();
+  const name = !Number(seen?.known) && Number(seen?.sources) >= CHANNEL_MAX_SOURCES ? "other" : src;
+  await env.DB.prepare(
+    "INSERT INTO channel_counts (day, src, visits, downloads) VALUES (?1, ?2, ?3, ?4) " +
+      "ON CONFLICT(day, src) DO UPDATE SET visits = visits + excluded.visits, downloads = downloads + excluded.downloads"
+  )
+    .bind(day, name, kind === "visit" ? 1 : 0, kind === "download" ? 1 : 0)
+    .run();
+}
+
+async function underChannelLimit(request, env, kind, now) {
+  const address = await sha256(`dac-rate:${clientAddress(request)}`);
+  return allow(env, `channel:${kind}:${address}`, CHANNEL_RATE_PER_HOUR[kind], now);
+}
+
+// The site sends { src } with navigator.sendBeacon (text/plain: no preflight),
+// so the answer carries no data and needs no CORS headers.
+export async function handleHit(request, env, now = Date.now()) {
+  if (!config(env).channels) {
+    return new Response(null, { status: 204 });
+  }
+  const raw = await request.text();
+  let src = null;
+  if (raw.length <= 200) {
+    try {
+      src = channelSource(JSON.parse(raw).src);
+    } catch {
+      src = null;
+    }
+  }
+  if (!src) {
+    return json({ ok: false, code: "bad_source" }, 400);
+  }
+  if (await underChannelLimit(request, env, "visit", now)) {
+    await countChannel(env, src, "visit", now);
+  }
+  return new Response(null, { status: 204 });
+}
+
+// Always redirects: counting is best effort and never blocks the download.
+export async function handleDownload(request, src, env, now = Date.now(), fetchImpl = fetch) {
+  const name = channelSource(src) || "site";
+  if (config(env).channels) {
+    try {
+      if (await underChannelLimit(request, env, "download", now)) {
+        await countChannel(env, name, "download", now);
+      }
+    } catch (error) {
+      console.log(`download count: ${error.message}`);
+    }
+  }
+  return new Response(null, {
+    status: 302,
+    headers: { location: await latestInstaller(fetchImpl, now), "cache-control": "no-store", "referrer-policy": "no-referrer" }
+  });
+}
+
 async function statsSummary(env, days, now) {
+  const since = isoDay(now - days * 24 * 3_600_000);
   const { results } = await env.DB.prepare("SELECT install_hash, day, version, body FROM daily_stats WHERE day >= ?1")
-    .bind(isoDay(now - days * 24 * 3_600_000))
+    .bind(since)
     .all();
-  return aggregateStats(results || []);
+  const summary = aggregateStats(results || []);
+  const channels = await env.DB.prepare("SELECT day, src, visits, downloads FROM channel_counts WHERE day >= ?1")
+    .bind(since)
+    .all();
+  summary.channels = aggregateChannels(channels.results || []);
+  return summary;
 }
 
 async function adminStats(url, env, now = Date.now()) {
@@ -444,7 +526,7 @@ export async function sendWeeklyStats(env, now = Date.now()) {
     return false;
   }
   const summary = await statsSummary(env, 7, now);
-  if (!summary.rows) {
+  if (!summary.rows && !summary.channels.length) {
     return false;
   }
   const response = await fetch(`https://api.telegram.org/bot${env.TELEGRAM_BOT_TOKEN}/sendMessage`, {
@@ -532,6 +614,9 @@ export async function cleanup(env, now = Date.now()) {
   await env.DB.prepare("DELETE FROM daily_stats WHERE day < ?1")
     .bind(isoDay(now - STATS_RETENTION_DAYS * 24 * 3_600_000))
     .run();
+  await env.DB.prepare("DELETE FROM channel_counts WHERE day < ?1")
+    .bind(isoDay(now - CHANNEL_RETENTION_DAYS * 24 * 3_600_000))
+    .run();
   await env.DB.prepare("DELETE FROM rate WHERE hour < ?1").bind(hourWindow(now) - 48).run();
   return removed;
 }
@@ -552,6 +637,13 @@ export default {
       }
       if (request.method === "POST" && path === "/v1/stats") {
         return await handleStats(request, env);
+      }
+      if (request.method === "POST" && path === "/v1/hit") {
+        return await handleHit(request, env);
+      }
+      const download = path.match(/^\/d(?:\/([^/]{1,40}))?$/);
+      if (download && (request.method === "GET" || request.method === "HEAD")) {
+        return await handleDownload(request, download[1], env);
       }
       if (request.method === "POST" && path === "/v1/share") {
         return await handleShare(request, env);

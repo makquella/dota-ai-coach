@@ -1,10 +1,10 @@
 // Wardly website: language switch (the HTML is Russian, English lives
-// here), screenshots per language, the download button (latest GitHub release)
-// and small scroll effects. No dependencies.
+// here), screenshots per language, the download button (latest GitHub release),
+// where the visitor came from (below) and small scroll effects. No dependencies.
 (() => {
   const REPO = "makquella/dota-ai-coach";
-  const RELEASES = `https://github.com/${REPO}/releases/latest`;
   const LANG_KEY = "dac.lang";
+  const API = "https://api.luhovyimvp.dev";
   // Bump with every reshoot of the pictures (scripts/site-shots) and in index.html.
   const SHOTS_VERSION = "6";
 
@@ -231,15 +231,91 @@
     });
   });
 
+  // --- where the visitor came from -------------------------------------------------
+  // Posts link to the site with ?ref=<source>; without it the referrer's kind
+  // (search, a known site, other, direct). Kept for this tab only (sessionStorage),
+  // sent once as a count (POST /v1/hit) and passed to the download link
+  // (/d/<source>), so the project sees visits and downloads per source. No cookies.
+
+  const SOURCE_KEY = "wardly.src";
+  const SITES = [
+    [/(^|\.)(google|yandex|bing|duckduckgo|yahoo|ecosia)\.|(^|\.)(ya|go\.mail)\.ru$|(^|\.)search\./, "search"],
+    [/(^|\.)reddit\.com$/, "reddit"],
+    [/(^|\.)pikabu\.ru$/, "pikabu"],
+    [/(^|\.)dtf\.ru$/, "dtf"],
+    [/(^|\.)(vk\.com|vk\.ru)$/, "vk"],
+    [/(^|\.)(t\.me|telegram\.org)$/, "tg"],
+    [/(^|\.)(youtube\.com|youtu\.be)$/, "yt"],
+    [/(^|\.)(steamcommunity|steampowered)\.com$/, "steam"],
+    [/(^|\.)twitch\.tv$/, "twitch"],
+    [/(^|\.)(discord\.com|discord\.gg|discordapp\.com)$/, "discord"],
+    [/(^|\.)github\.com$/, "github"],
+    [/(^|\.)cybersport\.ru$/, "cybersport"]
+  ];
+
+  function session(key, value) {
+    try {
+      if (value === undefined) {
+        return sessionStorage.getItem(key);
+      }
+      sessionStorage.setItem(key, value);
+    } catch {
+      // Storage blocked: the source is worked out again on each page.
+    }
+    return null;
+  }
+
+  function trafficSource() {
+    const ref = String(new URLSearchParams(location.search).get("ref") || "").trim().toLowerCase();
+    if (/^[a-z0-9][a-z0-9_-]{0,23}$/.test(ref)) {
+      session(SOURCE_KEY, ref);
+      return ref;
+    }
+    const saved = session(SOURCE_KEY);
+    if (saved) {
+      return saved;
+    }
+    let host = "";
+    try {
+      host = document.referrer ? new URL(document.referrer).hostname.toLowerCase() : "";
+    } catch {
+      host = "";
+    }
+    let found = "direct";
+    if (host && host !== location.hostname) {
+      found = (SITES.find(([pattern]) => pattern.test(host)) || [null, "other"])[1];
+    } else if (host) {
+      found = "site";
+    }
+    session(SOURCE_KEY, found);
+    return found;
+  }
+
+  const source = trafficSource();
+  const DOWNLOAD = `${API}/d/${encodeURIComponent(source)}`;
+
+  function countVisit() {
+    if (session("wardly.hit") || !navigator.sendBeacon || !/^https?:$/.test(location.protocol) || location.hostname === "localhost") {
+      return;
+    }
+    session("wardly.hit", "1");
+    try {
+      navigator.sendBeacon(`${API}/v1/hit`, new Blob([JSON.stringify({ src: source })], { type: "text/plain" }));
+    } catch {
+      // Not counted; nothing else depends on it.
+    }
+  }
+
   // --- download: the latest release's installer ---------------------------------
+  // The buttons go through the API (/d/<source>: counts, then redirects to the
+  // latest installer); GitHub's release data only fills the version line.
 
   function renderRelease() {
     const buttons = document.querySelectorAll(".js-download");
+    buttons.forEach((a) => (a.href = DOWNLOAD));
     if (!release) {
-      buttons.forEach((a) => (a.href = RELEASES));
       return;
     }
-    buttons.forEach((a) => (a.href = release.url));
     const mb = Math.round(release.size / 1024 / 1024);
     const text = lang === "en" ? EN.version(release.version, mb) : `Версия ${release.version} · Windows 10 и 11 · ${mb} МБ`;
     document.querySelectorAll(".js-release-meta").forEach((el) => (el.textContent = text));
@@ -257,7 +333,6 @@
       const asset = (data.assets || []).find((a) => /Setup-.*\.exe$/i.test(a.name));
       if (asset) {
         release = {
-          url: asset.browser_download_url,
           size: asset.size,
           version: String(data.tag_name || "").replace(/^v/, "")
         };
@@ -332,4 +407,5 @@
 
   applyLanguage(initialLanguage());
   loadRelease();
+  countVisit();
 })();

@@ -77,7 +77,7 @@
     <main class="wrap doc">
       <article data-doc="ru" lang="ru">
         <h1>Конфиденциальность</h1>
-        <p class="doc-updated">Обновлено 28 сентября 2026 года</p>
+        <p class="doc-updated">Обновлено 29 сентября 2026 года</p>
 
         <p>
           Wardly работает на вашем компьютере. История матчей, разборы и ключи хранятся только там. В интернет приложение
@@ -172,6 +172,18 @@
           строка на установку и день. Считаем только с момента включения; выключение сразу прекращает отправку.
         </p>
 
+        <h2>Сайт</h2>
+        <p>
+          Сайт не ставит cookie и не подключает счётчики сторонних сервисов. Чтобы понимать, откуда приходят игроки, он один раз
+          за визит отправляет на <code>api.luhovyimvp.dev</code> только название источника: метку из ссылки
+          (<code>?ref=pikabu</code>) или вид перехода — поиск, известный сайт (например, reddit), другой сайт, прямой заход. Кнопка
+          «Скачать» ведёт через <code>api.luhovyimvp.dev/d/&lt;источник&gt;</code>, который прибавляет скачивание и сразу
+          открывает установщик на GitHub. На сервере хранится только число заходов и скачиваний за день по каждому источнику —
+          без адресов страниц, IP, идентификаторов и данных браузера; год, затем удаляется. Адрес IP используется лишь на лету,
+          в виде хеша, чтобы один компьютер не накручивал счётчик (такой хеш хранится двое суток). Источник запоминается только
+          во вкладке браузера (sessionStorage) до её закрытия.
+        </p>
+
         <h2>Как удалить отправленное</h2>
         <p>
           Напишите номер отчёта (он показывается после отправки, например <code>R-7F3KQ2</code>) в
@@ -199,7 +211,7 @@
 
       <article data-doc="en" lang="en" hidden>
         <h1>Privacy</h1>
-        <p class="doc-updated">Updated September 28, 2026</p>
+        <p class="doc-updated">Updated September 29, 2026</p>
 
         <p>
           Wardly runs on your computer. Match history, reviews and keys stay there. The app goes online for match data
@@ -283,6 +295,18 @@
           times, advice texts, nickname, Steam ID or keys. The installation id is kept on the server only as a hash. «What is
           sent» under the switch shows the exact body. Kept for a year, one row per installation and day. Counting starts when
           you switch it on; switching it off stops sending at once.
+        </p>
+
+        <h2>The website</h2>
+        <p>
+          The site sets no cookies and loads no third-party trackers. To see where players come from, it sends
+          <code>api.luhovyimvp.dev</code> only the name of the source, once per visit: the tag of the link
+          (<code>?ref=pikabu</code>) or the kind of visit — a search engine, a known site (reddit, for example), another site,
+          a direct visit. The «Download» button goes through <code>api.luhovyimvp.dev/d/&lt;source&gt;</code>, which adds a
+          download and opens the installer on GitHub at once. The server keeps only the number of visits and downloads per day
+          and source — no page addresses, IPs, ids or browser data; for a year, then deleted. The IP address is used only on the
+          fly, as a hash, so one computer cannot inflate the counts (that hash is kept for two days). The source is remembered
+          only in the browser tab (sessionStorage) until it is closed.
         </p>
 
         <h2>Deleting what you sent</h2>
