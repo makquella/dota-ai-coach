@@ -1,6 +1,6 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
-const { placeBubble, spotlight, nextIndex } = require("../renderer/tour.js");
+const { placeBubble, spotlight, onScreen, nextIndex } = require("../renderer/tour.js");
 
 const viewport = { width: 1280, height: 800 };
 const bubble = { width: 340, height: 180 };
@@ -62,4 +62,13 @@ test("steps with a hidden element are skipped both ways; past the end is -1", ()
   assert.equal(nextIndex(steps, 2, 1, available), -1);
   assert.equal(nextIndex(steps, 2, -1, available), 0);
   assert.equal(nextIndex(steps, 0, -1, available), 0);
+});
+
+test("an element scrolled out of the window has no cut-out", () => {
+  const viewport = { width: 1000, height: 800 };
+  assert.equal(onScreen({ left: 100, top: 100, width: 200, height: 50 }, viewport), true);
+  assert.equal(onScreen({ left: 100, top: 780, width: 200, height: 50 }, viewport), true);
+  assert.equal(onScreen({ left: 100, top: -60, width: 200, height: 50 }, viewport), false);
+  assert.equal(onScreen({ left: 100, top: 820, width: 200, height: 50 }, viewport), false);
+  assert.equal(onScreen({ left: 100, top: 100, width: 0, height: 0 }, viewport), false);
 });

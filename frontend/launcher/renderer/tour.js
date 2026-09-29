@@ -64,6 +64,18 @@
     };
   }
 
+  /** Whether any part of an element is inside the window (scrolled away → no cut-out). */
+  function onScreen(target, viewport) {
+    return (
+      target.width > 0 &&
+      target.height > 0 &&
+      target.left + target.width > 0 &&
+      target.top + target.height > 0 &&
+      target.left < viewport.width &&
+      target.top < viewport.height
+    );
+  }
+
   /** The step to show after `index` in `direction` (+1 / -1), skipping unavailable ones; -1 past the end. */
   function nextIndex(steps, index, direction, available) {
     for (let i = index + direction; i >= 0 && i < steps.length; i += direction) {
@@ -145,15 +157,18 @@
     let frame = 0;
     const previousFocus = doc.activeElement;
 
-    function position() {
+    // `reveal`: scroll the element into view first (a new step, a resized window);
+    // a scroll by the player only moves the cut-out and the card along with it.
+    function position(reveal) {
       const step = steps[index];
       const viewport = { width: win.innerWidth, height: win.innerHeight };
       const element = visibleElement(doc, step.target);
-      if (element) {
+      if (element && reveal) {
         element.scrollIntoView({ block: "nearest", inline: "nearest" });
       }
       const rect = element ? element.getBoundingClientRect() : null;
-      const box = rect ? { left: rect.left, top: rect.top, width: rect.width, height: rect.height } : null;
+      const seen = rect ? { left: rect.left, top: rect.top, width: rect.width, height: rect.height } : null;
+      const box = seen && onScreen(seen, viewport) ? seen : null;
       if (box) {
         const cut = spotlight(box, viewport);
         Object.assign(spot.style, { left: `${cut.left}px`, top: `${cut.top}px`, width: `${cut.width}px`, height: `${cut.height}px` });
@@ -182,12 +197,13 @@
       back.disabled = i === first;
       next.textContent = i === last ? labels.done : labels.next;
       win.cancelAnimationFrame(frame);
-      frame = win.requestAnimationFrame(position);
+      frame = win.requestAnimationFrame(() => position(true));
       next.focus();
     }
 
     function close(completed) {
       win.removeEventListener("resize", onResize);
+      doc.removeEventListener("scroll", onScroll, true);
       doc.removeEventListener("keydown", onKey, true);
       win.cancelAnimationFrame(frame);
       layer.remove();
@@ -208,7 +224,13 @@
 
     function onResize() {
       win.cancelAnimationFrame(frame);
-      frame = win.requestAnimationFrame(position);
+      frame = win.requestAnimationFrame(() => position(true));
+    }
+
+    // Any scrolling container (the page or a view inside it): follow the element.
+    function onScroll() {
+      win.cancelAnimationFrame(frame);
+      frame = win.requestAnimationFrame(() => position(false));
     }
 
     function onKey(event) {
@@ -234,6 +256,7 @@
     back.addEventListener("click", () => go(-1));
     next.addEventListener("click", () => go(1));
     win.addEventListener("resize", onResize);
+    doc.addEventListener("scroll", onScroll, { capture: true, passive: true });
     doc.addEventListener("keydown", onKey, true);
     const first = nextIndex(steps, -1, 1, available);
     if (first < 0) {
@@ -252,5 +275,5 @@
     return element;
   }
 
-  return { placeBubble, spotlight, nextIndex, start };
+  return { placeBubble, spotlight, onScreen, nextIndex, start };
 });

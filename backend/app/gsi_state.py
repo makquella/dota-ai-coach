@@ -17,7 +17,7 @@ from app.hero_safety import evaluate_hero_safety
 from app.item_timing import normalize_item_name
 from app.last_moments import ready_savers
 from app.live_tools import regen_items, wand_charges
-from app.map_hints import has_observer_ward, item_names
+from app.map_hints import has_observer_ward, item_names, observer_charges
 from app.signal_capabilities import capability_summary, live_gsi_observed_capabilities
 from app.tp_tracker import has_teleport
 
@@ -127,6 +127,7 @@ _ABILITY_NAME_MAP = {
     "kez_kazurai_katana": "Kazurai Katana",
     "kez_switch_weapons": "Switch Weapons",
     "slardar_sprint": "Guardian Sprint",
+    "bounty_hunter_wind_walk": "Shadow Walk",
 }
 
 
@@ -448,6 +449,8 @@ def _normalize_extra_context(
         "has_tp": has_teleport(payload.get("items")),
         # Observer ward in the inventory (support tip; None: no items block).
         "has_observer": has_observer_ward(payload.get("items")),
+        # How many observer wards are carried (a ward kept in the bag: support tip).
+        "observer_charges": observer_charges(payload.get("items")),
         # Item names in the inventory and stash (role tips such as the mid's Bottle).
         "item_names": item_names(payload.get("items")),
         # Roshan kills and Aegis pickups (roshan_timer.py), and the player's Aegis.

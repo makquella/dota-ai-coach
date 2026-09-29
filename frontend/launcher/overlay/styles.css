@@ -20,8 +20,10 @@ body {
 
 .overlay-root {
   display: flex;
-  align-items: center;
+  flex-direction: column;
+  align-items: stretch;
   justify-content: center;
+  gap: var(--sp-2);
   width: 100%;
   height: 100%;
   padding: var(--sp-2);
@@ -42,6 +44,79 @@ body {
 .overlay-shell.hidden {
   opacity: 0;
   transform: translateY(4px);
+}
+
+/* A new card fades in; a refreshed one stays still. */
+.overlay-shell.enter {
+  animation: card-enter var(--dur-slow) var(--ease);
+}
+
+@keyframes card-enter {
+  from {
+    opacity: 0.35;
+    transform: translateY(3px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* Compact card (Settings → Overlay): only what to do. */
+body.compact .reason,
+body.compact .status-row {
+  display: none;
+}
+
+/* The next events for the player's position, under the card. */
+.timer-strip {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: var(--sp-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.timer-strip.hidden {
+  display: none;
+}
+
+.timer-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-1);
+  min-width: 0;
+  padding: 3px var(--sp-2);
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  background: rgba(11, 11, 12, 0.8);
+  color: var(--text-2);
+  font-size: var(--fs-12);
+  white-space: nowrap;
+}
+
+.timer-time {
+  color: var(--text);
+  font-weight: var(--fw-medium);
+  font-variant-numeric: tabular-nums;
+}
+
+.timer-chip[data-soon="true"] {
+  border-color: var(--border-strong);
+  color: var(--text);
+}
+
+.timer-chip[data-soon="true"] .timer-time {
+  color: var(--accent);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .overlay-shell,
+  .overlay-shell.enter {
+    animation: none;
+    transition: none;
+  }
 }
 
 /* Unlocked (Ctrl+Alt+L / "Move"): make it obvious the card can be dragged. */

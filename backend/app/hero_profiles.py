@@ -51,8 +51,10 @@ def hero_aliases() -> dict[str, list[str]]:
 
 
 # A carry's farm pace is the reference; an offlaner farms about 70 % of it
-# (TARGETS in post_match_analysis.py: 4.0 against 5.5 last hits a minute). Mids keep it.
-POSITION_PACE = {"offlane": 0.7}
+# (TARGETS in post_match_analysis.py: 4.0 against 5.5 last hits a minute), a
+# support about 20 % (1.0). Mids keep it.
+POSITIONS = {"carry", "mid", "offlane", "support"}
+POSITION_PACE = {"offlane": 0.7, "support": 0.2}
 
 
 def farm_pace(hero_name: str) -> float:
@@ -61,13 +63,21 @@ def farm_pace(hero_name: str) -> float:
 
 
 def get_hero_position(hero_name: str) -> str | None:
-    """The usual position of a profiled hero: carry (default), mid or offlane; None
-    for a hero without a profile."""
+    """The usual position of a profiled hero: carry (default), mid, offlane or
+    support; None for a hero without a profile."""
     profile = _profiles_by_alias().get(_profile_key(hero_name))
     if not profile:
         return None
     position = str(profile.get("position") or "carry")
-    return position if position in {"carry", "mid", "offlane"} else "carry"
+    return position if position in POSITIONS else "carry"
+
+
+def get_support_position(hero_name: str) -> int | None:
+    """4 (soft support) or 5 (hard support) for a profiled support, else None."""
+    profile = _profiles_by_alias().get(_profile_key(hero_name))
+    if not profile or profile.get("position") != "support":
+        return None
+    return 4 if profile.get("support_position") == 4 else 5
 
 
 def get_hero_archetype(hero_name: str) -> str:

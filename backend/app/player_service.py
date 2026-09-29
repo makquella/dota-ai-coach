@@ -67,6 +67,7 @@ from app.friend_compare import compare
 from app.game_plan import build_game_plan, key_item
 from app.hero_profiles import get_hero_position
 from app.history_backup import export_backup, import_backup
+from app.home_summary import home_summary
 from app.map_analysis import map_side, zone
 from app.match_facts import facts_from_opendota, facts_from_timeline, merge_facts
 from app.match_tracker import MatchTracker, account_from_gsi
@@ -485,6 +486,27 @@ class PlayerService:
             self.jobs.submit(f"meta:{hero_id}", lambda: self._ensure_hero_meta(hero_id))
         self._plans[key] = (now, meta)
         return meta
+
+    def summary(self, lang: str) -> dict[str, Any] | None:
+        """The card at the top of Home (app/home_summary.py): the last reviewed
+        match, the day, the goals and the focus; cached a minute like the week."""
+        primary = self.store.primary_account_id()
+        if primary is None:
+            return None
+        key = ("summary", primary, lang, self.store.get_meta(f"last_review:{primary}"))
+        cached = self._plans.get(key)
+        now = time.monotonic()
+        if cached is not None and now - cached[0] < GAME_PLAN_CACHE_SECONDS:
+            return cached[1]
+        summary = home_summary(
+            self.store.matches_for_career(primary, limit=RECENT_MATCHES_LIMIT),
+            lang,
+            today=self._today(primary),
+            focus=self._focus(primary),
+            **self._goals_and_tilt(primary),
+        )
+        self._plans[key] = (now, summary)
+        return summary
 
     def week(
         self, lang: str, until: float | None = None, since: float | None = None

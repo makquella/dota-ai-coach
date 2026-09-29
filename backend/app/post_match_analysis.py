@@ -33,7 +33,7 @@ from app.role_analysis import analyze_role
 from app.usage_stats import advice_counts
 
 # Bump when the rules change: stored reviews of an older version are rebuilt on read.
-ANALYSIS_VERSION = 15
+ANALYSIS_VERSION = 16
 # Dota replays run at 30 ticks a second.
 REPLAY_TICK_RATE = 30
 # Last seconds before deaths (last_moments.py, via death_review.py).
@@ -72,7 +72,7 @@ TARGETS: dict[str, dict[str, float]] = {
 SECTION_WEIGHTS: dict[str, dict[str, float]] = {
     "core": {"laning": 0.2, "farm": 0.3, "survival": 0.2, "fights": 0.15, "items": 0.15},
     "offlane": {"laning": 0.2, "farm": 0.2, "survival": 0.2, "fights": 0.25, "items": 0.15},
-    "support": {"survival": 0.3, "fights": 0.3, "vision": 0.3, "farm": 0.1},
+    "support": {"survival": 0.3, "fights": 0.25, "vision": 0.25, "farm": 0.1, "items": 0.1},
 }
 FARM_STALL_MINUTES = 4
 BIG_DEATH_GOLD = 1200
@@ -710,9 +710,85 @@ def big_items(items_log: list[dict[str, Any]]) -> list[dict[str, Any]]:
     return result
 
 
+# A support's first item that saves a core in a fight: on time by this minute,
+# late after that one, missing in a game at least this long.
+SAVE_ITEM_NAMES = {
+    "Glimmer Cape",
+    "Force Staff",
+    "Hurricane Pike",
+    "Ghost",
+    "Ethereal Blade",
+    "Lotus Orb",
+    "Solar Crest",
+    "Pavise",
+    "Guardian Greaves",
+}
+SAVE_ITEM_ON_TIME = 15
+SAVE_ITEM_LATE = 22
+SAVE_ITEM_GAME = 25
+
+
+def _support_items(facts, findings) -> dict[str, Any] | None:
+    """A support's items: the first save item (Glimmer Cape, Force Staff…) and when."""
+    log = facts.get("items_log") or []
+    if not log:
+        return None
+    duration = facts.get("duration") or 0
+    saves = sorted(
+        (entry["t"], normalize_item_name(entry.get("item")))
+        for entry in log
+        if entry.get("t") is not None and normalize_item_name(entry.get("item")) in SAVE_ITEM_NAMES
+    )
+    first = {"t": saves[0][0], "item": saves[0][1]} if saves else None
+    if first is None:
+        if duration < SAVE_ITEM_GAME * 60:
+            return None
+        score = 20
+        _finding(
+            findings,
+            "save_item_missing",
+            "improve",
+            "items",
+            severity=2,
+            weight=1.5,
+            minutes=round(duration / 60),
+        )
+    else:
+        minute = first["t"] / 60
+        score = _clamp(100 - max(0.0, minute - SAVE_ITEM_ON_TIME) * 5, 30, 100)
+        if minute <= SAVE_ITEM_ON_TIME:
+            _finding(
+                findings,
+                "save_item_fast",
+                "strength",
+                "items",
+                weight=1,
+                item=first["item"],
+                t=first["t"],
+            )
+        elif minute > SAVE_ITEM_LATE:
+            _finding(
+                findings,
+                "save_item_slow",
+                "improve",
+                "items",
+                severity=1,
+                weight=1,
+                item=first["item"],
+                t=first["t"],
+            )
+    return {
+        "name": "items",
+        "score": score,
+        "rating": _rating(score),
+        "save_item": first,
+        "save_items": [{"t": t, "item": item} for t, item in saves[:4]],
+    }
+
+
 def _items(facts, role, targets, findings) -> dict[str, Any] | None:
     if role == "support":
-        return None
+        return _support_items(facts, findings)
     duration = facts.get("duration") or 0
     items = big_items(facts.get("items_log") or [])
     if not facts.get("items_log"):

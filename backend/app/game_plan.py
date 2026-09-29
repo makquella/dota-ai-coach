@@ -84,7 +84,8 @@ def _usual_role(history: list[dict[str, Any]], hero: str) -> str | None:
         return roles.most_common(1)[0][0]
     if not is_supported_hero(hero):
         return None
-    return "offlane" if get_hero_position(hero) == "offlane" else "core"
+    position = get_hero_position(hero)
+    return position if position in ("offlane", "support") else "core"
 
 
 def _record(history: list[dict[str, Any]]) -> str | None:

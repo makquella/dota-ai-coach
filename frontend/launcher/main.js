@@ -515,6 +515,7 @@ function publicStatus() {
     recentAdvice: live.recentAdvice,
     overlayPosition: overlay.position(),
     overlayVoice: overlay.voice(),
+    overlayDisplay: overlay.display(),
     overlaySize: overlay.size(),
     adviceFrequency: adviceFrequency(),
     adviceRole: adviceRole(),
@@ -1524,6 +1525,7 @@ const PLAYER_OPS = {
   refreshMatch: (args) => ["POST", `/player/matches/${matchIdArg(args)}/refresh`],
   week: () => ["GET", `/player/week?lang=${uiLocale()}`],
   session: () => ["GET", `/player/session?lang=${uiLocale()}`],
+  summary: () => ["GET", `/player/summary?lang=${uiLocale()}`],
   // Compare with a friend (their public OpenDota matches, fetched by the backend).
   friend: (args) => ["GET", `/player/friend?lang=${uiLocale()}&group=${friendGroupArg(args)}`],
   friendSet: (args) => ["POST", `/player/friend?lang=${uiLocale()}`, { steam: String(args.steam || "").slice(0, 200) }],
@@ -3073,6 +3075,10 @@ function registerIpc() {
   );
   ipcMain.handle("launcher:set-overlay-size", (_event, name) => {
     overlay.setSize(String(name || ""));
+    return publicStatus();
+  });
+  ipcMain.handle("launcher:set-overlay-display", (_event, patch) => {
+    overlay.setDisplay(patch && typeof patch === "object" ? patch : {});
     return publicStatus();
   });
   ipcMain.handle("launcher:set-overlay-voice", (_event, mode, volume) => {

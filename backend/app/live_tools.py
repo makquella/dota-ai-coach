@@ -104,6 +104,20 @@ USABLE_SAFETY = {
     "guardian sprint",
     "timber chain",
     "swashbuckle",
+    # Supports: escapes and saves on self (Shallow Grave, False Promise, Frost
+    # Shield and Living Armor can be cast on yourself).
+    "leap",
+    "scurry",
+    "bulldoze",
+    "vendetta",
+    "spiked carapace",
+    "shadow walk",
+    "rolling boulder",
+    "firesnap cookie",
+    "shallow grave",
+    "false promise",
+    "frost shield",
+    "living armor",
 }
 
 LOW_HP_ACTION_TYPES = {

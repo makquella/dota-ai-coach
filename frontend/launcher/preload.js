@@ -35,6 +35,7 @@ contextBridge.exposeInMainWorld("launcherApi", {
   setAdvicePreferences: (patch) => ipcRenderer.invoke("launcher:set-advice-preferences", patch),
   setOverlaySize: (name) => ipcRenderer.invoke("launcher:set-overlay-size", name),
   setOverlayVoice: (mode, volume) => ipcRenderer.invoke("launcher:set-overlay-voice", mode, volume),
+  setOverlayDisplay: (patch) => ipcRenderer.invoke("launcher:set-overlay-display", patch),
   setOverlayLocked: (locked) => ipcRenderer.invoke("launcher:set-overlay-locked", locked),
   dismissFullscreenWarning: () => ipcRenderer.invoke("launcher:dismiss-fullscreen-warning"),
   checkForUpdates: () => ipcRenderer.invoke("launcher:check-updates"),

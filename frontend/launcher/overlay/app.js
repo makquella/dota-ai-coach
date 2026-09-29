@@ -4,6 +4,7 @@ const priorityEl = document.querySelector("#priority");
 const statusRow = document.querySelector("#status-row");
 const actionEl = document.querySelector("#action");
 const reasonEl = document.querySelector("#reason");
+const stripEl = document.querySelector("#timer-strip");
 
 // Short card texts in the system language; advice itself comes from the backend.
 const OVERLAY_TEXT = {
@@ -78,7 +79,9 @@ let config = {
   urgentAutoHideMs: 12000,
   debugVisible: false,
   voice: "off",
-  voiceVolume: 1
+  voiceVolume: 1,
+  timers: true,
+  compact: false
 };
 let pollTimer = null;
 let hideTimer = null;
@@ -128,6 +131,7 @@ async function init() {
 }
 
 function applyConfig(nextConfig) {
+  document.body.classList.toggle("compact", nextConfig.compact === true);
   document.body.classList.toggle("locked", Boolean(nextConfig.locked));
   document.body.classList.toggle("unlocked", !nextConfig.locked);
   document.body.classList.toggle("debug-hidden", nextConfig.debugVisible === false);
@@ -140,13 +144,17 @@ function startPolling() {
 }
 
 async function poll() {
+  // Muted or no answer: no fresh timers, so none are shown (a chip left from the
+  // last answer would count down from a frozen value).
   if (Date.now() < mutedUntil) {
+    renderStrip([]);
     showStatus(tr("mutedFor", secondsUntil(mutedUntil)));
     return;
   }
 
   const result = await window.overlayApi.fetchRecommendation();
   if (!result.ok) {
+    renderStrip([]);
     showStatus(config.backendStatus === "stopped" ? tr("backendStopped") : tr("waitingBackend"));
     return;
   }
@@ -160,6 +168,7 @@ let currentHint = null;
 const spokenHints = new Set();
 
 function renderOverlay(data) {
+  renderStrip(data.post_game && data.post_game.main ? [] : data.timer_strip);
   // The score screen after a match: the summary of its review, nothing else.
   if (data.post_game && data.post_game.main) {
     showPostGame(data);
@@ -227,6 +236,43 @@ function renderOverlay(data) {
   renderAdvice(data, { refreshTimer: true });
 }
 
+// The strip under the card: «Rune 0:50 · Stack 0:12 · Roshan 3:10», counting down.
+function renderStrip(items) {
+  const list = config.timers === false || !Array.isArray(items) ? [] : items.filter((item) => item && item.label);
+  stripEl.classList.toggle("hidden", !list.length);
+  stripEl.replaceChildren(
+    ...list.map((item) => {
+      const row = document.createElement("li");
+      row.className = `timer-chip timer-${item.kind || "event"}`;
+      row.dataset.soon = String(Number(item.in_seconds) <= 20);
+      const label = document.createElement("span");
+      label.textContent = item.label;
+      const time = document.createElement("span");
+      time.className = "timer-time";
+      time.textContent = countdown(item.in_seconds);
+      row.append(label, time);
+      return row;
+    })
+  );
+}
+
+function countdown(seconds) {
+  const value = Math.max(0, Math.round(Number(seconds) || 0));
+  return `${Math.floor(value / 60)}:${String(value % 60).padStart(2, "0")}`;
+}
+
+// A new card slides in (a short fade); the same card refreshed stays still.
+let shownCardKey = "";
+function markCard(key) {
+  if (key === shownCardKey) {
+    return;
+  }
+  shownCardKey = key;
+  shell.classList.remove("enter");
+  void shell.offsetWidth; // restart the animation
+  shell.classList.add("enter");
+}
+
 function renderAdvice(data, options = { refreshTimer: true }) {
   const recommendation = data.recommendation;
   const adviceMode = data.advice_mode || (recommendation.priority === "high" ? "urgent" : "coaching");
@@ -250,6 +296,7 @@ function renderAdvice(data, options = { refreshTimer: true }) {
   reasonEl.textContent = recommendation.reason || "";
   renderStatusRow(data);
   reveal();
+  markCard(`advice|${key}`);
 
   lastVisibleAdvice = data;
   // Spoken once per advice while it is still current (a tip skipped because
@@ -291,6 +338,7 @@ function showPostGame(data) {
   reasonEl.textContent = (card.detail || []).join(" ");
   renderStatusRow(data);
   reveal();
+  markCard(`post|${card.title}|${card.main}`);
 }
 
 const spokenDeaths = new Set();
@@ -306,6 +354,7 @@ function showDeathScreen(data) {
   reasonEl.textContent = rest.join("\n");
   renderStatusRow(data);
   reveal();
+  markCard(`death|${card.id || first}`);
   // Read once per death when the voice reads every advice (the id stays while the gold changes).
   const key = `death|${card.id || data.match_death_count || ""}`;
   if (!speaker || spokenDeaths.has(key)) {
@@ -336,6 +385,7 @@ function showPlan(data) {
   reasonEl.textContent = rest.join("\n");
   renderStatusRow(data);
   reveal();
+  markCard(`plan|${heroName}`);
   // Heard once per plan when the voice reads every advice (fullscreen players
   // never see the card).
   const planKey = `plan|${data.game_plan.hero || ""}|${data.game_plan.lines.join("|")}`;
@@ -371,6 +421,7 @@ function showHint(hint, data) {
   reasonEl.textContent = hint.hint || "";
   renderStatusRow(data);
   reveal();
+  markCard(`hint|${hint.id || hint.title}`);
 }
 
 // Timers marked "speak" (Tormentor, wisdom shrine) are read once when the voice

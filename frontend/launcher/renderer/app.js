@@ -64,7 +64,8 @@ const I18N = {
       copied: "Copied"
     },
     matchTitle: "Current match",
-    coverageSafety: "Farm and item advice is for 39 carry, mid and offlane heroes; on this hero the coach gives survival advice, map timers and role tips.",
+    coverageSafety: "The full advice is for 64 heroes (carries, mids, offlaners and supports); on this hero the coach gives survival advice, map timers and role tips.",
+    coverageSupport: "Support advice: your own saves, fights and objectives, stacks, pulls, wards and save items. No farm or item advice: the gold goes to your cores.",
     statHero: "Hero",
     statClock: "Match time",
     statStage: "Stage",
@@ -99,6 +100,10 @@ const I18N = {
     posBottom: "Bottom",
     overlaySize: "Card size",
     overlaySizeHint: "Larger on big and high-resolution screens",
+    overlayTimers: "Timer strip",
+    overlayTimersHint: "Under the card: the next runes, stacks, Roshan and the Aegis for your position",
+    overlayCompact: "Compact card",
+    overlayCompactHint: "Only what to do, without the reason: less to read during a fight",
     sizeSmall: "Small",
     sizeNormal: "Normal",
     sizeLarge: "Large",
@@ -280,12 +285,18 @@ const I18N = {
         }
       }
     },
+    summaryTitle: "Summary",
     sessionTitle: "Your evening",
     sessionHide: "Hide",
     tourTitle: "Tour of the app",
     tourHint: "A minute-long look at what is where",
     tourStart: "Show",
     whatsNew: {
+      "0.20.0": [
+        "Full advice for 25 supports (positions 4 and 5) with their own saves, reminders to place the wards in your bag and to get a save item, and a support review: your save item's timing and the wards you placed.",
+        "Overlay 2.0: a timer strip under the card (runes, stacks, Roshan, Aegis for your role), a compact card and a soft fade-in — Settings → Overlay.",
+        "A new Home: one card with your last match, today, streaks and focus. Progress gets a Goals zone."
+      ],
       "0.19.0": [
         "Your evening: after two or more matches, Home sums up the sitting once Dota is closed, with a text to copy for friends.",
         "Progress shows where you die over the last 20 matches, and your hero's key item timing game by game.",
@@ -584,7 +595,8 @@ const I18N = {
       copied: "Скопировано"
     },
     matchTitle: "Текущий матч",
-    coverageSafety: "Советы по фарму и предметам — для 39 героев керри, мида и хардлайна; на этом герое тренер подсказывает по выживанию, таймерам карты и роли.",
+    coverageSafety: "Полные подсказки — для 64 героев (керри, мид, хардлайн, саппорты); на этом герое тренер подсказывает по выживанию, таймерам карты и роли.",
+    coverageSupport: "Советы саппорта: свои спасения, драки и цели, стаки, пулы, варды и спасающие предметы. Без советов по фарму и предметам — золото достаётся корам.",
     statHero: "Герой",
     statClock: "Время матча",
     statStage: "Стадия",
@@ -619,6 +631,10 @@ const I18N = {
     posBottom: "Снизу",
     overlaySize: "Размер карточки",
     overlaySizeHint: "Крупнее — для больших экранов и высокого разрешения",
+    overlayTimers: "Полоса таймеров",
+    overlayTimersHint: "Под карточкой: ближайшие руны, стаки, Рошан и Аегис для вашей позиции",
+    overlayCompact: "Компактная карточка",
+    overlayCompactHint: "Только что делать, без объяснения: меньше читать во время драки",
     sizeSmall: "Мелкий",
     sizeNormal: "Обычный",
     sizeLarge: "Крупный",
@@ -800,12 +816,18 @@ const I18N = {
         }
       }
     },
+    summaryTitle: "Сводка",
     sessionTitle: "Итог вечера",
     sessionHide: "Скрыть",
     tourTitle: "Обучение",
     tourHint: "Минутная экскурсия: что где находится",
     tourStart: "Показать",
     whatsNew: {
+      "0.20.0": [
+        "Полные подсказки для 25 саппортов (четвёрки и пятёрки): их спасения, напоминания поставить варды из инвентаря и собрать предмет спасения, а в разборе — тайминг этого предмета и сколько вардов вы поставили.",
+        "Оверлей 2.0: полоска таймеров под карточкой (руны, стаки, Рошан, Аегис для вашей роли), компактная карточка и плавное появление — «Настройки → Оверлей».",
+        "Новая Главная: одна карточка с последним матчем, сегодняшним днём, сериями и фокусом. В «Прогрессе» — зона «Цели»."
+      ],
       "0.19.0": [
         "Итог вечера: после двух и больше матчей, когда Дота закрыта, на Главной — сводка вечера и текст, который можно скопировать друзьям.",
         "В «Прогрессе» — карта ваших смертей за последние 20 матчей и тайминг ключевого предмета героя по играм.",
@@ -1070,6 +1092,8 @@ const els = {
   positionButtons: [...document.querySelectorAll("#position-group [data-position]")],
   positionHint: $("#position-hint"),
   sizeButtons: [...document.querySelectorAll("#size-group [data-size]")],
+  overlayTimers: $("#overlay-timers"),
+  overlayCompact: $("#overlay-compact"),
   languageButtons: [...document.querySelectorAll("#language-group [data-language]")],
   frequencyButtons: [...document.querySelectorAll("#frequency-group [data-frequency]")],
   roleButtons: [...document.querySelectorAll("#role-group [data-role]")],
@@ -1104,6 +1128,7 @@ const els = {
   inviteCopy: $("#invite-copy"),
   inviteDismiss: $("#invite-dismiss"),
   tourStart: $("#tour-start"),
+  nowZone: $("#now-zone"),
   setupCard: $("#setup-card"),
   setupSteps: $("#setup-steps"),
   setupCount: $("#setup-count"),
@@ -1330,6 +1355,11 @@ async function init() {
   for (const button of els.sizeButtons) {
     button.addEventListener("click", () =>
       run(async () => renderStatus(await window.launcherApi.setOverlaySize(button.dataset.size)))
+    );
+  }
+  for (const [input, key] of [[els.overlayTimers, "timers"], [els.overlayCompact, "compact"]]) {
+    input.addEventListener("change", () =>
+      run(async () => renderStatus(await window.launcherApi.setOverlayDisplay({ [key]: input.checked })))
     );
   }
   for (const button of els.frequencyButtons) {
@@ -1774,6 +1804,13 @@ function renderStatus(status) {
   renderSetup(status);
   renderWhatsNew(status);
   els.inviteCard.classList.toggle("hidden", !status.invite);
+  // «Now» (current match, recent advice) only while Dota runs or there is advice
+  // to show; with Dota closed the summary and the week lead.
+  const live = status.live || {};
+  els.nowZone.classList.toggle(
+    "hidden",
+    !(status.dotaRunning || live.inMatch || live.connected || (status.recentAdvice || []).length || status.demo === "running")
+  );
   if (status.tour && !tourShown) {
     // The first start: the tour opens once the panel has drawn its first status.
     tourShown = true;
@@ -2116,7 +2153,11 @@ function renderMatch(status) {
   }
   els.matchStats.classList.remove("hidden");
   setEmpty(els.matchEmpty, false);
-  els.coverageNote.classList.toggle("hidden", live.coverage !== "safety");
+  const coverageKey = live.coverage === "safety" ? "coverageSafety" : live.coverage === "support" ? "coverageSupport" : null;
+  els.coverageNote.classList.toggle("hidden", !coverageKey);
+  if (coverageKey) {
+    els.coverageNote.textContent = tr(coverageKey);
+  }
   const role = live.role && tr(`roleNames.${live.role.role}`);
   els.roleNote.classList.toggle("hidden", !live.role);
   els.roleNote.textContent = live.role ? tr("roleNote", role, tr(`roleSource.${live.role.source}`)) : "";
@@ -2255,6 +2296,12 @@ function renderOverlaySettings(status) {
     button.setAttribute("aria-checked", String(button.dataset.size === size));
     button.disabled = !enabled;
   }
+
+  const display = status.overlayDisplay || { timers: true, compact: false };
+  els.overlayTimers.checked = display.timers !== false;
+  els.overlayCompact.checked = display.compact === true;
+  els.overlayTimers.disabled = !enabled;
+  els.overlayCompact.disabled = !enabled;
 
   const frequency = status.adviceFrequency || "normal";
   for (const button of els.frequencyButtons) {

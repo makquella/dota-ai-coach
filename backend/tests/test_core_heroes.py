@@ -23,11 +23,12 @@ NOT_A_SAVE = {
 }
 
 
-def test_every_profiled_hero_gets_the_full_advisor_and_back():
+def test_every_profiled_hero_gets_the_advisor_of_its_position_and_back():
     assert set(hero_aliases()) == set(SUPPORTED_HEROES)
     for hero, aliases in hero_aliases().items():
+        expected = "support" if get_hero_position(hero) == "support" else "full"
         for name in (hero, *aliases):
-            assert hero_coverage(name) == "full", name
+            assert hero_coverage(name) == expected, name
 
 
 def test_every_escape_or_defence_of_a_profile_can_be_named():
@@ -58,9 +59,9 @@ def test_live_names_and_positions(npc, hero, position):
 
 
 def test_a_hero_without_a_profile_keeps_its_name_and_the_safety_advice():
-    assert _normalize_hero_name("npc_dota_hero_crystal_maiden") == "Crystal Maiden"
-    assert get_hero_position("Crystal Maiden") is None
-    assert hero_coverage("Crystal Maiden") == "safety"
+    assert _normalize_hero_name("npc_dota_hero_windrunner") == "Windranger"
+    assert get_hero_position("Windranger") is None
+    assert hero_coverage("Windranger") == "safety"
 
 
 def test_offlane_lane_targets_are_lower():
@@ -137,7 +138,7 @@ def test_the_site_heroes_page_lists_exactly_the_full_advisor(repo_root):
             re.S,
         )
     )
-    assert set(groups) == {"carry", "mid", "offlane"}
+    assert set(groups) == {"carry", "mid", "offlane", "support"}
     listed = {}
     for position, block in groups.items():
         cards = re.findall(

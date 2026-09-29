@@ -48,11 +48,6 @@
       <!-- Wide window: what is happening now on the left, the history on the right. -->
       <div class="home-grid">
         <div class="col col-main">
-          <section class="zone" aria-labelledby="zone-now">
-          <header class="zone-head">
-            <h2 class="zone-title" id="zone-now" data-i18n="zoneNow">Now</h2>
-            <p class="zone-hint" data-i18n="zoneNowHint">The current match and the advice it got</p>
-          </header>
           <!-- First run: what is set up and what is left (hidden when done or dismissed). -->
           <section class="card setup hidden" id="setup-card" aria-labelledby="setup-heading">
             <header class="card-head">
@@ -65,12 +60,17 @@
             </header>
             <ol class="setup-steps" id="setup-steps"></ol>
           </section>
-          <!-- Shown after a match: link to its post-match review. -->
-          <button type="button" class="review-banner hidden" id="review-banner">
-            <i data-icon="trophy"></i>
-            <span class="review-banner-text" id="review-banner-text"></span>
-            <i data-icon="chevron-right"></i>
-          </button>
+          <!-- One summary: the last match with its main tip, the day, the goals, the focus. -->
+          <section class="card summary-card hidden" id="summary-card" aria-labelledby="summary-heading">
+            <h2 class="visually-hidden" id="summary-heading" data-i18n="summaryTitle">Summary</h2>
+            <div class="card-body" id="summary-body"></div>
+          </section>
+          <!-- While Dota runs: the current match and the advice it got. -->
+          <section class="zone" id="now-zone" aria-labelledby="zone-now">
+          <header class="zone-head">
+            <h2 class="zone-title" id="zone-now" data-i18n="zoneNow">Now</h2>
+            <p class="zone-hint" data-i18n="zoneNowHint">The current match and the advice it got</p>
+          </header>
         <!-- Current match -->
         <section class="card" id="match-card" aria-labelledby="match-heading">
           <header class="card-head">
@@ -96,7 +96,7 @@
                 <dd id="stat-data"><span class="skeleton skeleton-line w-50"></span></dd>
               </div>
             </dl>
-            <p class="note coverage-note hidden" id="coverage-note" data-i18n="coverageSafety">Farm and item advice is for carry heroes; on this hero the coach gives survival advice, map timers and role tips.</p>
+            <p class="note coverage-note hidden" id="coverage-note"></p>
             <p class="note role-note hidden" id="role-note"></p>
             <div class="empty hidden" id="match-empty">
               <i data-icon="clock"></i>
@@ -131,12 +131,6 @@
             <h2 class="zone-title" id="zone-week" data-i18n="zoneWeek">Your week</h2>
             <p class="zone-hint" data-i18n="zoneWeekHint">The last seven days against the seven before</p>
           </header>
-          <!-- Tonight's session: matches since midnight. -->
-          <p class="today-line num hidden" id="today-line"></p>
-          <!-- Several losses or low scores in a row this session (player_goals.tilt). -->
-          <p class="tilt-line hidden" id="tilt-line" role="status"></p>
-          <!-- Streak goals: «5 матчей подряд — не больше 5 смертей». -->
-          <div class="goals-line hidden" id="goals-line"></div>
           <!-- The last seven days: games, score against the week before, best match, focus plan. -->
           <section class="card week-card hidden" id="week-card" aria-labelledby="zone-week">
             <div class="card-body" id="week-body"></div>
@@ -247,6 +241,20 @@
                 <button type="button" role="radio" data-size="large"><span data-i18n="sizeLarge">Large</span></button>
               </div>
             </div>
+            <label class="setting">
+              <span class="setting-text">
+                <span class="setting-title" data-i18n="overlayTimers">Timer strip</span>
+                <span class="setting-hint" data-i18n="overlayTimersHint">Under the card: the next runes, stacks, Roshan and the Aegis for your position</span>
+              </span>
+              <input id="overlay-timers" type="checkbox" class="switch" role="switch" />
+            </label>
+            <label class="setting">
+              <span class="setting-text">
+                <span class="setting-title" data-i18n="overlayCompact">Compact card</span>
+                <span class="setting-hint" data-i18n="overlayCompactHint">Only what to do, without the reason: less to read during a fight</span>
+              </span>
+              <input id="overlay-compact" type="checkbox" class="switch" role="switch" />
+            </label>
             <div class="setting">
               <span class="setting-text">
                 <span class="setting-title" data-i18n="overlayMove">Move by hand</span>
