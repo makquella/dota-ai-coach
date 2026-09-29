@@ -40,7 +40,8 @@ const I18N = {
       noGsiHint: "Install the GSI config: a small file in the game folder that lets Dota share match data.",
       notRunningTitle: "Dota is not running",
       notRunningHint: "Start Dota 2; the coach connects by itself. You can close this window.",
-      waitingTitle: "Ready, waiting for a match",
+      connectedTitle: "Dota is connected, waiting for a match",
+      noDataTitle: "Dota is running, no data from it yet",
       waitingHintConnected: "Advice starts as soon as a match with your hero begins.",
       waitingHintNoData: "If a match is already on, restart Dota: it reads the GSI config at start.",
       launchOptionTitle: "Dota is not sending game data",
@@ -234,7 +235,62 @@ const I18N = {
     inviteCopy: "Copy the link",
     inviteLater: "Not now",
     inviteCopied: "Link copied",
+    tour: {
+      next: "Next",
+      back: "Back",
+      skip: "Skip",
+      done: "Start playing",
+      count: (i, n) => `${i} of ${n}`,
+      steps: {
+        welcome: {
+          title: "Hi! This is Wardly",
+          text: "The coach watches your match with you: short advice over the game and out loud, and a review with what to fix after it. A quick look around takes a minute."
+        },
+        status: {
+          title: "Status line",
+          text: "What is going on right now: is Dota found, is it sending data, is a match on. When something needs you, the button on the right does it."
+        },
+        setup: {
+          title: "Getting started",
+          text: "What is set up and what is left. Most steps do themselves; the first match with the app finishes the list."
+        },
+        match: {
+          title: "Current match",
+          text: "Your hero, the match time and the advice the coach gave. The advice itself appears over the game: you do not need to look here while playing."
+        },
+        matches: {
+          title: "Matches",
+          text: "Every match with a review: a score by area, where you died, the item timings and what to fix first. The review of a match is ready a minute or two after it ends."
+        },
+        progress: {
+          title: "Progress",
+          text: "How you play over the last games: the trends, the mistakes that repeat, your heroes, and a goal to work on."
+        },
+        settings: {
+          title: "Overlay",
+          text: "Where the advice card sits over the game and how big it is. You can drag it by hand."
+        },
+        voice: {
+          title: "Advice and voice",
+          text: "How often the coach speaks, your role for the map timers, and the voice: it reads the advice out loud, which also works in exclusive fullscreen."
+        },
+        done: {
+          title: "All set",
+          text: "Start Dota and play a match: the first advice appears by itself. This tour can be opened again in Settings → App."
+        }
+      }
+    },
+    sessionTitle: "Your evening",
+    sessionHide: "Hide",
+    tourTitle: "Tour of the app",
+    tourHint: "A minute-long look at what is where",
+    tourStart: "Show",
     whatsNew: {
+      "0.19.0": [
+        "Your evening: after two or more matches, Home sums up the sitting once Dota is closed, with a text to copy for friends.",
+        "Progress shows where you die over the last 20 matches, and your hero's key item timing game by game.",
+        "A short tour of the app (Settings → App), and the status line says plainly whether Dota's data reaches the coach."
+      ],
       "0.18.0": [
         "Full advice for 18 more heroes: 8 mids (Shadow Fiend, Storm Spirit, Queen of Pain, Puck and others) and 10 offlaners (Axe, Mars, Legion Commander, Centaur and others).",
         "The coach knows their own saves (Blink, Ball Lightning, Refraction, Guardian Sprint…), and an offlaner's farm is measured against an offlaner's pace, not a carry's."
@@ -504,7 +560,8 @@ const I18N = {
       noGsiHint: "Установите конфиг GSI — небольшой файл в папке игры, через который Дота передаёт данные матча.",
       notRunningTitle: "Дота не запущена",
       notRunningHint: "Запустите Dota 2 — тренер подключится сам. Это окно можно закрыть.",
-      waitingTitle: "Готово, ждём матч",
+      connectedTitle: "Связь с Дотой есть, ждём матч",
+      noDataTitle: "Дота запущена, данных от неё пока нет",
       waitingHintConnected: "Подсказки начнутся, как только стартует матч с вашим героем.",
       waitingHintNoData: "Если матч уже идёт, перезапустите Доту: конфиг GSI читается при старте игры.",
       launchOptionTitle: "Дота не передаёт данные игры",
@@ -698,7 +755,62 @@ const I18N = {
     inviteCopy: "Скопировать ссылку",
     inviteLater: "Не сейчас",
     inviteCopied: "Ссылка скопирована",
+    tour: {
+      next: "Дальше",
+      back: "Назад",
+      skip: "Пропустить",
+      done: "Играть",
+      count: (i, n) => `${i} из ${n}`,
+      steps: {
+        welcome: {
+          title: "Привет! Это Wardly",
+          text: "Тренер смотрит матч вместе с тобой: короткие советы поверх игры и голосом, а после матча — разбор, что исправить. Покажу, что где, — это займёт минуту."
+        },
+        status: {
+          title: "Строка состояния",
+          text: "Что происходит сейчас: найдена ли Дота, идут ли от неё данные, начался ли матч. Если нужно что-то сделать, справа будет кнопка."
+        },
+        setup: {
+          title: "Первый запуск",
+          text: "Что уже настроено и что осталось. Большинство шагов выполняются сами; первый матч с приложением закроет список."
+        },
+        match: {
+          title: "Текущий матч",
+          text: "Твой герой, время матча и советы тренера. Сами советы появляются поверх игры — во время матча сюда смотреть не нужно."
+        },
+        matches: {
+          title: "Матчи",
+          text: "Каждый матч с разбором: оценки по областям, где ты умирал, тайминги предметов и что исправить в первую очередь. Разбор готов через минуту-две после матча."
+        },
+        progress: {
+          title: "Прогресс",
+          text: "Как ты играешь за последние игры: тренды, повторяющиеся ошибки, твои герои и цель, над которой работать."
+        },
+        settings: {
+          title: "Оверлей",
+          text: "Где карточка с советом стоит поверх игры и какого она размера. Её можно перетащить руками."
+        },
+        voice: {
+          title: "Советы и голос",
+          text: "Как часто тренер подсказывает, твоя роль для таймеров карты и голос: он читает советы вслух и работает даже в полноэкранном режиме."
+        },
+        done: {
+          title: "Всё готово",
+          text: "Запусти Доту и начни матч — первая подсказка появится сама. Обучение можно открыть снова в Настройках → Приложение."
+        }
+      }
+    },
+    sessionTitle: "Итог вечера",
+    sessionHide: "Скрыть",
+    tourTitle: "Обучение",
+    tourHint: "Минутная экскурсия: что где находится",
+    tourStart: "Показать",
     whatsNew: {
+      "0.19.0": [
+        "Итог вечера: после двух и больше матчей, когда Дота закрыта, на Главной — сводка вечера и текст, который можно скопировать друзьям.",
+        "В «Прогрессе» — карта ваших смертей за последние 20 матчей и тайминг ключевого предмета героя по играм.",
+        "Короткое обучение по приложению (Настройки → Приложение), а строка состояния прямо пишет, есть ли связь с Дотой."
+      ],
       "0.18.0": [
         "Полные подсказки ещё для 18 героев: 8 мидеров (Shadow Fiend, Storm Spirit, Queen of Pain, Puck и другие) и 10 хардлайнеров (Axe, Mars, Legion Commander, Centaur и другие).",
         "Тренер знает их собственные спасения (Blink, Ball Lightning, Refraction, Guardian Sprint…), а фарм хардлайнера сравнивается с темпом хардлайнера, а не керри."
@@ -991,6 +1103,7 @@ const els = {
   inviteCard: $("#invite-card"),
   inviteCopy: $("#invite-copy"),
   inviteDismiss: $("#invite-dismiss"),
+  tourStart: $("#tour-start"),
   setupCard: $("#setup-card"),
   setupSteps: $("#setup-steps"),
   setupCount: $("#setup-count"),
@@ -1283,6 +1396,7 @@ async function init() {
   els.inviteDismiss.addEventListener("click", () =>
     run(async () => renderStatus(await window.launcherApi.invite("dismiss")))
   );
+  els.tourStart.addEventListener("click", () => startTour());
   els.setupDismiss.addEventListener("click", () =>
     run(async () => renderStatus(await window.launcherApi.dismissSetup()))
   );
@@ -1536,6 +1650,56 @@ async function init() {
 }
 
 // "Copied" for a moment, then the label the next render gives it.
+// ---------------------------------------------------------------------------
+// First-run tour (renderer/tour.js draws it; the steps and texts are here)
+// ---------------------------------------------------------------------------
+
+const TOUR_STEPS = [
+  { id: "welcome", view: "home" },
+  { id: "status", view: "home", target: "#status" },
+  { id: "setup", view: "home", target: "#setup-card" },
+  { id: "match", view: "home", target: "#match-card" },
+  { id: "matches", view: "home", target: "#tab-matches" },
+  { id: "progress", view: "home", target: "#tab-progress" },
+  { id: "settings", view: "settings", target: "#overlay-card" },
+  { id: "voice", view: "settings", target: "#advice-settings-card" },
+  { id: "done", view: "home" }
+];
+
+let tourShown = false;
+let activeTour = null;
+
+function openTourView(view) {
+  const tab = document.querySelector(`#tab-${view}`);
+  if (tab && tab.getAttribute("aria-selected") !== "true") {
+    tab.click();
+  }
+}
+
+function startTour() {
+  if (activeTour || !window.LauncherTour) {
+    return;
+  }
+  tourShown = true;
+  activeTour = window.LauncherTour.start({
+    steps: TOUR_STEPS.map((step) => ({ ...step, title: tr(`tour.steps.${step.id}.title`), text: tr(`tour.steps.${step.id}.text`) })),
+    labels: {
+      next: tr("tour.next"),
+      back: tr("tour.back"),
+      skip: tr("tour.skip"),
+      done: tr("tour.done"),
+      count: (i, n) => tr("tour.count", i, n)
+    },
+    openView: openTourView,
+    viewSelector: ".view",
+    onClose: () => {
+      activeTour = null;
+      openTourView("home");
+      run(async () => renderStatus(await window.launcherApi.tourDone()));
+    }
+  });
+}
+
 function flashLabel(element, text) {
   const previous = element.textContent;
   element.textContent = text;
@@ -1610,6 +1774,11 @@ function renderStatus(status) {
   renderSetup(status);
   renderWhatsNew(status);
   els.inviteCard.classList.toggle("hidden", !status.invite);
+  if (status.tour && !tourShown) {
+    // The first start: the tour opens once the panel has drawn its first status.
+    tourShown = true;
+    setTimeout(() => startTour(), 400);
+  }
   renderReport(status);
   if (status.backend === "running" && !openDotaLoaded) {
     openDotaLoaded = true;
@@ -1876,11 +2045,10 @@ function resolveStatusLine(status) {
     // Dota runs, the config is there, but nothing arrives: the usual cause.
     return { state: "warn", title: tr("status.launchOptionTitle"), hint: tr("status.launchOptionHint"), action: actions.copyLaunchOption };
   }
-  return {
-    state: "warn",
-    title: tr("status.waitingTitle"),
-    hint: live.connected ? tr("status.waitingHintConnected") : tr("status.waitingHintNoData")
-  };
+  // Dota runs outside a match: say plainly whether its data reaches the coach.
+  return live.connected
+    ? { state: "ok", title: tr("status.connectedTitle"), hint: tr("status.waitingHintConnected") }
+    : { state: "warn", title: tr("status.noDataTitle"), hint: tr("status.waitingHintNoData") };
 }
 
 function renderStatusLine(status) {

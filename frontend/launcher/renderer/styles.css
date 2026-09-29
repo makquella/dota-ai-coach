@@ -3041,6 +3041,73 @@ label.setting:has(.switch:disabled) {
   line-height: 1.5;
 }
 
+/* First-run tour (renderer/tour.js) ---------------------------------------------- */
+.tour {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+}
+/* The cut-out: a clear box whose huge shadow dims everything around it. */
+.tour-spot {
+  position: fixed;
+  border-radius: var(--r-lg);
+  box-shadow: 0 0 0 200vmax var(--scrim);
+  outline: 2px solid var(--accent);
+  outline-offset: 0;
+  pointer-events: none;
+  transition: left var(--dur-slow) var(--ease), top var(--dur-slow) var(--ease),
+    width var(--dur-slow) var(--ease), height var(--dur-slow) var(--ease);
+}
+.tour-spot.tour-spot-none {
+  outline: none;
+}
+.tour-bubble {
+  position: fixed;
+  width: min(340px, calc(100vw - 24px));
+  padding: var(--sp-4);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--r-lg);
+  background: var(--surface-2);
+  color: var(--text);
+  transition: left var(--dur-slow) var(--ease), top var(--dur-slow) var(--ease);
+}
+.tour-count {
+  margin: 0 0 var(--sp-1);
+  color: var(--text-3);
+  font-size: var(--fs-12);
+  font-variant-numeric: tabular-nums;
+}
+.tour-title {
+  margin: 0 0 var(--sp-2);
+  font-size: var(--fs-16);
+  font-weight: var(--fw-semibold);
+}
+.tour-text {
+  margin: 0 0 var(--sp-4);
+  color: var(--text-2);
+  font-size: var(--fs-13);
+  line-height: 1.5;
+}
+.tour-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+}
+.tour-spacer {
+  flex: 1;
+}
+@media (prefers-reduced-motion: reduce) {
+  .tour-spot,
+  .tour-bubble {
+    transition: none;
+  }
+}
+@media print {
+  .tour {
+    display: none;
+  }
+}
+
 /* What's new after an update --------------------------------------------------- */
 .invite-card {
   margin-bottom: var(--sp-3);
@@ -3214,6 +3281,35 @@ label.setting:has(.switch:disabled) {
 
 .death-warning {
   overflow-wrap: anywhere;
+}
+
+/* Progress: the key item's timing game by game, under the hero's build table. */
+.item-trend {
+  margin-top: var(--sp-4);
+}
+.item-trend .small {
+  margin: var(--sp-1) 0 var(--sp-2);
+}
+
+/* Home: «Итог вечера», the latest sitting (shown once Dota is closed). */
+.session-card {
+  margin-bottom: var(--sp-3);
+}
+.session-actions {
+  display: flex;
+  gap: var(--sp-2);
+  margin-top: var(--sp-3);
+}
+.session-preview {
+  margin-top: var(--sp-3);
+  font-size: var(--fs-12);
+  color: var(--text-3);
+}
+.session-preview summary {
+  cursor: pointer;
+}
+.session-preview pre {
+  white-space: pre-wrap;
 }
 
 /* Home: the last seven days. */

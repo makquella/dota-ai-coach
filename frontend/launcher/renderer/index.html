@@ -144,6 +144,17 @@
           </section>
         </div>
         <div class="col col-side">
+          <!-- «Итог вечера»: the latest sitting of 2+ games, shown once Dota is closed. -->
+          <section class="card session-card hidden" id="session-card" aria-labelledby="session-heading">
+            <header class="card-head">
+              <i data-icon="moon"></i>
+              <h2 id="session-heading" data-i18n="sessionTitle">Your evening</h2>
+              <span class="card-head-extra">
+                <button id="session-dismiss" class="btn btn-ghost btn-sm btn-icon" type="button" data-i18n-title="sessionHide" title="Hide"><i data-icon="x"></i></button>
+              </span>
+            </header>
+            <div class="card-body" id="session-body"></div>
+          </section>
           <!-- Once after an update: what the new version brings. -->
           <section class="card whats-new hidden" id="whats-new-card" aria-labelledby="whats-new-heading">
             <header class="card-head">
@@ -348,6 +359,15 @@
                 <button type="button" role="radio" data-language="auto"><span data-i18n="languageAuto">Auto</span></button>
                 <button type="button" role="radio" data-language="ru"><span>Русский</span></button>
                 <button type="button" role="radio" data-language="en"><span>English</span></button>
+              </div>
+            </div>
+            <div class="setting">
+              <span class="setting-text">
+                <span class="setting-title" data-i18n="tourTitle">Tour of the app</span>
+                <span class="setting-hint" data-i18n="tourHint">A minute-long look at what is where</span>
+              </span>
+              <div class="setting-controls">
+                <button id="tour-start" class="btn" type="button"><i data-icon="compass"></i><span data-i18n="tourStart">Show</span></button>
               </div>
             </div>
             <label class="setting">
@@ -584,6 +604,7 @@
     <script src="./dota-data.js"></script>
     <script src="./dota-icons.js"></script>
     <script src="./charts.js"></script>
+    <script src="./tour.js"></script>
     <script src="./app.js"></script>
     <script src="./matches.js"></script>
   </body>

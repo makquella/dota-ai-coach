@@ -137,6 +137,19 @@
       weekFocus: "Focus:",
       weekPlanProgress: (met, played, plan) => `${met} of ${played} done · plan: ${plan} matches in a row`,
       weekPlanNext: "Next match",
+      sessionGames: "Matches",
+      sessionScore: "Average score",
+      sessionVsUsual: "vs your usual",
+      sessionUsual: (score) => `Your usual: ${score}`,
+      sessionNoScore: "No reviewed matches yet",
+      sessionTime: (minutes) => (minutes >= 60 ? `${Math.floor(minutes / 60)} h ${String(minutes % 60).padStart(2, "0")} min played` : `${minutes} min played`),
+      sessionDeaths: (deaths) => `deaths a match on average: ${deaths}`,
+      sessionProblem: "To work on:",
+      sessionProblemText: (title, count, of) => `${title} — in ${count} of ${of}`,
+      sessionFocus: (title, met, total) => `Focus «${title}»: done in ${met} of ${total}`,
+      sessionCopy: "Copy for friends",
+      sessionCopied: "Copied",
+      sessionPreview: "What will be copied",
       deathsNoPattern: "No repeating cause across these deaths.",
       deathNoFacts: "Nothing else is known about this death.",
       deathGold: (gold) => `${gold} unspent gold`,
@@ -313,6 +326,19 @@
       shareWhatProgress: "A page with your progress over all heroes: matches, win rate, averages, the last 10 against the 10 before, top heroes, what goes well and what to work on. Anyone with the link can open it.",
       shareNotProgress: "Not published: match numbers, your Steam ID, nickname, the other players and your questions to the coach. The link works for 90 days, and you can delete it at any time.",
       shareLinkProgress: "Link to your progress",
+      trendTitle: (item) => `${item}: timing game by game`,
+      trendLine: (recent, n, before, m) => `Last ${n} games: ${recent}; the ${m} before: ${before}.`,
+      trendRecentOnly: (recent, n) => `Last ${n} games: ${recent} (median).`,
+      trendSooner: (gap) => `${gap} sooner`,
+      trendLater: (gap) => `${gap} later`,
+      trendSame: "about the same",
+      trendMinute: "Minute",
+      deathMapTitle: "Where you die",
+      deathMapNote: (matches, total, per) => `The last ${matches} matches with a map: ${total} deaths, ${per} a match.`,
+      deathMapTurned: "Dire games are turned half a turn, so your base is always bottom left.",
+      deathMapSpot: (place, count, matches) => `${place}: ${count} deaths in ${matches} matches`,
+      deathMapSpots: "Deaths keep repeating here:",
+      deathMapLate: (pct) => `After minute 10: ${pct}% of deaths on the enemy half`,
       opponentsTitle: "Enemy heroes",
       opponentsNote: (n, min) => `Your record against each enemy hero in ${n} matches with a known lineup (heroes met ${min}+ times).`,
       opponentsHard: "Hardest to play against",
@@ -594,6 +620,19 @@
       weekFocus: "Фокус:",
       weekPlanProgress: (met, played, plan) => `получилось ${met} из ${played} · план: ${plan} матча подряд`,
       weekPlanNext: "Следующий матч",
+      sessionGames: "Матчи",
+      sessionScore: "Средняя оценка",
+      sessionVsUsual: "к обычной",
+      sessionUsual: (score) => `Обычно: ${score}`,
+      sessionNoScore: "Разборов пока нет",
+      sessionTime: (minutes) => (minutes >= 60 ? `${Math.floor(minutes / 60)} ч ${String(minutes % 60).padStart(2, "0")} мин в игре` : `${minutes} мин в игре`),
+      sessionDeaths: (deaths) => `смертей за матч в среднем: ${String(deaths).replace(".", ",")}`,
+      sessionProblem: "Над чем работать:",
+      sessionProblemText: (title, count, of) => `${title} — в ${count} из ${of}`,
+      sessionFocus: (title, met, total) => `Фокус «${title}»: получилось в ${met} из ${total}`,
+      sessionCopy: "Скопировать для друзей",
+      sessionCopied: "Скопировано",
+      sessionPreview: "Что скопируется",
       deathsNoPattern: "Повторяющейся причины у этих смертей нет.",
       deathNoFacts: "Больше об этой смерти ничего не известно.",
       deathGold: (gold) => `${gold} непотраченного золота`,
@@ -770,6 +809,19 @@
       shareWhatProgress: "Страница с вашим прогрессом по всем героям: матчи, процент побед, средние цифры, последние 10 матчей против 10 до них, главные герои, что получается и над чем работать. Открыть её сможет любой, у кого есть ссылка.",
       shareNotProgress: "Не публикуется: номера матчей, ваш Steam ID, ник, другие игроки и ваши вопросы тренеру. Ссылка работает 90 дней, её можно удалить в любой момент.",
       shareLinkProgress: "Ссылка на прогресс",
+      trendTitle: (item) => `${item}: тайминг по играм`,
+      trendLine: (recent, n, before, m) => `Последние ${n} ${plural(n, "игра", "игры", "игр")}: ${recent}; ${m} ${plural(m, "игра", "игры", "игр")} до этого: ${before}.`,
+      trendRecentOnly: (recent, n) => `Последние ${n} ${plural(n, "игра", "игры", "игр")}: ${recent} (медиана).`,
+      trendSooner: (gap) => `на ${gap} раньше`,
+      trendLater: (gap) => `на ${gap} позже`,
+      trendSame: "примерно так же",
+      trendMinute: "Минута",
+      deathMapTitle: "Где вы умираете",
+      deathMapNote: (matches, total, per) => `Последние ${matches} ${plural(matches, "матч", "матча", "матчей")} с картой: ${total} ${plural(total, "смерть", "смерти", "смертей")}, ${String(per).replace(".", ",")} за матч.`,
+      deathMapTurned: "Игры за Силы Тьмы повёрнуты на пол-оборота: ваша база всегда слева внизу.",
+      deathMapSpot: (place, count, matches) => `${place}: ${count} ${plural(count, "смерть", "смерти", "смертей")} в ${matches} ${plural(matches, "матче", "матчах", "матчах")}`,
+      deathMapSpots: "Здесь смерти повторяются:",
+      deathMapLate: (pct) => `После 10-й минуты на половине противника: ${pct}% смертей`,
       opponentsTitle: "Вражеские герои",
       opponentsNote: (n, min) => `Ваш счёт против каждого вражеского героя в ${n} матчах с известным составом (герои, встреченные ${min}+ раза).`,
       opponentsHard: "Против них сложнее всего",
@@ -2477,6 +2529,52 @@
     hydrate(host);
   }
 
+  // Every death of the last 20 matches with a map, as if always Radiant
+  // (app/career_deaths.py); the map itself is drawn once the card is in the page.
+  function deathMapCard(data) {
+    if (!data || !(data.deaths || []).length) {
+      return null;
+    }
+    const facts = [h("p", { class: "fact-line" }, h("strong", { text: t("mapDeaths") }), h("span", { class: "num", text: String(data.total) }))];
+    for (const side of ["own", "river", "enemy"]) {
+      if (data.by_side && data.by_side[side]) {
+        facts.push(h("p", { class: "fact-line muted small" }, h("span", { text: t(`mapSide.${side}`) }), h("span", { class: "num", text: String(data.by_side[side]) })));
+      }
+    }
+    const spots = (data.spots || []).filter((spot) => spot.label);
+    if (spots.length) {
+      facts.push(h("p", { class: "friend-sub", text: t("deathMapSpots") }));
+      for (const spot of spots) {
+        facts.push(h("p", { class: "fact-line map-spot-line small" }, h("span", { text: t("deathMapSpot", spot.label, spot.count, spot.matches) })));
+      }
+    }
+    if (data.enemy_share_late != null) {
+      facts.push(h("p", { class: "muted small", text: t("deathMapLate", data.enemy_share_late) }));
+    }
+    const body = h(
+      "div",
+      {},
+      h("p", { class: "muted small chart-note", text: `${t("deathMapNote", data.matches, data.total, data.per_match)} ${t("deathMapTurned")}` }),
+      h("div", { class: "map-layout" }, h("div", { class: "chart-host", dataset: { chart: "career-map" } }), h("div", { class: "map-facts" }, facts))
+    );
+    return card(t("deathMapTitle"), "skull", body);
+  }
+
+  function drawCareerMap(host, data) {
+    window.LauncherCharts.map(host, {
+      background: MAP_BACKGROUND,
+      bounds: data.bounds,
+      spots: (data.spots || []).map((spot) => ({ ...spot, title: t("mapSpotTitle", spot.count, spot.label || "") })),
+      deaths: (data.deaths || []).map((death) => ({
+        ...death,
+        killer: [death.hero, death.killer ? t("killedBy", death.killer) : null].filter(Boolean).join(" · ")
+      })),
+      labels: t("mapLabels"),
+      clock,
+      ariaLabel: t("deathMapTitle")
+    });
+  }
+
   // The record against enemy heroes met 3+ times (career_analysis.opponents).
   function opponentsCard(record) {
     if (!record || !(record.hard?.length || record.easy?.length)) {
@@ -2605,9 +2703,56 @@
               )
             )
           )
-        )
+        ),
+        itemTrendBlock(build.timing_trend)
       )
     );
+  }
+
+  // The key item's timing game by game (hero_build.timing_trend): drawn by drawItemTrend.
+  function itemTrendBlock(trend) {
+    if (!trend || !(trend.points || []).length) {
+      return null;
+    }
+    let line;
+    if (Number.isFinite(trend.change)) {
+      const tone = trend.change < -30 ? "good" : trend.change > 30 ? "bad" : "idle";
+      const word = trend.change < -30 ? t("trendSooner", clock(-trend.change)) : trend.change > 30 ? t("trendLater", clock(trend.change)) : t("trendSame");
+      line = h(
+        "p",
+        { class: "small" },
+        h("span", { text: t("trendLine", clock(trend.recent), trend.recent_games, clock(trend.before), trend.before_games) }),
+        " ",
+        h("span", { class: `delta delta-${tone}`, text: word })
+      );
+    } else {
+      line = h("p", { class: "small", text: t("trendRecentOnly", clock(trend.recent), trend.recent_games) });
+    }
+    return h(
+      "div",
+      { class: "item-trend" },
+      h("p", { class: "friend-sub" }, itemLabel(trend.item, t("trendTitle", trend.item))),
+      line,
+      h("div", { class: "chart-host", dataset: { chart: "item-trend" } })
+    );
+  }
+
+  function drawItemTrend(host, trend) {
+    window.LauncherCharts.columns(host, {
+      items: trend.points.map((point, index) => ({
+        label: String(point.match_id ?? index),
+        value: Math.round(point.t / 6) / 10,
+        title: `${trend.item} · ${clock(point.t)}`,
+        detail: point.win ? t("win") : t("loss"),
+        key: point.win ? "win" : "loss",
+        matchId: point.match_id
+      })),
+      height: 120,
+      color: VIZ_1,
+      valueLabel: t("trendMinute"),
+      ariaLabel: t("trendTitle", trend.item),
+      onSelect: (item) => (item.matchId ? openMatch(item.matchId) : null)
+    });
   }
 
   function selfCompareCard(compare) {
@@ -3875,6 +4020,7 @@
           ]),
           zone(t("zoneGames"), t("zoneGamesHint"), [
             scoreCard,
+            deathMapCard(career.death_map),
             heroesCard,
             state.careerHero === null ? heroPoolCard(career.hero_pool) : null,
             strengthsCard
@@ -3892,6 +4038,14 @@
       )
     );
     hydrate(root);
+    const careerMap = root.querySelector('[data-chart="career-map"]');
+    if (careerMap) {
+      drawCareerMap(careerMap, career.death_map);
+    }
+    const itemTrend = root.querySelector('[data-chart="item-trend"]');
+    if (itemTrend) {
+      drawItemTrend(itemTrend, career.hero_build.timing_trend);
+    }
     const items = (career.series || []).map((match) => ({
       label: String(match.match_id),
       value: match.score,
@@ -4076,6 +4230,123 @@
     );
   }
 
+  // --- home: «Итог вечера» (app/session_summary.py) --------------------------------
+
+  async function refreshSession(status) {
+    // Only once Dota is closed: during the evening the card would be about half of it.
+    if (status.dotaRunning) {
+      renderSession(null, status);
+      return;
+    }
+    const review = status.player && status.player.lastReview;
+    const key = `${state.locale}|${review ? review.match_id : ""}|${status.player && status.player.accountId}`;
+    if (state.sessionKey === key && Date.now() - (state.sessionAt || 0) < WEEK_REFRESH_MS) {
+      renderSession(state.session, status);
+      return;
+    }
+    state.sessionKey = key;
+    state.sessionAt = Date.now();
+    const result = await call("session");
+    state.session = result.ok ? result.data.session : null;
+    renderSession(state.session, status);
+  }
+
+  function renderSession(session, status) {
+    const cardEl = document.getElementById("session-card");
+    const body = document.getElementById("session-body");
+    if (!cardEl || !body) {
+      return;
+    }
+    const show = Boolean(session && session.id !== (status && status.sessionSeen));
+    cardEl.classList.toggle("hidden", !show);
+    if (!show) {
+      return;
+    }
+    if (body.dataset.sessionId === `${state.locale}|${session.id}|${session.avg_score}`) {
+      return; // drawn already: keep the copy button's state
+    }
+    body.dataset.sessionId = `${state.locale}|${session.id}|${session.avg_score}`;
+    document.getElementById("session-dismiss").onclick = async () => {
+      const result = await window.launcherApi.session({ dismiss: session.id });
+      cardEl.classList.add("hidden");
+      if (result && result.status) {
+        state.status = { ...state.status, sessionSeen: session.id };
+      }
+    };
+    let change = null;
+    if (Number.isFinite(session.score_change)) {
+      const tone = session.score_change > 0 ? "good" : session.score_change < 0 ? "bad" : "idle";
+      const iconName = session.score_change > 0 ? "trending-up" : session.score_change < 0 ? "trending-down" : "minus";
+      change = h("span", { class: `delta delta-${tone}` }, icon(iconName), h("span", { class: "num", text: `${session.score_change > 0 ? "+" : ""}${session.score_change}` }), h("span", { class: "muted", text: ` ${t("sessionVsUsual")}` }));
+    }
+    const tiles = [
+      tile(t("sessionGames"), String(session.games), null, t("weekRecord", session.wins, session.losses)),
+      tile(
+        t("sessionScore"),
+        session.avg_score == null ? "—" : String(session.avg_score),
+        change,
+        session.avg_score == null ? t("sessionNoScore") : change ? null : session.usual_score != null ? t("sessionUsual", session.usual_score) : null
+      )
+    ];
+    if (session.best) {
+      tiles.push(
+        h(
+          "button",
+          { type: "button", class: "tile tile-link", onclick: () => openMatch(session.best.match_id) },
+          h("p", { class: "tile-label", text: t("weekBest") }),
+          h("p", { class: "tile-value with-pic" }, window.DotaIcons?.hero(session.best.hero) ? window.DotaIcons.heroPicture(document, session.best.hero, "sm") : null, h("span", { class: "num", text: String(session.best.score) })),
+          h("p", { class: "tile-sub muted", text: session.best.hero || "" })
+        )
+      );
+    }
+    const facts = [t("sessionTime", session.minutes), session.avg_deaths != null ? t("sessionDeaths", session.avg_deaths) : null].filter(Boolean).join(" · ");
+    const lines = [h("p", { class: "week-line muted num", text: facts })];
+    const heroes = (session.heroes || []).filter((hero) => hero && hero.hero);
+    if (heroes.length) {
+      lines.push(
+        h(
+          "p",
+          { class: "week-line week-heroes" },
+          h("span", { class: "muted", text: `${t("weekHeroes")} ` }),
+          heroes.map((hero) =>
+            h(
+              "span",
+              { class: "week-hero", title: t("weekHeroTitle", hero.hero, hero.games, hero.wins) },
+              window.DotaIcons?.hero(hero.hero) ? window.DotaIcons.heroPicture(document, hero.hero, "sm") : null,
+              h("span", { text: hero.hero }),
+              h("span", { class: "muted num", text: `${hero.wins}–${hero.games - hero.wins}` })
+            )
+          )
+        )
+      );
+    }
+    if (session.top_problem) {
+      lines.push(h("p", { class: "week-line" }, h("span", { class: "muted", text: `${t("sessionProblem")} ` }), h("span", { text: t("sessionProblemText", session.top_problem.title, session.top_problem.count, session.top_problem.of) })));
+    }
+    if (session.focus) {
+      lines.push(h("p", { class: "week-line", text: t("sessionFocus", session.focus.title, session.focus.met, session.focus.total) }));
+    }
+    const copy = h("button", { type: "button", class: "btn btn-primary btn-sm" }, icon("copy"), h("span", { text: t("sessionCopy") }));
+    copy.addEventListener("click", async () => {
+      const result = await window.launcherApi.session("copy");
+      if (result && result.ok) {
+        const label = copy.querySelector("span");
+        label.textContent = t("sessionCopied");
+        setTimeout(() => {
+          label.textContent = t("sessionCopy");
+        }, 1600);
+      }
+    });
+    const preview = h(
+      "details",
+      { class: "session-preview" },
+      h("summary", { text: t("sessionPreview") }),
+      h("pre", { class: "report-preview-text", tabindex: "0", text: session.text || "" })
+    );
+    body.replaceChildren(h("div", { class: "tiles week-tiles" }, tiles), ...lines, h("div", { class: "session-actions" }, copy), preview);
+    hydrate(body);
+  }
+
   let shownWeek = null;
 
   function renderWeek(week) {
@@ -4187,9 +4458,11 @@
     if (status.backend === "running" && status.player && status.player.linked) {
       refreshWeek(status).catch(() => {});
       refreshRecent(status).catch(() => {});
+      refreshSession(status).catch(() => {});
     } else {
       renderWeek(null);
       renderRecent([]);
+      renderSession(null, status);
     }
     if (localeChanged) {
       // Texts from the backend (reviews, progress) come in the new language only
@@ -4224,6 +4497,9 @@
     api.onPlayerEvent?.((event) => {
       if (event.type === "open-match" && event.matchId) {
         openMatch(event.matchId);
+      } else if (event.type === "open-home") {
+        // The evening summary's tray note: its card is on Home.
+        setView("home");
       } else if (event.type === "review-ready" && state.view === "matches") {
         loadMatches(true);
       }
