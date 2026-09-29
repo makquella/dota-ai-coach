@@ -34,6 +34,8 @@
 | VK Клипы / TikTok | `?ref=vkclips` / `?ref=tiktok` |
 | Discord-серверы | `?ref=discord` |
 
+Для англоязычных площадок — та же метка на английской версии: `https://luhovyimvp.dev/en/?ref=reddit`. Страницы героев тоже принимают метку (`/heroes/axe.html?ref=tg`) — удобно для постов про конкретного героя.
+
 Метка — латиница, цифры, `-` и `_`, до 24 символов. Без метки сайт сам
 определит поиск (`search`), известные сайты (reddit, pikabu, dtf, vk, tg, yt,
 steam, twitch, discord, github, cybersport), прочие (`other`) и прямой заход
