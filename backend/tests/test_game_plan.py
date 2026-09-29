@@ -79,9 +79,17 @@ def test_a_hero_never_played_still_gets_the_target_and_overall_reminder(client, 
 
 def test_an_unplayed_hero_without_a_profile_gets_no_guessed_target(client, tmp_path):
     service = _synced(client, tmp_path)
-    for hero in ("Lion", "Crystal Maiden"):
+    for hero in ("Windranger", "Nature's Prophet"):
         plan = service.game_plan(hero, "en")
         assert plan is not None and plan["role"] is None
+        assert not any("last hits" in line for line in plan["lines"])
+
+
+def test_an_unplayed_profiled_support_is_a_support_without_a_last_hit_target(client, tmp_path):
+    service = _synced(client, tmp_path)
+    for hero in ("Lion", "Crystal Maiden"):
+        plan = service.game_plan(hero, "en")
+        assert plan is not None and plan["role"] == "support"
         assert not any("last hits" in line for line in plan["lines"])
 
 

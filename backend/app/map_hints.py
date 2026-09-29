@@ -44,6 +44,25 @@ WARD_EVERY = 5 * 60
 WARD_SHOW = 20
 
 WARD_ITEMS = {"item_ward_observer", "item_ward_dispenser"}
+# Support tip: the same observer ward carried this long (nothing placed).
+WARD_HELD = 2 * 60
+WARD_HELD_EVERY = 3 * 60
+# Support tip: no save item after this clock with this much gold.
+SAVE_ITEMS = {
+    "item_glimmer_cape",
+    "item_force_staff",
+    "item_hurricane_pike",
+    "item_ghost",
+    "item_ethereal_blade",
+    "item_lotus_orb",
+    "item_solar_crest",
+    "item_pavise",
+    "item_guardian_greaves",
+}
+SAVE_FROM = 12 * 60
+SAVE_GOLD = 1200
+SAVE_EVERY = 5 * 60
+SAVE_SHOW = 20
 # Any role without the carry advisor (which has its own TP advice): no TP scroll.
 TP_EVERY = 4 * 60
 TP_SHOW = 20
@@ -111,6 +130,26 @@ TIPS = {
     "wards": {
         "en": ("No observer wards on you", "Take wards from the shop and light up the next fight."),
         "ru": ("Нет вардов", "Возьмите варды в лавке и подсветите место следующей драки."),
+    },
+    "ward_bag": {
+        "en": (
+            "Place your observer ward",
+            "A ward in the bag shows nothing: put it where the next fight or gank will come from.",
+        ),
+        "ru": (
+            "Поставьте вард",
+            "Вард в сумке ничего не показывает: поставьте его там, откуда придёт драка или ганк.",
+        ),
+    },
+    "save_item": {
+        "en": (
+            "No save item yet",
+            "Glimmer Cape or Force Staff saves a core in a fight: buy one of them next.",
+        ),
+        "ru": (
+            "Нет спасающего предмета",
+            "Glimmer Cape или Force Staff спасают кора в драке: купите один из них следующим.",
+        ),
     },
     "mid_six": {
         "en": (
@@ -230,6 +269,22 @@ def item_names(items: Any) -> list[str] | None:
     return names
 
 
+def observer_charges(items: Any) -> int | None:
+    """Observer wards carried in the inventory (a ward without a charge count is
+    one); None without an items block."""
+    if not isinstance(items, dict) or not items:
+        return None
+    total = 0
+    for slot, item in items.items():
+        if not str(slot).startswith("slot") or not isinstance(item, dict):
+            continue
+        if str(item.get("name") or "") in WARD_ITEMS:
+            charges = item.get("charges")
+            valid = isinstance(charges, int) and not isinstance(charges, bool)
+            total += charges if valid and 0 < charges < 100 else 1
+    return total
+
+
 def has_observer_ward(items: Any) -> bool | None:
     """From a raw GSI items block; None without one (stash and neutral slots skipped)."""
     if not isinstance(items, dict) or not items:
@@ -293,6 +348,8 @@ class RoleTips:
 
     def reset(self) -> None:
         self._shown: dict[str, int] = {}
+        # (observer wards carried, the clock since when none was placed).
+        self._ward_held: tuple[int, int] | None = None
         # Level 6 counts as reached only after a level below 6 was seen: a
         # backend started mid-game at level 8 must not call it a new spike.
         self._armed = False
@@ -326,7 +383,9 @@ class RoleTips:
         lane: str | None = None,
         items: list[str] | None = None,
         key_item: dict[str, Any] | None = None,
+        ward_charges: int | None = None,
     ) -> dict[str, Any] | None:
+        held_for = self._observe_wards(ward_charges, clock)
         if not alive or role is None:
             return None
         if tp_missing and not carry_advisor:
@@ -374,12 +433,39 @@ class RoleTips:
             start = self._every("wards", clock, WARD_EVERY, WARD_SHOW)
             if start is not None:
                 return _tip("wards", f"wards@{start}", lang)
+        if held_for is not None and held_for >= WARD_HELD and clock >= WARD_FROM_CLOCK:
+            start = self._every("ward_bag", clock, WARD_HELD_EVERY, WARD_SHOW)
+            if start is not None:
+                return _tip("ward_bag", f"ward_bag@{start}", lang)
+        if (
+            items is not None
+            and clock >= SAVE_FROM
+            and not SAVE_ITEMS & set(items)
+            and gold is not None
+            and gold >= SAVE_GOLD
+        ):
+            start = self._every("save_item", clock, SAVE_EVERY, SAVE_SHOW)
+            if start is not None:
+                return _tip("save_item", f"save_item@{start}", lang)
         if gold is not None and gold >= SPEND_GOLD and clock >= SPEND_FROM:
             start = self._every("spend_gold", clock, SPEND_EVERY, SPEND_SHOW)
             if start is not None:
                 # Rounded down to hundreds, as the player reads it on screen.
                 return _tip("spend_gold", f"spend_gold@{start}", lang, gold=gold // 100 * 100)
         return None
+
+    def _observe_wards(self, charges: int | None, clock: int) -> int | None:
+        """Seconds the carried observer wards went without one being placed; None
+        without a ward. Buying more keeps the time, placing one restarts it."""
+        if not charges:
+            self._ward_held = None
+            return None
+        held = self._ward_held
+        if held is None or charges < held[0] or clock < held[1]:
+            self._ward_held = (charges, clock)
+        elif charges > held[0]:
+            self._ward_held = (charges, held[1])
+        return clock - self._ward_held[1]
 
     def _once(self, key: str, clock: int, show: int) -> int | None:
         """Once per match: the start while within `show` seconds of it."""
@@ -501,6 +587,7 @@ def map_hint(
     items: list[str] | None = None,
     key_item: dict[str, Any] | None = None,
     objective: dict[str, Any] | None = None,
+    ward_charges: int | None = None,
 ) -> dict[str, Any] | None:
     """A timer, but a role tip over a minor one (runes, lotus); None before the
     horn or without a role. `objective`: a Roshan / Aegis timer (roshan_timer.py),
@@ -539,5 +626,6 @@ def map_hint(
         lane=lane,
         items=items,
         key_item=key_item,
+        ward_charges=ward_charges,
     )
     return tip or timer

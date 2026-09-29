@@ -237,7 +237,7 @@ async def receive_gsi(request: Request):
     if isinstance(state, dict):
         LIVE_SESSION_RECORDER.record_gsi(payload, state)
         MATCH_MEMORY.observe_state(state)
-        coverage = hero_coverage(str(state.get("hero") or ""))
+        coverage = _advisor_coverage(state)
         if coverage:
             decision_point = _covered_decision_point(detect_decision_point(state), coverage)
             MATCH_MEMORY.last_advice_type = decision_point
@@ -319,6 +319,15 @@ def overlay_recommendation(lang: str = "en"):
     return response
 
 
+def _advisor_coverage(state: Mapping[str, object]) -> str | None:
+    """hero_coverage of the live hero, with a core played as a support advised as
+    a support: farm and item advice assume a core (_plays_support)."""
+    coverage = hero_coverage(str(state.get("hero") or ""))
+    if coverage == "full" and _plays_support(state):
+        return "support"
+    return coverage
+
+
 def _plays_support(state: Mapping[str, object] | None) -> bool:
     state = state or {}
     raw_extra = state.get("extra_context")
@@ -360,6 +369,9 @@ def _live_role_and_hint(response: dict[str, object], lang: str) -> dict[str, obj
             alive=extra.get("alive") is not False,
             has_ward=extra.get("has_observer")
             if isinstance(extra.get("has_observer"), bool)
+            else None,
+            ward_charges=extra.get("observer_charges")
+            if isinstance(extra.get("observer_charges"), int)
             else None,
             lang=lang,
             tp_missing=MATCH_MEMORY.tp.signal() is not None,
@@ -478,7 +490,7 @@ def _overlay_recommendation_payload() -> dict[str, object]:
         }
 
     state = current["state"] or {}
-    coverage = hero_coverage(str(state.get("hero") or ""))
+    coverage = _advisor_coverage(state)
     if not coverage:
         ADVICE_SCHEDULER.observe_state(state, "NO_ADVICE")
         return {
@@ -499,10 +511,6 @@ def _overlay_recommendation_payload() -> dict[str, object]:
             **_overlay_live_context(state),
         }
 
-    # A carry-advisor hero played as a support gets the survival advice only:
-    # farm and item advice assume a carry (the support tips are map hints).
-    if coverage == "full" and _plays_support(state):
-        coverage = "safety"
     decision_point = _covered_decision_point(
         _useful_disable(
             _live_conservative_decision_point(detect_decision_point(state), state), state
@@ -1029,7 +1037,7 @@ def _gsi_status_response() -> dict[str, object]:
         "last_gsi_received_at": timestamp,
         "seconds_since_last_gsi": round(seconds_since, 2) if seconds_since is not None else None,
         "hero": state.get("hero"),
-        "hero_coverage": hero_coverage(str(state.get("hero") or "")) if state else None,
+        "hero_coverage": _advisor_coverage(state) if state else None,
         "game_time": extra_context.get("game_time") or state.get("minute"),
         # The in-game clock as the player sees it (negative before the horn).
         "clock_time": extra_context.get("clock_time"),
@@ -1144,9 +1152,9 @@ def _useful_disable(decision_point: str, state: dict[str, object]) -> str:
     return decision_point
 
 
-# Heroes outside the carry advisor get only what is true for any hero: survival,
+# Heroes outside the advisor get only what is true for any hero: survival,
 # deaths, disables, mana, buyback. Farm, item, objective and hero-ability advice
-# assume a carry (or a hero profile) and stay off for them.
+# assume a core (or a hero profile) and stay off for them.
 SAFETY_ONLY_DECISIONS = {
     "LOW_HP",
     "LOW_HP_WARNING",
@@ -1166,8 +1174,23 @@ SAFETY_ONLY_DECISIONS = {
 }
 
 
+# A support (a profiled one, or a core played as a support) also gets its own
+# saves (hero safety, ability cooldowns), fights and objectives and the lane regen
+# check; farm pace and items stay off — a support's gold and last hits are the
+# map tips' business (stacks, pulls, wards, save items).
+SUPPORT_DECISIONS = SAFETY_ONLY_DECISIONS | {
+    "HERO_SURVIVABILITY_RISK",
+    "ABILITY_SAFETY_COOLDOWN",
+    "OBJECTIVE_FIGHT_CHECK",
+    "BAD_FIGHT_RISK",
+    "LANING_REGEN_CHECK",
+}
+
+
 def _covered_decision_point(decision_point: str, coverage: str | None) -> str:
     if coverage == "safety" and decision_point not in SAFETY_ONLY_DECISIONS:
+        return "NO_ADVICE"
+    if coverage == "support" and decision_point not in SUPPORT_DECISIONS:
         return "NO_ADVICE"
     return decision_point
 
@@ -1186,7 +1209,7 @@ def _overlay_live_context(state: dict[str, object]) -> dict[str, object]:
         "current_mode": "live_gsi" if extra_context.get("source_type") == "live_gsi" else "idle",
         "live_conservative_mode": LIVE_CONSERVATIVE_MODE,
         "hero": state.get("hero"),
-        "hero_coverage": hero_coverage(str(state.get("hero") or "")),
+        "hero_coverage": _advisor_coverage(state),
         "minute": state.get("minute"),
         "stage": _stage_label(state),
         "game_state": state.get("game_state"),

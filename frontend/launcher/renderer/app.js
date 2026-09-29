@@ -64,7 +64,8 @@ const I18N = {
       copied: "Copied"
     },
     matchTitle: "Current match",
-    coverageSafety: "Farm and item advice is for 39 carry, mid and offlane heroes; on this hero the coach gives survival advice, map timers and role tips.",
+    coverageSafety: "The full advice is for 64 heroes (carries, mids, offlaners and supports); on this hero the coach gives survival advice, map timers and role tips.",
+    coverageSupport: "Support advice: your own saves, fights and objectives, stacks, pulls, wards and save items. No farm or item advice: the gold goes to your cores.",
     statHero: "Hero",
     statClock: "Match time",
     statStage: "Stage",
@@ -584,7 +585,8 @@ const I18N = {
       copied: "Скопировано"
     },
     matchTitle: "Текущий матч",
-    coverageSafety: "Советы по фарму и предметам — для 39 героев керри, мида и хардлайна; на этом герое тренер подсказывает по выживанию, таймерам карты и роли.",
+    coverageSafety: "Полные подсказки — для 64 героев (керри, мид, хардлайн, саппорты); на этом герое тренер подсказывает по выживанию, таймерам карты и роли.",
+    coverageSupport: "Советы саппорта: свои спасения, драки и цели, стаки, пулы, варды и спасающие предметы. Без советов по фарму и предметам — золото достаётся корам.",
     statHero: "Герой",
     statClock: "Время матча",
     statStage: "Стадия",
@@ -2116,7 +2118,11 @@ function renderMatch(status) {
   }
   els.matchStats.classList.remove("hidden");
   setEmpty(els.matchEmpty, false);
-  els.coverageNote.classList.toggle("hidden", live.coverage !== "safety");
+  const coverageKey = live.coverage === "safety" ? "coverageSafety" : live.coverage === "support" ? "coverageSupport" : null;
+  els.coverageNote.classList.toggle("hidden", !coverageKey);
+  if (coverageKey) {
+    els.coverageNote.textContent = tr(coverageKey);
+  }
   const role = live.role && tr(`roleNames.${live.role.role}`);
   els.roleNote.classList.toggle("hidden", !live.role);
   els.roleNote.textContent = live.role ? tr("roleNote", role, tr(`roleSource.${live.role.source}`)) : "";

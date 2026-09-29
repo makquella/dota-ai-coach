@@ -35,10 +35,10 @@ from app.hero_profiles import POSITION_PACE
 from app.live_tools import USABLE_SAFETY
 
 ASSET_VERSION = "9"
-POSITIONS = ("carry", "mid", "offlane")
+POSITIONS = ("carry", "mid", "offlane", "support")
 POSITION_NAMES = {
-    "ru": {"carry": "Керри", "mid": "Мид", "offlane": "Хардлайн"},
-    "en": {"carry": "Carry", "mid": "Mid", "offlane": "Offlane"},
+    "ru": {"carry": "Керри", "mid": "Мид", "offlane": "Хардлайн", "support": "Саппорт"},
+    "en": {"carry": "Carry", "mid": "Mid", "offlane": "Offlane", "support": "Support"},
 }
 ARCHETYPES = {
     "hard_scaling_farmer": ("фармящий керри, который раскрывается к поздней игре", "a farming carry who comes online late"),
@@ -48,6 +48,14 @@ ARCHETYPES = {
     "mobile_tempo_mid": ("подвижный мидер, который играет от темпа", "a mobile mid who plays for tempo"),
     "ranged_tempo_mid": ("мидер дальнего боя, который играет от темпа", "a ranged mid who plays for tempo"),
     "frontline_initiator": ("хардлайнер, который начинает драки", "an offlaner who starts the fights"),
+    "fragile_hard_support": ("хрупкий саппорт пятой позиции, которому важнее всего позиция", "a fragile hard support who lives by positioning"),
+    "disable_support": ("саппорт с контролем, который решает, кого поймать", "a support with disables who decides who gets caught"),
+    "save_support": ("саппорт, который спасает своих", "a support who saves the team"),
+    "fight_support": ("саппорт, который выигрывает драки одним заклинанием", "a support whose one spell wins fights"),
+    "durable_support": ("живучий саппорт, который может стоять впереди", "a durable support who can stand in front"),
+    "roaming_support": ("саппорт четвёртой позиции, который ходит по карте", "a roaming soft support"),
+    "roaming_initiator": ("саппорт четвёртой позиции, который начинает драки", "a soft support who starts the fights"),
+    "fragile_nuker": ("хрупкий саппорт, который наносит много урона издалека", "a fragile support who deals damage from range"),
 }
 # The profile's note in Russian (the profile keeps it in English); a few English
 # notes written for the coach are reworded for players here.
@@ -91,6 +99,31 @@ NOTES_RU = {
     "Timbersaw": "Timber Chain нужны деревья: дерись рядом с ними и держи его на отход.",
     "Pangolier": "Держи Swashbuckle или Rolling Thunder на отход.",
     "Primal Beast": "Onslaught — это заход: не несись в одиночку с малым HP.",
+    "Crystal Maiden": "Стой за корами: Freezing Field нужна безопасная точка, а позже — Black King Bar или Glimmer Cape.",
+    "Lion": "Держи Hex на рывок врага или его главного героя; с Blink Dagger каждая драка начинается с тебя.",
+    "Shadow Shaman": "Shackles держит тебя на месте: кастуй его, только когда враг не может ответить.",
+    "Witch Doctor": "Death Ward не даёт двигаться: ставь его из-за деревьев или с готовым Glimmer Cape.",
+    "Lich": "Frost Shield — на кора, которого бьют; Chain Frost лучше всего, когда враги стоят рядом.",
+    "Dazzle": "Shallow Grave спасёт кора, только если ты рядом: но не будь первым, кого видит враг.",
+    "Oracle": "Держи False Promise для кора в беде — или для себя, когда цель ты.",
+    "Warlock": "Chaotic Offering выигрывает драки: держи его на момент, когда враг уже вошёл.",
+    "Jakiro": "Ice Path и Macropyre выигрывают линию и вышки: дави, когда коры рядом.",
+    "Vengeful Spirit": "Nether Swap спасает пойманного кора, но ставит на его место тебя: меняйся, только если переживёшь.",
+    "Disruptor": "Glimpse — на героя, который прыгнул; Kinetic Field и Static Storm запирают драку.",
+    "Ogre Magi": "Огр может стоять впереди, но Bloodlust на коре стоит больше твоих разменов.",
+    "Treant Protector": "Living Armor спасает вышки и коров с любой точки карты; Overgrowth начинает драку.",
+    "Rubick": "Не показывайся, пока враг не потратил своё главное заклинание, — и забери его.",
+    "Earthshaker": "Echo Slam нужны Blink Dagger и враги рядом друг с другом: дождись, пока они соберутся.",
+    "Tusk": "Ice Shards отрезает путь отхода; Snowball берёт союзника с собой на убийство.",
+    "Earth Spirit": "Rolling Boulder — ещё и твой отход: держи его, когда уходишь далеко вперёд.",
+    "Mirana": "Держи Leap на отход; Moonlight Shadow переворачивает драку или спасает всю команду.",
+    "Skywrath Mage": "Тебя убьёт любой, кто дотянется: кастуй сзади и держи Force Staff или Glimmer Cape.",
+    "Snapfire": "Firesnap Cookie на себя выпрыгивает из опасности; Mortimer Kisses отрезает место драки.",
+    "Hoodwink": "Scurry рядом с деревьями держит тебя в живых; для Bushwhack нужно дерево за врагом.",
+    "Spirit Breaker": "Бей Charge по тому, до кого команда успеет; Bulldoze выведет, если пошло не так.",
+    "Nyx Assassin": "Vendetta ещё и прячет: держи её или Spiked Carapace на случай, если поймали.",
+    "Bounty Hunter": "Track на главного героя врага — это золото и обзор; Shadow Walk — твой отход.",
+    "Clockwerk": "Hookshot начинает драку: лети, когда команда достаточно близко, чтобы успеть.",
 }
 NOTES_EN = {
     "Ember Spirit": "Avoid low-value fights: keep Sleight of Fist and Flame Guard for the way out.",
@@ -363,6 +396,7 @@ T = {
         "pace_minute": "Минута",
         "pace_lh": "Добивания",
         "pace_note": "Отстаёшь от нижней цифры — тренер скажет об этом прямо в матче и покажет, какой темп хороший на этой минуте.",
+        "pace_note_support": "Саппорту не нужно много добивать: цифры — ориентир, а не цель. Если начнёшь забирать крипов у керри, тренер напомнит.",
         "survive_title": "Когда уходить",
         "hp": "При HP ниже {low} % тренер подскажет уйти, ниже {critical} % — срочно, сразу, без паузы.",
         "saves": "Спасение: {saves} — тренер назовёт его, когда оно готово, и напомнит, если ты умер, не нажав его.",
@@ -387,6 +421,11 @@ T = {
                 "Проигранная линия — подскажет стянуть большой лагерь.",
                 "Темп фарма хардлайнера, а не керри: цели ниже на 30 %.",
                 "Ключевой предмет вовремя или поздно — и когда твоё окно для драки.",
+            ],
+            "support": [
+                "Стаки на :53 и пулы малого лагеря на лёгкой линии — за 10 секунд до времени.",
+                "Нет вардов или вард слишком долго лежит в сумке — напомнит поставить.",
+                "Нет спасающего предмета к 12-й минуте — подскажет Glimmer Cape или Force Staff.",
             ],
         },
         "after": "После матча — разбор: оценка, карта смертей, сборка против статистики OpenDota.",
@@ -416,6 +455,7 @@ T = {
         "pace_minute": "Minute",
         "pace_lh": "Last hits",
         "pace_note": "Below the lower number, the coach tells you during the match and shows a good pace for that minute.",
+        "pace_note_support": "A support does not need many last hits: the numbers are a guide, not a goal. If you start taking the carry's creeps, the coach reminds you.",
         "survive_title": "When to back off",
         "hp": "Under {low}% HP the coach tells you to leave; under {critical}% it is urgent and comes at once.",
         "saves": "Your save: {saves}. The coach names it when it is ready and reminds you if you died without pressing it.",
@@ -440,6 +480,11 @@ T = {
                 "A lost lane — a hint to pull the big camp.",
                 "An offlaner's farm pace, not a carry's: targets 30% lower.",
                 "Your key item on time or late — and when your window to fight is.",
+            ],
+            "support": [
+                "Stacks at :53 and small-camp pulls in the safe lane, 10 seconds ahead.",
+                "No wards, or a ward kept in the bag too long — a reminder to place it.",
+                "No save item by minute 12 — a hint for Glimmer Cape or Force Staff.",
             ],
         },
         "after": "After the match — a review: a score, a map of your deaths, the build against OpenDota statistics.",
@@ -575,7 +620,7 @@ def hero_page(hero: dict, all_heroes: list[dict], lang: str) -> str:
 {rows}
                 </tbody>
               </table>
-              <p class="mode-note">{e(t["pace_note"])}</p>
+              <p class="mode-note">{e(t["pace_note_support" if position == "support" else "pace_note"])}</p>
             </article>
             <article class="mode">
               <h2>{e(t["survive_title"])}</h2>

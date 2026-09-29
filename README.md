@@ -9,7 +9,7 @@ Wardly (formerly Dota AI Coach) is a Dota 2 coach for Windows that watches your 
 [![License](https://img.shields.io/github/license/makquella/dota-ai-coach?color=2f3542)](LICENSE)
 [![Windows 10 / 11](https://img.shields.io/badge/Windows-10%20%7C%2011-2f3542)](https://luhovyimvp.dev/en/?ref=github)
 
-**[Download for Windows](https://github.com/makquella/dota-ai-coach/releases/latest)** · [Website](https://luhovyimvp.dev/en/?ref=github) ([на русском](https://luhovyimvp.dev/?ref=github)) · [The 39 heroes with full advice](https://luhovyimvp.dev/en/heroes.html?ref=github) · [What's new](https://luhovyimvp.dev/changelog.html) · [Privacy](https://luhovyimvp.dev/privacy.html)
+**[Download for Windows](https://github.com/makquella/dota-ai-coach/releases/latest)** · [Website](https://luhovyimvp.dev/en/?ref=github) ([на русском](https://luhovyimvp.dev/?ref=github)) · [The 64 heroes with full advice](https://luhovyimvp.dev/en/heroes.html?ref=github) · [What's new](https://luhovyimvp.dev/changelog.html) · [Privacy](https://luhovyimvp.dev/privacy.html)
 
 Free, no ads, no subscription, no Overwolf. The installer is not code-signed yet: [VirusTotal report](https://www.virustotal.com/gui/file/e91036b9220b954b5f42c9c42a282a3038bb11aae9ed43d94bc1565802cc0a7d) of 0.18.0 (0 of 67 engines); each release links its own report in its notes.
 
@@ -30,7 +30,7 @@ Live advice comes from deterministic, tested rules on top of Valve's official Ga
 During the match
 - Advice card over the game: urgent advice at once, tips with pauses; frequency Less / Normal / More.
 - Spoken advice with the Windows voices (heard even in exclusive fullscreen); `Ctrl+Alt+R` repeats the last one.
-- The full advisor for 39 heroes: 21 carries, 8 mids and 10 offlaners (farm, items, objectives, the hero's own saves, a farm pace for the position); survival advice (low HP, deaths, disables, mana, buyback) for every other hero.
+- The full advisor for 64 heroes: 21 carries, 8 mids, 10 offlaners and 25 supports (farm, items, objectives, the hero's own saves, a farm pace for the position; stacks, pulls, wards and save items for supports); survival advice (low HP, deaths, disables, mana, buyback) for every other hero.
 - A plan at the start of each match (until 1:30): last-hit target at 10:00 with your own average, the key item and when most players finish it, your focus.
 - Late-game reminders: farm stalls, the pace you should be at, keeping buyback gold; spend spare gold while dead.
 

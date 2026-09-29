@@ -7,7 +7,7 @@ from typing import Any, Literal
 from pydantic import BaseModel, Field, field_validator
 
 from app.dota_constants import NPC_TO_HERO_ID, hero_id_from_name, hero_name
-from app.hero_profiles import hero_aliases
+from app.hero_profiles import get_hero_position, hero_aliases
 
 SUPPORTED_HEROES = (
     "Anti-Mage",
@@ -50,6 +50,32 @@ SUPPORTED_HEROES = (
     "Timbersaw",
     "Pangolier",
     "Primal Beast",
+    # Supports (position "support" in hero_profiles.json, 4 or 5).
+    "Crystal Maiden",
+    "Lion",
+    "Shadow Shaman",
+    "Witch Doctor",
+    "Lich",
+    "Dazzle",
+    "Oracle",
+    "Warlock",
+    "Jakiro",
+    "Vengeful Spirit",
+    "Disruptor",
+    "Ogre Magi",
+    "Treant Protector",
+    "Rubick",
+    "Earthshaker",
+    "Tusk",
+    "Earth Spirit",
+    "Mirana",
+    "Skywrath Mage",
+    "Snapfire",
+    "Hoodwink",
+    "Spirit Breaker",
+    "Nyx Assassin",
+    "Bounty Hunter",
+    "Clockwerk",
 )
 _SUPPORTED_HERO_LOOKUP = {hero.lower(): hero for hero in SUPPORTED_HEROES}
 _SUPPORTED_HERO_LOOKUP.update(
@@ -99,7 +125,8 @@ _SUPPORTED_HERO_LOOKUP.update(
 
 
 def is_supported_hero(value: str) -> bool:
-    """Heroes with the full carry advisor (farm, items, objectives, hero safety)."""
+    """Profiled heroes: the full advisor for a core (farm, items, objectives, hero
+    safety), the support advisor for a support (hero_coverage)."""
     return _SUPPORTED_HERO_LOOKUP.get(value.strip().lower()) is not None
 
 
@@ -120,9 +147,11 @@ def safety_only_hero(value: str) -> str | None:
 
 
 def hero_coverage(value: str) -> str | None:
-    """ "full" (carry advisor), "safety" (survival advice only) or None (not a hero)."""
+    """ "full" (the core advisor), "support" (a profiled support: survival with its
+    own saves, fights and objectives, support tips; no farm or item advice),
+    "safety" (survival advice only) or None (not a hero)."""
     if is_supported_hero(value):
-        return "full"
+        return "support" if get_hero_position(value) == "support" else "full"
     return "safety" if safety_only_hero(value) else None
 
 

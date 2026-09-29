@@ -17,7 +17,8 @@ SAMPLES = "data/gsi_samples"
     ("name", "coverage", "canonical"),
     [
         ("Juggernaut", "full", None),
-        ("Crystal Maiden", "safety", "Crystal Maiden"),
+        ("Crystal Maiden", "support", None),  # a profiled support
+        ("Windranger", "safety", "Windranger"),
         ("Furion", "safety", "Nature's Prophet"),  # live GSI title-cases the npc name
         ("Wisp", "safety", "Io"),
         ("Unknown", None, None),
@@ -66,27 +67,35 @@ def _as_hero(payload: dict, npc: str) -> dict:
     return payload
 
 
-def test_low_hp_advice_for_a_support(client, repo_root):
+@pytest.mark.parametrize(
+    ("npc", "coverage"),
+    [("npc_dota_hero_windrunner", "safety"), ("npc_dota_hero_crystal_maiden", "support")],
+)
+def test_low_hp_advice_for_a_hero_without_farm_advice(client, repo_root, npc, coverage):
     payload = json.loads(
         (repo_root / SAMPLES / "low_hp_juggernaut.json").read_text(encoding="utf-8")
     )
-    client.post("/gsi", json=_as_hero(payload, "npc_dota_hero_crystal_maiden"))
+    client.post("/gsi", json=_as_hero(payload, npc))
     overlay = client.get("/overlay/recommendation").json()
-    assert overlay["hero_coverage"] == "safety"
+    assert overlay["hero_coverage"] == coverage
     assert overlay["status"] != "unsupported_hero"
     assert overlay["decision_point"] in SAFETY_ONLY_DECISIONS
     assert overlay["recommendation"] is not None
     assert overlay["advice_mode"] == "urgent"
 
 
-def test_farm_advice_is_held_back_for_a_support(client, repo_root):
+@pytest.mark.parametrize(
+    ("npc", "coverage"),
+    [("npc_dota_hero_windrunner", "safety"), ("npc_dota_hero_crystal_maiden", "support")],
+)
+def test_farm_advice_is_held_back_for_a_support(client, repo_root, npc, coverage):
     payload = json.loads((repo_root / SAMPLES / "low_farm_rate.json").read_text(encoding="utf-8"))
     client.post("/gsi", json=payload)
     full = client.get("/overlay/recommendation").json()
     client.post("/session/reset")
-    client.post("/gsi", json=_as_hero(payload, "npc_dota_hero_crystal_maiden"))
+    client.post("/gsi", json=_as_hero(payload, npc))
     support = client.get("/overlay/recommendation").json()
-    assert support["hero_coverage"] == "safety"
+    assert support["hero_coverage"] == coverage
     if full["decision_point"] not in SAFETY_ONLY_DECISIONS:
         assert support["decision_point"] == "NO_ADVICE"
         assert support["recommendation"] is None

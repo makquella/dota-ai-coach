@@ -6,12 +6,12 @@
     <title>Герои — Wardly</title>
     <meta
       name="description"
-      content="Для каких героев Dota 2 Wardly даёт полные подсказки: 21 керри, 8 мидеров и 10 хардлайнеров. На остальных — выживание, таймеры карты и разбор матча."
+      content="Для каких героев Dota 2 Wardly даёт полные подсказки: 21 керри, 8 мидеров, 10 хардлайнеров и 25 саппортов. На остальных — выживание, таймеры карты и разбор матча."
     />
     <meta name="theme-color" content="#0c0d0f" />
     <meta property="og:type" content="website" />
     <meta property="og:title" content="Герои — Wardly" />
-    <meta property="og:description" content="Полные подсказки для 39 героев Dota 2; разбор матча — для всех." />
+    <meta property="og:description" content="Полные подсказки для 64 героев Dota 2; разбор матча — для всех." />
     <link rel="canonical" href="https://luhovyimvp.dev/heroes.html" />
     <link rel="alternate" hreflang="ru" href="https://luhovyimvp.dev/heroes.html" />
     <link rel="alternate" hreflang="en" href="https://luhovyimvp.dev/en/heroes.html" />
@@ -59,10 +59,11 @@
     <main id="main">
       <section class="page-head">
         <div class="wrap">
-          <h1 data-i18n="heroesTitle">Полные подсказки для 39 героев</h1>
+          <h1 data-i18n="heroesTitle">Полные подсказки для 64 героев</h1>
           <p class="lead" data-i18n="heroesLead">
-            Керри, мидеры и хардлайнеры получают всё: темп фарма для своей позиции, следующий предмет и свои способности
-            для спасения. На любом другом герое тренер тоже работает — подсказывает, как выжить, и ведёт таймеры карты.
+            Керри, мидеры и хардлайнеры получают темп фарма для своей позиции, следующий предмет и свои способности для
+            спасения, саппорты — стаки, пулы, варды и спасающие предметы. На любом другом герое тренер тоже работает —
+            подсказывает, как выжить, и ведёт таймеры карты.
           </p>
           <p class="legend" data-i18n="heroesLegend">Под именем героя — способности, которые тренер назовёт, когда мало HP.</p>
         </div>
@@ -119,27 +120,33 @@
               <li><a href="heroes/tidehunter.html"><img src="assets/heroes/tidehunter.webp" alt="" width="256" height="144" loading="lazy" /><span><b>Tidehunter</b></span></a></li>
               <li><a href="heroes/timbersaw.html"><img src="assets/heroes/shredder.webp" alt="" width="256" height="144" loading="lazy" /><span><b>Timbersaw</b><small>Timber Chain</small></span></a></li>
           </ul>
-          <p class="note" data-i18n="heroesMore">Список растёт с каждым обновлением — приложение обновится само.</p>
-        </div>
-      </section>
-
-      <!-- What a hero gets: three levels. -->
-      <section class="section section-alt">
-        <div class="wrap">
-          <header class="section-head">
-            <h2 data-i18n="modesTitle">Что получает каждый герой</h2>
-            <p class="sub" data-i18n="modesSub">На любом герое тренер помогает выжить, а разбор после матча есть для всех.</p>
-          </header>
-          <div class="modes">
-            <article class="mode mode-full">
-              <p class="mode-tag" data-i18n="modeFullTag">39 героев из списка</p>
-              <h2 data-i18n="modeFullTitle">Полный тренер</h2>
-              <ul class="checks">
-                <li><svg class="i" aria-hidden="true"><use href="#i-check" /></svg><span data-i18n="modeFull1">Темп фарма для позиции: у хардлайнера своя планка, не керри</span></li>
-                <li><svg class="i" aria-hidden="true"><use href="#i-check" /></svg><span data-i18n="modeFull2">Следующий предмет сборки и сколько золота до него</span></li>
-                <li><svg class="i" aria-hidden="true"><use href="#i-check" /></svg><span data-i18n="modeFull3">При мало HP — своя способность: «Используй Blink сейчас»</span></li>
-                <li><svg class="i" aria-hidden="true"><use href="#i-check" /></svg><span data-i18n="modeFull4">Цель по добиваниям к 10:00 в плане на игру</span></li>
-                <li><svg class="i" aria-hidden="true"><use href="#i-check" /></svg><span data-i18n="modeFull5">Всё, что есть у остальных героев</span></li>
+          <h3 class="heroes-group" id="heroes-support"><span data-i18n="heroesSupport">Саппорт</span> · 25</h3>
+          <ul class="heroes" aria-labelledby="heroes-support">
+              <li><a href="heroes/bounty-hunter.html"><img src="assets/heroes/bounty_hunter.webp" alt="" width="256" height="144" loading="lazy" /><span><b>Bounty Hunter</b><small>Shadow Walk</small></span></a></li>
+              <li><a href="heroes/clockwerk.html"><img src="assets/heroes/rattletrap.webp" alt="" width="256" height="144" loading="lazy" /><span><b>Clockwerk</b></span></a></li>
+              <li><a href="heroes/crystal-maiden.html"><img src="assets/heroes/crystal_maiden.webp" alt="" width="256" height="144" loading="lazy" /><span><b>Crystal Maiden</b></span></a></li>
+              <li><a href="heroes/dazzle.html"><img src="assets/heroes/dazzle.webp" alt="" width="256" height="144" loading="lazy" /><span><b>Dazzle</b><small>Shallow Grave</small></span></a></li>
+              <li><a href="heroes/disruptor.html"><img src="assets/heroes/disruptor.webp" alt="" width="256" height="144" loading="lazy" /><span><b>Disruptor</b></span></a></li>
+              <li><a href="heroes/earth-spirit.html"><img src="assets/heroes/earth_spirit.webp" alt="" width="256" height="144" loading="lazy" /><span><b>Earth Spirit</b><small>Rolling Boulder</small></span></a></li>
+              <li><a href="heroes/earthshaker.html"><img src="assets/heroes/earthshaker.webp" alt="" width="256" height="144" loading="lazy" /><span><b>Earthshaker</b></span></a></li>
+              <li><a href="heroes/hoodwink.html"><img src="assets/heroes/hoodwink.webp" alt="" width="256" height="144" loading="lazy" /><span><b>Hoodwink</b><small>Scurry</small></span></a></li>
+              <li><a href="heroes/jakiro.html"><img src="assets/heroes/jakiro.webp" alt="" width="256" height="144" loading="lazy" /><span><b>Jakiro</b></span></a></li>
+              <li><a href="heroes/lich.html"><img src="assets/heroes/lich.webp" alt="" width="256" height="144" loading="lazy" /><span><b>Lich</b><small>Frost Shield</small></span></a></li>
+              <li><a href="heroes/lion.html"><img src="assets/heroes/lion.webp" alt="" width="256" height="144" loading="lazy" /><span><b>Lion</b></span></a></li>
+              <li><a href="heroes/mirana.html"><img src="assets/heroes/mirana.webp" alt="" width="256" height="144" loading="lazy" /><span><b>Mirana</b><small>Leap</small></span></a></li>
+              <li><a href="heroes/nyx-assassin.html"><img src="assets/heroes/nyx_assassin.webp" alt="" width="256" height="144" loading="lazy" /><span><b>Nyx Assassin</b><small>Vendetta, Spiked Carapace</small></span></a></li>
+              <li><a href="heroes/ogre-magi.html"><img src="assets/heroes/ogre_magi.webp" alt="" width="256" height="144" loading="lazy" /><span><b>Ogre Magi</b></span></a></li>
+              <li><a href="heroes/oracle.html"><img src="assets/heroes/oracle.webp" alt="" width="256" height="144" loading="lazy" /><span><b>Oracle</b><small>False Promise</small></span></a></li>
+              <li><a href="heroes/rubick.html"><img src="assets/heroes/rubick.webp" alt="" width="256" height="144" loading="lazy" /><span><b>Rubick</b></span></a></li>
+              <li><a href="heroes/shadow-shaman.html"><img src="assets/heroes/shadow_shaman.webp" alt="" width="256" height="144" loading="lazy" /><span><b>Shadow Shaman</b></span></a></li>
+              <li><a href="heroes/skywrath-mage.html"><img src="assets/heroes/skywrath_mage.webp" alt="" width="256" height="144" loading="lazy" /><span><b>Skywrath Mage</b></span></a></li>
+              <li><a href="heroes/snapfire.html"><img src="assets/heroes/snapfire.webp" alt="" width="256" height="144" loading="lazy" /><span><b>Snapfire</b><small>Firesnap Cookie</small></span></a></li>
+              <li><a href="heroes/spirit-breaker.html"><img src="assets/heroes/spirit_breaker.webp" alt="" width="256" height="144" loading="lazy" /><span><b>Spirit Breaker</b><small>Bulldoze</small></span></a></li>
+              <li><a href="heroes/treant-protector.html"><img src="assets/heroes/treant.webp" alt="" width="256" height="144" loading="lazy" /><span><b>Treant Protector</b><small>Living Armor</small></span></a></li>
+              <li><a href="heroes/tusk.html"><img src="assets/heroes/tusk.webp" alt="" width="256" height="144" loading="lazy" /><span><b>Tusk</b></span></a></li>
+              <li><a href="heroes/vengeful-spirit.html"><img src="assets/heroes/vengefulspirit.webp" alt="" width="256" height="144" loading="lazy" /><span><b>Vengeful Spirit</b></span></a></li>
+              <li><a href="heroes/warlock.html"><img src="assets/heroes/warlock.webp" alt="" width="256" height="144" loading="lazy" /><span><b>Warlock</b></span></a></li>
+              <li><a href="heroes/witch-doctor.html"><img src="assets/heroes/witch_doctor.webp" alt="" width="256" height="144" loading="lazy" /><span><b>Witch Doctor</b></span></a></li>
               </ul>
             </article>
             <article class="mode">
