@@ -142,24 +142,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           VT_API_KEY: ${{ secrets.VT_API_KEY }}
-        run: |
-          if (-not $env:VT_API_KEY) { Write-Host "VT_API_KEY is not set: skipped."; exit 0 }
-          $version = $env:TAG.Substring(1)
-          $file = Get-Item "frontend/launcher/dist/Wardly-Setup-$version.exe"
-          $headers = @{ "x-apikey" = $env:VT_API_KEY }
-          # Files over 32 MB go to a one-time upload URL.
-          $uploadUrl = (Invoke-RestMethod -Uri "https://www.virustotal.com/api/v3/files/upload_url" -Headers $headers).data
-          $answer = Invoke-RestMethod -Uri $uploadUrl -Method Post -Headers $headers -Form @{ file = $file } -TimeoutSec 900
-          if (-not $answer.data.id) { throw "VirusTotal did not accept the file." }
-          $hash = (Get-FileHash $file.FullName -Algorithm SHA256).Hash.ToLower()
-          $report = "https://www.virustotal.com/gui/file/$hash"
-          Write-Host "VirusTotal: $report (analysis $($answer.data.id))"
-          $notes = (gh release view $env:TAG --json body --jq .body) -join "`n"
-          if ($LASTEXITCODE -ne 0) { throw "gh release view failed with exit code $LASTEXITCODE" }
-          $notesFile = Join-Path $env:RUNNER_TEMP "release-notes.md"
-          Set-Content -Path $notesFile -Encoding utf8 -Value "$notes`n`n**VirusTotal:** $report"
-          gh release edit $env:TAG --notes-file $notesFile
-          if ($LASTEXITCODE -ne 0) { throw "gh release edit failed with exit code $LASTEXITCODE" }
+        run: ./scripts/virustotal-release.ps1 -Tag $env:TAG -Installer "frontend/launcher/dist/Wardly-Setup-$($env:TAG.Substring(1)).exe"
 
       - name: Upload logs on failure
         if: failure()
