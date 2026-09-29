@@ -133,6 +133,24 @@ jobs:
           gh release create $env:TAG @files --target $env:GITHUB_SHA --title "Wardly $version" @notesArgs
           if ($LASTEXITCODE -ne 0) { throw "gh release create failed with exit code $LASTEXITCODE" }
 
+      - name: Send the installer to VirusTotal
+        # Optional (secret VT_API_KEY, the key of a free VirusTotal account): the
+        # site links the installer's report by its SHA-256, so the report exists
+        # from the release on. Never fails the release.
+        continue-on-error: true
+        env:
+          VT_API_KEY: ${{ secrets.VT_API_KEY }}
+        run: |
+          if (-not $env:VT_API_KEY) { Write-Host "VT_API_KEY is not set: skipped."; exit 0 }
+          $version = $env:TAG.Substring(1)
+          $file = Get-Item "frontend/launcher/dist/Wardly-Setup-$version.exe"
+          $headers = @{ "x-apikey" = $env:VT_API_KEY }
+          # Files over 32 MB go to a one-time upload URL.
+          $uploadUrl = (Invoke-RestMethod -Uri "https://www.virustotal.com/api/v3/files/upload_url" -Headers $headers).data
+          $answer = Invoke-RestMethod -Uri $uploadUrl -Method Post -Headers $headers -Form @{ file = $file } -TimeoutSec 900
+          $hash = (Get-FileHash $file.FullName -Algorithm SHA256).Hash.ToLower()
+          Write-Host "VirusTotal: https://www.virustotal.com/gui/file/$hash (analysis $($answer.data.id))"
+
       - name: Upload logs on failure
         if: failure()
         uses: actions/upload-artifact@v4

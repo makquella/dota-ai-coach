@@ -29,6 +29,7 @@
     metaFree: "Free",
     metaOpen: "Open source",
     metaWin: "Windows 10 and 11",
+    metaVt: "VirusTotal scan",
     ingameTitle: "Advice right in the game",
     ingameSub: "Dota is complex. The coach tells you what to do now.",
     lowhpTitle: "Low HP",
@@ -319,6 +320,14 @@
     const mb = Math.round(release.size / 1024 / 1024);
     const text = lang === "en" ? EN.version(release.version, mb) : `Версия ${release.version} · Windows 10 и 11 · ${mb} МБ`;
     document.querySelectorAll(".js-release-meta").forEach((el) => (el.textContent = text));
+    // The installer's VirusTotal report, by the SHA-256 GitHub keeps for the
+    // asset (the release workflow sends every installer there).
+    document.querySelectorAll(".js-vt").forEach((el) => {
+      el.hidden = !release.sha256;
+      if (release.sha256) {
+        el.querySelector("a").href = `https://www.virustotal.com/gui/file/${release.sha256}`;
+      }
+    });
   }
 
   async function loadRelease() {
@@ -332,7 +341,9 @@
       const data = await response.json();
       const asset = (data.assets || []).find((a) => /Setup-.*\.exe$/i.test(a.name));
       if (asset) {
+        const digest = String(asset.digest || "").match(/^sha256:([0-9a-f]{64})$/);
         release = {
+          sha256: digest ? digest[1] : null,
           size: asset.size,
           version: String(data.tag_name || "").replace(/^v/, "")
         };
