@@ -174,6 +174,12 @@ export function weeklyStatsText(summary) {
     `Matches analysed: ${summary.matches} (with live advice: ${summary.with_advice})`,
     `Advice shown: ${top(summary.advice, 8)}`,
     `Warnings before a death: ${top(summary.ignored, 5)}`,
-    `Versions: ${top(summary.versions, 4)}`
+    `Versions: ${top(summary.versions, 4)}`,
+    `Sources (visits → downloads): ${
+      (summary.channels || [])
+        .slice(0, 6)
+        .map((c) => `${c.src} ${c.visits}→${c.downloads}`)
+        .join(", ") || "—"
+    }`
   ].join("\n");
 }

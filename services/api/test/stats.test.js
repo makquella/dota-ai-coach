@@ -59,6 +59,9 @@ function fakeEnv(vars = {}) {
           if (sql.startsWith("SELECT install_hash, day, version, body FROM daily_stats WHERE day >=")) {
             return { results: [...daily.values()].filter((r) => r.day >= args[0]) };
           }
+          if (sql.startsWith("SELECT day, src, visits, downloads FROM channel_counts")) {
+            return { results: [] };
+          }
           if (sql.startsWith("SELECT r2_key FROM reports") || sql.startsWith("SELECT id, r2_key FROM reports")) {
             return { results: [] };
           }
