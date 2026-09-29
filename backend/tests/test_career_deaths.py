@@ -68,6 +68,21 @@ def test_only_the_newest_matches_and_enough_deaths():
     assert death_map([unknown], "en") is None
 
 
+def test_a_mapped_game_without_deaths_is_one_of_the_matches():
+    matches = [
+        _match(4, True, []),  # a clean game: in the window and the average
+        _match(3, True, [(700, OWN_JUNGLE), (800, OWN_JUNGLE)]),
+        _match(2, True, [(700, OWN_JUNGLE), (800, OWN_JUNGLE)]),
+        _match(1, True, [(700, OWN_JUNGLE), (800, OWN_JUNGLE)]),
+    ]
+    result = death_map(matches, "en")
+    assert result["matches"] == 4 and result["total"] == 6 and result["per_match"] == 1.5
+    # The window is the newest mapped games, clean ones included.
+    window = [_match(i, True, []) for i in range(MATCHES, 0, -1)]
+    older = [_match(0, True, [(700, OWN_JUNGLE)] * 6)]
+    assert death_map(window + older, "en") is None
+
+
 def test_the_career_carries_it():
     matches = [
         {**_match(i, True, [(700, OWN_JUNGLE), (900, ENEMY_JUNGLE)]), "win": True}

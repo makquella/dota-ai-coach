@@ -4497,6 +4497,9 @@
     api.onPlayerEvent?.((event) => {
       if (event.type === "open-match" && event.matchId) {
         openMatch(event.matchId);
+      } else if (event.type === "open-home") {
+        // The evening summary's tray note: its card is on Home.
+        setView("home");
       } else if (event.type === "review-ready" && state.view === "matches") {
         loadMatches(true);
       }

@@ -195,7 +195,9 @@ const live = {
   player: null
 };
 // Match id of the last "review ready" balloon; a click on it opens that review.
-let pendingReviewOpen = null;
+// What a click on the latest tray balloon opens: {type: "open-match", matchId},
+// {type: "open-home"} or null (just the panel). Every balloon sets it anew.
+let balloonAction = null;
 const presence = { status: DOTA_STATUS.NOT_FOUND, visible: false, reason: "", code: "" };
 let autostartEnabled = false;
 // Problem reports waiting in the outbox (sent again later).
@@ -485,7 +487,7 @@ async function notifySession() {
   }
   settings.set("sessionNotified", session.id);
   appendLog("player", `Evening summary: ${session.games} matches.`, { force: true });
-  showTrayBalloon(t("sessionReady", session.games, session.wins, session.losses, session.avg_score));
+  showTrayBalloon(t("sessionReady", session.games, session.wins, session.losses, session.avg_score), { type: "open-home" });
 }
 
 const INVITE_AFTER_REVIEWS = 3;
@@ -1668,8 +1670,7 @@ async function pollPlayerStatus() {
     settings.set("liveReviews", reviewsBefore + 1);
     const score = review.score !== null && review.score !== undefined ? ` ${review.score}/100` : "";
     appendLog("player", `Post-match review ready for match ${review.match_id}${score}.`, { force: true });
-    pendingReviewOpen = review.match_id;
-    showTrayBalloon(t("reviewReady", score, review.focus_met));
+    showTrayBalloon(t("reviewReady", score, review.focus_met), { type: "open-match", matchId: review.match_id });
     send("launcher:player-event", { type: "review-ready", matchId: review.match_id, score: review.score });
     if (reviewsBefore === 0 && !(mainWindow && !mainWindow.isDestroyed() && mainWindow.isFocused())) {
       // The very first review: the panel turns to it (never pulled over the game),
@@ -2927,9 +2928,9 @@ function createTray() {
   tray.on("double-click", showMainWindow);
   tray.on("balloon-click", () => {
     showMainWindow();
-    if (pendingReviewOpen) {
-      send("launcher:player-event", { type: "open-match", matchId: pendingReviewOpen });
-      pendingReviewOpen = null;
+    if (balloonAction) {
+      send("launcher:player-event", balloonAction);
+      balloonAction = null;
     }
   });
   refreshTray();
@@ -2994,7 +2995,8 @@ function refreshTray() {
   );
 }
 
-function showTrayBalloon(content) {
+function showTrayBalloon(content, action = null) {
+  balloonAction = action;
   if (!tray || tray.isDestroyed() || process.platform !== "win32") {
     return;
   }

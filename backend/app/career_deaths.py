@@ -38,7 +38,9 @@ def death_map(matches: list[dict[str, Any]], lang: str) -> dict[str, Any] | None
     games = []
     for match in matches:
         block = (match.get("analysis") or {}).get("map") or {}
-        if block.get("is_radiant") is None or not block.get("deaths"):
+        # A mapped game without a death still counts: it is one of the 20 and
+        # lowers the average.
+        if block.get("is_radiant") is None or not isinstance(block.get("deaths"), list):
             continue
         games.append((match, block))
         if len(games) >= MATCHES:
