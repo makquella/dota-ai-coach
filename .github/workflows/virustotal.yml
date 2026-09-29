@@ -1,0 +1,37 @@
+name: VirusTotal
+
+# By hand: send an already published release's installer to VirusTotal and add
+# the report's link to its notes (release.yml does the same after publishing;
+# this is for a release whose upload failed). Needs the VT_API_KEY secret.
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release tag, e.g. v0.19.0"
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  scan:
+    runs-on: windows-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download the installer and send it
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VT_API_KEY: ${{ secrets.VT_API_KEY }}
+          TAG: ${{ inputs.tag }}
+        run: |
+          if ($env:TAG -notmatch '^v\d+\.\d+\.\d+$') { throw "Not a release tag: $env:TAG" }
+          $version = $env:TAG.Substring(1)
+          $dir = Join-Path $env:RUNNER_TEMP "release"
+          gh release download $env:TAG --pattern "Wardly-Setup-$version.exe" --dir $dir
+          if ($LASTEXITCODE -ne 0) { throw "gh release download failed with exit code $LASTEXITCODE" }
+          ./scripts/virustotal-release.ps1 -Tag $env:TAG -Installer (Join-Path $dir "Wardly-Setup-$version.exe")
