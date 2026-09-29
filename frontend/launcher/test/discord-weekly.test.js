@@ -75,6 +75,9 @@ test("the message: numbers and heroes, no match ids, no pings", () => {
   const en = buildWeeklyMessage({ games: 1, wins: 0, losses: 1, avg_score: null, heroes: [] }, { lang: "en", period });
   assert.equal(en.embeds[0].description, "**1 match** · 0 wins · 1 loss");
   assert.deepEqual(en.embeds[0].fields, []);
+  // The title links the site in the player's language, tagged for the source count.
+  assert.equal(en.embeds[0].url, "https://luhovyimvp.dev/en/?ref=discord-week");
+  assert.equal(message.embeds[0].url, "https://luhovyimvp.dev/?ref=discord-week");
   assert.equal(buildWeeklyMessage({ games: 0 }, { lang: "en", period }), null);
   assert.equal(buildWeeklyMessage(null, { lang: "en", period }), null);
 });

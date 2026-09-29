@@ -8,137 +8,9 @@
   // Bump with every reshoot of the pictures (scripts/site-shots) and in index.html.
   const SHOTS_VERSION = "6";
 
-  const EN = {
-    title: "Wardly — a Dota 2 coach right in your game",
-    skip: "Skip to content",
-    navLabel: "Sections",
-    navIngame: "In game",
-    navHow: "How it works",
-    navReview: "Review",
-    navHeroes: "Heroes",
-    navFaq: "FAQ",
-    langLabel: "Language",
-    navDownload: "Download",
-    badge: "Official Valve integration only — no risk for your account",
-    h1a: "Die less.",
-    h1b: "Farm more.",
-    h1c: "In every game.",
-    lead:
-      "The coach watches the match with you and speaks up <strong>at the right moment</strong> — on screen and out loud. After the game, an honest review: where the farm went, why you died and what the player of your rank did.",
-    ctaDownload: "Download for Windows",
-    metaFree: "Free",
-    metaOpen: "Open source",
-    metaWin: "Windows 10 and 11",
-    metaVt: "VirusTotal scan",
-    ingameTitle: "Advice right in the game",
-    ingameSub: "Dota is complex. The coach tells you what to do now.",
-    lowhpTitle: "Low HP",
-    lowhpText: "Urgent advice at once, while you can still get away. The rest comes with pauses so it never distracts.",
-    lowhpAlt: "Urgent advice: leave the wave and reset HP",
-    planTitle: "Plan for this game",
-    planText: "From the pick to 1:30: last hits you need by 10:00, the key item and your recurring mistake.",
-    planAlt: "Plan for this game on the overlay",
-    farmTitle: "Behind on farm",
-    farmText: "With numbers: your last hits and a good pace for this minute.",
-    farmAlt: "Farm advice with the last-hit pace",
-    tpTitle: "TP scroll",
-    tpText: "After minute 10 it reminds you when you have gone a minute without a TP: without it you cannot join a fight or save a tower.",
-    tpAlt: "Reminder to carry a TP scroll",
-    spendTitle: "Gold after death",
-    spendText: "Died with spare gold? Buy parts of your next item right away. After minute 30 it keeps the buyback gold.",
-    spendAlt: "Advice to spend gold while dead",
-    timerTitle: "Map timers",
-    timerText: "20 seconds ahead: runes, shrines, lotuses, the Tormentor. Stacks and wards for a support. The coach finds your role from your lane.",
-    timerAlt: "Map timer: the Tormentor in 15 seconds",
-    stripTitle: "Full advice for 39 heroes",
-    stripText: "— carries, mids and offlaners. On the rest: survival and map timers.",
-    stripLink: "All heroes",
-    voiceNote: "Advice can be spoken with the Windows voice — heard even in exclusive fullscreen, where the card cannot be shown.",
-    howTitle: "Install it and play",
-    howSub: "No accounts, no setup. The app connects to Dota by itself.",
-    step1: "Start Dota — the coach sees the match by itself through Valve's official integration",
-    step1Alt: "The app sees the match: Juggernaut, 18:54",
-    step2: "Play: short advice shows over the game when you need it",
-    step2Alt: "The plan for this game over a real Dota 2 match",
-    step3: "After the match open the review: the score, your mistakes and what to do next game",
-    step3Alt: "Match review",
-    reviewTitle: "Your personal coach after every match",
-    reviewSub: "You play better than it seems. The review shows where you lose.",
-    reviewText:
-      "Every match is recorded by itself and filled in with OpenDota data. Rules count everything in numbers, and the AI coach explains the match in plain words — every number in its text is checked against the data.",
-    c1: "A score for the match: lane, farm, survival, fights, items",
-    c2: "Map on the Dota minimap: your hero's path, where you died and the wards",
-    c3: "Build and item timings against OpenDota statistics",
-    c4: "You against the player of your rank in the same role",
-    c5: "One mistake in focus — and a count of whether you avoid it",
-    c6: "“Ask the coach” — your own question about the match",
-    c7: "Compare with a friend on their public matches",
-    c8: "Send a review to a friend by link — no Steam ID or nickname",
-    insideTitle: "Everything in numbers",
-    insideSub: "Not “play better”, but where exactly and by how much.",
-    mapCap: "Match map: where you went and where you died. Keep dying on the enemy half and it goes into the review",
-    mapAlt: "Match map with deaths and the hero's path",
-    buildCap: "Build: win rate by purchase time for every item, and the pro build",
-    buildAlt: "Item timings with win rates",
-    chartCap: "Last hits, gold and experience by minute against a good pace, with your deaths on the chart",
-    chartAlt: "Last hits by minute against a good pace",
-    faqTitle: "FAQ",
-    q1: "Can I get banned?",
-    a1: "No. Game State Integration is an official Dota 2 feature by Valve. The app doesn't inject into the game, read its memory or control your hero; the advice is like a friend's on Discord.",
-    q2: "Is it really free?",
-    a2: "Yes, completely. The AI review needs your own free Google Gemini key (takes a minute to get); everything else works the same without it.",
-    q3: "I can't see the advice over the game",
-    a3: "Windows doesn't draw windows over exclusive fullscreen. In Dota: Settings → Video → “Borderless window”. Or turn on the voice — it is heard in any mode.",
-    q4: "Which heroes get advice?",
-    a4: 'Full advice (farm, items, objectives, abilities) for <a href="heroes.html">39 heroes</a>: carries, mids and offlaners. On any other hero the coach helps you survive (low HP, death streaks, disables, mana, buyback) and gives map timers and tips for your role. Match reviews and progress work for every hero.',
-    q5: "Where does the match history come from?",
-    a5: "The app records every match by itself and fills it in with OpenDota data. For that, Expose Public Match Data must be on in Dota 2.",
-    q6: "Do I need the internet?",
-    a6: "Not for advice during the game. The internet is needed for the OpenDota history, the AI review and updates.",
-    q7: "Windows says it “protected your PC”",
-    a7: "The installer isn't code-signed yet. Click “More info” → “Run anyway”. The code is open, so you can check what's inside.",
-    finalTitle: 'Your next game — <span class="accent">with a coach</span>',
-    finalText: "Two minutes to install. After that the app does everything by itself and updates without you.",
-    footerLabel: "Links",
-    footerReleases: "Releases",
-    footerIssues: "Report a problem",
-    footerChangelog: "What's new",
-    footerPrivacy: "Privacy",
-    legal:
-      "Dota 2 is a trademark of Valve Corporation. This project is not affiliated with or endorsed by Valve. Game frames are from the Dota 2 Steam page; hero portraits are Valve's.",
-    // heroes.html
-    heroesPageTitle: "Heroes — Wardly",
-    heroesTitle: "Full advice for 39 heroes",
-    heroesLead:
-      "Carries, mids and offlaners get everything: the farm pace for their position, the next item and their own abilities to survive. On any other hero the coach still works: it tells you how to stay alive and keeps the map timers.",
-    modeFullTag: "39 heroes on the list",
-    modeFullTitle: "The full coach",
-    modeFull1: "Farm pace for the position: an offlaner is not held to a carry's bar",
-    modeFull2: "The next item of the build and the gold still needed for it",
-    modeFull3: "At low HP, the hero's own ability: “Use Blink now”",
-    modeFull4: "A last-hit target for 10:00 in the plan for the game",
-    modeFull5: "Everything the other heroes get",
-    modeSafetyTag: "Any other hero",
-    modeSafetyTitle: "Survival and the map",
-    modeSafety1: "Low HP, death streaks, disables, mana, buyback",
-    modeSafety2: "Map timers: runes, lotuses, the Tormentor, Roshan",
-    modeSafety3: "Role tips: stacks, pulls and wards for a support",
-    modeSafety4: "The death screen: what killed you and what to buy",
-    modeAllTag: "All 127 heroes",
-    modeAllTitle: "The review after the match",
-    modeAll1: "A score for the match and what to fix next game",
-    modeAll2: "The map: where you went and where you died",
-    modeAll3: "The build against OpenDota statistics",
-    modeAll4: "Progress, the AI coach and a comparison with a friend",
-    heroesLegend: "Under each hero's name: the abilities the coach names when your HP is low.",
-    modesTitle: "What every hero gets",
-    modesSub: "On any hero the coach helps you survive, and every hero gets the review after the match.",
-    heroesCarry: "Carry",
-    heroesMid: "Mid",
-    heroesOfflane: "Offlane",
-    heroesMore: "The list grows with every update, and the app updates by itself.",
+  const EN = Object.assign({}, window.WARDLY_EN || {}, {
     version: (v, mb) => `Version ${v} · Windows 10 and 11 · ${mb} MB`
-  };
+  });
   const RU = {};
 
   let lang = "ru";
@@ -154,7 +26,41 @@
     }
   }
 
+  // Pages written in one language (<html data-static="ru|en">: every page now —
+  // the English copies are built by scripts/build_site.py) switch by opening their
+  // counterpart (data-alt-ru / data-alt-en); only a page without one translates in
+  // place. The browser language is never used to switch a static page: search
+  // engines render with an English browser and would index the wrong language.
+  const PAGE = document.documentElement;
+  const STATIC_LANG = PAGE.dataset.static === "en" ? "en" : PAGE.dataset.static === "ru" ? "ru" : "";
+  const ALT = { ru: PAGE.dataset.altRu || "", en: PAGE.dataset.altEn || "" };
+
+  function savedLanguage() {
+    try {
+      const saved = localStorage.getItem(LANG_KEY);
+      return saved === "ru" || saved === "en" ? saved : "";
+    } catch {
+      return "";
+    }
+  }
+
+  function openCounterpart(next) {
+    if (next !== STATIC_LANG && ALT[next]) {
+      location.href = ALT[next] + location.search + location.hash;
+      return true;
+    }
+    return false;
+  }
+
   function applyLanguage(next) {
+    if (STATIC_LANG) {
+      lang = STATIC_LANG;
+      document.querySelectorAll(".lang [data-lang]").forEach((button) => {
+        button.setAttribute("aria-pressed", String(button.dataset.lang === lang));
+      });
+      renderRelease();
+      return;
+    }
     lang = next === "en" ? "en" : "ru";
     const table = lang === "en" ? EN : RU;
     document.documentElement.lang = lang;
@@ -209,13 +115,12 @@
   }
 
   function initialLanguage() {
-    try {
-      const saved = localStorage.getItem(LANG_KEY);
-      if (saved === "ru" || saved === "en") {
-        return saved;
-      }
-    } catch {
-      // Storage blocked: fall back to the browser language.
+    if (STATIC_LANG) {
+      return STATIC_LANG;
+    }
+    const saved = savedLanguage();
+    if (saved) {
+      return saved;
     }
     const preferred = (navigator.languages || [navigator.language || "ru"]).map((l) => String(l).toLowerCase());
     return preferred.some((l) => /^(ru|uk|be|kk)/.test(l)) ? "ru" : "en";
@@ -223,14 +128,26 @@
 
   document.querySelectorAll(".lang [data-lang]").forEach((button) => {
     button.addEventListener("click", () => {
-      applyLanguage(button.dataset.lang);
+      const next = button.dataset.lang === "en" ? "en" : "ru";
       try {
-        localStorage.setItem(LANG_KEY, lang);
+        localStorage.setItem(LANG_KEY, next);
       } catch {
         // Not remembered; fine.
       }
+      if (STATIC_LANG) {
+        openCounterpart(next);
+        return;
+      }
+      applyLanguage(next);
     });
   });
+
+  // A language chosen earlier opens its version of this page (the ?ref= and the
+  // anchor go along).
+  const preferred = savedLanguage();
+  if (STATIC_LANG && preferred && openCounterpart(preferred)) {
+    return;
+  }
 
   // --- where the visitor came from -------------------------------------------------
   // Posts link to the site with ?ref=<source>; without it the referrer's kind

@@ -141,14 +141,18 @@ def test_the_site_heroes_page_lists_exactly_the_full_advisor(repo_root):
     listed = {}
     for position, block in groups.items():
         cards = re.findall(
-            r'<img src="assets/heroes/(\w+)\.webp"[^>]*/><span><b>([^<]+)</b>(?:<small>([^<]+)</small>)?',
+            r'<a href="heroes/([a-z0-9-]+)\.html"><img src="assets/heroes/(\w+)\.webp"[^>]*/>'
+            r"<span><b>([^<]+)</b>(?:<small>([^<]+)</small>)?",
             block,
         )
         heading = re.search(rf'id="heroes-{position}">.*?· (\d+)</h3>', page, re.S)
         assert heading and int(heading.group(1)) == len(cards), position
-        for key, name, saves in cards:
+        for hero_page, key, name, saves in cards:
             name = html.unescape(name)
             assert (repo_root / "site" / "assets" / "heroes" / f"{key}.webp").is_file(), key
+            # Every card opens the hero's own page, in both languages.
+            assert (repo_root / "site" / "heroes" / f"{hero_page}.html").is_file(), hero_page
+            assert (repo_root / "site" / "en" / "heroes" / f"{hero_page}.html").is_file(), hero_page
             assert get_hero_position(name) == position, name
             profile = load_hero_profile(name)
             expected = [

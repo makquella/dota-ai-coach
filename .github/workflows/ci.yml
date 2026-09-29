@@ -46,6 +46,9 @@ jobs:
       - name: Site changelog matches docs/release-notes
         run: python ../scripts/build_changelog.py --check
 
+      - name: Generated site pages match the hero profiles and texts
+        run: python ../scripts/build_site.py --check
+
   frontend:
     name: Frontend (node --check)
     runs-on: ubuntu-latest

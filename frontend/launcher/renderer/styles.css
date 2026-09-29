@@ -3042,6 +3042,15 @@ label.setting:has(.switch:disabled) {
 }
 
 /* What's new after an update --------------------------------------------------- */
+.invite-card {
+  margin-bottom: var(--sp-3);
+}
+.invite-card p {
+  margin: 0 0 var(--sp-3);
+  color: var(--text-2);
+  font-size: var(--fs-13);
+  line-height: 1.45;
+}
 .whats-new {
   margin-bottom: var(--sp-3);
 }

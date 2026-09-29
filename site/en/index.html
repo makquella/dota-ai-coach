@@ -1,0 +1,331 @@
+<!doctype html>
+<html lang="en" data-static="en" data-alt-ru="../">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Wardly — a Dota 2 coach right in your game</title>
+    <meta name="description" content="A free Dota 2 coach: advice over the game and out loud during the match, and after it a review with the map, the build and a comparison with a player of your rank." />
+    <meta name="theme-color" content="#0c0d0f" />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Wardly — a Dota 2 coach right in your game" />
+    <meta property="og:description" content="Advice during the match and an honest review after it. Free, for Windows, open source." />
+    <link rel="canonical" href="https://luhovyimvp.dev/en/" />
+    <link rel="alternate" hreflang="ru" href="https://luhovyimvp.dev/" />
+    <link rel="alternate" hreflang="en" href="https://luhovyimvp.dev/en/" />
+    <link rel="alternate" hreflang="x-default" href="https://luhovyimvp.dev/" />
+    <meta property="og:url" content="https://luhovyimvp.dev/en/" />
+    <meta property="og:image" content="https://luhovyimvp.dev/assets/og.jpg?v=6" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <link rel="icon" href="../assets/favicon.png" type="image/png" />
+    <link rel="apple-touch-icon" href="../assets/icon.png" />
+    <link rel="preload" href="../assets/fonts/montserrat-cyrillic-wght-normal.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href="../assets/fonts/inter-cyrillic-wght-normal.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="stylesheet" href="../styles.css?v=9" />
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "SoftwareApplication",
+      "name": "Wardly",
+      "alternateName": "Wardly — a Dota 2 coach",
+      "description": "A free Dota 2 coach: advice over the game and out loud during the match, and after it a review with the map, the build and a comparison with a player of your rank.",
+      "url": "https://luhovyimvp.dev/en/",
+      "image": "https://luhovyimvp.dev/assets/og.jpg",
+      "applicationCategory": "GameApplication",
+      "operatingSystem": "Windows 10, Windows 11",
+      "inLanguage": "en",
+      "isAccessibleForFree": true,
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "USD"
+      },
+      "downloadUrl": "https://github.com/makquella/dota-ai-coach/releases/latest",
+      "license": "https://github.com/makquella/dota-ai-coach/blob/main/LICENSE"
+    }
+    </script>
+  </head>
+  <body>
+    <a class="skip" href="#main" data-i18n="skip">Skip to content</a>
+
+    <header class="nav" id="top">
+      <div class="wrap nav-inner">
+        <a class="brand" href="#top" aria-label="Wardly">
+          <img class="brand-mark" src="../assets/logo-mark.png" alt="" width="28" height="28" />
+          <span class="brand-name">Wardly</span>
+        </a>
+        <nav class="nav-links" aria-label="Sections" data-i18n-aria="navLabel">
+          <a href="#ingame" data-i18n="navIngame">In game</a>
+          <a href="#how" data-i18n="navHow">How it works</a>
+          <a href="#review" data-i18n="navReview">Review</a>
+          <a href="heroes.html" data-i18n="navHeroes">Heroes</a>
+          <a href="#faq" data-i18n="navFaq">FAQ</a>
+        </nav>
+        <div class="nav-actions">
+          <div class="lang" role="group" aria-label="Language" data-i18n-aria="langLabel">
+            <button type="button" data-lang="ru" aria-pressed="true">RU</button>
+            <button type="button" data-lang="en" aria-pressed="false">EN</button>
+          </div>
+          <a class="btn btn-primary btn-sm js-download" href="https://github.com/makquella/dota-ai-coach/releases/latest">
+            <svg class="i" aria-hidden="true"><use href="#i-windows" /></svg>
+            <span data-i18n="navDownload">Download</span>
+          </a>
+        </div>
+      </div>
+    </header>
+
+    <main id="main">
+      <!-- Hero: the promise on the left, the real app on the right. -->
+      <section class="hero">
+        <div class="wrap hero-grid">
+          <div class="hero-copy">
+            <p class="badge">
+              <svg class="i" aria-hidden="true"><use href="#i-shield" /></svg>
+              <span data-i18n="badge">Official Valve integration only — no risk for your account</span>
+            </p>
+            <h1>
+              <span data-i18n="h1a">Die less.</span>
+              <span data-i18n="h1b">Farm more.</span>
+              <span class="accent" data-i18n="h1c">In every game.</span>
+            </h1>
+            <p class="lead" data-i18n-html="lead">The coach watches the match with you and speaks up <strong>at the right moment</strong> — on screen and out loud. After the game, an honest review: where the farm went, why you died and what the player of your rank did.</p>
+            <div class="cta-row">
+              <a class="btn btn-primary btn-lg js-download" href="https://github.com/makquella/dota-ai-coach/releases/latest">
+                <svg class="i" aria-hidden="true"><use href="#i-windows" /></svg>
+                <span data-i18n="ctaDownload">Download for Windows</span>
+              </a>
+            </div>
+            <ul class="meta-row">
+              <li data-i18n="metaFree">Free</li>
+              <li><a href="https://github.com/makquella/dota-ai-coach" rel="noopener" data-i18n="metaOpen">Open source</a></li>
+              <li class="js-release-meta" data-i18n="metaWin">Windows 10 and 11</li>
+            </ul>
+            <p class="scan-note js-vt" hidden>
+              <svg class="i" aria-hidden="true"><use href="#i-shield" /></svg>
+              <a href="https://www.virustotal.com/" rel="noopener" data-i18n="metaVt">VirusTotal scan</a>
+            </p>
+          </div>
+
+          <div class="hero-stage" aria-hidden="true">
+            <figure class="win win-back win-game"><img src="../assets/game/ingame-en.jpg" data-game="ingame" alt="" width="1600" height="900" /></figure>
+            <figure class="win win-front"><img src="../assets/app/en/review-ai.jpg?v=6" data-img="review-ai" alt="" width="1600" height="1000" /></figure>
+            <img class="hero-card" src="../assets/overlay/en/lowhp.webp?v=6" data-ov="lowhp" alt="" width="756" />
+          </div>
+        </div>
+      </section>
+
+      <!-- In game: the real overlay cards. -->
+      <section class="section section-alt" id="ingame">
+        <div class="wrap">
+          <header class="section-head">
+            <h2 data-i18n="ingameTitle">Advice right in the game</h2>
+            <p class="sub" data-i18n="ingameSub">Dota is complex. The coach tells you what to do now.</p>
+          </header>
+          <div class="tiles">
+            <article class="tile">
+              <div class="tile-art" style="--bg: url(../assets/game/fight.jpg)"><img src="../assets/overlay/en/lowhp.webp?v=6" data-ov="lowhp" alt="Urgent advice: leave the wave and reset HP" loading="lazy" data-i18n-alt="lowhpAlt" /></div>
+              <h3 data-i18n="lowhpTitle">Low HP</h3>
+              <p data-i18n="lowhpText">Urgent advice at once, while you can still get away. The rest comes with pauses so it never distracts.</p>
+            </article>
+            <article class="tile">
+              <div class="tile-art" style="--bg: url(../assets/game/base.jpg)"><img src="../assets/overlay/en/plan.webp?v=6" data-ov="plan" alt="Plan for this game on the overlay" loading="lazy" data-i18n-alt="planAlt" /></div>
+              <h3 data-i18n="planTitle">Plan for this game</h3>
+              <p data-i18n="planText">From the pick to 1:30: last hits you need by 10:00, the key item and your recurring mistake.</p>
+            </article>
+            <article class="tile">
+              <div class="tile-art" style="--bg: url(../assets/game/forest.jpg)"><img src="../assets/overlay/en/farm.webp?v=6" data-ov="farm" alt="Farm advice with the last-hit pace" loading="lazy" data-i18n-alt="farmAlt" /></div>
+              <h3 data-i18n="farmTitle">Behind on farm</h3>
+              <p data-i18n="farmText">With numbers: your last hits and a good pace for this minute.</p>
+            </article>
+            <article class="tile">
+              <div class="tile-art" style="--bg: url(../assets/game/hook.jpg)"><img src="../assets/overlay/en/tp.webp?v=6" data-ov="tp" alt="Reminder to carry a TP scroll" loading="lazy" data-i18n-alt="tpAlt" /></div>
+              <h3 data-i18n="tpTitle">TP scroll</h3>
+              <p data-i18n="tpText">After minute 10 it reminds you when you have gone a minute without a TP: without it you cannot join a fight or save a tower.</p>
+            </article>
+            <article class="tile">
+              <div class="tile-art" style="--bg: url(../assets/game/dark.jpg)"><img src="../assets/overlay/en/spend.webp?v=6" data-ov="spend" alt="Advice to spend gold while dead" loading="lazy" data-i18n-alt="spendAlt" /></div>
+              <h3 data-i18n="spendTitle">Gold after death</h3>
+              <p data-i18n="spendText">Died with spare gold? Buy parts of your next item right away. After minute 30 it keeps the buyback gold.</p>
+            </article>
+            <article class="tile">
+              <div class="tile-art" style="--bg: url(../assets/game/chrono.jpg)"><img src="../assets/overlay/en/timer.webp?v=6" data-ov="timer" alt="Map timer: the Tormentor in 15 seconds" loading="lazy" data-i18n-alt="timerAlt" /></div>
+              <h3 data-i18n="timerTitle">Map timers</h3>
+              <p data-i18n="timerText">20 seconds ahead: runes, shrines, lotuses, the Tormentor. Stacks and wards for a support. The coach finds your role from your lane.</p>
+            </article>
+          </div>
+          <p class="note">
+            <svg class="i" aria-hidden="true"><use href="#i-volume" /></svg>
+            <span data-i18n="voiceNote">Advice can be spoken with the Windows voice — heard even in exclusive fullscreen, where the card cannot be shown.</span>
+          </p>
+          <a class="heroes-strip" href="heroes.html">
+            <span class="faces" aria-hidden="true"><img src="../assets/heroes/juggernaut.webp" alt="" width="256" height="144" loading="lazy" /><img src="../assets/heroes/queenofpain.webp" alt="" width="256" height="144" loading="lazy" /><img src="../assets/heroes/axe.webp" alt="" width="256" height="144" loading="lazy" /><img src="../assets/heroes/phantom_assassin.webp" alt="" width="256" height="144" loading="lazy" /><img src="../assets/heroes/storm_spirit.webp" alt="" width="256" height="144" loading="lazy" /><img src="../assets/heroes/legion_commander.webp" alt="" width="256" height="144" loading="lazy" /></span>
+            <span class="strip-text"><b data-i18n="stripTitle">Full advice for 39 heroes</b> <span data-i18n="stripText">— carries, mids and offlaners. On the rest: survival and map timers.</span></span>
+            <span class="strip-link"><span data-i18n="stripLink">All heroes</span> <span aria-hidden="true">→</span></span>
+          </a>
+        </div>
+      </section>
+
+      <!-- How it works: three real screens. -->
+      <section class="section section-alt" id="how">
+        <div class="wrap">
+          <header class="section-head">
+            <h2 data-i18n="howTitle">Install it and play</h2>
+            <p class="sub" data-i18n="howSub">No accounts, no setup. The app connects to Dota by itself.</p>
+          </header>
+          <div class="steps">
+            <figure class="step">
+              <div class="step-shot"><img src="../assets/app/en/home.jpg?v=6" data-img="home" alt="The app sees the match: Juggernaut, 18:54" loading="lazy" data-i18n-alt="step1Alt" /></div>
+              <figcaption data-i18n="step1">Start Dota — the coach sees the match by itself through Valve's official integration</figcaption>
+            </figure>
+            <figure class="step">
+              <div class="step-shot step-game"><img src="../assets/game/ingame-en.jpg" data-game="ingame" alt="The plan for this game over a real Dota 2 match" loading="lazy" data-i18n-alt="step2Alt" /></div>
+              <figcaption data-i18n="step2">Play: short advice shows over the game when you need it</figcaption>
+            </figure>
+            <figure class="step">
+              <div class="step-shot"><img src="../assets/app/en/review.jpg?v=6" data-img="review" alt="Match review" loading="lazy" data-i18n-alt="step3Alt" /></div>
+              <figcaption data-i18n="step3">After the match open the review: the score, your mistakes and what to do next game</figcaption>
+            </figure>
+          </div>
+        </div>
+      </section>
+
+      <!-- After the match: the review. -->
+      <section class="section" id="review">
+        <div class="wrap split">
+          <div class="split-stage" aria-hidden="true">
+            <figure class="win win-a"><img src="../assets/app/en/review.jpg?v=6" data-img="review" alt="" loading="lazy" width="1600" height="1000" /></figure>
+            <figure class="win win-b"><img src="../assets/app/en/progress-ai.jpg?v=6" data-img="progress-ai" alt="" loading="lazy" width="1600" height="1000" /></figure>
+          </div>
+          <div class="split-copy">
+            <h2 data-i18n="reviewTitle">Your personal coach after every match</h2>
+            <p class="sub" data-i18n="reviewSub">You play better than it seems. The review shows where you lose.</p>
+            <p class="body" data-i18n="reviewText">Every match is recorded by itself and filled in with OpenDota data. Rules count everything in numbers, and the AI coach explains the match in plain words — every number in its text is checked against the data.</p>
+            <ul class="checks">
+              <li><svg class="i" aria-hidden="true"><use href="#i-target" /></svg><span data-i18n="c1">A score for the match: lane, farm, survival, fights, items</span></li>
+              <li><svg class="i" aria-hidden="true"><use href="#i-map" /></svg><span data-i18n="c2">Map on the Dota minimap: your hero's path, where you died and the wards</span></li>
+              <li><svg class="i" aria-hidden="true"><use href="#i-coins" /></svg><span data-i18n="c3">Build and item timings against OpenDota statistics</span></li>
+              <li><svg class="i" aria-hidden="true"><use href="#i-swords" /></svg><span data-i18n="c4">You against the player of your rank in the same role</span></li>
+              <li><svg class="i" aria-hidden="true"><use href="#i-check" /></svg><span data-i18n="c5">One mistake in focus — and a count of whether you avoid it</span></li>
+              <li><svg class="i" aria-hidden="true"><use href="#i-graduation" /></svg><span data-i18n="c6">“Ask the coach” — your own question about the match</span></li>
+              <li><svg class="i" aria-hidden="true"><use href="#i-swords" /></svg><span data-i18n="c7">Compare with a friend on their public matches</span></li>
+              <li><svg class="i" aria-hidden="true"><use href="#i-check" /></svg><span data-i18n="c8">Send a review to a friend by link — no Steam ID or nickname</span></li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <!-- Inside the review: three real cards. -->
+      <section class="section section-alt">
+        <div class="wrap">
+          <header class="section-head">
+            <h2 data-i18n="insideTitle">Everything in numbers</h2>
+            <p class="sub" data-i18n="insideSub">Not “play better”, but where exactly and by how much.</p>
+          </header>
+          <div class="steps">
+            <figure class="step">
+              <div class="step-shot step-crop"><img src="../assets/shots/en/map.jpg?v=6" data-shot="map" alt="Match map with deaths and the hero&#x27;s path" loading="lazy" data-i18n-alt="mapAlt" /></div>
+              <figcaption data-i18n="mapCap">Match map: where you went and where you died. Keep dying on the enemy half and it goes into the review</figcaption>
+            </figure>
+            <figure class="step">
+              <div class="step-shot step-crop"><img src="../assets/shots/en/build.jpg?v=6" data-shot="build" alt="Item timings with win rates" loading="lazy" data-i18n-alt="buildAlt" /></div>
+              <figcaption data-i18n="buildCap">Build: win rate by purchase time for every item, and the pro build</figcaption>
+            </figure>
+            <figure class="step">
+              <div class="step-shot step-crop fit"><img src="../assets/shots/en/chart.jpg?v=6" data-shot="chart" alt="Last hits by minute against a good pace" loading="lazy" data-i18n-alt="chartAlt" /></div>
+              <figcaption data-i18n="chartCap">Last hits, gold and experience by minute against a good pace, with your deaths on the chart</figcaption>
+            </figure>
+          </div>
+        </div>
+      </section>
+
+      <!-- FAQ -->
+      <section class="section" id="faq">
+        <div class="wrap narrow">
+          <header class="section-head">
+            <h2 data-i18n="faqTitle">FAQ</h2>
+          </header>
+          <div class="faq">
+            <details>
+              <summary data-i18n="q1">Can I get banned?</summary>
+              <p data-i18n="a1">No. Game State Integration is an official Dota 2 feature by Valve. The app doesn't inject into the game, read its memory or control your hero; the advice is like a friend's on Discord.</p>
+            </details>
+            <details>
+              <summary data-i18n="q2">Is it really free?</summary>
+              <p data-i18n="a2">Yes, completely. The AI review needs your own free Google Gemini key (takes a minute to get); everything else works the same without it.</p>
+            </details>
+            <details>
+              <summary data-i18n="q3">I can't see the advice over the game</summary>
+              <p data-i18n="a3">Windows doesn't draw windows over exclusive fullscreen. In Dota: Settings → Video → “Borderless window”. Or turn on the voice — it is heard in any mode.</p>
+            </details>
+            <details>
+              <summary data-i18n="q4">Which heroes get advice?</summary>
+              <p data-i18n-html="a4">Full advice (farm, items, objectives, abilities) for <a href="heroes.html">39 heroes</a>: carries, mids and offlaners. On any other hero the coach helps you survive (low HP, death streaks, disables, mana, buyback) and gives map timers and tips for your role. Match reviews and progress work for every hero.</p>
+            </details>
+            <details>
+              <summary data-i18n="q5">Where does the match history come from?</summary>
+              <p data-i18n="a5">The app records every match by itself and fills it in with OpenDota data. For that, Expose Public Match Data must be on in Dota 2.</p>
+            </details>
+            <details>
+              <summary data-i18n="q6">Do I need the internet?</summary>
+              <p data-i18n="a6">Not for advice during the game. The internet is needed for the OpenDota history, the AI review and updates.</p>
+            </details>
+            <details>
+              <summary data-i18n="q7">Windows says it “protected your PC”</summary>
+              <p data-i18n="a7">The installer isn't code-signed yet. Click “More info” → “Run anyway”. The code is open, so you can check what's inside.</p>
+            </details>
+          </div>
+        </div>
+      </section>
+
+      <!-- Final CTA -->
+      <section class="final">
+        <div class="wrap final-inner">
+          <h2 data-i18n-html="finalTitle">Your next game — <span class="accent">with a coach</span></h2>
+          <p data-i18n="finalText">Two minutes to install. After that the app does everything by itself and updates without you.</p>
+          <a class="btn btn-primary btn-lg js-download" href="https://github.com/makquella/dota-ai-coach/releases/latest">
+            <svg class="i" aria-hidden="true"><use href="#i-windows" /></svg>
+            <span data-i18n="ctaDownload">Download for Windows</span>
+          </a>
+        </div>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <div class="wrap footer-inner">
+        <a class="brand" href="#top" aria-label="Wardly">
+          <img class="brand-mark" src="../assets/logo-mark.png" alt="" width="24" height="24" />
+          <span class="brand-name">Wardly</span>
+        </a>
+        <nav class="footer-links" aria-label="Links" data-i18n-aria="footerLabel">
+          <a href="https://github.com/makquella/dota-ai-coach" rel="noopener">GitHub</a>
+          <a href="https://github.com/makquella/dota-ai-coach/releases" rel="noopener" data-i18n="footerReleases">Releases</a>
+          <a href="https://github.com/makquella/dota-ai-coach/issues" rel="noopener" data-i18n="footerIssues">Report a problem</a>
+          <a href="heroes.html" data-i18n="navHeroes">Heroes</a>
+          <a href="../changelog.html" data-i18n="footerChangelog">What's new</a>
+          <a href="../privacy.html" data-i18n="footerPrivacy">Privacy</a>
+        </nav>
+        <p class="footer-legal" data-i18n="legal">Dota 2 is a trademark of Valve Corporation. This project is not affiliated with or endorsed by Valve. Game frames are from the Dota 2 Steam page; hero portraits are Valve's.</p>
+      </div>
+    </footer>
+
+    <!-- Icons: Lucide (ISC); Windows logo drawn as four squares. -->
+    <svg width="0" height="0" style="position: absolute" aria-hidden="true">
+      <defs>
+        <symbol id="i-windows" viewbox="0 0 24 24"><path d="M3 5.5 10.5 4.4v7.1H3zM11.5 4.3 21 3v8.5h-9.5zM3 12.5h7.5v7.1L3 18.5zM11.5 12.5H21V21l-9.5-1.3z" fill="currentColor" stroke="none" /></symbol>
+        <symbol id="i-volume" viewbox="0 0 24 24"><path d="M11 4.702a.705.705 0 0 0-1.203-.498L6.413 7.587A1.4 1.4 0 0 1 5.416 8H3a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1h2.416a1.4 1.4 0 0 1 .997.413l3.383 3.384A.705.705 0 0 0 11 19.298z" /><path d="M16 9a5 5 0 0 1 0 6" /><path d="M19.364 18.364a9 9 0 0 0 0-12.728" /></symbol>
+        <symbol id="i-map" viewbox="0 0 24 24"><path d="M14.106 5.553a2 2 0 0 0 1.788 0l3.659-1.83A1 1 0 0 1 21 4.619v12.764a1 1 0 0 1-.553.894l-4.553 2.277a2 2 0 0 1-1.788 0l-4.212-2.106a2 2 0 0 0-1.788 0l-3.659 1.83A1 1 0 0 1 3 19.381V6.618a1 1 0 0 1 .553-.894l4.553-2.277a2 2 0 0 1 1.788 0z" /><path d="M15 5.764v15" /><path d="M9 3.236v15" /></symbol>
+        <symbol id="i-coins" viewbox="0 0 24 24"><circle cx="8" cy="8" r="6" /><path d="M18.09 10.37A6 6 0 1 1 10.34 18" /><path d="M7 6h1v4" /><path d="m16.71 13.88.7.71-2.82 2.82" /></symbol>
+        <symbol id="i-graduation" viewbox="0 0 24 24"><path d="M21.42 10.922a1 1 0 0 0-.019-1.838L12.83 5.18a2 2 0 0 0-1.66 0L2.6 9.08a1 1 0 0 0 0 1.832l8.57 3.908a2 2 0 0 0 1.66 0z" /><path d="M22 10v6" /><path d="M6 12.5V16a6 3 0 0 0 12 0v-3.5" /></symbol>
+        <symbol id="i-swords" viewbox="0 0 24 24"><polyline points="14.5 17.5 3 6 3 3 6 3 17.5 14.5" /><line x1="13" x2="19" y1="19" y2="13" /><line x1="16" x2="20" y1="16" y2="20" /><line x1="19" x2="21" y1="21" y2="19" /><polyline points="14.5 6.5 18 3 21 3 21 6 17.5 9.5" /><line x1="5" x2="9" y1="14" y2="18" /><line x1="7" x2="4" y1="17" y2="20" /><line x1="3" x2="5" y1="19" y2="21" /></symbol>
+        <symbol id="i-target" viewbox="0 0 24 24"><circle cx="12" cy="12" r="10" /><circle cx="12" cy="12" r="6" /><circle cx="12" cy="12" r="2" /></symbol>
+        <symbol id="i-shield" viewbox="0 0 24 24"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z" /><path d="m9 12 2 2 4-4" /></symbol>
+        <symbol id="i-check" viewbox="0 0 24 24"><circle cx="12" cy="12" r="10" /><path d="m9 12 2 2 4-4" /></symbol>
+        <symbol id="i-plus" viewbox="0 0 24 24"><path d="M5 12h14" /><path d="M12 5v14" /></symbol>
+      </defs>
+    </svg>
+
+    <script src="../i18n-en.js?v=9" defer></script>
+    <script src="../app.js?v=9" defer></script>
+  </body>
+</html>

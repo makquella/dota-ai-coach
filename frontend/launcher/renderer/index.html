@@ -155,6 +155,20 @@
               <button id="whats-new-dismiss" class="btn btn-sm" type="button" data-i18n="whatsNewOk">Got it</button>
             </div>
           </section>
+          <!-- After a few matches played with the app: send the site to a friend. -->
+          <section class="card invite-card hidden" id="invite-card" aria-labelledby="invite-heading">
+            <header class="card-head">
+              <i data-icon="users"></i>
+              <h2 id="invite-heading" data-i18n="inviteTitle">Like Wardly?</h2>
+            </header>
+            <div class="card-body">
+              <p class="muted" data-i18n="inviteText">Send the link to a friend: the app is free, and playing together it is easier to follow the advice.</p>
+              <div class="report-actions">
+                <button id="invite-copy" class="btn btn-primary btn-sm" type="button"><i data-icon="copy"></i><span data-i18n="inviteCopy">Copy the link</span></button>
+                <button id="invite-dismiss" class="btn btn-ghost btn-sm" type="button" data-i18n="inviteLater">Not now</button>
+              </div>
+            </div>
+          </section>
           <section class="zone" aria-labelledby="zone-history">
           <header class="zone-head">
             <h2 class="zone-title" id="zone-history" data-i18n="zoneHistory">Last matches</h2>
