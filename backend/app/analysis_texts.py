@@ -12,6 +12,7 @@ from __future__ import annotations
 from typing import Any
 
 from app.advice_i18n import translate_ru
+from app.advice_why import why
 from app.last_moments import SAVERS, saver_label
 
 
@@ -941,6 +942,7 @@ def render_analysis(analysis: dict[str, Any], lang: str) -> dict[str, Any]:
                 **item,
                 "action": _advice_text(item.get("action"), lang),
                 "reason": _advice_text(item.get("reason"), lang),
+                "why": why(item.get("dp"), lang),
             }
             for item in analysis["advice"]
         ]

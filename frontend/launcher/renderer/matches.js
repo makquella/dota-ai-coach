@@ -221,6 +221,7 @@
       drill: "Drill",
       momentsTitle: "Key moments",
       adviceLogTitle: "Advice during the match",
+      adviceWhy: "Why this advice?",
       adviceLogHint: (n, urgent) => `${n} ${n === 1 ? "tip" : "tips"} over the game, ${urgent} urgent. Worth checking whether you followed them.`,
       adviceLogMore: (n) => `Show all ${n}`,
       adviceLogDeath: (time) => `Died at ${time}`,
@@ -731,6 +732,7 @@
       drill: "Упражнение",
       momentsTitle: "Ключевые моменты",
       adviceLogTitle: "Подсказки во время матча",
+      adviceWhy: "Почему этот совет?",
       adviceLogHint: (n, urgent) => `${n} ${plural(n, "подсказка", "подсказки", "подсказок")} за игру, срочных — ${urgent}. Стоит проверить, получилось ли им следовать.`,
       adviceLogMore: (n) => `Показать все (${n})`,
       adviceLogDeath: (time) => `Смерть в ${time}`,
@@ -3218,6 +3220,7 @@
             { class: "moment-text" },
             h("span", { text: item.action }),
             item.reason ? h("span", { class: "muted advice-log-reason", text: item.reason }) : null,
+            item.why ? h("details", { class: "advice-why" }, h("summary", { text: t("adviceWhy") }), h("p", { text: item.why })) : null,
             deathAfter.has(item.t)
               ? h("span", { class: "advice-log-death" }, icon("skull"), h("span", { text: t("adviceLogDeath", clock(deathAfter.get(item.t))) }))
               : null

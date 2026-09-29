@@ -332,6 +332,36 @@ h1 {
   font-variant-numeric: tabular-nums;
 }
 
+/* «Почему этот совет?»: what the coach saw, folded under the advice. */
+.advice-why {
+  grid-column: 2 / -1;
+  margin-top: var(--sp-1);
+  font-size: var(--fs-12);
+}
+
+.advice-why > summary {
+  width: fit-content;
+  color: var(--text-3);
+  cursor: pointer;
+}
+
+.advice-why > summary:hover {
+  color: var(--text-2);
+}
+
+.advice-why > summary:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: var(--r-sm);
+}
+
+.advice-why > p {
+  margin: var(--sp-1) 0 0;
+  color: var(--text-2);
+  font-size: var(--fs-13);
+  line-height: 1.45;
+}
+
 /* Settings rows */
 .settings {
   display: grid;

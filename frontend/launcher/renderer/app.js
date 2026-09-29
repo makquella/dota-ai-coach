@@ -76,6 +76,7 @@ const I18N = {
     offlineTitle: "The coach is not running",
     offlineHint: "Start it to see your match here.",
     adviceTitle: "Recent advice",
+    adviceWhy: "Why this advice?",
     adviceEmptyTitle: "No advice yet",
     adviceEmptyHint: "Advice shows up here as it appears over the game.",
     priority: { high: "urgent", urgent: "urgent", medium: "important", low: "tip", safe: "calm" },
@@ -615,6 +616,7 @@ const I18N = {
     offlineTitle: "Тренер не запущен",
     offlineHint: "Запустите его, чтобы видеть здесь свой матч.",
     adviceTitle: "Последние подсказки",
+    adviceWhy: "Почему этот совет?",
     adviceEmptyTitle: "Подсказок пока нет",
     adviceEmptyHint: "Здесь появятся подсказки, которые показывались поверх игры.",
     priority: { high: "срочно", urgent: "срочно", medium: "важно", low: "совет", safe: "спокойно" },
@@ -1239,6 +1241,7 @@ let reportPreviewLoaded = false;
 let serverDeleteArmed = false;
 let serverDeleteNote = "";
 const seenAdvice = new Set();
+const openWhy = new Set();
 
 init();
 
@@ -2292,6 +2295,20 @@ function renderAdvice(status) {
       reason.title = advice.reason || "";
 
       item.append(dot, action, time, reason);
+      // What the coach saw (backend advice_why.py), folded: the list redraws
+      // every second, so the open ones are remembered by key.
+      if (advice.why) {
+        const why = document.createElement("details");
+        why.className = "advice-why";
+        why.open = openWhy.has(key);
+        why.addEventListener("toggle", () => (why.open ? openWhy.add(key) : openWhy.delete(key)));
+        const summary = document.createElement("summary");
+        summary.textContent = tr("adviceWhy");
+        const text = document.createElement("p");
+        text.textContent = advice.why;
+        why.append(summary, text);
+        item.append(why);
+      }
       return item;
     })
   );
