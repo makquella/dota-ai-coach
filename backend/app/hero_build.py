@@ -10,7 +10,9 @@ From the reviewed matches with a known result and a purchase log
 - the most common first big item in wins and in losses;
 - up to MAX_HIGHLIGHTS plain lines, only for clear gaps: an item that comes
   TIMING_GAP+ seconds later in losses, an item whose win rate with and without
-  differs by WINRATE_GAP+ points.
+  differs by WINRATE_GAP+ points;
+- the key item's timing game by game and its last games against the ones before
+  (`timing_trend`): is the player getting it sooner.
 
 The player's own games decide, nothing from other players: what works for
 them, in their bracket, with their habits.
@@ -31,6 +33,12 @@ TIMING_GAP = 120
 WINRATE_GAP = 20
 MAX_ITEMS = 8
 MAX_HIGHLIGHTS = 3
+# The key item's timing trend: a core item, not boots or a wand.
+KEY_ITEM_MIN_SECONDS = 9 * 60
+TREND_GAMES = 5
+TREND_MIN_POINTS = 4
+TREND_MIN_BEFORE = 3
+TREND_MAX_POINTS = 20
 
 
 def _items(match: dict[str, Any]) -> list[dict[str, Any]]:
@@ -99,7 +107,42 @@ def hero_build(matches: list[dict[str, Any]], lang: str) -> dict[str, Any] | Non
         "items": rows,
         "first_items": first_items,
         "highlights": _highlights(rows, first_items, lang),
+        "timing_trend": timing_trend(games, rows),
     }
+
+
+def timing_trend(games: list[dict[str, Any]], rows: list[dict[str, Any]]) -> dict[str, Any] | None:
+    """The key item's timing game by game (oldest first): the most bought item
+    finished at KEY_ITEM_MIN_SECONDS+ in a typical game (not boots or a wand), with
+    the median of the last TREND_GAMES games against the TREND_GAMES before."""
+    key = None
+    for row in rows:
+        times = [t for t in (row["t_win"], row["t_loss"]) if t is not None]
+        if times and median(times) >= KEY_ITEM_MIN_SECONDS:
+            key = row["item"]
+            break
+    if key is None:
+        return None
+    points = []
+    for game in reversed(games):  # oldest first
+        t = next((item["t"] for item in _items(game) if item["item"] == key), None)
+        if t is not None:
+            points.append({"match_id": game.get("match_id"), "t": t, "win": bool(game["win"])})
+    if len(points) < TREND_MIN_POINTS:
+        return None
+    recent = [p["t"] for p in points[-TREND_GAMES:]]
+    before = [p["t"] for p in points[-2 * TREND_GAMES : -TREND_GAMES]]
+    result: dict[str, Any] = {
+        "item": key,
+        "points": points[-TREND_MAX_POINTS:],
+        "recent": round(median(recent)),
+        "recent_games": len(recent),
+    }
+    if len(before) >= TREND_MIN_BEFORE:
+        result["before"] = round(median(before))
+        result["before_games"] = len(before)
+        result["change"] = result["recent"] - result["before"]
+    return result
 
 
 def _highlights(

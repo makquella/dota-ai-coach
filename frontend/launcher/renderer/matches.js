@@ -326,6 +326,19 @@
       shareWhatProgress: "A page with your progress over all heroes: matches, win rate, averages, the last 10 against the 10 before, top heroes, what goes well and what to work on. Anyone with the link can open it.",
       shareNotProgress: "Not published: match numbers, your Steam ID, nickname, the other players and your questions to the coach. The link works for 90 days, and you can delete it at any time.",
       shareLinkProgress: "Link to your progress",
+      trendTitle: (item) => `${item}: timing game by game`,
+      trendLine: (recent, n, before, m) => `Last ${n} games: ${recent}; the ${m} before: ${before}.`,
+      trendRecentOnly: (recent, n) => `Last ${n} games: ${recent} (median).`,
+      trendSooner: (gap) => `${gap} sooner`,
+      trendLater: (gap) => `${gap} later`,
+      trendSame: "about the same",
+      trendMinute: "Minute",
+      deathMapTitle: "Where you die",
+      deathMapNote: (matches, total, per) => `The last ${matches} matches with a map: ${total} deaths, ${per} a match.`,
+      deathMapTurned: "Dire games are turned half a turn, so your base is always bottom left.",
+      deathMapSpot: (place, count, matches) => `${place}: ${count} deaths in ${matches} matches`,
+      deathMapSpots: "Deaths keep repeating here:",
+      deathMapLate: (pct) => `After minute 10: ${pct}% of deaths on the enemy half`,
       opponentsTitle: "Enemy heroes",
       opponentsNote: (n, min) => `Your record against each enemy hero in ${n} matches with a known lineup (heroes met ${min}+ times).`,
       opponentsHard: "Hardest to play against",
@@ -796,6 +809,19 @@
       shareWhatProgress: "Страница с вашим прогрессом по всем героям: матчи, процент побед, средние цифры, последние 10 матчей против 10 до них, главные герои, что получается и над чем работать. Открыть её сможет любой, у кого есть ссылка.",
       shareNotProgress: "Не публикуется: номера матчей, ваш Steam ID, ник, другие игроки и ваши вопросы тренеру. Ссылка работает 90 дней, её можно удалить в любой момент.",
       shareLinkProgress: "Ссылка на прогресс",
+      trendTitle: (item) => `${item}: тайминг по играм`,
+      trendLine: (recent, n, before, m) => `Последние ${n} ${plural(n, "игра", "игры", "игр")}: ${recent}; ${m} ${plural(m, "игра", "игры", "игр")} до этого: ${before}.`,
+      trendRecentOnly: (recent, n) => `Последние ${n} ${plural(n, "игра", "игры", "игр")}: ${recent} (медиана).`,
+      trendSooner: (gap) => `на ${gap} раньше`,
+      trendLater: (gap) => `на ${gap} позже`,
+      trendSame: "примерно так же",
+      trendMinute: "Минута",
+      deathMapTitle: "Где вы умираете",
+      deathMapNote: (matches, total, per) => `Последние ${matches} ${plural(matches, "матч", "матча", "матчей")} с картой: ${total} ${plural(total, "смерть", "смерти", "смертей")}, ${String(per).replace(".", ",")} за матч.`,
+      deathMapTurned: "Игры за Силы Тьмы повёрнуты на пол-оборота: ваша база всегда слева внизу.",
+      deathMapSpot: (place, count, matches) => `${place}: ${count} ${plural(count, "смерть", "смерти", "смертей")} в ${matches} ${plural(matches, "матче", "матчах", "матчах")}`,
+      deathMapSpots: "Здесь смерти повторяются:",
+      deathMapLate: (pct) => `После 10-й минуты на половине противника: ${pct}% смертей`,
       opponentsTitle: "Вражеские герои",
       opponentsNote: (n, min) => `Ваш счёт против каждого вражеского героя в ${n} матчах с известным составом (герои, встреченные ${min}+ раза).`,
       opponentsHard: "Против них сложнее всего",
@@ -2503,6 +2529,52 @@
     hydrate(host);
   }
 
+  // Every death of the last 20 matches with a map, as if always Radiant
+  // (app/career_deaths.py); the map itself is drawn once the card is in the page.
+  function deathMapCard(data) {
+    if (!data || !(data.deaths || []).length) {
+      return null;
+    }
+    const facts = [h("p", { class: "fact-line" }, h("strong", { text: t("mapDeaths") }), h("span", { class: "num", text: String(data.total) }))];
+    for (const side of ["own", "river", "enemy"]) {
+      if (data.by_side && data.by_side[side]) {
+        facts.push(h("p", { class: "fact-line muted small" }, h("span", { text: t(`mapSide.${side}`) }), h("span", { class: "num", text: String(data.by_side[side]) })));
+      }
+    }
+    const spots = (data.spots || []).filter((spot) => spot.label);
+    if (spots.length) {
+      facts.push(h("p", { class: "friend-sub", text: t("deathMapSpots") }));
+      for (const spot of spots) {
+        facts.push(h("p", { class: "fact-line map-spot-line small" }, h("span", { text: t("deathMapSpot", spot.label, spot.count, spot.matches) })));
+      }
+    }
+    if (data.enemy_share_late != null) {
+      facts.push(h("p", { class: "muted small", text: t("deathMapLate", data.enemy_share_late) }));
+    }
+    const body = h(
+      "div",
+      {},
+      h("p", { class: "muted small chart-note", text: `${t("deathMapNote", data.matches, data.total, data.per_match)} ${t("deathMapTurned")}` }),
+      h("div", { class: "map-layout" }, h("div", { class: "chart-host", dataset: { chart: "career-map" } }), h("div", { class: "map-facts" }, facts))
+    );
+    return card(t("deathMapTitle"), "skull", body);
+  }
+
+  function drawCareerMap(host, data) {
+    window.LauncherCharts.map(host, {
+      background: MAP_BACKGROUND,
+      bounds: data.bounds,
+      spots: (data.spots || []).map((spot) => ({ ...spot, title: t("mapSpotTitle", spot.count, spot.label || "") })),
+      deaths: (data.deaths || []).map((death) => ({
+        ...death,
+        killer: [death.hero, death.killer ? t("killedBy", death.killer) : null].filter(Boolean).join(" · ")
+      })),
+      labels: t("mapLabels"),
+      clock,
+      ariaLabel: t("deathMapTitle")
+    });
+  }
+
   // The record against enemy heroes met 3+ times (career_analysis.opponents).
   function opponentsCard(record) {
     if (!record || !(record.hard?.length || record.easy?.length)) {
@@ -2631,9 +2703,56 @@
               )
             )
           )
-        )
+        ),
+        itemTrendBlock(build.timing_trend)
       )
     );
+  }
+
+  // The key item's timing game by game (hero_build.timing_trend): drawn by drawItemTrend.
+  function itemTrendBlock(trend) {
+    if (!trend || !(trend.points || []).length) {
+      return null;
+    }
+    let line;
+    if (Number.isFinite(trend.change)) {
+      const tone = trend.change < -30 ? "good" : trend.change > 30 ? "bad" : "idle";
+      const word = trend.change < -30 ? t("trendSooner", clock(-trend.change)) : trend.change > 30 ? t("trendLater", clock(trend.change)) : t("trendSame");
+      line = h(
+        "p",
+        { class: "small" },
+        h("span", { text: t("trendLine", clock(trend.recent), trend.recent_games, clock(trend.before), trend.before_games) }),
+        " ",
+        h("span", { class: `delta delta-${tone}`, text: word })
+      );
+    } else {
+      line = h("p", { class: "small", text: t("trendRecentOnly", clock(trend.recent), trend.recent_games) });
+    }
+    return h(
+      "div",
+      { class: "item-trend" },
+      h("p", { class: "friend-sub" }, itemLabel(trend.item, t("trendTitle", trend.item))),
+      line,
+      h("div", { class: "chart-host", dataset: { chart: "item-trend" } })
+    );
+  }
+
+  function drawItemTrend(host, trend) {
+    window.LauncherCharts.columns(host, {
+      items: trend.points.map((point, index) => ({
+        label: String(point.match_id ?? index),
+        value: Math.round(point.t / 6) / 10,
+        title: `${trend.item} · ${clock(point.t)}`,
+        detail: point.win ? t("win") : t("loss"),
+        key: point.win ? "win" : "loss",
+        matchId: point.match_id
+      })),
+      height: 120,
+      color: VIZ_1,
+      valueLabel: t("trendMinute"),
+      ariaLabel: t("trendTitle", trend.item),
+      onSelect: (item) => (item.matchId ? openMatch(item.matchId) : null)
+    });
   }
 
   function selfCompareCard(compare) {
@@ -3901,6 +4020,7 @@
           ]),
           zone(t("zoneGames"), t("zoneGamesHint"), [
             scoreCard,
+            deathMapCard(career.death_map),
             heroesCard,
             state.careerHero === null ? heroPoolCard(career.hero_pool) : null,
             strengthsCard
@@ -3918,6 +4038,14 @@
       )
     );
     hydrate(root);
+    const careerMap = root.querySelector('[data-chart="career-map"]');
+    if (careerMap) {
+      drawCareerMap(careerMap, career.death_map);
+    }
+    const itemTrend = root.querySelector('[data-chart="item-trend"]');
+    if (itemTrend) {
+      drawItemTrend(itemTrend, career.hero_build.timing_trend);
+    }
     const items = (career.series || []).map((match) => ({
       label: String(match.match_id),
       value: match.score,

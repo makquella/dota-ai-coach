@@ -286,6 +286,11 @@ const I18N = {
     tourHint: "A minute-long look at what is where",
     tourStart: "Show",
     whatsNew: {
+      "0.19.0": [
+        "Your evening: after two or more matches, Home sums up the sitting once Dota is closed, with a text to copy for friends.",
+        "Progress shows where you die over the last 20 matches, and your hero's key item timing game by game.",
+        "A short tour of the app (Settings → App), and the status line says plainly whether Dota's data reaches the coach."
+      ],
       "0.18.0": [
         "Full advice for 18 more heroes: 8 mids (Shadow Fiend, Storm Spirit, Queen of Pain, Puck and others) and 10 offlaners (Axe, Mars, Legion Commander, Centaur and others).",
         "The coach knows their own saves (Blink, Ball Lightning, Refraction, Guardian Sprint…), and an offlaner's farm is measured against an offlaner's pace, not a carry's."
@@ -801,6 +806,11 @@ const I18N = {
     tourHint: "Минутная экскурсия: что где находится",
     tourStart: "Показать",
     whatsNew: {
+      "0.19.0": [
+        "Итог вечера: после двух и больше матчей, когда Дота закрыта, на Главной — сводка вечера и текст, который можно скопировать друзьям.",
+        "В «Прогрессе» — карта ваших смертей за последние 20 матчей и тайминг ключевого предмета героя по играм.",
+        "Короткое обучение по приложению (Настройки → Приложение), а строка состояния прямо пишет, есть ли связь с Дотой."
+      ],
       "0.18.0": [
         "Полные подсказки ещё для 18 героев: 8 мидеров (Shadow Fiend, Storm Spirit, Queen of Pain, Puck и другие) и 10 хардлайнеров (Axe, Mars, Legion Commander, Centaur и другие).",
         "Тренер знает их собственные спасения (Blink, Ball Lightning, Refraction, Guardian Sprint…), а фарм хардлайнера сравнивается с темпом хардлайнера, а не керри."

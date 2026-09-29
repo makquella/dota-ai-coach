@@ -3283,6 +3283,14 @@ label.setting:has(.switch:disabled) {
   overflow-wrap: anywhere;
 }
 
+/* Progress: the key item's timing game by game, under the hero's build table. */
+.item-trend {
+  margin-top: var(--sp-4);
+}
+.item-trend .small {
+  margin: var(--sp-1) 0 var(--sp-2);
+}
+
 /* Home: «Итог вечера», the latest sitting (shown once Dota is closed). */
 .session-card {
   margin-bottom: var(--sp-3);

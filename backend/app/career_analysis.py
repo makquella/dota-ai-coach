@@ -15,6 +15,7 @@ from statistics import mean
 from typing import Any
 
 from app.analysis_texts import FINDINGS, PEER_ROLES, rank_label, render_finding
+from app.career_deaths import death_map
 from app.dota_constants import hero_name
 from app.hero_build import hero_build
 from app.hero_meta import bracket_winrate, rank_bracket
@@ -88,6 +89,7 @@ def analyze_career(
         "self_compare": compare_best_worst(matches, lang),
         "hero_build": hero_build(matches, lang),
         "opponents": opponents(analyzed),
+        "death_map": death_map(analyzed, lang),
         "series": _series(matches),
         "period": _period(matches),
         "best_match": _best(matches),
