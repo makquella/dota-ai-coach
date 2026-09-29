@@ -346,6 +346,40 @@ FINDINGS: dict[str, dict[str, dict[str, str]]] = {
             "drill": "Plan the build in advance, skip extras until the first key item, and farm between fights.",
         },
     },
+    "save_item_fast": {
+        "ru": {
+            "title": "Спасающий предмет вовремя",
+            "text": "{item} уже к {t_text}: с ним вы спасаете кора в драке, а не смотрите, как он умирает.",
+        },
+        "en": {
+            "title": "A save item on time",
+            "text": "{item} by {t_text}: with it you save a core in a fight instead of watching them die.",
+        },
+    },
+    "save_item_slow": {
+        "ru": {
+            "title": "Поздний спасающий предмет",
+            "text": "Первый спасающий предмет ({item}) только к {t_text}. Самые важные драки середины игры прошли без него.",
+            "drill": "Копите на Glimmer Cape или Force Staff сразу после сапог и вардов: к 15-й минуте он должен быть.",
+        },
+        "en": {
+            "title": "A late save item",
+            "text": "First save item ({item}) only at {t_text}. The key mid-game fights went without it.",
+            "drill": "Save for Glimmer Cape or Force Staff right after boots and wards: have it by minute 15.",
+        },
+    },
+    "save_item_missing": {
+        "ru": {
+            "title": "Нет спасающего предмета",
+            "text": "За {minutes} {minutes_word} — ни Glimmer Cape, ни Force Staff, ни другого предмета, которым можно спасти кора.",
+            "drill": "После сапог и вардов первое золото — на Glimmer Cape или Force Staff.",
+        },
+        "en": {
+            "title": "No save item",
+            "text": "In {minutes} minutes: no Glimmer Cape, Force Staff or any other item to save a core with.",
+            "drill": "After boots and wards, your first gold goes to Glimmer Cape or Force Staff.",
+        },
+    },
     "no_core_item": {
         "ru": {
             "title": "Нет ни одного крупного предмета",

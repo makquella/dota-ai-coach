@@ -297,6 +297,8 @@ def facts_from_timeline(timeline: dict[str, Any]) -> dict[str, Any]:
             "gpm": _int(final.get("gpm")),
             "xpm": _int(final.get("xpm")),
             "level": _int(final.get("level")),
+            # Observer wards placed, counted from the inventory (match_tracker).
+            "obs_placed": _int(timeline.get("obs_placed")),
             "lh_t": _per_minute(samples, "lh", duration),
             "dn_t": _per_minute(samples, "dn", duration),
             "gold_t": _earned_gold_per_minute(samples, duration),

@@ -241,7 +241,11 @@
         farm: (s) => [s.gpm != null && `${s.gpm} GPM`, s.gpm_pct != null && `better than ${Math.round(s.gpm_pct * 100)}%`],
         survival: (s) => [`${s.deaths} deaths`, s.deaths_per_10 != null && `${s.deaths_per_10} per 10 min`],
         fights: (s) => [s.kill_participation != null && `${s.kill_participation}% kill participation`, s.stuns != null && `${s.stuns} s of stuns${s.enemy_stuns != null ? ` (enemy offlaner ${s.enemy_stuns} s)` : ""}`, s.enemy_tower_damage != null && s.tower_damage != null && `${s.tower_damage} building damage (enemy offlaner ${s.enemy_tower_damage})`],
-        items: (s) => [s.first_item && `${s.first_item.item} at ${clock(s.first_item.t)}`],
+        items: (s) => [
+          s.first_item && `${s.first_item.item} at ${clock(s.first_item.t)}`,
+          s.save_item && `Save item: ${s.save_item.item} at ${clock(s.save_item.t)}`,
+          "save_item" in s && !s.save_item && "No save item"
+        ],
         vision: (s) => [s.obs_placed != null && `${s.obs_placed} observers`, s.sen_placed != null && `${s.sen_placed} sentries`, s.camps_stacked != null && `${s.camps_stacked} stacks`]
       },
       progressEmptyTitle: "Not enough matches yet",
@@ -724,7 +728,11 @@
         farm: (s) => [s.gpm != null && `${s.gpm} GPM`, s.gpm_pct != null && `лучше ${Math.round(s.gpm_pct * 100)}% игроков`],
         survival: (s) => [`смертей: ${s.deaths}`, s.deaths_per_10 != null && `${s.deaths_per_10} за 10 мин`],
         fights: (s) => [s.kill_participation != null && `участие в убийствах ${s.kill_participation}%`, s.stuns != null && `оглушений ${s.stuns} с${s.enemy_stuns != null ? ` (у вражеского хардлайнера ${s.enemy_stuns} с)` : ""}`, s.enemy_tower_damage != null && s.tower_damage != null && `урон по строениям ${s.tower_damage} (у вражеского хардлайнера ${s.enemy_tower_damage})`],
-        items: (s) => [s.first_item && `${s.first_item.item} к ${clock(s.first_item.t)}`],
+        items: (s) => [
+          s.first_item && `${s.first_item.item} к ${clock(s.first_item.t)}`,
+          s.save_item && `Спасающий предмет: ${s.save_item.item} к ${clock(s.save_item.t)}`,
+          "save_item" in s && !s.save_item && "Нет спасающего предмета"
+        ],
         vision: (s) => [s.obs_placed != null && `обсерверов: ${s.obs_placed}`, s.sen_placed != null && `сентри: ${s.sen_placed}`, s.camps_stacked != null && `стаков: ${s.camps_stacked}`]
       },
       progressEmptyTitle: "Пока мало матчей",

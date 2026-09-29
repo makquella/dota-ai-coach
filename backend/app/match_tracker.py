@@ -37,6 +37,7 @@ from app.dota_constants import hero_id_from_name, hero_name_from_npc
 from app.gsi_state import normalize_abilities
 from app.last_moments import LastSeconds
 from app.live_tools import ready_abilities
+from app.map_hints import observer_charges
 from app.steam_ids import STEAM64_BASE
 
 TIMELINE_VERSION = 1
@@ -323,6 +324,7 @@ class MatchTracker:
         self._track_deaths(current, snapshot, hero, last)
         self._track_buyback(current, clock, hero, last)
         self._track_items(current, clock, _dict(payload.get("items")))
+        self._track_wards(current, _dict(payload.get("items")), snapshot["alive"])
 
         samples = current["samples"]
         if not samples or clock - samples[-1]["t"] >= SAMPLE_EVERY_SECONDS:
@@ -388,6 +390,19 @@ class MatchTracker:
         previous = last.get("buyback_cooldown")
         if cooldown and (previous == 0) and last.get("alive") is False:
             current["buybacks"].append({"t": clock})
+
+    def _track_wards(self, current: dict[str, Any], items: dict[str, Any], alive: Any) -> None:
+        """Observer wards placed: the carried count going down while alive (a ward
+        dropped for an ally counts too). Kept only once an items block was seen,
+        so a match without one says nothing about vision."""
+        charges = observer_charges(items)
+        if charges is None:
+            return
+        previous = current.get("_ward_charges")
+        current["_ward_charges"] = charges
+        current.setdefault("obs_placed", 0)
+        if previous is not None and charges < previous and alive is not False:
+            current["obs_placed"] += previous - charges
 
     def _track_items(self, current: dict[str, Any], clock: int, items: dict[str, Any]) -> None:
         seen = current["_items_seen"]
