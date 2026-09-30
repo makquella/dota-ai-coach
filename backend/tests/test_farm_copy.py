@@ -108,12 +108,13 @@ def test_a_pace_card_with_new_numbers_waits_four_minutes():
     from app.scheduler.hashing import _action_hash
     from app.schemas import RecommendationResponse
 
-    def remaining(previous, action, at):
+    def remaining(previous, action, at, *, pace_at=None, category="post_laning_safe_farm_route"):
         scheduler = ADVICE_SCHEDULER
         scheduler.state._last_shown_game_time_seconds = 720.0
-        scheduler.state._last_shown_category = "post_laning_safe_farm_route"
+        scheduler.state._last_shown_category = category
         scheduler.state._last_shown_action_hash = _action_hash(previous)
         scheduler.state._last_shown_decision_point = "SAFE_FARMING"
+        scheduler.state._farm_pace_shown_game_time = pace_at
         recommendation = RecommendationResponse(
             action=action, reason="r", risk="r", priority="low", time_window="w", source="fallback"
         )
@@ -128,11 +129,19 @@ def test_a_pace_card_with_new_numbers_waits_four_minutes():
         return left
 
     pace = "Keep farming: {} gold per minute, {} last hits at minute {}."
+    first = pace.format(444, 72, 12)
     # Only the numbers changed: the same advice, four minutes apart.
-    assert remaining(pace.format(444, 72, 12), pace.format(468, 84, 14), 840) == 120
-    assert remaining(pace.format(444, 72, 12), pace.format(492, 96, 16), 960) == 0
+    assert remaining(first, pace.format(468, 84, 14), 840, pace_at=720.0) == 120
+    assert remaining(first, pace.format(492, 96, 16), 960, pace_at=720.0) == 0
     recover = "Recover farm: {} last hits at minute {}, a good pace is {}+."
-    assert remaining(recover.format(138, 23, 150), recover.format(150, 25, 170), 840) == 120
+    assert (
+        remaining(recover.format(138, 23, 150), recover.format(150, 25, 170), 840, pace_at=720.0)
+        == 120
+    )
+    # Another card came in between (last shown at 12:00): the pace card shown
+    # at 11:00 still waits until 15:00.
+    item = "Use your gold: Black King Bar can be bought now."
+    assert remaining(item, pace.format(468, 84, 14), 840, pace_at=660.0, category="x") == 60
     # Any other advice keeps the two minutes.
     other = "Keep farming toward Black King Bar on the safest waves and camps."
     assert remaining(other, other, 840) == 0
