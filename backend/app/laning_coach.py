@@ -52,7 +52,11 @@ def build_laning_advice(
     position_zone = str(extra.get("position_zone") or "").strip().lower()
     enemy_context_missing = _enemy_context_missing(extra)
     pressure_active = _pressure_active(state, extra, hp_pressure)
-    farm_low = farm_quality in {"very_low", "low"}
+    # Under the pace in numbers is low farm too: farm_quality can still read
+    # "okay" a few last hits under it, and then the lane card talked about
+    # the position (unknown in live GSI) instead of the farm it fired for.
+    pace = _pace_numbers(state, extra)
+    farm_low = farm_quality in {"very_low", "low"} or (pace is not None and pace[0] < pace[2])
     farm_deficit = _farm_deficit(extra)
     category = _category_for_state(
         decision_point=decision_point,
@@ -68,6 +72,10 @@ def build_laning_advice(
     )
 
     action, reason, risk = _copy_for_category(category, minute)
+    if category == "farm_deficit_no_pressure" and pace is not None:
+        last_hits, at, low = pace
+        action = f"Recover farm: {last_hits} last hits at minute {at}, a good pace is {low}+."
+        reason = "Your HP is fine: last-hit every creep of the next waves and trade only to protect them."
     repeat_key = f"{category}:{_deficit_bucket(farm_deficit)}:{hp_pressure or 'unknown'}:{position_risk or 'unknown'}"
     return LaningAdvice(
         category=category,
@@ -146,6 +154,11 @@ def _category_for_state(
 ) -> str:
     if decision_point == "LOW_HP" or hp_percent < 35 or hp_pressure == "critical":
         return "critical_hp_reset"
+
+    # Low farm comes before the river: live GSI never shows the enemies, and a
+    # lane crosses the river, so the position alone said little.
+    if farm_low and not pressure_active:
+        return "farm_deficit_no_pressure"
 
     if position_zone == "river_or_mid" and enemy_context_missing:
         return "risky_position_with_unknown_enemies"
@@ -229,6 +242,21 @@ def _copy_for_category(category: str, minute: int) -> tuple[str, str, str]:
         "You are under pressure but still have enough HP to keep farming if you stay conservative.",
         "Medium risk if you take extended trades while pressure is active.",
     )
+
+
+def _pace_numbers(
+    state: Mapping[str, Any], extra: Mapping[str, Any]
+) -> tuple[int, int, int] | None:
+    """(last hits, minute, the low end of a good pace) when all are known."""
+    expected = extra.get("expected_lh_range")
+    last_hits = extra.get("last_hits", state.get("last_hits"))
+    minute = _to_int(state.get("minute"), 0)
+    if not isinstance(expected, (list, tuple)) or not expected or minute <= 0:
+        return None
+    if not isinstance(last_hits, int) or isinstance(last_hits, bool):
+        return None
+    low = _to_int(expected[0], 0)
+    return (last_hits, minute, low) if low > 0 else None
 
 
 def _pressure_active(state: Mapping[str, Any], extra: Mapping[str, Any], hp_pressure: str) -> bool:

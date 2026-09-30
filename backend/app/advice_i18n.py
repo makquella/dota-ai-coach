@@ -442,6 +442,15 @@ _RU_EXACT: dict[str, str] = {
     # --- status messages -----------------------------------------------------
     "Monitoring...": "Следим за игрой…",
     "Waiting for live GSI...": "Ждём данные из игры…",
+    "Take the side lanes your team leaves and a camp between waves; "
+    "join fights only for a tower or Roshan.": (
+        "Забирайте боковые линии, которые оставляет команда, и лагерь между волнами; "
+        "в драки идите только за вышку или Рошана."
+    ),
+    "Your HP is fine: last-hit every creep of the next waves and trade only to protect them.": (
+        "Здоровья хватает: добивайте каждого крипа следующих волн, "
+        "а размены — только чтобы их защитить."
+    ),
     "Take the safest waves and camps first: fights before that delay your next item.": (
         "Сначала самые безопасные волны и лагеря: драки до этого отложат следующий предмет."
     ),

@@ -110,6 +110,22 @@ def test_farm_recovery_names_the_pace():
     )
 
 
+def test_half_the_pace_late_says_how_to_catch_up():
+    """The same «safest waves» reason every four minutes for a core at half the pace."""
+    state = _post_state(farm_quality="low", last_hits=53, expected_lh_range=[130, 160])
+    late = {**state, "minute": 21}
+    advice = build_post_laning_advice(late, "SAFE_FARMING")
+    assert advice is not None
+    assert advice.reason.startswith("Take the side lanes your team leaves")
+    assert translate_ru(advice.reason).startswith("Забирайте боковые линии")
+    # Before minute 20, or under the pace but not by half: the usual reason.
+    early = build_post_laning_advice({**state, "minute": 18}, "SAFE_FARMING")
+    assert early is not None and early.reason.startswith("Take the safest waves")
+    close = {**late, "extra_context": {**late["extra_context"], "last_hits": 70}}
+    advice = build_post_laning_advice(close, "SAFE_FARMING")
+    assert advice is not None and advice.reason.startswith("Take the safest waves")
+
+
 def test_live_gsi_stall_reaches_the_overlay(client):
     shown: list[str] = []
     for payload in gsi_match_stream(minutes=22, death_minutes=(), step_seconds=5):

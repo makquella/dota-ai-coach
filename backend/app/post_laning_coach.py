@@ -540,6 +540,9 @@ def _effective_farm_quality(
     return farm_quality
 
 
+FAR_BEHIND_MINUTE = 20
+
+
 def _farm_pace_copy(state: Mapping[str, Any], extra: Mapping[str, Any]) -> tuple[str, str] | None:
     """ "Recover farm: 38 last hits at minute 14, a good pace is 64+." when the
     numbers are known."""
@@ -548,9 +551,18 @@ def _farm_pace_copy(state: Mapping[str, Any], extra: Mapping[str, Any]) -> tuple
     minute = _to_int(state.get("minute"), 0)
     if not isinstance(expected, (list, tuple)) or not expected or last_hits is None or minute <= 0:
         return None
+    lh, low = _to_int(last_hits, 0), _to_int(expected[0], 0)
+    action = f"Recover farm: {lh} last hits at minute {minute}, a good pace is {low}+."
+    if minute >= FAR_BEHIND_MINUTE and lh * 2 < low:
+        # Half the pace late in the game: the same «safest waves» line every four
+        # minutes did not help; say how a core catches up then.
+        return (
+            action,
+            "Take the side lanes your team leaves and a camp between waves; "
+            "join fights only for a tower or Roshan.",
+        )
     return (
-        f"Recover farm: {_to_int(last_hits, 0)} last hits at minute {minute}, "
-        f"a good pace is {_to_int(expected[0], 0)}+.",
+        action,
         "Take the safest waves and camps first: fights before that delay your next item.",
     )
 
