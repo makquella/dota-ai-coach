@@ -293,6 +293,10 @@ const I18N = {
     tourHint: "A short tour of the app, one minute",
     tourStart: "Show",
     whatsNew: {
+      "0.25.0": [
+        "The farm cards put the numbers on the main line: your gold per minute and last hits, or how far behind a good pace you are.",
+        "Advice that only changed its numbers no longer repeats every two minutes."
+      ],
       "0.24.0": [
         "Which talent to take: when a talent row opens, the coach names the one pro players take on your hero."
       ],
@@ -850,6 +854,10 @@ const I18N = {
     tourHint: "Короткая экскурсия по приложению, на минуту",
     tourStart: "Показать",
     whatsNew: {
+      "0.25.0": [
+        "Карточки про фарм показывают цифры в главной строке: золото в минуту и добивания или насколько вы отстали от хорошего темпа.",
+        "Совет, в котором поменялись только цифры, больше не повторяется каждые две минуты."
+      ],
       "0.24.0": [
         "Какой талант взять: когда открывается ряд талантов, тренер называет тот, что берут про-игроки на вашем герое."
       ],
