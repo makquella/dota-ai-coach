@@ -804,12 +804,17 @@ def map_hint(
         timer is None or timer["minor"] or objective["in_seconds"] <= timer["in_seconds"]
     ):
         timer = objective
-    if timer is not None and role == "mid" and timer["id"].startswith("power_rune@"):
-        if level is not None and level >= POWER_SPIKE_LEVEL:
+    if (
+        timer is not None
+        and role == "mid"
+        and timer["id"].startswith("power_rune@")
+        and level is not None
+    ):
+        if level >= POWER_SPIKE_LEVEL:
             # With level 6 a power rune is the mid's rotation.
             timer["hint"] = TIPS["mid_rune"]["ru" if lang == "ru" else "en"][1]
         elif items is not None and BOTTLE_ITEMS & set(items):
-            # Before it, a Bottle keeps the rune for the moment it gets a kill.
+            # Before it (a known level only), a Bottle keeps the rune for a kill.
             timer["hint"] = TIPS["mid_rune_bottle"]["ru" if lang == "ru" else "en"][1]
     if timer is not None and not timer["minor"]:
         return timer

@@ -302,6 +302,18 @@ def test_the_power_rune_is_a_rotation_for_a_mid_with_level_six():
         items=["item_bottle"],
     )
     assert bottled["title"] == "Руна силы" and "Bottle" in bottled["hint"]
+    # No level in GSI: the plain rune hint, never the pre-six Bottle one.
+    unknown = map_hint(
+        8 * 60 - 10,
+        "mid",
+        RoleTips(),
+        alive=True,
+        has_ward=None,
+        lang="ru",
+        level=None,
+        items=["item_bottle"],
+    )
+    assert unknown["hint"] == "На одной из точек рун в реке."
     # A Bottle at level 6 does not undo the rotation.
     rotate = map_hint(
         8 * 60 - 10,
