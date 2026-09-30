@@ -168,6 +168,8 @@ def _decision_point_from_request(req: GameSituationRequest) -> str:
 
 
 # Death reviews: with gold to spare, the reason says to buy while waiting.
+# Death advice about the route after respawn (the others: escape, resources).
+ROUTE_ACTION_TYPES = {"plan_safer_respawn_route", "break_repeated_death_pattern"}
 DEATH_ACTION_TYPES = {
     "plan_safer_respawn_route",
     "break_repeated_death_pattern",
@@ -192,7 +194,9 @@ def _fallback_text(req: GameSituationRequest, action_type: str) -> dict[str, str
     if action_type in DEATH_ACTION_TYPES and not text["action"].startswith("Buy parts"):
         # Where the deaths keep happening, and the lesson of this one (a rescue
         # item left unpressed); else what to buy while waiting.
-        action, reason = death_copy(extra)
+        # The count of deaths only replaces a route line: the escape and
+        # resource cards say something more specific.
+        action, reason = death_copy(extra, route=action_type in ROUTE_ACTION_TYPES)
         reason = reason or spend_while_dead_sentence(req)
         if action is not None:
             text = {**text, "action": action}

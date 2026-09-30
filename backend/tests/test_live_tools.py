@@ -193,6 +193,57 @@ def test_one_death_on_the_enemy_half_says_to_farm_your_own():
     assert text["reason"].startswith("You died with Black King Bar ready")
 
 
+def test_deaths_in_different_places_are_counted():
+    from app.advice_i18n import translate_ru
+    from app.player_service import _recent_deaths
+
+    assert _recent_deaths([{"t": 600}], 600) is None
+    # 20:00 is outside ten minutes of 31:00; 25:00 and 31:00 count.
+    assert _recent_deaths([{"t": 1200}, {"t": 1500}, {"t": 1860}], 1860) == {
+        "count": 2,
+        "minutes": 6,
+    }
+    extra = _extra() | {
+        "death_place": {"zone": "top", "side": "own", "count": 1, "minutes": 1},
+        "recent_deaths": {"count": 3, "minutes": 7},
+    }
+    text = _fallback_text(_request(extra), "break_repeated_death_pattern")
+    assert text["action"] == "After respawn, change your route: 3 deaths in the last 7 minutes."
+    assert translate_ru(text["action"]) == "После возрождения смените маршрут: 3 смерти за 7 мин."
+    # Deaths spread over the game: the total.
+    spread = _extra() | {"match_deaths": 4}
+    text = _fallback_text(_request(spread), "break_repeated_death_pattern")
+    assert text["action"] == "After respawn, change your route: 4 deaths this game."
+    assert translate_ru(text["action"]) == "После возрождения смените маршрут: 4 смерти за игру."
+    assert (
+        "change your route"
+        not in _fallback_text(_request(_extra() | {"match_deaths": 1}), "plan_safer_respawn_route")[
+            "action"
+        ]
+    )
+    # The escape and resource cards keep their own action.
+    for action_type in ("respect_escape_cooldown_after_respawn", "reset_before_resources_collapse"):
+        kept = _fallback_text(_request(spread), action_type)["action"]
+        assert "change your route" not in kept
+    # The same place wins: it says where not to go.
+    same = extra | {"death_place": {"zone": "mid", "side": "river", "count": 2, "minutes": 3}}
+    assert "stay away" in _fallback_text(_request(same), "break_repeated_death_pattern")["action"]
+
+
+def test_the_game_total_comes_from_the_game(client, monkeypatch):
+    from app.main import _with_death_items
+
+    monkeypatch.setattr(
+        PLAYER_SERVICE, "recent_death", lambda clock: {"items": [], "place": None, "recent": None}
+    )
+    # The recording saw 1 death (the app started mid-match); Dota says 6.
+    state = {"extra_context": {"clock_time": 1500, "deaths": 6}}
+    extra = _with_death_items(state, "REPEATED_DEATH_PATTERN")["extra_context"]
+    assert extra["match_deaths"] == 6
+    no_count = _with_death_items({"extra_context": {"clock_time": 1500}}, "DEATH_REVIEW")
+    assert no_count["extra_context"]["match_deaths"] is None
+
+
 def test_satanic_is_not_an_instant_heal():
     """Satanic heals through lifesteal while attacking: never «press it and step back»."""
     satanic = {"name": "item_satanic", **READY}

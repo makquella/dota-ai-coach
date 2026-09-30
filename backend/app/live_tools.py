@@ -346,7 +346,7 @@ def death_items_reason(extra: Mapping[str, Any]) -> str | None:
     return f"You died with {names[0]} ready: next time use it at the first big hit."
 
 
-def death_copy(extra: Mapping[str, Any]) -> tuple[str | None, str | None]:
+def death_copy(extra: Mapping[str, Any], *, route: bool = True) -> tuple[str | None, str | None]:
     """(action, reason) of a death advice from where it happened and what was
     left unpressed; None for a part that stays as it is.
 
@@ -371,4 +371,19 @@ def death_copy(extra: Mapping[str, Any]) -> tuple[str | None, str | None]:
                 f"You died in the {ZONES[place['zone']]} on the enemy side: "
                 "farm your own half until your team is with you."
             )
+    # How many deaths: only in place of a route line (`route`), never over the
+    # escape or resource advice.
+    recent = extra.get("recent_deaths") if route else None
+    if action is None and isinstance(recent, Mapping):
+        # Deaths in different places (or no place known): how many, how fast.
+        count, minutes = recent.get("count"), recent.get("minutes")
+        if isinstance(count, int) and count >= 2 and isinstance(minutes, int) and minutes >= 1:
+            action = (
+                f"After respawn, change your route: {count} deaths in the last {minutes} "
+                f"{'minute' if minutes == 1 else 'minutes'}."
+            )
+    total = extra.get("match_deaths") if route else None
+    if action is None and isinstance(total, int) and total >= 2:
+        # Spread over the game: the count still says this is a pattern.
+        action = f"After respawn, change your route: {total} deaths this game."
     return action, death_items_reason(extra) or reason

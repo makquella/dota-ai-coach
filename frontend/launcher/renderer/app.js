@@ -293,6 +293,9 @@ const I18N = {
     tourHint: "A short tour of the app, one minute",
     tourStart: "Show",
     whatsNew: {
+      "0.27.0": [
+        "The advice after a death says how many times you have died, lately or this game, instead of the same «change your route» line."
+      ],
       "0.26.0": [
         "The match review has a «Skill order» card: which skill you maxed first and how pro players level your hero."
       ],
@@ -857,6 +860,9 @@ const I18N = {
     tourHint: "Короткая экскурсия по приложению, на минуту",
     tourStart: "Показать",
     whatsNew: {
+      "0.27.0": [
+        "Совет после смерти говорит, сколько раз вы уже погибли — за последние минуты или за игру, — а не повторяет одно и то же «смените маршрут»."
+      ],
       "0.26.0": [
         "В разборе матча появилась карточка «Прокачка»: какое умение вы вкачали первым и как качают вашего героя про-игроки."
       ],

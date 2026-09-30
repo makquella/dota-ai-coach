@@ -270,6 +270,17 @@ def _death_place(death: dict[str, Any]) -> dict[str, Any] | None:
     }
 
 
+def _recent_deaths(deaths: list[dict[str, Any]], at: int) -> dict[str, int] | None:
+    """How many deaths the last PLACE_WINDOW seconds of clock up to `at` hold
+    (this one included) and over how many minutes; None for a single death."""
+    times = [
+        d["t"] for d in deaths if isinstance(d.get("t"), int) and 0 <= at - d["t"] <= PLACE_WINDOW
+    ]
+    if len(times) < 2:
+        return None
+    return {"count": len(times), "minutes": max(1, -(-(at - min(times)) // 60))}
+
+
 class PlayerService:
     def __init__(
         self,
@@ -375,7 +386,11 @@ class PlayerService:
             return None
         if not 0 <= clock - death["t"] <= within:
             return None
-        return {"items": death["usable"], "place": _death_place(death)}
+        return {
+            "items": death["usable"],
+            "place": _death_place(death),
+            "recent": _recent_deaths(self.tracker.death_moments(), death["t"]),
+        }
 
     def death_screen(
         self,
