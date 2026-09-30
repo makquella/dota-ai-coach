@@ -181,3 +181,65 @@ def test_the_service_fetches_once_and_reads_the_cache(monkeypatch):
     service.jobs.run_pending(until=float("inf"))
     assert calls == [8]  # fresh: not fetched again
     assert service.skill_build("Not A Hero") is None
+
+
+IDS = {"1": FURY, "2": DANCE, "3": WARD, "4": OMNI, "5": TALENT}
+REVIEW_DATA = {**DATA, "ids": IDS}
+
+
+def test_the_review_compares_the_first_skill_maxed():
+    from app.skill_build import review_skills
+
+    # Healing Ward maxed first (3 ×4 before anything else).
+    mine = [3, 1, 3, 2, 3, 4, 3, 1, 1, 5, 1]
+    block = review_skills(mine, REVIEW_DATA)
+    assert block["yours"] == "Healing Ward" and block["pro"] == "Blade Fury"
+    assert block["same"] is False and block["agree"] == 3 and block["games"] == 3
+    same = review_skills([1, 2, 1, 2, 1, 4, 1, 2, 2], REVIEW_DATA)
+    assert same["same"] is True
+    assert review_skills([1, 2, 1], REVIEW_DATA) is None  # too short
+    assert review_skills(mine, DATA) is None  # no ids: the player's upgrades unreadable
+    assert review_skills(mine, None) is None
+    # The pros split on the first skill: nothing to say.
+    dance_first = [DANCE] * 4 + GAME
+    split = {**REVIEW_DATA, "orders": [GAME, GAME, dance_first, dance_first]}
+    assert review_skills(mine, split) is None
+
+
+def test_the_review_finding_and_its_texts():
+    from app.analysis_texts import render_finding
+    from app.post_match_analysis import analyze_match
+
+    facts = {
+        "match_id": 1,
+        "hero": "Juggernaut",
+        "hero_id": 8,
+        "duration": 2400,
+        "win": False,
+        "sources": ["opendota"],
+        "skill_upgrades": [3, 1, 3, 2, 3, 4, 3, 1, 1, 5, 1],
+    }
+    analysis = analyze_match(facts, meta={"skills": REVIEW_DATA})
+    assert analysis["skills"]["yours"] == "Healing Ward"
+    assert "skill_first_max" in analysis["problems"]
+    finding = next(f for f in analysis["improvements"] if f["id"] == "skill_first_max")
+    text = render_finding(finding, "ru")
+    assert text["title"] == "Другой порядок прокачки"
+    assert "Healing Ward" in text["text"] and "Blade Fury (3 из 3" in text["text"]
+    assert "Blade Fury" in render_finding(finding, "en")["drill"]
+    # Without the pro data: no block, no finding.
+    plain = analyze_match(facts, meta=None)
+    assert plain["skills"] is None and "skill_first_max" not in plain["problems"]
+
+
+def test_the_trim_keeps_the_skill_order():
+    from app.match_facts import facts_from_opendota
+    from app.opendota import trim_match
+
+    raw = {
+        "match_id": 5,
+        "players": [{"account_id": 7, "hero_id": 8, "ability_upgrades_arr": [1, 2, 1]}],
+    }
+    trimmed = trim_match(raw, 7)
+    assert trimmed["players"][0]["ability_upgrades_arr"] == [1, 2, 1]
+    assert facts_from_opendota(trimmed)["skill_upgrades"] == [1, 2, 1]

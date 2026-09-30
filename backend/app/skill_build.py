@@ -120,3 +120,46 @@ def next_skill(
         if level < allowed:
             return name
     return None
+
+
+# The review: the pros agree on the first skill to max in this share of games.
+REVIEW_AGREE = 0.6
+REVIEW_MIN_UPGRADES = 8  # a game long enough to have maxed a first skill
+
+
+def first_maxed(names: list[str]) -> str | None:
+    """The first ability the game's upgrades took to its 4th level."""
+    counts: dict[str, int] = {}
+    for name in names:
+        if name.startswith(TALENT_PREFIX):
+            continue
+        counts[name] = counts.get(name, 0) + 1
+        if counts[name] == MAX_LEVEL:
+            return name
+    return None
+
+
+def review_skills(upgrades: list[int] | None, data: dict[str, Any] | None) -> dict[str, Any] | None:
+    """The player's skill order against the pro one: {yours, pro, same, order,
+    agree, games} (in-game names), or None when either side is unknown, the pros
+    do not agree on a first skill or the player maxed none."""
+    build = skill_order(data)
+    ids = (data or {}).get("ids")
+    names = upgrade_names(upgrades, ids if isinstance(ids, dict) else None)
+    if build is None or len(names) < REVIEW_MIN_UPGRADES:
+        return None
+    if build["first_agree"] < REVIEW_AGREE * build["games"]:
+        return None
+    yours = first_maxed(names)
+    if yours is None:
+        return None
+    labels = build["names"]
+    pro = build["order"][0]
+    return {
+        "yours": labels.get(yours) or label(yours),
+        "pro": labels.get(pro) or label(pro),
+        "same": yours == pro,
+        "order": [labels.get(name) or label(name) for name in build["order"]],
+        "agree": build["first_agree"],
+        "games": build["games"],
+    }

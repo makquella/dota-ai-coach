@@ -34,6 +34,8 @@ REQUIRES = {
     # The last seconds before deaths exist only for live-recorded matches.
     "died_with_saver_ready": "last_moments",
     "burst_deaths": "last_moments",
+    # Needs the player's skill order and the pro one.
+    "skill_first_max": "skills",
 }
 MAX_RESULTS = 10
 # Findings whose title names one item or hero ("Late Battle Fury"). The check works

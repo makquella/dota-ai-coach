@@ -1721,6 +1721,7 @@ class PlayerService:
             "constants": constants,
             "popularity": self.store.cache_get(f"{POPULARITY_KEY}:{int(hero_id)}"),
             "timings": self.store.cache_get(f"{TIMINGS_KEY}:{int(hero_id)}"),
+            "skills": self.store.cache_get(f"{SKILLS_KEY}:{int(hero_id)}"),
         }
 
     def _refresh(
@@ -1804,6 +1805,9 @@ class PlayerService:
             f"{POPULARITY_KEY}:{hero}", META_TTL_SECONDS, lambda: client.item_popularity(hero)
         )
         self._refresh(f"{TIMINGS_KEY}:{hero}", META_TTL_SECONDS, lambda: client.item_timings(hero))
+        self._refresh(
+            f"{SKILLS_KEY}:{hero}", META_TTL_SECONDS, lambda: client.pro_skill_orders(hero)
+        )
 
     def _ensure_hero_stats(self) -> None:
         client = self.client

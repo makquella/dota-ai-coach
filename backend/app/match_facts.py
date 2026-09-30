@@ -89,6 +89,7 @@ def empty_facts(match_id: int) -> dict[str, Any]:
         "path": [],
         "wards": [],
         "lane_pos": [],
+        "skill_upgrades": [],
         # Live advice the app showed during the match (GSI recording only).
         "advice_log": [],
     }
@@ -209,6 +210,9 @@ def facts_from_opendota(trimmed: dict[str, Any]) -> dict[str, Any] | None:
     ]
     facts["wards"] = _wards(me)
     facts["lane_pos"] = _lane_pos(me.get("lane_pos"))
+    facts["skill_upgrades"] = [
+        value for value in _list(me.get("ability_upgrades_arr")) if isinstance(value, int)
+    ]
     return facts
 
 

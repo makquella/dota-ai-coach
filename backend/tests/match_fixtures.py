@@ -305,6 +305,7 @@ class FakeOpenDota:
         self._summary = summary_from_recent
         self.parse_requests: list[int] = []
         self.calls: list[str] = []
+        self.skill_orders: dict[int, dict[str, Any]] = {}
 
     def player(self, account_id: int) -> dict[str, Any]:
         self.calls.append(f"player:{account_id}")
@@ -340,6 +341,12 @@ class FakeOpenDota:
     def item_constants(self) -> dict[str, Any]:
         self.calls.append("items")
         return self._real(RAW_ITEM_CONSTANTS).item_constants()
+
+    def pro_skill_orders(self, hero_id: int) -> dict[str, Any]:
+        # Not in `calls`: tests count the other requests. No pro games by default.
+        return copy.deepcopy(
+            self.skill_orders.get(hero_id) or {"orders": [], "names": {}, "ids": {}}
+        )
 
     def item_popularity(self, hero_id: int) -> dict[str, dict[str, int]]:
         self.calls.append(f"popularity:{hero_id}")

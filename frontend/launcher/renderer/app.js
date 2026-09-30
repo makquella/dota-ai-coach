@@ -293,6 +293,10 @@ const I18N = {
     tourHint: "A short tour of the app, one minute",
     tourStart: "Show",
     whatsNew: {
+      "0.23.0": [
+        "Where the point goes: after a level-up the coach names the skill pro players level on your hero, with the whole order.",
+        "The game plan shows the pro skill order, and the review says when you maxed a different skill first."
+      ],
       "0.22.0": [
         "Skill points: the coach names your ultimate at 6/12/18 and the talent at 10/15/20/25 when a point is left unspent.",
         "A situational item: two deaths under stuns → Black King Bar, two burst deaths → Aeon Disk, with the reason and the gold still needed.",
@@ -843,6 +847,10 @@ const I18N = {
     tourHint: "Короткая экскурсия по приложению, на минуту",
     tourStart: "Показать",
     whatsNew: {
+      "0.23.0": [
+        "Куда вложить очко: после нового уровня тренер называет умение, которое качают про-игроки на вашем герое, и весь порядок прокачки.",
+        "План на игру показывает прокачку у про, а разбор — если первым вы вкачали другое умение."
+      ],
       "0.22.0": [
         "Прокачка: тренер подскажет ультимейт на 6/12/18-м уровне и талант на 10/15/20/25-м, если очко осталось не вложенным.",
         "Предмет под ситуацию: две смерти под контролем — Black King Bar, две быстрые смерти — Aeon Disk, с причиной и недостающим золотом.",

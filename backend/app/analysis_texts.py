@@ -223,6 +223,18 @@ FINDINGS: dict[str, dict[str, dict[str, str]]] = {
             "drill": "Keep {item_label} on a key you reach easily and decide in advance: below half HP in a fight, press it at once, don't wait.",
         },
     },
+    "skill_first_max": {
+        "ru": {
+            "title": "Другой порядок прокачки",
+            "text": "Первым вы вкачали до конца {yours}, а про-игроки на этом герое — {pro} ({agree} из {games} недавних про-матчей).",
+            "drill": "В следующей игре на этом герое вкладывайте очки сначала в {pro}: подсказка в игре назовёт, куда вложить очко.",
+        },
+        "en": {
+            "title": "A different skill order",
+            "text": "You maxed {yours} first; pro players on this hero max {pro} ({agree} of {games} recent pro games).",
+            "drill": "Next game on this hero, put your points into {pro} first: the in-game tip names where each point goes.",
+        },
+    },
     "burst_deaths": {
         "ru": {
             "title": "Быстрые смерти",

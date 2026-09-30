@@ -117,6 +117,8 @@ _TIMELINE_FIELDS = (
     "obs_log",
     "sen_log",
     "lane_pos",
+    # Ability ids in the order the player levelled them (the skill review).
+    "ability_upgrades_arr",
 )
 _MATCH_FIELDS = (
     "match_id",
@@ -272,7 +274,7 @@ class OpenDotaClient:
 
     def pro_skill_orders(self, hero_id: int) -> dict[str, Any]:
         """How pro players levelled the hero lately: {"orders": [[ability name, …]],
-        "names": {ability name: in-game name}}
+        "names": {ability name: in-game name}, "ids": {ability id: name}}
         from the `ability_upgrades_arr` of up to skill_build.MAX_GAMES recent pro
         matches (/heroes/{id}/matches, then /matches/{id}; unparsed ones skipped)."""
         from app.skill_build import MAX_GAMES, MAX_TRIES, upgrade_names
@@ -283,6 +285,7 @@ class OpenDotaClient:
         if not isinstance(ids, dict) or not isinstance(recent, list):
             raise OpenDotaError("bad_response", "Unexpected OpenDota response for pro matches.")
         orders: list[list[str]] = []
+        used: set[str] = set()
         for row in recent[:MAX_TRIES]:
             if len(orders) >= MAX_GAMES:
                 break
@@ -295,9 +298,11 @@ class OpenDotaClient:
                 continue
             for player in match.get("players") or []:
                 if isinstance(player, dict) and player.get("hero_id") == hero:
-                    names = upgrade_names(player.get("ability_upgrades_arr"), ids)
+                    upgrades = player.get("ability_upgrades_arr")
+                    names = upgrade_names(upgrades, ids)
                     if names:
                         orders.append(names)
+                        used.update(str(i) for i in upgrades if str(i) in ids)
                     break
         # In-game names ("Presence of the Dark Lord", not nevermore_dark_lord),
         # only for the abilities of these games (the constants are 1.3 MB).
@@ -310,7 +315,8 @@ class OpenDotaClient:
                     label = entry.get("dname") if isinstance(entry, dict) else None
                     if isinstance(label, str) and label and not name.startswith("special_bonus_"):
                         names[name] = label
-        return {"orders": orders, "names": names}
+        # The hero's ability ids, so a review can read the player's own upgrades.
+        return {"orders": orders, "names": names, "ids": {i: ids[i] for i in sorted(used)}}
 
     def hero_stats(self) -> list[dict[str, Any]]:
         """/heroStats: picks and wins per rank bracket 1 (Herald) .. 8 (Immortal)."""
@@ -418,7 +424,7 @@ def summary_from_recent(item: dict[str, Any]) -> dict[str, Any]:
 
 # Bump when trim_match keeps more: parsed matches stored by an older version are
 # fetched again on the next sync (PlayerService).
-TRIM_VERSION = 2
+TRIM_VERSION = 3
 
 
 def _my_teamfights(match: dict[str, Any], index: int | None) -> list[dict[str, Any]]:
