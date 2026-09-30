@@ -27,6 +27,10 @@ DEATH_REVIEW_DECISIONS = {
 COACHING_GAME_TIME_GAP_SECONDS = 45
 POST_LANING_GAME_TIME_GAP_SECONDS = 60
 SAME_ACTION_GAME_TIME_GAP_SECONDS = 120
+# The farm pace cards (post_laning_coach: the pace, the farm to recover) change
+# only their numbers: the same line comes back at most this often.
+FARM_PACE_REPEAT_SECONDS = 240
+FARM_PACE_PREFIX = ("Keep farming: ", "Recover farm: ")
 RECENT_SAFETY_GAME_TIME_GAP_SECONDS = 35
 HEARTBEAT_NUDGE_SECONDS = 150
 HEARTBEAT_DUPLICATE_WAIT_SECONDS = 180

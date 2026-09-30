@@ -140,7 +140,7 @@ def _coaching_action(action: str) -> str:
         return action
     if lowered.startswith("only consider"):
         return action
-    if lowered.startswith("you reached"):
+    if lowered.startswith(("you reached", "your team is")):
         return action
     if lowered.startswith(("after respawn", "check", "conserve", "stay", "use", "wait", "respect")):
         return action

@@ -48,4 +48,4 @@ def test_one_last_hit_short_of_the_pace_is_not_behind():
     assert advice is None or advice.category != "post_laning_farm_recovery"
     behind = build_post_laning_advice(_farming(28, 168, 200), "SAFE_FARMING")
     assert behind.category == "post_laning_farm_recovery"
-    assert "168" in behind.reason and "200+" in behind.reason
+    assert "168" in behind.action and "200+" in behind.action

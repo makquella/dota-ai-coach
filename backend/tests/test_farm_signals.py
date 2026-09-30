@@ -101,12 +101,12 @@ def test_farm_recovery_names_the_pace():
     state = _post_state(farm_quality="low", last_hits=38, expected_lh_range=[98, 126])
     advice = build_post_laning_advice(state, "SAFE_FARMING")
     assert advice is not None and advice.category == "post_laning_farm_recovery"
-    assert advice.reason == (
-        "You have 38 last hits at minute 18; a good pace is 98+, so rebuild farm before forcing fights."
+    assert advice.action == "Recover farm: 38 last hits at minute 18, a good pace is 98+."
+    assert translate_ru(advice.action) == (
+        "Навёрстывайте фарм: добиваний к 18-й минуте — 38, хороший темп — 98+."
     )
     assert translate_ru(advice.reason) == (
-        "Добиваний к 18-й минуте: 38, хороший темп — 98+. "
-        "Сначала восстановите фарм, потом ищите драки."
+        "Сначала самые безопасные волны и лагеря: драки до этого отложат следующий предмет."
     )
 
 

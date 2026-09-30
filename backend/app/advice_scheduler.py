@@ -58,6 +58,8 @@ from app.recommender import generate_recommendation
 from app.scheduler.constants import (
     COACHING_GAME_TIME_GAP_SECONDS,
     DEATH_REVIEW_DECISIONS,
+    FARM_PACE_PREFIX,
+    FARM_PACE_REPEAT_SECONDS,
     HEARTBEAT_DUPLICATE_WAIT_SECONDS,
     HEARTBEAT_NUDGE_SECONDS,
     LLM_REFINEMENT_EVERY_N_ADVICES,
@@ -1757,9 +1759,12 @@ class AdviceScheduler:
                 min_gap = max(min_gap, RECENT_SAFETY_GAME_TIME_GAP_SECONDS)
 
         if same_action and same_category:
-            min_gap = max(
-                min_gap, scaled_seconds(SAME_ACTION_GAME_TIME_GAP_SECONDS, self.frequency)
+            repeat = (
+                FARM_PACE_REPEAT_SECONDS
+                if recommendation.action.startswith(FARM_PACE_PREFIX)
+                else SAME_ACTION_GAME_TIME_GAP_SECONDS
             )
+            min_gap = max(min_gap, scaled_seconds(repeat, self.frequency))
         elif advice_mode == "coaching":
             min_gap = max(min_gap, scaled_seconds(COACHING_GAME_TIME_GAP_SECONDS, self.frequency))
 

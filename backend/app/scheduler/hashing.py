@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 from typing import Any
 
 from app.advice_policy import build_advice_policy
@@ -38,7 +39,9 @@ KEY_ITEMS = {
 
 
 def _action_hash(action: str) -> str:
-    normalized = " ".join(str(action or "").strip().lower().split())
+    # Numbers out: the same advice with this minute's numbers (the pace, a
+    # cooldown, the gold still needed) is still the same advice.
+    normalized = " ".join(re.sub(r"\d+", "#", str(action or "")).strip().lower().split())
     if not normalized:
         return ""
     return hashlib.sha1(normalized.encode("utf-8")).hexdigest()[:12]
