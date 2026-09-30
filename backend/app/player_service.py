@@ -773,6 +773,10 @@ class PlayerService:
             analysis = self._rebuild_analysis(primary, match_id)
         if analysis is None and self.client is not None:
             self.fetch_match(match_id, request_parse=False)
+        elif self.client is not None and _trim_is_old(record):
+            # Stored before trim_match kept what the review now reads (the skill
+            # order): shown as it is now, fetched again and rebuilt in the background.
+            self.fetch_match(match_id, request_parse=False)
         detail = {
             "match_id": match_id,
             "summary": {key: record.get(key) for key in _SUMMARY_KEYS},
@@ -1735,13 +1739,9 @@ class PlayerService:
             self.store.cache_set(key, fetch())
 
     def _trim_outdated(self, account_id: int, row: dict[str, Any]) -> bool:
-        """A parsed match stored before trim_match kept what the review now uses
-        (team fight death positions): fetched again, one request."""
-        if row.get("parse_status") != "parsed":
-            return False
-        record = self.store.get_match(account_id, row["match_id"])
-        stored = (record or {}).get("opendota") or {}
-        return int(stored.get("trim_version") or 1) < TRIM_VERSION
+        """A match stored before trim_match kept what the review now uses (team
+        fight death positions, the skill order): fetched again, one request."""
+        return _trim_is_old(self.store.get_match(account_id, row["match_id"]))
 
     def _pool(self, account_id: int) -> list[int]:
         return pool_heroes(self.store.list_matches(account_id, limit=RECENT_MATCHES_LIMIT))
@@ -1969,3 +1969,11 @@ def _start_time(timeline: dict[str, Any]) -> int | None:
         return int(datetime.fromisoformat(str(started)).timestamp()) if started else None
     except ValueError:
         return None
+
+
+def _trim_is_old(record: dict[str, Any] | None) -> bool:
+    """The stored OpenDota match was trimmed by an older trim_match."""
+    stored = (record or {}).get("opendota")
+    if not isinstance(stored, dict) or not stored:
+        return False
+    return int(stored.get("trim_version") or 1) < TRIM_VERSION

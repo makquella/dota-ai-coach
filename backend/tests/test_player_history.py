@@ -850,3 +850,28 @@ def test_team_fight_deaths_get_a_place_on_the_map():
     deaths = facts_from_opendota(trimmed)["deaths_log"]
     assert (deaths[0]["x"], deaths[0]["y"]) == (150 * 128, 96 * 128)
     assert all("x" not in d for d in deaths[1:])
+
+
+def test_an_old_trim_is_fetched_again_when_the_review_is_opened(tmp_path, monkeypatch):
+    """A match stored by an older trim_match (no skill order) is rebuilt from what
+    it has and fetched again in the background — parsed or not."""
+    import app.player_service as player_service
+
+    for parsed in (True, False):
+        fake = FakeOpenDota(matches={MATCH_ID: opendota_match(parsed=parsed)})
+        service = _service(tmp_path / str(parsed), fake)
+        service.store.set_primary(ME, source="manual")
+        service.fetch_match(MATCH_ID, request_parse=False)
+        service.jobs.run_pending(until=float("inf"))
+        assert fake.calls.count(f"match:{MATCH_ID}") == 1
+        assert service.match_detail(MATCH_ID, "en")["analysis"] is not None
+        service.jobs.run_pending(until=float("inf"))
+        assert fake.calls.count(f"match:{MATCH_ID}") == 1  # current: not fetched again
+
+        monkeypatch.setattr(player_service, "TRIM_VERSION", 99)
+        row = service.store.list_matches(ME, limit=1)[0]
+        assert service._trim_outdated(ME, row)
+        assert service.match_detail(MATCH_ID, "en")["analysis"] is not None
+        service.jobs.run_pending(until=float("inf"))
+        assert fake.calls.count(f"match:{MATCH_ID}") == 2
+        monkeypatch.undo()

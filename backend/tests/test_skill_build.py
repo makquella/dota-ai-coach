@@ -243,3 +243,14 @@ def test_the_trim_keeps_the_skill_order():
     trimmed = trim_match(raw, 7)
     assert trimmed["players"][0]["ability_upgrades_arr"] == [1, 2, 1]
     assert facts_from_opendota(trimmed)["skill_upgrades"] == [1, 2, 1]
+
+
+def test_invokers_orbs_get_no_order():
+    quas, wex, exort = "invoker_quas", "invoker_wex", "invoker_exort"
+    game = [quas, exort] * 2 + [quas] * 5 + [exort] * 5 + [wex] * 4
+    assert skill_order({"orders": [game] * 3}) is None
+    # An order whose ability already went past rank 4 (a rework, an odd hero): silence.
+    build = skill_order(DATA)
+    assert next_skill(build, {FURY: 5, DANCE: 1, WARD: 1}, 12) is None
+    # An innate levelled high does not silence the order.
+    assert next_skill(build, {FURY: 1, DANCE: 1, WARD: 0, "juggernaut_innate": 9}, 3) == FURY

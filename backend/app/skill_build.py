@@ -6,6 +6,7 @@ hero (OpenDota: the hero's recent pro matches, each player's
 The exact order of the first points changes with the lane, so only the order
 in which the basic abilities are maxed is kept — the part of a skill build that
 stays: for each game, the point at which every ability got its 4th level;
+a hero with a skill of more ranks (Invoker's orbs) gets no order at all;
 abilities sorted by the median of that point. Ultimates (3 levels), talents and
 the attribute bonus never get a 4th level in a game's upgrades, so they drop
 out by themselves; so does an innate, which is never levelled by hand.
@@ -65,6 +66,8 @@ def skill_order(data: dict[str, Any] | None) -> dict[str, Any] | None:
                 continue
             name = ALIASES.get(name, name)
             counts[name] = counts.get(name, 0) + 1
+            if counts[name] > MAX_LEVEL:
+                return None  # Invoker's orbs (7 ranks): a 4th point is not the max
             if counts[name] == MAX_LEVEL:
                 maxed_at.setdefault(name, []).append(index)
                 game_first = game_first or name
@@ -112,6 +115,8 @@ def next_skill(
     """The raw name of the first ability of the pro order the hero can level now."""
     if not build or not levels:
         return None
+    if any((levels.get(name) or 0) > MAX_LEVEL for name in build.get("order") or []):
+        return None  # a skill with more ranks than the pro games showed: the caps differ
     allowed = min(MAX_LEVEL, (hero_level + 1) // 2)
     for name in build.get("order") or []:
         level = levels.get(name)
