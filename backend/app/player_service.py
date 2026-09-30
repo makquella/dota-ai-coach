@@ -390,7 +390,6 @@ class PlayerService:
             "items": death["usable"],
             "place": _death_place(death),
             "recent": _recent_deaths(self.tracker.death_moments(), death["t"]),
-            "total": len(self.tracker.death_moments()),
         }
 
     def death_screen(

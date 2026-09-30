@@ -221,9 +221,27 @@ def test_deaths_in_different_places_are_counted():
             "action"
         ]
     )
+    # The escape and resource cards keep their own action.
+    for action_type in ("respect_escape_cooldown_after_respawn", "reset_before_resources_collapse"):
+        kept = _fallback_text(_request(spread), action_type)["action"]
+        assert "change your route" not in kept
     # The same place wins: it says where not to go.
     same = extra | {"death_place": {"zone": "mid", "side": "river", "count": 2, "minutes": 3}}
     assert "stay away" in _fallback_text(_request(same), "break_repeated_death_pattern")["action"]
+
+
+def test_the_game_total_comes_from_the_game(client, monkeypatch):
+    from app.main import _with_death_items
+
+    monkeypatch.setattr(
+        PLAYER_SERVICE, "recent_death", lambda clock: {"items": [], "place": None, "recent": None}
+    )
+    # The recording saw 1 death (the app started mid-match); Dota says 6.
+    state = {"extra_context": {"clock_time": 1500, "deaths": 6}}
+    extra = _with_death_items(state, "REPEATED_DEATH_PATTERN")["extra_context"]
+    assert extra["match_deaths"] == 6
+    no_count = _with_death_items({"extra_context": {"clock_time": 1500}}, "DEATH_REVIEW")
+    assert no_count["extra_context"]["match_deaths"] is None
 
 
 def test_satanic_is_not_an_instant_heal():

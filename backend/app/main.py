@@ -1018,7 +1018,11 @@ def _with_death_items(state: dict[str, object], decision_point: str) -> dict[str
         "death_items": death["items"],
         "death_place": death["place"],
         "recent_deaths": death.get("recent"),
-        "match_deaths": death.get("total"),
+        # The game's own counter: the recording misses deaths before the app
+        # started or during a gap in GSI.
+        "match_deaths": raw_extra.get("deaths")
+        if isinstance(raw_extra.get("deaths"), int)
+        else None,
     }
     return {**state, "extra_context": {**raw_extra, **added}}
 
