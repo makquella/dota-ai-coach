@@ -69,7 +69,7 @@ app = FastAPI(
     lifespan=_lifespan,
     title="Wardly",
     description="MVP-1: rule-based carry coach with local knowledge-base RAG.",
-    version="0.21.0",
+    version="0.22.0",
 )
 app.include_router(player_router)
 
@@ -103,7 +103,7 @@ if FRONTEND_DIR.exists():
 @app.get("/", summary="Health check")
 def root():
     """Simple health-check endpoint."""
-    return {"status": "ok", "service": "Wardly", "version": "0.21.0"}
+    return {"status": "ok", "service": "Wardly", "version": "0.22.0"}
 
 
 @app.get("/health", summary="Health check")
@@ -387,6 +387,11 @@ def _live_role_and_hint(response: dict[str, object], lang: str) -> dict[str, obj
             if role and role.get("role") != "support"
             else None,
             objective=MATCH_MEMORY.roshan.hint(clock if isinstance(clock, int) else None, lang),
+            skill=MATCH_MEMORY.skills.tip(
+                clock if isinstance(clock, int) else None,
+                lang,
+                alive=extra.get("alive") is not False,
+            ),
         )
         if hint is not None:
             result["map_hint"] = hint
@@ -575,6 +580,7 @@ def _overlay_recommendation_payload() -> dict[str, object]:
 
     state = _with_next_item(state, coverage, decision_point)
     state = _with_death_items(state, decision_point)
+    state = _with_coverage(state, coverage)
     try:
         request = GameSituationRequest(**state)
     except ValidationError as exc:
@@ -904,6 +910,7 @@ def _overlay_response_for_state(
 
     state = _with_next_item(state, coverage, decision_point)
     state = _with_death_items(state, decision_point)
+    state = _with_coverage(state, coverage)
     try:
         game_request = GameSituationRequest(**state)
     except ValidationError as exc:
@@ -972,6 +979,15 @@ def _with_next_item(
     if item is None:
         return state
     return {**state, "extra_context": {**raw_extra, "next_item": item}}
+
+
+def _with_coverage(state: dict[str, object], coverage: str | None) -> dict[str, object]:
+    """The advisor coverage for the scheduler: its heartbeat names the farm pace
+    and the kill score only for a core (post_laning_coach._situational_farm_copy)."""
+    raw_extra = state.get("extra_context")
+    if not isinstance(raw_extra, dict):
+        return state
+    return {**state, "extra_context": {**raw_extra, "advisor_coverage": coverage}}
 
 
 # Death reviews: the advice after a death names the rescue item left unpressed.

@@ -293,6 +293,11 @@ const I18N = {
     tourHint: "A short tour of the app, one minute",
     tourStart: "Show",
     whatsNew: {
+      "0.22.0": [
+        "Skill points: the coach names your ultimate at 6/12/18 and the talent at 10/15/20/25 when a point is left unspent.",
+        "A situational item: two deaths under stuns → Black King Bar, two burst deaths → Aeon Disk, with the reason and the gold still needed.",
+        "Less banal advice: a kill streak, the kill score gap or your pace in numbers instead of the same «farm safely»."
+      ],
       "0.21.0": [
         "Settings are rebuilt: five clear groups, bigger text, fewer buttons, and a plain line under every setting. Moving to another computer now explains itself step by step.",
         "«Why this advice?» under every advice on Home and in the review: what the coach saw.",
@@ -838,6 +843,11 @@ const I18N = {
     tourHint: "Короткая экскурсия по приложению, на минуту",
     tourStart: "Показать",
     whatsNew: {
+      "0.22.0": [
+        "Прокачка: тренер подскажет ультимейт на 6/12/18-м уровне и талант на 10/15/20/25-м, если очко осталось не вложенным.",
+        "Предмет под ситуацию: две смерти под контролем — Black King Bar, две быстрые смерти — Aeon Disk, с причиной и недостающим золотом.",
+        "Меньше банальных советов: серия убийств, разрыв в счёте или ваш темп в цифрах вместо одного и того же «фармите безопасно»."
+      ],
       "0.21.0": [
         "Настройки собраны заново: пять понятных групп, крупнее шрифт, меньше кнопок и объяснение простыми словами у каждой строки. Перенос на другой компьютер — по шагам.",
         "«Почему этот совет?» под каждой подсказкой на Главной и в разборе: что увидел тренер.",

@@ -19,6 +19,7 @@ from app.farm_tracker import FarmTracker
 from app.live_role import LiveRoleTracker
 from app.map_hints import RoleTips
 from app.roshan_timer import RoshanTimer
+from app.skill_tips import SkillTips
 from app.tp_tracker import TpTracker
 
 DEATH_DECISION_POINTS = {
@@ -91,6 +92,7 @@ class MatchMemory:
         self.tp = TpTracker()
         self.role = LiveRoleTracker()
         self.tips = RoleTips()
+        self.skills = SkillTips()
         self.roshan = RoshanTimer()
 
     def observe_state(self, state: dict[str, Any]) -> dict[str, Any]:
@@ -169,6 +171,8 @@ class MatchMemory:
         extra = state.get("extra_context") if isinstance(state.get("extra_context"), dict) else {}
         if extra.get("source_type") == "live_gsi":
             self.roshan.observe(extra)
+            skills = extra.get("skills")
+            self.skills.observe(_game_clock(state), skills if isinstance(skills, dict) else None)
             self.role.observe(
                 _game_clock(state),
                 x=_number_or_none(extra.get("xpos")),

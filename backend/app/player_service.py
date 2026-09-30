@@ -90,6 +90,7 @@ from app.schemas import is_supported_hero
 from app.session_summary import session_summary
 from app.share_progress import public_progress
 from app.share_review import public_review
+from app.situational_items import situational_item
 from app.steam_ids import parse_account_id, steam64_from_account_id
 from app.usage_stats import usage_stats
 from app.weekly_summary import weekly_summary
@@ -468,7 +469,12 @@ class PlayerService:
         hero_id = hero_id_from_name(hero)
         if hero_id is None or owned is None:
             return None
-        return next_build_item(self._live_meta(hero_id), owned)
+        meta = self._live_meta(hero_id)
+        # How this match's deaths went picks the item first (BKB after deaths
+        # under stuns), then the hero's usual build.
+        return situational_item(self.tracker.death_moments(), owned, meta) or next_build_item(
+            meta, owned
+        )
 
     def _live_meta(self, hero_id: int) -> dict[str, Any] | None:
         """The hero's cached build data for live tips, read once a minute (they

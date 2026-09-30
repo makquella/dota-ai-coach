@@ -17,6 +17,8 @@ death on the timeline:
   press it on the same sample — and still ready at the last alive tick (one
   pressed in those seconds went on cooldown), so only these count as "not used";
 - free_s: seconds of the last FREE_WINDOW the hero was not disabled;
+- held_s: seconds of the last FREE_WINDOW the hero was stunned or hexed (not
+  just muted: a muted hero still moves and casts);
 - burst_s: seconds from BURST_FROM % HP or more to the death (a burst kill),
   when that is BURST_SECONDS or less.
 
@@ -111,6 +113,11 @@ def is_disabled(hero: dict[str, Any]) -> bool:
     return any(hero.get(flag) is True for flag in ("stunned", "hexed", "muted"))
 
 
+def is_held(hero: dict[str, Any]) -> bool:
+    """Stunned or hexed: no moving, no spells, no items."""
+    return any(hero.get(flag) is True for flag in ("stunned", "hexed"))
+
+
 class LastSeconds:
     """One entry per second of match clock, the last WINDOW seconds."""
 
@@ -138,6 +145,7 @@ class LastSeconds:
             "hp": round(hp),
             "mp": round(_number(hero.get("mana_percent")) or 0),
             "disabled": is_disabled(hero),
+            "held": is_held(hero),
             "ready": ready_savers(items) + [f"{ABILITY_PREFIX}{name}" for name in abilities],
         }
         if self._entries and self._entries[-1]["t"] == clock:
@@ -166,6 +174,7 @@ class LastSeconds:
             "ready": list(last["ready"]),
             "usable": usable,
             "free_s": sum(1 for e in recent if not e["disabled"]),
+            "held_s": sum(1 for e in recent if e.get("held")),
         }
         high = [e for e in entries if e["hp"] >= BURST_FROM]
         if high:

@@ -660,13 +660,18 @@ def map_hint(
     key_item: dict[str, Any] | None = None,
     objective: dict[str, Any] | None = None,
     ward_charges: int | None = None,
+    skill: dict[str, Any] | None = None,
 ) -> dict[str, Any] | None:
     """A timer, but a role tip over a minor one (runes, lotus); None before the
     horn or without a role. `objective`: a Roshan / Aegis timer (roshan_timer.py),
-    which wins over a scheduled timer that is not sooner."""
+    which wins over a scheduled timer that is not sooner. `skill`: a skill-point
+    tip (skill_tips.py), which wins over any scheduled timer: it takes a second
+    and the timers stay on the strip under the card."""
     if clock is None or clock < 0 or role is None:
         return None
     tips.observe_level(level)
+    if skill is not None and objective is None:
+        return skill
     timer = next_timer(clock, role, lang)
     if objective is not None and (
         timer is None or timer["minor"] or objective["in_seconds"] <= timer["in_seconds"]
