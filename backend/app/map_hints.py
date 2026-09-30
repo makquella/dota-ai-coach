@@ -754,7 +754,8 @@ def _save_item_tip(
     left = item["gold_left"]
     if left <= gold:
         return _tip("save_item_now", hint_id, lang, item=item["name"])
-    return _tip("save_item_hero", hint_id, lang, item=item["name"], left=left)
+    # The gold carried counts too: only the rest is still to farm.
+    return _tip("save_item_hero", hint_id, lang, item=item["name"], left=left - gold)
 
 
 def map_hint(

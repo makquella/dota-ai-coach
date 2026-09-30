@@ -231,7 +231,8 @@ def test_the_save_item_is_the_one_bought_on_the_hero():
         save_item={**item, "gold_left": 2200},
     )
     assert hint["title"] == "No save item yet: Force Staff"
-    assert hint["hint"] == "Force Staff is the save item most bought on this hero: 2200 gold to go."
+    # 2200 for the parts, 1300 carried: 900 still to farm.
+    assert hint["hint"] == "Force Staff is the save item most bought on this hero: 900 gold to go."
     ru = RoleTips().tip(
         13 * 60,
         "support",
@@ -288,6 +289,8 @@ def test_roshan_can_be_up_around_his_window():
     assert not timer.maybe_up(1500)
     timer.killed_at = 1200  # respawn window 28:00-31:00
     assert not timer.maybe_up(1200 + 400)
-    assert timer.maybe_up(1200 + 480 - 60)
+    # Not before the window opens: the tip says «can be up now».
+    assert not timer.maybe_up(1200 + 480 - 1)
+    assert timer.maybe_up(1200 + 480)
     assert timer.maybe_up(1200 + 660 + 180)
     assert not timer.maybe_up(1200 + 660 + 181)

@@ -133,13 +133,13 @@ class RoshanTimer:
         return None
 
     def maybe_up(self, clock: int | None) -> bool:
-        """Roshan is coming back: from a minute before his respawn window opens
-        after the last kill until three minutes after it closes (later, nobody
-        knows whether he is still there)."""
+        """Roshan can be up: from the moment his respawn window opens after the
+        last kill (never before: the ward tip says «can be up now») until three
+        minutes after it closes (later, nobody knows whether he is still there)."""
         if clock is None or self.killed_at is None:
             return False
         cfg = _settings()
-        return self.killed_at + cfg["min"] - 60 <= clock <= self.killed_at + cfg["max"] + 180
+        return self.killed_at + cfg["min"] <= clock <= self.killed_at + cfg["max"] + 180
 
     def strip(self, clock: int | None, lang: str) -> list[dict[str, Any]]:
         """For the overlay's timer strip: the player's Aegis until it expires, and
