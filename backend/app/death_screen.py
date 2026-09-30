@@ -17,6 +17,7 @@ from typing import Any
 
 from app.analysis_texts import PLACE_SIDES, PLACE_ZONES
 from app.last_moments import saver_label
+from app.live_tools import MATCH_PLACE_MIN
 
 BUYBACK_RESERVE_MINUTE = 30
 SPEND_MIN_GOLD = 500
@@ -28,6 +29,7 @@ TEXT = {
         "burst": "Убили за {s} с с высокого HP: поймали, когда вы были одни или на виду.",
         "unpressed": "{name} был готов и не нажат — в следующий раз жмите при первом ударе.",
         "place": "{n}-я смерть {place} за {m} мин — после возрождения идите в другое место.",
+        "place_match": "{n}-я смерть {place} за игру — после возрождения идите в другое место.",
         "buy_item": "Купите {item} сейчас: золота хватает, курьер принесёт.",
         "buy_parts": "Купите части {item}: не хватает {need} золота.",
         "spend": "Потратьте {gold} золота на следующий предмет — у фонтана это быстрее.",
@@ -44,6 +46,7 @@ TEXT = {
         "burst": "Killed within {s} s from high HP: caught alone or in the open.",
         "unpressed": "{name} was ready and not pressed: next time use it at the first hit.",
         "place": "Death number {n} {place} in {m} min: after respawn, go somewhere else.",
+        "place_match": "Death number {n} {place} this game: after respawn, go somewhere else.",
         "buy_item": "Buy {item} now: you have the gold, the courier brings it.",
         "buy_parts": "Buy parts of {item}: {need} gold to go.",
         "spend": "Spend {gold} gold on your next item: at the fountain it is quicker.",
@@ -101,6 +104,8 @@ def build_death_screen(
     if where and count and count >= 2:
         minutes = _int((place or {}).get("minutes")) or 1
         lines.append(text["place"].format(n=count, place=where, m=minutes))
+    elif where and (_int((place or {}).get("in_match")) or 0) >= MATCH_PLACE_MIN:
+        lines.append(text["place_match"].format(n=_int((place or {}).get("in_match")), place=where))
     buy = _buy_line(text, gold, buyback_cost, minute, next_item)
     if buy:
         lines.append(buy)

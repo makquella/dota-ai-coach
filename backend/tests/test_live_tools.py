@@ -156,7 +156,13 @@ def test_repeated_deaths_in_one_place_are_named(client):
     # next to the mid lane on the Dire half.
     _feed_until(client, 19 * 60 + 5, death_minutes=(18, 19, 20), minutes=21)
     death = PLAYER_SERVICE.recent_death(19 * 60 + 5)
-    assert death["place"] == {"zone": "mid", "side": "enemy", "count": 2, "minutes": 1}
+    assert death["place"] == {
+        "zone": "mid",
+        "side": "enemy",
+        "count": 2,
+        "minutes": 1,
+        "in_match": 2,
+    }
     body = client.get("/overlay/recommendation").json()
     assert body["recommendation"]["action"] == (
         "After respawn, stay away from the mid lane on the enemy side."

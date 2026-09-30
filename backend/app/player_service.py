@@ -240,6 +240,8 @@ BEST_ON_HERO_MIN = 2
 DEATH_SCREEN_WINDOW = 150
 # Deaths in the same place within this many seconds make a pattern.
 PLACE_WINDOW = 10 * 60
+# ...and this many in the same place over the whole match, however spread out.
+MATCH_PLACE_MIN = 3
 
 
 def _death_place(death: dict[str, Any]) -> dict[str, Any] | None:
@@ -263,11 +265,15 @@ def _death_place(death: dict[str, Any]) -> dict[str, Any] | None:
         for p in places
         if isinstance(p.get("t"), int) and death["t"] - p["t"] <= PLACE_WINDOW and where(p) == here
     ]
+    in_match = sum(1 for p in places if where(p) == here)
     return {
         "zone": here[0],
         "side": here[1],
         "count": len(same),
         "minutes": max(1, -(-(death["t"] - same[0]["t"]) // 60)),
+        # Same place over the whole match (the window above misses a spot the
+        # player keeps coming back to every 15 minutes).
+        "in_match": in_match,
     }
 
 

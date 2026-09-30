@@ -845,6 +845,15 @@ _RU_FUNCTIONS: tuple[tuple[re.Pattern[str], Callable[[dict[str, str]], str]], ..
     ),
     (
         re.compile(
+            r"^You lost (?P<n>\d+)% HP in 5 seconds: at this rate you have seconds left, "
+            r"leave now\.$"
+        ),
+        lambda g: (
+            f"За 5 секунд ушло {g['n']}% HP: в таком темпе у вас считаные секунды, уходите сейчас."
+        ),
+    ),
+    (
+        re.compile(
             r"^Your HP has dropped this low (?P<n>\d+) times this game: "
             r"heal up fully before you go back\.(?P<regen> No regen in your bag: "
             r"have the courier bring a Healing Salve\.)?$"
@@ -873,6 +882,16 @@ _RU_FUNCTIONS: tuple[tuple[re.Pattern[str], Callable[[dict[str, str]], str]], ..
         lambda g: (
             f"{g['count']} {_deaths_word(int(g['count']))} {_ZONE_IN[g['zone']]} "
             f"{_SIDE[g['side']]} за {g['m']} мин: фармите в другом месте, пока там нет вашей команды."
+        ),
+    ),
+    (
+        re.compile(
+            rf"^(?P<count>\d+) deaths in the {_ZONE_RE} {_SIDE_RE} this game: "
+            r"farm somewhere safer until your team is there\.$"
+        ),
+        lambda g: (
+            f"{g['count']} {_deaths_word(int(g['count']))} {_ZONE_IN[g['zone']]} "
+            f"{_SIDE[g['side']]} за игру: фармите в другом месте, пока там нет вашей команды."
         ),
     ),
     (

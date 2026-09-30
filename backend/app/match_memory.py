@@ -47,6 +47,12 @@ PRE_GAME_STATES = {
     "disconnected",
 }
 
+# HP falling this many points (of max HP) within 5 s while still above the
+# critical line is the moment to leave, not the moment HP is already critical:
+# the low-HP card came 1-6 s before a death. Live GSI only (wall-clock deltas).
+HP_FALL_FAST_POINTS = 30
+HP_FALL_CEILING = 70
+
 ESCAPE_OR_DEFENSIVE_FLAG_HINTS = (
     "escape",
     "blink",
@@ -254,6 +260,14 @@ class MatchMemory:
         low_hp_threshold = _to_int(laning_context.get("low_hp_warning_threshold"), 50)
         critical_hp_threshold = _to_int(laning_context.get("critical_hp_threshold"), 35)
         recent_damage_taken = hp_delta_10s <= -20
+        hp_falling_fast = (
+            -hp_delta_5s
+            if extra_context.get("source_type") == "live_gsi"
+            and _alive(state) is True
+            and hp_delta_5s <= -HP_FALL_FAST_POINTS
+            and hp_percent <= HP_FALL_CEILING
+            else None
+        )
         overstay_warning = (
             hp_percent <= 55
             and _alive(state) is True
@@ -266,6 +280,7 @@ class MatchMemory:
                 "hp_delta_5s": hp_delta_5s,
                 "hp_delta_10s": hp_delta_10s,
                 "recent_damage_taken": recent_damage_taken,
+                "hp_falling_fast": hp_falling_fast,
                 "recent_hp_low": hp_percent <= low_hp_threshold,
                 "recent_critical_hp": hp_percent <= critical_hp_threshold,
                 "recent_pressure_context": "took heavy damage recently"

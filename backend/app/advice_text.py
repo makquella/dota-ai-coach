@@ -111,6 +111,17 @@ def clean_recommendation_text(
 
 # live_tools.low_hp_copy actions ("Use Magic Wand now, then step back.").
 LOW_HP_TOOL_PREFIXES = ("use ", "step out of enemy range and use ")
+# The rule texts a LOW_HP reason may keep (live_tools.py: the tool that is ready,
+# HP falling fast, the repeat count); anything else becomes the standard line.
+LOW_HP_REASON_PATTERNS = (
+    re.compile(r"^You lost \d+% HP in 5 seconds: "),
+    re.compile(r"^Your HP has dropped this low \d+ times this game: "),
+    re.compile(r"^Your HP is low and [^:]+ is ready: use it before the next hit"),
+    re.compile(r"^[^:]+ is ready: it buys you the seconds to get away\.$"),
+    re.compile(r"^Magic Wand (?:has \d+ charges|is charged): that HP is yours right now\.$"),
+    re.compile(r"^[^:]+ (?:is ready and heals you at once|heals you at once)\.$"),
+    re.compile(r"^[^:]+ heals over time: use it where enemies cannot hit you\.$"),
+)
 
 
 def clean_action_text(action: str, decision_point: str | None = None) -> str:
@@ -177,6 +188,8 @@ def clean_reason_text(reason: str, decision_point: str | None = None) -> str:
         return "Enemy pressure is active, and a low-value fight can delay your next timing."
 
     if decision_point == "LOW_HP":
+        if any(pattern.match(text) for pattern in LOW_HP_REASON_PATTERNS):
+            return text
         if text.startswith("At this HP, one more spell or rotation can turn into a death"):
             return "At this HP, one more spell or rotation can turn into a death."
         return "At this HP, one more trade or spell can kill you."

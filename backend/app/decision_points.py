@@ -395,6 +395,10 @@ def detect_decision_point(state: Mapping[str, Any] | None) -> DecisionPoint:
     if disabled:
         return "DISABLED_STATUS"
 
+    if _ctx_int(state, "hp_falling_fast", default=0) > 0:
+        # Most of the HP gone in seconds: leave before it is critical.
+        return "LOW_HP"
+
     if has_hero_survivability_risk(state, hp_percent=hp_percent, mana_percent=mana_percent):
         return "HERO_SURVIVABILITY_RISK"
 
