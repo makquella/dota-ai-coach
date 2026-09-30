@@ -293,6 +293,9 @@ const I18N = {
     tourHint: "A short tour of the app, one minute",
     tourStart: "Show",
     whatsNew: {
+      "0.29.1": [
+        "A mid gets the power rune timer until minute 20, not all game, and before level 6 with a Bottle the hint says to keep the rune in it for a kill."
+      ],
       "0.29.0": [
         "The match review is shorter: past the three main points, the other remarks and the long list of deaths open with «Show more».",
         "The health line under each death says what it is, and «Net worth» is named plainly."
@@ -869,6 +872,9 @@ const I18N = {
     tourHint: "Короткая экскурсия по приложению, на минуту",
     tourStart: "Показать",
     whatsNew: {
+      "0.29.1": [
+        "Мидеру таймер руны силы показывается до 20-й минуты, а не всю игру, а до 6-го уровня с Bottle подсказка советует положить руну в него и приберечь для убийства."
+      ],
       "0.29.0": [
         "Разбор матча стал короче: кроме трёх главных пунктов, остальные замечания и длинный список смертей открываются кнопкой «Показать ещё».",
         "Под каждой смертью подписано, что это за линия здоровья, а «Ценность» теперь называется «Стоимость героя»."

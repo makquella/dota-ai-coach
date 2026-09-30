@@ -851,6 +851,17 @@ h2 {
   }
   .hero-card {
     width: 70%;
+    /* Inside the page gutter: at -6 % the card touched the screen edge. */
+    left: 0;
+  }
+  /* A wrapped note reads from its icon, not a centred block beside it. */
+  .note {
+    align-items: flex-start;
+    text-align: left;
+  }
+  .note .i {
+    flex: none;
+    margin-top: 3px;
   }
   .meta-row {
     --meta-gap: 12px;

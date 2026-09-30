@@ -67,8 +67,8 @@
    "clock_time": 1081,
    "game_time_seconds": 1081,
    "recommendation": {
-    "action": "Навёрстывайте фарм по самому безопасному маршруту из волн и лагерей.",
-    "reason": "Добиваний к 18-й минуте: 98, хороший темп — 120+. Сначала восстановите фарм, потом ищите драки.",
+    "action": "Навёрстывайте фарм: добиваний к 18-й минуте — 98, хороший темп — 120+.",
+    "reason": "Сначала самые безопасные волны и лагеря: драки до этого отложат следующий предмет.",
     "priority": "medium"
    },
    "hero": "Juggernaut",
@@ -184,8 +184,8 @@
    "clock_time": 1081,
    "game_time_seconds": 1081,
    "recommendation": {
-    "action": "Recover farm through the safest wave-and-camp route.",
-    "reason": "98 last hits at minute 18; a good pace is 120+. Rebuild farm before looking for fights.",
+    "action": "Recover farm: 98 last hits at minute 18, a good pace is 120+.",
+    "reason": "Take the safest waves and camps first: fights before that delay your next item.",
     "priority": "medium"
    },
    "hero": "Juggernaut",

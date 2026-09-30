@@ -258,6 +258,13 @@ TIPS = {
         "en": ("", "Take it and go straight to a side lane: the best moment to rotate."),
         "ru": ("", "Заберите её и сразу идите на боковую линию: лучший момент для ротации."),
     },
+    "mid_rune_bottle": {
+        "en": ("", "Bottle it if you do not need it now: keep it for a kill after the next wave."),
+        "ru": (
+            "",
+            "Если сейчас не нужна — положите её в Bottle и приберегите для убийства после следующей волны.",
+        ),
+    },
     "offlane_hard_lane": {
         "en": (
             "A hard lane",
@@ -802,10 +809,13 @@ def map_hint(
         and role == "mid"
         and timer["id"].startswith("power_rune@")
         and level is not None
-        and level >= POWER_SPIKE_LEVEL
     ):
-        # With level 6 a power rune is the mid's rotation.
-        timer["hint"] = TIPS["mid_rune"]["ru" if lang == "ru" else "en"][1]
+        if level >= POWER_SPIKE_LEVEL:
+            # With level 6 a power rune is the mid's rotation.
+            timer["hint"] = TIPS["mid_rune"]["ru" if lang == "ru" else "en"][1]
+        elif items is not None and BOTTLE_ITEMS & set(items):
+            # Before it (a known level only), a Bottle keeps the rune for a kill.
+            timer["hint"] = TIPS["mid_rune_bottle"]["ru" if lang == "ru" else "en"][1]
     if timer is not None and not timer["minor"]:
         return timer
     tip = tips.tip(

@@ -42,13 +42,13 @@ const CARD_SIZE = { width: 720, height: 620 };
 
 const ADVICE = {
   ru: [
-    ["Навёрстывайте фарм по самому безопасному маршруту из волн и лагерей.", "medium", "18:01"],
+    ["Навёрстывайте фарм: добиваний к 18-й минуте — 98, хороший темп — 120+.", "medium", "18:01"],
     ["Держите свиток телепортации в слоте: купите его сейчас, курьер принесёт.", "medium", "15:12"],
     ["Уходите с волны сейчас и восстановите HP, прежде чем вернуться.", "high", "12:34"],
     ["Купите части следующего предмета на 1800 золота сейчас — заберёте их у фонтана.", "medium", "9:40"]
   ],
   en: [
-    ["Recover farm through the safest wave-and-camp route.", "medium", "18:01"],
+    ["Recover farm: 98 last hits at minute 18, a good pace is 120+.", "medium", "18:01"],
     ["Keep a TP scroll in its slot: buy one now, the courier can bring it.", "medium", "15:12"],
     ["Leave the wave now and reset HP before rejoining.", "high", "12:34"],
     ["Buy parts of your next item now with your 1800 gold: they wait for you at the fountain.", "medium", "9:40"]

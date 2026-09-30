@@ -92,9 +92,11 @@ def test_timers_follow_the_patch_data_and_the_role():
     assert shrine["id"] == "wisdom_shrine@840" and shrine["speak"] is True
     tormentor = next_timer(20 * 60 - 5, "carry", "en")
     assert tormentor["title"] == "Tormentor"
-    # Power runes stop being a support's timer after 18:00, a mid's later.
+    # Power runes stop being a support's timer after 18:00, a mid's after 20:00
+    # (till 40:00 the same card came every two minutes, some 17 a game).
     assert next_timer(20 * 60 + 2 * 60 - 10, "support", "en") is None
-    assert next_timer(20 * 60 + 2 * 60 - 10, "mid", "en")["title"] == "Power rune"
+    assert next_timer(18 * 60 - 10, "mid", "en")["title"] == "Power rune"
+    assert next_timer(20 * 60 + 2 * 60 - 10, "mid", "en") is None
 
 
 def test_every_event_has_both_languages():
@@ -288,6 +290,42 @@ def test_the_power_rune_is_a_rotation_for_a_mid_with_level_six():
     tips._shown["mid_six"] = 0  # the level-6 tip was already shown
     rune = map_hint(8 * 60 - 10, "mid", tips, alive=True, has_ward=None, lang="ru", level=6)
     assert rune["title"] == "Руна силы" and "боковую линию" in rune["hint"]
+    # Before level 6 with a Bottle: keep the rune in it.
+    bottled = map_hint(
+        8 * 60 - 10,
+        "mid",
+        RoleTips(),
+        alive=True,
+        has_ward=None,
+        lang="ru",
+        level=5,
+        items=["item_bottle"],
+    )
+    assert bottled["title"] == "Руна силы" and "Bottle" in bottled["hint"]
+    # No level in GSI: the plain rune hint, never the pre-six Bottle one.
+    unknown = map_hint(
+        8 * 60 - 10,
+        "mid",
+        RoleTips(),
+        alive=True,
+        has_ward=None,
+        lang="ru",
+        level=None,
+        items=["item_bottle"],
+    )
+    assert unknown["hint"] == "На одной из точек рун в реке."
+    # A Bottle at level 6 does not undo the rotation.
+    rotate = map_hint(
+        8 * 60 - 10,
+        "mid",
+        tips,
+        alive=True,
+        has_ward=None,
+        lang="en",
+        level=6,
+        items=["item_bottle"],
+    )
+    assert "rotate" in rotate["hint"]
 
 
 def test_offlane_hard_lane_once():
