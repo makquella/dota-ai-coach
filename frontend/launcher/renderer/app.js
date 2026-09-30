@@ -293,6 +293,11 @@ const I18N = {
     tourHint: "A short tour of the app, one minute",
     tourStart: "Show",
     whatsNew: {
+      "0.28.0": [
+        "The first advice after a death names the lane or part of the map where you died, or how fast the kill came, instead of «plan a safer route».",
+        "Supports: the «no save item» tip names the save item most bought on your hero and how much gold it still needs; the ward tip says where to put it (your lane's river, Roshan's pit, your own or the enemy jungle by the score).",
+        "A lane under a good farm pace gets the numbers: «Recover farm: 12 last hits at minute 5, a good pace is 18+»."
+      ],
       "0.27.0": [
         "The advice after a death says how many times you have died, lately or this game, instead of the same «change your route» line."
       ],
@@ -860,6 +865,11 @@ const I18N = {
     tourHint: "Короткая экскурсия по приложению, на минуту",
     tourStart: "Показать",
     whatsNew: {
+      "0.28.0": [
+        "Первый совет после смерти называет линию или часть карты, где вы погибли, или как быстро вас убили — а не «продумайте более безопасный маршрут».",
+        "Саппортам: подсказка «Нет спасающего предмета» называет предмет, который чаще всего берут на вашем герое, и сколько золота на него осталось; подсказка про вард говорит, куда его поставить (река у вашей линии, логово Рошана, свой или вражеский лес по счёту).",
+        "Если на линии не хватает добиваний, совет показывает цифры: «Навёрстывайте фарм: добиваний к 5-й минуте — 12, хороший темп — 18+»."
+      ],
       "0.27.0": [
         "Совет после смерти говорит, сколько раз вы уже погибли — за последние минуты или за игру, — а не повторяет одно и то же «смените маршрут»."
       ],
