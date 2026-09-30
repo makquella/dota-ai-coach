@@ -176,11 +176,18 @@ def test_repeated_deaths_in_one_place_are_named(client):
 def test_one_death_on_the_enemy_half_says_to_farm_your_own():
     extra = _extra() | {"death_place": {"zone": "top", "side": "enemy", "count": 1, "minutes": 1}}
     text = _fallback_text(_request(extra), "plan_safer_respawn_route")
+    # The route card says it in the action; the reason stays for other lessons.
+    assert text["action"] == (
+        "After respawn, farm your own half: you died in the top lane on the enemy side."
+    )
+    assert "enemy side" not in text["reason"]
+    # The escape card keeps its action, so the place goes to the reason.
+    text = _fallback_text(_request(extra), "respect_escape_cooldown_after_respawn")
     assert text["reason"] == (
         "You died in the top lane on the enemy side: "
         "farm your own half until your team is with you."
     )
-    # One death on your own side: nothing to add.
+    # One death on your own side: the place is in the action, not the reason.
     own = _extra() | {"death_place": {"zone": "top", "side": "own", "count": 1, "minutes": 1}}
     assert "top lane" not in _fallback_text(_request(own), "plan_safer_respawn_route")["reason"]
     # The unpressed item is the lesson and wins the reason; the place keeps the action.
@@ -191,6 +198,72 @@ def test_one_death_on_the_enemy_half_says_to_farm_your_own():
     text = _fallback_text(_request(both), "break_repeated_death_pattern")
     assert text["action"] == "After respawn, stay away from the mid lane by the river."
     assert text["reason"].startswith("You died with Black King Bar ready")
+
+
+def test_the_first_death_says_where_or_how_it_happened():
+    """The first death card named nothing («plan a safer route»): now the lane,
+    the part of the map or how fast the kill came."""
+    from app.advice_i18n import translate_ru
+
+    def action(extra):
+        return _fallback_text(_request(_extra() | extra), "plan_safer_respawn_route")["action"]
+
+    lane = {"death_place": {"zone": "bot", "side": "own", "count": 1, "minutes": 1}}
+    laning = action(lane | {"clock_time": 420})
+    assert laning == (
+        "After respawn, play the bottom lane closer to your tower until you see the enemy heroes."
+    )
+    assert translate_ru(laning) == (
+        "После возрождения играйте на нижней линии ближе к своей башне, "
+        "пока не увидите вражеских героев."
+    )
+    later = action(lane | {"clock_time": 1500})
+    assert (
+        later
+        == "After respawn, avoid the bottom lane on your side without your team: you died there."
+    )
+    assert translate_ru(later) == (
+        "После возрождения не ходите на нижнюю линию на своей половине без команды: вы погибли там."
+    )
+    jungle = action(
+        {"death_place": {"zone": "jungle", "side": "river", "count": 1, "minutes": 1}}
+        | {"clock_time": 420}
+    )
+    assert (
+        jungle == "After respawn, avoid the jungle by the river without your team: you died there."
+    )
+    assert translate_ru(jungle).startswith("После возрождения не ходите в лес у реки без команды")
+    enemy = action({"death_place": {"zone": "mid", "side": "enemy", "count": 1, "minutes": 1}})
+    assert translate_ru(enemy) == (
+        "После возрождения фармите на своей половине: вы погибли на центральной линии на половине врага."
+    )
+    # No place known (the base, or no position): how fast it came.
+    burst = action({"death_burst": 2})
+    assert burst == (
+        "After respawn, stay near your towers or your team: you went down in 2 seconds from high HP."
+    )
+    assert translate_ru(burst) == (
+        "После возрождения держитесь у своих башен или рядом с командой: "
+        "вас убили за 2 с с высокого здоровья."
+    )
+    assert action({"death_burst": 1}).endswith("in 1 second from high HP.")
+    # Nothing known: the card as it was.
+    assert not action({}).startswith("After respawn")
+    # The escape card keeps its own action.
+    kept = _fallback_text(_request(_extra() | lane), "respect_escape_cooldown_after_respawn")
+    assert "bottom lane" not in kept["action"]
+
+
+def test_recent_death_passes_the_burst(client, monkeypatch):
+    from app.main import _with_death_items
+
+    monkeypatch.setattr(
+        PLAYER_SERVICE,
+        "recent_death",
+        lambda clock: {"items": [], "place": None, "recent": None, "burst": 2},
+    )
+    state = {"extra_context": {"clock_time": 400}}
+    assert _with_death_items(state, "DEATH_REVIEW")["extra_context"]["death_burst"] == 2
 
 
 def test_deaths_in_different_places_are_counted():

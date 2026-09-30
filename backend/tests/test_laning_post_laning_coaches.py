@@ -267,3 +267,30 @@ def test_post_laning_objective_caution_reflects_missing_context() -> None:
     )
     assert advice is not None
     assert advice.objective_context_missing is True
+
+
+def test_a_lane_under_the_pace_gets_the_numbers_not_the_river():
+    """Live GSI never shows the enemies and a lane crosses the river: the farm
+    card said «move to a safer part of the lane» instead of the farm it fired for."""
+    from app.advice_i18n import translate_ru
+
+    state = _lane_state(
+        minute=5,
+        farm_quality="okay",
+        last_hits=12,
+        expected_lh_range=[18, 30],
+        position_zone="river_or_mid",
+        position_risk="medium",
+        missing_signals=["enemy_positions"],
+    )
+    advice = build_laning_advice(state, "LANING_FARM_CHECK")
+    assert advice is not None and advice.category == "farm_deficit_no_pressure"
+    assert advice.action == "Recover farm: 12 last hits at minute 5, a good pace is 18+."
+    assert translate_ru(advice.action) == (
+        "Навёрстывайте фарм: добиваний к 5-й минуте — 12, хороший темп — 18+."
+    )
+    assert translate_ru(advice.reason).startswith("Здоровья хватает")
+    # On the pace: the river card stays as it was.
+    on_pace = {**state, "extra_context": {**state["extra_context"], "last_hits": 20}}
+    advice = build_laning_advice(on_pace, "LANING_FARM_CHECK")
+    assert advice is not None and advice.category == "risky_position_with_unknown_enemies"

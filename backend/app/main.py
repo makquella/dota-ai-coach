@@ -47,7 +47,7 @@ from app.live_session_recorder import LIVE_SESSION_RECORDER
 from app.live_tools import disabled_copy
 from app.llm_provider import generate_llm_recommendation, is_llm_provider_enabled
 from app.logger import log_recommendation, prune_logs
-from app.map_hints import map_hint, timer_strip
+from app.map_hints import map_hint, score_gap, timer_strip
 from app.match_memory import MATCH_MEMORY
 from app.player_api import PLAYER_SERVICE
 from app.player_api import router as player_router
@@ -69,7 +69,7 @@ app = FastAPI(
     lifespan=_lifespan,
     title="Wardly",
     description="MVP-1: rule-based carry coach with local knowledge-base RAG.",
-    version="0.27.0",
+    version="0.28.0",
 )
 app.include_router(player_router)
 
@@ -103,7 +103,7 @@ if FRONTEND_DIR.exists():
 @app.get("/", summary="Health check")
 def root():
     """Simple health-check endpoint."""
-    return {"status": "ok", "service": "Wardly", "version": "0.27.0"}
+    return {"status": "ok", "service": "Wardly", "version": "0.28.0"}
 
 
 @app.get("/health", summary="Health check")
@@ -386,6 +386,14 @@ def _live_role_and_hint(response: dict[str, object], lang: str) -> dict[str, obj
             key_item=PLAYER_SERVICE.key_item(str(state.get("hero") or ""))
             if role and role.get("role") != "support"
             else None,
+            save_item=PLAYER_SERVICE.save_item(
+                str(state.get("hero") or ""),
+                extra.get("item_names") if isinstance(extra.get("item_names"), list) else None,
+            )
+            if role and role.get("role") == "support"
+            else None,
+            score_gap=score_gap(extra),
+            roshan_open=MATCH_MEMORY.roshan.maybe_up(clock if isinstance(clock, int) else None),
             objective=MATCH_MEMORY.roshan.hint(clock if isinstance(clock, int) else None, lang),
             skill=MATCH_MEMORY.skills.tip(
                 clock if isinstance(clock, int) else None,
@@ -1018,6 +1026,7 @@ def _with_death_items(state: dict[str, object], decision_point: str) -> dict[str
         "death_items": death["items"],
         "death_place": death["place"],
         "recent_deaths": death.get("recent"),
+        "death_burst": death.get("burst"),
         # The game's own counter: the recording misses deaths before the app
         # started or during a gap in GSI.
         "match_deaths": raw_extra.get("deaths")

@@ -386,4 +386,45 @@ def death_copy(extra: Mapping[str, Any], *, route: bool = True) -> tuple[str | N
     if action is None and isinstance(total, int) and total >= 2:
         # Spread over the game: the count still says this is a pattern.
         action = f"After respawn, change your route: {total} deaths this game."
+    if action is None and route:
+        action, reason = _single_death_copy(extra, place, reason)
     return action, death_items_reason(extra) or reason
+
+
+LANES = ("top", "mid", "bot")
+LANING_END = 600  # clock seconds: a lane death before this is a laning death
+
+
+def _single_death_copy(
+    extra: Mapping[str, Any], place: Any, reason: str | None
+) -> tuple[str | None, str | None]:
+    """The first death (or the only one lately): where it was, else how fast it
+    came, in place of «plan a safer route»."""
+    if isinstance(place, Mapping) and place.get("zone") in ZONES and place.get("side") in SIDES:
+        zone, side = ZONES[place["zone"]], place["side"]
+        if side == "enemy":
+            # The lesson moves into the action; the reason is free for the
+            # unpressed item or what to buy.
+            return (
+                f"After respawn, farm your own half: you died in the {zone} on the enemy side.",
+                None,
+            )
+        clock = extra.get("clock_time")
+        if place["zone"] in LANES and isinstance(clock, int) and 0 <= clock < LANING_END:
+            return (
+                f"After respawn, play the {zone} closer to your tower until you see the enemy heroes.",
+                reason,
+            )
+        return (
+            f"After respawn, avoid the {zone} {SIDES[side]} without your team: you died there.",
+            reason,
+        )
+    burst = extra.get("death_burst")
+    if isinstance(burst, int) and 1 <= burst <= 5:
+        noun = "second" if burst == 1 else "seconds"
+        return (
+            f"After respawn, stay near your towers or your team: "
+            f"you went down in {burst} {noun} from high HP.",
+            reason,
+        )
+    return None, reason

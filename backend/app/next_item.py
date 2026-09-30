@@ -100,3 +100,39 @@ def next_build_item(
             "gold_left": gold_left(key, Counter(owned), constants),
         }
     return None
+
+
+# How many items per phase the save item is looked for in: a support's build
+# lists boots and wards first, so the top four can miss it.
+SAVE_SEARCH = 10
+
+
+def save_build_item(
+    meta: dict[str, Any] | None, owned_names: list[str] | None, candidates: set[str]
+) -> dict[str, Any] | None:
+    """{key, name, cost, gold_left} of the save item (one of `candidates`) most
+    bought on the hero, mid game first; None when the build is unknown, the
+    player owns one or none of them is in the build."""
+    if not meta or owned_names is None:
+        return None
+    constants = meta.get("constants") or {}
+    if not has_components(constants):
+        return None
+    candidates = {item_key(name) for name in candidates}
+    owned = [item_key(name) for name in owned_names]
+    if any(
+        key in candidates or any(_contains(key, c, constants) for c in candidates) for key in owned
+    ):
+        return None  # a save item (or one built from it, Hurricane Pike) is there
+    build = popular_build(meta.get("popularity"), constants, per_phase=SAVE_SEARCH)
+    for entry in (build.get("mid") or []) + (build.get("early") or []) + (build.get("late") or []):
+        key = entry["key"]
+        cost = _cost(key, constants)
+        if key in candidates and cost > 0:
+            return {
+                "key": key,
+                "name": item_name(key, constants),
+                "cost": cost,
+                "gold_left": gold_left(key, Counter(owned), constants),
+            }
+    return None

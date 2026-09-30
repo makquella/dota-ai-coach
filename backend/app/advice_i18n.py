@@ -442,6 +442,15 @@ _RU_EXACT: dict[str, str] = {
     # --- status messages -----------------------------------------------------
     "Monitoring...": "Следим за игрой…",
     "Waiting for live GSI...": "Ждём данные из игры…",
+    "Take the side lanes your team leaves and a camp between waves; "
+    "join fights only for a tower or Roshan.": (
+        "Забирайте боковые линии, которые оставляет команда, и лагерь между волнами; "
+        "в драки идите только за вышку или Рошана."
+    ),
+    "Your HP is fine: last-hit every creep of the next waves and trade only to protect them.": (
+        "Здоровья хватает: добивайте каждого крипа следующих волн, "
+        "а размены — только чтобы их защитить."
+    ),
     "Take the safest waves and camps first: fights before that delay your next item.": (
         "Сначала самые безопасные волны и лагеря: драки до этого отложат следующий предмет."
     ),
@@ -668,6 +677,12 @@ _ZONE_IN = {
     "bottom lane": "на нижней линии",
     "jungle": "в лесу",
 }
+_ZONE_TO = {
+    "top lane": "на верхнюю линию",
+    "mid lane": "на центральную линию",
+    "bottom lane": "на нижнюю линию",
+    "jungle": "в лес",
+}
 _SIDE = {
     "on your side": "на своей половине",
     "by the river": "у реки",
@@ -811,6 +826,44 @@ _RU_FUNCTIONS: tuple[tuple[re.Pattern[str], Callable[[dict[str, str]], str]], ..
         lambda g: (
             f"Вы погибли {_ZONE_IN[g['zone']]} на половине врага: "
             "фармите на своей половине, пока команда не рядом."
+        ),
+    ),
+    (
+        re.compile(
+            rf"^After respawn, farm your own half: you died in the {_ZONE_RE} on the enemy side\.$"
+        ),
+        lambda g: (
+            "После возрождения фармите на своей половине: "
+            f"вы погибли {_ZONE_IN[g['zone']]} на половине врага."
+        ),
+    ),
+    (
+        re.compile(
+            r"^After respawn, play the (?P<zone>top lane|mid lane|bottom lane) closer to your "
+            r"tower until you see the enemy heroes\.$"
+        ),
+        lambda g: (
+            f"После возрождения играйте {_ZONE_IN[g['zone']]} ближе к своей башне, "
+            "пока не увидите вражеских героев."
+        ),
+    ),
+    (
+        re.compile(
+            rf"^After respawn, avoid the {_ZONE_RE} {_SIDE_RE} without your team: you died there\.$"
+        ),
+        lambda g: (
+            f"После возрождения не ходите {_ZONE_TO[g['zone']]} {_SIDE[g['side']]} без команды: "
+            "вы погибли там."
+        ),
+    ),
+    (
+        re.compile(
+            r"^After respawn, stay near your towers or your team: "
+            r"you went down in (?P<s>\d+) seconds? from high HP\.$"
+        ),
+        lambda g: (
+            "После возрождения держитесь у своих башен или рядом с командой: "
+            f"вас убили за {g['s']} с с высокого здоровья."
         ),
     ),
 )

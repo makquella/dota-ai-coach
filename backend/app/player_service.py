@@ -69,9 +69,10 @@ from app.hero_profiles import get_hero_position
 from app.history_backup import export_backup, import_backup
 from app.home_summary import home_summary
 from app.map_analysis import map_side, zone
+from app.map_hints import SAVE_ITEMS
 from app.match_facts import facts_from_opendota, facts_from_timeline, merge_facts
 from app.match_tracker import MatchTracker, account_from_gsi
-from app.next_item import has_components, next_build_item
+from app.next_item import has_components, next_build_item, save_build_item
 from app.opendota import (
     TRIM_VERSION,
     OpenDotaClient,
@@ -378,8 +379,8 @@ class PlayerService:
 
     def recent_death(self, clock: Any, within: int = 90) -> dict[str, Any] | None:
         """A death of the last `within` seconds of match clock, for the live
-        death advice (live_tools.py): the rescue items left unpressed and where
-        it happened, with how many deaths of the last PLACE_WINDOW seconds were
+        death advice (live_tools.py): the rescue items left unpressed, how fast
+        it came and where it happened, with how many deaths of the last PLACE_WINDOW seconds were
         in the same place (zone and map half)."""
         death = self.tracker.last_death()
         if not death or not isinstance(clock, int) or not isinstance(death.get("t"), int):
@@ -390,6 +391,8 @@ class PlayerService:
             "items": death["usable"],
             "place": _death_place(death),
             "recent": _recent_deaths(self.tracker.death_moments(), death["t"]),
+            # Seconds from high HP to death (last_moments `burst_s`), None when slower.
+            "burst": death.get("burst_s") if isinstance(death.get("burst_s"), int) else None,
         }
 
     def death_screen(
@@ -526,6 +529,14 @@ class PlayerService:
         return situational_item(self.tracker.death_moments(), owned, meta) or next_build_item(
             meta, owned
         )
+
+    def save_item(self, hero: str, owned: list[str] | None) -> dict[str, Any] | None:
+        """The save item most bought on the hero and the gold its missing parts
+        cost, for the support's «no save item» tip; None when unknown."""
+        hero_id = hero_id_from_name(hero)
+        if hero_id is None or owned is None:
+            return None
+        return save_build_item(self._live_meta(hero_id), owned, SAVE_ITEMS)
 
     def _live_meta(self, hero_id: int) -> dict[str, Any] | None:
         """The hero's cached build data for live tips, read once a minute (they
