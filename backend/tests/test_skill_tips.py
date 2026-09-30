@@ -171,3 +171,15 @@ def test_the_live_overlay_names_the_ultimate(client):
     hint = client.get("/overlay/recommendation?lang=ru").json().get("map_hint")
     assert hint and hint["title"] == "Изучите ультимейт"
     assert "Omnislash" in hint["hint"] or "Omni Slash" in hint["hint"]
+
+
+def test_the_ultimate_is_named_without_the_hero_prefix():
+    tips = SkillTips()
+    payload = _payload(5, [2, 2, 1])
+    payload["hero"]["name"] = "npc_dota_hero_juggernaut"
+    _feed(tips, 300, payload)
+    payload = _payload(6, [2, 2, 1])
+    payload["hero"]["name"] = "npc_dota_hero_juggernaut"
+    _feed(tips, 320, payload)
+    hint = tips.tip(320 + UNSPENT_WAIT, "en", alive=True)
+    assert hint["hint"].startswith("Omni Slash is ready to learn")

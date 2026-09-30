@@ -20,6 +20,8 @@ from __future__ import annotations
 import math
 from typing import Any
 
+from app.skill_build import label, next_skill
+
 ULTIMATE_LEVELS = (6, 12, 18)
 TALENT_LEVELS = (10, 15, 20, 25)
 UNSPENT_WAIT = 15  # seconds of game clock with the point unspent
@@ -39,6 +41,10 @@ TEXTS = {
     "talent": {
         "en": ("Pick a talent", "The level-{tier} talent is waiting: open the talent tree."),
         "ru": ("Выберите талант", "Талант {tier}-го уровня ждёт: откройте дерево талантов."),
+    },
+    "skill": {
+        "en": ("Put the point in {name}", "The pro order on this hero: {order}."),
+        "ru": ("Вложите очко в {name}", "Порядок прокачки у про-игроков на этом герое: {order}."),
     },
     "point": {
         "en": (
@@ -76,6 +82,7 @@ def read_skills(payload: Any) -> dict[str, Any] | None:
         return None
     spent = 0
     ultimate = None
+    levels: dict[str, int] = {}
     for key in sorted(abilities):
         ability = abilities[key]
         if not isinstance(ability, dict):
@@ -83,6 +90,9 @@ def read_skills(payload: Any) -> dict[str, Any] | None:
         ability_level = _int(ability.get("level")) or 0
         if 0 <= ability_level <= 10:
             spent += ability_level
+            raw_name = ability.get("name")
+            if isinstance(raw_name, str) and raw_name:
+                levels.setdefault(raw_name, ability_level)
         if ability.get("ultimate") is True and ultimate is None:
             ultimate = {"raw_name": str(ability.get("name") or ""), "level": ability_level}
     talent_keys = [key for key in hero if str(key).startswith("talent_")]
@@ -94,7 +104,17 @@ def read_skills(payload: Any) -> dict[str, Any] | None:
         "ultimate": ultimate,
         "has_talents": bool(talent_keys),
         "talents": {key: hero.get(key) is True for key in talent_keys},
+        "levels": levels,
+        "hero_key": _hero_key(hero.get("name")),
     }
+
+
+def _hero_key(value: Any) -> str | None:
+    """npc_dota_hero_juggernaut → juggernaut (the prefix of its ability names)."""
+    prefix = "npc_dota_hero_"
+    if isinstance(value, str) and value.startswith(prefix) and len(value) > len(prefix):
+        return value[len(prefix) :]
+    return None
 
 
 def _ultimate_allowed(level: int) -> int:
@@ -144,7 +164,16 @@ class SkillTips:
             owed = 0
         self._skills = {**skills, "owed": max(0, owed)}
 
-    def tip(self, clock: int | None, lang: str, *, alive: bool) -> dict[str, Any] | None:
+    def tip(
+        self,
+        clock: int | None,
+        lang: str,
+        *,
+        alive: bool,
+        build: dict[str, Any] | None = None,
+    ) -> dict[str, Any] | None:
+        """`build`: the hero's pro skill order (app/skill_build.skill_order), which
+        names the ability for an unspent point and the ultimate."""
         skills = self._skills
         if clock is None or not alive or skills is None or not skills["owed"]:
             return None
@@ -160,18 +189,36 @@ class SkillTips:
             and ultimate["raw_name"] not in FIXED_ULTIMATES
             and ultimate["level"] < _ultimate_allowed(level)
         ):
-            from app.gsi_state import normalize_abilities  # avoid an import cycle
-
-            name = normalize_abilities([ultimate["raw_name"]])[0]["name"]
+            names = (build or {}).get("names") or {}
+            name = names.get(ultimate["raw_name"]) or label(
+                ultimate["raw_name"], skills.get("hero_key")
+            )
             need = ULTIMATE_LEVELS[ultimate["level"]] if ultimate["level"] < 3 else level
             return _hint("ultimate", f"skill-ult@{level}", lang, name=name, level=need)
         if not skills["has_talents"]:
             if level >= TALENT_LEVELS[0]:
                 return None  # a talent taken would look like a point left unspent
-            return _hint("point", f"skill-point@{level}", lang)
+            return self._point(level, lang, build)
         tier = _talent_due(skills)
         if tier is not None:
             return _hint("talent", f"skill-talent@{level}", lang, tier=tier)
+        return self._point(level, lang, build)
+
+    def _point(self, level: int, lang: str, build: dict[str, Any] | None) -> dict[str, Any]:
+        """The unspent point: the ability the pro order puts it in, when known."""
+        skills = self._skills or {}
+        name = next_skill(build, skills.get("levels"), level)
+        if build and name:
+            names = build.get("names") or {}
+            key = skills.get("hero_key")
+            order = " → ".join(str(names.get(n) or label(n, key)) for n in build["order"])
+            return _hint(
+                "skill",
+                f"skill-point@{level}",
+                lang,
+                name=names.get(name) or label(name, key),
+                order=order,
+            )
         return _hint("point", f"skill-point@{level}", lang)
 
 

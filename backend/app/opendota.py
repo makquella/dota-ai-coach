@@ -270,6 +270,48 @@ class OpenDotaClient:
                 continue
         return result
 
+    def pro_skill_orders(self, hero_id: int) -> dict[str, Any]:
+        """How pro players levelled the hero lately: {"orders": [[ability name, …]],
+        "names": {ability name: in-game name}}
+        from the `ability_upgrades_arr` of up to skill_build.MAX_GAMES recent pro
+        matches (/heroes/{id}/matches, then /matches/{id}; unparsed ones skipped)."""
+        from app.skill_build import MAX_GAMES, MAX_TRIES, upgrade_names
+
+        hero = int(hero_id)
+        ids = self._get("/constants/ability_ids")
+        recent = self._get(f"/heroes/{hero}/matches")
+        if not isinstance(ids, dict) or not isinstance(recent, list):
+            raise OpenDotaError("bad_response", "Unexpected OpenDota response for pro matches.")
+        orders: list[list[str]] = []
+        for row in recent[:MAX_TRIES]:
+            if len(orders) >= MAX_GAMES:
+                break
+            match_id = row.get("match_id") if isinstance(row, dict) else None
+            if not isinstance(match_id, int):
+                continue
+            try:
+                match = self.match(match_id)
+            except OpenDotaError:
+                continue
+            for player in match.get("players") or []:
+                if isinstance(player, dict) and player.get("hero_id") == hero:
+                    names = upgrade_names(player.get("ability_upgrades_arr"), ids)
+                    if names:
+                        orders.append(names)
+                    break
+        # In-game names ("Presence of the Dark Lord", not nevermore_dark_lord),
+        # only for the abilities of these games (the constants are 1.3 MB).
+        names: dict[str, str] = {}
+        if orders:
+            constants = self._get("/constants/abilities")
+            if isinstance(constants, dict):
+                for name in {n for order in orders for n in order}:
+                    entry = constants.get(name)
+                    label = entry.get("dname") if isinstance(entry, dict) else None
+                    if isinstance(label, str) and label and not name.startswith("special_bonus_"):
+                        names[name] = label
+        return {"orders": orders, "names": names}
+
     def hero_stats(self) -> list[dict[str, Any]]:
         """/heroStats: picks and wins per rank bracket 1 (Herald) .. 8 (Immortal)."""
         data = self._get("/heroStats")

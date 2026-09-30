@@ -91,6 +91,7 @@ from app.session_summary import session_summary
 from app.share_progress import public_progress
 from app.share_review import public_review
 from app.situational_items import situational_item
+from app.skill_build import skill_order
 from app.steam_ids import parse_account_id, steam64_from_account_id
 from app.usage_stats import usage_stats
 from app.weekly_summary import weekly_summary
@@ -110,6 +111,7 @@ PARSE_POLL_ATTEMPTS = 12
 ITEM_CONSTANTS_KEY = "opendota:items"
 POPULARITY_KEY = "opendota:item_popularity"
 TIMINGS_KEY = "opendota:item_timings"
+SKILLS_KEY = "opendota:pro_skills"
 HERO_STATS_KEY = "opendota:hero_stats"
 MATCHUPS_KEY = "opendota:matchups"
 META_TTL_SECONDS = 7 * 24 * 3600
@@ -442,6 +444,7 @@ class PlayerService:
             all_recent=self.store.matches_for_career(primary, limit=RECENT_MATCHES_LIMIT),
             meta=self._live_meta(hero_id),
             lang=lang,
+            skills=self.skill_build(hero),
         )
         self._plans[key] = (now, plan)
         return plan
@@ -462,6 +465,31 @@ class PlayerService:
         result = item if item and item.get("typical_t") else None
         self._plans[key] = (now, result)
         return result
+
+    def skill_build(self, hero: str) -> dict[str, Any] | None:
+        """How pro players level the hero (app/skill_build.skill_order) for the live
+        skill tip and the game plan; read once a minute, fetched on the job thread
+        when missing or a week old (stale data is used meanwhile)."""
+        hero_id = hero_id_from_name(hero)
+        if hero_id is None:
+            return None
+        key = ("skills", hero_id)
+        cached = self._plans.get(key)
+        now = time.monotonic()
+        if cached is not None and now - cached[0] < GAME_PLAN_CACHE_SECONDS:
+            return cached[1]
+        store_key = f"{SKILLS_KEY}:{hero_id}"
+        client = self.client
+        if client is not None and self.store.cache_get(store_key, max_age=META_TTL_SECONDS) is None:
+            self.jobs.submit(
+                f"skills:{hero_id}",
+                lambda: self._refresh(
+                    store_key, META_TTL_SECONDS, lambda: client.pro_skill_orders(hero_id)
+                ),
+            )
+        build = skill_order(self.store.cache_get(store_key))
+        self._plans[key] = (now, build)
+        return build
 
     def next_item(self, hero: str, owned: list[str] | None) -> dict[str, Any] | None:
         """The next item of the hero's usual build and the gold its missing parts

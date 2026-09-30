@@ -391,6 +391,7 @@ def _live_role_and_hint(response: dict[str, object], lang: str) -> dict[str, obj
                 clock if isinstance(clock, int) else None,
                 lang,
                 alive=extra.get("alive") is not False,
+                build=PLAYER_SERVICE.skill_build(str(state.get("hero") or "")),
             ),
         )
         if hint is not None:
