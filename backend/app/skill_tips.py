@@ -26,6 +26,9 @@ UNSPENT_WAIT = 15  # seconds of game clock with the point unspent
 # the payload does not show), not a forgotten point: start counting again.
 UNSPENT_STALE = 180
 TIP_SHOW = 20  # seconds the tip stays on the card
+# Ultimates that are never levelled at 6/12/18: Invoke has one level from the
+# start, so a point owed at 12 would read as «learn your ultimate».
+FIXED_ULTIMATES = frozenset({"invoker_invoke"})
 
 TEXTS = {
     "ultimate": {
@@ -148,7 +151,11 @@ class SkillTips:
         if not 0 <= clock - start <= TIP_SHOW:
             return None
         ultimate = skills["ultimate"]
-        if ultimate and ultimate["level"] < _ultimate_allowed(level):
+        if (
+            ultimate
+            and ultimate["raw_name"] not in FIXED_ULTIMATES
+            and ultimate["level"] < _ultimate_allowed(level)
+        ):
             from app.gsi_state import normalize_abilities  # avoid an import cycle
 
             name = normalize_abilities([ultimate["raw_name"]])[0]["name"]

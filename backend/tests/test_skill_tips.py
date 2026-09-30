@@ -73,6 +73,21 @@ def test_the_talent_is_named_when_both_of_its_pair_are_open():
     assert tips.tip(931, "ru", alive=True) is None
 
 
+def test_invoke_is_never_named_as_an_ultimate_to_learn():
+    def payload(level, spent):
+        abilities = {
+            "ability0": {"name": "invoker_quas", "level": spent, "ultimate": False},
+            "ability1": {"name": "invoker_invoke", "level": 1, "ultimate": True},
+        }
+        return {"hero": {"level": level}, "abilities": abilities}
+
+    tips = SkillTips()
+    _feed(tips, 900, payload(11, 7))
+    _feed(tips, 910, payload(12, 7))  # a point owed, Invoke stays at 1
+    hint = tips.tip(910 + UNSPENT_WAIT, "en", alive=True)
+    assert hint is None or hint["title"] != "Learn your ultimate"
+
+
 def test_an_innate_levelling_by_itself_never_reads_as_a_point_owed():
     tips = SkillTips()
     _feed(tips, 300, _payload(5, [2, 2, 1], innate=1))
