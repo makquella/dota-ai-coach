@@ -110,6 +110,51 @@ POOL = [8, 8, 8, 8, 44, 8, 109, 8, 67, 8, 41, 8, 94, 8, 18, 8, 12, 8, 44, 8]
 TOTALS = ("last_hits", "net_worth", "hero_damage", "tower_damage")
 
 
+# How pro players level Juggernaut (real OpenDota ability ids and names), for the
+# review's skill card and the live skill tip.
+_FURY, _WARD, _DANCE, _OMNI = (
+    "juggernaut_blade_fury",
+    "juggernaut_healing_ward",
+    "juggernaut_blade_dance",
+    "juggernaut_omni_slash",
+)
+_PRO_GAME = [
+    _FURY,
+    _DANCE,
+    _FURY,
+    _DANCE,
+    _FURY,
+    _OMNI,
+    _FURY,
+    _DANCE,
+    _DANCE,
+    "special_bonus_unique_juggernaut_3",
+    _WARD,
+    _OMNI,
+    _WARD,
+    _WARD,
+    _WARD,
+]
+PRO_SKILLS = {
+    "orders": [_PRO_GAME] * 5,
+    "names": {
+        _FURY: "Blade Fury",
+        _WARD: "Healing Ward",
+        _DANCE: "Blade Dance",
+        _OMNI: "Omnislash",
+        "special_bonus_unique_juggernaut_3": "-1.0s Bladeform Stack Gain Interval",
+    },
+    "ids": {
+        "5027": _DANCE,
+        "5028": _FURY,
+        "5029": _WARD,
+        "5030": _OMNI,
+        "7021": "special_bonus_unique_juggernaut_3",
+    },
+    "talents": {"special_bonus_unique_juggernaut_3": 10},
+}
+
+
 def vary(recent: list[dict[str, Any]]) -> dict[int, dict[str, Any]]:
     """OpenDota matches for `recent` (edited in place to match): the first one stays
     the fixture the scripted AI review describes, the rest get other heroes,
@@ -128,6 +173,26 @@ def vary(recent: list[dict[str, Any]]) -> dict[int, dict[str, Any]]:
                 {"time": 1500, "x": 104, "y": 140},
             ]
             me["sen_log"] = [{"time": 610, "x": 131, "y": 118}]
+            # Healing Ward maxed first (the pros start with Blade Fury: PRO_SKILLS).
+            me["ability_upgrades_arr"] = [
+                5029,
+                5028,
+                5029,
+                5027,
+                5029,
+                5030,
+                5029,
+                5028,
+                5028,
+                7021,
+                5028,
+                5030,
+                5027,
+                5027,
+                5027,
+                730,
+                5030,
+            ]
             me["lane_pos"] = {
                 str(x): {str(y): 4 + (x * 7 + y * 3) % 23 for y in range(74, 86, 2)}
                 for x in range(150, 176, 2)
@@ -179,23 +244,72 @@ RESPAWN = 20
 ROUTE_DEATHS = (240, 420, 1300, 1500, 2100, 2250)
 # (clock, x, y) waypoints of each life; the hero walks straight between them.
 LIVES: list[list[tuple[int, int, int]]] = [
-    [(-60, *FOUNTAIN), (-30, -5600, -6500), (0, -3200, -6450), (40, 900, -6350),
-     (90, 2300, -6200), (130, 1500, -6300), (180, 2600, -6150), (225, 1900, -6250),
-     (240, 2300, -6150)],
-    [(260, *FOUNTAIN), (300, -3500, -6450), (340, 1200, -6350), (380, 2900, -6150),
-     (420, 3700, -6000)],
-    [(440, *FOUNTAIN), (480, -3600, -6450), (520, 800, -6350), (560, 2400, -6200),
-     (600, 1400, -6300), (650, 300, -5000), (700, -900, -4100), (760, -2300, -3300),
-     (820, -3100, -4500), (880, -1600, -5200), (930, -300, -4000), (990, -700, -2600),
-     (1040, 700, -1900), (1100, 1600, -900), (1150, 2100, 300), (1210, 3100, 900),
-     (1260, 3100, 1900), (1300, 3600, 1300)],
-    [(1320, *FOUNTAIN), (1360, -4600, -4700), (1400, -2600, -2700), (1440, -1300, -1400),
-     (1470, 200, 800), (1500, 1300, 3400)],
-    [(1520, *FOUNTAIN), (1560, -3500, -6400), (1610, 1500, -6300), (1680, 4800, -6150),
-     (1740, 6200, -5200), (1800, 6300, -3300), (1860, 4900, -2900), (1920, 3900, -4100),
-     (1990, 2600, -3600), (2050, 2300, -2700), (2100, 2750, -2300)],
-    [(2120, *FOUNTAIN), (2160, -3500, -6400), (2200, 2600, -6250), (2230, 6000, -5600),
-     (2250, 6300, 1400)],
+    [
+        (-60, *FOUNTAIN),
+        (-30, -5600, -6500),
+        (0, -3200, -6450),
+        (40, 900, -6350),
+        (90, 2300, -6200),
+        (130, 1500, -6300),
+        (180, 2600, -6150),
+        (225, 1900, -6250),
+        (240, 2300, -6150),
+    ],
+    [
+        (260, *FOUNTAIN),
+        (300, -3500, -6450),
+        (340, 1200, -6350),
+        (380, 2900, -6150),
+        (420, 3700, -6000),
+    ],
+    [
+        (440, *FOUNTAIN),
+        (480, -3600, -6450),
+        (520, 800, -6350),
+        (560, 2400, -6200),
+        (600, 1400, -6300),
+        (650, 300, -5000),
+        (700, -900, -4100),
+        (760, -2300, -3300),
+        (820, -3100, -4500),
+        (880, -1600, -5200),
+        (930, -300, -4000),
+        (990, -700, -2600),
+        (1040, 700, -1900),
+        (1100, 1600, -900),
+        (1150, 2100, 300),
+        (1210, 3100, 900),
+        (1260, 3100, 1900),
+        (1300, 3600, 1300),
+    ],
+    [
+        (1320, *FOUNTAIN),
+        (1360, -4600, -4700),
+        (1400, -2600, -2700),
+        (1440, -1300, -1400),
+        (1470, 200, 800),
+        (1500, 1300, 3400),
+    ],
+    [
+        (1520, *FOUNTAIN),
+        (1560, -3500, -6400),
+        (1610, 1500, -6300),
+        (1680, 4800, -6150),
+        (1740, 6200, -5200),
+        (1800, 6300, -3300),
+        (1860, 4900, -2900),
+        (1920, 3900, -4100),
+        (1990, 2600, -3600),
+        (2050, 2300, -2700),
+        (2100, 2750, -2300),
+    ],
+    [
+        (2120, *FOUNTAIN),
+        (2160, -3500, -6400),
+        (2200, 2600, -6250),
+        (2230, 6000, -5600),
+        (2250, 6300, 1400),
+    ],
     [(2270, *FOUNTAIN), (2280, *FOUNTAIN)],
 ]
 

@@ -26,7 +26,7 @@ from match_fixtures import ME, FakeOpenDota, gsi_match_stream, recent_matches  #
 
 from app.main import app  # noqa: E402
 from app.player_api import PLAYER_SERVICE  # noqa: E402
-from demo_data import DemoLLM, friend_row, vary, with_route  # noqa: E402
+from demo_data import PRO_SKILLS, DemoLLM, friend_row, vary, with_route  # noqa: E402
 
 
 def main() -> None:
@@ -38,6 +38,7 @@ def main() -> None:
     for index, row in enumerate(recent):
         row["start_time"] = now - 3 * 3600 - index * 9 * 3600
     fake = FakeOpenDota(matches=vary(recent), recent=recent)
+    fake.skill_orders[8] = PRO_SKILLS
     profile = fake.player
     fake.player = lambda account_id: {
         **profile(account_id),

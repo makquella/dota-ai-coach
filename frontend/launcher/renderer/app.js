@@ -293,6 +293,9 @@ const I18N = {
     tourHint: "A short tour of the app, one minute",
     tourStart: "Show",
     whatsNew: {
+      "0.26.0": [
+        "The match review has a «Skill order» card: which skill you maxed first and how pro players level your hero."
+      ],
       "0.25.0": [
         "The farm cards put the numbers on the main line: your gold per minute and last hits, or how far behind a good pace you are.",
         "Advice that only changed its numbers no longer repeats every two minutes."
@@ -854,6 +857,9 @@ const I18N = {
     tourHint: "Короткая экскурсия по приложению, на минуту",
     tourStart: "Показать",
     whatsNew: {
+      "0.26.0": [
+        "В разборе матча появилась карточка «Прокачка»: какое умение вы вкачали первым и как качают вашего героя про-игроки."
+      ],
       "0.25.0": [
         "Карточки про фарм показывают цифры в главной строке: золото в минуту и добивания или насколько вы отстали от хорошего темпа.",
         "Совет, в котором поменялись только цифры, больше не повторяется каждые две минуты."

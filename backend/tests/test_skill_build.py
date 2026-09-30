@@ -202,6 +202,12 @@ def test_the_review_compares_the_first_skill_maxed():
     assert block["same"] is False and block["agree"] == 3 and block["games"] == 3
     same = review_skills([1, 2, 1, 2, 1, 4, 1, 2, 2], REVIEW_DATA)
     assert same["same"] is True
+    assert block["in_order"] is True and same["in_order"] is True
+    # Pros rarely max Healing Ward (1 game of 3): not in their order, still named.
+    rare = {**REVIEW_DATA, "orders": [GAME[:10]] * 2 + [GAME]}
+    block = review_skills(mine, rare)
+    assert block["yours"] == "Healing Ward" and block["in_order"] is False
+    assert "Healing Ward" not in block["order"]
     assert review_skills([1, 2, 1], REVIEW_DATA) is None  # too short
     assert review_skills(mine, DATA) is None  # no ids: the player's upgrades unreadable
     assert review_skills(mine, None) is None

@@ -68,7 +68,7 @@
       colHero: "Hero",
       colKda: "K / D / A",
       colGpm: "Gold/min",
-      colLh10: "LH at 10",
+      colLh10: "Last hits by 10:00",
       colDuration: "Time",
       colScore: "Score",
       colWhen: "Played",
@@ -294,6 +294,12 @@
       colWinrate: "Win rate",
       analyzed: (a, n) => `${a} of ${n} matches reviewed in depth`,
       buildTitle: "Build",
+      skillsTitle: "Skill order",
+      skillsYours: "Yours first:",
+      skillsPro: "How pros max their skills on this hero:",
+      skillsSame: (name) => `You also maxed ${name} first, like the pros.`,
+      skillsDiff: (yours, pro) => `You maxed ${yours} first; pros start with ${pro}.`,
+      skillsNote: (agree, games) => `${agree} of ${games} recent pro games start this way. The in-game tip names where each point goes.`,
       buildTimingNote: "Win rate of the hero by purchase time (OpenDota public matches). Your timing is highlighted. The earliest timings mostly come from games that were already going well, so the target is the usual timing.",
       buildNoTimings: "No timing data for these items yet.",
       buildItemLine: (wr, t, typicalT, typicalWr) => `${wr}% wins when bought by ${t} · usually bought by ${typicalT} — ${typicalWr}%`,
@@ -805,6 +811,12 @@
       colWinrate: "Винрейт",
       analyzed: (a, n) => `Подробно разобрано ${a} из ${n} матчей`,
       buildTitle: "Сборка",
+      skillsTitle: "Прокачка",
+      skillsYours: "Ваше первое:",
+      skillsPro: "Как максят умения про-игроки на этом герое:",
+      skillsSame: (name) => `Первым вы вкачали до конца ${name} — как и про-игроки.`,
+      skillsDiff: (yours, pro) => `Первым вы вкачали до конца ${yours}, а про-игроки начинают с ${pro}.`,
+      skillsNote: (agree, games) => `Так начинают ${agree} из ${games} недавних про-матчей. Подсказка в игре назовёт, куда вложить каждое очко.`,
       buildTimingNote: "Винрейт героя в зависимости от времени покупки (публичные матчи OpenDota). Ваш тайминг выделен. Самые ранние тайминги — чаще всего игры, которые и так шли хорошо, поэтому цель — обычный тайминг.",
       buildNoTimings: "По этим предметам пока нет данных о таймингах.",
       buildItemLine: (wr, t, typicalT, typicalWr) => `${wr}% побед при покупке к ${t} · обычно покупают к ${typicalT}: ${typicalWr}%`,
@@ -823,7 +835,7 @@
       colOpponent: "Соперник",
       colPeers: "Ваш ранг",
       colDiff: "Разница",
-      metrics: { gpm: "Золото в минуту", xpm: "Опыт в минуту", lh_10: "Добивания к 10:00", lh_per_min: "Добиваний в минуту", deaths: "Смерти", kda: "KDA", damage_per_min: "Урон в минуту", net_worth: "Ценность" },
+      metrics: { gpm: "Золото в минуту", xpm: "Опыт в минуту", lh_10: "Добивания к 10:00", lh_per_min: "Добиваний в минуту", deaths: "Смерти", kda: "KDA", damage_per_min: "Урон в минуту", net_worth: "Стоимость героя" },
       rankCareerTitle: "Вы и игроки вашего ранга",
       rankCareerNote: (rank, role, n) => `${rank || "Ваш ранг"} · ${role} · игроки той же роли в ваших ${n} разобранных матчах`,
       rankCareerEmpty: "Появится после нескольких матчей, разобранных по данным OpenDota.",
@@ -1851,7 +1863,7 @@
         rankCard(analysis),
         draftCard(analysis)
       ]));
-      add(side, zone(t("zoneMapItems"), t("zoneMapItemsHint"), [mapCard(analysis), buildCard(analysis), momentsCard(analysis)]));
+      add(side, zone(t("zoneMapItems"), t("zoneMapItemsHint"), [mapCard(analysis), buildCard(analysis), skillsCard(analysis), momentsCard(analysis)]));
       parts.push(twoColumns(main, side));
     }
     if (detail.scoreboard) {
@@ -2322,6 +2334,36 @@
         build.has_timings ? h("p", { class: "muted small", text: t("buildTimingNote") }) : h("p", { class: "muted small", text: t("buildNoTimings") }),
         rows,
         popularBlock
+      )
+    );
+  }
+
+  // The first skill maxed against the pro order on the hero (backend skill_build.py).
+  function skillsCard(analysis) {
+    const skills = analysis.skills;
+    if (!skills || !(skills.order || []).length) {
+      return null;
+    }
+    return card(
+      t("skillsTitle"),
+      "list-checks",
+      h(
+        "div",
+        { class: "skills" },
+        h("p", { text: skills.same ? t("skillsSame", skills.yours) : t("skillsDiff", skills.yours, skills.pro) }),
+        h("p", { class: "section-name", text: t("skillsPro") }),
+        h(
+          "div",
+          { class: "chips" },
+          skills.order.map((name, index) =>
+            h("span", { class: `chip ${name === skills.yours ? "chip-on" : ""}` }, h("span", { class: "num", text: `${index + 1}` }), h("span", { text: name }))
+          )
+        ),
+        // The player's first skill when the pros rarely max it: shown apart, marked.
+        skills.in_order === false || !skills.order.includes(skills.yours)
+          ? h("div", { class: "chips" }, h("span", { class: "muted small", text: t("skillsYours") }), h("span", { class: "chip chip-on" }, h("span", { text: skills.yours })))
+          : null,
+        h("p", { class: "muted small", text: t("skillsNote", skills.agree, skills.games) })
       )
     );
   }
