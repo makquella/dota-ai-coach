@@ -470,3 +470,34 @@ def test_a_disable_card_only_when_something_can_be_pressed(client):
     body = client.get("/overlay/recommendation").json()
     assert body["decision_point"] == "DISABLED_STATUS"
     assert body["recommendation"]["action"] == "The moment the disable ends, use Black King Bar."
+
+
+def test_a_repeated_low_hp_card_says_how_often_it_happens():
+    """«Use Blink now to get out» came nine times in one game with the same reason."""
+    from app.advice_i18n import translate_ru
+    from app.live_tools import low_hp_repeat_reason
+
+    assert low_hp_repeat_reason({"low_hp_before": 1}) is None  # the second card: as it was
+    reason = low_hp_repeat_reason({"low_hp_before": 2, "regen_items": []})
+    assert reason == (
+        "Your HP has dropped this low 3 times this game: heal up fully before you go back. "
+        "No regen in your bag: have the courier bring a Healing Salve."
+    )
+    assert translate_ru(reason).startswith("HP падает так низко уже 3-й раз за игру")
+    assert "Healing Salve" not in low_hp_repeat_reason(
+        {"low_hp_before": 4, "regen_items": ["item_flask"]}
+    )
+    # The card's action keeps naming the tool; only the reason changes.
+    extra = _extra(FORCE) | {"low_hp_before": 3}
+    text = _fallback_text(_request(extra), "retreat_reset")
+    assert text["action"].startswith("Use Force Staff now")
+    assert text["reason"].startswith("Your HP has dropped this low 4 times")
+
+
+def test_the_overlay_counts_the_low_hp_cards_of_the_match(client, monkeypatch):
+    from app.main import _with_low_hp_repeats
+
+    monkeypatch.setattr(PLAYER_SERVICE, "advice_count", lambda dps: 3)
+    state = {"extra_context": {"clock_time": 900}}
+    assert _with_low_hp_repeats(state, "LOW_HP")["extra_context"]["low_hp_before"] == 3
+    assert "low_hp_before" not in _with_low_hp_repeats(state, "SAFE_FARMING")["extra_context"]

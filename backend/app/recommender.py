@@ -14,6 +14,7 @@ from app.live_tools import (
     disabled_copy,
     hero_tools,
     low_hp_copy,
+    low_hp_repeat_reason,
 )
 from app.post_laning_coach import build_post_laning_advice, spend_while_dead_sentence
 from app.schemas import GameSituationRequest, RecommendationResponse
@@ -191,6 +192,10 @@ def _fallback_text(req: GameSituationRequest, action_type: str) -> dict[str, str
         tool = disabled_copy(extra, req.hero)
     if tool is not None:
         text = {**text, "action": tool[0], "reason": tool[1]}
+    if action_type in LOW_HP_ACTION_TYPES:
+        repeat = low_hp_repeat_reason(extra)
+        if repeat is not None:
+            text = {**text, "reason": repeat}
     if action_type in DEATH_ACTION_TYPES and not text["action"].startswith("Buy parts"):
         # Where the deaths keep happening, and the lesson of this one (a rescue
         # item left unpressed); else what to buy while waiting.

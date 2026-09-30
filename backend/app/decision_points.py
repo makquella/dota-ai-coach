@@ -252,7 +252,10 @@ def has_hero_survivability_risk(
         or has_bad_fight_risk_signal(state)
         or has_objective_fight_signal(state)
     )
-    return risk == "high" or contextual_risk
+    # An escape on cooldown alone is not a reason to talk: blink heroes use it
+    # all game, and «wait for Blink» at full HP came eight times a match.
+    escape_only = str(safety_context.get("hero_safety_kind") or "") == "escape"
+    return (risk == "high" and not escape_only) or contextual_risk
 
 
 def is_laning_or_early_game(minute: int) -> bool:

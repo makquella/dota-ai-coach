@@ -51,32 +51,85 @@ def death_kind(last: Any) -> str | None:
     return None
 
 
+# Counters to the enemy heroes seen in the match (enemy_heroes.py), by the
+# player's usual position: a right-click carry against evasion, an offlaner
+# against heavy healing; from these minutes on, when the build usually has room.
+EVASION_MINUTE = 15
+HEALING_MINUTE = 12
+CORE_POSITIONS = {"carry", "mid", "offlane"}
+
+
+def _candidates(
+    kinds: Counter[str | None],
+    enemies: list[str],
+    position: str | None,
+    minute: int | None,
+) -> list[tuple[str, str, str, int, str | None, str | None]]:
+    """(why, item key, fallback name, deaths, enemy, spell), in priority order."""
+    from app.draft_analysis import COUNTERS, TARGETED_DISABLES, TARGETED_ITEM, TARGETED_NAME
+
+    rows: list[tuple[str, str, str, int, str | None, str | None]] = []
+    targeted = next((e for e in enemies if e in TARGETED_DISABLES), None)
+    if targeted and position in CORE_POSITIONS and kinds.get("disabled", 0) >= MIN_DEATHS:
+        # Held to death with a single-target disable in the enemy team: Linken's
+        # blocks it (Primal Roar, Duel and Doom go through BKB).
+        rows.append(
+            (
+                "targeted",
+                TARGETED_ITEM,
+                TARGETED_NAME,
+                kinds["disabled"],
+                targeted,
+                TARGETED_DISABLES[targeted],
+            )
+        )
+    for why, key, fallback in RULES:
+        if kinds.get(why, 0) >= MIN_DEATHS:
+            rows.append((why, key, fallback, kinds[why], None, None))
+    evasive = next((e for e in enemies if e in COUNTERS["evasion"][0]), None)
+    if evasive and position == "carry" and (minute or 0) >= EVASION_MINUTE:
+        rows.append(("evasion", "monkey_king_bar", "Monkey King Bar", 0, evasive, None))
+    healer = next((e for e in enemies if e in COUNTERS["healing"][0]), None)
+    if healer and position == "offlane" and (minute or 0) >= HEALING_MINUTE:
+        rows.append(("healing", "spirit_vessel", "Spirit Vessel", 0, healer, None))
+    return rows
+
+
 def situational_item(
     deaths: list[dict[str, Any]] | None,
     owned_names: list[str] | None,
     meta: dict[str, Any] | None,
+    *,
+    enemies: list[str] | None = None,
+    position: str | None = None,
+    minute: int | None = None,
 ) -> dict[str, Any] | None:
-    """{key, name, cost, gold_left (None when the price is unknown), why, count}
-    for the first rule with MIN_DEATHS deaths of its kind; None otherwise."""
-    if not deaths or owned_names is None:
+    """{key, name, cost, gold_left (None when the price is unknown), why, count,
+    enemy, spell} for the first rule that holds: MIN_DEATHS deaths of its kind
+    (a single-target disabler among the enemies turns BKB into Linken's), else
+    a counter to an enemy hero seen; None otherwise."""
+    if owned_names is None:
         return None
-    kinds = Counter(death_kind(death.get("last")) for death in deaths if isinstance(death, dict))
+    kinds = Counter(
+        death_kind(death.get("last")) for death in deaths or [] if isinstance(death, dict)
+    )
     constants = (meta or {}).get("constants") or {}
     priced = has_components(constants)
+    known = (constants.get("items") or {}) if priced else {}
     owned = [item_key(name) for name in owned_names]
-    for why, key, fallback in RULES:
-        count = kinds.get(why, 0)
-        if count < MIN_DEATHS:
-            continue
+    enemy_list = [e for e in enemies or [] if isinstance(e, str)]
+    for why, key, fallback, count, enemy, spell in _candidates(kinds, enemy_list, position, minute):
         if key in owned or (priced and any(_contains(have, key, constants) for have in owned)):
             continue
         cost = _cost(key, constants) if priced else 0
         return {
             "key": key,
-            "name": item_name(key, constants) if priced else fallback,
+            "name": item_name(key, constants) if key in known else fallback,
             "cost": cost or None,
             "gold_left": gold_left(key, Counter(owned), constants) if cost else None,
             "why": why,
             "count": count,
+            "enemy": enemy,
+            "spell": spell,
         }
     return None

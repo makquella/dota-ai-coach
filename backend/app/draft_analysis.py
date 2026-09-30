@@ -15,6 +15,7 @@ shows only your own hero). Works on cached OpenDota matchups
 
 from __future__ import annotations
 
+from collections import Counter
 from statistics import mean
 from typing import Any
 
@@ -69,6 +70,26 @@ COUNTERS: dict[str, tuple[set[str], list[str], set[str]]] = {
         {"core", "offlane", "support"},
     ),
 }
+
+
+# Enemy heroes whose single-target disable kills: Linken's Sphere blocks the
+# spell (Primal Roar goes through BKB). Counted only when that hero killed the
+# player TARGETED_KILLS times or more — a Lion in the lineup alone asks for no
+# Linken's.
+TARGETED_DISABLES = {
+    "Beastmaster": "Primal Roar",
+    "Doom": "Doom",
+    "Legion Commander": "Duel",
+    "Bane": "Fiend's Grip",
+    "Batrider": "Flaming Lasso",
+    "Pudge": "Dismember",
+    "Lion": "Hex",
+    "Shadow Shaman": "Hex",
+}
+TARGETED_ITEM = "sphere"
+TARGETED_NAME = "Linken's Sphere"
+TARGETED_ROLES = {"core", "offlane"}
+TARGETED_KILLS = 2
 
 
 def _hero_id(value: Any) -> int | None:
@@ -254,6 +275,47 @@ def analyze_draft(
             findings.append(
                 _finding("counter_item_missing", "improve", severity=2, weight=2.2, **params)
             )
+
+    # A single-target disable that killed the player: Linken's Sphere.
+    killers = Counter(d.get("killer") for d in facts.get("deaths_log") or [] if isinstance(d, dict))
+    targeted = sorted(
+        (
+            (killers.get(p.get("hero"), 0), p.get("hero"))
+            for p in enemies
+            if p.get("hero") in TARGETED_DISABLES
+        ),
+        reverse=True,
+    )
+    if targeted and targeted[0][0] >= TARGETED_KILLS:
+        kills, enemy = targeted[0]
+        spell = TARGETED_DISABLES[enemy]
+        known_items = (constants or {}).get("items") or {}
+        # The key alone reads «Sphere» when the item constants are not cached.
+        name = (
+            item_name(TARGETED_ITEM, constants) if TARGETED_ITEM in known_items else TARGETED_NAME
+        )
+        has = TARGETED_ITEM in bought
+        counters.append(
+            {
+                "reason": "targeted",
+                "heroes": [enemy],
+                "items": [name],
+                "bought": [name] if has else [],
+                "for_role": counter_role in TARGETED_ROLES,
+                "spell": spell,
+                "kills": kills,
+            }
+        )
+        if counter_role in TARGETED_ROLES and long_game and known is not None:
+            params = {"reason": "targeted", "enemy": enemy, "items": name, "spell": spell}
+            if has:
+                findings.append(
+                    _finding("counter_item_bought", "strength", weight=0.7, item=name, **params)
+                )
+            else:
+                findings.append(
+                    _finding("counter_item_missing", "improve", severity=2, weight=2.4, **params)
+                )
 
     block = {
         "hero": me.get("hero"),

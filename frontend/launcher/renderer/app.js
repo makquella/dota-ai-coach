@@ -293,6 +293,11 @@ const I18N = {
     tourHint: "A short tour of the app, one minute",
     tourStart: "Show",
     whatsNew: {
+      "0.29.2": [
+        "Items against the enemy heroes: dying under Beastmaster's Primal Roar, Doom or Duel brings a Linken's Sphere tip that says why; Monkey King Bar against evasion, Spirit Vessel against healing, Dust for a support against invisible heroes.",
+        "An unlearned Blink no longer counts as on cooldown, and «you died with Blink ready» needs two free seconds to press it.",
+        "Repeated low-HP cards say how many times it happened and ask to heal up fully."
+      ],
       "0.29.1": [
         "A mid gets the power rune timer until minute 20, not all game, and before level 6 with a Bottle the hint says to keep the rune in it for a kill."
       ],
@@ -872,6 +877,11 @@ const I18N = {
     tourHint: "Короткая экскурсия по приложению, на минуту",
     tourStart: "Показать",
     whatsNew: {
+      "0.29.2": [
+        "Предметы против врагов: смерти под Primal Roar от Beastmaster, Doom или Duel — совет купить Linken's Sphere с объяснением; против уклонения — Monkey King Bar, против лечения — Spirit Vessel, саппорту против невидимых — Dust.",
+        "Неизученный Blink больше не считается «на перезарядке», а «умерли с готовым Blink» — только если на нажатие было две свободные секунды.",
+        "Повторные карточки про низкое HP говорят, какой это раз за игру, и советуют восстановиться полностью."
+      ],
       "0.29.1": [
         "Мидеру таймер руны силы показывается до 20-й минуты, а не всю игру, а до 6-го уровня с Bottle подсказка советует положить руну в него и приберечь для убийства."
       ],

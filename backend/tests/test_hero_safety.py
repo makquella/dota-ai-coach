@@ -204,3 +204,23 @@ def test_evaluate_hero_safety_accepts_pydantic_like_object() -> None:
 
     result = evaluate_hero_safety(FakeReq())
     assert result["hero_risk_level"] == "low"
+
+
+def test_an_unlearned_escape_is_nothing_to_wait_for() -> None:
+    """A Queen of Pain at 0:29 was told «wait for Blink»: level 0, not learned."""
+    state = _state(
+        "Anti-Mage",
+        extra_context={"abilities": [_ability("Blink", can_cast=False, cooldown=0, level=0)]},
+    )
+    assert "escape_on_cooldown" not in evaluate_hero_safety(state)["hero_safety_flags"]
+
+
+def test_an_escape_on_cooldown_alone_needs_a_reason_to_speak() -> None:
+    """«Wait for Blink» came eight times a match at full HP with nothing going on."""
+    from app.decision_points import has_hero_survivability_risk
+
+    blink = {"abilities": [_ability("Blink", can_cast=False)]}
+    healthy = _state("Anti-Mage", extra_context=blink)
+    assert not has_hero_survivability_risk(healthy, hp_percent=100, mana_percent=100)
+    hurt = _state("Anti-Mage", hp_percent=55, extra_context=blink)
+    assert has_hero_survivability_risk(hurt, hp_percent=55, mana_percent=100)

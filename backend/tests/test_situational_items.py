@@ -69,6 +69,8 @@ def test_two_deaths_under_stuns_ask_for_black_king_bar():
         "gold_left": 3050,
         "why": "disabled",
         "count": 2,
+        "enemy": None,
+        "spell": None,
     }
     # Already owned → nothing to say.
     assert situational_item([_stunned(600), _stunned(900)], ["black_king_bar"], META) is None

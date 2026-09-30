@@ -28,6 +28,11 @@ DEFAULT_RESULT = {
 }
 
 
+def _learned(ability: Mapping[str, Any]) -> bool:
+    level = ability.get("level")
+    return not isinstance(level, (int, float)) or isinstance(level, bool) or level > 0
+
+
 def evaluate_hero_safety(normalized_state: Mapping[str, Any] | Any) -> dict[str, Any]:
     state = _as_mapping(normalized_state)
     hero = str(state.get("hero") or "").strip()
@@ -66,7 +71,8 @@ def evaluate_hero_safety(normalized_state: Mapping[str, Any] | Any) -> dict[str,
     key_abilities = get_key_safety_abilities(hero)
     for ability_name in key_abilities["escape"]:
         ability = find_ability(abilities, ability_name)
-        if ability and ability_is_unavailable(ability):
+        # Not learned yet (level 0 at the horn): nothing to wait for.
+        if ability and _learned(ability) and ability_is_unavailable(ability):
             triggered.append(
                 {
                     "flag": "escape_on_cooldown",

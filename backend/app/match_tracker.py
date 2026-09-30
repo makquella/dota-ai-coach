@@ -213,6 +213,15 @@ class MatchTracker:
                 ],
             }
 
+    def advice_count(self, decision_points: set[str]) -> int:
+        """Advice of these decision points already given in the match in progress."""
+        with self._lock:
+            if not self._current:
+                return 0
+            return sum(
+                1 for a in self._current.get("advice") or [] if a.get("dp") in decision_points
+            )
+
     def death_moments(self) -> list[dict[str, Any]]:
         """Every death of the match in progress with its last seconds (for the
         situational item: situational_items.py)."""

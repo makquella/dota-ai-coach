@@ -47,6 +47,12 @@ WARD_ITEMS = {"item_ward_observer", "item_ward_dispenser"}
 # Support tip: the same observer ward carried this long (nothing placed).
 WARD_HELD = 2 * 60
 WARD_HELD_EVERY = 3 * 60
+# Support tip: an invisible enemy hero seen (enemy_heroes.py) and no Dust of
+# Appearance or sentry ward carried.
+INVIS_FROM = 6 * 60
+INVIS_EVERY = 6 * 60
+INVIS_SHOW = 20
+DETECTION_ITEMS = {"item_dust", "item_ward_sentry", "item_ward_dispenser", "item_gem"}
 # Where the ward goes: the lane's river until 10:00, then by the kill score
 # (8+ kills apart, as the farm advice) or Roshan's pit while he can be up.
 WARD_LANING_END = 10 * 60
@@ -144,6 +150,16 @@ TIPS = {
         "ru": (
             "Поставьте вард",
             "Вард в сумке ничего не показывает: поставьте его там, откуда придёт драка или ганк.",
+        ),
+    },
+    "invis_dust": {
+        "en": (
+            "{enemy} goes invisible",
+            "Carry Dust of Appearance or a sentry ward into fights: without them nobody can hit {enemy}.",
+        ),
+        "ru": (
+            "{enemy} уходит в невидимость",
+            "Носите в драки Dust of Appearance или сентри: без них {enemy} никто не ударит.",
         ),
     },
     # Where to put it: by the phase of the game, the kill score and Roshan.
@@ -539,6 +555,7 @@ class RoleTips:
         save_item: dict[str, Any] | None = None,
         score_gap: int | None = None,
         roshan_open: bool = False,
+        enemies: list[str] | None = None,
     ) -> dict[str, Any] | None:
         held_for = self._observe_wards(ward_charges, clock)
         if not alive or role is None:
@@ -584,6 +601,16 @@ class RoleTips:
                         at = minute * 60 + pull_at
                         label = clock_label(at)
                         return _tip("pull", f"pull@{at}", lang, at=at, clock=clock, at_label=label)
+        invisible = _invisible_enemy(enemies)
+        if (
+            invisible
+            and items is not None
+            and clock >= INVIS_FROM
+            and not DETECTION_ITEMS & set(items)
+        ):
+            start = self._every("invis_dust", clock, INVIS_EVERY, INVIS_SHOW)
+            if start is not None:
+                return _tip("invis_dust", f"invis_dust@{start}", lang, enemy=invisible)
         if has_ward is False and clock >= WARD_FROM_CLOCK:
             start = self._every("wards", clock, WARD_EVERY, WARD_SHOW)
             if start is not None:
@@ -724,6 +751,16 @@ def _tip(
     }
 
 
+def _invisible_enemy(enemies: list[str] | None) -> str | None:
+    """The first enemy hero seen that goes invisible (draft_analysis.COUNTERS)."""
+    from app.draft_analysis import COUNTERS  # a heavy import, only when enemies are known
+
+    if not enemies:
+        return None
+    heroes = COUNTERS["invisibility"][0]
+    return next((e for e in enemies if isinstance(e, str) and e in heroes), None)
+
+
 def _ward_bag_tip(
     hint_id: str, lang: str, clock: int, score_gap: int | None, roshan_open: bool
 ) -> dict[str, Any]:
@@ -788,6 +825,7 @@ def map_hint(
     save_item: dict[str, Any] | None = None,
     score_gap: int | None = None,
     roshan_open: bool = False,
+    enemies: list[str] | None = None,
 ) -> dict[str, Any] | None:
     """A timer, but a role tip over a minor one (runes, lotus); None before the
     horn or without a role. `objective`: a Roshan / Aegis timer (roshan_timer.py),
@@ -837,5 +875,6 @@ def map_hint(
         save_item=save_item,
         score_gap=score_gap,
         roshan_open=roshan_open,
+        enemies=enemies,
     )
     return tip or timer

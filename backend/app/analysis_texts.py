@@ -742,6 +742,7 @@ COUNTER_REASONS = {
     "illusions": {"ru": "иллюзии", "en": "illusions"},
     "invisibility": {"ru": "невидимость", "en": "invisibility"},
     "healing": {"ru": "лечение", "en": "healing"},
+    "targeted": {"ru": "{spell} убивал вас", "en": "{spell} killed you"},
 }
 
 ROLES = {
@@ -846,7 +847,8 @@ def _prepared_params(finding: dict[str, Any], lang: str) -> dict[str, Any]:
         if key in params:
             params[f"{key}_text"] = clock(params[key])
     if params.get("reason") in COUNTER_REASONS:
-        params["reason_label"] = COUNTER_REASONS[params["reason"]]["ru" if lang == "ru" else "en"]
+        label = COUNTER_REASONS[params["reason"]]["ru" if lang == "ru" else "en"]
+        params["reason_label"] = label.format(spell=params.get("spell") or "")
     for key in ("edge", "best_edge"):
         if isinstance(params.get(key), (int, float)):
             params[f"{key}_text"] = f"{params[key]:+.1f}%".replace(
