@@ -84,7 +84,8 @@ def build_post_laning_advice(
     elif category == "post_laning_carry_tp" and tp_missing:
         reason = _tp_reason(tp_missing)
     elif category == "post_laning_farm_recovery":
-        reason = _farm_pace_reason(state, extra) or reason
+        # The numbers in the action: it is the line the card shows large.
+        action, reason = _farm_pace_copy(state, extra) or (action, reason)
     elif category == "post_laning_safe_farm_route":
         # A core with a known build: name the next item and the gold it needs;
         # else what this game looks like (a kill streak, the kill score, the pace).
@@ -467,9 +468,11 @@ def _situational_farm_copy(
     gpm = _to_int(extra.get("gpm"), 0)
     last_hits = extra.get("last_hits")
     if gpm > 0 and isinstance(last_hits, int) and minute > 0:
+        # The numbers go in the action: it is the line the card shows large and
+        # the voice reads, and the plain route line came several times a game.
         return (
-            "Keep farming the safest wave-and-camp route and reassess soon.",
-            f"Your pace: {gpm} gold per minute, {last_hits} last hits at minute {minute}.",
+            f"Keep farming: {gpm} gold per minute, {last_hits} last hits at minute {minute}.",
+            "Keep taking the safest waves and camps: this pace grows without risky fights.",
         )
     return None
 
@@ -537,16 +540,18 @@ def _effective_farm_quality(
     return farm_quality
 
 
-def _farm_pace_reason(state: Mapping[str, Any], extra: Mapping[str, Any]) -> str | None:
-    """ "You have 38 last hits at minute 14; a good pace is 64+" when the numbers are known."""
+def _farm_pace_copy(state: Mapping[str, Any], extra: Mapping[str, Any]) -> tuple[str, str] | None:
+    """ "Recover farm: 38 last hits at minute 14, a good pace is 64+." when the
+    numbers are known."""
     expected = extra.get("expected_lh_range")
     last_hits = extra.get("last_hits", state.get("last_hits"))
     minute = _to_int(state.get("minute"), 0)
     if not isinstance(expected, (list, tuple)) or not expected or last_hits is None or minute <= 0:
         return None
     return (
-        f"You have {_to_int(last_hits, 0)} last hits at minute {minute}; "
-        f"a good pace is {_to_int(expected[0], 0)}+, so rebuild farm before forcing fights."
+        f"Recover farm: {_to_int(last_hits, 0)} last hits at minute {minute}, "
+        f"a good pace is {_to_int(expected[0], 0)}+.",
+        "Take the safest waves and camps first: fights before that delay your next item.",
     )
 
 

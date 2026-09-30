@@ -58,6 +58,8 @@ from app.recommender import generate_recommendation
 from app.scheduler.constants import (
     COACHING_GAME_TIME_GAP_SECONDS,
     DEATH_REVIEW_DECISIONS,
+    FARM_PACE_PREFIX,
+    FARM_PACE_REPEAT_SECONDS,
     HEARTBEAT_DUPLICATE_WAIT_SECONDS,
     HEARTBEAT_NUDGE_SECONDS,
     LLM_REFINEMENT_EVERY_N_ADVICES,
@@ -1773,9 +1775,18 @@ class AdviceScheduler:
                 min_gap, scaled_seconds(POST_LANING_GAME_TIME_GAP_SECONDS, self.frequency)
             )
 
-        if min_gap <= 0 or gap >= min_gap:
+        # A farm pace card keeps its own four minutes, even with other advice
+        # shown in between (which moves the last-shown values above).
+        pace_at = self.state._farm_pace_shown_game_time
+        pace_left = 0.0
+        if recommendation.action.startswith(FARM_PACE_PREFIX) and pace_at is not None:
+            pace_left = scaled_seconds(FARM_PACE_REPEAT_SECONDS, self.frequency) - max(
+                0.0, game_time_seconds - pace_at
+            )
+        left = max(min_gap - gap if min_gap > 0 else 0.0, pace_left)
+        if left <= 0:
             return 0, gap
-        return int(max(1, round(min_gap - gap))), gap
+        return int(max(1, round(left))), gap
 
     def _heartbeat_nudge_locked(
         self,
@@ -1880,6 +1891,8 @@ class AdviceScheduler:
         self.state._last_shown_decision_point = decision_point
         self.state._last_shown_category = str(category or decision_point or "").strip()
         self.state._last_shown_action_hash = _action_hash(recommendation.action)
+        if recommendation.action.startswith(FARM_PACE_PREFIX):
+            self.state._farm_pace_shown_game_time = game_time_seconds
         return None if gap is None else round(gap, 1)
 
     def _result_locked(

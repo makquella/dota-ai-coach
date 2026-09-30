@@ -44,10 +44,13 @@ def test_the_kill_score_gap_changes_the_advice():
 
 def test_else_the_pace_in_numbers():
     advice = _advice(gpm=512, last_hits=140, minute=21)
-    assert advice.reason == "Your pace: 512 gold per minute, 140 last hits at minute 21."
+    assert advice.action == "Keep farming: 512 gold per minute, 140 last hits at minute 21."
     assert (
-        translate_ru(advice.reason)
-        == "Ваш темп: 512 золота в минуту, добиваний к 21-й минуте: 140."
+        translate_ru(advice.action)
+        == "Фармите дальше: 512 золота в минуту, добиваний к 21-й минуте: 140."
+    )
+    assert translate_ru(advice.reason) == (
+        "Берите самые безопасные волны и лагеря: темп растёт и без рискованных драк."
     )
 
 
@@ -65,9 +68,9 @@ def test_a_support_heartbeat_gets_no_farm_pace():
         "extra_context": {"gpm": 300, "last_hits": 30, "advisor_coverage": "support"},
     }
     action, reason, _ = _heartbeat_copy(state)
-    assert "pace" not in reason
+    assert "pace" not in action + reason
     core = {**state, "extra_context": {**state["extra_context"], "advisor_coverage": "full"}}
-    assert _heartbeat_copy(core)[1].startswith("Your pace:")
+    assert _heartbeat_copy(core)[0].startswith("Keep farming:")
 
 
 def test_the_overlay_tells_the_scheduler_the_coverage(client, monkeypatch):
@@ -98,3 +101,47 @@ def test_the_overlay_tells_the_scheduler_the_coverage(client, monkeypatch):
     )
     client.get("/overlay/recommendation")
     assert seen and seen[-1] == "support"
+
+
+def test_a_pace_card_with_new_numbers_waits_four_minutes():
+    from app.advice_scheduler import ADVICE_SCHEDULER
+    from app.scheduler.hashing import _action_hash
+    from app.schemas import RecommendationResponse
+
+    def remaining(previous, action, at, *, pace_at=None, category="post_laning_safe_farm_route"):
+        scheduler = ADVICE_SCHEDULER
+        scheduler.state._last_shown_game_time_seconds = 720.0
+        scheduler.state._last_shown_category = category
+        scheduler.state._last_shown_action_hash = _action_hash(previous)
+        scheduler.state._last_shown_decision_point = "SAFE_FARMING"
+        scheduler.state._farm_pace_shown_game_time = pace_at
+        recommendation = RecommendationResponse(
+            action=action, reason="r", risk="r", priority="low", time_window="w", source="fallback"
+        )
+        left, _gap = scheduler._game_time_spacing_remaining_locked(
+            decision_point="SAFE_FARMING",
+            state={"minute": at // 60},
+            recommendation=recommendation,
+            advice_mode="coaching",
+            category="post_laning_safe_farm_route",
+            game_time_seconds=float(at),
+        )
+        return left
+
+    pace = "Keep farming: {} gold per minute, {} last hits at minute {}."
+    first = pace.format(444, 72, 12)
+    # Only the numbers changed: the same advice, four minutes apart.
+    assert remaining(first, pace.format(468, 84, 14), 840, pace_at=720.0) == 120
+    assert remaining(first, pace.format(492, 96, 16), 960, pace_at=720.0) == 0
+    recover = "Recover farm: {} last hits at minute {}, a good pace is {}+."
+    assert (
+        remaining(recover.format(138, 23, 150), recover.format(150, 25, 170), 840, pace_at=720.0)
+        == 120
+    )
+    # Another card came in between (last shown at 12:00): the pace card shown
+    # at 11:00 still waits until 15:00.
+    item = "Use your gold: Black King Bar can be bought now."
+    assert remaining(item, pace.format(468, 84, 14), 840, pace_at=660.0, category="x") == 60
+    # Any other advice keeps the two minutes.
+    other = "Keep farming toward Black King Bar on the safest waves and camps."
+    assert remaining(other, other, 840) == 0

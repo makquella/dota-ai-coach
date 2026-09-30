@@ -442,6 +442,12 @@ _RU_EXACT: dict[str, str] = {
     # --- status messages -----------------------------------------------------
     "Monitoring...": "Следим за игрой…",
     "Waiting for live GSI...": "Ждём данные из игры…",
+    "Take the safest waves and camps first: fights before that delay your next item.": (
+        "Сначала самые безопасные волны и лагеря: драки до этого отложат следующий предмет."
+    ),
+    "Keep taking the safest waves and camps: this pace grows without risky fights.": (
+        "Берите самые безопасные волны и лагеря: темп растёт и без рискованных драк."
+    ),
     "Current hero is not supported by carry advisor yet.": (
         "Для этого героя советов пока нет: поддерживаются только керри."
     ),
@@ -451,10 +457,10 @@ _RU_EXACT: dict[str, str] = {
 _RU_PATTERNS: tuple[tuple[re.Pattern[str], str], ...] = (
     (
         re.compile(
-            r"^Your pace: (?P<gpm>\d+) gold per minute, (?P<lh>\d+) last hits at minute "
+            r"^Keep farming: (?P<gpm>\d+) gold per minute, (?P<lh>\d+) last hits at minute "
             r"(?P<m>\d+)\.$"
         ),
-        "Ваш темп: {gpm} золота в минуту, добиваний к {m}-й минуте: {lh}.",
+        "Фармите дальше: {gpm} золота в минуту, добиваний к {m}-й минуте: {lh}.",
     ),
     (
         re.compile(
@@ -518,11 +524,10 @@ _RU_PATTERNS: tuple[tuple[re.Pattern[str], str], ...] = (
     ),
     (
         re.compile(
-            r"^You have (?P<lh>\d+) last hits at minute (?P<m>\d+); a good pace is (?P<low>\d+)\+, "
-            r"so rebuild farm before forcing fights\.$"
+            r"^Recover farm: (?P<lh>\d+) last hits at minute (?P<m>\d+), a good pace is "
+            r"(?P<low>\d+)\+\.$"
         ),
-        "Добиваний к {m}-й минуте: {lh}, хороший темп — {low}+. "
-        "Сначала восстановите фарм, потом ищите драки.",
+        "Навёрстывайте фарм: добиваний к {m}-й минуте — {lh}, хороший темп — {low}+.",
     ),
     # live_tools.py: the hero's own abilities and their cooldowns.
     (
