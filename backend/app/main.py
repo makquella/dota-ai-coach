@@ -580,6 +580,7 @@ def _overlay_recommendation_payload() -> dict[str, object]:
 
     state = _with_next_item(state, coverage, decision_point)
     state = _with_death_items(state, decision_point)
+    state = _with_coverage(state, coverage)
     try:
         request = GameSituationRequest(**state)
     except ValidationError as exc:
@@ -909,6 +910,7 @@ def _overlay_response_for_state(
 
     state = _with_next_item(state, coverage, decision_point)
     state = _with_death_items(state, decision_point)
+    state = _with_coverage(state, coverage)
     try:
         game_request = GameSituationRequest(**state)
     except ValidationError as exc:
@@ -977,6 +979,15 @@ def _with_next_item(
     if item is None:
         return state
     return {**state, "extra_context": {**raw_extra, "next_item": item}}
+
+
+def _with_coverage(state: dict[str, object], coverage: str | None) -> dict[str, object]:
+    """The advisor coverage for the scheduler: its heartbeat names the farm pace
+    and the kill score only for a core (post_laning_coach._situational_farm_copy)."""
+    raw_extra = state.get("extra_context")
+    if not isinstance(raw_extra, dict):
+        return state
+    return {**state, "extra_context": {**raw_extra, "advisor_coverage": coverage}}
 
 
 # Death reviews: the advice after a death names the rescue item left unpressed.

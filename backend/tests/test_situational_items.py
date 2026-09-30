@@ -15,7 +15,10 @@ from app.situational_items import death_kind, situational_item
 
 def _stunned(t):
     # Five recorded seconds, only one of them free.
-    return {"t": t, "last": {"hp": [[-4, 60], [-3, 50], [-2, 40], [-1, 20], [0, 5]], "free_s": 1}}
+    return {
+        "t": t,
+        "last": {"hp": [[-4, 60], [-3, 50], [-2, 40], [-1, 20], [0, 5]], "free_s": 1, "held_s": 4},
+    }
 
 
 def _burst(t):
@@ -33,6 +36,27 @@ def test_how_a_death_went():
     # Too few seconds recorded to say it was a stun.
     assert death_kind({"hp": [[0, 5]], "free_s": 0}) is None
     assert death_kind(None) is None
+
+
+def _record(flag):
+    from app.last_moments import LastSeconds
+
+    seconds = LastSeconds()
+    for clock in range(595, 601):
+        hero = {"alive": True, "health_percent": 100 - (clock - 595) * 18, flag: True}
+        seconds.observe(clock, hero, {})
+    return seconds.summarize(601)
+
+
+def test_a_mute_is_not_a_stun():
+    # Muted: no items, but the hero still walks and casts — not a BKB pattern.
+    assert death_kind(_record("muted")) is None
+    assert death_kind(_record("stunned")) == "disabled"
+    assert death_kind(_record("hexed")) == "disabled"
+    muted = [{"t": 600, "last": _record("muted")}, {"t": 900, "last": _record("muted")}]
+    assert situational_item(muted, [], META) is None
+    # A record from before held_s was kept: nothing claimed.
+    assert death_kind({"hp": [[-3, 50], [-2, 40], [-1, 20], [0, 5]], "free_s": 0}) is None
 
 
 def test_two_deaths_under_stuns_ask_for_black_king_bar():

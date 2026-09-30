@@ -17,6 +17,7 @@ point left unspent).
 
 from __future__ import annotations
 
+import math
 from typing import Any
 
 ULTIMATE_LEVELS = (6, 12, 18)
@@ -53,7 +54,10 @@ TEXTS = {
 
 
 def _int(value: Any) -> int | None:
+    """A whole number from GSI; NaN, infinity or a huge value count as missing."""
     if isinstance(value, bool) or not isinstance(value, (int, float)):
+        return None
+    if not math.isfinite(value) or abs(value) > 1000:
         return None
     return int(value)
 

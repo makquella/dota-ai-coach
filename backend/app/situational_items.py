@@ -7,8 +7,10 @@ The live recording already knows the last seconds of every death
 (`free_s`) and whether it went from 70 %+ health to dead in 3 seconds or less
 (`burst_s`). Two such deaths in one match are a pattern with a known answer:
 
-- disabled to death (at most 1 free second of the last 5, with at least 3
-  seconds recorded): Black King Bar — magic immunity, no stun holds you;
+- disabled to death (stunned or hexed on all but at most 1 recorded second of
+  the last 5, with at least 3 seconds recorded; a mute alone does not count —
+  the hero still moves and casts, and BKB cannot be pressed muted): Black King
+  Bar — magic immunity, no stun holds you;
 - burst down: Aeon Disk — the next burst triggers it instead of killing.
 
 Cores only (the carry advisor): a support's item advice is the save item tip.
@@ -41,8 +43,8 @@ def death_kind(last: Any) -> str | None:
         return None
     hp = last.get("hp") if isinstance(last.get("hp"), list) else []
     recorded = [p for p in hp if isinstance(p, list) and len(p) == 2 and -FREE_WINDOW <= p[0] <= 0]
-    free = last.get("free_s")
-    if len(recorded) >= MIN_RECORDED and isinstance(free, int) and free <= MAX_FREE:
+    held = last.get("held_s")  # older records have none: say nothing
+    if len(recorded) >= MIN_RECORDED and isinstance(held, int) and len(recorded) - held <= MAX_FREE:
         return "disabled"
     if isinstance(last.get("burst_s"), int):
         return "burst"

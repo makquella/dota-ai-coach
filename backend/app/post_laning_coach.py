@@ -430,7 +430,11 @@ def _situational_farm_copy(
     state: Mapping[str, Any], extra: Mapping[str, Any]
 ) -> tuple[str, str] | None:
     """The safe-farm card with this game's facts instead of the same generic
-    line every time: the player's kill streak, the kill score, else the pace."""
+    line every time: the player's kill streak, the kill score, else the pace.
+    A core's card only: a support or a safety-only hero gets no farm pace."""
+    coverage = extra.get("advisor_coverage")
+    if coverage is not None and coverage != "full":
+        return None
     streak = _to_int(extra.get("kill_streak"), 0)
     if streak >= STREAK_BOUNTY:
         return (

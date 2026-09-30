@@ -36,6 +36,22 @@ def test_no_blocks_no_skills():
     assert read_skills(None) is None
 
 
+def test_broken_numbers_count_as_missing(client):
+    for bad in (float("nan"), float("inf"), -float("inf"), 1e300):
+        skills = read_skills(_payload(bad, [1, 1, 1]))
+        assert skills is None
+        skills = read_skills(_payload(5, [bad, 1, 1], attributes=bad))
+        assert skills is not None and skills["spent"] == 2
+    # Through the live endpoint: no 500 on a NaN level.
+    body = (
+        '{"provider": {"name": "Dota 2"}, "map": {"clock_time": 600}, '
+        '"hero": {"name": "npc_dota_hero_juggernaut", "level": NaN, "attributes_level": Infinity}, '
+        '"abilities": {"ability0": {"name": "juggernaut_blade_fury", "level": NaN}}}'
+    )
+    response = client.post("/gsi", content=body, headers={"content-type": "application/json"})
+    assert response.status_code < 500
+
+
 def test_a_point_left_unspent_is_named_after_a_short_wait():
     tips = SkillTips()
     _feed(tips, 100, _payload(3, [1, 1, 1]))

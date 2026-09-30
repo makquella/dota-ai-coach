@@ -53,3 +53,48 @@ def test_else_the_pace_in_numbers():
 
 def test_nothing_known_keeps_the_plain_line():
     assert _advice().action == "Keep farming the safest wave-and-camp route and reassess soon."
+
+
+def test_a_support_heartbeat_gets_no_farm_pace():
+    from app.scheduler.heartbeat import _heartbeat_copy
+
+    state = {
+        "hero": "Crystal Maiden",
+        "minute": 20,
+        "hp_percent": 100,
+        "extra_context": {"gpm": 300, "last_hits": 30, "advisor_coverage": "support"},
+    }
+    action, reason, _ = _heartbeat_copy(state)
+    assert "pace" not in reason
+    core = {**state, "extra_context": {**state["extra_context"], "advisor_coverage": "full"}}
+    assert _heartbeat_copy(core)[1].startswith("Your pace:")
+
+
+def test_the_overlay_tells_the_scheduler_the_coverage(client, monkeypatch):
+    from app.main import ADVICE_SCHEDULER
+
+    seen = []
+    original = ADVICE_SCHEDULER.evaluate
+
+    def spy(request, *args, **kwargs):
+        seen.append(request.extra_context.get("advisor_coverage"))
+        return original(request, *args, **kwargs)
+
+    monkeypatch.setattr(ADVICE_SCHEDULER, "evaluate", spy)
+    client.post(
+        "/gsi",
+        json={
+            "provider": {"name": "Dota 2"},
+            "map": {"clock_time": 1200, "game_state": "DOTA_GAMERULES_STATE_GAME_IN_PROGRESS"},
+            "player": {"gold": 900, "last_hits": 20, "deaths": 0, "gpm": 250},
+            "hero": {
+                "name": "npc_dota_hero_crystal_maiden",
+                "level": 12,
+                "health_percent": 20,
+                "mana_percent": 100,
+                "alive": True,
+            },
+        },
+    )
+    client.get("/overlay/recommendation")
+    assert seen and seen[-1] == "support"
