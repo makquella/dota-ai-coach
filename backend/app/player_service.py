@@ -377,6 +377,10 @@ class PlayerService:
     ) -> None:
         self.tracker.note_advice(clock, decision_point, action, reason, mode)
 
+    def advice_count(self, decision_points: set[str]) -> int:
+        """How many live advice cards of these decision points this match has had."""
+        return self.tracker.advice_count(decision_points)
+
     def recent_death(self, clock: Any, within: int = 90) -> dict[str, Any] | None:
         """A death of the last `within` seconds of match clock, for the live
         death advice (live_tools.py): the rescue items left unpressed, how fast
@@ -417,7 +421,14 @@ class PlayerService:
             return None
         names = extra.get("item_names")
         item = (
-            self.next_item(str(state.get("hero") or ""), names if isinstance(names, list) else None)
+            self.next_item(
+                str(state.get("hero") or ""),
+                names if isinstance(names, list) else None,
+                enemies=extra.get("enemy_heroes")
+                if isinstance(extra.get("enemy_heroes"), list)
+                else None,
+                minute=state.get("minute"),
+            )
             if next_item_for_hero
             else None
         )
@@ -517,18 +528,32 @@ class PlayerService:
         self._plans[key] = (now, build)
         return build
 
-    def next_item(self, hero: str, owned: list[str] | None) -> dict[str, Any] | None:
+    def next_item(
+        self,
+        hero: str,
+        owned: list[str] | None,
+        *,
+        enemies: list[str] | None = None,
+        minute: Any = None,
+    ) -> dict[str, Any] | None:
         """The next item of the hero's usual build and the gold its missing parts
         cost (app/next_item.py) for a core's live farm advice; None when unknown."""
         hero_id = hero_id_from_name(hero)
         if hero_id is None or owned is None:
             return None
         meta = self._live_meta(hero_id)
-        # How this match's deaths went picks the item first (BKB after deaths
-        # under stuns), then the hero's usual build.
-        return situational_item(self.tracker.death_moments(), owned, meta) or next_build_item(
-            meta, owned
+        # How this match's deaths went and the enemy heroes seen pick the item
+        # first (BKB after deaths under stuns, Linken's against Primal Roar),
+        # then the hero's usual build.
+        situational = situational_item(
+            self.tracker.death_moments(),
+            owned,
+            meta,
+            enemies=enemies,
+            position=get_hero_position(hero),
+            minute=minute if isinstance(minute, int) else None,
         )
+        return situational or next_build_item(meta, owned)
 
     def save_item(self, hero: str, owned: list[str] | None) -> dict[str, Any] | None:
         """The save item most bought on the hero and the gold its missing parts

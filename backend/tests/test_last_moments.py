@@ -121,9 +121,9 @@ def test_ready_only_while_disabled_is_not_an_unpressed_item():
     review = review_deaths({"deaths_log": [{"t": 120, "last": last}]})
     assert "saver_ready" not in review["deaths"][0]["notes"]
 
-    # Ready on a free second, then stunned: that one was not pressed.
+    # Ready on two free seconds, then stunned: that one was not pressed.
     for t in range(200, 218):
-        buffer.observe(t, hero, {"slot0": BKB} if t == 216 else {})
+        buffer.observe(t, hero, {"slot0": BKB} if t in (215, 216, 217) else {})
     buffer.observe(218, {**hero, "stunned": True}, {"slot0": BKB})
     last = buffer.summarize(219)
     assert last["usable"] == ["item_black_king_bar"]
@@ -147,3 +147,15 @@ def test_an_item_pressed_in_the_last_seconds_is_not_unused():
     buffer.observe(115, hero, {"slot0": force})
     buffer.observe(119, {**hero, "health_percent": 5}, {"slot0": force})
     assert buffer.summarize(120)["usable"] == ["item_force_staff"]
+
+
+def test_a_save_ready_for_one_second_was_no_chance():
+    """A Queen of Pain died at 11:26 a second after Blink came off cooldown, and
+    the review said «died with Blink ready»: one second is no real chance."""
+    buffer = LastSeconds()
+    hero = {"alive": True, "health_percent": 60, "mana_percent": 50}
+    for t in range(300, 318):
+        buffer.observe(t, hero, {})
+    buffer.observe(318, {**hero, "health_percent": 10}, {"slot0": BKB})
+    last = buffer.summarize(319)
+    assert last["ready"] == ["item_black_king_bar"] and last["usable"] == []

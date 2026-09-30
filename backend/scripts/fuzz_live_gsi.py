@@ -120,9 +120,9 @@ def mutate(payload: dict[str, Any], rng: random.Random) -> dict[str, Any]:
         paths = _paths(result)
         kind = rng.random()
         if not paths or kind < 0.1:
-            result[rng.choice(["hero", "map", "player", "items", "abilities", "buildings"])] = (
-                copy.deepcopy(rng.choice(WEIRD_VALUES))
-            )
+            result[
+                rng.choice(["hero", "map", "player", "items", "abilities", "buildings", "minimap"])
+            ] = copy.deepcopy(rng.choice(WEIRD_VALUES))
         elif kind < 0.35:
             _drop(result, rng.choice(paths))
         elif kind < 0.7:

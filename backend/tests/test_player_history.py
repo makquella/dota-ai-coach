@@ -875,3 +875,28 @@ def test_an_old_trim_is_fetched_again_when_the_review_is_opened(tmp_path, monkey
         service.jobs.run_pending(until=float("inf"))
         assert fake.calls.count(f"match:{MATCH_ID}") == 2
         monkeypatch.undo()
+
+
+def test_a_targeted_disable_that_keeps_killing_asks_for_linkens():
+    """A Queen of Pain kept dying to a farmed Beastmaster: Primal Roar goes through
+    BKB, and Linken's Sphere blocks it."""
+    match = _with_enemy(opendota_match(good=True), 6, 38)  # Beastmaster
+    trimmed = trim_match(match, ME)
+    facts = facts_from_opendota(trimmed)
+    facts["deaths_log"] = [
+        {"t": 600, "killer": "Beastmaster"},
+        {"t": 1300, "killer": "Beastmaster"},
+        {"t": 1900, "killer": "Beastmaster"},
+    ]
+    block, findings = analyze_draft(facts, trimmed, _draft_meta(), "core")
+    counter = next(c for c in block["counters"] if c["reason"] == "targeted")
+    assert counter["heroes"] == ["Beastmaster"] and counter["spell"] == "Primal Roar"
+    assert counter["kills"] == 3
+    missing = next(f for f in findings if f["id"] == "counter_item_missing")
+    assert missing["params"]["items"] == "Linken's Sphere"
+    ru = render_finding(missing, "ru")
+    assert "Beastmaster (Primal Roar убивал вас)" in ru["text"]
+    # One kill: the lineup alone asks for no Linken's.
+    facts["deaths_log"] = facts["deaths_log"][:1]
+    block, _ = analyze_draft(facts, trimmed, _draft_meta(), "core")
+    assert not [c for c in block["counters"] if c["reason"] == "targeted"]

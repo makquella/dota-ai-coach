@@ -12,8 +12,8 @@ At a death, summarize() turns the buffer into a small record kept with the
 death on the timeline:
 - hp: the HP curve (seconds before the death, percent), at most WINDOW points;
 - ready: the saving items that were ready at the last alive tick;
-- usable: the saving items that were ready on a second of the last
-  FREE_WINDOW when the hero was not disabled — readiness and the chance to
+- usable: the saving items that were ready on USABLE_SECONDS (2) seconds of
+  the last FREE_WINDOW when the hero was not disabled — readiness and the chance to
   press it on the same sample — and still ready at the last alive tick (one
   pressed in those seconds went on cooldown), so only these count as "not used";
 - free_s: seconds of the last FREE_WINDOW the hero was not disabled;
@@ -27,11 +27,13 @@ GSI only: OpenDota matches have no such record, and a missing value stays out.
 
 from __future__ import annotations
 
-from collections import deque
+from collections import Counter, deque
 from typing import Any
 
 WINDOW = 20
 FREE_WINDOW = 5
+# Seconds a saver must be ready while the hero is free to count as "not used".
+USABLE_SECONDS = 2
 BURST_FROM = 70
 BURST_SECONDS = 3
 WAND_CHARGES = 10
@@ -162,10 +164,13 @@ class LastSeconds:
             return None
         last = entries[-1]
         recent = [e for e in entries if death_clock - e["t"] <= FREE_WINDOW]
-        usable: list[str] = []
+        # Ready on USABLE_SECONDS free seconds or more: an escape that came off
+        # cooldown a second before the death was no real chance to press it.
+        free_ready: Counter[str] = Counter()
         for entry in recent:
             if not entry["disabled"]:
-                usable.extend(name for name in entry["ready"] if name not in usable)
+                free_ready.update(entry["ready"])
+        usable = [name for name, seconds in free_ready.items() if seconds >= USABLE_SECONDS]
         # Still ready at the last alive tick: an item pressed in those seconds
         # went on cooldown (or a wand lost its charges) and was not left unused.
         usable = [name for name in usable if name in last["ready"]]

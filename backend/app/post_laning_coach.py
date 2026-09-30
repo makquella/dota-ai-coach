@@ -480,15 +480,27 @@ def _situational_farm_copy(
 SITUATIONAL_BECAUSE = {
     "disabled": "{count} deaths under stuns with no free second, and {name} stops that",
     "burst": "{count} deaths in 3 seconds or less from high health, and {name} gives you time against that",
+    "targeted": "{count} deaths under stuns against {enemy}, and {name} blocks {spell}",
+    "evasion": "{enemy} dodges your attacks, and {name} never misses",
+    "healing": "{enemy} heals a lot, and {name} cuts the healing",
 }
+# Counters to an enemy hero seen: no death count, the enemy says why.
+ENEMY_WHYS = {"evasion", "healing"}
 
 
 def _situational_because(item: Mapping[str, Any]) -> str | None:
-    template = SITUATIONAL_BECAUSE.get(str(item.get("why") or ""))
+    why = str(item.get("why") or "")
+    template = SITUATIONAL_BECAUSE.get(why)
     count = _to_int(item.get("count"), 0)
-    if template is None or count < 1:
+    enemy = item.get("enemy") if isinstance(item.get("enemy"), str) else None
+    if template is None:
         return None
-    return template.format(count=count, name=item["name"])
+    if why in ENEMY_WHYS:
+        if not enemy:
+            return None
+    elif count < 1 or (why == "targeted" and not (enemy and item.get("spell"))):
+        return None
+    return template.format(count=count, name=item["name"], enemy=enemy, spell=item.get("spell"))
 
 
 def _buyback_reason(signal: Mapping[str, Any]) -> str:

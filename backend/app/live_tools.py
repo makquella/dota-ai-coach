@@ -234,6 +234,25 @@ def _own_ready(extra: Mapping[str, Any], hero: Any) -> list[tuple[str, str]]:
     return hero_tools(hero, extra.get("abilities"))["ready"]
 
 
+LOW_HP_REPEAT_FROM = 2  # low-HP cards before this one
+
+
+def low_hp_repeat_reason(extra: Mapping[str, Any]) -> str | None:
+    """The reason of a low-HP card that has come before in this match: the same
+    «use Blink now» a fifth time says nothing new, how often it happens does."""
+    before = extra.get("low_hp_before")
+    if not isinstance(before, int) or isinstance(before, bool) or before < LOW_HP_REPEAT_FROM:
+        return None
+    reason = (
+        f"Your HP has dropped this low {before + 1} times this game: "
+        "heal up fully before you go back."
+    )
+    regen = extra.get("regen_items")
+    if isinstance(regen, list) and not regen:
+        reason += " No regen in your bag: have the courier bring a Healing Salve."
+    return reason
+
+
 def low_hp_copy(extra: Mapping[str, Any], hero: Any = None) -> tuple[str, str] | None:
     """(action, reason) naming the tool to press at low HP; None without one.
     Stunned, hexed or muted, no item can be pressed: the post-disable wording."""

@@ -1830,6 +1830,7 @@ function gsiConfigText() {
     "abilities"   "1"
     "items"       "1"
     "buildings"   "1"
+    "minimap"     "1"
   }
 }
 `;

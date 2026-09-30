@@ -69,7 +69,7 @@ app = FastAPI(
     lifespan=_lifespan,
     title="Wardly",
     description="MVP-1: rule-based carry coach with local knowledge-base RAG.",
-    version="0.29.1",
+    version="0.29.2",
 )
 app.include_router(player_router)
 
@@ -103,7 +103,7 @@ if FRONTEND_DIR.exists():
 @app.get("/", summary="Health check")
 def root():
     """Simple health-check endpoint."""
-    return {"status": "ok", "service": "Wardly", "version": "0.29.1"}
+    return {"status": "ok", "service": "Wardly", "version": "0.29.2"}
 
 
 @app.get("/health", summary="Health check")
@@ -393,6 +393,7 @@ def _live_role_and_hint(response: dict[str, object], lang: str) -> dict[str, obj
             if role and role.get("role") == "support"
             else None,
             score_gap=score_gap(extra),
+            enemies=MATCH_MEMORY.enemies.heroes() or None,
             roshan_open=MATCH_MEMORY.roshan.maybe_up(clock if isinstance(clock, int) else None),
             objective=MATCH_MEMORY.roshan.hint(clock if isinstance(clock, int) else None, lang),
             skill=MATCH_MEMORY.skills.tip(
@@ -450,7 +451,7 @@ def _death_screen_for_overlay(response: dict[str, object], lang: str) -> dict[st
         return None
     carry = hero_coverage(str(state.get("hero") or "")) == "full" and not _plays_support(state)
     try:
-        return PLAYER_SERVICE.death_screen(state, lang, next_item_for_hero=carry)
+        return PLAYER_SERVICE.death_screen(_with_enemies(state), lang, next_item_for_hero=carry)
     except Exception as error:  # noqa: BLE001 - never breaks the live path
         record_error("death-screen", error)
         return None
@@ -587,8 +588,10 @@ def _overlay_recommendation_payload() -> dict[str, object]:
             **_overlay_live_context(state),
         }
 
+    state = _with_enemies(state)
     state = _with_next_item(state, coverage, decision_point)
     state = _with_death_items(state, decision_point)
+    state = _with_low_hp_repeats(state, decision_point)
     state = _with_coverage(state, coverage)
     try:
         request = GameSituationRequest(**state)
@@ -917,8 +920,10 @@ def _overlay_response_for_state(
             **_overlay_live_context(state),
         }
 
+    state = _with_enemies(state)
     state = _with_next_item(state, coverage, decision_point)
     state = _with_death_items(state, decision_point)
+    state = _with_low_hp_repeats(state, decision_point)
     state = _with_coverage(state, coverage)
     try:
         game_request = GameSituationRequest(**state)
@@ -979,8 +984,12 @@ def _with_next_item(
         return state
     names = raw_extra.get("item_names")
     try:
+        enemies = raw_extra.get("enemy_heroes")
         item = PLAYER_SERVICE.next_item(
-            str(state.get("hero") or ""), names if isinstance(names, list) else None
+            str(state.get("hero") or ""),
+            names if isinstance(names, list) else None,
+            enemies=enemies if isinstance(enemies, list) else None,
+            minute=state.get("minute"),
         )
     except Exception as error:  # noqa: BLE001 - never breaks the live path
         record_error("next-item", error)
@@ -1007,6 +1016,33 @@ DEATH_DECISIONS = {
     "DEATH_LOW_RESOURCE",
     "DEAD_WAIT",
 }
+
+
+def _with_enemies(state: dict[str, object]) -> dict[str, object]:
+    """The enemy heroes seen on the minimap this match (enemy_heroes.py), for the
+    counter items; the state unchanged when none is known."""
+    raw_extra = state.get("extra_context")
+    enemies = MATCH_MEMORY.enemies.heroes()
+    if not enemies or not isinstance(raw_extra, dict) or raw_extra.get("source_type") != "live_gsi":
+        return state
+    return {**state, "extra_context": {**raw_extra, "enemy_heroes": enemies}}
+
+
+LOW_HP_REPEAT_DECISIONS = {"LOW_HP", "LOW_HP_WARNING"}
+
+
+def _with_low_hp_repeats(state: dict[str, object], decision_point: str) -> dict[str, object]:
+    """How many low-HP cards this match has had before this one, so a repeat
+    says something new (live_tools.low_hp_repeat_reason)."""
+    raw_extra = state.get("extra_context")
+    if decision_point not in LOW_HP_REPEAT_DECISIONS or not isinstance(raw_extra, dict):
+        return state
+    try:
+        before = PLAYER_SERVICE.advice_count(LOW_HP_REPEAT_DECISIONS)
+    except Exception as error:  # noqa: BLE001 - never breaks the live path
+        record_error("low-hp-repeats", error)
+        return state
+    return {**state, "extra_context": {**raw_extra, "low_hp_before": before}}
 
 
 def _with_death_items(state: dict[str, object], decision_point: str) -> dict[str, object]:

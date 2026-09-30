@@ -34,6 +34,9 @@ TEXT = {
         "reserve": " Оставьте {cost} на байбэк.",
         "why_disabled": "Почему {item}: смертей под контролем — {n}, с ним контроль вас не удержит.",
         "why_burst": "Почему {item}: смертей за пару секунд с высокого здоровья — {n}, он даст время.",
+        "why_targeted": "Почему {item}: смертей под контролем против {enemy} — {n}, он блокирует {spell}.",
+        "why_evasion": "Почему {item}: {enemy} уклоняется от атак, а он бьёт без промаха.",
+        "why_healing": "Почему {item}: {enemy} много лечится, а он режет лечение.",
     },
     "en": {
         "title": "Respawn in {s} s",
@@ -47,6 +50,9 @@ TEXT = {
         "reserve": " Keep {cost} for buyback.",
         "why_disabled": "Why {item}: {n} deaths under stuns, and with it no disable holds you.",
         "why_burst": "Why {item}: {n} deaths in seconds from high health, and it buys you time.",
+        "why_targeted": "Why {item}: {n} deaths under stuns against {enemy}, and it blocks {spell}.",
+        "why_evasion": "Why {item}: {enemy} dodges attacks, and it never misses.",
+        "why_healing": "Why {item}: {enemy} heals a lot, and it cuts the healing.",
     },
 }
 
@@ -99,8 +105,18 @@ def build_death_screen(
     if buy:
         lines.append(buy)
         why = (next_item or {}).get("why")
-        if why in ("disabled", "burst") and _int(next_item.get("count")):
-            lines.append(text[f"why_{why}"].format(item=next_item["name"], n=next_item["count"]))
+        enemy = (next_item or {}).get("enemy")
+        count = _int((next_item or {}).get("count"))
+        if (why in ("disabled", "burst") and count) or (
+            why == "targeted" and count and enemy and next_item.get("spell")
+        ):
+            lines.append(
+                text[f"why_{why}"].format(
+                    item=next_item["name"], n=count, enemy=enemy, spell=next_item.get("spell")
+                )
+            )
+        elif why in ("evasion", "healing") and enemy:
+            lines.append(text[f"why_{why}"].format(item=next_item["name"], enemy=enemy))
     if not lines:
         return None
     seconds = _int(respawn)

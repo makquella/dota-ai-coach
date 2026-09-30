@@ -734,6 +734,33 @@ def _kills_word(count: int) -> str:
     return "убийств"
 
 
+def _situational_tail(tail: str) -> str | None:
+    for pattern, template in _SITUATIONAL_TAILS:
+        match = pattern.match(tail)
+        if match:
+            return template.format(**match.groupdict())
+    return None
+
+
+_SITUATIONAL_TAIL_RE = r"(?P<tail>(?:\.|: \d+ gold to go.*|; its missing parts cost.*))$"
+
+
+def _counter_reason(groups: dict[str, str]) -> str:
+    """The counter-item reasons (situational_items: an enemy hero seen)."""
+    if groups.get("spell"):
+        count = int(groups["count"])
+        head = (
+            f"{count} {_deaths_word(count)} под контролем против {groups['enemy']} — "
+            f"{groups['name']} блокирует {groups['spell']}"
+        )
+    elif groups.get("kind") == "dodges your attacks":
+        head = f"{groups['enemy']} уклоняется от атак — {groups['name']} бьёт без промаха"
+    else:
+        head = f"{groups['enemy']} много лечится — {groups['name']} режет лечение"
+    tail = _situational_tail(groups["tail"])
+    return head + tail if tail is not None else ""
+
+
 def _situational_reason(groups: dict[str, str]) -> str:
     count = int(groups["count"])
     if groups["kind"].startswith("under stuns"):
@@ -801,6 +828,36 @@ _RU_FUNCTIONS: tuple[tuple[re.Pattern[str], Callable[[dict[str, str]], str]], ..
             r"that)(?P<tail>(?:\.|: \d+ gold to go.*|; its missing parts cost.*))$"
         ),
         _situational_reason,
+    ),
+    (
+        re.compile(
+            r"^(?P<count>\d+) deaths under stuns against (?P<enemy>.+?), and (?P<name>.+?) "
+            r"blocks (?P<spell>.+?)" + _SITUATIONAL_TAIL_RE
+        ),
+        _counter_reason,
+    ),
+    (
+        re.compile(
+            r"^(?P<enemy>.+?) (?P<kind>dodges your attacks|heals a lot), and (?P<name>.+?) "
+            r"(?:never misses|cuts the healing)" + _SITUATIONAL_TAIL_RE
+        ),
+        _counter_reason,
+    ),
+    (
+        re.compile(
+            r"^Your HP has dropped this low (?P<n>\d+) times this game: "
+            r"heal up fully before you go back\.(?P<regen> No regen in your bag: "
+            r"have the courier bring a Healing Salve\.)?$"
+        ),
+        lambda g: (
+            f"HP падает так низко уже {g['n']}-й раз за игру: "
+            "прежде чем возвращаться, восстановитесь полностью."
+            + (
+                " Регенерации в сумке нет: пусть курьер привезёт Healing Salve."
+                if g["regen"]
+                else ""
+            )
+        ),
     ),
     (
         re.compile(rf"^After respawn, stay away from the {_ZONE_RE} {_SIDE_RE}\.$"),

@@ -15,6 +15,7 @@ from datetime import UTC, datetime
 from typing import Any
 
 from app.buyback_tracker import BuybackTracker
+from app.enemy_heroes import EnemyHeroes
 from app.farm_tracker import FarmTracker
 from app.live_role import LiveRoleTracker
 from app.map_hints import RoleTips
@@ -94,6 +95,7 @@ class MatchMemory:
         self.tips = RoleTips()
         self.skills = SkillTips()
         self.roshan = RoshanTimer()
+        self.enemies = EnemyHeroes()
 
     def observe_state(self, state: dict[str, Any]) -> dict[str, Any]:
         now_dt = datetime.now(UTC)
@@ -171,6 +173,7 @@ class MatchMemory:
         extra = state.get("extra_context") if isinstance(state.get("extra_context"), dict) else {}
         if extra.get("source_type") == "live_gsi":
             self.roshan.observe(extra)
+            self.enemies.observe(extra.get("visible_enemies"))
             skills = extra.get("skills")
             self.skills.observe(_game_clock(state), skills if isinstance(skills, dict) else None)
             self.role.observe(
