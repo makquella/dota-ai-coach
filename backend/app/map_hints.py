@@ -47,6 +47,11 @@ WARD_ITEMS = {"item_ward_observer", "item_ward_dispenser"}
 # Support tip: the same observer ward carried this long (nothing placed).
 WARD_HELD = 2 * 60
 WARD_HELD_EVERY = 3 * 60
+# Where the ward goes: the lane's river until 10:00, then by the kill score
+# (8+ kills apart, as the farm advice) or Roshan's pit while he can be up.
+WARD_LANING_END = 10 * 60
+WARD_SCORE_FROM = 12 * 60
+WARD_SCORE_GAP = 8
 # Support tip: no save item after this clock with this much gold.
 SAVE_ITEMS = {
     "item_glimmer_cape",
@@ -141,6 +146,51 @@ TIPS = {
             "Вард в сумке ничего не показывает: поставьте его там, откуда придёт драка или ганк.",
         ),
     },
+    # Where to put it: by the phase of the game, the kill score and Roshan.
+    "ward_bag_lane": {
+        "en": (
+            "Place your observer ward",
+            "Put it by the river next to your lane: a gank shows up before it reaches you.",
+        ),
+        "ru": (
+            "Поставьте вард",
+            "Поставьте его у реки рядом с вашей линией: ганк будет виден заранее.",
+        ),
+    },
+    "ward_bag_behind": {
+        "en": (
+            "Place your observer ward",
+            "Your team is {gap} kills behind: ward the entrances to your own jungle, "
+            "where the enemy comes to catch your cores.",
+        ),
+        "ru": (
+            "Поставьте вард",
+            "Команда отстаёт на {gap} убийств: поставьте его у входа в свой лес — "
+            "там враг ловит ваших коров.",
+        ),
+    },
+    "ward_bag_ahead": {
+        "en": (
+            "Place your observer ward",
+            "Your team is {gap} kills ahead: ward the enemy jungle so your team can "
+            "catch their cores and take towers safely.",
+        ),
+        "ru": (
+            "Поставьте вард",
+            "Команда впереди на {gap} убийств: поставьте его в лесу врага — "
+            "так команда поймает их коров и безопасно снесёт вышки.",
+        ),
+    },
+    "ward_bag_roshan": {
+        "en": (
+            "Place your observer ward",
+            "Roshan can be up now: put it by the Roshan pit so the enemy cannot take it unseen.",
+        ),
+        "ru": (
+            "Поставьте вард",
+            "Рошан может уже появиться: поставьте его у логова — враг не заберёт его незаметно.",
+        ),
+    },
     "save_item": {
         "en": (
             "No save item yet",
@@ -149,6 +199,29 @@ TIPS = {
         "ru": (
             "Нет спасающего предмета",
             "Glimmer Cape или Force Staff спасают кора в драке: купите один из них следующим.",
+        ),
+    },
+    # The save item most bought on the hero (cached OpenDota build).
+    "save_item_hero": {
+        "en": (
+            "No save item yet: {item}",
+            "{item} is the save item most bought on this hero: {left} gold to go.",
+        ),
+        "ru": (
+            "Нет спасающего предмета: {item}",
+            "{item} чаще всего берут на этом герое, чтобы спасать союзников: "
+            "осталось {left} золота.",
+        ),
+    },
+    "save_item_now": {
+        "en": (
+            "Buy {item} now",
+            "{item} is the save item most bought on this hero, and you have the gold for it.",
+        ),
+        "ru": (
+            "Купите {item} сейчас",
+            "{item} чаще всего берут на этом герое, чтобы спасать союзников, "
+            "и золота на него хватает.",
         ),
     },
     "mid_six": {
@@ -456,6 +529,9 @@ class RoleTips:
         items: list[str] | None = None,
         key_item: dict[str, Any] | None = None,
         ward_charges: int | None = None,
+        save_item: dict[str, Any] | None = None,
+        score_gap: int | None = None,
+        roshan_open: bool = False,
     ) -> dict[str, Any] | None:
         held_for = self._observe_wards(ward_charges, clock)
         if not alive or role is None:
@@ -508,7 +584,7 @@ class RoleTips:
         if held_for is not None and held_for >= WARD_HELD and clock >= WARD_FROM_CLOCK:
             start = self._every("ward_bag", clock, WARD_HELD_EVERY, WARD_SHOW)
             if start is not None:
-                return _tip("ward_bag", f"ward_bag@{start}", lang)
+                return _ward_bag_tip(f"ward_bag@{start}", lang, clock, score_gap, roshan_open)
         if (
             items is not None
             and clock >= SAVE_FROM
@@ -518,7 +594,7 @@ class RoleTips:
         ):
             start = self._every("save_item", clock, SAVE_EVERY, SAVE_SHOW)
             if start is not None:
-                return _tip("save_item", f"save_item@{start}", lang)
+                return _save_item_tip(f"save_item@{start}", lang, save_item, gold)
         if gold is not None and gold >= SPEND_GOLD and clock >= SPEND_FROM:
             start = self._every("spend_gold", clock, SPEND_EVERY, SPEND_SHOW)
             if start is not None:
@@ -641,6 +717,46 @@ def _tip(
     }
 
 
+def _ward_bag_tip(
+    hint_id: str, lang: str, clock: int, score_gap: int | None, roshan_open: bool
+) -> dict[str, Any]:
+    """Where the ward in the bag should go: Roshan's pit while he can be up, the
+    lane's river in the laning stage, the own or the enemy jungle by the kill score."""
+    if roshan_open:
+        return _tip("ward_bag_roshan", hint_id, lang)
+    if clock < WARD_LANING_END:
+        return _tip("ward_bag_lane", hint_id, lang)
+    if score_gap is not None and clock >= WARD_SCORE_FROM:
+        if score_gap <= -WARD_SCORE_GAP:
+            return _tip("ward_bag_behind", hint_id, lang, gap=-score_gap)
+        if score_gap >= WARD_SCORE_GAP:
+            return _tip("ward_bag_ahead", hint_id, lang, gap=score_gap)
+    return _tip("ward_bag", hint_id, lang)
+
+
+def score_gap(extra: dict[str, Any]) -> int | None:
+    """The player's team kills minus the enemy's, from live GSI; None unknown."""
+    team = str(extra.get("team_name") or "").strip().lower()
+    radiant, dire = extra.get("radiant_score"), extra.get("dire_score")
+    if team not in ("radiant", "dire") or not isinstance(radiant, int):
+        return None
+    if not isinstance(dire, int) or isinstance(radiant, bool) or isinstance(dire, bool):
+        return None
+    return radiant - dire if team == "radiant" else dire - radiant
+
+
+def _save_item_tip(
+    hint_id: str, lang: str, item: dict[str, Any] | None, gold: int
+) -> dict[str, Any]:
+    """The hero's usual save item with its price, else Glimmer Cape or Force Staff."""
+    if not item or not item.get("name") or not isinstance(item.get("gold_left"), int):
+        return _tip("save_item", hint_id, lang)
+    left = item["gold_left"]
+    if left <= gold:
+        return _tip("save_item_now", hint_id, lang, item=item["name"])
+    return _tip("save_item_hero", hint_id, lang, item=item["name"], left=left)
+
+
 def map_hint(
     clock: int | None,
     role: str | None,
@@ -661,6 +777,9 @@ def map_hint(
     objective: dict[str, Any] | None = None,
     ward_charges: int | None = None,
     skill: dict[str, Any] | None = None,
+    save_item: dict[str, Any] | None = None,
+    score_gap: int | None = None,
+    roshan_open: bool = False,
 ) -> dict[str, Any] | None:
     """A timer, but a role tip over a minor one (runes, lotus); None before the
     horn or without a role. `objective`: a Roshan / Aegis timer (roshan_timer.py),
@@ -704,5 +823,8 @@ def map_hint(
         items=items,
         key_item=key_item,
         ward_charges=ward_charges,
+        save_item=save_item,
+        score_gap=score_gap,
+        roshan_open=roshan_open,
     )
     return tip or timer

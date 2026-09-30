@@ -10,7 +10,7 @@ from app.gsi_state import _normalize_hero_name
 from app.hero_profiles import get_hero_position, get_support_position
 from app.live_tools import low_hp_copy
 from app.main import SUPPORT_DECISIONS, _covered_decision_point
-from app.map_hints import RoleTips, has_observer_ward, map_hint, observer_charges
+from app.map_hints import SAVE_ITEMS, RoleTips, has_observer_ward, map_hint, observer_charges
 from app.match_memory import MATCH_MEMORY
 from app.player_api import PLAYER_SERVICE
 from app.schemas import SUPPORTED_HEROES, hero_coverage
@@ -162,3 +162,132 @@ def test_a_live_support_hero_gets_no_farm_advice_through_the_api(client):
     assert status["hero_coverage"] == "support"
     assert MATCH_MEMORY.role.role()["role"] == "support"
     assert not shown & {"LANING_FARM_CHECK", "FARMING_PHASE_PRESSURE", "SAFE_FARMING"}
+
+
+SAVE_CONSTANTS = {
+    "by_id": {"1": "glimmer_cape", "2": "force_staff", "3": "tranquil_boots", "4": "ward_observer"},
+    "items": {
+        "glimmer_cape": {
+            "name": "Glimmer Cape",
+            "cost": 1950,
+            "assembled": True,
+            "components": ["shadow_amulet", "cloak"],
+        },
+        "shadow_amulet": {"name": "Shadow Amulet", "cost": 1000, "components": []},
+        "cloak": {"name": "Cloak", "cost": 800, "components": []},
+        "force_staff": {
+            "name": "Force Staff",
+            "cost": 2200,
+            "assembled": True,
+            "components": ["staff_of_wizardry", "ring_of_regen"],
+        },
+        "staff_of_wizardry": {"name": "Staff of Wizardry", "cost": 1000, "components": []},
+        "ring_of_regen": {"name": "Ring of Regen", "cost": 175, "components": []},
+        "hurricane_pike": {
+            "name": "Hurricane Pike",
+            "cost": 4450,
+            "assembled": True,
+            "components": ["force_staff", "dragon_lance"],
+        },
+        "tranquil_boots": {
+            "name": "Tranquil Boots",
+            "cost": 925,
+            "assembled": True,
+            "components": ["boots"],
+        },
+    },
+}
+SAVE_META = {
+    "constants": SAVE_CONSTANTS,
+    # Boots are bought more, then Force Staff over Glimmer Cape.
+    "popularity": {"mid_game_items": {"3": 90, "2": 60, "1": 40}},
+}
+
+
+def test_the_save_item_is_the_one_bought_on_the_hero():
+    """«Glimmer Cape or Force Staff» named neither the hero's usual choice nor its price."""
+    from app.next_item import save_build_item
+
+    item = save_build_item(SAVE_META, ["item_tranquil_boots", "item_staff_of_wizardry"], SAVE_ITEMS)
+    assert item == {"key": "force_staff", "name": "Force Staff", "cost": 2200, "gold_left": 1200}
+    # Owned, or built into a Hurricane Pike: nothing to say.
+    assert save_build_item(SAVE_META, ["item_force_staff"], SAVE_ITEMS) is None
+    assert save_build_item(SAVE_META, ["item_hurricane_pike"], SAVE_ITEMS) is None
+    # No save item in the hero's build, no cached build or no items block.
+    boots_only = {**SAVE_META, "popularity": {"mid_game_items": {"3": 90}}}
+    assert save_build_item(boots_only, [], SAVE_ITEMS) is None
+    assert save_build_item(None, [], SAVE_ITEMS) is None
+    assert save_build_item(SAVE_META, None, SAVE_ITEMS) is None
+
+    items = ["item_tranquil_boots"]
+    hint = RoleTips().tip(
+        13 * 60,
+        "support",
+        alive=True,
+        has_ward=True,
+        lang="en",
+        gold=1300,
+        items=items,
+        save_item={**item, "gold_left": 2200},
+    )
+    assert hint["title"] == "No save item yet: Force Staff"
+    assert hint["hint"] == "Force Staff is the save item most bought on this hero: 2200 gold to go."
+    ru = RoleTips().tip(
+        13 * 60,
+        "support",
+        alive=True,
+        has_ward=True,
+        lang="ru",
+        gold=2500,
+        items=items,
+        save_item={**item, "gold_left": 2200},
+    )
+    assert ru["title"] == "Купите Force Staff сейчас"
+    # Unknown build: the old tip.
+    plain = RoleTips().tip(
+        13 * 60, "support", alive=True, has_ward=True, lang="en", gold=1300, items=items
+    )
+    assert plain["hint"].startswith("Glimmer Cape or Force Staff")
+
+
+def test_the_service_reads_the_save_item_from_the_heros_build(monkeypatch):
+    from app.player_api import PLAYER_SERVICE
+
+    monkeypatch.setattr(PLAYER_SERVICE, "_live_meta", lambda hero_id: SAVE_META)
+    item = PLAYER_SERVICE.save_item("Crystal Maiden", ["item_boots"])
+    assert item is not None and item["name"] == "Force Staff"
+    assert PLAYER_SERVICE.save_item("Not A Hero", []) is None
+
+
+def test_the_ward_tip_says_where_to_put_it():
+    """«Put it where the next fight will come from» named no place."""
+    from app.map_hints import score_gap
+
+    def hint(clock, **kwargs):
+        tips = RoleTips()
+        tips.tip(clock - 150, "support", alive=True, has_ward=True, lang="en", ward_charges=1)
+        return tips.tip(
+            clock, "support", alive=True, has_ward=True, lang="en", ward_charges=1, **kwargs
+        )["hint"]
+
+    assert hint(7 * 60).startswith("Put it by the river next to your lane")
+    assert hint(20 * 60, score_gap=-9).startswith("Your team is 9 kills behind: ward the entrances")
+    assert hint(20 * 60, score_gap=10).startswith("Your team is 10 kills ahead: ward the enemy")
+    assert hint(20 * 60, score_gap=3).startswith("A ward in the bag shows nothing")
+    assert hint(20 * 60, score_gap=-9, roshan_open=True).startswith("Roshan can be up now")
+    assert score_gap({"team_name": "dire", "radiant_score": 20, "dire_score": 11}) == -9
+    assert score_gap({"team_name": "radiant", "radiant_score": 20, "dire_score": 11}) == 9
+    assert score_gap({"radiant_score": 20, "dire_score": 11}) is None
+    assert score_gap({"team_name": "dire", "radiant_score": True, "dire_score": 1}) is None
+
+
+def test_roshan_can_be_up_around_his_window():
+    from app.roshan_timer import RoshanTimer
+
+    timer = RoshanTimer()
+    assert not timer.maybe_up(1500)
+    timer.killed_at = 1200  # respawn window 28:00-31:00
+    assert not timer.maybe_up(1200 + 400)
+    assert timer.maybe_up(1200 + 480 - 60)
+    assert timer.maybe_up(1200 + 660 + 180)
+    assert not timer.maybe_up(1200 + 660 + 181)
