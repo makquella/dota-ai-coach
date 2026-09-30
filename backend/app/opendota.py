@@ -17,6 +17,7 @@ raises OpenDotaError with a stable `code` for the UI.
 
 from __future__ import annotations
 
+import contextlib
 import threading
 import time
 from typing import Any
@@ -274,10 +275,12 @@ class OpenDotaClient:
 
     def pro_skill_orders(self, hero_id: int) -> dict[str, Any]:
         """How pro players levelled the hero lately: {"orders": [[ability name, …]],
-        "names": {ability name: in-game name}, "ids": {ability id: name}}
+        "names": {ability name: in-game name}, "ids": {ability id: name},
+        "talents": {talent name: hero level of its row}}
         from the `ability_upgrades_arr` of up to skill_build.MAX_GAMES recent pro
         matches (/heroes/{id}/matches, then /matches/{id}; unparsed ones skipped)."""
-        from app.skill_build import MAX_GAMES, MAX_TRIES, upgrade_names
+        from app.dota_constants import hero_npc_name
+        from app.skill_build import MAX_GAMES, MAX_TRIES, TALENT_LEVELS, talent_label, upgrade_names
 
         hero = int(hero_id)
         ids = self._get("/constants/ability_ids")
@@ -307,16 +310,37 @@ class OpenDotaClient:
         # In-game names ("Presence of the Dark Lord", not nevermore_dark_lord),
         # only for the abilities of these games (the constants are 1.3 MB).
         names: dict[str, str] = {}
+        talents: dict[str, int] = {}
         if orders:
-            constants = self._get("/constants/abilities")
+            # Names and talent rows are extras: the order stands without them.
+            constants = heroes = None
+            with contextlib.suppress(OpenDotaError):
+                constants = self._get("/constants/abilities")
+            with contextlib.suppress(OpenDotaError):
+                # The hero's talents with their row (level 1-4 → hero level 10/15/20/25).
+                heroes = self._get("/constants/hero_abilities")
+            hero_entry = heroes.get(hero_npc_name(hero)) if isinstance(heroes, dict) else None
+            for talent in (hero_entry or {}).get("talents") or []:
+                row = talent.get("level") if isinstance(talent, dict) else None
+                if isinstance(row, int) and 1 <= row <= len(TALENT_LEVELS):
+                    talents[str(talent.get("name"))] = TALENT_LEVELS[row - 1]
             if isinstance(constants, dict):
                 for name in {n for order in orders for n in order}:
                     entry = constants.get(name)
                     label = entry.get("dname") if isinstance(entry, dict) else None
-                    if isinstance(label, str) and label and not name.startswith("special_bonus_"):
+                    if not isinstance(label, str) or not label:
+                        continue
+                    if not name.startswith("special_bonus_"):
                         names[name] = label
+                    elif name in talents and talent_label(label):
+                        names[name] = talent_label(label)
         # The hero's ability ids, so a review can read the player's own upgrades.
-        return {"orders": orders, "names": names, "ids": {i: ids[i] for i in sorted(used)}}
+        return {
+            "orders": orders,
+            "names": names,
+            "ids": {i: ids[i] for i in sorted(used)},
+            "talents": talents,
+        }
 
     def hero_stats(self) -> list[dict[str, Any]]:
         """/heroStats: picks and wins per rank bracket 1 (Herald) .. 8 (Immortal)."""

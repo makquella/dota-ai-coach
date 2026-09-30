@@ -293,6 +293,9 @@ const I18N = {
     tourHint: "A short tour of the app, one minute",
     tourStart: "Show",
     whatsNew: {
+      "0.24.0": [
+        "Which talent to take: when a talent row opens, the coach names the one pro players take on your hero."
+      ],
       "0.23.0": [
         "Where the point goes: after a level-up the coach names the skill pro players level on your hero, with the whole order.",
         "The game plan shows the pro skill order, and the review says when you maxed a different skill first."
@@ -847,6 +850,9 @@ const I18N = {
     tourHint: "Короткая экскурсия по приложению, на минуту",
     tourStart: "Показать",
     whatsNew: {
+      "0.24.0": [
+        "Какой талант взять: когда открывается ряд талантов, тренер называет тот, что берут про-игроки на вашем герое."
+      ],
       "0.23.0": [
         "Куда вложить очко: после нового уровня тренер называет умение, которое качают про-игроки на вашем герое, и весь порядок прокачки.",
         "План на игру показывает прокачку у про, а разбор — если первым вы вкачали другое умение."
