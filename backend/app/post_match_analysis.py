@@ -30,10 +30,11 @@ from app.item_timing import classify_item_timing, normalize_item_name
 from app.map_analysis import analyze_map
 from app.peer_analysis import match_peers, peer_findings, player_roles
 from app.role_analysis import analyze_role
+from app.skill_build import review_skills
 from app.usage_stats import advice_counts
 
 # Bump when the rules change: stored reviews of an older version are rebuilt on read.
-ANALYSIS_VERSION = 16
+ANALYSIS_VERSION = 17
 # Dota replays run at 30 ticks a second.
 REPLAY_TICK_RATE = 30
 # Last seconds before deaths (last_moments.py, via death_review.py).
@@ -167,6 +168,20 @@ def analyze_match(
     findings.extend(_last_moment_findings(death_block))
     role_block, role_findings = analyze_role(facts, opendota, position)
     findings.extend(role_findings)
+    skills_block = review_skills(facts.get("skill_upgrades"), (meta or {}).get("skills"))
+    if skills_block and not skills_block["same"]:
+        _finding(
+            findings,
+            "skill_first_max",
+            "improve",
+            "laning",
+            severity=1,
+            weight=0.9,
+            yours=skills_block["yours"],
+            pro=skills_block["pro"],
+            agree=skills_block["agree"],
+            games=skills_block["games"],
+        )
     if role_block and "runes" in role_block and "laning" in sections:
         # The mid's runes are shown with the lane numbers.
         sections["laning"]["runes"] = role_block["runes"]
@@ -246,6 +261,8 @@ def analyze_match(
         "advice_counts": advice_counts(facts.get("advice_log"), follow_block),
         "advice_follow": follow_block,
         "role_play": role_block,
+        # The first skill maxed against the pro order on the hero (skill_build.py).
+        "skills": skills_block,
         # The enemy lineup (OpenDota), for the career's hardest opponents.
         "enemy_heroes": _enemy_heroes(opendota),
     }

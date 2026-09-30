@@ -69,7 +69,7 @@ app = FastAPI(
     lifespan=_lifespan,
     title="Wardly",
     description="MVP-1: rule-based carry coach with local knowledge-base RAG.",
-    version="0.22.0",
+    version="0.23.0",
 )
 app.include_router(player_router)
 
@@ -103,7 +103,7 @@ if FRONTEND_DIR.exists():
 @app.get("/", summary="Health check")
 def root():
     """Simple health-check endpoint."""
-    return {"status": "ok", "service": "Wardly", "version": "0.22.0"}
+    return {"status": "ok", "service": "Wardly", "version": "0.23.0"}
 
 
 @app.get("/health", summary="Health check")
@@ -391,6 +391,7 @@ def _live_role_and_hint(response: dict[str, object], lang: str) -> dict[str, obj
                 clock if isinstance(clock, int) else None,
                 lang,
                 alive=extra.get("alive") is not False,
+                build=PLAYER_SERVICE.skill_build(str(state.get("hero") or "")),
             ),
         )
         if hint is not None:

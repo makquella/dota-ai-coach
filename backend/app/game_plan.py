@@ -7,6 +7,8 @@ Three short lines built from data the app already has, nothing guessed:
   their own average on it when they have played it;
 - the key item most players buy on this hero and when most of them finish it
   (OpenDota public matches, cached), with the win rate at that timing;
+- how pro players level the hero: the ability they max first and second
+  (app/skill_build.py, recent pro games);
 - the enemy heroes the player loses to most (lineups of their own reviewed
   OpenDota matches, met 3+ times: on this hero when it has such records, else
   on any hero), so they know what to watch for once they see the enemy draft;
@@ -49,6 +51,7 @@ TEXT = {
         "reminder": "Частая ошибка: {title}",
         "focus": "Ваш фокус: {title}",
         "hard": "Тяжело против: {heroes}",
+        "skills": "Прокачка у про: сначала {first}, потом {second}",
     },
     "en": {
         "title": "Plan for this game",
@@ -59,6 +62,7 @@ TEXT = {
         "reminder": "Common mistake: {title}",
         "focus": "Your focus: {title}",
         "hard": "Hard matchups: {heroes}",
+        "skills": "Pros max {first} first, then {second}",
     },
 }
 
@@ -131,10 +135,12 @@ def build_game_plan(
     meta: dict[str, Any] | None,
     lang: str,
     record_history: list[dict[str, Any]] | None = None,
+    skills: dict[str, Any] | None = None,
 ) -> dict[str, Any] | None:
     """`history`: the player's recent matches on this hero (store rows with analysis);
     `all_recent`: recent matches on any hero (for the reminder); `meta`: cached hero meta;
-    `record_history`: more rows on the hero for the record (default: `history`)."""
+    `record_history`: more rows on the hero for the record (default: `history`);
+    `skills`: the pro skill order (app/skill_build.skill_order)."""
     record_rows = history if record_history is None else record_history
     lang = "ru" if lang == "ru" else "en"
     text = TEXT[lang]
@@ -158,6 +164,15 @@ def build_game_plan(
         )
     elif item:
         lines.append(text["item_plain"].format(item=item["name"]))
+
+    order = (skills or {}).get("order") or []
+    if len(order) >= 2:
+        names = (skills or {}).get("names") or {}
+        lines.append(
+            text["skills"].format(
+                first=names.get(order[0], order[0]), second=names.get(order[1], order[1])
+            )
+        )
 
     if focus:
         # The problem the player chose to work on beats the most frequent one.

@@ -91,6 +91,7 @@ from app.session_summary import session_summary
 from app.share_progress import public_progress
 from app.share_review import public_review
 from app.situational_items import situational_item
+from app.skill_build import skill_order
 from app.steam_ids import parse_account_id, steam64_from_account_id
 from app.usage_stats import usage_stats
 from app.weekly_summary import weekly_summary
@@ -110,6 +111,7 @@ PARSE_POLL_ATTEMPTS = 12
 ITEM_CONSTANTS_KEY = "opendota:items"
 POPULARITY_KEY = "opendota:item_popularity"
 TIMINGS_KEY = "opendota:item_timings"
+SKILLS_KEY = "opendota:pro_skills"
 HERO_STATS_KEY = "opendota:hero_stats"
 MATCHUPS_KEY = "opendota:matchups"
 META_TTL_SECONDS = 7 * 24 * 3600
@@ -442,6 +444,7 @@ class PlayerService:
             all_recent=self.store.matches_for_career(primary, limit=RECENT_MATCHES_LIMIT),
             meta=self._live_meta(hero_id),
             lang=lang,
+            skills=self.skill_build(hero),
         )
         self._plans[key] = (now, plan)
         return plan
@@ -462,6 +465,31 @@ class PlayerService:
         result = item if item and item.get("typical_t") else None
         self._plans[key] = (now, result)
         return result
+
+    def skill_build(self, hero: str) -> dict[str, Any] | None:
+        """How pro players level the hero (app/skill_build.skill_order) for the live
+        skill tip and the game plan; read once a minute, fetched on the job thread
+        when missing or a week old (stale data is used meanwhile)."""
+        hero_id = hero_id_from_name(hero)
+        if hero_id is None:
+            return None
+        key = ("skills", hero_id)
+        cached = self._plans.get(key)
+        now = time.monotonic()
+        if cached is not None and now - cached[0] < GAME_PLAN_CACHE_SECONDS:
+            return cached[1]
+        store_key = f"{SKILLS_KEY}:{hero_id}"
+        client = self.client
+        if client is not None and self.store.cache_get(store_key, max_age=META_TTL_SECONDS) is None:
+            self.jobs.submit(
+                f"skills:{hero_id}",
+                lambda: self._refresh(
+                    store_key, META_TTL_SECONDS, lambda: client.pro_skill_orders(hero_id)
+                ),
+            )
+        build = skill_order(self.store.cache_get(store_key))
+        self._plans[key] = (now, build)
+        return build
 
     def next_item(self, hero: str, owned: list[str] | None) -> dict[str, Any] | None:
         """The next item of the hero's usual build and the gold its missing parts
@@ -744,6 +772,10 @@ class PlayerService:
         if analysis is None and (record.get("opendota") or record.get("timeline")):
             analysis = self._rebuild_analysis(primary, match_id)
         if analysis is None and self.client is not None:
+            self.fetch_match(match_id, request_parse=False)
+        elif self.client is not None and _trim_is_old(record):
+            # Stored before trim_match kept what the review now reads (the skill
+            # order): shown as it is now, fetched again and rebuilt in the background.
             self.fetch_match(match_id, request_parse=False)
         detail = {
             "match_id": match_id,
@@ -1693,6 +1725,7 @@ class PlayerService:
             "constants": constants,
             "popularity": self.store.cache_get(f"{POPULARITY_KEY}:{int(hero_id)}"),
             "timings": self.store.cache_get(f"{TIMINGS_KEY}:{int(hero_id)}"),
+            "skills": self.store.cache_get(f"{SKILLS_KEY}:{int(hero_id)}"),
         }
 
     def _refresh(
@@ -1706,13 +1739,9 @@ class PlayerService:
             self.store.cache_set(key, fetch())
 
     def _trim_outdated(self, account_id: int, row: dict[str, Any]) -> bool:
-        """A parsed match stored before trim_match kept what the review now uses
-        (team fight death positions): fetched again, one request."""
-        if row.get("parse_status") != "parsed":
-            return False
-        record = self.store.get_match(account_id, row["match_id"])
-        stored = (record or {}).get("opendota") or {}
-        return int(stored.get("trim_version") or 1) < TRIM_VERSION
+        """A match stored before trim_match kept what the review now uses (team
+        fight death positions, the skill order): fetched again, one request."""
+        return _trim_is_old(self.store.get_match(account_id, row["match_id"]))
 
     def _pool(self, account_id: int) -> list[int]:
         return pool_heroes(self.store.list_matches(account_id, limit=RECENT_MATCHES_LIMIT))
@@ -1776,6 +1805,9 @@ class PlayerService:
             f"{POPULARITY_KEY}:{hero}", META_TTL_SECONDS, lambda: client.item_popularity(hero)
         )
         self._refresh(f"{TIMINGS_KEY}:{hero}", META_TTL_SECONDS, lambda: client.item_timings(hero))
+        self._refresh(
+            f"{SKILLS_KEY}:{hero}", META_TTL_SECONDS, lambda: client.pro_skill_orders(hero)
+        )
 
     def _ensure_hero_stats(self) -> None:
         client = self.client
@@ -1937,3 +1969,11 @@ def _start_time(timeline: dict[str, Any]) -> int | None:
         return int(datetime.fromisoformat(str(started)).timestamp()) if started else None
     except ValueError:
         return None
+
+
+def _trim_is_old(record: dict[str, Any] | None) -> bool:
+    """The stored OpenDota match was trimmed by an older trim_match."""
+    stored = (record or {}).get("opendota")
+    if not isinstance(stored, dict) or not stored:
+        return False
+    return int(stored.get("trim_version") or 1) < TRIM_VERSION
