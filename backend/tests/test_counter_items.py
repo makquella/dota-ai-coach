@@ -175,3 +175,40 @@ def test_a_support_is_told_to_carry_dust_against_an_invisible_hero():
         )
         is None
     )
+
+
+def test_illusion_heroes_ask_a_carry_for_maelstrom():
+    from app.death_screen import build_death_screen
+
+    item = situational_item([], [], META, enemies=["Phantom Lancer"], position="carry", minute=13)
+    assert item["key"] == "maelstrom" and item["why"] == "illusions"
+    assert item["enemy"] == "Phantom Lancer"
+    # A mid, or before minute 12: the usual build.
+    assert situational_item([], [], META, enemies=["Naga Siren"], position="mid", minute=20) is None
+    assert (
+        situational_item([], [], META, enemies=["Naga Siren"], position="carry", minute=11) is None
+    )
+    state = {"minute": 13, "gold": 400, "extra_context": {"next_item": item, "gpm": 480}}
+    _, reason = _next_item_copy(state, state["extra_context"])
+    assert reason.startswith("Phantom Lancer fights with illusions, and Maelstrom hits them all")
+    assert translate_ru(reason).startswith(
+        "Phantom Lancer дерётся иллюзиями — Maelstrom бьёт их всех сразу"
+    )
+    card = build_death_screen(
+        death={"t": 800, "usable": []},
+        place=None,
+        respawn=20,
+        gold=1500,
+        buyback_cost=None,
+        minute=13,
+        next_item=item,
+        lang="ru",
+    )
+    assert any("дерётся иллюзиями" in line for line in card["lines"])
+
+
+def test_more_single_target_disables_are_known():
+    # Spirit Breaker's Charge goes through BKB, Linken's blocks it.
+    deaths = [_stunned(900), _stunned(1500)]
+    item = situational_item(deaths, [], META, enemies=["Spirit Breaker"], position="carry")
+    assert item["key"] == "sphere" and item["spell"] == "Charge of Darkness"

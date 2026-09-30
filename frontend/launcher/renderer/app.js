@@ -293,6 +293,9 @@ const I18N = {
     tourHint: "A short tour of the app, one minute",
     tourStart: "Show",
     whatsNew: {
+      "0.30.1": [
+        "More heroes in the item advice: Linken's Sphere against Reaper's Scythe, Charge of Darkness and Winter's Curse, Maelstrom for a carry against illusion heroes, Dust against Mirana, Templar Assassin and Invoker."
+      ],
       "0.30.0": [
         "Losing 30% HP or more in 5 seconds brings the urgent card at once, before HP is critical.",
         "The low-HP card shows what to press, how fast HP is falling and how many times it happened this game.",
@@ -882,6 +885,9 @@ const I18N = {
     tourHint: "Короткая экскурсия по приложению, на минуту",
     tourStart: "Показать",
     whatsNew: {
+      "0.30.1": [
+        "Больше героев в советах по предметам: Linken's Sphere против Reaper's Scythe, Charge of Darkness и Winter's Curse, Maelstrom керри против героев с иллюзиями, Dust против Mirana, Templar Assassin и Invoker."
+      ],
       "0.30.0": [
         "Если за 5 секунд ушло 30 % здоровья и больше, срочная карточка появляется сразу, до критического HP.",
         "Карточка низкого HP показывает, что нажать, как быстро падает здоровье и какой это раз за игру.",

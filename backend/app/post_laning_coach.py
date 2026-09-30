@@ -483,9 +483,10 @@ SITUATIONAL_BECAUSE = {
     "targeted": "{count} deaths under stuns against {enemy}, and {name} blocks {spell}",
     "evasion": "{enemy} dodges your attacks, and {name} never misses",
     "healing": "{enemy} heals a lot, and {name} cuts the healing",
+    "illusions": "{enemy} fights with illusions, and {name} hits them all",
 }
 # Counters to an enemy hero seen: no death count, the enemy says why.
-ENEMY_WHYS = {"evasion", "healing"}
+ENEMY_WHYS = {"evasion", "healing", "illusions"}
 
 
 def _situational_because(item: Mapping[str, Any]) -> str | None:

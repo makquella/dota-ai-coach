@@ -55,17 +55,28 @@ COUNTERS: dict[str, tuple[set[str], list[str], set[str]]] = {
         {"core", "offlane"},
     ),
     "illusions": (
-        {"Phantom Lancer", "Naga Siren", "Terrorblade", "Chaos Knight"},
+        {"Phantom Lancer", "Naga Siren", "Terrorblade", "Chaos Knight", "Meepo"},
         ["maelstrom", "mjollnir", "bfury", "radiance"],
         {"core", "offlane"},
     ),
     "invisibility": (
-        {"Riki", "Bounty Hunter", "Clinkz", "Weaver", "Nyx Assassin"},
+        {
+            "Riki",
+            "Bounty Hunter",
+            "Clinkz",
+            "Weaver",
+            "Nyx Assassin",
+            "Mirana",
+            "Templar Assassin",
+            "Invoker",
+        },
         ["dust", "ward_sentry", "gem"],
         {"support"},
     ),
     "healing": (
-        {"Alchemist", "Necrophos", "Huskar", "Oracle"},
+        # Heroes whose own healing wins fights; a healing support is in almost
+        # every lineup and would ask for Spirit Vessel every game.
+        {"Alchemist", "Necrophos", "Huskar", "Oracle", "Lifestealer"},
         ["spirit_vessel", "skadi"],
         {"core", "offlane", "support"},
     ),
@@ -85,6 +96,9 @@ TARGETED_DISABLES = {
     "Pudge": "Dismember",
     "Lion": "Hex",
     "Shadow Shaman": "Hex",
+    "Necrophos": "Reaper's Scythe",
+    "Spirit Breaker": "Charge of Darkness",
+    "Winter Wyvern": "Winter's Curse",
 }
 TARGETED_ITEM = "sphere"
 TARGETED_NAME = "Linken's Sphere"
