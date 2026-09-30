@@ -40,7 +40,7 @@ GAME = [
     WARD,
 ]
 NAMES = {FURY: "Blade Fury", DANCE: "Blade Dance", WARD: "Healing Ward", OMNI: "Omnislash"}
-DATA = {"orders": [GAME, GAME, GAME[:9] + [WARD, WARD, WARD, WARD]], "names": NAMES}
+DATA = {"orders": [GAME, GAME, GAME[:9] + [WARD, WARD, WARD, WARD]], "names": NAMES, "talents": {}}
 
 
 def test_the_maxing_order_of_pro_games():
@@ -152,7 +152,10 @@ def test_the_client_reads_recent_pro_games():
         "/matches/12": {"players": [{"hero_id": 8, "ability_upgrades_arr": None}]},
         "/constants/abilities": {
             FURY: {"dname": "Blade Fury"},
-            TALENT: {"dname": "+20 Attack Speed"},
+            TALENT: {"dname": "+{s:value} Attack Speed"},
+        },
+        "/constants/hero_abilities": {
+            "npc_dota_hero_juggernaut": {"talents": [{"name": TALENT, "level": 1}]}
         },
     }
     session = _Session(routes)
@@ -160,7 +163,9 @@ def test_the_client_reads_recent_pro_games():
     assert data["orders"] == [
         [FURY, DANCE, FURY, DANCE, FURY, OMNI, FURY, DANCE, DANCE, TALENT, WARD]
     ]
-    assert data["names"] == {FURY: "Blade Fury"}  # talents never named
+    # A talent of the hero is named without its placeholder number, with its row.
+    assert data["names"] == {FURY: "Blade Fury", TALENT: "Attack Speed"}
+    assert data["talents"] == {TALENT: 10}
 
 
 def test_the_service_fetches_once_and_reads_the_cache(monkeypatch):
@@ -254,3 +259,99 @@ def test_invokers_orbs_get_no_order():
     assert next_skill(build, {FURY: 5, DANCE: 1, WARD: 1}, 12) is None
     # An innate levelled high does not silence the order.
     assert next_skill(build, {FURY: 1, DANCE: 1, WARD: 0, "juggernaut_innate": 9}, 3) == FURY
+
+
+LIFESTEAL, CRIT = "special_bonus_unique_juggernaut_lifesteal", "special_bonus_unique_juggernaut_4"
+
+
+def test_the_talent_the_pros_take_on_each_row():
+    from app.skill_build import talent_label
+
+    assert talent_label("-{s:bonus_AbilityCooldown}s Blade Fury Cooldown") == "Blade Fury Cooldown"
+    assert talent_label("+{s:bonus_heal}% Healing Ward Heal") == "Healing Ward Heal"
+    assert talent_label("+15% Blade Dance Crit Damage") == "+15% Blade Dance Crit Damage"
+    assert talent_label("{s:value}") == ""
+    games = [GAME + [LIFESTEAL], GAME + [LIFESTEAL], GAME + [CRIT], GAME + [LIFESTEAL]]
+    data = {
+        "orders": games,
+        "names": {**NAMES, LIFESTEAL: "Blade Dance Lifesteal", CRIT: "+15% Crit"},
+        "talents": {LIFESTEAL: 10, CRIT: 10, TALENT: 15},
+    }
+    talents = skill_order(data)["talents"]
+    assert talents == {
+        10: {"name": LIFESTEAL, "label": "Blade Dance Lifesteal", "picked": 3, "games": 4}
+    }  # TALENT has no name → not offered; a 2–2 split would not be either
+    split = {**data, "orders": [GAME + [LIFESTEAL]] * 2 + [GAME + [CRIT]] * 2}
+    assert skill_order(split)["talents"] == {}
+
+
+def test_the_talent_tip_names_the_pros_pick():
+    data = {
+        "orders": [GAME + [LIFESTEAL]] * 3,
+        "names": {**NAMES, LIFESTEAL: "Blade Dance Lifesteal"},
+        "talents": {LIFESTEAL: 10},
+    }
+    build = skill_order(data)
+    payload = _payload(9, 4, 4, 0, ult=1)
+    payload["hero"].update({f"talent_{i}": False for i in range(1, 9)})
+    tips = SkillTips()
+    tips.observe(900, read_skills(payload))
+    payload = _payload(10, 4, 4, 0, ult=1)
+    payload["hero"].update({f"talent_{i}": False for i in range(1, 9)})
+    tips.observe(910, read_skills(payload))
+    hint = tips.tip(910 + UNSPENT_WAIT, "ru", alive=True, build=build)
+    assert hint["title"] == "Выберите талант"
+    assert hint["hint"] == (
+        "Талант 10-го уровня: про-игроки на этом герое берут «Blade Dance Lifesteal» (3 из 3)."
+    )
+
+
+def test_data_cached_before_the_talents_is_fetched_again(monkeypatch):
+    service = PLAYER_SERVICE
+    calls = []
+
+    class _Client:
+        def pro_skill_orders(self, hero_id):
+            calls.append(hero_id)
+            return DATA
+
+    monkeypatch.setattr(service, "client", _Client())
+    old = {key: value for key, value in DATA.items() if key != "talents"}
+    service.store.cache_set("opendota:pro_skills:8", old)
+    assert service.skill_build("Juggernaut")["order"] == [FURY, DANCE, WARD]  # used meanwhile
+    service.jobs.run_pending(until=float("inf"))
+    assert calls == [8]
+    assert "talents" in service.store.cache_get("opendota:pro_skills:8")
+
+
+def test_a_game_counts_once_per_talent_row():
+    # Late in a game the other talent of the row is taken too: still one game.
+    games = [GAME + [LIFESTEAL, CRIT]] * 5
+    data = {
+        "orders": games,
+        "names": {**NAMES, LIFESTEAL: "Blade Dance Lifesteal", CRIT: "+15% Crit"},
+        "talents": {LIFESTEAL: 10, CRIT: 10},
+    }
+    assert skill_order(data)["talents"][10] == {
+        "name": LIFESTEAL,
+        "label": "Blade Dance Lifesteal",
+        "picked": 5,
+        "games": 5,
+    }
+
+
+def test_talent_rows_given_as_hero_levels_are_read_too():
+    ids = {"1": FURY, "5": TALENT}
+    routes = {
+        "/constants/ability_ids": ids,
+        "/heroes/8/matches": [{"match_id": 10}],
+        "/matches/10": {"players": [{"hero_id": 8, "ability_upgrades_arr": [1, 5]}]},
+        "/constants/abilities": {TALENT: {"dname": "+20 Attack Speed"}},
+        "/constants/hero_abilities": {
+            "npc_dota_hero_juggernaut": {
+                "talents": [{"name": TALENT, "level": 15}, {"name": "x", "level": 7}]
+            }
+        },
+    }
+    data = OpenDotaClient(session=_Session(routes), min_interval=0).pro_skill_orders(8)
+    assert data["talents"] == {TALENT: 15}

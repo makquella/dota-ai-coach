@@ -19,6 +19,7 @@ before this.
 
 from __future__ import annotations
 
+import re
 from statistics import median
 from typing import Any
 
@@ -27,6 +28,9 @@ MAX_GAMES = 5  # pro games read per hero (each is one large OpenDota request)
 MAX_TRIES = 8  # recent pro matches tried: some are not parsed yet
 MAX_LEVEL = 4
 TALENT_PREFIX = "special_bonus_"
+TALENT_LEVELS = (10, 15, 20, 25)
+# A talent row is named when the pros agree on one of its two in this share.
+TALENT_AGREE = 0.6
 # One skill logged under several ability ids (the upgrade goes to whichever slot
 # was pressed); GSI shows every slot at the same level.
 ALIASES = {
@@ -79,7 +83,9 @@ def skill_order(data: dict[str, Any] | None) -> dict[str, Any] | None:
         return None
     order = sorted(usual, key=lambda name: (median(usual[name]), name))
     names = raw_names if isinstance(raw_names, dict) else {}
+    tiers = data.get("talents") if isinstance(data, dict) else None
     return {
+        "talents": _pro_talents(games, tiers if isinstance(tiers, dict) else {}, names),
         "order": order,
         # Every ability of these games with a name (the ultimate too: skill_tips
         # names it), and a readable fallback for the ones of the order.
@@ -90,6 +96,49 @@ def skill_order(data: dict[str, Any] | None) -> dict[str, Any] | None:
         "first_agree": sum(1 for name in firsts if name == order[0]),
         "games": len(games),
     }
+
+
+def _pro_talents(
+    games: list[list[str]], tiers: dict[str, Any], names: dict[str, Any]
+) -> dict[int, dict[str, Any]]:
+    """{hero level: {name, label, picked, games}} for the talent rows where the
+    pros agree (TALENT_AGREE of the games that took that row, MIN_GAMES+)."""
+    taken: dict[int, list[str]] = {}
+    for order in games:
+        rows: dict[int, str] = {}
+        for name in order:
+            level = tiers.get(name)
+            # The first talent of each row: at high levels the other one of the
+            # pair can be taken too, and one game must count once.
+            if isinstance(level, int) and isinstance(names.get(name), str):
+                rows.setdefault(level, name)
+        for level, name in rows.items():
+            taken.setdefault(level, []).append(name)
+    result: dict[int, dict[str, Any]] = {}
+    for level, picks in taken.items():
+        if len(picks) < MIN_GAMES:
+            continue
+        name, picked = max(
+            ((n, picks.count(n)) for n in set(picks)), key=lambda pair: (pair[1], pair[0])
+        )
+        if picked >= TALENT_AGREE * len(picks):
+            result[level] = {
+                "name": name,
+                "label": names[name],
+                "picked": picked,
+                "games": len(picks),
+            }
+    return result
+
+
+def talent_label(dname: str) -> str:
+    """A talent's text without the numbers the constants leave as placeholders:
+    "-{s:bonus_AbilityCooldown}s Blade Fury Cooldown" → "Blade Fury Cooldown";
+    a text with its numbers stays ("+15% Blade Dance Crit Damage")."""
+    if "{" not in dname:
+        return dname.strip()
+    text = re.sub(r"[+-]?\{[^}]*\}[%sx]?", " ", dname)
+    return re.sub(r"\s+", " ", text).strip(" :+-")
 
 
 def label(raw_name: str, hero_key: str | None = None) -> str:

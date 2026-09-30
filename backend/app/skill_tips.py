@@ -42,6 +42,16 @@ TEXTS = {
         "en": ("Pick a talent", "The level-{tier} talent is waiting: open the talent tree."),
         "ru": ("Выберите талант", "Талант {tier}-го уровня ждёт: откройте дерево талантов."),
     },
+    "talent_pro": {
+        "en": (
+            "Pick a talent",
+            "Level {tier}: pros on this hero take «{name}» ({picked} of {games}).",
+        ),
+        "ru": (
+            "Выберите талант",
+            "Талант {tier}-го уровня: про-игроки на этом герое берут «{name}» ({picked} из {games}).",
+        ),
+    },
     "skill": {
         "en": ("Put the point in {name}", "The pro order on this hero: {order}."),
         "ru": ("Вложите очко в {name}", "Порядок прокачки у про-игроков на этом герое: {order}."),
@@ -201,6 +211,17 @@ class SkillTips:
             return self._point(level, lang, build)
         tier = _talent_due(skills)
         if tier is not None:
+            pro = ((build or {}).get("talents") or {}).get(tier)
+            if pro:
+                return _hint(
+                    "talent_pro",
+                    f"skill-talent@{level}",
+                    lang,
+                    tier=tier,
+                    name=pro["label"],
+                    picked=pro["picked"],
+                    games=pro["games"],
+                )
             return _hint("talent", f"skill-talent@{level}", lang, tier=tier)
         return self._point(level, lang, build)
 

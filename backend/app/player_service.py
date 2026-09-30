@@ -480,14 +480,22 @@ class PlayerService:
             return cached[1]
         store_key = f"{SKILLS_KEY}:{hero_id}"
         client = self.client
-        if client is not None and self.store.cache_get(store_key, max_age=META_TTL_SECONDS) is None:
+        stored = self.store.cache_get(store_key)
+        # Cached before the talent rows were kept (0.23): fetched again.
+        old = isinstance(stored, dict) and "talents" not in stored
+        if client is not None and (
+            old or self.store.cache_get(store_key, max_age=META_TTL_SECONDS) is None
+        ):
             self.jobs.submit(
                 f"skills:{hero_id}",
                 lambda: self._refresh(
-                    store_key, META_TTL_SECONDS, lambda: client.pro_skill_orders(hero_id)
+                    store_key,
+                    META_TTL_SECONDS,
+                    lambda: client.pro_skill_orders(hero_id),
+                    force=old,
                 ),
             )
-        build = skill_order(self.store.cache_get(store_key))
+        build = skill_order(stored)
         self._plans[key] = (now, build)
         return build
 
