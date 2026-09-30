@@ -105,10 +105,15 @@ def _pro_talents(
     pros agree (TALENT_AGREE of the games that took that row, MIN_GAMES+)."""
     taken: dict[int, list[str]] = {}
     for order in games:
+        rows: dict[int, str] = {}
         for name in order:
             level = tiers.get(name)
+            # The first talent of each row: at high levels the other one of the
+            # pair can be taken too, and one game must count once.
             if isinstance(level, int) and isinstance(names.get(name), str):
-                taken.setdefault(level, []).append(name)
+                rows.setdefault(level, name)
+        for level, name in rows.items():
+            taken.setdefault(level, []).append(name)
     result: dict[int, dict[str, Any]] = {}
     for level, picks in taken.items():
         if len(picks) < MIN_GAMES:

@@ -322,3 +322,36 @@ def test_data_cached_before_the_talents_is_fetched_again(monkeypatch):
     service.jobs.run_pending(until=float("inf"))
     assert calls == [8]
     assert "talents" in service.store.cache_get("opendota:pro_skills:8")
+
+
+def test_a_game_counts_once_per_talent_row():
+    # Late in a game the other talent of the row is taken too: still one game.
+    games = [GAME + [LIFESTEAL, CRIT]] * 5
+    data = {
+        "orders": games,
+        "names": {**NAMES, LIFESTEAL: "Blade Dance Lifesteal", CRIT: "+15% Crit"},
+        "talents": {LIFESTEAL: 10, CRIT: 10},
+    }
+    assert skill_order(data)["talents"][10] == {
+        "name": LIFESTEAL,
+        "label": "Blade Dance Lifesteal",
+        "picked": 5,
+        "games": 5,
+    }
+
+
+def test_talent_rows_given_as_hero_levels_are_read_too():
+    ids = {"1": FURY, "5": TALENT}
+    routes = {
+        "/constants/ability_ids": ids,
+        "/heroes/8/matches": [{"match_id": 10}],
+        "/matches/10": {"players": [{"hero_id": 8, "ability_upgrades_arr": [1, 5]}]},
+        "/constants/abilities": {TALENT: {"dname": "+20 Attack Speed"}},
+        "/constants/hero_abilities": {
+            "npc_dota_hero_juggernaut": {
+                "talents": [{"name": TALENT, "level": 15}, {"name": "x", "level": 7}]
+            }
+        },
+    }
+    data = OpenDotaClient(session=_Session(routes), min_interval=0).pro_skill_orders(8)
+    assert data["talents"] == {TALENT: 15}

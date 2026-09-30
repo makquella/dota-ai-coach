@@ -322,8 +322,12 @@ class OpenDotaClient:
             hero_entry = heroes.get(hero_npc_name(hero)) if isinstance(heroes, dict) else None
             for talent in (hero_entry or {}).get("talents") or []:
                 row = talent.get("level") if isinstance(talent, dict) else None
-                if isinstance(row, int) and 1 <= row <= len(TALENT_LEVELS):
+                if not isinstance(row, int):
+                    continue
+                if 1 <= row <= len(TALENT_LEVELS):  # the row (what OpenDota sends now)
                     talents[str(talent.get("name"))] = TALENT_LEVELS[row - 1]
+                elif row in TALENT_LEVELS:  # or the hero level itself
+                    talents[str(talent.get("name"))] = row
             if isinstance(constants, dict):
                 for name in {n for order in orders for n in order}:
                     entry = constants.get(name)
