@@ -56,6 +56,7 @@ def death_kind(last: Any) -> str | None:
 # against heavy healing; from these minutes on, when the build usually has room.
 EVASION_MINUTE = 15
 HEALING_MINUTE = 12
+ILLUSION_MINUTE = 12
 CORE_POSITIONS = {"carry", "mid", "offlane"}
 
 
@@ -89,6 +90,9 @@ def _candidates(
     evasive = next((e for e in enemies if e in COUNTERS["evasion"][0]), None)
     if evasive and position == "carry" and (minute or 0) >= EVASION_MINUTE:
         rows.append(("evasion", "monkey_king_bar", "Monkey King Bar", 0, evasive, None))
+    illusionist = next((e for e in enemies if e in COUNTERS["illusions"][0]), None)
+    if illusionist and position == "carry" and (minute or 0) >= ILLUSION_MINUTE:
+        rows.append(("illusions", "maelstrom", "Maelstrom", 0, illusionist, None))
     healer = next((e for e in enemies if e in COUNTERS["healing"][0]), None)
     if healer and position == "offlane" and (minute or 0) >= HEALING_MINUTE:
         rows.append(("healing", "spirit_vessel", "Spirit Vessel", 0, healer, None))

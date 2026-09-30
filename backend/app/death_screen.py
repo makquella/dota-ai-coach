@@ -39,6 +39,7 @@ TEXT = {
         "why_targeted": "Почему {item}: смертей под контролем против {enemy} — {n}, он блокирует {spell}.",
         "why_evasion": "Почему {item}: {enemy} уклоняется от атак, а он бьёт без промаха.",
         "why_healing": "Почему {item}: {enemy} много лечится, а он режет лечение.",
+        "why_illusions": "Почему {item}: {enemy} дерётся иллюзиями, а он бьёт их всех сразу.",
     },
     "en": {
         "title": "Respawn in {s} s",
@@ -56,6 +57,7 @@ TEXT = {
         "why_targeted": "Why {item}: {n} deaths under stuns against {enemy}, and it blocks {spell}.",
         "why_evasion": "Why {item}: {enemy} dodges attacks, and it never misses.",
         "why_healing": "Why {item}: {enemy} heals a lot, and it cuts the healing.",
+        "why_illusions": "Why {item}: {enemy} fights with illusions, and it hits them all.",
     },
 }
 
@@ -120,7 +122,7 @@ def build_death_screen(
                     item=next_item["name"], n=count, enemy=enemy, spell=next_item.get("spell")
                 )
             )
-        elif why in ("evasion", "healing") and enemy:
+        elif why in ("evasion", "healing", "illusions") and enemy:
             lines.append(text[f"why_{why}"].format(item=next_item["name"], enemy=enemy))
     if not lines:
         return None
