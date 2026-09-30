@@ -86,8 +86,13 @@ def build_post_laning_advice(
     elif category == "post_laning_farm_recovery":
         reason = _farm_pace_reason(state, extra) or reason
     elif category == "post_laning_safe_farm_route":
-        # A core with a known build: name the next item and the gold it needs.
-        action, reason = _next_item_copy(state, extra) or (action, reason)
+        # A core with a known build: name the next item and the gold it needs;
+        # else what this game looks like (a kill streak, the kill score, the pace).
+        action, reason = (
+            _next_item_copy(state, extra)
+            or _situational_farm_copy(state, extra)
+            or (action, reason)
+        )
     elif category == "post_laning_death_route_reset":
         # Same category (one death review per death in the scheduler), but with
         # gold to spend the first thing to do while dead is to buy.
@@ -376,6 +381,10 @@ def _next_item_copy(state: Mapping[str, Any], extra: Mapping[str, Any]) -> tuple
     if not isinstance(item, Mapping) or not isinstance(item.get("name"), str):
         return None
     name = item["name"]
+    # A situational item (situational_items.py) says why it comes first.
+    because = _situational_because(item)
+    if because is not None and item.get("gold_left") is None:
+        return f"Keep farming toward {name} on the safest waves and camps.", because + "."
     left = _to_int(item.get("gold_left"), 0)
     gold = extra.get("available_gold", state.get("gold"))
     if left <= 0 or gold is None:
@@ -389,18 +398,90 @@ def _next_item_copy(state: Mapping[str, Any], extra: Mapping[str, Any]) -> tuple
     spare = max(0, _to_int(gold, 0) - reserve)
     if spare >= left:
         extra_gold = f"you have {spare} beyond your buyback" if reserve else f"you have {spare}"
+        if because is not None:
+            parts = f"its missing parts cost {left} gold and {extra_gold}"
+            return f"Use your gold: {name} can be bought now.", f"{because}; {parts}."
         return (
             f"Use your gold: {name} can be bought now.",
             f"Its missing parts cost {left} gold and {extra_gold}.",
         )
     need = left - spare
-    reason = f"{name} is next in most builds: {need} gold to go"
+    reason = (
+        f"{because}: {need} gold to go"
+        if because is not None
+        else f"{name} is next in most builds: {need} gold to go"
+    )
     gpm = _to_int(extra.get("gpm"), 0)
     if gpm >= NEXT_ITEM_MIN_GPM:
         minutes = max(1, -(-need // gpm))
         noun = "minute" if minutes == 1 else "minutes"
         reason += f", about {minutes} {noun} at your {gpm} gold per minute"
     return f"Keep farming toward {name} on the safest waves and camps.", reason + "."
+
+
+# From this kill streak the player's bounty is worth protecting.
+STREAK_BOUNTY = 3
+# A kill score gap this big (after SCORE_GAP_MINUTE) changes how to farm.
+SCORE_GAP = 8
+SCORE_GAP_MINUTE = 12
+
+
+def _situational_farm_copy(
+    state: Mapping[str, Any], extra: Mapping[str, Any]
+) -> tuple[str, str] | None:
+    """The safe-farm card with this game's facts instead of the same generic
+    line every time: the player's kill streak, the kill score, else the pace."""
+    streak = _to_int(extra.get("kill_streak"), 0)
+    if streak >= STREAK_BOUNTY:
+        return (
+            f"Stay alive: you are on a {streak}-kill streak.",
+            "Your bounty grows with the streak: farm near your team and skip dark, unwarded areas.",
+        )
+    minute = _to_int(state.get("minute"), 0)
+    team = str(extra.get("team_name") or "").strip().lower()
+    radiant, dire = extra.get("radiant_score"), extra.get("dire_score")
+    if (
+        minute >= SCORE_GAP_MINUTE
+        and team in ("radiant", "dire")
+        and isinstance(radiant, int)
+        and isinstance(dire, int)
+    ):
+        ours, theirs = (radiant, dire) if team == "radiant" else (dire, radiant)
+        gap = ours - theirs
+        if gap <= -SCORE_GAP:
+            return (
+                f"Your team is {-gap} kills behind: farm your own half and fight near your towers.",
+                "The enemy has items first now; trade risky farm for safe farm until your "
+                "key item.",
+            )
+        if gap >= SCORE_GAP:
+            return (
+                f"Your team is {gap} kills ahead: group up and take a tower instead of "
+                "farming alone.",
+                "A kill lead fades unless it turns into towers and map control.",
+            )
+    gpm = _to_int(extra.get("gpm"), 0)
+    last_hits = extra.get("last_hits")
+    if gpm > 0 and isinstance(last_hits, int) and minute > 0:
+        return (
+            "Keep farming the safest wave-and-camp route and reassess soon.",
+            f"Your pace: {gpm} gold per minute, {last_hits} last hits at minute {minute}.",
+        )
+    return None
+
+
+SITUATIONAL_BECAUSE = {
+    "disabled": "{count} deaths under stuns with no free second, and {name} stops that",
+    "burst": "{count} deaths in 3 seconds or less from high health, and {name} gives you time against that",
+}
+
+
+def _situational_because(item: Mapping[str, Any]) -> str | None:
+    template = SITUATIONAL_BECAUSE.get(str(item.get("why") or ""))
+    count = _to_int(item.get("count"), 0)
+    if template is None or count < 1:
+        return None
+    return template.format(count=count, name=item["name"])
 
 
 def _buyback_reason(signal: Mapping[str, Any]) -> str:

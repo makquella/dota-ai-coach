@@ -25,6 +25,17 @@ from typing import Any
 DEFAULT_LANG = "en"
 
 _RU_EXACT: dict[str, str] = {
+    "Your bounty grows with the streak: farm near your team and skip dark, unwarded areas.": (
+        "За вас дают всё больше золота: фармите рядом с командой и не ходите в тёмные места "
+        "без вардов."
+    ),
+    "The enemy has items first now; trade risky farm for safe farm until your key item.": (
+        "У врагов предметы раньше: меняйте рискованный фарм на безопасный до вашего ключевого "
+        "предмета."
+    ),
+    "A kill lead fades unless it turns into towers and map control.": (
+        "Преимущество по убийствам тает, если не превратить его в башни и контроль карты."
+    ),
     # --- actions -------------------------------------------------------------
     "After respawn, avoid committing forward until your escape is ready.": (
         "После возрождения не лезьте вперёд, пока не готова способность для побега."
@@ -440,6 +451,13 @@ _RU_EXACT: dict[str, str] = {
 _RU_PATTERNS: tuple[tuple[re.Pattern[str], str], ...] = (
     (
         re.compile(
+            r"^Your pace: (?P<gpm>\d+) gold per minute, (?P<lh>\d+) last hits at minute "
+            r"(?P<m>\d+)\.$"
+        ),
+        "Ваш темп: {gpm} золота в минуту, добиваний к {m}-й минуте: {lh}.",
+    ),
+    (
+        re.compile(
             r"^No TP scroll for (?P<minutes>\d+) minutes?: without it you cannot join a fight "
             r"or save a tower in time\.$"
         ),
@@ -662,7 +680,92 @@ def _deaths_word(count: int) -> str:
     return "смертей"
 
 
+# The situational item's reason (post_laning_coach._situational_because) and
+# the gold tail after it.
+_SITUATIONAL_TAILS: tuple[tuple[re.Pattern[str], str], ...] = (
+    (re.compile(r"^\.$"), "."),
+    (re.compile(r"^: (?P<need>\d+) gold to go\.$"), ": не хватает {need} золота."),
+    (
+        re.compile(
+            r"^: (?P<need>\d+) gold to go, about (?P<m>\d+) minutes? at your (?P<gpm>\d+) "
+            r"gold per minute\.$"
+        ),
+        ": не хватает {need} золота, это около {m} мин при {gpm} золота в минуту.",
+    ),
+    (
+        re.compile(
+            r"^; its missing parts cost (?P<left>\d+) gold and you have (?P<spare>\d+) "
+            r"beyond your buyback\.$"
+        ),
+        "; недостающие части стоят {left} золота, у вас {spare} сверх байбэка.",
+    ),
+    (
+        re.compile(r"^; its missing parts cost (?P<left>\d+) gold and you have (?P<spare>\d+)\.$"),
+        "; недостающие части стоят {left} золота, у вас {spare}.",
+    ),
+)
+
+
+def _kills_word(count: int) -> str:
+    if count % 10 == 1 and count % 100 != 11:
+        return "убийство"
+    if 2 <= count % 10 <= 4 and not 12 <= count % 100 <= 14:
+        return "убийства"
+    return "убийств"
+
+
+def _situational_reason(groups: dict[str, str]) -> str:
+    count = int(groups["count"])
+    if groups["kind"].startswith("under stuns"):
+        head = (
+            f"{count} {_deaths_word(count)} под контролем без единой свободной секунды — "
+            f"{groups['name']} это исправит"
+        )
+    else:
+        head = (
+            f"{count} {_deaths_word(count)} за 3 секунды и быстрее с высокого здоровья — "
+            f"{groups['name']} даст время это пережить"
+        )
+    for pattern, tail in _SITUATIONAL_TAILS:
+        match = pattern.match(groups["tail"])
+        if match:
+            return head + tail.format(**match.groupdict())
+    return ""
+
+
 _RU_FUNCTIONS: tuple[tuple[re.Pattern[str], Callable[[dict[str, str]], str]], ...] = (
+    (
+        re.compile(
+            r"^Your team is (?P<n>\d+) kills behind: farm your own half and fight near your "
+            r"towers\.$"
+        ),
+        lambda g: (
+            f"Команда отстаёт на {g['n']} {_kills_word(int(g['n']))}: фармите на своей половине "
+            "и деритесь только у своих башен."
+        ),
+    ),
+    (
+        re.compile(
+            r"^Your team is (?P<n>\d+) kills ahead: group up and take a tower instead of "
+            r"farming alone\.$"
+        ),
+        lambda g: (
+            f"Команда впереди на {g['n']} {_kills_word(int(g['n']))}: соберитесь и снесите "
+            "башню, а не фармите в одиночку."
+        ),
+    ),
+    (
+        re.compile(r"^Stay alive: you are on a (?P<n>\d+)-kill streak\.$"),
+        lambda g: f"Берегите себя: у вас серия из {g['n']} убийств подряд.",
+    ),
+    (
+        re.compile(
+            r"^(?P<count>\d+) deaths (?P<kind>under stuns with no free second|in 3 seconds or "
+            r"less from high health), and (?P<name>.+?) (?:stops that|gives you time against "
+            r"that)(?P<tail>(?:\.|: \d+ gold to go.*|; its missing parts cost.*))$"
+        ),
+        _situational_reason,
+    ),
     (
         re.compile(rf"^After respawn, stay away from the {_ZONE_RE} {_SIDE_RE}\.$"),
         lambda g: (

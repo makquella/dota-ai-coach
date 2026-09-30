@@ -213,6 +213,14 @@ class MatchTracker:
                 ],
             }
 
+    def death_moments(self) -> list[dict[str, Any]]:
+        """Every death of the match in progress with its last seconds (for the
+        situational item: situational_items.py)."""
+        with self._lock:
+            if not self._current:
+                return []
+            return [{"t": d.get("t"), "last": d.get("last")} for d in self._current["deaths"]]
+
     def note_advice(
         self, clock: Any, decision_point: str, action: str, reason: str, mode: str
     ) -> None:

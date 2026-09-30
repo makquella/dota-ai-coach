@@ -32,6 +32,8 @@ TEXT = {
         "buy_parts": "Купите части {item}: не хватает {need} золота.",
         "spend": "Потратьте {gold} золота на следующий предмет — у фонтана это быстрее.",
         "reserve": " Оставьте {cost} на байбэк.",
+        "why_disabled": "Почему {item}: смертей под контролем — {n}, с ним контроль вас не удержит.",
+        "why_burst": "Почему {item}: смертей за пару секунд с высокого здоровья — {n}, он даст время.",
     },
     "en": {
         "title": "Respawn in {s} s",
@@ -43,6 +45,8 @@ TEXT = {
         "buy_parts": "Buy parts of {item}: {need} gold to go.",
         "spend": "Spend {gold} gold on your next item: at the fountain it is quicker.",
         "reserve": " Keep {cost} for buyback.",
+        "why_disabled": "Why {item}: {n} deaths under stuns, and with it no disable holds you.",
+        "why_burst": "Why {item}: {n} deaths in seconds from high health, and it buys you time.",
     },
 }
 
@@ -94,6 +98,9 @@ def build_death_screen(
     buy = _buy_line(text, gold, buyback_cost, minute, next_item)
     if buy:
         lines.append(buy)
+        why = (next_item or {}).get("why")
+        if why in ("disabled", "burst") and _int(next_item.get("count")):
+            lines.append(text[f"why_{why}"].format(item=next_item["name"], n=next_item["count"]))
     if not lines:
         return None
     seconds = _int(respawn)

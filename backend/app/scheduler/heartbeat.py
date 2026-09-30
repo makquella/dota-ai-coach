@@ -70,6 +70,14 @@ def _heartbeat_copy(state: dict[str, Any]) -> tuple[str, str, str]:
             "Staying in pressure can cost HP and slow your recovery.",
             "Medium risk if you keep farming the pressured area.",
         )
+    # Nothing pressing: say what this game looks like (a kill streak, the kill
+    # score, the pace) instead of the same line every minute.
+    from app.post_laning_coach import _situational_farm_copy  # avoid an import cycle
+
+    raw_extra = state.get("extra_context")
+    situational = _situational_farm_copy(state, raw_extra if isinstance(raw_extra, dict) else {})
+    if situational is not None:
+        return (*situational, "Low risk if you keep farming without forcing uncertain fights.")
     return (
         "Keep farming the safest wave-and-camp route and reassess soon.",
         "Your farm route is the safest low-risk choice while enemy locations are uncertain.",

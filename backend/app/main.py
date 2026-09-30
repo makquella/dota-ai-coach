@@ -387,6 +387,11 @@ def _live_role_and_hint(response: dict[str, object], lang: str) -> dict[str, obj
             if role and role.get("role") != "support"
             else None,
             objective=MATCH_MEMORY.roshan.hint(clock if isinstance(clock, int) else None, lang),
+            skill=MATCH_MEMORY.skills.tip(
+                clock if isinstance(clock, int) else None,
+                lang,
+                alive=extra.get("alive") is not False,
+            ),
         )
         if hint is not None:
             result["map_hint"] = hint
