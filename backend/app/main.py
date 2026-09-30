@@ -69,7 +69,7 @@ app = FastAPI(
     lifespan=_lifespan,
     title="Wardly",
     description="MVP-1: rule-based carry coach with local knowledge-base RAG.",
-    version="0.26.0",
+    version="0.27.0",
 )
 app.include_router(player_router)
 
@@ -103,7 +103,7 @@ if FRONTEND_DIR.exists():
 @app.get("/", summary="Health check")
 def root():
     """Simple health-check endpoint."""
-    return {"status": "ok", "service": "Wardly", "version": "0.26.0"}
+    return {"status": "ok", "service": "Wardly", "version": "0.27.0"}
 
 
 @app.get("/health", summary="Health check")
