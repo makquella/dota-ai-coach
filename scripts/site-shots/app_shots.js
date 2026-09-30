@@ -59,7 +59,7 @@ function status(lang) {
   return {
     locale: lang,
     language: lang,
-    live: { connected: true, inMatch: true, hero: "Juggernaut", coverage: "full", clockTime: 1134, secondsSinceLastGsi: 0.4, stage: "game" },
+    live: { connected: true, inMatch: true, hero: "Juggernaut", coverage: "full", clockTime: 1134, secondsSinceLastGsi: 0.4, stage: "post-laning" },
     recentAdvice: ADVICE[lang].map(([action, priority, time], i) => ({ timestamp: 10 - i, action, priority, game_time: time })),
     overlayPosition: "top-right",
     overlayVoice: { mode: "urgent", volume: 0.8 },

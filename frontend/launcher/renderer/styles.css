@@ -2848,6 +2848,18 @@ label.setting:has(.switch:disabled) {
 
 /* PDF export (Electron printToPDF of the current view) --------------------- */
 
+/* Folded long lists (foldList in matches.js): hidden on screen only, so a
+   saved PDF keeps every item. */
+@media screen {
+  .fold.is-folded .fold-extra {
+    display: none;
+  }
+}
+
+.fold-toggle {
+  margin-top: var(--sp-2);
+}
+
 @media print {
   html,
   body {

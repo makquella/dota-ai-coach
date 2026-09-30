@@ -214,6 +214,8 @@
       minuteLabel: (m) => `${m}:00`,
       strengthsTitle: "What went well",
       improveTitle: "What to improve",
+      foldMore: (n) => `Show ${n} more`,
+      foldLess: "Show less",
       repeatInARow: (n) => `${n} matches in a row — a habit, not bad luck`,
       repeatInLast: (n, of) => `Also in ${n} of your previous ${of} matches`,
       nothingToImprove: "No serious mistakes found in this match.",
@@ -264,7 +266,7 @@
       streakLoss: (n) => `${n} losses in a row`,
       recordLine: (w, l, n) => `${w}W – ${l}L over ${n} matches`,
       scoreChartTitle: "Score by match",
-      scoreChartHint: "Last 20 matches, oldest on the left. Click a column to open the review.",
+      scoreChartHint: "Last 20 matches, oldest on the left. Click a column to open the review; no column means the match has no detailed review.",
       scoreLabel: "Score",
       winKey: "win",
       lossKey: "loss",
@@ -352,7 +354,7 @@
       trendSame: "about the same",
       trendMinute: "Minute",
       deathMapTitle: "Where you die",
-      deathMapNote: (matches, total, per) => `The last ${matches} matches with a map: ${total} deaths, ${per} a match.`,
+      deathMapNote: (matches, total, per) => `Matches with a map: ${matches}. ${total} deaths, ${per} a match.`,
       deathMapTurned: "Dire games are turned half a turn, so your base is always bottom left.",
       deathMapSpot: (place, count, matches) => `${place}: ${count} deaths in ${matches} matches`,
       deathMapSpots: "Deaths keep repeating here:",
@@ -731,6 +733,8 @@
       minuteLabel: (m) => `${m}:00`,
       strengthsTitle: "Что получилось",
       improveTitle: "Что улучшить",
+      foldMore: (n) => `Показать ещё ${n}`,
+      foldLess: "Свернуть",
       repeatInARow: (n) => `${n}-й матч подряд — это привычка, а не случайность`,
       repeatInLast: (n, of) => `Было и в ${n} из ${of} прошлых матчей`,
       nothingToImprove: "Серьёзных ошибок в этом матче не найдено.",
@@ -751,13 +755,13 @@
       radiant: "Силы Света",
       dire: "Силы Тьмы",
       colPlayer: "Игрок",
-      colNw: "Ценность",
+      colNw: "Стоимость",
       colDmg: "Урон",
       stats: {
         kda: "У / С / П",
         gpm: "Золото и опыт в минуту",
         lh: "Добивания / денаи",
-        nw: "Ценность",
+        nw: "Стоимость героя",
         dmg: "Урон по героям",
         duration: "Длительность"
       },
@@ -781,7 +785,7 @@
       streakLoss: (n) => `${n} ${plural(n, "поражение", "поражения", "поражений")} подряд`,
       recordLine: (w, l, n) => `${w} ${plural(w, "победа", "победы", "побед")} и ${l} ${plural(l, "поражение", "поражения", "поражений")} за ${n} ${plural(n, "матч", "матча", "матчей")}`,
       scoreChartTitle: "Оценка по матчам",
-      scoreChartHint: "Последние 20 матчей, старые слева. Нажмите на столбец, чтобы открыть разбор.",
+      scoreChartHint: "Последние 20 матчей, старые слева. Нажмите на столбец, чтобы открыть разбор; нет столбца — у матча нет подробного разбора.",
       scoreLabel: "Оценка",
       winKey: "победа",
       lossKey: "поражение",
@@ -869,7 +873,7 @@
       trendSame: "примерно так же",
       trendMinute: "Минута",
       deathMapTitle: "Где вы умираете",
-      deathMapNote: (matches, total, per) => `Последние ${matches} ${plural(matches, "матч", "матча", "матчей")} с картой: ${total} ${plural(total, "смерть", "смерти", "смертей")}, ${String(per).replace(".", ",")} за матч.`,
+      deathMapNote: (matches, total, per) => `Матчей с картой: ${matches}. ${total} ${plural(total, "смерть", "смерти", "смертей")}, ${String(per).replace(".", ",")} за матч.`,
       deathMapTurned: "Игры за Силы Тьмы повёрнуты на пол-оборота: ваша база всегда слева внизу.",
       deathMapSpot: (place, count, matches) => `${place}: ${count} ${plural(count, "смерть", "смерти", "смертей")} в ${matches} ${plural(matches, "матче", "матчах", "матчах")}`,
       deathMapSpots: "Здесь смерти повторяются:",
@@ -1200,6 +1204,25 @@
       h("header", { class: "card-head" }, icon(iconName), h("h2", { text: title }), extraHead ? h("span", { class: "card-head-extra" }, extraHead) : null),
       h("div", { class: "card-body" }, body)
     );
+  }
+
+  // A long list shows its first `keep` items and a «show N more» button; the
+  // rest is only hidden on screen, so a saved PDF keeps every item.
+  function foldList(list, keep) {
+    const items = Array.from(list.children);
+    if (items.length <= keep + 1) {
+      return list;
+    }
+    items.slice(keep).forEach((item) => item.classList.add("fold-extra"));
+    const hidden = items.length - keep;
+    const wrap = h("div", { class: "fold is-folded" }, list);
+    const toggle = h("button", { class: "btn btn-ghost btn-sm fold-toggle no-print", type: "button", text: t("foldMore", hidden) });
+    toggle.addEventListener("click", () => {
+      const folded = wrap.classList.toggle("is-folded");
+      toggle.textContent = folded ? t("foldMore", hidden) : t("foldLess");
+    });
+    wrap.appendChild(toggle);
+    return wrap;
   }
 
   function emptyState(iconName, title, hint, action) {
@@ -1853,7 +1876,9 @@
       add(main, zone(t("zoneFix"), t("zoneFixHint"), [
         coachCard(detail.coach, "match"),
         focusCard(analysis, detail),
-        rest.length ? findingsCard(t("improveTitle"), "target", rest, "", true, detail.repeats) : null,
+        // Past «what to fix first» the rest starts folded: a first review
+        // was a wall of lists.
+        rest.length ? findingsCard(t("improveTitle"), "target", rest, "", true, detail.repeats, 1) : null,
         askCard(detail)
       ]));
       add(main, zone(t("zoneStory"), t("zoneStoryHint"), [chartCard(analysis), deathsCard(analysis), adviceLogCard(analysis)]));
@@ -2097,11 +2122,12 @@
     return card(t("focusTitle"), "target", list);
   }
 
-  function findingsCard(title, iconName, findings, emptyText, improve, repeats) {
+  function findingsCard(title, iconName, findings, emptyText, improve, repeats, fold) {
     if (!findings || !findings.length) {
       return card(title, iconName, h("p", { class: "muted", text: emptyText }));
     }
-    return card(title, iconName, h("ul", { class: `findings ${improve ? "" : "findings-compact"}` }, findings.map((f) => findingItem(f, undefined, repeats))));
+    const list = h("ul", { class: `findings ${improve ? "" : "findings-compact"}` }, findings.map((f) => findingItem(f, undefined, repeats)));
+    return card(title, iconName, fold ? foldList(list, fold) : list);
   }
 
   function sectionsCard(analysis) {
@@ -3116,7 +3142,7 @@
         watchButton(analysis, death.t)
       );
     });
-    const body = h("div", {}, summary, h("ol", { class: "moments deaths-list" }, rows));
+    const body = h("div", {}, summary, foldList(h("ol", { class: "moments deaths-list" }, rows), 3));
     return card(t("deathsTitle", deaths.length), "skull", body);
   }
 
@@ -3177,7 +3203,8 @@
     const line = document.createElementNS("http://www.w3.org/2000/svg", "polyline");
     line.setAttribute("points", points);
     svg.append(line);
-    const lines = [];
+    // What the line is, in words: a bare falling line meant nothing to a new player.
+    const lines = [h("span", { class: "muted small", text: t("deathLastTitle") })];
     if (last.burst_s) {
       lines.push(h("span", { class: "muted small", text: t("deathBurst", last.burst_s) }));
     }
@@ -3198,7 +3225,7 @@
         )
       );
     }
-    return h("span", { class: "death-last", title: t("deathLastTitle") }, svg, lines.length ? h("span", { class: "death-last-text" }, lines) : null);
+    return h("span", { class: "death-last", title: t("deathLastTitle") }, svg, h("span", { class: "death-last-text" }, lines));
   }
 
   function momentsCard(analysis) {
