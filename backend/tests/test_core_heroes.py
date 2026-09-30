@@ -168,3 +168,57 @@ def test_the_site_heroes_page_lists_exactly_the_full_advisor(repo_root):
     assert f"для {count} героев" in page
     landing = (repo_root / "site" / "index.html").read_text(encoding="utf-8")
     assert f"для {count} героев" in landing and 'href="heroes.html"' in landing
+
+
+_VOID_TAGS = {
+    "area",
+    "base",
+    "br",
+    "col",
+    "embed",
+    "hr",
+    "img",
+    "input",
+    "link",
+    "meta",
+    "source",
+    "track",
+    "wbr",
+    "use",
+    "path",
+    "rect",
+    "circle",
+    "line",
+    "polyline",
+}
+
+
+def test_every_site_page_closes_what_it_opens(repo_root):
+    """heroes.html lost its «what every hero gets» section head in 0.20 (the
+    supports list took its place), and the blocks after it lay glued together."""
+    from html.parser import HTMLParser
+
+    class Balance(HTMLParser):
+        def __init__(self) -> None:
+            super().__init__()
+            self.stack: list[str] = []
+            self.errors: list[tuple[str, tuple[int, int]]] = []
+
+        def handle_starttag(self, tag, attrs):
+            if tag not in _VOID_TAGS:
+                self.stack.append(tag)
+
+        def handle_endtag(self, tag):
+            if tag in _VOID_TAGS:
+                return
+            if self.stack and self.stack[-1] == tag:
+                self.stack.pop()
+            else:
+                self.errors.append((tag, self.getpos()))
+
+    for page in sorted((repo_root / "site").rglob("*.html")):
+        parser = Balance()
+        parser.feed(page.read_text(encoding="utf-8"))
+        assert not parser.errors and not parser.stack, (page.name, parser.errors[:3], parser.stack)
+    heroes = (repo_root / "site" / "heroes.html").read_text(encoding="utf-8")
+    assert heroes.count('<article class="mode') == 3 and '<div class="modes">' in heroes

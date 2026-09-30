@@ -293,6 +293,10 @@ const I18N = {
     tourHint: "A short tour of the app, one minute",
     tourStart: "Show",
     whatsNew: {
+      "0.29.0": [
+        "The match review is shorter: past the three main points, the other remarks and the long list of deaths open with «Show more».",
+        "The health line under each death says what it is, and «Net worth» is named plainly."
+      ],
       "0.28.0": [
         "The first advice after a death names the lane or part of the map where you died, or how fast the kill came, instead of «plan a safer route».",
         "Supports: the «no save item» tip names the save item most bought on your hero and how much gold it still needs; the ward tip says where to put it (your lane's river, Roshan's pit, your own or the enemy jungle by the score).",
@@ -865,6 +869,10 @@ const I18N = {
     tourHint: "Короткая экскурсия по приложению, на минуту",
     tourStart: "Показать",
     whatsNew: {
+      "0.29.0": [
+        "Разбор матча стал короче: кроме трёх главных пунктов, остальные замечания и длинный список смертей открываются кнопкой «Показать ещё».",
+        "Под каждой смертью подписано, что это за линия здоровья, а «Ценность» теперь называется «Стоимость героя»."
+      ],
       "0.28.0": [
         "Первый совет после смерти называет линию или часть карты, где вы погибли, или как быстро вас убили — а не «продумайте более безопасный маршрут».",
         "Саппортам: подсказка «Нет спасающего предмета» называет предмет, который чаще всего берут на вашем герое, и сколько золота на него осталось; подсказка про вард говорит, куда его поставить (река у вашей линии, логово Рошана, свой или вражеский лес по счёту).",
