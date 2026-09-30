@@ -1014,7 +1014,12 @@ def _with_death_items(state: dict[str, object], decision_point: str) -> dict[str
         return state
     if not death:
         return state
-    added = {"death_items": death["items"], "death_place": death["place"]}
+    added = {
+        "death_items": death["items"],
+        "death_place": death["place"],
+        "recent_deaths": death.get("recent"),
+        "match_deaths": death.get("total"),
+    }
     return {**state, "extra_context": {**raw_extra, **added}}
 
 

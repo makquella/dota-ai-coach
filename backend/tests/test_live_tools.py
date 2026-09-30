@@ -193,6 +193,39 @@ def test_one_death_on_the_enemy_half_says_to_farm_your_own():
     assert text["reason"].startswith("You died with Black King Bar ready")
 
 
+def test_deaths_in_different_places_are_counted():
+    from app.advice_i18n import translate_ru
+    from app.player_service import _recent_deaths
+
+    assert _recent_deaths([{"t": 600}], 600) is None
+    # 20:00 is outside ten minutes of 31:00; 25:00 and 31:00 count.
+    assert _recent_deaths([{"t": 1200}, {"t": 1500}, {"t": 1860}], 1860) == {
+        "count": 2,
+        "minutes": 6,
+    }
+    extra = _extra() | {
+        "death_place": {"zone": "top", "side": "own", "count": 1, "minutes": 1},
+        "recent_deaths": {"count": 3, "minutes": 7},
+    }
+    text = _fallback_text(_request(extra), "break_repeated_death_pattern")
+    assert text["action"] == "After respawn, change your route: 3 deaths in the last 7 minutes."
+    assert translate_ru(text["action"]) == "После возрождения смените маршрут: 3 смерти за 7 мин."
+    # Deaths spread over the game: the total.
+    spread = _extra() | {"match_deaths": 4}
+    text = _fallback_text(_request(spread), "break_repeated_death_pattern")
+    assert text["action"] == "After respawn, change your route: 4 deaths this game."
+    assert translate_ru(text["action"]) == "После возрождения смените маршрут: 4 смерти за игру."
+    assert (
+        "change your route"
+        not in _fallback_text(_request(_extra() | {"match_deaths": 1}), "plan_safer_respawn_route")[
+            "action"
+        ]
+    )
+    # The same place wins: it says where not to go.
+    same = extra | {"death_place": {"zone": "mid", "side": "river", "count": 2, "minutes": 3}}
+    assert "stay away" in _fallback_text(_request(same), "break_repeated_death_pattern")["action"]
+
+
 def test_satanic_is_not_an_instant_heal():
     """Satanic heals through lifesteal while attacking: never «press it and step back»."""
     satanic = {"name": "item_satanic", **READY}

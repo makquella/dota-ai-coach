@@ -740,6 +740,22 @@ def _situational_reason(groups: dict[str, str]) -> str:
 
 _RU_FUNCTIONS: tuple[tuple[re.Pattern[str], Callable[[dict[str, str]], str]], ...] = (
     (
+        re.compile(r"^After respawn, change your route: (?P<n>\d+) deaths this game\.$"),
+        lambda g: (
+            f"После возрождения смените маршрут: {g['n']} {_deaths_word(int(g['n']))} за игру."
+        ),
+    ),
+    (
+        re.compile(
+            r"^After respawn, change your route: (?P<n>\d+) deaths in the last (?P<m>\d+) "
+            r"minutes?\.$"
+        ),
+        lambda g: (
+            f"После возрождения смените маршрут: {g['n']} {_deaths_word(int(g['n']))} "
+            f"за {g['m']} мин."
+        ),
+    ),
+    (
         re.compile(
             r"^Your team is (?P<n>\d+) kills behind: farm your own half and fight near your "
             r"towers\.$"
