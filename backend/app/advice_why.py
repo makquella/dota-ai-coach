@@ -29,8 +29,8 @@ WHY: dict[str, dict[str, str]] = {
         "en": "You took damage recently and stayed where you were with half health: that is how most deaths start.",
     },
     "DISABLED_STATUS": {
-        "ru": "Вас оглушили, заколдовали или лишили заклинаний — важно знать, что нажать сразу после.",
-        "en": "You were stunned, hexed or silenced: it matters what you press the moment it ends.",
+        "ru": "На вас контроль — оглушение, превращение, безмолвие, немота, разоружение или отключение способностей: важно знать, что можно нажать сейчас, а что — сразу после.",
+        "en": "You were under a disable — stun, hex, silence, mute, disarm or break: it matters what you can press now and what the moment it ends.",
     },
     "HERO_SURVIVABILITY_RISK": {
         "ru": "Ваш герой легко погибает, а здоровья или маны мало либо рядом драка.",
@@ -41,12 +41,12 @@ WHY: dict[str, dict[str, str]] = {
         "en": "Your escape or defensive ability was on cooldown: without it, risks cost more.",
     },
     "BAD_FIGHT_RISK": {
-        "ru": "Рядом драка, в которой ваша команда слабее: мало маны, кто-то уже умер или счёт не в вашу пользу.",
-        "en": "A fight was near that your team was likely to lose: low mana, someone already died, or the score was against you.",
+        "ru": "Рядом идёт или только что была драка — в такой момент легко отдать лишнюю смерть, если лезть без выгоды.",
+        "en": "A fight was going on or had just happened near you: an easy moment to give away a death if you join without an edge.",
     },
     "OBJECTIVE_FIGHT_CHECK": {
-        "ru": "Рядом башня, Рошан или другая цель, и у вашей команды есть шанс её взять.",
-        "en": "A tower, Roshan or another objective was near, and your team had a chance to take it.",
+        "ru": "Рядом башня, Рошан или другая цель — важно решить, идти за ней вместе с командой или нет.",
+        "en": "A tower, Roshan or another objective was near: time to decide whether to go for it with your team.",
     },
     "ITEM_TIMING": {
         "ru": "Вы только что собрали важный предмет — с ним у героя появляется окно силы.",

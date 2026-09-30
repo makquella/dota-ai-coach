@@ -44,3 +44,21 @@ def test_the_review_advice_log_says_why():
     }
     assert render_analysis(analysis, "ru")["advice"][0]["why"] == WHY["LOW_HP"]["ru"]
     assert render_analysis(analysis, "en")["advice"][0]["why"] == WHY["LOW_HP"]["en"]
+
+
+def test_the_disabled_reason_fits_every_status_that_triggers_it():
+    # has_disabled_status: stunned, silenced, hexed, disarmed, muted, break.
+    ru, en = WHY["DISABLED_STATUS"]["ru"], WHY["DISABLED_STATUS"]["en"]
+    for word in ("оглуш", "безмолв", "немот", "разоруж"):
+        assert word in ru, word
+    for word in ("stun", "silence", "mute", "disarm"):
+        assert word in en, word
+
+
+def test_fight_reasons_claim_nothing_a_branch_does_not_guarantee():
+    # BAD_FIGHT_RISK also fires on a nearby fight alone, OBJECTIVE_FIGHT_CHECK
+    # on an objective alone: neither may promise a lost or a winnable fight.
+    assert "likely to lose" not in WHY["BAD_FIGHT_RISK"]["en"]
+    assert "слабее" not in WHY["BAD_FIGHT_RISK"]["ru"]
+    assert "chance to take" not in WHY["OBJECTIVE_FIGHT_CHECK"]["en"]
+    assert "есть шанс" not in WHY["OBJECTIVE_FIGHT_CHECK"]["ru"]
