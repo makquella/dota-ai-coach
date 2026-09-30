@@ -24,7 +24,7 @@
       "minor": true,
       "first": 360,
       "every": 120,
-      "roles": {"mid": 2400, "support": 1080},
+      "roles": {"mid": 1200, "support": 1080},
       "en": "Power rune",
       "ru": "Руна силы",
       "hint_en": "One of the river rune spots.",
