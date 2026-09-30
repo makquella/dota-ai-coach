@@ -237,6 +237,15 @@ def _own_ready(extra: Mapping[str, Any], hero: Any) -> list[tuple[str, str]]:
 LOW_HP_REPEAT_FROM = 2  # low-HP cards before this one
 
 
+def hp_falling_reason(extra: Mapping[str, Any]) -> str | None:
+    """The reason of a low-HP card raised by HP falling fast (match_memory
+    hp_falling_fast) rather than by HP already under the line."""
+    lost = extra.get("hp_falling_fast")
+    if not isinstance(lost, int) or isinstance(lost, bool) or lost <= 0:
+        return None
+    return f"You lost {lost}% HP in 5 seconds: at this rate you have seconds left, leave now."
+
+
 def low_hp_repeat_reason(extra: Mapping[str, Any]) -> str | None:
     """The reason of a low-HP card that has come before in this match: the same
     «use Blink now» a fifth time says nothing new, how often it happens does."""
@@ -365,6 +374,15 @@ def death_items_reason(extra: Mapping[str, Any]) -> str | None:
     return f"You died with {names[0]} ready: next time use it at the first big hit."
 
 
+# Deaths in one place over the whole match that make a pattern
+# (player_service._death_place `in_match`).
+MATCH_PLACE_MIN = 3
+
+
+def _int(value: Any) -> int:
+    return value if isinstance(value, int) and not isinstance(value, bool) else 0
+
+
 def death_copy(extra: Mapping[str, Any], *, route: bool = True) -> tuple[str | None, str | None]:
     """(action, reason) of a death advice from where it happened and what was
     left unpressed; None for a part that stays as it is.
@@ -383,6 +401,12 @@ def death_copy(extra: Mapping[str, Any], *, route: bool = True) -> tuple[str | N
             noun = "minute" if minutes == 1 else "minutes"
             reason = (
                 f"{count} deaths in the {where} in {minutes} {noun}: "
+                "farm somewhere safer until your team is there."
+            )
+        elif _int(place.get("in_match")) >= MATCH_PLACE_MIN:
+            action = f"After respawn, stay away from the {where}."
+            reason = (
+                f"{place['in_match']} deaths in the {where} this game: "
                 "farm somewhere safer until your team is there."
             )
         elif place["side"] == "enemy":

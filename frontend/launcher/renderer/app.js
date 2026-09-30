@@ -293,6 +293,11 @@ const I18N = {
     tourHint: "A short tour of the app, one minute",
     tourStart: "Show",
     whatsNew: {
+      "0.30.0": [
+        "Losing 30% HP or more in 5 seconds brings the urgent card at once, before HP is critical.",
+        "The low-HP card shows what to press, how fast HP is falling and how many times it happened this game.",
+        "A third death in one place this game is named after the death and on the respawn screen."
+      ],
       "0.29.2": [
         "Items against the enemy heroes: dying under Beastmaster's Primal Roar, Doom or Duel brings a Linken's Sphere tip that says why; Monkey King Bar against evasion, Spirit Vessel against healing, Dust for a support against invisible heroes.",
         "An unlearned Blink no longer counts as on cooldown, and «you died with Blink ready» needs two free seconds to press it.",
@@ -877,6 +882,11 @@ const I18N = {
     tourHint: "Короткая экскурсия по приложению, на минуту",
     tourStart: "Показать",
     whatsNew: {
+      "0.30.0": [
+        "Если за 5 секунд ушло 30 % здоровья и больше, срочная карточка появляется сразу, до критического HP.",
+        "Карточка низкого HP показывает, что нажать, как быстро падает здоровье и какой это раз за игру.",
+        "Третья смерть в одном месте за игру называется в совете после смерти и на экране возрождения."
+      ],
       "0.29.2": [
         "Предметы против врагов: смерти под Primal Roar от Beastmaster, Doom или Duel — совет купить Linken's Sphere с объяснением; против уклонения — Monkey King Bar, против лечения — Spirit Vessel, саппорту против невидимых — Dust.",
         "Неизученный Blink больше не считается «на перезарядке», а «умерли с готовым Blink» — только если на нажатие было две свободные секунды.",
