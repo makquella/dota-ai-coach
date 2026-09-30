@@ -194,8 +194,8 @@ def first_maxed(names: list[str]) -> str | None:
 
 
 def review_skills(upgrades: list[int] | None, data: dict[str, Any] | None) -> dict[str, Any] | None:
-    """The player's skill order against the pro one: {yours, pro, same, order,
-    agree, games} (in-game names), or None when either side is unknown, the pros
+    """The player's skill order against the pro one: {yours, pro, same, in_order,
+    order, agree, games} (in-game names), or None when either side is unknown, the pros
     do not agree on a first skill or the player maxed none."""
     build = skill_order(data)
     ids = (data or {}).get("ids")
@@ -213,6 +213,9 @@ def review_skills(upgrades: list[int] | None, data: dict[str, Any] | None) -> di
         "yours": labels.get(yours) or label(yours),
         "pro": labels.get(pro) or label(pro),
         "same": yours == pro,
+        # The player's skill may be one the pros rarely max (not in `order`):
+        # the review card then shows it apart from the pro chips.
+        "in_order": yours in build["order"],
         "order": [labels.get(name) or label(name) for name in build["order"]],
         "agree": build["first_agree"],
         "games": build["games"],

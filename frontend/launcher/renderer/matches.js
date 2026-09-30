@@ -295,6 +295,7 @@
       analyzed: (a, n) => `${a} of ${n} matches reviewed in depth`,
       buildTitle: "Build",
       skillsTitle: "Skill order",
+      skillsYours: "Yours first:",
       skillsPro: "How pros max their skills on this hero:",
       skillsSame: (name) => `You also maxed ${name} first, like the pros.`,
       skillsDiff: (yours, pro) => `You maxed ${yours} first; pros start with ${pro}.`,
@@ -811,6 +812,7 @@
       analyzed: (a, n) => `Подробно разобрано ${a} из ${n} матчей`,
       buildTitle: "Сборка",
       skillsTitle: "Прокачка",
+      skillsYours: "Ваше первое:",
       skillsPro: "Как максят умения про-игроки на этом герое:",
       skillsSame: (name) => `Первым вы вкачали до конца ${name} — как и про-игроки.`,
       skillsDiff: (yours, pro) => `Первым вы вкачали до конца ${yours}, а про-игроки начинают с ${pro}.`,
@@ -2357,6 +2359,10 @@
             h("span", { class: `chip ${name === skills.yours ? "chip-on" : ""}` }, h("span", { class: "num", text: `${index + 1}` }), h("span", { text: name }))
           )
         ),
+        // The player's first skill when the pros rarely max it: shown apart, marked.
+        skills.in_order === false || !skills.order.includes(skills.yours)
+          ? h("div", { class: "chips" }, h("span", { class: "muted small", text: t("skillsYours") }), h("span", { class: "chip chip-on" }, h("span", { text: skills.yours })))
+          : null,
         h("p", { class: "muted small", text: t("skillsNote", skills.agree, skills.games) })
       )
     );
