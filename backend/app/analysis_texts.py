@@ -12,6 +12,7 @@ from __future__ import annotations
 from typing import Any
 
 from app.advice_i18n import translate_ru
+from app.advice_why import why
 from app.last_moments import SAVERS, saver_label
 
 
@@ -33,7 +34,7 @@ FINDINGS: dict[str, dict[str, dict[str, str]]] = {
     "lh10_great": {
         "ru": {
             "title": "Сильная линия",
-            "text": "{lh10} добиваний к 10-й минуте при цели {target}. Вы вышли из лайнинга с хорошим запасом золота.",
+            "text": "{lh10} добиваний к 10-й минуте при цели {target}. Линию вы закончили с хорошим запасом золота.",
         },
         "en": {
             "title": "Strong lane",
@@ -647,7 +648,7 @@ FINDINGS.update(
 PEER_ROLES = {
     "carry": {"ru": "керри", "en": "carry"},
     "mid": {"ru": "мидера", "en": "mid"},
-    "offlane": {"ru": "хардлейнера", "en": "offlaner"},
+    "offlane": {"ru": "хардлайнера", "en": "offlaner"},
     "support": {"ru": "саппорта", "en": "support"},
 }
 
@@ -733,7 +734,7 @@ COUNTER_REASONS = {
 
 ROLES = {
     "core": {"ru": "кор", "en": "core"},
-    "offlane": {"ru": "хардлейн", "en": "offlane"},
+    "offlane": {"ru": "хардлайн", "en": "offlane"},
     "support": {"ru": "саппорт", "en": "support"},
 }
 
@@ -941,6 +942,7 @@ def render_analysis(analysis: dict[str, Any], lang: str) -> dict[str, Any]:
                 **item,
                 "action": _advice_text(item.get("action"), lang),
                 "reason": _advice_text(item.get("reason"), lang),
+                "why": why(item.get("dp"), lang),
             }
             for item in analysis["advice"]
         ]

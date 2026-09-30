@@ -160,3 +160,17 @@ test("text functions get their arguments through t(), never t(key)(…)", () => 
     assert.deepEqual(calls, [], `${file} calls a translated text as a function`);
   }
 });
+
+test("every id in index.html is unique (aria-labelledby resolves to the first one)", () => {
+  const html = fs.readFileSync(path.join(ROOT, "renderer", "index.html"), "utf8");
+  const ids = [...html.matchAll(/\sid="([^"]+)"/g)].map((match) => match[1]);
+  const repeated = ids.filter((id, index) => ids.indexOf(id) !== index);
+  assert.deepEqual(repeated, []);
+});
+
+test("the autostart hint says which state the switch is in", () => {
+  const table = tableFrom("renderer/app.js", "const I18N");
+  for (const lang of ["en", "ru"]) {
+    assert.notEqual(table[lang].autostartOn, table[lang].autostartOff, lang);
+  }
+});

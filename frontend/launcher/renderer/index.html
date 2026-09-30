@@ -194,7 +194,7 @@
       <header class="page-head">
         <div class="page-head-text">
           <h1 class="page-title" data-i18n="settingsPageTitle">Settings</h1>
-          <p class="page-sub" data-i18n="settingsPageSub">What the coach shows in the game, your data and the app</p>
+          <p class="page-sub" data-i18n="settingsPageSub">Everything works as it is. Change only what you want to.</p>
         </div>
       </header>
       <!-- Fixed columns (not CSS columns): opening «More» must not move cards
@@ -204,12 +204,12 @@
       <section class="zone" aria-labelledby="zone-game">
         <header class="zone-head">
           <h2 class="zone-title" id="zone-game" data-i18n="zoneGame">In the game</h2>
-          <p class="zone-hint" data-i18n="zoneGameHint">The advice card over Dota and what it says</p>
+          <p class="zone-hint" data-i18n="zoneGameHint">What you see and hear during a match</p>
         </header>
         <section class="card" id="overlay-card" aria-labelledby="overlay-card-heading">
           <header class="card-head">
             <i data-icon="monitor"></i>
-            <h2 id="overlay-card-heading" data-i18n="overlayTitle">Overlay</h2>
+            <h2 id="overlay-card-heading" data-i18n="overlayTitle">Advice card</h2>
           </header>
           <div class="card-body settings">
             <label class="setting">
@@ -221,7 +221,7 @@
             </label>
             <div class="setting">
               <span class="setting-text">
-                <span class="setting-title" id="position-title" data-i18n="overlayPosition">Position</span>
+                <span class="setting-title" id="position-title" data-i18n="overlayPosition">Where on the screen</span>
                 <span class="setting-hint" id="position-hint" data-i18n="positionHint">Away from the minimap and the hero panel</span>
               </span>
               <div class="segmented" role="radiogroup" id="position-group" aria-labelledby="position-title">
@@ -229,6 +229,13 @@
                 <button type="button" role="radio" data-position="right-center"><i data-icon="panel-right"></i><span data-i18n="posRight">Right</span></button>
                 <button type="button" role="radio" data-position="bottom-center"><i data-icon="panel-bottom"></i><span data-i18n="posBottom">Bottom</span></button>
               </div>
+            </div>
+            <div class="setting">
+              <span class="setting-text">
+                <span class="setting-title" data-i18n="overlayMove">Move by hand</span>
+                <span class="setting-hint" id="move-hint" data-i18n="moveHint">Shows the card so you can drag it anywhere</span>
+              </span>
+              <button id="move-toggle" class="btn" type="button"><i data-icon="move"></i><span id="move-label" data-i18n="moveStart">Move</span></button>
             </div>
             <div class="setting">
               <span class="setting-text">
@@ -243,25 +250,11 @@
             </div>
             <label class="setting">
               <span class="setting-text">
-                <span class="setting-title" data-i18n="overlayTimers">Timer strip</span>
-                <span class="setting-hint" data-i18n="overlayTimersHint">Under the card: the next runes, stacks, Roshan and the Aegis for your position</span>
-              </span>
-              <input id="overlay-timers" type="checkbox" class="switch" role="switch" />
-            </label>
-            <label class="setting">
-              <span class="setting-text">
-                <span class="setting-title" data-i18n="overlayCompact">Compact card</span>
+                <span class="setting-title" data-i18n="overlayCompact">Short advice</span>
                 <span class="setting-hint" data-i18n="overlayCompactHint">Only what to do, without the reason: less to read during a fight</span>
               </span>
               <input id="overlay-compact" type="checkbox" class="switch" role="switch" />
             </label>
-            <div class="setting">
-              <span class="setting-text">
-                <span class="setting-title" data-i18n="overlayMove">Move by hand</span>
-                <span class="setting-hint" id="move-hint" data-i18n="moveHint">Shows the card so you can drag it anywhere</span>
-              </span>
-              <button id="move-toggle" class="btn" type="button"><i data-icon="move"></i><span id="move-label" data-i18n="moveStart">Move</span></button>
-            </div>
           </div>
         </section>
         <section class="card" id="advice-settings-card" aria-labelledby="advice-settings-card-heading">
@@ -281,6 +274,20 @@
                 <button type="button" role="radio" data-frequency="active"><span data-i18n="frequencyActive">More</span></button>
               </div>
             </div>
+            <div class="setting">
+              <span class="setting-text">
+                <span class="setting-title" id="voice-title" data-i18n="voiceTitle">Voice</span>
+                <span class="setting-hint" id="voice-hint"></span>
+              </span>
+              <div class="setting-controls">
+                <div class="segmented" role="radiogroup" id="voice-group" aria-labelledby="voice-title">
+                  <button type="button" role="radio" data-voice="off"><span data-i18n="voiceOff">Off</span></button>
+                  <button type="button" role="radio" data-voice="urgent"><span data-i18n="voiceUrgent">Urgent</span></button>
+                  <button type="button" role="radio" data-voice="all"><span data-i18n="voiceAll">All</span></button>
+                </div>
+                <button id="voice-test" class="btn btn-icon" type="button" data-i18n-title="voiceTest" title="Listen"><i data-icon="volume-2"></i></button>
+              </div>
+            </div>
             <div class="setting setting-wrap">
               <span class="setting-text">
                 <span class="setting-title" id="role-title" data-i18n="roleTitle">Your role</span>
@@ -297,68 +304,41 @@
             <label class="setting">
               <span class="setting-text">
                 <span class="setting-title" data-i18n="mapHintsTitle">Map timers</span>
-                <span class="setting-hint" data-i18n="mapHintsHint">Runes, shrines, Tormentor, stacks and wards 20 s ahead, on the overlay card</span>
+                <span class="setting-hint" data-i18n="mapHintsHint">Runes, shrines, Tormentor, stacks and wards 20 s ahead, on the card</span>
               </span>
               <input id="map-hints" type="checkbox" class="switch" role="switch" />
             </label>
-            <div class="setting">
+            <label class="setting">
               <span class="setting-text">
-                <span class="setting-title" id="voice-title" data-i18n="voiceTitle">Voice</span>
-                <span class="setting-hint" id="voice-hint"></span>
+                <span class="setting-title" data-i18n="overlayTimers">Timer strip</span>
+                <span class="setting-hint" data-i18n="overlayTimersHint">Under the card: the next runes, stacks, Roshan and the Aegis for your role</span>
               </span>
-              <div class="setting-controls">
-                <div class="segmented" role="radiogroup" id="voice-group" aria-labelledby="voice-title">
-                  <button type="button" role="radio" data-voice="off"><span data-i18n="voiceOff">Off</span></button>
-                  <button type="button" role="radio" data-voice="urgent"><span data-i18n="voiceUrgent">Urgent</span></button>
-                  <button type="button" role="radio" data-voice="all"><span data-i18n="voiceAll">All</span></button>
-                </div>
-                <button id="voice-test" class="btn btn-icon" type="button" data-i18n-title="voiceTest" title="Listen"><i data-icon="volume-2"></i></button>
-              </div>
-            </div>
+              <input id="overlay-timers" type="checkbox" class="switch" role="switch" />
+            </label>
           </div>
         </section>
       </section>
       <section class="zone" aria-labelledby="zone-data">
         <header class="zone-head">
-          <h2 class="zone-title" id="zone-data" data-i18n="zoneData">Coach and match data</h2>
-          <p class="zone-hint" data-i18n="zoneDataHint">AI reviews and faster match history</p>
+          <h2 class="zone-title" id="zone-data" data-i18n="zoneData">After the match</h2>
+          <p class="zone-hint" data-i18n="zoneDataHint">The review of every match written by the AI coach</p>
         </header>
         <div id="ai-settings-root"></div>
-        <section class="card" id="data-card" aria-labelledby="data-card-heading">
-          <header class="card-head">
-            <i data-icon="history"></i>
-            <h2 id="data-card-heading" data-i18n="dataTitle">Match data</h2>
-          </header>
-          <div class="card-body settings">
-            <div class="setting setting-wrap">
-              <span class="setting-text">
-                <span class="setting-title" data-i18n="odTitle">OpenDota key (optional)</span>
-                <span class="setting-hint" id="od-hint"></span>
-              </span>
-              <div class="setting-controls" id="od-form">
-                <input id="od-key" class="input" type="password" autocomplete="off" spellcheck="false" data-i18n-placeholder="odPlaceholder" placeholder="API key" />
-                <button id="od-save" class="btn" type="button" data-i18n="odSave">Save</button>
-                <button id="od-get" class="btn btn-ghost btn-icon" type="button" data-i18n-title="odGet" title="Get a key"><i data-icon="external-link"></i></button>
-              </div>
-              <button id="od-clear" class="btn btn-ghost hidden" type="button"><i data-icon="trash-2"></i><span data-i18n="odClear">Remove key</span></button>
-            </div>
-          </div>
-        </section>
       </section>
       </div>
       <div class="col">
       <section class="zone" aria-labelledby="zone-app">
         <header class="zone-head">
           <h2 class="zone-title" id="zone-app" data-i18n="zoneApp">App</h2>
-          <p class="zone-hint" data-i18n="zoneAppHint">Language, updates, your match history and help</p>
+          <p class="zone-hint" data-i18n="zoneAppHint">Language, start with Windows, updates</p>
         </header>
         <section class="card" id="app-card" aria-labelledby="app-card-heading">
           <header class="card-head">
             <i data-icon="settings"></i>
-            <h2 id="app-card-heading" data-i18n="appTitle">App</h2>
+            <h2 id="app-card-heading" data-i18n="appTitle">Main</h2>
           </header>
           <div class="card-body settings">
-            <div class="setting">
+            <div class="setting setting-wrap">
               <span class="setting-text">
                 <span class="setting-title" id="language-title" data-i18n="languageTitle">Language</span>
                 <span class="setting-hint" data-i18n="languageHint">Advice, reviews and the whole app</span>
@@ -369,23 +349,6 @@
                 <button type="button" role="radio" data-language="en"><span>English</span></button>
               </div>
             </div>
-            <div class="setting">
-              <span class="setting-text">
-                <span class="setting-title" data-i18n="tourTitle">Tour of the app</span>
-                <span class="setting-hint" data-i18n="tourHint">A minute-long look at what is where</span>
-              </span>
-              <div class="setting-controls">
-                <button id="tour-start" class="btn" type="button"><i data-icon="compass"></i><span data-i18n="tourStart">Show</span></button>
-              </div>
-            </div>
-            <label class="setting">
-              <span class="setting-text">
-                <span class="setting-title" data-i18n="discordTitle">Status in Discord</span>
-                <span class="setting-hint" data-i18n="discordHint">Your Discord friends see «Playing Juggernaut · with the Wardly coach» while Dota runs</span>
-                <span class="setting-hint discord-state" id="discord-state" aria-live="polite"></span>
-              </span>
-              <input id="discord-presence" type="checkbox" class="switch" role="switch" />
-            </label>
             <label class="setting">
               <span class="setting-text">
                 <span class="setting-title" data-i18n="autostart">Start with Windows</span>
@@ -400,79 +363,143 @@
               </span>
               <button id="update-action" class="btn" type="button" data-mode="check"><i data-icon="rotate-cw"></i><span id="update-label" data-i18n="updateCheck">Check</span></button>
             </div>
-            <div class="setting setting-wrap backup-row">
+            <label class="setting">
               <span class="setting-text">
-                <span class="setting-title" data-i18n="backupTitle">Match history</span>
-                <span class="setting-hint" id="backup-hint" aria-live="polite"></span>
+                <span class="setting-title" data-i18n="discordTitle">Status in Discord</span>
+                <span class="setting-hint" data-i18n="discordHint">Your Discord friends see «Playing Juggernaut · with the Wardly coach» while Dota runs</span>
+                <span class="setting-hint discord-state" id="discord-state" aria-live="polite"></span>
               </span>
-              <div class="setting-controls">
-                <button id="backup-export" class="btn" type="button"><i data-icon="download"></i><span data-i18n="backupExport">Save to file</span></button>
-                <button id="backup-import" class="btn btn-ghost" type="button"><i data-icon="upload"></i><span data-i18n="backupImport">Load from file</span></button>
-              </div>
-            </div>
+              <input id="discord-presence" type="checkbox" class="switch" role="switch" />
+            </label>
+          </div>
+        </section>
+      </section>
+      <section class="zone" aria-labelledby="zone-my-matches">
+        <header class="zone-head">
+          <h2 class="zone-title" id="zone-my-matches" data-i18n="zoneMyData">Your matches</h2>
+          <p class="zone-hint" data-i18n="zoneMyDataHint">Keep your history when you change computers</p>
+        </header>
+        <section class="card" id="data-card" aria-labelledby="data-card-heading">
+          <header class="card-head">
+            <i data-icon="history"></i>
+            <h2 id="data-card-heading" data-i18n="dataTitle">Match history</h2>
+          </header>
+          <div class="card-body settings">
             <div class="setting setting-wrap transfer-row">
               <span class="setting-text">
                 <span class="setting-title" data-i18n="transferTitle">Move to another computer</span>
+                <span class="setting-hint" data-i18n="transferIntro">Installed Wardly on a new computer? Move your matches and reviews there in a minute.</span>
+                <ol class="setting-steps">
+                  <li data-i18n="transferStep1">Here, press «Get a code».</li>
+                  <li data-i18n="transferStep2">On the new computer: Wardly → Settings → Move to another computer → «I have a code», and type it in.</li>
+                </ol>
                 <span class="setting-hint" id="transfer-hint" aria-live="polite"></span>
                 <span class="transfer-code num" id="transfer-code" hidden></span>
               </span>
               <div class="setting-controls transfer-controls">
                 <button id="transfer-send" class="btn" type="button"><i data-icon="send"></i><span data-i18n="transferSend">Get a code</span></button>
-                <form id="transfer-form" class="link-form transfer-form">
+                <button id="transfer-have" class="btn btn-ghost" type="button" aria-expanded="false" aria-controls="transfer-form"><i data-icon="download"></i><span data-i18n="transferHave">I have a code</span></button>
+                <form id="transfer-form" class="link-form transfer-form" hidden>
                   <input id="transfer-input" class="input" type="text" autocomplete="off" spellcheck="false" maxlength="16" placeholder="ABCD-EFGH-JKMN" data-i18n-aria="transferInputLabel" aria-label="Code from the other computer" />
-                  <button id="transfer-receive" class="btn btn-ghost" type="submit"><i data-icon="download"></i><span data-i18n="transferReceive">Load</span></button>
+                  <button id="transfer-receive" class="btn btn-primary" type="submit"><span data-i18n="transferReceive">Load</span></button>
                 </form>
               </div>
             </div>
-            <!-- Opt-in anonymous statistics (advice-stats.js): off by default. -->
-            <div class="setting setting-wrap stats-row">
+            <div class="setting setting-wrap backup-row">
               <span class="setting-text">
-                <label class="setting-title" for="share-stats" data-i18n="statsTitle">Anonymous statistics</label>
-                <span class="setting-hint" data-i18n="statsHint">Once a day: which advice the coach showed and which warnings came before a death. No heroes, matches, nickname or keys. Helps make the advice better.</span>
-                <span class="setting-hint" id="stats-hint" aria-live="polite"></span>
+                <span class="setting-title" data-i18n="backupTitle">Spare copy in a file</span>
+                <span class="setting-hint" id="backup-hint" aria-live="polite"></span>
               </span>
-              <input id="share-stats" type="checkbox" class="switch" role="switch" />
-              <details class="report-preview stats-preview" id="stats-preview">
-                <summary data-i18n="statsPreview">What is sent (today so far)</summary>
-                <pre id="stats-preview-text" class="report-preview-text" tabindex="0"></pre>
-                <p class="report-terms">
-                  <span data-i18n="statsTerms">Kept for a year.</span>
-                  <button id="stats-privacy" class="report-link" type="button" data-i18n="reportPrivacy">Privacy</button>
-                </p>
-                <div class="report-actions">
-                  <button id="server-delete" class="btn btn-ghost" type="button"><i data-icon="x"></i><span data-i18n="serverDelete">Delete my data on the server</span></button>
-                </div>
-              </details>
+              <div class="setting-controls">
+                <button id="backup-export" class="btn" type="button"><i data-icon="download"></i><span data-i18n="backupExport">Save to file</span></button>
+                <button id="backup-import" class="btn btn-ghost" type="button"><i data-icon="upload"></i><span data-i18n="backupImport">Open a file</span></button>
+              </div>
+            </div>
+          </div>
+        </section>
+      </section>
+      <section class="zone" aria-labelledby="zone-help">
+        <header class="zone-head">
+          <h2 class="zone-title" id="zone-help" data-i18n="zoneHelp">Help</h2>
+          <p class="zone-hint" data-i18n="zoneHelpHint">How to use the app and what to do if something breaks</p>
+        </header>
+        <section class="card" id="help-card" aria-labelledby="zone-help">
+          <div class="card-body settings">
+            <div class="setting">
+              <span class="setting-text">
+                <span class="setting-title" data-i18n="tourTitle">How to use Wardly</span>
+                <span class="setting-hint" data-i18n="tourHint">A short tour of the app, one minute</span>
+              </span>
+              <div class="setting-controls">
+                <button id="tour-start" class="btn" type="button"><i data-icon="compass"></i><span data-i18n="tourStart">Show</span></button>
+              </div>
             </div>
             <div class="setting setting-wrap report-row">
               <span class="setting-text">
-                <span class="setting-title" data-i18n="reportTitle">Problem report</span>
+                <span class="setting-title" data-i18n="reportTitle">Report a problem</span>
                 <span class="setting-hint" id="report-hint" aria-live="polite"></span>
               </span>
               <div class="setting-controls">
-                <button id="report-open" class="btn" type="button" aria-expanded="false" aria-controls="report-panel"><i data-icon="send"></i><span data-i18n="reportSend">Send to developer</span></button>
-                <button id="report-action" class="btn btn-ghost" type="button"><i data-icon="file-text"></i><span data-i18n="reportSave">Save file</span></button>
+                <button id="report-open" class="btn" type="button" aria-expanded="false" aria-controls="report-panel"><i data-icon="send"></i><span data-i18n="reportSend">Report</span></button>
               </div>
               <div class="report-panel" id="report-panel" hidden>
                 <label class="report-label" for="report-note" data-i18n="reportNoteLabel">What happened? (optional)</label>
-                <textarea id="report-note" class="input report-note" rows="3" maxlength="1000" data-i18n-placeholder="reportNotePlaceholder" placeholder="For example: the overlay does not show in a match"></textarea>
+                <textarea id="report-note" class="input report-note" rows="3" maxlength="1000" data-i18n-placeholder="reportNotePlaceholder" placeholder="For example: no advice shows in a match"></textarea>
                 <details class="report-preview" id="report-preview">
                   <summary data-i18n="reportPreview">What will be sent</summary>
                   <pre id="report-preview-text" class="report-preview-text" tabindex="0"></pre>
                 </details>
                 <p class="report-terms">
-                  <span data-i18n="reportTerms">API keys are removed. The report is kept for 180 days.</span>
+                  <span data-i18n="reportTerms">Keys are cut out. The report is kept for 180 days.</span>
                   <button id="report-privacy" class="report-link" type="button" data-i18n="reportPrivacy">Privacy</button>
                 </p>
                 <div class="report-actions">
                   <button id="report-send" class="btn btn-primary" type="button"><span data-i18n="reportSendNow">Send</span></button>
+                  <button id="report-action" class="btn btn-ghost" type="button"><i data-icon="file-text"></i><span data-i18n="reportSave">Save as a file instead</span></button>
                   <button id="report-cancel" class="btn btn-ghost" type="button"><span data-i18n="reportCancel">Cancel</span></button>
                 </div>
               </div>
             </div>
-            <!-- Rarely needed options, collapsed. -->
-            <details class="settings-more" id="settings-more">
-              <summary data-i18n="settingsMore">More</summary>
+          </div>
+        </section>
+        <!-- Rarely needed options, collapsed. -->
+        <details class="settings-more" id="settings-more">
+          <summary data-i18n="settingsMore">More settings</summary>
+          <section class="card" aria-labelledby="more-card-heading">
+            <h2 class="visually-hidden" id="more-card-heading" data-i18n="settingsMore">More settings</h2>
+            <div class="card-body settings">
+              <!-- Opt-in anonymous statistics (advice-stats.js): off by default. -->
+              <div class="setting setting-wrap stats-row">
+                <span class="setting-text">
+                  <label class="setting-title" for="share-stats" data-i18n="statsTitle">Help improve the advice</label>
+                  <span class="setting-hint" data-i18n="statsHint">Once a day: which advice the coach showed and which warnings came before a death. No heroes, matches, nickname or keys.</span>
+                  <span class="setting-hint" id="stats-hint" aria-live="polite"></span>
+                </span>
+                <input id="share-stats" type="checkbox" class="switch" role="switch" />
+                <details class="report-preview stats-preview" id="stats-preview">
+                  <summary data-i18n="statsPreview">What is sent (today so far)</summary>
+                  <pre id="stats-preview-text" class="report-preview-text" tabindex="0"></pre>
+                  <p class="report-terms">
+                    <span data-i18n="statsTerms">Kept for a year.</span>
+                    <button id="stats-privacy" class="report-link" type="button" data-i18n="reportPrivacy">Privacy</button>
+                  </p>
+                  <div class="report-actions">
+                    <button id="server-delete" class="btn btn-ghost" type="button"><i data-icon="x"></i><span data-i18n="serverDelete">Delete my data on the server</span></button>
+                  </div>
+                </details>
+              </div>
+              <div class="setting setting-wrap">
+                <span class="setting-text">
+                  <span class="setting-title" data-i18n="odTitle">Faster match history</span>
+                  <span class="setting-hint" id="od-hint"></span>
+                </span>
+                <div class="setting-controls" id="od-form">
+                  <input id="od-key" class="input" type="password" autocomplete="off" spellcheck="false" data-i18n-placeholder="odPlaceholder" placeholder="OpenDota key" />
+                  <button id="od-save" class="btn" type="button" data-i18n="odSave">Save</button>
+                  <button id="od-get" class="btn btn-ghost btn-icon" type="button" data-i18n-title="odGet" title="Get a key"><i data-icon="external-link"></i></button>
+                </div>
+                <button id="od-clear" class="btn btn-ghost hidden" type="button"><i data-icon="trash-2"></i><span data-i18n="odClear">Remove key</span></button>
+              </div>
               <div class="setting setting-wrap weekly-row">
                 <span class="setting-text">
                   <span class="setting-title" data-i18n="weeklyTitle">The week in Discord</span>
@@ -487,9 +514,9 @@
                   <button id="weekly-clear" class="btn btn-ghost" type="button" hidden><i data-icon="unlink"></i><span data-i18n="weeklyDisconnect">Disconnect</span></button>
                 </div>
               </div>
-            </details>
-          </div>
-        </section>
+            </div>
+          </section>
+        </details>
       </section>
       </div>
       </div>

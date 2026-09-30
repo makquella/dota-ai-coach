@@ -15,6 +15,7 @@ from pydantic import BaseModel, ValidationError
 
 from app.advice_i18n import localize_advice_items, localize_overlay_response, normalize_lang
 from app.advice_scheduler import ADVICE_SCHEDULER, ScheduledAdvice
+from app.advice_why import why
 from app.coach_summary import COACH_SESSION_HISTORY
 from app.config import (
     ADVICE_ROLE,
@@ -68,7 +69,7 @@ app = FastAPI(
     lifespan=_lifespan,
     title="Wardly",
     description="MVP-1: rule-based carry coach with local knowledge-base RAG.",
-    version="0.20.0",
+    version="0.21.0",
 )
 app.include_router(player_router)
 
@@ -102,7 +103,7 @@ if FRONTEND_DIR.exists():
 @app.get("/", summary="Health check")
 def root():
     """Simple health-check endpoint."""
-    return {"status": "ok", "service": "Wardly", "version": "0.20.0"}
+    return {"status": "ok", "service": "Wardly", "version": "0.21.0"}
 
 
 @app.get("/health", summary="Health check")
@@ -693,6 +694,7 @@ def recent_advice(limit: int = 5, lang: str = "en"):
                     "reason": record.get("reason"),
                     "priority": record.get("priority"),
                     "advice_mode": record.get("advice_mode"),
+                    "why": why(record.get("decision_point"), normalize_lang(lang)),
                 }
                 for record in reversed(records)
             ],

@@ -291,19 +291,20 @@ updater.on("change", () => {
 const TRAY_TEXT = {
   en: {
     open: "Open",
-    overlay: "Overlay",
+    overlay: "Advice over the game",
     autostartWindows: "Start with Windows",
     autostartLogin: "Start at login",
     quit: "Quit",
-    backend: "Backend",
+    backend: "Coach",
+    backendStates: { running: "running", starting: "starting…", stopping: "stopping…", stopped: "stopped" },
     [DOTA_STATUS.NOT_FOUND]: "Dota not found",
     [DOTA_STATUS.WAITING]: "Waiting for game",
     [DOTA_STATUS.IN_GAME]: "In game",
-    gsiInstalled: "Dota 2 GSI config installed.",
+    gsiInstalled: "Wardly is connected to Dota 2.",
     restartDota: "Restart Dota 2 to connect.",
-    fullscreenMenu: "Overlay hidden by exclusive fullscreen",
+    fullscreenMenu: "Advice hidden by exclusive fullscreen",
     fullscreenBalloon:
-      "Dota runs in exclusive fullscreen, so the overlay cannot be drawn over it. In Dota: Settings → Video → Display mode → Borderless window. Or turn on spoken advice in the app.",
+      "Dota runs in exclusive fullscreen, so advice cannot be drawn over it. In Dota: Settings → Video → Display mode → Borderless window. Or turn on spoken advice in the app.",
     updateDownloading: (version, percent) => `Downloading update ${version}… ${percent}%`,
     updateReady: (version) => `Restart and update to ${version}`,
     updateAfterGame: (version) => `Update ${version} installs after you close Dota`,
@@ -321,19 +322,20 @@ const TRAY_TEXT = {
   },
   ru: {
     open: "Открыть",
-    overlay: "Оверлей",
+    overlay: "Подсказки поверх игры",
     autostartWindows: "Автозапуск с Windows",
     autostartLogin: "Автозапуск при входе",
     quit: "Выход",
-    backend: "Бэкенд",
+    backend: "Тренер",
+    backendStates: { running: "работает", starting: "запускается…", stopping: "останавливается…", stopped: "остановлен" },
     [DOTA_STATUS.NOT_FOUND]: "Дота не найдена",
     [DOTA_STATUS.WAITING]: "Ждём игру",
     [DOTA_STATUS.IN_GAME]: "В игре",
-    gsiInstalled: "Конфиг GSI для Dota 2 установлен.",
+    gsiInstalled: "Wardly подключён к Dota 2.",
     restartDota: "Перезапустите Dota 2.",
-    fullscreenMenu: "Оверлей не виден: полноэкранный режим",
+    fullscreenMenu: "Подсказки не видны: полноэкранный режим",
     fullscreenBalloon:
-      "Дота запущена в эксклюзивном полноэкранном режиме — поверх него оверлей не рисуется. В Доте: Настройки → Видео → режим экрана «Окно без рамки» (Borderless window). Или включите озвучку советов в приложении.",
+      "Дота запущена в эксклюзивном полноэкранном режиме — поверх него подсказки не рисуются. В Доте: Настройки → Видео → режим экрана «Окно без рамки» (Borderless window). Или включите озвучку советов в приложении.",
     updateDownloading: (version, percent) => `Загружается обновление ${version}… ${percent}%`,
     updateReady: (version) => `Перезапустить и обновить до ${version}`,
     updateAfterGame: (version) => `Обновление ${version} установится после выхода из Доты`,
@@ -2943,8 +2945,7 @@ function refreshTray() {
     return;
   }
   const statusLine = t(presence.status);
-  const port = backend.port && processStatus.backend !== "stopped" ? ` :${backend.port}` : "";
-  const backendLine = `${t("backend")}: ${processStatus.backend}${port}`;
+  const backendLine = `${t("backend")}: ${(t("backendStates") || {})[processStatus.backend] || processStatus.backend}`;
   const fullscreen = fullscreenWarningActive();
   const update = updater.getState();
   const tooltipLines = [`${APP_NAME} — ${statusLine}`, fullscreen ? t("fullscreenMenu") : "", backendLine];
