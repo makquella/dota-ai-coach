@@ -293,6 +293,11 @@ const I18N = {
     tourHint: "A short tour of the app, one minute",
     tourStart: "Show",
     whatsNew: {
+      "0.21.0": [
+        "Settings are rebuilt: five clear groups, bigger text, fewer buttons, and a plain line under every setting. Moving to another computer now explains itself step by step.",
+        "«Why this advice?» under every advice on Home and in the review: what the coach saw.",
+        "«What does this mean?» for the match score, the rank comparison and the focus, and no more technical words across the app."
+      ],
       "0.20.0": [
         "Full advice for 25 supports (positions 4 and 5) with their own saves, reminders to place the wards in your bag and to get a save item, and a support review: your save item's timing and the wards you placed.",
         "Overlay 2.0: a timer strip under the card (runes, stacks, Roshan, Aegis for your role), a compact card and a soft fade-in — Settings → Overlay.",
@@ -833,6 +838,11 @@ const I18N = {
     tourHint: "Короткая экскурсия по приложению, на минуту",
     tourStart: "Показать",
     whatsNew: {
+      "0.21.0": [
+        "Настройки собраны заново: пять понятных групп, крупнее шрифт, меньше кнопок и объяснение простыми словами у каждой строки. Перенос на другой компьютер — по шагам.",
+        "«Почему этот совет?» под каждой подсказкой на Главной и в разборе: что увидел тренер.",
+        "«Что это значит?» у оценки матча, сравнения с рангом и фокуса — и никаких технических слов по всему приложению."
+      ],
       "0.20.0": [
         "Полные подсказки для 25 саппортов (четвёрки и пятёрки): их спасения, напоминания поставить варды из инвентаря и собрать предмет спасения, а в разборе — тайминг этого предмета и сколько вардов вы поставили.",
         "Оверлей 2.0: полоска таймеров под карточкой (руны, стаки, Рошан, Аегис для вашей роли), компактная карточка и плавное появление — «Настройки → Оверлей».",
