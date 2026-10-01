@@ -78,6 +78,15 @@ def _int(value: Any) -> int | None:
     return int(value)
 
 
+# Real GSI lists the Dota Plus wheel among the abilities (plus_high_five,
+# plus_guild_banner, level 1 from the start): not the hero's, never a skill point.
+NOT_HERO_ABILITY_PREFIXES = ("plus_",)
+
+
+def not_hero_ability(name: Any) -> bool:
+    return isinstance(name, str) and name.startswith(NOT_HERO_ABILITY_PREFIXES)
+
+
 def read_skills(payload: Any) -> dict[str, Any] | None:
     """Hero level, the levels spent (abilities + talents + attributes), the
     ultimate and whether the talent fields are there; None without the blocks."""
@@ -95,7 +104,7 @@ def read_skills(payload: Any) -> dict[str, Any] | None:
     levels: dict[str, int] = {}
     for key in sorted(abilities):
         ability = abilities[key]
-        if not isinstance(ability, dict):
+        if not isinstance(ability, dict) or not_hero_ability(ability.get("name")):
             continue
         ability_level = _int(ability.get("level")) or 0
         if 0 <= ability_level <= 10:

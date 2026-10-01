@@ -1,7 +1,7 @@
 {
   "name": "dota-ai-coach-launcher",
   "productName": "Wardly",
-  "version": "0.30.1",
+  "version": "0.30.2",
   "private": true,
   "description": "Wardly, a Dota 2 coach: tray launcher, local backend and always-on-top overlay.",
   "author": "Wardly",
@@ -14,7 +14,7 @@
     "pack": "electron-builder --dir --publish never",
     "dist": "electron-builder --win nsis --publish never",
     "dist:portable": "electron-builder --win portable --publish never",
-    "test": "node --test test/steam-locator.test.js test/overlay-visibility.test.js test/overlay-placement.test.js test/dota-watcher.test.js test/updater.test.js test/problem-report.test.js test/voice.test.js test/i18n.test.js test/dota-assets.test.js test/dota-icons.test.js test/transfer-code.test.js test/discord-presence.test.js test/discord-weekly.test.js test/advice-stats.test.js test/tour.test.js test/package-files.test.js"
+    "test": "node --test test/steam-locator.test.js test/overlay-visibility.test.js test/overlay-placement.test.js test/dota-watcher.test.js test/updater.test.js test/problem-report.test.js test/voice.test.js test/i18n.test.js test/dota-assets.test.js test/dota-icons.test.js test/transfer-code.test.js test/discord-presence.test.js test/discord-weekly.test.js test/advice-stats.test.js test/tour.test.js test/package-files.test.js test/gsi-config.test.js"
   },
   "devDependencies": {
     "electron": "42.4.0",

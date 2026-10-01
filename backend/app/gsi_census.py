@@ -1,0 +1,213 @@
+"""
+gsi_census.py - which GSI fields the game really sends, for the problem report.
+
+The coach is built on what Valve's GSI exposes to a *player* (a spectator gets
+more), and some of it was only ever seen in synthetic samples. The census
+counts, over the backend's run, every field path that arrived (`hero.stunned`,
+`items.slot*.can_cast`, `minimap.*.unitname`...) and how often a flag was
+true, then checks the paths each coach feature reads (`FEATURES`). It keeps
+field names, counts and a few game enums only — never Steam IDs, nicknames or
+other values — so `GET /diagnostics` can carry it into a problem report.
+"""
+
+from __future__ import annotations
+
+import re
+import threading
+from collections import Counter
+from typing import Any
+
+MAX_PATHS = 600
+MAX_DEPTH = 4
+# Numbered slots collapse into one path: items.slot3.name -> items.slot*.name.
+_NUMBERED = re.compile(r"^([a-z_]*?)\d+$")
+# Blocks whose keys are ids, not field names (minimap o123, buildings by name).
+_ID_KEYED = {"minimap", "buildings", "couriers", "wearables", "neutralitems", "draft"}
+_SKIP = {"auth"}
+IN_PROGRESS = "DOTA_GAMERULES_STATE_GAME_IN_PROGRESS"
+TEAMS = {"radiant": 2, "dire": 3}
+HERO_PREFIX = "npc_dota_hero_"
+
+# What each coach feature reads; a feature works when every path of one of
+# its alternatives came in most in-game payloads.
+FEATURES: list[tuple[str, str, list[list[str]]]] = [
+    ("hp_mana", "HP and mana", [["hero.health_percent", "hero.mana_percent"]]),
+    (
+        "disables",
+        "Stun / hex / silence / mute flags",
+        [["hero.stunned", "hero.hexed", "hero.silenced", "hero.muted"]],
+    ),
+    ("item_ready", "Item ready (can_cast, cooldown)", [["items.slot*.can_cast"]]),
+    ("item_charges", "Item charges (Magic Wand, regen)", [["items.slot*.charges"]]),
+    ("tp_slot", "TP scroll slot", [["items.teleport*.name"]]),
+    (
+        "abilities",
+        "Ability level, cooldown, can_cast",
+        [
+            [
+                "abilities.ability*.level",
+                "abilities.ability*.cooldown",
+                "abilities.ability*.can_cast",
+            ]
+        ],
+    ),
+    ("ultimate", "Ultimate flag", [["abilities.ability*.ultimate"]]),
+    ("talents", "Talent fields", [["hero.talent_*"]]),
+    ("position", "Hero position", [["hero.xpos", "hero.ypos"]]),
+    ("buyback", "Buyback cost and cooldown", [["hero.buyback_cost", "hero.buyback_cooldown"]]),
+    ("farm", "Last hits and gold per minute", [["player.last_hits", "player.gpm"]]),
+    ("kill_streak", "Kill streak", [["player.kill_streak"]]),
+    ("score", "Team kill score", [["map.radiant_score", "map.dire_score"]]),
+    ("team", "Player's team", [["player.team_name"]]),
+    ("events", "Game events (Roshan, Aegis)", [["events[].event_type"]]),
+    ("minimap", "Minimap units", [["minimap.*.unitname", "minimap.*.team"]]),
+    ("aegis", "Aegis on the hero", [["hero.aegis"], ["items.slot*.name"]]),
+]
+# Share of in-game payloads a path must come in to count as sent.
+PRESENT_SHARE = 0.5
+
+
+def _part(block: str, depth: int, key: str) -> str:
+    if depth == 1 and block in _ID_KEYED:
+        return "*"
+    match = _NUMBERED.match(key)
+    if match and match.group(1):
+        return f"{match.group(1)}*"
+    return key
+
+
+class GsiCensus:
+    def __init__(self) -> None:
+        self._lock = threading.Lock()
+        self.reset()
+
+    def reset(self) -> None:
+        self.payloads = 0
+        self.in_game = 0
+        self.paths: Counter[str] = Counter()
+        self.true_flags: Counter[str] = Counter()
+        self.event_types: Counter[str] = Counter()
+        self.game_states: Counter[str] = Counter()
+        self.minimap_payloads = 0
+        self.minimap_units_max = 0
+        self.own_heroes_max = 0
+        self.enemy_hero_payloads = 0
+        self.enemy_heroes: set[str] = set()
+
+    def observe(self, payload: Any) -> None:
+        """Count one GSI payload; never raises."""
+        if not isinstance(payload, dict):
+            return
+        try:
+            with self._lock:
+                self._observe(payload)
+        except Exception:  # noqa: BLE001 - the census must never break /gsi
+            pass
+
+    def _observe(self, payload: dict[str, Any]) -> None:
+        self.payloads += 1
+        map_block = payload.get("map") if isinstance(payload.get("map"), dict) else {}
+        state = map_block.get("game_state")
+        if isinstance(state, str) and len(self.game_states) < 20:
+            self.game_states[state[:60]] += 1
+        in_game = state == IN_PROGRESS
+        if not in_game:
+            return
+        self.in_game += 1
+        seen: set[str] = set()
+        for block, value in payload.items():
+            if block in _SKIP or not isinstance(block, str):
+                continue
+            self._walk(block, block, value, 0, seen)
+        for path in seen:
+            if path in self.paths or len(self.paths) < MAX_PATHS:
+                self.paths[path] += 1
+        self._minimap(payload)
+
+    def _walk(self, block: str, path: str, value: Any, depth: int, seen: set[str]) -> None:
+        if isinstance(value, dict) and value and depth < MAX_DEPTH:
+            for key, item in value.items():
+                part = _part(block, depth + 1, str(key))
+                self._walk(block, f"{path}.{part}", item, depth + 1, seen)
+            return
+        if isinstance(value, list) and depth < MAX_DEPTH:
+            seen.add(f"{path}[]")
+            for item in value[:20]:
+                if isinstance(item, dict):
+                    for key, sub in item.items():
+                        seen.add(f"{path}[].{key}")
+                        if key == "event_type" and isinstance(sub, str):
+                            self.event_types[sub[:40]] += 1
+            return
+        seen.add(path)
+        if value is True:
+            self.true_flags[path] += 1
+
+    def _minimap(self, payload: dict[str, Any]) -> None:
+        minimap = payload.get("minimap")
+        if not isinstance(minimap, dict):
+            return
+        self.minimap_payloads += 1
+        self.minimap_units_max = max(self.minimap_units_max, len(minimap))
+        player = payload.get("player") if isinstance(payload.get("player"), dict) else {}
+        own = TEAMS.get(str(player.get("team_name") or "").lower())
+        own_heroes = 0
+        enemy = False
+        for unit in minimap.values():
+            if not isinstance(unit, dict):
+                continue
+            name = unit.get("unitname")
+            if not isinstance(name, str) or not name.startswith(HERO_PREFIX):
+                continue
+            if unit.get("team") == own:
+                own_heroes += 1
+            elif own is not None and unit.get("team") in TEAMS.values():
+                enemy = True
+                if len(self.enemy_heroes) < 10:
+                    self.enemy_heroes.add(name[len(HERO_PREFIX) :][:40])
+        self.own_heroes_max = max(self.own_heroes_max, own_heroes)
+        if enemy:
+            self.enemy_hero_payloads += 1
+
+    def _share(self, path: str) -> float:
+        if not self.in_game:
+            return 0.0
+        return self.paths.get(path, 0) / self.in_game
+
+    def features(self) -> list[dict[str, Any]]:
+        rows = []
+        for key, label, alternatives in FEATURES:
+            best = max((min(self._share(p) for p in paths) for paths in alternatives), default=0.0)
+            status = "ok" if best >= PRESENT_SHARE else ("rare" if best > 0 else "missing")
+            if not self.in_game:
+                status = "no_data"
+            rows.append({"key": key, "label": label, "status": status, "share": round(best, 2)})
+        return rows
+
+    def summary(self) -> dict[str, Any]:
+        with self._lock:
+            flags = {
+                path: count
+                for path, count in self.true_flags.items()
+                if path.startswith("hero.") and count
+            }
+            return {
+                "payloads": self.payloads,
+                "in_game_payloads": self.in_game,
+                "game_states": dict(self.game_states),
+                "top_level": sorted({p.split(".", 1)[0].split("[", 1)[0] for p in self.paths}),
+                "features": self.features(),
+                "hero_flags_true": dict(sorted(flags.items())),
+                "event_types": dict(self.event_types),
+                "minimap": {
+                    "payloads": self.minimap_payloads,
+                    "units_max": self.minimap_units_max,
+                    "own_heroes_max": self.own_heroes_max,
+                    "payloads_with_enemy_heroes": self.enemy_hero_payloads,
+                    "enemy_heroes_seen": sorted(self.enemy_heroes),
+                },
+                "paths": dict(sorted(self.paths.items())),
+            }
+
+
+GSI_CENSUS = GsiCensus()
