@@ -57,6 +57,24 @@ REGEN_OVER_TIME = {
     "item_tango": "Tango",
     "item_tango_single": "Tango",
 }
+# Runes a Bottle can hold (GSI items.slot*.contains_rune) → their name.
+BOTTLE_RUNES = {
+    "haste": "Haste",
+    "double_damage": "Double Damage",
+    "arcane": "Arcane",
+    "invis": "Invisibility",
+    "invisibility": "Invisibility",
+    "illusion": "Illusion",
+    "shield": "Shield",
+    "regen": "Regeneration",
+    "regeneration": "Regeneration",
+    "water": "Water",
+    "bounty": "Bounty",
+}
+# Bottled runes that get a hero out at low HP, best first.
+RUNE_ESCAPES = ("Haste", "Invisibility", "Shield", "Illusion")
+# Runes that make a kill: held in the Bottle they wait for one (map_hints).
+POWER_RUNES = {"Haste", "Double Damage", "Arcane", "Invisibility", "Illusion", "Shield"}
 # A disable: what removes it or gets out the moment it ends.
 DISPELS = (
     "item_black_king_bar",
@@ -173,8 +191,23 @@ def ready_abilities(hero: Any, abilities: Any) -> list[str]:
     return [name for name, _ in hero_tools(hero, abilities)["ready"]]
 
 
+def bottle_rune(items: Any) -> str | None:
+    """The rune held in a Bottle in the inventory (BOTTLE_RUNES name); None
+    without one, with an empty Bottle or with a rune name not known here."""
+    for slot, value in _dict(items).items():
+        item = _dict(value)
+        if not active_slot(slot) or item.get("name") != "item_bottle":
+            continue
+        rune = item.get("contains_rune")
+        if isinstance(rune, str) and rune.lower() in BOTTLE_RUNES:
+            return BOTTLE_RUNES[rune.lower()]
+    return None
+
+
 def regen_items(items: Any) -> list[str] | None:
-    """Healing consumables in the inventory that can be used (None: no items block)."""
+    """Healing consumables in the inventory that can be used (None: no items block).
+    A Bottle holding a rune heals only with a Regeneration or Water rune: pressed,
+    it uses the rune, not a charge."""
     if not isinstance(items, dict) or not items:
         return None
     found: list[str] = []
@@ -187,8 +220,15 @@ def regen_items(items: Any) -> list[str] | None:
             continue
         if item.get("can_cast") is False:
             continue
-        if name == "item_bottle" and _count(item.get("charges")) < 1:
-            continue
+        if name == "item_bottle":
+            rune = item.get("contains_rune")
+            held = BOTTLE_RUNES.get(rune.lower()) if isinstance(rune, str) else None
+            if held is None and rune not in (None, "", "empty"):
+                continue  # an unknown rune: pressing it uses the rune
+            if held is None and _count(item.get("charges")) < 1:
+                continue
+            if held is not None and held not in ("Regeneration", "Water"):
+                continue
         found.append(name)
     return found
 
@@ -290,6 +330,12 @@ def low_hp_copy(extra: Mapping[str, Any], hero: Any = None) -> tuple[str, str] |
             f"Use {name} now to get out, then reset HP.",
             f"Your HP is low and {name} is ready: use it before the next hit, not after.",
         )
+    rune = extra.get("bottle_rune")
+    if rune in RUNE_ESCAPES:
+        return (
+            f"Use the {rune} rune from your Bottle and run.",
+            f"The {rune} rune in your Bottle is ready: use it before the next hit, not after.",
+        )
     heal = _first(ready, INSTANT_HEALS)
     if heal == "item_magic_wand":
         charges = _count(extra.get("wand_charges"))
@@ -304,11 +350,22 @@ def low_hp_copy(extra: Mapping[str, Any], hero: Any = None) -> tuple[str, str] |
         return (f"Use {name} now, then step back.", f"{name} is ready and heals you at once.")
     regen = extra.get("regen_items")
     regen = [n for n in regen if isinstance(n, str)] if isinstance(regen, list) else []
+    if "item_bottle" in regen and rune == "Water":
+        return (
+            "Use the Water rune from your Bottle now, then step back.",
+            "The Water rune in your Bottle heals you at once.",
+        )
     instant = next((n for n in regen if n in REGEN_INSTANT), None)
     if instant:
         name = _label(instant)
         return (f"Use {name} now, then step back.", f"{name} heals you at once.")
     over_time = next((n for n in regen if n in REGEN_OVER_TIME), None)
+    if over_time == "item_bottle" and rune == "Regeneration":
+        return (
+            "Step out of enemy range and use the Regeneration rune from your Bottle.",
+            "The Regeneration rune heals fast but stops at the first hit: "
+            "use it where enemies cannot reach you.",
+        )
     if over_time:
         name = _label(over_time)
         return (

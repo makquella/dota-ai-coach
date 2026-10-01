@@ -70,7 +70,7 @@ app = FastAPI(
     lifespan=_lifespan,
     title="Wardly",
     description="MVP-1: rule-based carry coach with local knowledge-base RAG.",
-    version="0.30.3",
+    version="0.31.0",
 )
 app.include_router(player_router)
 
@@ -104,7 +104,7 @@ if FRONTEND_DIR.exists():
 @app.get("/", summary="Health check")
 def root():
     """Simple health-check endpoint."""
-    return {"status": "ok", "service": "Wardly", "version": "0.30.3"}
+    return {"status": "ok", "service": "Wardly", "version": "0.31.0"}
 
 
 @app.get("/health", summary="Health check")
@@ -401,6 +401,9 @@ def _live_role_and_hint(response: dict[str, object], lang: str) -> dict[str, obj
             else None,
             score_gap=score_gap(extra),
             enemies=MATCH_MEMORY.enemies.heroes() or None,
+            bottle_rune=extra.get("bottle_rune")
+            if isinstance(extra.get("bottle_rune"), str)
+            else None,
             roshan_open=MATCH_MEMORY.roshan.maybe_up(clock if isinstance(clock, int) else None),
             objective=MATCH_MEMORY.roshan.hint(clock if isinstance(clock, int) else None, lang),
             skill=MATCH_MEMORY.skills.tip(

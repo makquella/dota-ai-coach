@@ -463,6 +463,20 @@ _RU_EXACT: dict[str, str] = {
 }
 
 # Texts with a hero or ability name inside. The name is kept as sent.
+# Bottled rune names (live_tools.BOTTLE_RUNES) in the genitive: «руна ускорения».
+RUNES_RU = {
+    "Haste": "ускорения",
+    "Invisibility": "невидимости",
+    "Shield": "щита",
+    "Illusion": "иллюзий",
+    "Double Damage": "двойного урона",
+    "Arcane": "волшебства",
+    "Regeneration": "регенерации",
+    "Water": "воды",
+    "Bounty": "богатства",
+}
+
+
 _RU_PATTERNS: tuple[tuple[re.Pattern[str], str], ...] = (
     (
         re.compile(
@@ -564,6 +578,44 @@ _RU_PATTERNS: tuple[tuple[re.Pattern[str], str], ...] = (
             r"are harder to avoid\.$"
         ),
         "{name} откатится через {n} с: до этого сложнее избежать контроля и замедлений.",
+    ),
+    # live_tools.py: a rune kept in the Bottle (before the generic tool texts).
+    *(
+        entry
+        for rune, ru in RUNES_RU.items()
+        for entry in (
+            (
+                re.compile(rf"^Use the {rune} rune from your Bottle and run\.$"),
+                f"Используйте руну {ru} из бутылки и уходите.",
+            ),
+            (
+                re.compile(
+                    rf"^The {rune} rune in your Bottle is ready: use it before the next hit, "
+                    r"not after\.$"
+                ),
+                f"Руна {ru} в бутылке готова: используйте её до следующего удара, а не после.",
+            ),
+        )
+    ),
+    (
+        re.compile(r"^Use the Water rune from your Bottle now, then step back\.$"),
+        "Используйте руну воды из бутылки сейчас и отойдите.",
+    ),
+    (
+        re.compile(r"^The Water rune in your Bottle heals you at once\.$"),
+        "Руна воды в бутылке лечит сразу.",
+    ),
+    (
+        re.compile(r"^Step out of enemy range and use the Regeneration rune from your Bottle\.$"),
+        "Отойдите туда, где враг не достанет, и используйте руну регенерации из бутылки.",
+    ),
+    (
+        re.compile(
+            r"^The Regeneration rune heals fast but stops at the first hit: use it where "
+            r"enemies cannot reach you\.$"
+        ),
+        "Руна регенерации лечит быстро, но сбивается первым же ударом: "
+        "используйте её там, где вас не достанут.",
     ),
     # live_tools.py: the tool that is ready right now.
     (

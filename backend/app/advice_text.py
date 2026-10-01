@@ -121,6 +121,8 @@ LOW_HP_REASON_PATTERNS = (
     re.compile(r"^Magic Wand (?:has \d+ charges|is charged): that HP is yours right now\.$"),
     re.compile(r"^[^:]+ (?:is ready and heals you at once|heals you at once)\.$"),
     re.compile(r"^[^:]+ heals over time: use it where enemies cannot hit you\.$"),
+    re.compile(r"^The [A-Za-z ]+ rune in your Bottle (?:is ready: |heals you at once\.$)"),
+    re.compile(r"^The Regeneration rune heals fast but stops at the first hit: "),
 )
 
 

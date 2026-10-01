@@ -293,6 +293,11 @@ const I18N = {
     tourHint: "A short tour of the app, one minute",
     tourStart: "Show",
     whatsNew: {
+      "0.31.0": [
+        "Low HP with a Haste, Invisibility, Shield or Illusion rune in the Bottle: the coach tells you to use it and run.",
+        "A Regeneration or Water rune in the Bottle counts as healing, and a Bottle holding another rune no longer does.",
+        "A power rune kept in the Bottle for 30 seconds: a reminder to use it for a kill."
+      ],
       "0.30.3": [
         "Checked on real games: the enemies on the minimap, item readiness and the Roshan events reach the coach.",
         "The Roshan timer no longer loses the kill among chat messages and other game events."
@@ -894,6 +899,11 @@ const I18N = {
     tourHint: "Короткая экскурсия по приложению, на минуту",
     tourStart: "Показать",
     whatsNew: {
+      "0.31.0": [
+        "Мало HP, а в бутылке руна ускорения, невидимости, щита или иллюзий — тренер подскажет нажать её и уходить.",
+        "Руна регенерации или воды в бутылке считается лечением, а бутылка с другой руной — больше нет.",
+        "Руна силы лежит в бутылке 30 секунд — подсказка использовать её для убийства."
+      ],
       "0.30.3": [
         "Проверено на настоящих играх: враги на мини-карте, готовность предметов и события Рошана доходят до тренера.",
         "Таймер Рошана больше не теряет убийство среди сообщений чата и других событий игры."

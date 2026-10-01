@@ -17,7 +17,7 @@ from app.hero_profiles import evaluate_laning_context
 from app.hero_safety import evaluate_hero_safety
 from app.item_timing import normalize_item_name
 from app.last_moments import ready_savers
-from app.live_tools import regen_items, wand_charges
+from app.live_tools import bottle_rune, regen_items, wand_charges
 from app.map_hints import has_observer_ward, item_names, observer_charges
 from app.signal_capabilities import capability_summary, live_gsi_observed_capabilities
 from app.skill_tips import not_hero_ability, read_skills
@@ -468,6 +468,8 @@ def _normalize_extra_context(
         "ready_savers": _ready_savers(payload.get("items")),
         "wand_charges": wand_charges(payload.get("items")),
         "regen_items": regen_items(payload.get("items")),
+        # The rune kept in the Bottle (an escape at low HP, a kill for the mid).
+        "bottle_rune": bottle_rune(payload.get("items")),
         # The hero level as sent (None when missing; the state's "level" falls
         # back to 1, which role tips must not read as "behind in levels").
         "hero_level": _observed_level(payload, hero_block),

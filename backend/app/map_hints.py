@@ -30,7 +30,9 @@ import json
 from functools import lru_cache
 from typing import Any
 
+from app.advice_i18n import RUNES_RU
 from app.config import DATA_DIR
+from app.live_tools import POWER_RUNES
 
 TIMERS_PATH = DATA_DIR / "meta" / "map_timers.json"
 
@@ -94,6 +96,9 @@ BOTTLE_FROM = 3 * 60 + 30
 BOTTLE_UNTIL = 6 * 60
 BOTTLE_SHOW = 20
 BOTTLE_ITEMS = {"item_bottle"}
+# A power rune kept in the Bottle this long (clock seconds, alive) → use it.
+BOTTLE_RUNE_HELD = 30
+BOTTLE_RUNE_SHOW = 20
 # Offlane: a lost lane — this many deaths, or below this level at 6:00.
 HARD_LANE_FROM = 4 * 60
 HARD_LANE_UNTIL = 9 * 60
@@ -268,6 +273,17 @@ TIPS = {
         "ru": (
             "Нет бутылки",
             "Большинство мидеров живёт на ней: руна заполняет её, и не нужно ходить на базу.",
+        ),
+    },
+    "bottle_rune": {
+        "en": (
+            "{rune} rune in your Bottle",
+            "Use it for a kill on a side lane: the Bottle holds one rune, and the next one comes soon.",
+        ),
+        "ru": (
+            "Руна {rune_ru} в бутылке",
+            "Используйте её для убийства на боковой линии: в бутылке помещается одна руна, "
+            "а следующая появится скоро.",
         ),
     },
     "mid_rune": {
@@ -521,11 +537,33 @@ class RoleTips:
         # Level 6 counts as reached only after a level below 6 was seen: a
         # backend started mid-game at level 8 must not call it a new spike.
         self._armed = False
+        # (power rune in the Bottle, the clock it was first seen there).
+        self._bottled: tuple[str, int] | None = None
 
     def observe_level(self, level: int | None) -> None:
         """Every hint request (also while a timer shows): arms the level-6 tip."""
         if level is not None and level < POWER_SPIKE_LEVEL:
             self._armed = True
+
+    def observe_bottle(self, rune: str | None, clock: int) -> None:
+        """Every hint request: since when the power rune in the Bottle is there."""
+        if rune not in POWER_RUNES:
+            self._bottled = None
+        elif self._bottled is None or self._bottled[0] != rune or clock < self._bottled[1]:
+            self._bottled = (rune, clock)
+
+    def _bottle_rune(self, clock: int, lang: str) -> dict[str, Any] | None:
+        """Once per bottled rune: a power rune kept BOTTLE_RUNE_HELD seconds."""
+        if self._bottled is None:
+            return None
+        rune, since = self._bottled
+        if clock - since < BOTTLE_RUNE_HELD:
+            return None
+        key = f"bottle_rune@{since}"
+        start = self._once(key, clock, BOTTLE_RUNE_SHOW)
+        if start is None:
+            return None
+        return _tip("bottle_rune", key, lang, rune=rune, rune_ru=RUNES_RU.get(rune, rune))
 
     def _every(self, key: str, clock: int, every: int, show: int) -> int | None:
         """Shown for `show` seconds, then again `every` seconds later: the start."""
@@ -571,6 +609,9 @@ class RoleTips:
                 start = self._shown.setdefault(key, clock)
                 if 0 <= clock - start <= POWER_SPIKE_SHOW:
                     return _tip(key, f"{key}@{start}", lang)
+        bottled = self._bottle_rune(clock, lang)
+        if bottled is not None:
+            return bottled
         if role in CORE_ROLES and key_item and items is not None:
             timing = self._key_item(clock, lang, key_item, items)
             if timing is not None:
@@ -826,6 +867,7 @@ def map_hint(
     score_gap: int | None = None,
     roshan_open: bool = False,
     enemies: list[str] | None = None,
+    bottle_rune: str | None = None,
 ) -> dict[str, Any] | None:
     """A timer, but a role tip over a minor one (runes, lotus); None before the
     horn or without a role. `objective`: a Roshan / Aegis timer (roshan_timer.py),
@@ -835,6 +877,7 @@ def map_hint(
     if clock is None or clock < 0 or role is None:
         return None
     tips.observe_level(level)
+    tips.observe_bottle(bottle_rune, clock)
     if skill is not None and objective is None:
         return skill
     timer = next_timer(clock, role, lang)
