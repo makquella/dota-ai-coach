@@ -13,7 +13,7 @@ from typing import Any
 
 from app.advice_i18n import translate_ru
 from app.advice_why import why
-from app.last_moments import SAVERS, saver_label
+from app.last_moments import is_saver, saver_label
 
 
 def clock(seconds: Any) -> str:
@@ -856,7 +856,8 @@ def _prepared_params(finding: dict[str, Any], lang: str) -> dict[str, Any]:
             )
     if "pct" in params and params["pct"] is not None:
         params["pct_rest"] = 100 - int(params["pct"])
-    if params.get("item") in SAVERS:
+    if is_saver(params.get("item")):
+        # An item, the hero's ability ("ability:Blade Fury") or a bottled rune.
         params["item_label"] = saver_label(params["item"], lang)
     if finding["id"] in {"deaths_same_place", "deaths_enemy_half"}:
         _place_params(params, lang)

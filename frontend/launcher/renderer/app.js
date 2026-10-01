@@ -293,6 +293,10 @@ const I18N = {
     tourHint: "A short tour of the app, one minute",
     tourStart: "Show",
     whatsNew: {
+      "0.31.1": [
+        "The death review names a Haste, Invisibility, Shield or Illusion rune left unused in the Bottle.",
+        "Fixed: the review showed a dash instead of the hero's ability when you died with it ready."
+      ],
       "0.31.0": [
         "Low HP with a Haste, Invisibility, Shield or Illusion rune in the Bottle: the coach tells you to use it and run.",
         "A Regeneration or Water rune in the Bottle counts as healing, and a Bottle holding another rune no longer does.",
@@ -899,6 +903,10 @@ const I18N = {
     tourHint: "Короткая экскурсия по приложению, на минуту",
     tourStart: "Показать",
     whatsNew: {
+      "0.31.1": [
+        "Разбор смерти говорит, если в бутылке осталась неиспользованная руна ускорения, невидимости, щита или иллюзий.",
+        "Исправлено: в разборе стоял прочерк вместо способности героя, с которой вы погибли, не нажав её."
+      ],
       "0.31.0": [
         "Мало HP, а в бутылке руна ускорения, невидимости, щита или иллюзий — тренер подскажет нажать её и уходить.",
         "Руна регенерации или воды в бутылке считается лечением, а бутылка с другой руной — больше нет.",

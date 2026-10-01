@@ -3220,7 +3220,15 @@
           { class: "muted small death-ready" },
           h("span", { text: t(unpressed ? "deathReady" : "deathReadyStunned") }),
           keys.map((key, index) =>
-            h("span", { class: "death-item" }, window.DotaIcons ? window.DotaIcons.itemPicture(document, key, "sm", names[index]) : null, h("span", { text: names[index] || key }))
+            h(
+              "span",
+              { class: "death-item" },
+              // A bottled rune ("rune:Haste") shows the Bottle's icon.
+              window.DotaIcons
+                ? window.DotaIcons.itemPicture(document, String(key).startsWith("rune:") ? "item_bottle" : key, "sm", names[index])
+                : null,
+              h("span", { text: names[index] || key })
+            )
           )
         )
       );

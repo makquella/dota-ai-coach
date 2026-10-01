@@ -22,6 +22,8 @@ import re
 from collections.abc import Callable
 from typing import Any
 
+from app.last_moments import RUNES_RU
+
 DEFAULT_LANG = "en"
 
 _RU_EXACT: dict[str, str] = {
@@ -463,20 +465,6 @@ _RU_EXACT: dict[str, str] = {
 }
 
 # Texts with a hero or ability name inside. The name is kept as sent.
-# Bottled rune names (live_tools.BOTTLE_RUNES) in the genitive: «руна ускорения».
-RUNES_RU = {
-    "Haste": "ускорения",
-    "Invisibility": "невидимости",
-    "Shield": "щита",
-    "Illusion": "иллюзий",
-    "Double Damage": "двойного урона",
-    "Arcane": "волшебства",
-    "Regeneration": "регенерации",
-    "Water": "воды",
-    "Bounty": "богатства",
-}
-
-
 _RU_PATTERNS: tuple[tuple[re.Pattern[str], str], ...] = (
     (
         re.compile(
@@ -669,6 +657,17 @@ _RU_PATTERNS: tuple[tuple[re.Pattern[str], str], ...] = (
             r"^(?P<name>.+) is ready: the second after a disable is when most kills finish\.$"
         ),
         "{name} готов: чаще всего добивают в первую секунду после контроля.",
+    ),
+    *(
+        (
+            re.compile(
+                rf"^You died with Bottle \({rune} rune\) ready: next time use it at the first "
+                r"big hit\.$"
+            ),
+            f"Вы погибли, когда в бутылке была руна {ru}: в следующий раз используйте её "
+            "при первом сильном ударе.",
+        )
+        for rune, ru in RUNES_RU.items()
     ),
     (
         re.compile(r"^You died with (?P<name>.+) ready: next time use it at the first big hit\.$"),

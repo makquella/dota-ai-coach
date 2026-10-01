@@ -30,8 +30,8 @@ import json
 from functools import lru_cache
 from typing import Any
 
-from app.advice_i18n import RUNES_RU
 from app.config import DATA_DIR
+from app.last_moments import RUNES_RU
 from app.live_tools import POWER_RUNES
 
 TIMERS_PATH = DATA_DIR / "meta" / "map_timers.json"
