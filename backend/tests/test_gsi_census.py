@@ -112,3 +112,35 @@ def test_backpack_items_are_not_ready_to_press(repo_root):
     assert extra["regen_items"] == []
     payload["items"]["slot2"] = payload["items"].pop("slot7")
     assert "item_force_staff" in normalize_gsi_payload(payload)["extra_context"]["ready_savers"]
+
+
+def test_diff_blocks_and_empty_slots_are_not_fields(repo_root):
+    """A real report (0.30.2): Dota adds `added` / `previously` diff blocks, and
+    an empty inventory left the item features looking "missing"."""
+    census = GsiCensus()
+    payload = _real(repo_root)
+    payload["previously"] = {"hero": {"health": 600}}
+    payload["added"] = {"minimap": {"o9": {"unitname": "x"}}}
+    payload["items"] = {f"slot{i}": {"name": "empty"} for i in range(9)}
+    payload["items"]["teleport0"] = {"name": "item_tpscroll", "can_cast": True, "cooldown": 0}
+    census.observe(payload)
+    summary = census.summary()
+    assert not [p for p in summary["paths"] if p.startswith(("added", "previously"))]
+    status = _status(census)
+    assert status["item_ready"] == "no_data" and status["tp_slot"] == "ok"
+    census.observe(_real(repo_root))  # Manta Style: a real item with can_cast
+    assert summary["payloads_with_items"] == 0
+    assert _status(census)["item_ready"] == "ok"
+
+
+def test_minimap_hero_icons_are_counted(repo_root):
+    census = GsiCensus()
+    payload = _real(repo_root)
+    payload["minimap"] = {
+        "o1": {"unitname": "npc_dota_hero_nevermore", "team": 2, "image": "minimap_hero"},
+        "o2": {"unitname": "npc_dota_hero_nevermore", "team": 2, "image": "minimap_illusion"},
+    }
+    census.observe(payload)
+    minimap = census.summary()["minimap"]
+    assert minimap["own_heroes_max"] == 2 and minimap["own_hero_names_max"] == 1
+    assert minimap["hero_images"] == {"minimap_hero": 1, "minimap_illusion": 1}
