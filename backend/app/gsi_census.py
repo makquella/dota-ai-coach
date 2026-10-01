@@ -103,6 +103,8 @@ class GsiCensus:
         self.item_payloads = 0
         self.own_hero_names_max = 0
         self.hero_images: Counter[str] = Counter()
+        # Values of a Bottle's contains_rune (a game enum: which rune names come).
+        self.bottle_runes: Counter[str] = Counter()
 
     def observe(self, payload: Any) -> None:
         """Count one GSI payload; never raises."""
@@ -142,6 +144,12 @@ class GsiCensus:
                 }
                 if any(str(slot).startswith("slot") for slot in value):
                     self.item_payloads += 1
+                for item in value.values():
+                    rune = item.get("contains_rune") if isinstance(item, dict) else None
+                    if isinstance(rune, str) and (
+                        rune in self.bottle_runes or len(self.bottle_runes) < 20
+                    ):
+                        self.bottle_runes[rune[:30]] += 1
             self._walk(block, block, value, 0, seen)
         for path in seen:
             if path in self.paths or len(self.paths) < MAX_PATHS:
@@ -235,6 +243,7 @@ class GsiCensus:
                 "features": self.features(),
                 "hero_flags_true": dict(sorted(flags.items())),
                 "event_types": dict(self.event_types),
+                "bottle_runes": dict(self.bottle_runes),
                 "minimap": {
                     "payloads": self.minimap_payloads,
                     "units_max": self.minimap_units_max,
