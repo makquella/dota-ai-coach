@@ -112,3 +112,59 @@ def test_backpack_items_are_not_ready_to_press(repo_root):
     assert extra["regen_items"] == []
     payload["items"]["slot2"] = payload["items"].pop("slot7")
     assert "item_force_staff" in normalize_gsi_payload(payload)["extra_context"]["ready_savers"]
+
+
+def test_diff_blocks_and_empty_slots_are_not_fields(repo_root):
+    """A real report (0.30.2): Dota adds `added` / `previously` diff blocks, and
+    an empty inventory left the item features looking "missing"."""
+    census = GsiCensus()
+    payload = _real(repo_root)
+    payload["previously"] = {"hero": {"health": 600}}
+    payload["added"] = {"minimap": {"o9": {"unitname": "x"}}}
+    payload["items"] = {f"slot{i}": {"name": "empty"} for i in range(9)}
+    payload["items"]["teleport0"] = {"name": "item_tpscroll", "can_cast": True, "cooldown": 0}
+    census.observe(payload)
+    summary = census.summary()
+    assert not [p for p in summary["paths"] if p.startswith(("added", "previously"))]
+    status = _status(census)
+    assert status["item_ready"] == "no_data" and status["tp_slot"] == "ok"
+    census.observe(_real(repo_root))  # Manta Style: a real item with can_cast
+    assert summary["payloads_with_items"] == 0
+    assert _status(census)["item_ready"] == "ok"
+
+
+def test_minimap_hero_icons_are_counted(repo_root):
+    census = GsiCensus()
+    payload = _real(repo_root)
+    payload["minimap"] = {
+        "o1": {"unitname": "npc_dota_hero_nevermore", "team": 2, "image": "minimap_hero"},
+        "o2": {"unitname": "npc_dota_hero_nevermore", "team": 2, "image": "minimap_illusion"},
+    }
+    census.observe(payload)
+    minimap = census.summary()["minimap"]
+    assert minimap["own_heroes_max"] == 2 and minimap["own_hero_names_max"] == 1
+    assert minimap["hero_images"] == {"minimap_hero": 1, "minimap_illusion": 1}
+
+
+def test_enemies_are_those_of_the_current_match(repo_root):
+    """The second real report listed 10 enemy heroes: two matches since start."""
+    census = GsiCensus()
+    first = _real(repo_root)
+    first["map"]["matchid"] = "1"
+    first["minimap"] = {"o1": {"unitname": "npc_dota_hero_pudge", "team": 3}}
+    census.observe(first)
+    second = copy.deepcopy(first)
+    second["map"]["matchid"] = "2"
+    second["minimap"] = {"o1": {"unitname": "npc_dota_hero_axe", "team": 3}}
+    census.observe(second)
+    summary = census.summary()
+    assert summary["matches"] == 2
+    assert summary["minimap"]["enemy_heroes_seen"] == ["axe"]
+
+
+def test_a_roshan_kill_among_many_chat_events_is_read():
+    from app.gsi_state import _objective_events
+
+    events = [{"event_type": "roshan_killed", "game_time": 1500}]
+    events += [{"event_type": "chat_message", "game_time": 1500 + i} for i in range(40)]
+    assert _objective_events(events) == [{"type": "roshan_killed", "game_time": 1500}]

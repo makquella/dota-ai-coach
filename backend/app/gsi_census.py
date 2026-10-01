@@ -23,7 +23,12 @@ MAX_DEPTH = 4
 _NUMBERED = re.compile(r"^([a-z_]*?)\d+$")
 # Blocks whose keys are ids, not field names (minimap o123, buildings by name).
 _ID_KEYED = {"minimap", "buildings", "couriers", "wearables", "neutralitems", "draft"}
-_SKIP = {"auth"}
+# auth carries the token; added / previously are Dota's diff of the last payload.
+_SKIP = {"auth", "added", "previously"}
+EMPTY_ITEMS = {"", "empty", "item_empty"}
+# Item fields only exist on real items: these features are judged over the
+# payloads with at least one item in slot0-8, not over every in-game payload.
+ITEM_FEATURES = {"item_ready", "item_charges"}
 IN_PROGRESS = "DOTA_GAMERULES_STATE_GAME_IN_PROGRESS"
 TEAMS = {"radiant": 2, "dire": 3}
 HERO_PREFIX = "npc_dota_hero_"
@@ -93,6 +98,11 @@ class GsiCensus:
         self.own_heroes_max = 0
         self.enemy_hero_payloads = 0
         self.enemy_heroes: set[str] = set()
+        self.match_id: str | None = None
+        self.matches = 0
+        self.item_payloads = 0
+        self.own_hero_names_max = 0
+        self.hero_images: Counter[str] = Counter()
 
     def observe(self, payload: Any) -> None:
         """Count one GSI payload; never raises."""
@@ -114,10 +124,24 @@ class GsiCensus:
         if not in_game:
             return
         self.in_game += 1
+        match_id = str(map_block.get("matchid") or "")[:24]
+        if match_id != self.match_id:
+            # The enemies are those of the current match, not of every match since start.
+            self.match_id = match_id
+            self.matches += 1
+            self.enemy_heroes = set()
         seen: set[str] = set()
         for block, value in payload.items():
             if block in _SKIP or not isinstance(block, str):
                 continue
+            if block == "items" and isinstance(value, dict):
+                value = {
+                    slot: item
+                    for slot, item in value.items()
+                    if not (isinstance(item, dict) and item.get("name") in EMPTY_ITEMS)
+                }
+                if any(str(slot).startswith("slot") for slot in value):
+                    self.item_payloads += 1
             self._walk(block, block, value, 0, seen)
         for path in seen:
             if path in self.paths or len(self.paths) < MAX_PATHS:
@@ -152,6 +176,7 @@ class GsiCensus:
         player = payload.get("player") if isinstance(payload.get("player"), dict) else {}
         own = TEAMS.get(str(player.get("team_name") or "").lower())
         own_heroes = 0
+        own_names: set[str] = set()
         enemy = False
         for unit in minimap.values():
             if not isinstance(unit, dict):
@@ -159,28 +184,37 @@ class GsiCensus:
             name = unit.get("unitname")
             if not isinstance(name, str) or not name.startswith(HERO_PREFIX):
                 continue
+            image = unit.get("image")
+            if isinstance(image, str) and (image in self.hero_images or len(self.hero_images) < 20):
+                self.hero_images[image[:40]] += 1
             if unit.get("team") == own:
                 own_heroes += 1
+                own_names.add(name)
             elif own is not None and unit.get("team") in TEAMS.values():
                 enemy = True
                 if len(self.enemy_heroes) < 10:
                     self.enemy_heroes.add(name[len(HERO_PREFIX) :][:40])
         self.own_heroes_max = max(self.own_heroes_max, own_heroes)
+        self.own_hero_names_max = max(self.own_hero_names_max, len(own_names))
         if enemy:
             self.enemy_hero_payloads += 1
 
-    def _share(self, path: str) -> float:
-        if not self.in_game:
+    def _share(self, path: str, base: int | None = None) -> float:
+        base = self.in_game if base is None else base
+        if not base:
             return 0.0
-        return self.paths.get(path, 0) / self.in_game
+        return self.paths.get(path, 0) / base
 
     def features(self) -> list[dict[str, Any]]:
         rows = []
         for key, label, alternatives in FEATURES:
-            best = max((min(self._share(p) for p in paths) for paths in alternatives), default=0.0)
+            base = self.item_payloads if key in ITEM_FEATURES else self.in_game
+            best = max(
+                (min(self._share(p, base) for p in paths) for paths in alternatives), default=0.0
+            )
             status = "ok" if best >= PRESENT_SHARE else ("rare" if best > 0 else "missing")
-            if not self.in_game:
-                status = "no_data"
+            if not base:
+                status = "no_data"  # no in-game payload, or no item to read yet
             rows.append({"key": key, "label": label, "status": status, "share": round(best, 2)})
         return rows
 
@@ -194,6 +228,8 @@ class GsiCensus:
             return {
                 "payloads": self.payloads,
                 "in_game_payloads": self.in_game,
+                "matches": self.matches,
+                "payloads_with_items": self.item_payloads,
                 "game_states": dict(self.game_states),
                 "top_level": sorted({p.split(".", 1)[0].split("[", 1)[0] for p in self.paths}),
                 "features": self.features(),
@@ -203,6 +239,8 @@ class GsiCensus:
                     "payloads": self.minimap_payloads,
                     "units_max": self.minimap_units_max,
                     "own_heroes_max": self.own_heroes_max,
+                    "own_hero_names_max": self.own_hero_names_max,
+                    "hero_images": dict(self.hero_images),
                     "payloads_with_enemy_heroes": self.enemy_hero_payloads,
                     "enemy_heroes_seen": sorted(self.enemy_heroes),
                 },

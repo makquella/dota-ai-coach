@@ -498,7 +498,9 @@ def _objective_events(value: Any) -> list[dict[str, Any]] | None:
     if not isinstance(value, list):
         return None
     events = []
-    for event in value[-20:]:
+    # Real GSI mixes chat_message, tip and generic_event into the list: read
+    # enough of it that a Roshan kill among them is not cut off.
+    for event in value[-100:]:
         if not isinstance(event, dict) or event.get("event_type") not in OBJECTIVE_EVENTS:
             continue
         game_time = _optional_int(event.get("game_time"))

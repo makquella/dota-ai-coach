@@ -293,6 +293,10 @@ const I18N = {
     tourHint: "A short tour of the app, one minute",
     tourStart: "Show",
     whatsNew: {
+      "0.30.3": [
+        "Checked on real games: the enemies on the minimap, item readiness and the Roshan events reach the coach.",
+        "The Roshan timer no longer loses the kill among chat messages and other game events."
+      ],
       "0.30.2": [
         "The Roshan and Aegis timers now get their data from the game: restart Dota once after this update.",
         "Items in the backpack no longer count as ready to press.",
@@ -890,6 +894,10 @@ const I18N = {
     tourHint: "Короткая экскурсия по приложению, на минуту",
     tourStart: "Показать",
     whatsNew: {
+      "0.30.3": [
+        "Проверено на настоящих играх: враги на мини-карте, готовность предметов и события Рошана доходят до тренера.",
+        "Таймер Рошана больше не теряет убийство среди сообщений чата и других событий игры."
+      ],
       "0.30.2": [
         "Таймер Рошана и Аегиса теперь получает данные из игры: один раз перезапустите Доту после обновления.",
         "Предметы в рюкзаке больше не считаются готовыми к нажатию.",
