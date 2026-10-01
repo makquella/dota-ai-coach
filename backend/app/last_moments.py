@@ -67,6 +67,36 @@ SAVERS: dict[str, dict[str, str]] = {
 # The hero's own safety abilities in `ready` (live_tools.ready_abilities):
 # "ability:Blade Fury". Labels are the ability names.
 ABILITY_PREFIX = "ability:"
+# A rune kept in the Bottle that gets the hero out: "rune:Haste" in `ready`.
+RUNE_PREFIX = "rune:"
+# Runes a Bottle can hold (GSI items.slot*.contains_rune) → their name.
+BOTTLE_RUNES = {
+    "haste": "Haste",
+    "double_damage": "Double Damage",
+    "arcane": "Arcane",
+    "invis": "Invisibility",
+    "invisibility": "Invisibility",
+    "illusion": "Illusion",
+    "shield": "Shield",
+    "regen": "Regeneration",
+    "regeneration": "Regeneration",
+    "water": "Water",
+    "bounty": "Bounty",
+}
+# Bottled runes that get a hero out at low HP, best first.
+RUNE_ESCAPES = ("Haste", "Invisibility", "Shield", "Illusion")
+# Rune names in the genitive: «руна ускорения».
+RUNES_RU = {
+    "Haste": "ускорения",
+    "Invisibility": "невидимости",
+    "Shield": "щита",
+    "Illusion": "иллюзий",
+    "Double Damage": "двойного урона",
+    "Arcane": "волшебства",
+    "Regeneration": "регенерации",
+    "Water": "воды",
+    "Bounty": "богатства",
+}
 # Passive or needing a target: never "not used" from GSI alone.
 _NOT_PRESSED = {"item_sphere"}
 # slot0-5 are the inventory; slot6-8 the backpack, whose items real GSI still
@@ -90,13 +120,25 @@ def _dict(value: Any) -> dict[str, Any]:
     return value if isinstance(value, dict) else {}
 
 
+def held_rune(item: dict[str, Any]) -> str | None:
+    """The rune in a Bottle (BOTTLE_RUNES name); None: empty, unknown or no Bottle."""
+    rune = item.get("contains_rune") if item.get("name") == "item_bottle" else None
+    return BOTTLE_RUNES.get(rune.lower()) if isinstance(rune, str) else None
+
+
 def ready_savers(items: dict[str, Any]) -> list[str]:
-    """Saving items in the inventory that could be used right now."""
+    """Saving items in the inventory that could be used right now (an escape
+    rune in the Bottle as "rune:Haste")."""
     ready: list[str] = []
     for slot, value in items.items():
         if not active_slot(slot):
             continue
         item = _dict(value)
+        rune = held_rune(item)
+        if rune in RUNE_ESCAPES and item.get("can_cast") is not False:
+            if f"{RUNE_PREFIX}{rune}" not in ready:
+                ready.append(f"{RUNE_PREFIX}{rune}")
+            continue
         name = item.get("name")
         # Broken GSI can put a list or a dict there (unhashable for the checks below).
         if not isinstance(name, str) or name not in SAVERS or name in _NOT_PRESSED or name in ready:
@@ -196,8 +238,20 @@ class LastSeconds:
         return result
 
 
+def is_saver(name: Any) -> bool:
+    """An item of SAVERS, the hero's ability or a bottled escape rune."""
+    return isinstance(name, str) and (
+        name in SAVERS or name.startswith((ABILITY_PREFIX, RUNE_PREFIX))
+    )
+
+
 def saver_label(name: str, lang: str) -> str:
     if name.startswith(ABILITY_PREFIX):
         return name[len(ABILITY_PREFIX) :]
+    if name.startswith(RUNE_PREFIX):
+        rune = name[len(RUNE_PREFIX) :]
+        if lang == "ru":
+            return f"Bottle (руна {RUNES_RU.get(rune, rune)})"
+        return f"Bottle ({rune} rune)"
     names = SAVERS.get(name)
     return names["ru" if lang == "ru" else "en"] if names else name

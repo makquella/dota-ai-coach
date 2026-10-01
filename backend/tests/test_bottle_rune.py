@@ -142,3 +142,51 @@ def test_the_census_counts_the_bottled_rune_names():
     census = GsiCensus()
     census.observe(payload)
     assert census.summary()["bottle_runes"] == {"haste": 1}
+
+
+def test_an_escape_rune_in_the_bottle_is_a_saver():
+    from app.last_moments import ready_savers, saver_label
+
+    assert ready_savers({"slot0": _bottle("haste")}) == ["rune:Haste"]
+    assert ready_savers({"slot0": _bottle("double_damage")}) == []
+    assert ready_savers({"slot8": _bottle("haste")}) == []  # the backpack
+    assert ready_savers({"slot0": {**_bottle("invis"), "can_cast": False}}) == []
+    assert saver_label("rune:Haste", "en") == "Bottle (Haste rune)"
+    assert saver_label("rune:Haste", "ru") == "Bottle (руна ускорения)"
+
+
+def test_a_death_with_the_rune_unpressed_is_named():
+    from app.last_moments import LastSeconds
+    from app.live_tools import death_items_reason
+
+    seconds = LastSeconds()
+    hero = {"alive": True, "health_percent": 40, "mana_percent": 50}
+    for clock in range(600, 606):
+        seconds.observe(clock, hero, {"slot0": _bottle("haste")})
+    summary = seconds.summarize(606)
+    assert summary["usable"] == ["rune:Haste"]
+    reason = death_items_reason({"death_items": summary["usable"]})
+    assert (
+        reason == "You died with Bottle (Haste rune) ready: next time use it at the first big hit."
+    )
+    assert translate_ru(reason) == (
+        "Вы погибли, когда в бутылке была руна ускорения: в следующий раз используйте её "
+        "при первом сильном ударе."
+    )
+
+
+def test_the_review_names_an_ability_or_a_rune_left_unpressed():
+    """The finding used to read «когда — был готов» for anything but an item."""
+    from app.analysis_texts import render_finding
+
+    for item, ru, en in (
+        ("ability:Blade Fury", "Blade Fury", "Blade Fury"),
+        ("rune:Haste", "Bottle (руна ускорения)", "Bottle (Haste rune)"),
+        ("item_black_king_bar", "Black King Bar", "Black King Bar"),
+    ):
+        finding = {
+            "id": "died_with_saver_ready",
+            "params": {"count": 2, "item": item, "times": [720, 1080]},
+        }
+        assert f"когда {ru} был готов" in render_finding(finding, "ru")["text"]
+        assert f"died with {en} ready" in render_finding(finding, "en")["text"]

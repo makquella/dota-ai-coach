@@ -24,7 +24,14 @@ from collections.abc import Mapping
 from typing import Any
 
 from app.hero_profiles import find_ability, get_key_safety_abilities
-from app.last_moments import ABILITY_PREFIX, SAVERS, active_slot, saver_label
+from app.last_moments import (
+    BOTTLE_RUNES,
+    RUNE_ESCAPES,
+    active_slot,
+    held_rune,
+    is_saver,
+    saver_label,
+)
 
 # Low HP: first a way out, then an instant heal.
 ESCAPES = (
@@ -57,22 +64,6 @@ REGEN_OVER_TIME = {
     "item_tango": "Tango",
     "item_tango_single": "Tango",
 }
-# Runes a Bottle can hold (GSI items.slot*.contains_rune) → their name.
-BOTTLE_RUNES = {
-    "haste": "Haste",
-    "double_damage": "Double Damage",
-    "arcane": "Arcane",
-    "invis": "Invisibility",
-    "invisibility": "Invisibility",
-    "illusion": "Illusion",
-    "shield": "Shield",
-    "regen": "Regeneration",
-    "regeneration": "Regeneration",
-    "water": "Water",
-    "bounty": "Bounty",
-}
-# Bottled runes that get a hero out at low HP, best first.
-RUNE_ESCAPES = ("Haste", "Invisibility", "Shield", "Illusion")
 # Runes that make a kill: held in the Bottle they wait for one (map_hints).
 POWER_RUNES = {"Haste", "Double Damage", "Arcane", "Invisibility", "Illusion", "Shield"}
 # A disable: what removes it or gets out the moment it ends.
@@ -195,12 +186,9 @@ def bottle_rune(items: Any) -> str | None:
     """The rune held in a Bottle in the inventory (BOTTLE_RUNES name); None
     without one, with an empty Bottle or with a rune name not known here."""
     for slot, value in _dict(items).items():
-        item = _dict(value)
-        if not active_slot(slot) or item.get("name") != "item_bottle":
-            continue
-        rune = item.get("contains_rune")
-        if isinstance(rune, str) and rune.lower() in BOTTLE_RUNES:
-            return BOTTLE_RUNES[rune.lower()]
+        rune = held_rune(_dict(value)) if active_slot(slot) else None
+        if rune is not None:
+            return rune
     return None
 
 
@@ -242,7 +230,7 @@ def wand_charges(items: Any) -> int | None:
 
 
 def _label(name: str) -> str:
-    if name.startswith(ABILITY_PREFIX) or name in SAVERS:
+    if is_saver(name):
         return saver_label(name, "en")
     return REGEN_INSTANT.get(name) or REGEN_OVER_TIME.get(name) or name
 
@@ -421,11 +409,7 @@ def death_items_reason(extra: Mapping[str, Any]) -> str | None:
     items = extra.get("death_items")
     if not isinstance(items, list):
         return None
-    names = [
-        _label(n)
-        for n in items
-        if isinstance(n, str) and (n in SAVERS or n.startswith(ABILITY_PREFIX))
-    ]
+    names = [_label(n) for n in items if is_saver(n)]
     if not names:
         return None
     return f"You died with {names[0]} ready: next time use it at the first big hit."
