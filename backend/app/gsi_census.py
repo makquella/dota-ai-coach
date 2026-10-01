@@ -98,6 +98,8 @@ class GsiCensus:
         self.own_heroes_max = 0
         self.enemy_hero_payloads = 0
         self.enemy_heroes: set[str] = set()
+        self.match_id: str | None = None
+        self.matches = 0
         self.item_payloads = 0
         self.own_hero_names_max = 0
         self.hero_images: Counter[str] = Counter()
@@ -122,6 +124,12 @@ class GsiCensus:
         if not in_game:
             return
         self.in_game += 1
+        match_id = str(map_block.get("matchid") or "")[:24]
+        if match_id != self.match_id:
+            # The enemies are those of the current match, not of every match since start.
+            self.match_id = match_id
+            self.matches += 1
+            self.enemy_heroes = set()
         seen: set[str] = set()
         for block, value in payload.items():
             if block in _SKIP or not isinstance(block, str):
@@ -220,6 +228,7 @@ class GsiCensus:
             return {
                 "payloads": self.payloads,
                 "in_game_payloads": self.in_game,
+                "matches": self.matches,
                 "payloads_with_items": self.item_payloads,
                 "game_states": dict(self.game_states),
                 "top_level": sorted({p.split(".", 1)[0].split("[", 1)[0] for p in self.paths}),

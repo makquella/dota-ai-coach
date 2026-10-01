@@ -144,3 +144,27 @@ def test_minimap_hero_icons_are_counted(repo_root):
     minimap = census.summary()["minimap"]
     assert minimap["own_heroes_max"] == 2 and minimap["own_hero_names_max"] == 1
     assert minimap["hero_images"] == {"minimap_hero": 1, "minimap_illusion": 1}
+
+
+def test_enemies_are_those_of_the_current_match(repo_root):
+    """The second real report listed 10 enemy heroes: two matches since start."""
+    census = GsiCensus()
+    first = _real(repo_root)
+    first["map"]["matchid"] = "1"
+    first["minimap"] = {"o1": {"unitname": "npc_dota_hero_pudge", "team": 3}}
+    census.observe(first)
+    second = copy.deepcopy(first)
+    second["map"]["matchid"] = "2"
+    second["minimap"] = {"o1": {"unitname": "npc_dota_hero_axe", "team": 3}}
+    census.observe(second)
+    summary = census.summary()
+    assert summary["matches"] == 2
+    assert summary["minimap"]["enemy_heroes_seen"] == ["axe"]
+
+
+def test_a_roshan_kill_among_many_chat_events_is_read():
+    from app.gsi_state import _objective_events
+
+    events = [{"event_type": "roshan_killed", "game_time": 1500}]
+    events += [{"event_type": "chat_message", "game_time": 1500 + i} for i in range(40)]
+    assert _objective_events(events) == [{"type": "roshan_killed", "game_time": 1500}]
