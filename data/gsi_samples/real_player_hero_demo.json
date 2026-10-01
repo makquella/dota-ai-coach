@@ -1,0 +1,228 @@
+{
+  "buildings": {
+    "radiant": {
+      "dota_goodguys_tower1_mid": {
+        "health": 1800,
+        "max_health": 1800
+      }
+    }
+  },
+  "provider": {
+    "name": "Dota 2",
+    "appid": 570,
+    "version": 47,
+    "timestamp": 1659035016
+  },
+  "map": {
+    "name": "hero_demo_main",
+    "matchid": "0",
+    "game_time": 1,
+    "clock_time": 0,
+    "daytime": true,
+    "nightstalker_night": false,
+    "game_state": "DOTA_GAMERULES_STATE_GAME_IN_PROGRESS",
+    "paused": false,
+    "win_team": "none",
+    "customgamename": "hero_demo",
+    "ward_purchase_cooldown": 0
+  },
+  "player": {
+    "steamid": "76561190000000000",
+    "name": "player",
+    "activity": "playing",
+    "kills": 0,
+    "deaths": 0,
+    "assists": 0,
+    "last_hits": 0,
+    "denies": 0,
+    "kill_streak": 0,
+    "commands_issued": 0,
+    "kill_list": {},
+    "team_name": "radiant",
+    "gold": 600,
+    "gold_reliable": 0,
+    "gold_unreliable": 600,
+    "gold_from_hero_kills": 0,
+    "gold_from_creep_kills": 0,
+    "gold_from_income": 0,
+    "gold_from_shared": 0,
+    "gpm": 0,
+    "xpm": 0
+  },
+  "hero": {
+    "xpos": -1664,
+    "ypos": -1216,
+    "id": 42,
+    "name": "npc_dota_hero_skeleton_king",
+    "level": 0,
+    "xp": 0,
+    "alive": false,
+    "respawn_seconds": 0,
+    "buyback_cost": 200,
+    "buyback_cooldown": 0,
+    "health": 640,
+    "max_health": 640,
+    "health_percent": 100,
+    "mana": 291,
+    "max_mana": 291,
+    "mana_percent": 100,
+    "silenced": false,
+    "stunned": false,
+    "disarmed": false,
+    "magicimmune": false,
+    "hexed": false,
+    "muted": false,
+    "break": false,
+    "aghanims_scepter": false,
+    "aghanims_shard": false,
+    "smoked": false,
+    "has_debuff": false,
+    "talent_1": false,
+    "talent_2": false,
+    "talent_3": false,
+    "talent_4": false,
+    "talent_5": false,
+    "talent_6": false,
+    "talent_7": false,
+    "talent_8": false
+  },
+  "abilities": {
+    "ability0": {
+      "name": "skeleton_king_hellfire_blast",
+      "level": 0,
+      "can_cast": false,
+      "passive": false,
+      "ability_active": true,
+      "cooldown": 0,
+      "ultimate": false
+    },
+    "ability1": {
+      "name": "skeleton_king_vampiric_aura",
+      "level": 0,
+      "can_cast": false,
+      "passive": false,
+      "ability_active": true,
+      "cooldown": 0,
+      "ultimate": false
+    },
+    "ability2": {
+      "name": "skeleton_king_mortal_strike",
+      "level": 0,
+      "can_cast": false,
+      "passive": true,
+      "ability_active": true,
+      "cooldown": 0,
+      "ultimate": false
+    },
+    "ability3": {
+      "name": "skeleton_king_reincarnation",
+      "level": 0,
+      "can_cast": false,
+      "passive": true,
+      "ability_active": true,
+      "cooldown": 0,
+      "ultimate": true
+    },
+    "ability4": {
+      "name": "plus_high_five",
+      "level": 1,
+      "can_cast": true,
+      "passive": false,
+      "ability_active": true,
+      "cooldown": 0,
+      "ultimate": false
+    },
+    "ability5": {
+      "name": "plus_guild_banner",
+      "level": 1,
+      "can_cast": true,
+      "passive": false,
+      "ability_active": true,
+      "cooldown": 0,
+      "ultimate": false
+    }
+  },
+  "items": {
+    "slot0": {
+      "name": "empty"
+    },
+    "slot1": {
+      "name": "item_manta",
+      "purchaser": 0,
+      "can_cast": true,
+      "cooldown": 0,
+      "passive": false
+    },
+    "slot2": {
+      "name": "item_ultimate_orb",
+      "purchaser": 0,
+      "passive": true
+    },
+    "slot3": {
+      "name": "empty"
+    },
+    "slot4": {
+      "name": "empty"
+    },
+    "slot5": {
+      "name": "empty"
+    },
+    "slot6": {
+      "name": "empty"
+    },
+    "slot7": {
+      "name": "empty"
+    },
+    "slot8": {
+      "name": "empty"
+    },
+    "stash0": {
+      "name": "empty"
+    },
+    "stash1": {
+      "name": "empty"
+    },
+    "stash2": {
+      "name": "empty"
+    },
+    "stash3": {
+      "name": "empty"
+    },
+    "stash4": {
+      "name": "empty"
+    },
+    "stash5": {
+      "name": "empty"
+    },
+    "teleport0": {
+      "name": "item_tpscroll",
+      "purchaser": 0,
+      "can_cast": false,
+      "cooldown": 100,
+      "passive": false,
+      "charges": 1
+    },
+    "neutral0": {
+      "name": "empty"
+    }
+  },
+  "draft": {},
+  "wearables": {
+    "wearable0": 9747,
+    "wearable1": 8780,
+    "wearable2": 8623,
+    "wearable3": 8622,
+    "wearable4": 8624,
+    "wearable5": 14942,
+    "wearable6": 483,
+    "wearable7": 8621,
+    "wearable8": 790,
+    "wearable9": 792,
+    "wearable10": 791,
+    "wearable11": 14912
+  },
+  "auth": {
+    "token": "test"
+  },
+  "_source": "Real player-mode GSI from the hero demo (tomasfarias/dota-gsi test data, MIT); Steam ID, name and auth replaced."
+}

@@ -69,7 +69,13 @@ SAVERS: dict[str, dict[str, str]] = {
 ABILITY_PREFIX = "ability:"
 # Passive or needing a target: never "not used" from GSI alone.
 _NOT_PRESSED = {"item_sphere"}
-_ITEM_SLOTS = ("slot",)
+# slot0-5 are the inventory; slot6-8 the backpack, whose items real GSI still
+# reports with can_cast true although they cannot be pressed.
+ACTIVE_SLOTS = {f"slot{index}" for index in range(6)}
+
+
+def active_slot(slot: Any) -> bool:
+    return str(slot) in ACTIVE_SLOTS
 
 
 def _number(value: Any) -> float | None:
@@ -88,7 +94,7 @@ def ready_savers(items: dict[str, Any]) -> list[str]:
     """Saving items in the inventory that could be used right now."""
     ready: list[str] = []
     for slot, value in items.items():
-        if not str(slot).startswith(_ITEM_SLOTS):
+        if not active_slot(slot):
             continue
         item = _dict(value)
         name = item.get("name")

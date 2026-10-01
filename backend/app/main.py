@@ -33,6 +33,7 @@ from app.config import (
 from app.decision_points import detect_decision_point
 from app.diagnostics import recent_errors, record_error, runtime_info
 from app.game_plan import SHOW_UNTIL_CLOCK as GAME_PLAN_SHOW_UNTIL_CLOCK
+from app.gsi_census import GSI_CENSUS
 from app.gsi_state import (
     get_current_state,
     get_gsi_debug_fields,
@@ -69,7 +70,7 @@ app = FastAPI(
     lifespan=_lifespan,
     title="Wardly",
     description="MVP-1: rule-based carry coach with local knowledge-base RAG.",
-    version="0.30.1",
+    version="0.30.2",
 )
 app.include_router(player_router)
 
@@ -103,7 +104,7 @@ if FRONTEND_DIR.exists():
 @app.get("/", summary="Health check")
 def root():
     """Simple health-check endpoint."""
-    return {"status": "ok", "service": "Wardly", "version": "0.30.1"}
+    return {"status": "ok", "service": "Wardly", "version": "0.30.2"}
 
 
 @app.get("/health", summary="Health check")
@@ -228,6 +229,7 @@ async def receive_gsi(request: Request):
         )
 
     result = update_latest_gsi(payload)
+    GSI_CENSUS.observe(payload)
     # Whole-match recording + Steam account detection (never breaks the live path).
     try:
         PLAYER_SERVICE.observe_gsi(payload)
@@ -270,6 +272,11 @@ def session_memory():
 @app.get("/gsi/debug/latest", summary="Inspect latest raw and normalized GSI payload")
 def gsi_debug_latest():
     return get_gsi_debug_latest()
+
+
+@app.get("/gsi/census", summary="Which GSI fields the game sent (names and counts only)")
+def gsi_census():
+    return GSI_CENSUS.summary()
 
 
 @app.get("/gsi/debug/fields", summary="Inspect available GSI payload fields")
@@ -775,6 +782,8 @@ def diagnostics():
             "player_data_dir": str(PLAYER_DATA_DIR),
         },
         "gsi": _gsi_status_response(),
+        # Field names and counts only (gsi_census.py): what GSI really sends.
+        "gsi_census": GSI_CENSUS.summary(),
         "scheduler": {**ADVICE_SCHEDULER.stats(), "frequency": ADVICE_SCHEDULER.frequency},
         "recent_advice": [
             {

@@ -20,7 +20,7 @@ from app.last_moments import ready_savers
 from app.live_tools import regen_items, wand_charges
 from app.map_hints import has_observer_ward, item_names, observer_charges
 from app.signal_capabilities import capability_summary, live_gsi_observed_capabilities
-from app.skill_tips import read_skills
+from app.skill_tips import not_hero_ability, read_skills
 from app.tp_tracker import has_teleport
 
 _latest_raw_payload: dict[str, Any] | None = None
@@ -769,6 +769,8 @@ def _normalize_abilities(value: Any) -> list[dict[str, Any]]:
     abilities: list[dict[str, Any]] = []
     seen_names: set[str] = set()
     for raw_ability in raw_abilities:
+        if isinstance(raw_ability, dict) and not_hero_ability(raw_ability.get("name")):
+            continue
         ability = _normalize_ability(raw_ability)
         if not ability:
             continue

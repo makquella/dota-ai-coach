@@ -293,6 +293,11 @@ const I18N = {
     tourHint: "A short tour of the app, one minute",
     tourStart: "Show",
     whatsNew: {
+      "0.30.2": [
+        "The Roshan and Aegis timers now get their data from the game: restart Dota once after this update.",
+        "Items in the backpack no longer count as ready to press.",
+        "The problem report shows which data the game really sends: play a match and send one."
+      ],
       "0.30.1": [
         "More heroes in the item advice: Linken's Sphere against Reaper's Scythe, Charge of Darkness and Winter's Curse, Maelstrom for a carry against illusion heroes, Dust against Mirana, Templar Assassin and Invoker."
       ],
@@ -885,6 +890,11 @@ const I18N = {
     tourHint: "Короткая экскурсия по приложению, на минуту",
     tourStart: "Показать",
     whatsNew: {
+      "0.30.2": [
+        "Таймер Рошана и Аегиса теперь получает данные из игры: один раз перезапустите Доту после обновления.",
+        "Предметы в рюкзаке больше не считаются готовыми к нажатию.",
+        "Отчёт о проблеме показывает, какие данные игра присылает на самом деле: сыграйте матч и отправьте его."
+      ],
       "0.30.1": [
         "Больше героев в советах по предметам: Linken's Sphere против Reaper's Scythe, Charge of Darkness и Winter's Curse, Maelstrom керри против героев с иллюзиями, Dust против Mirana, Templar Assassin и Invoker."
       ],

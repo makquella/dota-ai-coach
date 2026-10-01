@@ -24,7 +24,7 @@ from collections.abc import Mapping
 from typing import Any
 
 from app.hero_profiles import find_ability, get_key_safety_abilities
-from app.last_moments import ABILITY_PREFIX, SAVERS, saver_label
+from app.last_moments import ABILITY_PREFIX, SAVERS, active_slot, saver_label
 
 # Low HP: first a way out, then an instant heal.
 ESCAPES = (
@@ -181,7 +181,7 @@ def regen_items(items: Any) -> list[str] | None:
     for slot, value in items.items():
         item = _dict(value)
         name = item.get("name")
-        if not str(slot).startswith("slot") or not isinstance(name, str) or name in found:
+        if not active_slot(slot) or not isinstance(name, str) or name in found:
             continue
         if name not in REGEN_INSTANT and name not in REGEN_OVER_TIME:
             continue
@@ -196,7 +196,7 @@ def regen_items(items: Any) -> list[str] | None:
 def wand_charges(items: Any) -> int | None:
     for slot, value in _dict(items).items():
         item = _dict(value)
-        if str(slot).startswith("slot") and item.get("name") == "item_magic_wand":
+        if active_slot(slot) and item.get("name") == "item_magic_wand":
             return _count(item.get("charges"))
     return None
 
