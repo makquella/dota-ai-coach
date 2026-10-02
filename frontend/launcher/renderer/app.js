@@ -293,6 +293,9 @@ const I18N = {
     tourHint: "A short tour of the app, one minute",
     tourStart: "Show",
     whatsNew: {
+      "0.31.3": [
+        "The problem report says which match the app recorded last and whether its review is ready."
+      ],
       "0.31.2": [
         "A problem report sent after restarting the app still shows what the game sent during your last match."
       ],
@@ -906,6 +909,9 @@ const I18N = {
     tourHint: "Короткая экскурсия по приложению, на минуту",
     tourStart: "Показать",
     whatsNew: {
+      "0.31.3": [
+        "Отчёт о проблеме показывает, какой матч приложение записало последним и готов ли его разбор."
+      ],
       "0.31.2": [
         "Отчёт о проблеме, отправленный после перезапуска приложения, всё равно показывает, что игра присылала в последнем матче."
       ],
