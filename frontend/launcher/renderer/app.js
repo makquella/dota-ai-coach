@@ -304,6 +304,10 @@ const I18N = {
     tourHint: "A short tour of the app, one minute",
     tourStart: "Show",
     whatsNew: {
+      "0.36.0": [
+        "Lane tips for cores in the first ten minutes: no regen on the way to lane, half HP with nothing to heal, no Magic Stick yet, too few denies.",
+        "Items against the enemy lineup: Pipe of Insight or Black King Bar against magic damage, Glimmer Cape or Ghost Scepter for a support."
+      ],
       "0.35.0": [
         "Friends on the «Profile» tab: show your profile by a friend code, add friends by theirs and see who is on top — level, rating, looks.",
         "Your profile as a page to send to a chat: api.luhovyimvp.dev/p/<code>."
@@ -941,6 +945,10 @@ const I18N = {
     tourHint: "Короткая экскурсия по приложению, на минуту",
     tourStart: "Показать",
     whatsNew: {
+      "0.36.0": [
+        "Советы на линии для коров в первые десять минут: нет регенерации по дороге на линию, половина HP и нечем лечиться, ещё нет Magic Stick, мало добитых своих крипов.",
+        "Предметы против состава врага: Pipe of Insight или Black King Bar против магического урона, Glimmer Cape или Ghost Scepter для саппорта."
+      ],
       "0.35.0": [
         "Друзья на вкладке «Профиль»: покажите профиль по коду друга, добавьте друзей по их кодам и смотрите, кто выше — уровень, рейтинг, оформление.",
         "Ваш профиль страницей, которую можно скинуть в чат: api.luhovyimvp.dev/p/<код>."

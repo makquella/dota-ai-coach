@@ -40,6 +40,7 @@ TEXT = {
         "why_evasion": "Почему {item}: {enemy} уклоняется от атак, а он бьёт без промаха.",
         "why_healing": "Почему {item}: {enemy} много лечится, а он режет лечение.",
         "why_illusions": "Почему {item}: {enemy} дерётся иллюзиями, а он бьёт их всех сразу.",
+        "why_magic": "Почему {item}: героев врага с магическим уроном — {n}, он защитит от него.",
     },
     "en": {
         "title": "Respawn in {s} s",
@@ -58,6 +59,7 @@ TEXT = {
         "why_evasion": "Why {item}: {enemy} dodges attacks, and it never misses.",
         "why_healing": "Why {item}: {enemy} heals a lot, and it cuts the healing.",
         "why_illusions": "Why {item}: {enemy} fights with illusions, and it hits them all.",
+        "why_magic": "Why {item}: {n} enemy heroes deal magic damage, and it protects you.",
     },
 }
 
@@ -114,7 +116,7 @@ def build_death_screen(
         why = (next_item or {}).get("why")
         enemy = (next_item or {}).get("enemy")
         count = _int((next_item or {}).get("count"))
-        if (why in ("disabled", "burst") and count) or (
+        if (why in ("disabled", "burst", "magic") and count) or (
             why == "targeted" and count and enemy and next_item.get("spell")
         ):
             lines.append(

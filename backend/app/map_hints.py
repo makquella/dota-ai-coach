@@ -96,6 +96,33 @@ BOTTLE_FROM = 3 * 60 + 30
 BOTTLE_UNTIL = 6 * 60
 BOTTLE_SHOW = 20
 BOTTLE_ITEMS = {"item_bottle"}
+# Lane tips for cores (0.36): what players forget in the first ten minutes.
+# Regen on the way to lane: none of these in the inventory by 1:30.
+LANE_REGEN_ITEMS = {
+    "item_tango",
+    "item_tango_single",
+    "item_flask",
+    "item_faerie_fire",
+    "item_enchanted_mango",
+    "item_bottle",
+}
+LANE_REGEN_UNTIL = 90
+LANE_REGEN_SHOW = 20
+# HP half gone in lane with nothing to heal and gold for a Healing Salve.
+LANE_HP_FROM, LANE_HP_UNTIL = 120, 10 * 60
+LANE_HP_LIMIT = 50
+LANE_HP_GOLD = 110
+LANE_HP_EVERY, LANE_HP_SHOW = 180, 15
+# A Magic Stick by mid-lane: the cheapest save of the game.
+STICK_ITEMS = {"item_magic_stick", "item_magic_wand"}
+STICK_FROM, STICK_UNTIL = 3 * 60, 8 * 60
+STICK_GOLD = 200
+STICK_SHOW = 20
+# Denies at 4:00 for a carry or a mid who is last-hitting.
+DENY_AT = 4 * 60
+DENY_SHOW = 20
+DENY_MIN = 3
+DENY_MIN_LAST_HITS = 8
 # A power rune kept in the Bottle this long (clock seconds, alive) → use it.
 BOTTLE_RUNE_HELD = 30
 BOTTLE_RUNE_SHOW = 20
@@ -245,6 +272,38 @@ TIPS = {
             "и золота на него хватает.",
         ),
     },
+    # The save item against the enemy lineup (situational_items.lineup_save_item).
+    "save_item_now_lineup": {
+        "en": (
+            "Buy {item} now",
+            "{item} fits against this enemy lineup, and you have the gold for it.",
+        ),
+        "ru": (
+            "Купите {item} сейчас",
+            "{item} лучше всего против этого состава врага, и золота на него хватает.",
+        ),
+    },
+    "save_item_magic": {
+        "en": (
+            "{item} against their magic",
+            "{count} enemy heroes deal magic damage, and {item} saves an ally from it.",
+        ),
+        "ru": (
+            "{item} против магии",
+            "Героев врага с магическим уроном: {count}, а {item} спасает от него союзника.",
+        ),
+    },
+    "save_item_physical": {
+        "en": (
+            "{item} against their carries",
+            "{enemy} and other right-click carries: {item} stops their attacks for a few seconds.",
+        ),
+        "ru": (
+            "{item} против их керри",
+            "У врага {enemy} и другие керри с ударами с руки: {item} на несколько секунд "
+            "спасает от их атак.",
+        ),
+    },
     "mid_six": {
         "en": (
             "Level 6: look for a rotation",
@@ -273,6 +332,46 @@ TIPS = {
         "ru": (
             "Нет бутылки",
             "Большинство мидеров живёт на ней: руна заполняет её, и не нужно ходить на базу.",
+        ),
+    },
+    "lane_regen": {
+        "en": (
+            "No regen for the lane",
+            "Take Tango or a Healing Salve: the first trades cost HP, and walking to base costs the lane.",
+        ),
+        "ru": (
+            "Нет регена на линию",
+            "Возьмите Tango или Healing Salve: первые размены стоят HP, а уход на базу стоит линии.",
+        ),
+    },
+    "lane_hp": {
+        "en": (
+            "{hp}% HP and nothing to heal",
+            "Buy a Healing Salve and send it with the courier: with half HP you cannot stand in for last hits.",
+        ),
+        "ru": (
+            "{hp}% HP и нечем лечиться",
+            "Купите Healing Salve и отправьте курьером: с половиной HP не постоишь за добиванием.",
+        ),
+    },
+    "lane_stick": {
+        "en": (
+            "No Magic Stick yet",
+            "200 gold: it charges from enemy spells and heals you in one press — the cheapest save of the lane.",
+        ),
+        "ru": (
+            "Ещё нет Magic Stick",
+            "200 золота: он заряжается от вражеских заклинаний и лечит одним нажатием — самое дешёвое спасение на линии.",
+        ),
+    },
+    "lane_denies": {
+        "en": (
+            "{denies} denies by 4:00",
+            "Finish your own creeps when they are low: a deny takes gold and half the experience from the enemy.",
+        ),
+        "ru": (
+            "Добито своих крипов к 4:00: {denies}",
+            "Добивайте своих крипов на низком HP: денай забирает у врага золото и половину опыта.",
         ),
     },
     "bottle_rune": {
@@ -594,6 +693,9 @@ class RoleTips:
         score_gap: int | None = None,
         roshan_open: bool = False,
         enemies: list[str] | None = None,
+        denies: int | None = None,
+        hp: int | None = None,
+        regen: list[str] | None = None,
     ) -> dict[str, Any] | None:
         held_for = self._observe_wards(ward_charges, clock)
         if not alive or role is None:
@@ -612,6 +714,10 @@ class RoleTips:
         bottled = self._bottle_rune(clock, lang)
         if bottled is not None:
             return bottled
+        if role in CORE_ROLES:
+            lane = self._lane(clock, role, lang, items, gold, last_hits, denies, hp, regen)
+            if lane is not None:
+                return lane
         if role in CORE_ROLES and key_item and items is not None:
             timing = self._key_item(clock, lang, key_item, items)
             if timing is not None:
@@ -675,6 +781,58 @@ class RoleTips:
             if start is not None:
                 # Rounded down to hundreds, as the player reads it on screen.
                 return _tip("spend_gold", f"spend_gold@{start}", lang, gold=gold // 100 * 100)
+        return None
+
+    def _lane(
+        self,
+        clock: int,
+        role: str,
+        lang: str,
+        items: list[str] | None,
+        gold: int | None,
+        last_hits: int | None,
+        denies: int | None,
+        hp: int | None,
+        regen: list[str] | None,
+    ) -> dict[str, Any] | None:
+        """A core's lane tips in the first ten minutes: regen on the way, HP half
+        gone with nothing to heal, a Magic Stick, denies at 4:00."""
+        owned = set(items) if items is not None else None
+        if owned is not None and clock <= LANE_REGEN_UNTIL and not LANE_REGEN_ITEMS & owned:
+            start = self._once("lane_regen", clock, LANE_REGEN_SHOW)
+            if start is not None:
+                return _tip("lane_regen", f"lane_regen@{start}", lang)
+        if (
+            LANE_HP_FROM <= clock <= LANE_HP_UNTIL
+            and hp is not None
+            and hp <= LANE_HP_LIMIT
+            and regen == []
+            and gold is not None
+            and gold >= LANE_HP_GOLD
+        ):
+            start = self._every("lane_hp", clock, LANE_HP_EVERY, LANE_HP_SHOW)
+            if start is not None:
+                shown = self._shown.setdefault(f"lane_hp_value@{start}", hp)
+                return _tip("lane_hp", f"lane_hp@{start}", lang, hp=shown)
+        if (
+            owned is not None
+            and STICK_FROM <= clock <= STICK_UNTIL
+            and not STICK_ITEMS & owned
+            and gold is not None
+            and gold >= STICK_GOLD
+        ):
+            start = self._once("lane_stick", clock, STICK_SHOW)
+            if start is not None:
+                return _tip("lane_stick", f"lane_stick@{start}", lang)
+        if (
+            role in ("carry", "mid")
+            and DENY_AT <= clock <= DENY_AT + DENY_SHOW
+            and denies is not None
+            and denies < DENY_MIN
+            and (last_hits or 0) >= DENY_MIN_LAST_HITS
+        ):
+            shown = self._shown.setdefault("lane_denies@value", denies)
+            return _tip("lane_denies", f"lane_denies@{DENY_AT}", lang, denies=shown)
         return None
 
     def _observe_wards(self, charges: int | None, clock: int) -> int | None:
@@ -833,7 +991,21 @@ def score_gap(extra: dict[str, Any]) -> int | None:
 def _save_item_tip(
     hint_id: str, lang: str, item: dict[str, Any] | None, gold: int
 ) -> dict[str, Any]:
-    """The hero's usual save item with its price, else Glimmer Cape or Force Staff."""
+    """The save item against the enemy lineup, the hero's usual one with its
+    price, else Glimmer Cape or Force Staff."""
+    why = (item or {}).get("why")
+    if why in ("magic", "physical") and item and item.get("name"):
+        left = item.get("gold_left")
+        if isinstance(left, int) and left <= gold:
+            return _tip("save_item_now_lineup", hint_id, lang, item=item["name"])
+        return _tip(
+            f"save_item_{why}",
+            hint_id,
+            lang,
+            item=item["name"],
+            count=item.get("count"),
+            enemy=item.get("enemy"),
+        )
     if not item or not item.get("name") or not isinstance(item.get("gold_left"), int):
         return _tip("save_item", hint_id, lang)
     left = item["gold_left"]
@@ -868,6 +1040,9 @@ def map_hint(
     roshan_open: bool = False,
     enemies: list[str] | None = None,
     bottle_rune: str | None = None,
+    denies: int | None = None,
+    hp: int | None = None,
+    regen: list[str] | None = None,
 ) -> dict[str, Any] | None:
     """A timer, but a role tip over a minor one (runes, lotus); None before the
     horn or without a role. `objective`: a Roshan / Aegis timer (roshan_timer.py),
@@ -919,5 +1094,8 @@ def map_hint(
         score_gap=score_gap,
         roshan_open=roshan_open,
         enemies=enemies,
+        denies=denies,
+        hp=hp,
+        regen=regen,
     )
     return tip or timer

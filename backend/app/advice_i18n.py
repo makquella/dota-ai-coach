@@ -796,6 +796,19 @@ def _situational_tail(tail: str) -> str | None:
 _SITUATIONAL_TAIL_RE = r"(?P<tail>(?:\.|: \d+ gold to go.*|; its missing parts cost.*))$"
 
 
+def _magic_reason(groups: dict[str, str]) -> str:
+    """A lineup of magic damage (situational_items, why "magic")."""
+    count = int(groups["count"])
+    word = (
+        "герой"
+        if count % 10 == 1 and count % 100 != 11
+        else ("героя" if 2 <= count % 10 <= 4 and not 12 <= count % 100 <= 14 else "героев")
+    )
+    head = f"{count} {word} врага бьют магией — {groups['name']} защитит от неё"
+    tail = _situational_tail(groups["tail"])
+    return head + tail if tail is not None else ""
+
+
 def _counter_reason(groups: dict[str, str]) -> str:
     """The counter-item reasons (situational_items: an enemy hero seen)."""
     if groups.get("spell"):
@@ -896,6 +909,13 @@ _RU_FUNCTIONS: tuple[tuple[re.Pattern[str], Callable[[dict[str, str]], str]], ..
             + _SITUATIONAL_TAIL_RE
         ),
         _counter_reason,
+    ),
+    (
+        re.compile(
+            r"^(?P<count>\d+) enemy heroes deal magic damage, and (?P<name>.+?) protects you "
+            r"from it" + _SITUATIONAL_TAIL_RE
+        ),
+        _magic_reason,
     ),
     (
         re.compile(

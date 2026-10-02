@@ -100,6 +100,67 @@ TARGETED_DISABLES = {
     "Spirit Breaker": "Charge of Darkness",
     "Winter Wyvern": "Winter's Curse",
 }
+# Lineups (live advice only): heroes whose damage is mostly magic, and
+# right-click carries. LINEUP_MIN of one kind among the enemies seen asks for
+# the item against it (situational_items.py, the support's save item tip).
+MAGIC_DAMAGE = {
+    "Lina",
+    "Lion",
+    "Zeus",
+    "Leshrac",
+    "Skywrath Mage",
+    "Queen of Pain",
+    "Tinker",
+    "Storm Spirit",
+    "Puck",
+    "Death Prophet",
+    "Pugna",
+    "Jakiro",
+    "Crystal Maiden",
+    "Witch Doctor",
+    "Necrophos",
+    "Invoker",
+    "Nyx Assassin",
+    "Earthshaker",
+    "Sand King",
+    "Outworld Destroyer",
+    "Venomancer",
+    "Viper",
+    "Warlock",
+    "Keeper of the Light",
+    "Grimstroke",
+    "Dark Willow",
+    "Lich",
+    "Disruptor",
+    "Mirana",
+    "Huskar",
+    "Ember Spirit",
+}
+PHYSICAL_CARRIES = {
+    "Phantom Assassin",
+    "Juggernaut",
+    "Sven",
+    "Troll Warlord",
+    "Ursa",
+    "Faceless Void",
+    "Slark",
+    "Lifestealer",
+    "Monkey King",
+    "Anti-Mage",
+    "Chaos Knight",
+    "Drow Ranger",
+    "Phantom Lancer",
+    "Wraith King",
+    "Templar Assassin",
+    "Luna",
+    "Medusa",
+    "Terrorblade",
+    "Clinkz",
+    "Riki",
+}
+MAGIC_LINEUP_MIN = 3
+PHYSICAL_LINEUP_MIN = 2
+
 TARGETED_ITEM = "sphere"
 TARGETED_NAME = "Linken's Sphere"
 TARGETED_ROLES = {"core", "offlane"}

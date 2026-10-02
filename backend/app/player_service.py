@@ -93,7 +93,7 @@ from app.schemas import is_supported_hero
 from app.session_summary import session_summary
 from app.share_progress import public_progress
 from app.share_review import public_review
-from app.situational_items import situational_item
+from app.situational_items import lineup_save_item, situational_item
 from app.skill_build import skill_order
 from app.steam_ids import parse_account_id, steam64_from_account_id
 from app.usage_stats import usage_stats
@@ -568,13 +568,23 @@ class PlayerService:
         )
         return situational or next_build_item(meta, owned)
 
-    def save_item(self, hero: str, owned: list[str] | None) -> dict[str, Any] | None:
-        """The save item most bought on the hero and the gold its missing parts
-        cost, for the support's «no save item» tip; None when unknown."""
+    def save_item(
+        self, hero: str, owned: list[str] | None, enemies: list[str] | None = None
+    ) -> dict[str, Any] | None:
+        """The save item for the support's «no save item» tip: the one against
+        the enemy lineup seen (situational_items.lineup_save_item), else the one
+        most bought on the hero, with the gold its missing parts cost; None
+        when unknown."""
         hero_id = hero_id_from_name(hero)
-        if hero_id is None or owned is None:
+        if owned is None:
             return None
-        return save_build_item(self._live_meta(hero_id), owned, SAVE_ITEMS)
+        meta = self._live_meta(hero_id) if hero_id is not None else None
+        lineup = lineup_save_item(enemies, owned, meta)
+        if lineup is not None:
+            return lineup
+        if hero_id is None:
+            return None
+        return save_build_item(meta, owned, SAVE_ITEMS)
 
     def _live_meta(self, hero_id: int) -> dict[str, Any] | None:
         """The hero's cached build data for live tips, read once a minute (they

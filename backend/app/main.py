@@ -72,7 +72,7 @@ app = FastAPI(
     lifespan=_lifespan,
     title="Wardly",
     description="MVP-1: rule-based carry coach with local knowledge-base RAG.",
-    version="0.35.0",
+    version="0.36.0",
 )
 app.include_router(player_router)
 
@@ -106,7 +106,7 @@ if FRONTEND_DIR.exists():
 @app.get("/", summary="Health check")
 def root():
     """Simple health-check endpoint."""
-    return {"status": "ok", "service": "Wardly", "version": "0.35.0"}
+    return {"status": "ok", "service": "Wardly", "version": "0.36.0"}
 
 
 @app.get("/health", summary="Health check")
@@ -400,6 +400,7 @@ def _live_role_and_hint(response: dict[str, object], lang: str) -> dict[str, obj
             save_item=PLAYER_SERVICE.save_item(
                 str(state.get("hero") or ""),
                 extra.get("item_names") if isinstance(extra.get("item_names"), list) else None,
+                MATCH_MEMORY.enemies.heroes() or None,
             )
             if role and role.get("role") == "support"
             else None,
@@ -408,6 +409,9 @@ def _live_role_and_hint(response: dict[str, object], lang: str) -> dict[str, obj
             bottle_rune=extra.get("bottle_rune")
             if isinstance(extra.get("bottle_rune"), str)
             else None,
+            denies=extra.get("denies") if isinstance(extra.get("denies"), int) else None,
+            hp=state.get("hp_percent") if isinstance(state.get("hp_percent"), int) else None,
+            regen=extra.get("regen_items") if isinstance(extra.get("regen_items"), list) else None,
             roshan_open=MATCH_MEMORY.roshan.maybe_up(clock if isinstance(clock, int) else None),
             objective=MATCH_MEMORY.roshan.hint(clock if isinstance(clock, int) else None, lang),
             skill=MATCH_MEMORY.skills.tip(
