@@ -18,6 +18,10 @@
 //   GET    /v1/admin/stats?days=N   -> the statistics summed over the last N days (same)
 //   POST   /v1/hit                  -> +1 visit of the site for a source (src/channels.js; the site sends it once per visit)
 //   GET    /d/<source>              -> +1 download for that source, then a redirect to the latest installer
+//   PUT    /v1/profile/<id>         -> publishes the player's profile card (src/profile.js; header x-profile-token)
+//   POST   /v1/profiles             -> the cards of up to 50 friend codes { ids } -> { profiles: {id: card} }
+//   DELETE /v1/profile/<id>         -> hides the card (same token)
+//   GET    /p/<id>                  -> the card as a page to send to a chat
 //   GET    /admin, /admin/app.js    -> the statistics page (src/admin-page.js; asks for the token, holds no data;
 //                                      404 while ADMIN_TOKEN is not set)
 //   cron                            -> deletes reports older than RETENTION_DAYS, expired shares, old rate counters,
@@ -49,6 +53,17 @@ import {
   shareId,
   validateShare
 } from "./share.js";
+import {
+  PROFILE_LIMITS,
+  PROFILE_RATE_PER_HOUR,
+  PROFILE_RETENTION_DAYS,
+  friendCode,
+  isProfileId,
+  normalizeCode,
+  renderMissingProfile,
+  renderProfilePage,
+  validateProfile
+} from "./profile.js";
 import { ADMIN_HEADERS, ADMIN_HTML, ADMIN_JS, ADMIN_SCRIPT_HEADERS } from "./admin-page.js";
 import {
   STATS_ADMIN_MAX_DAYS,
@@ -107,6 +122,7 @@ export function config(env) {
     share_days: SHARE_DAYS,
     stats: flag(env.STATS_ENABLED, true),
     channels: flag(env.CHANNELS_ENABLED, true),
+    profiles: flag(env.PROFILES_ENABLED, true),
     sessions: false,
     retention_days: RETENTION_DAYS
   };
@@ -310,6 +326,116 @@ export async function sharePage(request, id, env, now = Date.now()) {
     return new Response(renderMissingPage(lang), { status: 404, headers: { ...HTML_HEADERS, "cache-control": "no-store" } });
   }
   const html = renderSharePage(shared.review, { url: request.url, expiresAt: shared.expiresAt });
+  return new Response(html, { headers: { ...HTML_HEADERS, "cache-control": "public, max-age=300" } });
+}
+
+export async function putProfile(request, id, env, now = Date.now()) {
+  if (!config(env).profiles) {
+    return json({ ok: false, code: "disabled" }, 503);
+  }
+  if (!isProfileId(id)) {
+    return json({ ok: false, code: "bad_id" }, 400);
+  }
+  const token = request.headers.get("x-profile-token") || "";
+  if (!/^[a-f0-9]{32,64}$/.test(token)) {
+    return json({ ok: false, code: "bad_token" }, 400);
+  }
+  const raw = await request.text();
+  if (raw.length > PROFILE_LIMITS.bodyBytes) {
+    return json({ ok: false, code: "too_large" }, 413);
+  }
+  let body;
+  try {
+    body = JSON.parse(raw);
+  } catch {
+    return json({ ok: false, code: "bad_json" }, 400);
+  }
+  const checked = validateProfile(body);
+  if (!checked.ok) {
+    return json({ ok: false, code: checked.code }, checked.status);
+  }
+  const { installId, version, profile } = checked.put;
+  const address = await sha256(`dac-rate:${clientAddress(request)}`);
+  const underLimit =
+    (await allow(env, `profile:install:${installId}`, PROFILE_RATE_PER_HOUR.install, now)) &&
+    (await allow(env, `profile:address:${address}`, PROFILE_RATE_PER_HOUR.address, now));
+  if (!underLimit) {
+    return json({ ok: false, code: "rate_limited" }, 429);
+  }
+  const hash = await sha256(`dac-profile:${token}`);
+  const row = await env.DB.prepare("SELECT token_hash FROM profiles WHERE id = ?1").bind(id).first();
+  if (row && row.token_hash !== hash) {
+    // Someone else's code (or a lost token): the launcher picks a new id.
+    return json({ ok: false, code: "taken" }, 409);
+  }
+  if (row) {
+    await env.DB.prepare("UPDATE profiles SET updated_at = ?2, version = ?3, body = ?4 WHERE id = ?1")
+      .bind(id, now, version, JSON.stringify(profile))
+      .run();
+  } else {
+    await env.DB.prepare(
+      "INSERT INTO profiles (id, created_at, updated_at, install_id, token_hash, version, body) VALUES (?1, ?2, ?2, ?3, ?4, ?5, ?6)"
+    )
+      .bind(id, now, installId, hash, version, JSON.stringify(profile))
+      .run();
+  }
+  // The API's own address: /p/* on the site needs a Workers route like /r/*
+  // (PROFILE_ORIGIN once it is added in the Cloudflare dashboard).
+  const origin = /^https:\/\/[a-z0-9.-]+$/.test(String(env.PROFILE_ORIGIN || "")) ? env.PROFILE_ORIGIN : new URL(request.url).origin;
+  return json({ ok: true, id, code: friendCode(id), url: `${origin}/p/${id}` }, row ? 200 : 201);
+}
+
+export async function readProfiles(request, env, now = Date.now()) {
+  if (!config(env).profiles) {
+    return json({ ok: false, code: "disabled" }, 503);
+  }
+  let body;
+  try {
+    body = JSON.parse(await request.text());
+  } catch {
+    return json({ ok: false, code: "bad_json" }, 400);
+  }
+  const ids = [...new Set((Array.isArray(body?.ids) ? body.ids : []).map(normalizeCode).filter(Boolean))].slice(
+    0,
+    PROFILE_LIMITS.batch
+  );
+  const address = await sha256(`dac-rate:${clientAddress(request)}`);
+  if (!(await allow(env, `profile:read:${address}`, PROFILE_RATE_PER_HOUR.read, now))) {
+    return json({ ok: false, code: "rate_limited" }, 429);
+  }
+  const profiles = {};
+  if (ids.length) {
+    const marks = ids.map((_, i) => `?${i + 1}`).join(", ");
+    const { results } = await env.DB.prepare(`SELECT id, updated_at, body FROM profiles WHERE id IN (${marks})`)
+      .bind(...ids)
+      .all();
+    for (const row of results || []) {
+      profiles[row.id] = { ...JSON.parse(row.body), updated_at: Number(row.updated_at), code: friendCode(row.id) };
+    }
+  }
+  return json({ ok: true, profiles });
+}
+
+export async function deleteProfile(request, id, env) {
+  const token = request.headers.get("x-profile-token") || "";
+  const row = isProfileId(id) ? await env.DB.prepare("SELECT token_hash FROM profiles WHERE id = ?1").bind(id).first() : null;
+  if (!row) {
+    return json({ ok: false, code: "not_found" }, 404);
+  }
+  if (!token || (await sha256(`dac-profile:${token}`)) !== row.token_hash) {
+    return json({ ok: false, code: "forbidden" }, 403);
+  }
+  await env.DB.prepare("DELETE FROM profiles WHERE id = ?1").bind(id).run();
+  return json({ ok: true });
+}
+
+export async function profilePage(request, id, env) {
+  const lang = (request.headers.get("accept-language") || "").toLowerCase().startsWith("en") ? "en" : "ru";
+  const row = isProfileId(id) ? await env.DB.prepare("SELECT body FROM profiles WHERE id = ?1").bind(id).first() : null;
+  if (!row) {
+    return new Response(renderMissingProfile(lang), { status: 404, headers: { ...HTML_HEADERS, "cache-control": "no-store" } });
+  }
+  const html = renderProfilePage(JSON.parse(row.body), { id, url: request.url });
   return new Response(html, { headers: { ...HTML_HEADERS, "cache-control": "public, max-age=300" } });
 }
 
@@ -557,6 +683,7 @@ export async function deleteDevice(installId, env) {
   await env.DB.prepare("DELETE FROM reports WHERE install_id = ?1").bind(id).run();
   await env.DB.prepare("DELETE FROM shares WHERE install_id = ?1").bind(id).run();
   await env.DB.prepare("DELETE FROM transfers WHERE install_id = ?1").bind(id).run();
+  await env.DB.prepare("DELETE FROM profiles WHERE install_id = ?1").bind(id).run();
   await env.DB.prepare("DELETE FROM daily_stats WHERE install_hash = ?1").bind(await statsHash(id)).run();
   return json({ ok: true, deleted: rows.length });
 }
@@ -620,6 +747,9 @@ export async function cleanup(env, now = Date.now()) {
   }
   await env.DB.prepare("DELETE FROM shares WHERE expires_at < ?1").bind(now).run();
   await env.DB.prepare("DELETE FROM transfers WHERE expires_at < ?1").bind(now).run();
+  await env.DB.prepare("DELETE FROM profiles WHERE updated_at < ?1")
+    .bind(now - PROFILE_RETENTION_DAYS * 24 * 3_600_000)
+    .run();
   await env.DB.prepare("DELETE FROM daily_stats WHERE day < ?1")
     .bind(isoDay(now - STATS_RETENTION_DAYS * 24 * 3_600_000))
     .run();
@@ -676,6 +806,20 @@ export default {
       }
       if (transfer && request.method === "DELETE" && !transfer[2]) {
         return await deleteTransfer(request, transfer[1], env);
+      }
+      const profile = path.match(/^\/v1\/profile\/([^/]{1,20})$/);
+      if (profile && request.method === "PUT") {
+        return await putProfile(request, profile[1], env);
+      }
+      if (profile && request.method === "DELETE") {
+        return await deleteProfile(request, profile[1], env);
+      }
+      if (request.method === "POST" && path === "/v1/profiles") {
+        return await readProfiles(request, env);
+      }
+      const profileMatch = path.match(/^\/p\/([^/]{1,20})$/);
+      if (profileMatch && (request.method === "GET" || request.method === "HEAD")) {
+        return await profilePage(request, profileMatch[1], env);
       }
       const pageMatch = path.match(/^\/r\/([^/]{1,40})$/);
       if (pageMatch && (request.method === "GET" || request.method === "HEAD")) {

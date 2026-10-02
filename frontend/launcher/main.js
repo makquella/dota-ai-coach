@@ -26,6 +26,7 @@ const transferCode = require("./transfer-code");
 const discordPresence = require("./discord-presence");
 const discordWeekly = require("./discord-weekly");
 const adviceStats = require("./advice-stats");
+const friends = require("./friends");
 const { createDotaWatcher } = require("./dota-watcher");
 const { createOverlayController, OVERLAY_DEFAULTS } = require("./overlay-window");
 const {
@@ -127,6 +128,11 @@ const settings = createSettingsStore(path.join(USER_DATA_DIR, "settings.json"), 
   // Position for map timers and role tips (auto = from the lane), and the timers switch.
   adviceRole: "auto",
   mapHints: true,
+  // «Друзья» (friends.js): the published profile card (id = friend code, the
+  // token only this launcher has) and the friends' codes; off until the player
+  // shows the profile.
+  friendsProfile: { enabled: false, id: "", token: "", showMmr: true, url: "", hash: "", at: 0 },
+  friends: [],
   // A week of match recordings on this computer (backend match_records.py), off by default.
   matchRecords: false,
   // Rich Presence on the player's Discord profile («Матч на Juggernaut · с тренером Wardly»).
@@ -822,6 +828,8 @@ async function deleteServerData() {
     }
     // The shared links are gone with it, and what was counted before is never sent again.
     settings.set("shares", {});
+    // The profile card went with it: hidden until the player shows it again.
+    settings.set("friendsProfile", { ...friendsProfile(), enabled: false, hash: "" });
     restartStatsCount();
     appendLog("launcher", "Server data of this installation deleted.", { force: true });
     return { ok: true, status: publicStatus() };
@@ -829,6 +837,166 @@ async function deleteServerData() {
     return { ok: false, code: "offline", status: publicStatus() };
   } finally {
     clearTimeout(timer);
+  }
+}
+
+// ---------------------------------------------------------------------------
+// «Друзья» (0.35): the profile card the player shows friends, and the friends'
+// cards by code. The card is built by the backend (/player/profile/public) and
+// published to services/api under a random id with a token only this launcher
+// keeps; friends are a list of codes on this computer, nothing more.
+// ---------------------------------------------------------------------------
+
+const FRIENDS_TIMEOUT_MS = 15000;
+const PROFILE_REPUBLISH_MS = 10 * 60 * 1000;
+
+function friendsProfile() {
+  const value = settings.get("friendsProfile");
+  return value && typeof value === "object" ? value : { enabled: false };
+}
+
+async function apiRequest(path, { method = "GET", headers = {}, body } = {}) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), FRIENDS_TIMEOUT_MS);
+  try {
+    const response = await electronNet.fetch(`${apiUrl()}${path}`, {
+      method,
+      headers: { "content-type": "application/json", ...headers },
+      body: body === undefined ? undefined : JSON.stringify(body),
+      signal: controller.signal
+    });
+    let answer = {};
+    try {
+      answer = await response.json();
+    } catch {
+      // Not JSON: the status decides.
+    }
+    return { status: response.status, ok: response.ok, answer };
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+/** Publishes the card when it changed (or every 10 min); the own card back. */
+async function publishProfile({ force = false } = {}) {
+  let own = friendsProfile();
+  const mmr = own.showMmr !== false ? "true" : "false";
+  const { card } = await requestBackendJson(`/player/profile/public?lang=${uiLocale()}&mmr=${mmr}`, "GET", undefined, 15000);
+  if (!own.enabled) {
+    return { card, own };
+  }
+  if (!friends.isProfileId(own.id) || !/^[0-9a-f]{32}$/.test(String(own.token || ""))) {
+    own = { ...own, id: friends.newProfileId(crypto.randomBytes), token: friends.newToken(crypto.randomBytes) };
+    settings.set("friendsProfile", own);
+  }
+  const hash = crypto.createHash("sha256").update(JSON.stringify(card)).digest("hex").slice(0, 16);
+  if (!force && own.hash === hash && Date.now() - (Number(own.at) || 0) < PROFILE_REPUBLISH_MS) {
+    return { card, own };
+  }
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    const result = await apiRequest(`/v1/profile/${own.id}`, {
+      method: "PUT",
+      headers: { "x-profile-token": own.token },
+      body: { install_id: installId(), version: app.getVersion(), profile: card }
+    });
+    if (result.status === 409) {
+      // Someone else has that code: a new one (it was never shown to anyone).
+      own = { ...own, id: friends.newProfileId(crypto.randomBytes), token: friends.newToken(crypto.randomBytes) };
+      continue;
+    }
+    if (!result.ok) {
+      throw Object.assign(new Error(result.answer.code || `http_${result.status}`), { code: result.answer.code || `http_${result.status}` });
+    }
+    own = { ...own, url: String(result.answer.url || ""), hash, at: Date.now() };
+    settings.set("friendsProfile", own);
+    return { card, own };
+  }
+  throw Object.assign(new Error("taken"), { code: "taken" });
+}
+
+async function friendsStatus({ force = false } = {}) {
+  let own = friendsProfile();
+  let card = null;
+  let error = "";
+  try {
+    ({ card, own } = await publishProfile({ force }));
+  } catch (failure) {
+    error = failure.code || (failure.status ? "backend_down" : "offline");
+  }
+  const list = (settings.get("friends") || []).filter(friends.isProfileId);
+  let cards = {};
+  if (list.length) {
+    try {
+      const result = await apiRequest("/v1/profiles", { method: "POST", body: { ids: list } });
+      cards = result.ok && result.answer.profiles ? result.answer.profiles : {};
+      if (!result.ok) {
+        error = error || result.answer.code || `http_${result.status}`;
+      }
+    } catch {
+      error = error || "offline";
+    }
+  }
+  const rows = friends.leaderboard([
+    ...(card ? [{ id: own.id || "me", me: true, card }] : []),
+    ...list.map((id) => ({ id, card: cards[id] || null }))
+  ]);
+  return {
+    ok: true,
+    enabled: Boolean(own.enabled),
+    code: own.enabled && friends.isProfileId(own.id) ? friends.friendCode(own.id) : "",
+    url: own.enabled ? own.url || "" : "",
+    showMmr: own.showMmr !== false,
+    rows,
+    missing: list.filter((id) => !cards[id]).map(friends.friendCode),
+    error
+  };
+}
+
+async function friendsAction(request) {
+  const own = friendsProfile();
+  const action = request && typeof request === "object" ? request : { op: String(request || "status") };
+  try {
+    if (action.op === "enable") {
+      settings.set("friendsProfile", { ...own, enabled: true });
+      appendLog("launcher", "Profile card shown to friends.", { force: true });
+      return await friendsStatus({ force: true });
+    }
+    if (action.op === "disable") {
+      if (friends.isProfileId(own.id) && own.token) {
+        await apiRequest(`/v1/profile/${own.id}`, { method: "DELETE", headers: { "x-profile-token": own.token } }).catch(() => null);
+      }
+      // The same code comes back when the player shows the profile again.
+      settings.set("friendsProfile", { ...own, enabled: false, hash: "", url: "" });
+      appendLog("launcher", "Profile card hidden.", { force: true });
+      return await friendsStatus();
+    }
+    if (action.op === "showMmr") {
+      settings.set("friendsProfile", { ...own, showMmr: Boolean(action.value) });
+      return await friendsStatus({ force: true });
+    }
+    if (action.op === "add") {
+      const result = friends.addFriend(settings.get("friends"), action.code, own.enabled ? own.id : null);
+      if (!result.ok) {
+        return { ...(await friendsStatus()), addError: result.code };
+      }
+      settings.set("friends", result.list);
+      return await friendsStatus();
+    }
+    if (action.op === "remove") {
+      settings.set("friends", friends.removeFriend(settings.get("friends"), friends.normalizeCode(action.code)));
+      return await friendsStatus();
+    }
+    if (action.op === "copy" && own.enabled && friends.isProfileId(own.id)) {
+      clipboard.writeText(action.what === "link" && own.url ? own.url : friends.friendCode(own.id));
+      return { ok: true };
+    }
+    if (action.op === "open" && own.enabled && /^https:\/\//.test(String(own.url || ""))) {
+      shell.openExternal(own.url);
+      return { ok: true };
+    }
+    return await friendsStatus();
+  } catch (error) {
+    return { ok: false, code: error.code || "failed" };
   }
 }
 
@@ -3151,6 +3319,7 @@ function registerIpc() {
   ipcMain.handle("launcher:set-share-stats", (_event, enabled) => setShareStats(Boolean(enabled)));
   ipcMain.handle("launcher:stats-preview", () => statsPreview());
   ipcMain.handle("launcher:match-records", (_event, request) => matchRecordsAction(request));
+  ipcMain.handle("launcher:friends", (_event, request) => friendsAction(request));
   ipcMain.handle("launcher:delete-server-data", () => deleteServerData());
   ipcMain.handle("launcher:discord-weekly", (_event, request) => discordWeeklyAction(request));
   ipcMain.handle("launcher:set-advice-preferences", (_event, patch) =>

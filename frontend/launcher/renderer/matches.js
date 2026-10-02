@@ -43,6 +43,25 @@
       pfReward: (n) => `+${n} sparks`,
       pfProgress: (value, target) => `${value} / ${target}`,
       pfEmpty: "Play a match with Wardly running: it starts your level, achievements and sparks.",
+      pfFriends: "Friends",
+      pfFriendsHint: "Show your profile to friends by a code and see theirs: level, rating, looks and achievements.",
+      pfFriendsOff: "Your profile is visible only to you. Show it, and friends who have your code see your card: name, level, medal, achievements, looks and matches with Wardly — no Steam ID and no match list.",
+      pfFriendsShow: "Show my profile to friends",
+      pfFriendsHide: "Hide my profile",
+      pfFriendsCode: "Your friend code",
+      pfFriendsCopy: "Copy code",
+      pfFriendsCopyLink: "Copy link",
+      pfFriendsOpen: "Open the page",
+      pfFriendsCopied: "Copied.",
+      pfFriendsShowMmr: "Show my rating",
+      pfFriendsAdd: "Add",
+      pfFriendsAddPlaceholder: "Friend code, e.g. WD-4K7P9QX2",
+      pfFriendsEmpty: "No friends yet: send them your code, and add theirs.",
+      pfFriendsYou: "You",
+      pfFriendsRemove: "Remove",
+      pfFriendsWeek: (n) => `${n} this week`,
+      pfFriendsMissing: (codes) => `Hidden or not found: ${codes}`,
+      pfFriendsErrors: { bad_code: "That is not a friend code.", own_code: "That is your own code.", already: "Already in the list.", too_many: "50 friends at most.", offline: "No connection to the server.", disabled: "Friends are switched off on the server for now.", rate_limited: "Too many requests: try again in an hour.", backend_down: "The coach service is not running." },
       pfShop: "Profile looks",
       pfShopHint: "Spend sparks on how your profile looks. Rare ones need a level or an achievement.",
       pfKinds: { frame: "Avatar frames", banner: "Banners", name: "Name colour", title: "Titles" },
@@ -606,6 +625,25 @@
       pfReward: (n) => `+${n} искр`,
       pfProgress: (value, target) => `${value} / ${target}`,
       pfEmpty: "Сыграйте матч с запущенным Wardly — с него начнутся уровень, награды и искры.",
+      pfFriends: "Друзья",
+      pfFriendsHint: "Покажите профиль друзьям по коду и смотрите их: уровень, рейтинг, оформление и награды.",
+      pfFriendsOff: "Сейчас ваш профиль видите только вы. Покажите его — и друзья с вашим кодом увидят карточку: ник, уровень, медаль, награды, оформление и матчи с Wardly. Без Steam ID и списка матчей.",
+      pfFriendsShow: "Показать профиль друзьям",
+      pfFriendsHide: "Скрыть профиль",
+      pfFriendsCode: "Ваш код друга",
+      pfFriendsCopy: "Скопировать код",
+      pfFriendsCopyLink: "Скопировать ссылку",
+      pfFriendsOpen: "Открыть страницу",
+      pfFriendsCopied: "Скопировано.",
+      pfFriendsShowMmr: "Показывать мой рейтинг",
+      pfFriendsAdd: "Добавить",
+      pfFriendsAddPlaceholder: "Код друга, например WD-4K7P9QX2",
+      pfFriendsEmpty: "Друзей пока нет: отправьте им свой код и добавьте их.",
+      pfFriendsYou: "Вы",
+      pfFriendsRemove: "Убрать",
+      pfFriendsWeek: (n) => `${n} за неделю`,
+      pfFriendsMissing: (codes) => `Скрыты или не найдены: ${codes}`,
+      pfFriendsErrors: { bad_code: "Это не код друга.", own_code: "Это ваш собственный код.", already: "Уже в списке.", too_many: "Не больше 50 друзей.", offline: "Нет связи с сервером.", disabled: "Друзья на сервере сейчас выключены.", rate_limited: "Слишком много запросов: попробуйте через час.", backend_down: "Служба тренера не запущена." },
       pfShop: "Оформление",
       pfShopHint: "Тратьте искры на вид профиля. Редкие вещи открываются с уровнем или за награду.",
       pfKinds: { frame: "Рамки аватара", banner: "Баннеры", name: "Цвет ника", title: "Титулы" },
@@ -1162,6 +1200,7 @@
     chartMetric: "lh",
     career: null,
     profile: null,
+    friends: null,
     linkError: "",
     lastPlayerRefresh: 0,
     // AI coach settings panel: null (closed) | "form" | "info"
@@ -3969,6 +4008,26 @@
       state.profile = result.data.profile;
     }
     renderProfile();
+    loadFriends();
+  }
+
+  // Friends come from the server: drawn when they arrive, the profile does not wait.
+  async function loadFriends(request = { op: "status" }) {
+    try {
+      const result = await api.friends?.(request);
+      if (result) {
+        state.friends = result;
+      }
+    } catch {
+      state.friends = { ok: false, code: "offline" };
+    }
+    if (state.view === "profile") {
+      const host = document.getElementById("pf-friends");
+      if (host) {
+        host.replaceWith(friendsCard());
+        hydrate(document.getElementById("profile-root"));
+      }
+    }
   }
 
   function renderProfile() {
@@ -3987,6 +4046,7 @@
       profileHeader(profile),
       twoColumns([ratingCard(profile.rating)], [statsCard(profile)]),
       zone(t("pfAchievements"), t("pfAchievementsHint"), [achievementsCard(profile.achievements || [])]),
+      zone(t("pfFriends"), t("pfFriendsHint"), [friendsCard()]),
       zone(t("pfShop"), t("pfShopHint"), [shopCard(profile)])
     );
     hydrate(root);
@@ -4127,6 +4187,100 @@
       return { ...point, title: date, detail: [what, hero].filter(Boolean).join(" · ") };
     });
     window.LauncherCharts.rating(host, { points, ariaLabel: t("pfRating") });
+  }
+
+  // «Друзья»: the own code (or the button that shows the profile), the add form
+  // and the leaderboard of the player and the friends.
+  function friendsCard() {
+    const data = state.friends;
+    const note = h("p", { class: "pf-friends-note muted", role: "status", "aria-live": "polite" });
+    const errorText = (code) => tOptional(`pfFriendsErrors.${code}`) || code;
+    if (data?.addError) {
+      note.textContent = errorText(data.addError);
+    } else if (data?.error) {
+      note.textContent = errorText(data.error);
+    }
+    const parts = [];
+    if (!data) {
+      parts.push(skeletonRows(2));
+    } else if (!data.enabled) {
+      parts.push(
+        h("p", { class: "muted", text: t("pfFriendsOff") }),
+        h("button", { class: "btn btn-primary", type: "button", text: t("pfFriendsShow"), onclick: () => loadFriends({ op: "enable" }) })
+      );
+    } else {
+      const copied = (what) => async () => {
+        await api.friends({ op: "copy", what });
+        note.textContent = t("pfFriendsCopied");
+      };
+      parts.push(
+        h(
+          "div",
+          { class: "pf-code-row" },
+          h("div", {}, h("p", { class: "muted small", text: t("pfFriendsCode") }), h("p", { class: "pf-code", text: data.code || "—" })),
+          h(
+            "div",
+            { class: "pf-code-actions" },
+            h("button", { class: "btn", type: "button", onclick: copied("code") }, icon("copy"), h("span", { text: t("pfFriendsCopy") })),
+            data.url ? h("button", { class: "btn btn-ghost", type: "button", onclick: copied("link") }, icon("link"), h("span", { text: t("pfFriendsCopyLink") })) : null,
+            data.url ? h("button", { class: "btn btn-ghost", type: "button", onclick: () => api.friends({ op: "open" }) }, icon("external-link"), h("span", { text: t("pfFriendsOpen") })) : null
+          )
+        ),
+        h(
+          "label",
+          { class: "pf-check" },
+          h("input", { type: "checkbox", class: "switch", role: "switch", checked: data.showMmr ? true : null, onchange: (event) => loadFriends({ op: "showMmr", value: event.target.checked }) }),
+          h("span", { text: t("pfFriendsShowMmr") })
+        )
+      );
+    }
+    const input = h("input", { class: "input", type: "text", maxlength: "20", spellcheck: "false", autocomplete: "off", placeholder: t("pfFriendsAddPlaceholder"), "aria-label": t("pfFriendsAddPlaceholder") });
+    const form = h("form", { class: "pf-add-form" }, input, h("button", { class: "btn", type: "submit", text: t("pfFriendsAdd") }));
+    form.addEventListener("submit", (event) => {
+      event.preventDefault();
+      if (input.value.trim()) {
+        loadFriends({ op: "add", code: input.value.trim() });
+      }
+    });
+    parts.push(form);
+    const rows = data?.rows || [];
+    if (data && rows.filter((row) => !row.me).length === 0) {
+      parts.push(h("p", { class: "muted", text: t("pfFriendsEmpty") }));
+    }
+    if (rows.length) {
+      parts.push(h("ol", { class: "pf-board" }, rows.map((row) => boardRow(row))));
+    }
+    if (data?.missing?.length) {
+      parts.push(h("p", { class: "muted small", text: t("pfFriendsMissing", data.missing.join(", ")) }));
+    }
+    parts.push(note);
+    if (data?.enabled) {
+      parts.push(h("button", { class: "btn btn-ghost btn-sm pf-hide", type: "button", text: t("pfFriendsHide"), onclick: () => loadFriends({ op: "disable" }) }));
+    }
+    return h("section", { class: "card", id: "pf-friends" }, h("div", { class: "card-body pf-friends" }, parts));
+  }
+
+  function boardRow(row) {
+    const card = row.card || {};
+    const worn = card.equipped || {};
+    const initials = String(card.name || "?").trim().slice(0, 2).toUpperCase();
+    const meta = [t("pfLevel", card.level || 1), card.rank_label, Number.isFinite(card.mmr) ? `≈ ${card.mmr}` : null, t("pfFriendsWeek", card.stats?.week_games || 0)].filter(Boolean).join(" · ");
+    return h(
+      "li",
+      { class: `pf-board-row${row.me ? " me" : ""}` },
+      h("span", { class: "pf-place", text: String(row.place) }),
+      h("div", { class: `pf-avatar-wrap mini cos-${worn.frame || "frame_plain"}` }, h("div", { class: "pf-avatar" }, h("span", { class: "pf-initials small", text: initials }))),
+      h(
+        "div",
+        { class: "pf-board-who" },
+        h("p", {}, h("span", { class: `pf-name mini cos-${worn.name || "name_plain"}`, text: card.name || "—" }), row.me ? h("span", { class: "pf-you", text: t("pfFriendsYou") }) : null),
+        card.title ? h("p", { class: `pf-title cos-${worn.title || ""}`, text: card.title }) : null,
+        h("p", { class: "muted small", text: meta })
+      ),
+      row.me
+        ? null
+        : h("button", { class: "btn btn-ghost btn-sm", type: "button", text: t("pfFriendsRemove"), onclick: () => loadFriends({ op: "remove", code: row.id }) })
+    );
   }
 
   // The shop: every look by kind with a preview, its price or condition and

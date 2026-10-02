@@ -4748,3 +4748,109 @@ tr.row-link[data-result="loss"] > td:first-child {
   opacity: 0.45;
   cursor: not-allowed;
 }
+
+
+/* «Друзья»: the own code, the add form and the leaderboard. */
+.pf-friends {
+  display: grid;
+  gap: var(--sp-3);
+}
+
+.pf-code-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: var(--sp-3);
+  flex-wrap: wrap;
+}
+
+.pf-code {
+  font-size: var(--fs-20);
+  font-weight: var(--fw-semibold);
+  font-family: var(--mono);
+  letter-spacing: 0.06em;
+}
+
+.pf-code-actions {
+  display: flex;
+  gap: var(--sp-2);
+  flex-wrap: wrap;
+}
+
+.pf-check {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  font-size: var(--fs-13);
+}
+
+.pf-add-form {
+  display: flex;
+  gap: var(--sp-2);
+}
+
+.pf-add-form .input {
+  flex: 1 1 auto;
+  max-width: 320px;
+}
+
+.pf-board {
+  display: grid;
+  gap: var(--sp-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.pf-board-row {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  padding: var(--sp-2) var(--sp-3);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  background: var(--surface-1);
+}
+
+.pf-board-row.me {
+  border-color: var(--accent);
+}
+
+.pf-place {
+  width: 24px;
+  text-align: center;
+  font-weight: var(--fw-semibold);
+  font-variant-numeric: tabular-nums;
+  color: var(--text-2);
+}
+
+.pf-board-who {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+  flex: 1;
+}
+
+.pf-board-who p {
+  margin: 0;
+}
+
+.pf-you {
+  margin-left: var(--sp-2);
+  padding: 1px var(--sp-2);
+  border-radius: var(--r-sm);
+  background: var(--accent-soft);
+  font-size: var(--fs-12);
+}
+
+.pf-initials.small {
+  font-size: var(--fs-13);
+}
+
+.pf-friends-note:empty {
+  display: none;
+}
+
+.pf-hide {
+  justify-self: start;
+}

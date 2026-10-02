@@ -137,6 +137,16 @@
           вы отметили, вывод ИИ-тренера. Не публикуются номера матчей, Steam ID, ник, другие игроки и ваши вопросы тренеру.
         </p>
 
+        <h2>Друзья</h2>
+        <p>
+          Только когда вы нажмёте «Показать профиль друзьям» на вкладке «Профиль». Приложение отправляет на
+          <code>api.luhovyimvp.dev</code> карточку профиля: ник, титул, уровень, медаль, рейтинг (если вы его ввели и не выключили
+          «Показывать мой рейтинг»), надетое оформление, ступени наград и число матчей с Wardly. <strong>Без Steam ID, без списка
+          матчей и без аватара.</strong> Карточку видит тот, у кого есть ваш код друга (и страница по ссылке
+          <code>api.luhovyimvp.dev/p/&lt;код&gt;</code>). Список ваших друзей хранится только на вашем компьютере. «Скрыть профиль» удаляет
+          карточку с сервера; карточку, которую не обновляли 180 дней, сервер удаляет сам.
+        </p>
+
         <h2>Перенос истории по коду</h2>
         <p>
           Только когда вы нажмёте «Получить код» в «Настройках → Приложение → Перенос на другой компьютер». Приложение
@@ -193,7 +203,7 @@
           <a href="https://github.com/makquella/dota-ai-coach/issues" rel="noopener">issues на GitHub</a> — отчёт удалят. Все
           отчёты вашей установки удаляет запрос <code>DELETE https://api.luhovyimvp.dev/v1/device/&lt;идентификатор&gt;</code>;
           идентификатор — поле <code>installId</code> в файле <code>%APPDATA%\DotaAICoach\settings.json</code>. Этот же запрос удаляет
-          все опубликованные разборы и статистику установки; в приложении он запускается кнопкой «Удалить мои данные на сервере»
+          все опубликованные разборы, карточку профиля и статистику установки; в приложении он запускается кнопкой «Удалить мои данные на сервере»
           в «Настройках → Приложение» (под «Анонимной статистикой»).
         </p>
 
@@ -271,6 +281,16 @@
           to five heroes with games and win rate, up to three recurring strengths and problems with a drill, the focus with its
           result and, if you ticked it, the AI coach's summary. Match numbers, Steam ID, nickname, other players and your
           questions to the coach are not published.
+        </p>
+
+        <h2>Friends</h2>
+        <p>
+          Only when you press «Show my profile to friends» on the Profile tab. The app sends <code>api.luhovyimvp.dev</code> your
+          profile card: name, title, level, medal, the rating (if you typed it in and left «Show my rating» on), the looks you
+          wear, achievement tiers and the number of matches with Wardly. <strong>No Steam ID, no match list and no avatar.</strong>
+          Anyone with your friend code sees the card (and the page at <code>api.luhovyimvp.dev/p/&lt;code&gt;</code>). Your friend list
+          stays on your computer. «Hide my profile» deletes the card from the server; a card not updated for 180 days is deleted
+          by the server.
         </p>
 
         <h2>Moving the history by code</h2>

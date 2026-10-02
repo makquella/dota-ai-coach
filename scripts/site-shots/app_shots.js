@@ -138,6 +138,7 @@ const SHOTS = {
   "review-ai": [{ click: "#tab-matches", wait: 1500 }, { click: "tr.row-link", wait: 2500 }, { eval: scrollTo(".coach-card") }],
   progress: [{ click: "#tab-progress", wait: 2500 }],
   profile: [{ click: "#tab-profile", wait: 2500 }],
+  "profile-friends": [{ click: "#tab-profile", wait: 3000 }, { eval: scrollTo("#pf-friends") }],
   "profile-shop": [{ click: "#tab-profile", wait: 2500 }, { eval: scrollTo(".pf-shop") }],
   "profile-badges": [{ click: "#tab-profile", wait: 2500 }, { eval: scrollTo(".pf-badges") }],
   "progress-ai": [{ click: "#tab-progress", wait: 2500 }, { eval: scrollTo(".coach-card") }],
@@ -165,6 +166,30 @@ async function openPage(browser, lang, label, size = SIZE) {
     const response = await fetch(BACKEND + endpoint);
     return response.ok ? { ok: true, data: await response.json() } : { ok: false, status: response.status };
   });
+  // «Друзья»: the own card from the demo backend and two made-up friends (the
+  // demo has no server); their looks are real items of the shop.
+  await page.exposeFunction("__friends", async () => {
+    const response = await fetch(`${BACKEND}/player/profile/public?lang=${lang}`);
+    const own = response.ok ? (await response.json()).card : null;
+    const friend = (name, level, mmr, frame, nameLook, title, week) => ({
+      lang, name, level, mmr, rank_label: lang === "ru" ? "Властелин 2" : "Ancient 2", title,
+      equipped: { frame, banner: "banner_dusk", name: nameLook, title: null }, stats: { app_games: level * 6, week_games: week }
+    });
+    return {
+      ok: true,
+      enabled: true,
+      code: "WD-4K7P9QX2",
+      url: "https://luhovyimvp.dev/p/4k7p9qx2",
+      showMmr: true,
+      rows: [
+        { id: "a", place: 1, card: friend("mid_or_feed", 12, 4010, "frame_fire", "name_gold", lang === "ru" ? "Трайхардер" : "Tryhard", 9) },
+        { id: "me", me: true, place: 2, card: own },
+        { id: "b", place: 3, card: friend("pos5_enjoyer", 3, null, "frame_ice", "name_ice", null, 2) }
+      ],
+      missing: [],
+      error: ""
+    };
+  });
   await page.addInitScript((current) => {
     const noop = async () => ({ ok: true });
     window.launcherApi = new Proxy(
@@ -172,6 +197,7 @@ async function openPage(browser, lang, label, size = SIZE) {
         getStatus: async () => current,
         getLogs: async () => [],
         player: (op, args) => window.__player(op, args),
+        friends: () => window.__friends(),
         onPlayerEvent() {},
         onStatus() {},
         onLogs() {}

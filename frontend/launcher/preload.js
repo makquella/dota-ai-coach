@@ -31,6 +31,7 @@ contextBridge.exposeInMainWorld("launcherApi", {
   setShareStats: (enabled) => ipcRenderer.invoke("launcher:set-share-stats", Boolean(enabled)),
   statsPreview: () => ipcRenderer.invoke("launcher:stats-preview"),
   matchRecords: (request) => ipcRenderer.invoke("launcher:match-records", request),
+  friends: (request) => ipcRenderer.invoke("launcher:friends", request),
   deleteServerData: () => ipcRenderer.invoke("launcher:delete-server-data"),
   discordWeekly: (action, url) => ipcRenderer.invoke("launcher:discord-weekly", { action: String(action), url: typeof url === "string" ? url : "" }),
   setAdvicePreferences: (patch) => ipcRenderer.invoke("launcher:set-advice-preferences", patch),

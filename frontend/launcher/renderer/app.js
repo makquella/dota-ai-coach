@@ -304,6 +304,10 @@ const I18N = {
     tourHint: "A short tour of the app, one minute",
     tourStart: "Show",
     whatsNew: {
+      "0.35.0": [
+        "Friends on the «Profile» tab: show your profile by a friend code, add friends by theirs and see who is on top — level, rating, looks.",
+        "Your profile as a page to send to a chat: api.luhovyimvp.dev/p/<code>."
+      ],
       "0.34.0": [
         "New tab «Profile»: your rating graph like on FACEIT — enter your MMR once and every ranked game moves it.",
         "Levels, achievements and sparks for playing with Wardly.",
@@ -937,6 +941,10 @@ const I18N = {
     tourHint: "Короткая экскурсия по приложению, на минуту",
     tourStart: "Показать",
     whatsNew: {
+      "0.35.0": [
+        "Друзья на вкладке «Профиль»: покажите профиль по коду друга, добавьте друзей по их кодам и смотрите, кто выше — уровень, рейтинг, оформление.",
+        "Ваш профиль страницей, которую можно скинуть в чат: api.luhovyimvp.dev/p/<код>."
+      ],
       "0.34.0": [
         "Новая вкладка «Профиль»: график рейтинга как на FACEIT — введите свой MMR один раз, и каждая рейтинговая игра будет его двигать.",
         "Уровни, награды и искры за игру с Wardly.",

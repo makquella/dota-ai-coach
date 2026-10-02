@@ -406,5 +406,41 @@ def build_profile(
             "app_winrate": round(100 * app_wins / decided) if decided else None,
             "app_hours": round(minutes / 60, 1),
             "all_games": len(rows),
+            "week_games": sum(
+                1 for r in app_rows if (_int(r.get("start_time")) or 0) >= now - 7 * 86400
+            ),
+        },
+    }
+
+
+def public_card(profile: dict[str, Any], lang: str, *, show_mmr: bool = True) -> dict[str, Any]:
+    """The part of the profile a player shows friends (services/api/src/profile.js
+    validates it again): name, level, medal, the rating when typed in, looks,
+    achievement tiers and app stats — never an account id or the match list."""
+    player = profile.get("player") or {}
+    rating_ = profile.get("rating") or {}
+    worn = profile.get("equipped") or {}
+    title_id = worn.get("title")
+    titles = {item["id"]: item["name"] for item in profile.get("shop") or []}
+    stats = profile.get("stats") or {}
+    manual = rating_.get("source") == "manual"
+    return {
+        "lang": "en" if lang == "en" else "ru",
+        "name": (player.get("name") or "Wardly")[:32],
+        "title": titles.get(title_id) if title_id and title_id != "title_none" else None,
+        "level": (profile.get("level") or {}).get("level", 1),
+        "rank_tier": player.get("rank_tier"),
+        "rank_label": player.get("rank_label"),
+        "mmr": rating_.get("current") if show_mmr and manual else None,
+        "mmr_change": rating_.get("change_20") if show_mmr and manual else None,
+        "equipped": worn,
+        "achievements": [
+            {"id": b["id"], "tier": b["tier"], "title": b["title"]}
+            for b in profile.get("achievements") or []
+        ],
+        "stats": {
+            "app_games": stats.get("app_games", 0),
+            "app_winrate": stats.get("app_winrate"),
+            "week_games": stats.get("week_games", 0),
         },
     }
