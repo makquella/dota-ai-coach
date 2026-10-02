@@ -36,6 +36,7 @@ from app.coach_llm import env_settings
 from app.config import OPENDOTA_API_KEY, OPENDOTA_API_URL, OPENDOTA_ENABLED, PLAYER_DATA_DIR
 from app.history_backup import BackupError
 from app.opendota import OpenDotaClient
+from app.player_profile import public_card
 from app.player_service import PlayerService
 from app.steam_ids import SteamIdError
 
@@ -248,6 +249,14 @@ class MmrRequest(BaseModel):
 @router.get("/profile", summary="The profile tab: rating graph, level, achievements, sparks")
 def player_profile(lang: str = "en"):
     return {"profile": PLAYER_SERVICE.profile(normalize_lang(lang))}
+
+
+@router.get("/profile/public", summary="The profile card to show friends (no account id)")
+def player_profile_public(lang: str = "en", mmr: bool = True):
+    profile = PLAYER_SERVICE.profile(normalize_lang(lang))
+    if profile is None:
+        return JSONResponse(status_code=409, content={"status": "error", "code": "not_linked"})
+    return {"card": public_card(profile, normalize_lang(lang), show_mmr=mmr)}
 
 
 @router.post("/profile/mmr", summary="The player's MMR now (an anchor of the rating graph)")

@@ -10,6 +10,7 @@ function fakeEnv(vars = {}, { r2 = true } = {}) {
   const reports = [];
   const shares = [];
   const transfers = [];
+  const profiles = [];
   const daily = new Map();
   const rate = new Map();
   const objects = new Map();
@@ -33,12 +34,18 @@ function fakeEnv(vars = {}, { r2 = true } = {}) {
           if (sql.startsWith("SELECT body, expires_at, lang FROM shares WHERE id") || sql.startsWith("SELECT delete_hash FROM shares WHERE id")) {
             return shares.find((r) => r.id === args[0]) || null;
           }
+          if (sql.startsWith("SELECT token_hash FROM profiles WHERE id") || sql.startsWith("SELECT body FROM profiles WHERE id")) {
+            return profiles.find((r) => r.id === args[0]) || null;
+          }
           if (sql.startsWith("SELECT id FROM transfers WHERE id") || sql.startsWith("SELECT body, expires_at, tries FROM transfers WHERE id")) {
             return transfers.find((r) => r.id === args[0]) || null;
           }
           throw new Error(`unexpected first(): ${sql}`);
         },
         async all() {
+          if (sql.startsWith("SELECT id, updated_at, body FROM profiles WHERE id IN")) {
+            return { results: profiles.filter((r) => args.includes(r.id)) };
+          }
           if (sql.startsWith("SELECT r2_key FROM reports WHERE install_id")) {
             return { results: reports.filter((r) => r.install_id === args[0]) };
           }
@@ -64,6 +71,17 @@ function fakeEnv(vars = {}, { r2 = true } = {}) {
             shares.splice(0, shares.length, ...shares.filter((r) => r.install_id !== args[0]));
           } else if (sql.startsWith("DELETE FROM shares WHERE expires_at")) {
             shares.splice(0, shares.length, ...shares.filter((r) => r.expires_at >= args[0]));
+          } else if (sql.startsWith("INSERT INTO profiles")) {
+            const [id, created_at, install_id, token_hash, version, body] = args;
+            profiles.push({ id, created_at, updated_at: created_at, install_id, token_hash, version, body });
+          } else if (sql.startsWith("UPDATE profiles SET updated_at")) {
+            Object.assign(profiles.find((r) => r.id === args[0]), { updated_at: args[1], version: args[2], body: args[3] });
+          } else if (sql.startsWith("DELETE FROM profiles WHERE id")) {
+            profiles.splice(0, profiles.length, ...profiles.filter((r) => r.id !== args[0]));
+          } else if (sql.startsWith("DELETE FROM profiles WHERE install_id")) {
+            profiles.splice(0, profiles.length, ...profiles.filter((r) => r.install_id !== args[0]));
+          } else if (sql.startsWith("DELETE FROM profiles WHERE updated_at <")) {
+            profiles.splice(0, profiles.length, ...profiles.filter((r) => r.updated_at >= args[0]));
           } else if (sql.startsWith("INSERT INTO transfers")) {
             const [id, created_at, expires_at, install_id, size, body] = args;
             transfers.push({ id, created_at, expires_at, install_id, size, tries: 0, body: [...body] });
@@ -118,7 +136,7 @@ function fakeEnv(vars = {}, { r2 = true } = {}) {
       for (const key of [].concat(keys)) objects.delete(key);
     }
   };
-  return { env: { DB, ...(r2 ? { REPORTS } : {}), ...vars }, reports, shares, transfers, objects, daily };
+  return { env: { DB, ...(r2 ? { REPORTS } : {}), ...vars }, reports, shares, transfers, profiles, objects, daily };
 }
 
 const ctx = { waitUntil: (promise) => promise };
@@ -206,6 +224,7 @@ test("bad bodies, rate limits and the kill switch", async () => {
     share_days: 90,
     stats: true,
     channels: true,
+    profiles: true,
     sessions: false,
     retention_days: 180
   });
@@ -512,4 +531,102 @@ test("version gate for site links", () => {
   assert.equal(versionAtLeast("0.8.9", [0, 9, 0]), false);
   assert.equal(versionAtLeast("", [0, 9, 0]), false);
   assert.equal(versionAtLeast("dev", [0, 9, 0]), false);
+});
+
+
+// --- «Друзья»: profile cards by friend code (src/profile.js) ---------------------
+
+const INSTALL = "a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d";
+const TOKEN = "0123456789abcdef0123456789abcdef";
+const CARD = {
+  lang: "ru",
+  name: "farm_or_die 76561198000000000",
+  title: "Легенда Wardly",
+  level: 7,
+  rank_tier: 54,
+  rank_label: "Легенда 4",
+  mmr: 3619,
+  equipped: { frame: "frame_arcana", banner: "banner_aurora", name: "name_prism", title: "title_legend", extra: "x" },
+  achievements: [{ id: "app_games", tier: 2, title: "С тренером" }, { id: "Bad Id", tier: 9 }],
+  stats: { app_games: 12, app_winrate: 58, week_games: 4 },
+  steam_id: "76561198000000000"
+};
+
+function putCard(id, { token = TOKEN, card = CARD, ip = "203.0.113.9" } = {}) {
+  return new Request(`https://api.example/v1/profile/${id}`, {
+    method: "PUT",
+    headers: { "content-type": "application/json", "x-profile-token": token, "cf-connecting-ip": ip },
+    body: JSON.stringify({ install_id: INSTALL, version: "0.35.0", profile: card })
+  });
+}
+
+test("a profile card is published, read by friend code and shown as a page", async () => {
+  const { env, profiles } = fakeEnv();
+  let response = await worker.fetch(putCard("4k7p9qx2"), env, ctx);
+  assert.equal(response.status, 201);
+  const created = await response.json();
+  assert.equal(created.code, "WD-4K7P9QX2");
+  assert.match(created.url, /\/p\/4k7p9qx2$/);
+  const stored = JSON.parse(profiles[0].body);
+  assert.equal(stored.name, "farm_or_die"); // a Steam ID is cut from the text
+  assert.equal(stored.steam_id, undefined);
+  assert.deepEqual(Object.keys(stored.equipped), ["frame", "banner", "name", "title"]);
+  assert.deepEqual(stored.achievements.map((a) => a.id), ["app_games"]);
+  // The same launcher updates it; another token cannot.
+  response = await worker.fetch(putCard("4k7p9qx2", { card: { ...CARD, level: 8 } }), env, ctx);
+  assert.equal(response.status, 200);
+  response = await worker.fetch(putCard("4k7p9qx2", { token: "f".repeat(32) }), env, ctx);
+  assert.equal(response.status, 409);
+  // Friends read cards by code, as people type it.
+  response = await worker.fetch(
+    new Request("https://api.example/v1/profiles", { method: "POST", body: JSON.stringify({ ids: ["WD-4K7P 9QX2", "nope", "22222222"] }) }),
+    env,
+    ctx
+  );
+  const read = await response.json();
+  assert.deepEqual(Object.keys(read.profiles), ["4k7p9qx2"]);
+  assert.equal(read.profiles["4k7p9qx2"].level, 8);
+  // The page: escaped, with the code to add.
+  response = await worker.fetch(new Request("https://api.example/p/4k7p9qx2"), env, ctx);
+  assert.equal(response.status, 200);
+  const html = await response.text();
+  assert.match(html, /WD-4K7P9QX2/);
+  assert.match(html, /Легенда Wardly/);
+  assert.doesNotMatch(html, /76561198/);
+  response = await worker.fetch(new Request("https://api.example/p/zzzzzzzz"), env, ctx);
+  assert.equal(response.status, 404);
+});
+
+test("a profile card is hidden with its token, by the device delete and after 180 days", async () => {
+  const { env, profiles } = fakeEnv();
+  await worker.fetch(putCard("4k7p9qx2"), env, ctx);
+  let response = await worker.fetch(
+    new Request("https://api.example/v1/profile/4k7p9qx2", { method: "DELETE", headers: { "x-profile-token": "f".repeat(32) } }),
+    env,
+    ctx
+  );
+  assert.equal(response.status, 403);
+  response = await worker.fetch(
+    new Request("https://api.example/v1/profile/4k7p9qx2", { method: "DELETE", headers: { "x-profile-token": TOKEN } }),
+    env,
+    ctx
+  );
+  assert.equal(response.status, 200);
+  assert.equal(profiles.length, 0);
+  await worker.fetch(putCard("4k7p9qx2"), env, ctx);
+  await worker.fetch(new Request(`https://api.example/v1/device/${INSTALL}`, { method: "DELETE" }), env, ctx);
+  assert.equal(profiles.length, 0);
+  await worker.fetch(putCard("4k7p9qx2"), env, ctx);
+  await cleanup(env, Date.now() + 181 * 24 * 3_600_000);
+  assert.equal(profiles.length, 0);
+});
+
+test("bad profile requests are refused", async () => {
+  const { env } = fakeEnv();
+  assert.equal((await worker.fetch(putCard("UPPER123"), env, ctx)).status, 400);
+  assert.equal((await worker.fetch(putCard("4k7p9qx2", { token: "short" }), env, ctx)).status, 400);
+  assert.equal((await worker.fetch(putCard("4k7p9qx2", { card: { ...CARD, name: "" } }), env, ctx)).status, 400);
+  const off = fakeEnv({ PROFILES_ENABLED: "false" });
+  assert.equal((await worker.fetch(putCard("4k7p9qx2"), off.env, ctx)).status, 503);
+  assert.equal(config(off.env).profiles, false);
 });

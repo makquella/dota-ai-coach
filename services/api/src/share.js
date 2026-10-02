@@ -270,7 +270,7 @@ li b{display:block}li p{margin:4px 0 0;color:var(--muted)}.drill{margin-top:8px;
 .coach{white-space:pre-line}.foot{color:var(--muted);font-size:14px}.cta{display:inline-block;margin-top:12px;padding:10px 18px;border-radius:10px;background:var(--accent);color:#fff;font-weight:600;text-decoration:none}
 .small{color:var(--faint);font-size:13px;margin-top:12px}.trend{grid-template-columns:1fr auto}.heroes li{display:flex;gap:12px;align-items:center}.heroes img{width:64px;height:36px;border-radius:6px;object-fit:cover;background:#222}@media (max-width:520px){.head{flex-wrap:wrap}.score{margin-left:0;text-align:left}.row{grid-template-columns:96px 1fr 28px}}`;
 
-function page({ lang, title, description, image, url, body }) {
+export function page({ lang, title, description, image, url, body }) {
   return `<!doctype html>
 <html lang="${lang}">
 <head>

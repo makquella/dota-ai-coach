@@ -160,3 +160,41 @@ def test_plurals():
         "матчей",
     ]
     assert plural(1, MATCH_EN, "en") == "match" and plural(3, MATCH_EN, "en") == "matches"
+
+
+def test_the_public_card_shows_no_account_and_the_mmr_only_when_typed_in():
+    from app.player_profile import public_card
+
+    rows = [_row(i) for i in range(4)]
+    player = {"persona_name": "farm_or_die", "rank_tier": 54, "avatar_url": "https://x"}
+    medal = build_profile(rows, player=player, mmr_raw=None, lang="ru", now=T0 + 5 * DAY)
+    card = public_card(medal, "ru")
+    assert card["name"] == "farm_or_die" and card["mmr"] is None  # a medal guess is not shown
+    assert card["level"] == medal["level"]["level"] and card["stats"]["app_games"] == 4
+    assert set(card) == {
+        "lang",
+        "name",
+        "title",
+        "level",
+        "rank_tier",
+        "rank_label",
+        "mmr",
+        "mmr_change",
+        "equipped",
+        "achievements",
+        "stats",
+    }
+    typed = build_profile(
+        rows, player=player, mmr_raw=add_anchor(None, 3000, T0 - DAY), lang="ru", now=T0 + 5 * DAY
+    )
+    assert public_card(typed, "ru")["mmr"] == 3000 + 4 * MMR_STEP
+    assert public_card(typed, "ru", show_mmr=False)["mmr"] is None
+    worn = build_profile(
+        rows,
+        player=player,
+        mmr_raw=None,
+        cosmetics_raw='{"owned": ["title_farmer"], "equipped": {"title": "title_farmer"}}',
+        lang="ru",
+        now=T0,
+    )
+    assert public_card(worn, "ru")["title"] == "Фармила"
