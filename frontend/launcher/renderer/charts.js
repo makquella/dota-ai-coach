@@ -506,5 +506,84 @@
     return marks.length;
   }
 
-  window.LauncherCharts = { line, columns, meter, map, formatNumber };
+  /**
+   * Rating over matches (the profile's FACEIT-like graph): the y axis hugs the
+   * values (not from 0), one dot per match — a win in --ok, a loss in --error,
+   * an anchor (the player's own number) hollow — and one tooltip.
+   * options: { points: [{ mmr, win, anchor, title, detail }], height, ariaLabel }
+   */
+  function rating(host, options) {
+    host.replaceChildren();
+    host.classList.add("chart");
+    const points = (options.points || []).filter((p) => typeof p.mmr === "number");
+    if (!points.length) {
+      return;
+    }
+    const width = Math.max(280, host.clientWidth || 560);
+    const height = options.height || 220;
+    const pad = { top: 16, right: 56, bottom: 16, left: 48 };
+    const innerW = width - pad.left - pad.right;
+    const innerH = height - pad.top - pad.bottom;
+    const values = points.map((p) => p.mmr);
+    const step = niceMax(Math.max(25, (Math.max(...values) - Math.min(...values)) / 4));
+    const low = Math.floor(Math.min(...values) / step) * step;
+    const high = Math.max(low + step, Math.ceil(Math.max(...values) / step) * step);
+    const count = points.length;
+    const x = (i) => pad.left + (count <= 1 ? innerW / 2 : (i / (count - 1)) * innerW);
+    const y = (v) => pad.top + innerH - ((v - low) / (high - low)) * innerH;
+    const svg = el("svg", { viewBox: `0 0 ${width} ${height}`, width, height, role: "img", "aria-label": options.ariaLabel || "" });
+    for (let value = low; value <= high; value += step) {
+      el("line", { x1: pad.left, x2: width - pad.right, y1: y(value), y2: y(value), class: "chart-grid" }, svg);
+      const label = el("text", { x: pad.left - 8, y: y(value) + 4, class: "chart-tick", "text-anchor": "end" }, svg);
+      label.textContent = formatNumber(value);
+    }
+    const coords = points.map((p, i) => [x(i), y(p.mmr)]);
+    const d = `M${coords[0][0]},${y(low)} L${coords.map((c) => c.join(",")).join(" L")} L${coords[count - 1][0]},${y(low)} Z`;
+    el("path", { d, class: "rating-area" }, svg);
+    el("polyline", { points: coords.map((c) => c.join(",")).join(" "), class: "chart-line rating-line" }, svg);
+    points.forEach((p, i) => {
+      const kind = p.anchor ? "rating-dot-anchor" : p.win ? "rating-dot-win" : "rating-dot-loss";
+      el("circle", { cx: coords[i][0], cy: coords[i][1], r: count > 40 ? 2.5 : 3.5, class: `rating-dot ${kind}` }, svg);
+    });
+    const last = coords[count - 1];
+    const end = el("text", { x: last[0] + 8, y: last[1] + 4, class: "chart-end" }, svg);
+    end.textContent = formatNumber(points[count - 1].mmr);
+    const cross = el("line", { x1: 0, x2: 0, y1: pad.top, y2: pad.top + innerH, class: "chart-cross hidden" }, svg);
+    host.appendChild(svg);
+
+    const tip = tooltip(host);
+    const hit = el("rect", { x: pad.left, y: pad.top, width: innerW, height: innerH, fill: "transparent", tabindex: 0 }, svg);
+    const pick = (clientX) => {
+      const box = svg.getBoundingClientRect();
+      const px = (clientX - box.left) * (width / box.width);
+      return Math.max(0, Math.min(count - 1, Math.round(((px - pad.left) / innerW) * (count - 1))));
+    };
+    const show = (i) => {
+      cross.setAttribute("x1", coords[i][0]);
+      cross.setAttribute("x2", coords[i][0]);
+      cross.classList.remove("hidden");
+      const p = points[i];
+      const rows = [{ label: p.detail || "", value: formatNumber(p.mmr), color: "var(--accent)" }];
+      const box = svg.getBoundingClientRect();
+      showTip(host, tip, (coords[i][0] / width) * box.width, pad.top, p.title || "", rows);
+    };
+    const hide = () => {
+      cross.classList.add("hidden");
+      tip.classList.add("hidden");
+    };
+    let focusIndex = count - 1;
+    hit.addEventListener("pointermove", (event) => show(pick(event.clientX)));
+    hit.addEventListener("pointerleave", hide);
+    hit.addEventListener("focus", () => show(focusIndex));
+    hit.addEventListener("blur", hide);
+    hit.addEventListener("keydown", (event) => {
+      if (event.key === "ArrowLeft" || event.key === "ArrowRight") {
+        focusIndex = Math.max(0, Math.min(count - 1, focusIndex + (event.key === "ArrowLeft" ? -1 : 1)));
+        show(focusIndex);
+        event.preventDefault();
+      }
+    });
+  }
+
+  window.LauncherCharts = { line, columns, meter, map, rating, formatNumber };
 })();

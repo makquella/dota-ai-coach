@@ -69,6 +69,19 @@ def main() -> None:
         ):
             client.post("/gsi", json=payload)
         PLAYER_SERVICE.jobs.run_pending(until=float("inf"))
+        # DEMO_LOOKS=frame_arcana,banner_aurora,…: the profile wears those looks
+        # (owned without sparks, for pictures of the shop's rare items).
+        looks = [i for i in os.environ.get("DEMO_LOOKS", "").split(",") if i]
+        if looks:
+            from app import cosmetics
+
+            state = {"owned": [], "equipped": {}}
+            for item_id in looks:
+                item = cosmetics.BY_ID[item_id]
+                state["owned"].append(item_id)
+                state["equipped"][item["kind"]] = item_id
+            PLAYER_SERVICE.store.set_meta(f"cosmetics:{ME}", cosmetics.dump(state))
+            PLAYER_SERVICE.store.set_meta(f"mmr:{ME}", None)
         client.post("/player/friend", json={"steam": str(friend_id)})
         PLAYER_SERVICE.jobs.run_pending(until=float("inf"))
         for lang in ("ru", "en"):

@@ -27,6 +27,7 @@
         <button type="button" role="tab" id="tab-home" data-view="home" aria-selected="true"><i data-icon="house"></i><span data-i18n="tabHome">Home</span></button>
         <button type="button" role="tab" id="tab-matches" data-view="matches" aria-selected="false"><i data-icon="history"></i><span data-i18n="tabMatches">Matches</span></button>
         <button type="button" role="tab" id="tab-progress" data-view="progress" aria-selected="false"><i data-icon="chart-line"></i><span data-i18n="tabProgress">Progress</span></button>
+        <button type="button" role="tab" id="tab-profile" data-view="profile" aria-selected="false"><i data-icon="user"></i><span data-i18n="tabProfile">Profile</span></button>
         <button type="button" role="tab" id="tab-settings" data-view="settings" aria-selected="false"><i data-icon="settings"></i><span data-i18n="tabSettings">Settings</span></button>
       </nav>
 
@@ -637,6 +638,11 @@
       <!-- One match: post-match review (opened from the table). -->
       <div class="view hidden" id="view-match" role="tabpanel" aria-labelledby="tab-matches">
         <div id="match-root"></div>
+      </div>
+
+      <!-- Profile: rating graph, level, achievements, sparks (backend player_profile.py). -->
+      <div class="view hidden" id="view-profile" role="tabpanel" aria-labelledby="tab-profile">
+        <div id="profile-root"></div>
       </div>
 
       <!-- Progress: statistics and advice over many matches. -->

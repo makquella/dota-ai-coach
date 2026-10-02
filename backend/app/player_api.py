@@ -241,6 +241,52 @@ def ask_match(match_id: MatchId, request: AskRequest, lang: str = "en"):
     return PLAYER_SERVICE.ask_match(match_id, request.question, normalize_lang(lang))
 
 
+class MmrRequest(BaseModel):
+    mmr: int
+
+
+@router.get("/profile", summary="The profile tab: rating graph, level, achievements, sparks")
+def player_profile(lang: str = "en"):
+    return {"profile": PLAYER_SERVICE.profile(normalize_lang(lang))}
+
+
+@router.post("/profile/mmr", summary="The player's MMR now (an anchor of the rating graph)")
+def set_mmr(request: MmrRequest, lang: str = "en"):
+    try:
+        PLAYER_SERVICE.set_mmr(request.mmr)
+    except ValueError as error:
+        return JSONResponse(status_code=400, content={"status": "error", "code": str(error)})
+    return {"profile": PLAYER_SERVICE.profile(normalize_lang(lang))}
+
+
+class ShopRequest(BaseModel):
+    id: str
+
+
+@router.post("/shop/buy", summary="Buy a profile look with sparks (and wear it)")
+def shop_buy(request: ShopRequest, lang: str = "en"):
+    try:
+        profile = PLAYER_SERVICE.shop_action("buy", request.id, normalize_lang(lang))
+    except ValueError as error:
+        return JSONResponse(status_code=400, content={"status": "error", "code": str(error)})
+    return {"profile": profile}
+
+
+@router.post("/shop/equip", summary="Wear a profile look the player owns")
+def shop_equip(request: ShopRequest, lang: str = "en"):
+    try:
+        profile = PLAYER_SERVICE.shop_action("equip", request.id, normalize_lang(lang))
+    except ValueError as error:
+        return JSONResponse(status_code=400, content={"status": "error", "code": str(error)})
+    return {"profile": profile}
+
+
+@router.delete("/profile/mmr", summary="Forget the typed-in MMR (back to the medal estimate)")
+def clear_mmr(lang: str = "en"):
+    PLAYER_SERVICE.clear_mmr()
+    return {"profile": PLAYER_SERVICE.profile(normalize_lang(lang))}
+
+
 @router.post("/focus", summary="Work on one recurring problem from now on")
 def set_focus(request: FocusRequest, lang: str = "en"):
     try:
