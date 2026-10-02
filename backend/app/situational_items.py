@@ -57,6 +57,9 @@ def death_kind(last: Any) -> str | None:
 EVASION_MINUTE = 15
 HEALING_MINUTE = 12
 ILLUSION_MINUTE = 12
+# A lineup of magic damage (draft_analysis.MAGIC_DAMAGE, 3+ seen): Pipe of
+# Insight for an offlaner, Black King Bar for a carry or a mid.
+MAGIC_MINUTE = 14
 CORE_POSITIONS = {"carry", "mid", "offlane"}
 
 
@@ -67,7 +70,14 @@ def _candidates(
     minute: int | None,
 ) -> list[tuple[str, str, str, int, str | None, str | None]]:
     """(why, item key, fallback name, deaths, enemy, spell), in priority order."""
-    from app.draft_analysis import COUNTERS, TARGETED_DISABLES, TARGETED_ITEM, TARGETED_NAME
+    from app.draft_analysis import (
+        COUNTERS,
+        MAGIC_DAMAGE,
+        MAGIC_LINEUP_MIN,
+        TARGETED_DISABLES,
+        TARGETED_ITEM,
+        TARGETED_NAME,
+    )
 
     rows: list[tuple[str, str, str, int, str | None, str | None]] = []
     targeted = next((e for e in enemies if e in TARGETED_DISABLES), None)
@@ -96,6 +106,12 @@ def _candidates(
     healer = next((e for e in enemies if e in COUNTERS["healing"][0]), None)
     if healer and position == "offlane" and (minute or 0) >= HEALING_MINUTE:
         rows.append(("healing", "spirit_vessel", "Spirit Vessel", 0, healer, None))
+    magic = [e for e in enemies if e in MAGIC_DAMAGE]
+    if len(magic) >= MAGIC_LINEUP_MIN and (minute or 0) >= MAGIC_MINUTE:
+        if position == "offlane":
+            rows.append(("magic", "pipe", "Pipe of Insight", len(magic), magic[0], None))
+        elif position in ("carry", "mid"):
+            rows.append(("magic", "black_king_bar", "Black King Bar", len(magic), magic[0], None))
     return rows
 
 
@@ -137,3 +153,49 @@ def situational_item(
             "spell": spell,
         }
     return None
+
+
+def lineup_save_item(
+    enemies: list[str] | None,
+    owned_names: list[str] | None,
+    meta: dict[str, Any] | None,
+) -> dict[str, Any] | None:
+    """The support's save item against the enemy lineup: Glimmer Cape against
+    MAGIC_LINEUP_MIN heroes of magic damage, Ghost Scepter against
+    PHYSICAL_LINEUP_MIN right-click carries — {key, name, cost, gold_left
+    (None without priced constants), why, count, enemy}; None otherwise or when
+    the player already has it (or something built from it)."""
+    from app.draft_analysis import (
+        MAGIC_DAMAGE,
+        MAGIC_LINEUP_MIN,
+        PHYSICAL_CARRIES,
+        PHYSICAL_LINEUP_MIN,
+    )
+
+    if owned_names is None:
+        return None
+    seen = [e for e in enemies or [] if isinstance(e, str)]
+    magic = [e for e in seen if e in MAGIC_DAMAGE]
+    physical = [e for e in seen if e in PHYSICAL_CARRIES]
+    if len(magic) >= MAGIC_LINEUP_MIN:
+        why, key, fallback, heroes = "magic", "glimmer_cape", "Glimmer Cape", magic
+    elif len(physical) >= PHYSICAL_LINEUP_MIN:
+        why, key, fallback, heroes = "physical", "ghost", "Ghost Scepter", physical
+    else:
+        return None
+    constants = (meta or {}).get("constants") or {}
+    priced = has_components(constants)
+    owned = [item_key(name) for name in owned_names]
+    if key in owned or (priced and any(_contains(have, key, constants) for have in owned)):
+        return None
+    known = (constants.get("items") or {}) if priced else {}
+    cost = _cost(key, constants) if priced else 0
+    return {
+        "key": key,
+        "name": item_name(key, constants) if key in known else fallback,
+        "cost": cost or None,
+        "gold_left": gold_left(key, Counter(owned), constants) if cost else None,
+        "why": why,
+        "count": len(heroes),
+        "enemy": heroes[0],
+    }
