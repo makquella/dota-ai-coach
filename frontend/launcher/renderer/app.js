@@ -157,6 +157,16 @@ const I18N = {
     moveActiveHint: "Drag the card, then press Done",
     moveStart: "Move",
     moveDone: "Done",
+    recordsTitle: "Keep match recordings for a week",
+    recordsHint: "Everything the game sent during each match and every advice shown, kept on this computer for 7 days. Save any match as a file and send it to the developer, the next day too. No nicknames, Steam IDs or chat.",
+    recordsOff: "Off: matches are not recorded.",
+    recordsEmpty: "On: the next match will be recorded.",
+    recordsCount: (n) => `On: ${n} ${n === 1 ? "match" : "matches"} recorded this week.`,
+    recordsSave: "Save file",
+    recordsSaved: "Saved to Downloads.",
+    recordsFailed: "Could not save the file.",
+    recordsMinutes: (n) => `${n} min`,
+    recordsAdvice: (n) => `${n} advice`,
     statsTitle: "Help improve the advice",
     statsHint: "Once a day the app sends anonymous counts: which advice was shown and which warnings came before a death. No heroes, matches, nickname or keys. Off by default.",
     statsPreview: "What is sent (today so far)",
@@ -293,6 +303,10 @@ const I18N = {
     tourHint: "A short tour of the app, one minute",
     tourStart: "Show",
     whatsNew: {
+      "0.32.0": [
+        "New in «More settings»: keep match recordings for a week. Save any match as a file and send it to the developer, the next day too.",
+        "The problem report says which match the app recorded last and whether its review is ready."
+      ],
       "0.31.2": [
         "A problem report sent after restarting the app still shows what the game sent during your last match."
       ],
@@ -770,6 +784,16 @@ const I18N = {
     moveActiveHint: "Перетащите карточку и нажмите «Готово»",
     moveStart: "Переместить",
     moveDone: "Готово",
+    recordsTitle: "Хранить записи матчей неделю",
+    recordsHint: "Всё, что игра присылала за матч, и все показанные советы хранятся на этом компьютере 7 дней. Любой матч можно сохранить файлом и отправить разработчику — хоть на следующий день. Без ников, Steam ID и чата.",
+    recordsOff: "Выключено: матчи не записываются.",
+    recordsEmpty: "Включено: следующий матч будет записан.",
+    recordsCount: (n) => `Включено: записано матчей за неделю — ${n}.`,
+    recordsSave: "Сохранить файл",
+    recordsSaved: "Сохранено в «Загрузки».",
+    recordsFailed: "Не удалось сохранить файл.",
+    recordsMinutes: (n) => `${n} мин`,
+    recordsAdvice: (n) => `советов: ${n}`,
     statsTitle: "Помочь улучшить подсказки",
     statsHint: "Раз в день приложение отправляет анонимные счётчики: какие подсказки показывались и после каких предупреждений была смерть. Без героев, матчей, ника и ключей. По умолчанию выключено.",
     statsPreview: "Что отправляется (за сегодня)",
@@ -906,6 +930,10 @@ const I18N = {
     tourHint: "Короткая экскурсия по приложению, на минуту",
     tourStart: "Показать",
     whatsNew: {
+      "0.32.0": [
+        "Новое в «Ещё настройках»: записи матчей хранятся неделю. Любой матч можно сохранить файлом и отправить разработчику — хоть на следующий день.",
+        "Отчёт о проблеме показывает, какой матч приложение записало последним и готов ли его разбор."
+      ],
       "0.31.2": [
         "Отчёт о проблеме, отправленный после перезапуска приложения, всё равно показывает, что игра присылала в последнем матче."
       ],
@@ -1319,6 +1347,10 @@ const els = {
   reportPanel: $("#report-panel"),
   reportNote: $("#report-note"),
   shareStats: $("#share-stats"),
+  settingsMore: $("#settings-more"),
+  matchRecords: $("#match-records"),
+  recordsHint: $("#records-hint"),
+  recordsList: $("#records-list"),
   statsHint: $("#stats-hint"),
   statsPreview: $("#stats-preview"),
   statsPreviewText: $("#stats-preview-text"),
@@ -1737,6 +1769,34 @@ async function init() {
       }
     })
   );
+  els.matchRecords.addEventListener("change", () =>
+    run(async () => {
+      renderStatus(await window.launcherApi.setAdvicePreferences({ matchRecords: els.matchRecords.checked }));
+      refreshRecords();
+    })
+  );
+  els.recordsList.addEventListener("click", (event) => {
+    const button = event.target.closest("button[data-record]");
+    if (!button) {
+      return;
+    }
+    button.disabled = true;
+    Promise.resolve(window.launcherApi.matchRecords({ save: button.dataset.record }))
+      .then((result) => {
+        els.recordsHint.textContent = result && result.ok ? tr("recordsSaved") : tr("recordsFailed");
+      })
+      .catch(() => {
+        els.recordsHint.textContent = tr("recordsFailed");
+      })
+      .finally(() => {
+        button.disabled = false;
+      });
+  });
+  els.settingsMore.addEventListener("toggle", () => {
+    if (els.settingsMore.open) {
+      refreshRecords();
+    }
+  });
   els.shareStats.addEventListener("change", () =>
     run(async () => {
       serverDeleteNote = "";
@@ -1965,6 +2025,57 @@ async function stopLiveRecording() {
 // ---------------------------------------------------------------------------
 // Rendering
 // ---------------------------------------------------------------------------
+
+// «Хранить записи матчей»: the recordings of the last week, newest first,
+// each with a button that saves its file to Downloads.
+function refreshRecords() {
+  if (!els.matchRecords.checked) {
+    return;
+  }
+  Promise.resolve(window.launcherApi.matchRecords("list"))
+    .then((result) => renderRecords(result && result.ok ? result.records : null))
+    .catch(() => renderRecords(null));
+}
+
+function renderRecords(records) {
+  if (!Array.isArray(records)) {
+    return;
+  }
+  els.recordsHint.textContent = records.length ? tr("recordsCount", records.length) : tr("recordsEmpty");
+  els.recordsList.replaceChildren(
+    ...records.map((record) => {
+      const item = document.createElement("li");
+      item.className = "records-item";
+      const when = record.started_at
+        ? new Date(record.started_at).toLocaleString(locale === "ru" ? "ru-RU" : "en-GB", {
+            day: "numeric",
+            month: "short",
+            hour: "2-digit",
+            minute: "2-digit"
+          })
+        : "";
+      const hero = String(record.hero || "").replace(/^npc_dota_hero_/, "").replace(/_/g, " ");
+      const parts = [when, hero];
+      if (Number.isFinite(record.minutes)) {
+        parts.push(tr("recordsMinutes", record.minutes));
+      }
+      if (Number.isFinite(record.advice)) {
+        parts.push(tr("recordsAdvice", record.advice));
+      }
+      const label = document.createElement("span");
+      label.className = "records-label";
+      label.textContent = parts.filter(Boolean).join(" · ");
+      const button = document.createElement("button");
+      button.className = "btn btn-ghost";
+      button.type = "button";
+      button.dataset.record = record.id;
+      button.textContent = tr("recordsSave");
+      item.append(label, button);
+      return item;
+    })
+  );
+  els.recordsList.hidden = records.length === 0;
+}
 
 function renderStatus(status) {
   if (!status) {
@@ -2520,6 +2631,11 @@ function renderOverlaySettings(status) {
   els.moveLabel.textContent = moving ? tr("moveDone") : tr("moveStart");
   els.moveHint.textContent = moving ? tr("moveActiveHint") : tr("moveHint");
 
+  els.matchRecords.checked = Boolean(status.matchRecords);
+  if (!status.matchRecords) {
+    els.recordsHint.textContent = tr("recordsOff");
+    els.recordsList.hidden = true;
+  }
   els.shareStats.checked = Boolean(status.shareStats);
   const statsDate = status.statsSentAt
     ? new Date(status.statsSentAt).toLocaleDateString(locale === "ru" ? "ru-RU" : "en-GB", { day: "numeric", month: "long" })

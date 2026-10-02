@@ -127,6 +127,8 @@ const settings = createSettingsStore(path.join(USER_DATA_DIR, "settings.json"), 
   // Position for map timers and role tips (auto = from the lane), and the timers switch.
   adviceRole: "auto",
   mapHints: true,
+  // A week of match recordings on this computer (backend match_records.py), off by default.
+  matchRecords: false,
   // Rich Presence on the player's Discord profile («Матч на Juggernaut · с тренером Wardly»).
   discordPresence: true,
   // The week in Discord: the player's channel webhook link (discord-weekly.js),
@@ -531,6 +533,7 @@ function publicStatus() {
     adviceFrequency: adviceFrequency(),
     adviceRole: adviceRole(),
     mapHints: mapHintsEnabled(),
+    matchRecords: Boolean(settings.get("matchRecords")),
     discordPresence: settings.get("discordPresence") !== false,
     discordState: discord.getState(),
     discordWeekly: discordWeeklyState(),
@@ -1343,6 +1346,7 @@ async function launchBackend() {
     DOTA_AI_ADVICE_FREQUENCY: adviceFrequency(),
     DOTA_AI_ROLE: adviceRole(),
     DOTA_AI_MAP_HINTS: mapHintsEnabled() ? "true" : "false",
+    DOTA_AI_MATCH_RECORDS: settings.get("matchRecords") ? "true" : "false",
     PYTHONUNBUFFERED: "1",
     DOTA_AI_BACKEND_HOST: BACKEND_HOST,
     DOTA_AI_BACKEND_PORT: String(port),
@@ -2127,6 +2131,57 @@ async function collectProblemReport() {
   });
 }
 
+// «Хранить записи матчей»: "list" → the backend's recordings of the week;
+// {save: id} → that recording copied to Downloads (the id is checked by the
+// backend, which only serves files of its own list).
+async function matchRecordsAction(request) {
+  if (request === "list") {
+    try {
+      const body = await requestBackendJson("/match-records");
+      return { ok: true, records: Array.isArray(body.records) ? body.records : [] };
+    } catch (error) {
+      return { ok: false, error: error.message };
+    }
+  }
+  const id = request && typeof request.save === "string" ? request.save : "";
+  if (!/^[0-9A-Za-z_-]{1,64}$/.test(id)) {
+    return { ok: false, error: "bad id" };
+  }
+  const filePath = path.join(reportFolder(), `Wardly-match-${id}.jsonl.gz`);
+  try {
+    await downloadBackendFile(`/match-records/${encodeURIComponent(id)}`, filePath);
+  } catch (error) {
+    appendLog("launcher", `Could not save the match recording: ${error.message}`, { force: true });
+    return { ok: false, error: error.message };
+  }
+  appendLog("launcher", `Match recording saved: ${filePath}`, { force: true });
+  shell.showItemInFolder(filePath);
+  return { ok: true, path: filePath };
+}
+
+function downloadBackendFile(endpointPath, filePath, timeoutMs = 60000) {
+  return new Promise((resolve, reject) => {
+    if (processStatus.backend !== "running") {
+      reject(new Error("Backend is not running."));
+      return;
+    }
+    const request = http.get(new URL(endpointPath, backendUrl()), { timeout: timeoutMs }, (response) => {
+      if (response.statusCode !== 200) {
+        response.resume();
+        reject(new Error(`Backend returned HTTP ${response.statusCode}`));
+        return;
+      }
+      const out = fs.createWriteStream(filePath);
+      response.pipe(out);
+      out.on("finish", () => out.close(() => resolve(filePath)));
+      out.on("error", reject);
+      response.on("error", reject);
+    });
+    request.on("timeout", () => request.destroy(new Error("timeout")));
+    request.on("error", reject);
+  });
+}
+
 async function saveProblemReport(text) {
   const body = typeof text === "string" && text ? text : await collectProblemReport();
   const filePath = path.join(reportFolder(), reportFileName());
@@ -2655,6 +2710,11 @@ async function setAdvicePreferences(patch = {}) {
     settings.set("mapHints", patch.mapHints);
     body.map_hints = patch.mapHints;
   }
+  if (typeof patch.matchRecords === "boolean") {
+    settings.set("matchRecords", patch.matchRecords);
+    body.match_records = patch.matchRecords;
+    appendLog("launcher", `Match recordings ${patch.matchRecords ? "on" : "off"}.`, { force: true });
+  }
   if (Object.keys(body).length) {
     try {
       await requestBackendJson("/settings/advice", "POST", body);
@@ -3080,6 +3140,7 @@ function registerIpc() {
   ipcMain.handle("launcher:set-discord-presence", (_event, enabled) => setDiscordPresence(Boolean(enabled)));
   ipcMain.handle("launcher:set-share-stats", (_event, enabled) => setShareStats(Boolean(enabled)));
   ipcMain.handle("launcher:stats-preview", () => statsPreview());
+  ipcMain.handle("launcher:match-records", (_event, request) => matchRecordsAction(request));
   ipcMain.handle("launcher:delete-server-data", () => deleteServerData());
   ipcMain.handle("launcher:discord-weekly", (_event, request) => discordWeeklyAction(request));
   ipcMain.handle("launcher:set-advice-preferences", (_event, patch) =>

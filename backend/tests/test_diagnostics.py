@@ -159,3 +159,19 @@ def test_a_slow_opendota_answer_is_asked_once_more():
     assert always.calls == 2
     assert caught.value.code == "offline" and "in time" in str(caught.value)
     assert key not in str(caught.value)
+
+
+def test_the_report_says_which_match_was_last_recorded(client):
+    """Report R-QXW4K6 came the day after a match the app had recorded: the
+    report must say so, in counts only."""
+    from match_fixtures import gsi_match_stream
+
+    assert client.get("/diagnostics").json()["player"]["last_recorded_match"] is None
+    for payload in gsi_match_stream(minutes=12, death_minutes=(7,)):
+        client.post("/gsi", json=payload)
+    PLAYER_SERVICE.jobs.run_pending(until=float("inf"))
+    last = client.get("/diagnostics").json()["player"]["last_recorded_match"]
+    assert last["match_id"] == MATCH_ID and last["hero"] == "Juggernaut"
+    assert last["samples"] > 10 and last["deaths"] == 1
+    assert set(last) >= {"advice", "analysed", "score", "deaths_with_last_seconds"}
+    assert str(ME) not in json.dumps(last)

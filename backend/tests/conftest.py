@@ -24,6 +24,7 @@ from app.gsi_census import GSI_CENSUS  # noqa: E402
 from app.live_role import set_role_setting  # noqa: E402
 from app.main import _clear_demo_overlay_response, _map_hints, app  # noqa: E402
 from app.match_memory import MATCH_MEMORY  # noqa: E402
+from app.match_records import MATCH_RECORDS  # noqa: E402
 from app.player_api import PLAYER_SERVICE  # noqa: E402
 
 
@@ -38,6 +39,7 @@ def reset_runtime_state(tmp_path):
     _map_hints["enabled"] = True
     COACH_SESSION_HISTORY.reset()
     GSI_CENSUS.reset()
+    MATCH_RECORDS.set_enabled(False)
     _clear_demo_overlay_response()
     gsi_state._latest_raw_payload = None
     gsi_state._latest_normalized_state = None
@@ -51,6 +53,7 @@ def reset_runtime_state(tmp_path):
     _map_hints["enabled"] = True
     COACH_SESSION_HISTORY.reset()
     GSI_CENSUS.reset()
+    MATCH_RECORDS.set_enabled(False)
     _clear_demo_overlay_response()
     gsi_state._latest_raw_payload = None
     gsi_state._latest_normalized_state = None

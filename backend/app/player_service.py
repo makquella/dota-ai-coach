@@ -71,6 +71,7 @@ from app.home_summary import home_summary
 from app.map_analysis import map_side, zone
 from app.map_hints import SAVE_ITEMS
 from app.match_facts import facts_from_opendota, facts_from_timeline, merge_facts
+from app.match_records import MATCH_RECORDS
 from app.match_tracker import MatchTracker, account_from_gsi
 from app.next_item import has_components, next_build_item, save_build_item
 from app.opendota import (
@@ -338,6 +339,8 @@ class PlayerService:
         self.tracker = MatchTracker(
             self.data_dir / "live_match.json", on_finished=self._on_match_finished
         )
+        # A week of match recordings lives next to the store (off unless switched on).
+        MATCH_RECORDS.configure(self.data_dir)
         self._detected: dict[str, Any] | None = None
         # Friend fetches that failed (code), by friend account id; cleared on retry.
         self._friend_errors: dict[int, str] = {}
@@ -707,6 +710,7 @@ class PlayerService:
             if status["account_id"]
             else {},
             "live_match": status["live_match"],
+            "last_recorded_match": self._last_recorded(status["account_id"]),
             "jobs": self.jobs.pending(),
             "ai_jobs": self.ai_jobs.pending(),
             "coach_jobs": coach_jobs,
@@ -715,6 +719,31 @@ class PlayerService:
                 key: value for key, value in self.opendota_status().items() if key != "key_hint"
             },
             "analysis_version": ANALYSIS_VERSION,
+        }
+
+    def _last_recorded(self, account_id: Any) -> dict[str, Any] | None:
+        """The newest match the app recorded from live GSI, in counts only: a
+        problem report then says whether the last game was recorded at all."""
+        if not account_id:
+            return None
+        rows = self.store.list_matches(int(account_id), limit=10)
+        row = next((r for r in rows if r.get("has_timeline")), None)
+        if row is None:
+            return None
+        match = self.store.get_match(int(account_id), int(row["match_id"])) or {}
+        timeline = match.get("timeline") if isinstance(match.get("timeline"), dict) else {}
+        deaths = [d for d in timeline.get("deaths") or [] if isinstance(d, dict)]
+        return {
+            "match_id": row["match_id"],
+            "hero": row.get("hero"),
+            "start_time": row.get("start_time"),
+            "duration": row.get("duration"),
+            "samples": len(timeline.get("samples") or []),
+            "deaths": len(deaths),
+            "deaths_with_last_seconds": sum(1 for d in deaths if d.get("last")),
+            "advice": len(timeline.get("advice") or []),
+            "analysed": bool(row.get("has_analysis")),
+            "score": row.get("score"),
         }
 
     # --- account --------------------------------------------------------------
