@@ -359,6 +359,23 @@
       colWinrate: "Win rate",
       analyzed: (a, n) => `${a} of ${n} matches reviewed in depth`,
       buildTitle: "Build",
+      lanesTitle: "Your lanes",
+      lanesLine: (won, even, lost, games) => `Of your last ${games} lanes: ${won} won, ${even} even, ${lost} lost.`,
+      lanesGold: (diff) => `On average ${diff} gold against your lane opponent by minute 10.`,
+      lanesHard: (list) => `Lanes lost more than once against: ${list}.`,
+      lanesDot: (hero, enemy, result, diff) => `${hero} against ${enemy}: ${result}, ${diff} gold by minute 10`,
+      laneTitle: "Lane",
+      laneVs: "against",
+      laneResult: { won: "Lane won", even: "Even lane", lost: "Lane lost" },
+      laneMinute: (m) => `${m}:00`,
+      laneColMinute: "Minute",
+      laneColLh: "Last hits",
+      laneColDn: "Denies",
+      laneColGold: "Gold",
+      laneColXp: "XP",
+      laneTurn: (m) => `The gap opened at minute ${m}.`,
+      laneOthers: (heroes, diff) => `Also in the lane: ${heroes}; the whole lane's gold by minute 10: ${diff}.`,
+      laneNote: "You : them; gold and XP as the difference. From the parsed replay.",
       skillsTitle: "Skill order",
       skillsYours: "Yours first:",
       skillsPro: "How pros max their skills on this hero:",
@@ -941,6 +958,23 @@
       colWinrate: "Винрейт",
       analyzed: (a, n) => `Подробно разобрано ${a} из ${n} матчей`,
       buildTitle: "Сборка",
+      lanesTitle: "Ваши линии",
+      lanesLine: (won, even, lost, games) => `Из последних ${games} линий: выиграно ${won}, на равных ${even}, проиграно ${lost}.`,
+      lanesGold: (diff) => `В среднем ${diff} золота против соперника по линии к 10-й минуте.`,
+      lanesHard: (list) => `Линии, проигранные не раз, против: ${list}.`,
+      lanesDot: (hero, enemy, result, diff) => `${hero} против ${enemy}: ${result.toLowerCase()}, ${diff} золота к 10-й минуте`,
+      laneTitle: "Линия",
+      laneVs: "против",
+      laneResult: { won: "Линия выиграна", even: "Линия на равных", lost: "Линия проиграна" },
+      laneMinute: (m) => `${m}:00`,
+      laneColMinute: "Минута",
+      laneColLh: "Добивания",
+      laneColDn: "Денаи",
+      laneColGold: "Золото",
+      laneColXp: "Опыт",
+      laneTurn: (m) => `Разрыв появился с ${m}-й минуты.`,
+      laneOthers: (heroes, diff) => `Ещё на линии: ${heroes}; золото всей линии к 10-й минуте: ${diff}.`,
+      laneNote: "Вы : соперник; золото и опыт — разница. По разобранной записи матча.",
       skillsTitle: "Прокачка",
       skillsYours: "Ваше первое:",
       skillsPro: "Как максят умения про-игроки на этом герое:",
@@ -2011,7 +2045,7 @@
         rest.length ? findingsCard(t("improveTitle"), "target", rest, "", true, detail.repeats, 1) : null,
         askCard(detail)
       ]));
-      add(main, zone(t("zoneStory"), t("zoneStoryHint"), [chartCard(analysis), deathsCard(analysis), adviceLogCard(analysis)]));
+      add(main, zone(t("zoneStory"), t("zoneStoryHint"), [chartCard(analysis), laneCard(analysis), deathsCard(analysis), adviceLogCard(analysis)]));
       add(side, zone(t("zoneScores"), t("zoneScoresHint"), [
         sectionsCard(analysis),
         findingsCard(t("strengthsTitle"), "sparkles", analysis.strengths, t("nothingStrong"), false),
@@ -2495,6 +2529,69 @@
   }
 
   // The first skill maxed against the pro order on the hero (backend skill_build.py).
+  // «Линия»: the lane minute by minute against its enemy core (lane_duel.py,
+  // parsed replays only).
+  function laneCard(analysis) {
+    const lane = analysis.lane;
+    if (!lane || !(lane.points || []).length) {
+      return null;
+    }
+    const signed = (value) => (value === null || value === undefined ? "—" : value > 0 ? `+${value}` : `${value}`);
+    const tone = (value) => (value === null || value === undefined || value === 0 ? "" : value > 0 ? "good" : "bad");
+    const pair = (mine, theirs) => (mine === null || mine === undefined ? "—" : `${mine} : ${theirs ?? "—"}`);
+    const rows = lane.points.map((point) =>
+      h(
+        "tr",
+        {},
+        h("td", { class: "num", text: t("laneMinute", point.minute) }),
+        h("td", { class: "num-col num", text: pair(point.lh, point.enemy_lh) }),
+        h("td", { class: "num-col num", text: pair(point.dn, point.enemy_dn) }),
+        h("td", { class: "num-col num", "data-state": tone(point.gold_diff), text: signed(point.gold_diff) }),
+        h("td", { class: "num-col num", "data-state": tone(point.xp_diff), text: signed(point.xp_diff) })
+      )
+    );
+    const others = (lane.enemies || []).filter((hero) => hero !== lane.enemy);
+    return card(
+      t("laneTitle"),
+      "swords",
+      h(
+        "div",
+        { class: "lane-duel" },
+        h(
+          "div",
+          { class: "lane-head" },
+          heroLabel(lane.hero_id, lane.hero),
+          h("span", { class: "muted", text: t("laneVs") }),
+          heroLabel(lane.enemy_id, lane.enemy),
+          h("span", { class: `lane-result lane-${lane.result}`, text: t(`laneResult.${lane.result}`) })
+        ),
+        h(
+          "div",
+          { class: "table-wrap table-wrap-tight" },
+          h(
+            "table",
+            { class: "table lane-table" },
+            h(
+              "thead",
+              {},
+              h(
+                "tr",
+                {},
+                h("th", { text: t("laneColMinute") }),
+                h("th", { class: "num-col", text: t("laneColLh") }),
+                h("th", { class: "num-col", text: t("laneColDn") }),
+                h("th", { class: "num-col", text: t("laneColGold") }),
+                h("th", { class: "num-col", text: t("laneColXp") })
+              )
+            ),
+            h("tbody", {}, rows)
+          )
+        ),
+        h("p", { class: "muted small", text: [lane.turn ? t("laneTurn", lane.turn) : null, others.length ? t("laneOthers", others.join(", "), signed(lane.total_diff)) : null, t("laneNote")].filter(Boolean).join(" ") })
+      )
+    );
+  }
+
   function skillsCard(analysis) {
     const skills = analysis.skills;
     if (!skills || !(skills.order || []).length) {
@@ -2861,6 +2958,35 @@
   }
 
   // Heroes to play more and to park (career_analysis.hero_pool), all heroes only.
+  // «Ваши линии»: the judged lanes of the last 20 reviewed matches (lane_duel.career_lanes).
+  function lanesCard(lanes) {
+    if (!lanes || !lanes.games) {
+      return null;
+    }
+    const signed = (value) => (value === null || value === undefined ? "—" : value > 0 ? `+${value}` : `${value}`);
+    const dots = (lanes.games_list || []).map((game) =>
+      h("button", {
+        type: "button",
+        class: `lane-dot lane-${game.result}`,
+        title: t("lanesDot", game.hero || "—", game.enemy || "—", t(`laneResult.${game.result}`), signed(game.gold_diff)),
+        "aria-label": t("lanesDot", game.hero || "—", game.enemy || "—", t(`laneResult.${game.result}`), signed(game.gold_diff)),
+        onclick: () => (game.match_id ? openMatch(game.match_id) : null)
+      })
+    );
+    return card(
+      t("lanesTitle"),
+      "swords",
+      h(
+        "div",
+        { class: "lanes" },
+        h("p", { text: t("lanesLine", lanes.won, lanes.even, lanes.lost, lanes.games) }),
+        h("div", { class: "lane-dots" }, dots),
+        lanes.gold_diff === null ? null : h("p", { class: "muted small", text: t("lanesGold", signed(lanes.gold_diff)) }),
+        (lanes.hard || []).length ? h("p", { class: "muted small", text: t("lanesHard", lanes.hard.map((row) => `${row.hero} (${row.lost})`).join(", ")) }) : null
+      )
+    );
+  }
+
   function heroPoolCard(pool) {
     if (!pool || !(pool.play_more?.length || pool.park?.length)) {
       return null;
@@ -4736,6 +4862,7 @@
           zone(t("zoneGames"), t("zoneGamesHint"), [
             scoreCard,
             deathMapCard(career.death_map),
+            lanesCard(career.lanes),
             heroesCard,
             state.careerHero === null ? heroPoolCard(career.hero_pool) : null,
             strengthsCard

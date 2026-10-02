@@ -36,6 +36,8 @@ REQUIRES = {
     "burst_deaths": "last_moments",
     # Needs the player's skill order and the pro one.
     "skill_first_max": "skills",
+    # Needs a parsed replay with the lanes.
+    "lane_lost": "lane",
 }
 MAX_RESULTS = 10
 # Findings whose title names one item or hero ("Late Battle Fury"). The check works

@@ -168,6 +168,21 @@ def match_facts(detail: dict[str, Any]) -> dict[str, Any] | None:
     build = analysis.get("build")
     if build:
         facts["build"] = _build_facts(build)
+    lane = analysis.get("lane")
+    if lane and lane.get("points"):
+        # The lane against its enemy core by minute 10 (lane_duel.py).
+        last = lane["points"][-1]
+        facts["lane"] = {
+            "enemy_core": lane.get("enemy"),
+            "result": lane.get("result"),
+            "last_hits_at_10": last.get("lh"),
+            "enemy_last_hits_at_10": last.get("enemy_lh"),
+            "denies_at_10": last.get("dn"),
+            "enemy_denies_at_10": last.get("enemy_dn"),
+            "gold_difference_at_10": lane.get("gold_diff"),
+            "xp_difference_at_10": lane.get("xp_diff"),
+            "gap_opened_at_minute": lane.get("turn"),
+        }
     draft = analysis.get("draft")
     if draft:
         facts["draft"] = {
