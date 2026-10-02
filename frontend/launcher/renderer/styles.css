@@ -4241,14 +4241,32 @@ tr.row-link[data-result="loss"] > td:first-child {
   flex-wrap: wrap;
 }
 
+/* The avatar sits in a ring (::before) that the frame cosmetics restyle. */
+.pf-avatar-wrap {
+  --frame: var(--accent);
+  position: relative;
+  width: 96px;
+  height: 96px;
+  flex: none;
+  display: grid;
+  place-items: center;
+}
+
+.pf-avatar-wrap::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: var(--frame);
+}
+
 .pf-avatar {
   position: relative;
-  width: 88px;
-  height: 88px;
-  flex: none;
+  width: 86px;
+  height: 86px;
   border-radius: 50%;
   background: var(--surface-2);
-  box-shadow: 0 0 0 4px var(--surface-1), 0 0 0 6px var(--accent);
+  box-shadow: 0 0 0 3px var(--surface-1);
   display: grid;
   place-items: center;
   overflow: hidden;
@@ -4523,4 +4541,210 @@ tr.row-link[data-result="loss"] > td:first-child {
 
 .pf-badge-reward {
   color: var(--accent);
+}
+
+
+/* --- Profile looks (cosmetics.py ids → cos-<id>) ----------------------------
+   Bought with sparks. The rest of the app stays calm; only the profile card
+   and the shop previews wear these. Motion stops with prefers-reduced-motion. */
+@keyframes cos-spin {
+  to { transform: rotate(1turn); }
+}
+
+@keyframes cos-shift {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+@keyframes cos-glow {
+  0%, 100% { opacity: 0.55; }
+  50% { opacity: 1; }
+}
+
+.cos-frame_bronze { --frame: #b8753f; }
+.cos-frame_silver { --frame: linear-gradient(135deg, #e7eaf0, #8f96a3 60%, #dfe3ea); }
+.cos-frame_gold { --frame: linear-gradient(135deg, #fff1b8, #e3b341 45%, #9a6b12 70%, #f6d77a); }
+.cos-frame_gold::before { box-shadow: 0 0 14px rgba(227, 179, 65, 0.45); }
+.cos-frame_ice { --frame: linear-gradient(160deg, #e6fbff, #7fd3ff 40%, #3a7bd5 75%, #c9f3ff); }
+.cos-frame_ice::before { box-shadow: 0 0 18px rgba(127, 211, 255, 0.5); }
+.cos-frame_fire { --frame: conic-gradient(#ffcf5c, #ff7a1a, #e8361e, #ffb03a, #ff5a1f, #ffcf5c); }
+.cos-frame_fire::before { animation: cos-spin 3s linear infinite; box-shadow: 0 0 22px rgba(255, 106, 26, 0.55); }
+.cos-frame_arcana { --frame: conic-gradient(#ff5f6d, #ffc371, #f9f871, #3ddc97, #3ab0ff, #8a63ff, #ff5f6d); }
+.cos-frame_arcana::before { animation: cos-spin 5s linear infinite; box-shadow: 0 0 26px rgba(138, 99, 255, 0.55); }
+.cos-frame_champion { --frame: conic-gradient(from 45deg, #e3b341, #f05560, #e3b341, #f05560, #e3b341); }
+.cos-frame_champion::before { animation: cos-spin 8s linear infinite; }
+
+.cos-banner_dusk { background: linear-gradient(115deg, #1f1735, #5b2a5c 45%, #c45a5a 80%, #e8945e); }
+.cos-banner_radiant {
+  background:
+    radial-gradient(circle at 80% 20%, rgba(255, 236, 160, 0.55), transparent 45%),
+    linear-gradient(120deg, #123b2a, #2f7d4f 55%, #a8c95a);
+}
+.cos-banner_dire {
+  background:
+    radial-gradient(circle at 20% 80%, rgba(255, 80, 60, 0.45), transparent 50%),
+    linear-gradient(120deg, #120607, #4a0e12 55%, #8f1d1d);
+}
+.cos-banner_aurora {
+  background: linear-gradient(120deg, #06121f, #0f5e5c, #3ddc97, #3a6bd6, #6b3fd6, #06121f);
+  background-size: 300% 300%;
+  animation: cos-shift 14s ease-in-out infinite;
+}
+.cos-banner_ember {
+  position: relative;
+  background:
+    radial-gradient(circle at 15% 85%, rgba(255, 122, 26, 0.6), transparent 30%),
+    radial-gradient(circle at 55% 100%, rgba(232, 54, 30, 0.55), transparent 35%),
+    radial-gradient(circle at 90% 70%, rgba(255, 176, 58, 0.45), transparent 30%),
+    #160806;
+}
+.cos-banner_ember::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 40% 60%, rgba(255, 200, 120, 0.35), transparent 40%);
+  animation: cos-glow 3.5s ease-in-out infinite;
+}
+.cos-banner_climb {
+  background:
+    repeating-linear-gradient(60deg, rgba(240, 85, 96, 0.22) 0 14px, transparent 14px 28px),
+    linear-gradient(0deg, #1a0d10, #3a1720 60%, #7a2a36);
+}
+
+.cos-name_gold { color: #f2c94c; }
+.cos-name_ice { color: #8fd8ff; }
+.cos-name_toxic { color: #8be36b; }
+.cos-name_prism {
+  background: linear-gradient(90deg, #ff5f6d, #ffc371, #3ddc97, #3ab0ff, #8a63ff, #ff5f6d);
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: cos-shift 6s linear infinite;
+}
+
+.pf-title {
+  font-size: var(--fs-12);
+  font-weight: var(--fw-semibold);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-2);
+}
+.cos-title_immortal,
+.cos-title_coached { color: var(--ok); }
+.cos-title_legend {
+  background: linear-gradient(90deg, #f2c94c, #f05560, #f2c94c);
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: cos-shift 5s linear infinite;
+}
+
+/* The shop grid. */
+.pf-shop {
+  display: grid;
+  gap: var(--sp-5);
+}
+
+.pf-shop-kind {
+  margin-bottom: var(--sp-2);
+  font-size: var(--fs-14);
+  font-weight: var(--fw-semibold);
+}
+
+.pf-shop-items {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: var(--sp-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.pf-shop-item {
+  display: grid;
+  gap: var(--sp-1);
+  align-content: start;
+  padding: var(--sp-3);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  background: var(--surface-1);
+}
+
+.pf-shop-item.worn {
+  border-color: var(--accent);
+}
+
+.pf-shop-item.locked .pf-preview {
+  opacity: 0.55;
+}
+
+.pf-shop-name {
+  font-weight: var(--fw-medium);
+}
+
+.pf-shop-condition {
+  font-size: var(--fs-12);
+}
+
+.pf-preview {
+  position: relative;
+  height: 64px;
+  display: grid;
+  place-items: center;
+  margin-bottom: var(--sp-1);
+  border-radius: var(--r-md);
+  overflow: hidden;
+}
+
+/* A banner preview is the banner itself (its cos- class paints it). */
+.pf-preview:not(.pf-banner) {
+  background: var(--surface-2);
+}
+
+.pf-banner.mini {
+  height: 64px;
+  border-bottom: 0;
+}
+
+.pf-avatar-wrap.mini {
+  width: 48px;
+  height: 48px;
+}
+
+.pf-avatar-wrap.mini .pf-avatar {
+  width: 42px;
+  height: 42px;
+  box-shadow: 0 0 0 2px var(--surface-2);
+}
+
+.pf-name.mini {
+  font-size: var(--fs-16);
+}
+
+.pf-shop-message:empty {
+  display: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [class*="cos-"],
+  [class*="cos-"]::before,
+  [class*="cos-"]::after {
+    animation: none !important;
+  }
+}
+
+@media print {
+  [class*="cos-"],
+  [class*="cos-"]::before,
+  [class*="cos-"]::after {
+    animation: none !important;
+  }
+}
+
+.pf-shop-item .btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
 }

@@ -304,9 +304,10 @@ const I18N = {
     tourHint: "A short tour of the app, one minute",
     tourStart: "Show",
     whatsNew: {
-      "0.33.0": [
+      "0.34.0": [
         "New tab «Profile»: your rating graph like on FACEIT — enter your MMR once and every ranked game moves it.",
-        "Levels, achievements and sparks for playing with Wardly: the sparks will buy profile looks soon."
+        "Levels, achievements and sparks for playing with Wardly.",
+        "Spend sparks in the profile shop: avatar frames, banners, name colours and titles; the rare ones need a level or an achievement."
       ],
       "0.32.0": [
         "New in «More settings»: keep match recordings for a week. Save any match as a file and send it to the developer, the next day too.",
@@ -936,9 +937,10 @@ const I18N = {
     tourHint: "Короткая экскурсия по приложению, на минуту",
     tourStart: "Показать",
     whatsNew: {
-      "0.33.0": [
+      "0.34.0": [
         "Новая вкладка «Профиль»: график рейтинга как на FACEIT — введите свой MMR один раз, и каждая рейтинговая игра будет его двигать.",
-        "Уровни, награды и искры за игру с Wardly: скоро на искры можно будет купить оформление профиля."
+        "Уровни, награды и искры за игру с Wardly.",
+        "Тратьте искры в магазине профиля: рамки аватара, баннеры, цвет ника и титулы; редкие открываются с уровнем или за награду."
       ],
       "0.32.0": [
         "Новое в «Ещё настройках»: записи матчей хранятся неделю. Любой матч можно сохранить файлом и отправить разработчику — хоть на следующий день.",

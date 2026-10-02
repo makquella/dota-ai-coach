@@ -92,7 +92,7 @@ def test_achievements_count_matches_with_the_app_only():
     rows = [_row(i, win=i % 4 != 3, score=75 if i < 3 else None) for i in range(12)]
     rows.append(_row(20, app=False))  # fetched from OpenDota only
     profile = build_profile(
-        list(reversed(rows)), player={"rank_tier": 54}, mmr_raw=None, spent=0, lang="ru", now=T0
+        list(reversed(rows)), player={"rank_tier": 54}, mmr_raw=None, lang="ru", now=T0
     )
     stats = profile["stats"]
     assert stats["app_games"] == 12 and stats["all_games"] == 13
@@ -118,7 +118,9 @@ def test_achievements_count_matches_with_the_app_only():
 
 def test_spent_sparks_come_off_the_balance():
     rows = [_row(i) for i in range(3)]
-    profile = build_profile(rows, player=None, mmr_raw=None, spent=10_000, lang="en", now=T0)
+    owned = '{"owned": ["frame_arcana", "title_legend"], "equipped": {}}'
+    profile = build_profile(rows, player=None, mmr_raw=None, cosmetics_raw=owned, lang="en", now=T0)
+    assert profile["sparks"]["spent"] == 5500
     assert profile["sparks"]["balance"] == 0 and profile["rating"] is None
 
 

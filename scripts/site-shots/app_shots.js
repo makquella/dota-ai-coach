@@ -138,6 +138,7 @@ const SHOTS = {
   "review-ai": [{ click: "#tab-matches", wait: 1500 }, { click: "tr.row-link", wait: 2500 }, { eval: scrollTo(".coach-card") }],
   progress: [{ click: "#tab-progress", wait: 2500 }],
   profile: [{ click: "#tab-profile", wait: 2500 }],
+  "profile-shop": [{ click: "#tab-profile", wait: 2500 }, { eval: scrollTo(".pf-shop") }],
   "profile-badges": [{ click: "#tab-profile", wait: 2500 }, { eval: scrollTo(".pf-badges") }],
   "progress-ai": [{ click: "#tab-progress", wait: 2500 }, { eval: scrollTo(".coach-card") }],
   "progress-friend": [{ click: "#tab-progress", wait: 3000 }, { eval: scrollTo(".friend-card") }],

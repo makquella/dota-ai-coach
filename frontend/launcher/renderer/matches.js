@@ -43,6 +43,16 @@
       pfReward: (n) => `+${n} sparks`,
       pfProgress: (value, target) => `${value} / ${target}`,
       pfEmpty: "Play a match with Wardly running: it starts your level, achievements and sparks.",
+      pfShop: "Profile looks",
+      pfShopHint: "Spend sparks on how your profile looks. Rare ones need a level or an achievement.",
+      pfKinds: { frame: "Avatar frames", banner: "Banners", name: "Name colour", title: "Titles" },
+      pfBuy: (price) => `Buy · ${price}`,
+      pfWear: "Wear",
+      pfWorn: "Worn",
+      pfFree: "Free",
+      pfNeedLevel: (n) => `From level ${n}`,
+      pfNeedAchievement: (name, tier) => `For «${name}», tier ${tier}`,
+      pfShopErrors: { not_enough: "Not enough sparks yet.", locked_level: "Your level is too low for it.", locked_achievement: "It comes with an achievement.", owned: "You already have it." },
       linkTitle: "Link your Steam account",
       linkHint:
         "The coach reads your account from Dota automatically when you play. You can also paste your Friend ID (Dota profile), a steamcommunity.com/profiles/… link or an OpenDota/Dotabuff link.",
@@ -596,6 +606,16 @@
       pfReward: (n) => `+${n} искр`,
       pfProgress: (value, target) => `${value} / ${target}`,
       pfEmpty: "Сыграйте матч с запущенным Wardly — с него начнутся уровень, награды и искры.",
+      pfShop: "Оформление",
+      pfShopHint: "Тратьте искры на вид профиля. Редкие вещи открываются с уровнем или за награду.",
+      pfKinds: { frame: "Рамки аватара", banner: "Баннеры", name: "Цвет ника", title: "Титулы" },
+      pfBuy: (price) => `Купить · ${price}`,
+      pfWear: "Надеть",
+      pfWorn: "Надето",
+      pfFree: "Бесплатно",
+      pfNeedLevel: (n) => `С ${n}-го уровня`,
+      pfNeedAchievement: (name, tier) => `За награду «${name}», ступень ${tier}`,
+      pfShopErrors: { not_enough: "Пока не хватает искр.", locked_level: "Нужен уровень выше.", locked_achievement: "Даётся за награду.", owned: "Уже есть." },
       linkTitle: "Привяжите аккаунт Steam",
       linkHint:
         "Тренер сам узнаёт ваш аккаунт из Доты, когда вы играете. Можно и вручную: Friend ID из профиля в Доте, ссылка steamcommunity.com/profiles/… или ссылка на OpenDota/Dotabuff.",
@@ -3966,7 +3986,8 @@
       pageHead(t("pfTitle"), t("pfSub")),
       profileHeader(profile),
       twoColumns([ratingCard(profile.rating)], [statsCard(profile)]),
-      zone(t("pfAchievements"), t("pfAchievementsHint"), [achievementsCard(profile.achievements || [])])
+      zone(t("pfAchievements"), t("pfAchievementsHint"), [achievementsCard(profile.achievements || [])]),
+      zone(t("pfShop"), t("pfShopHint"), [shopCard(profile)])
     );
     hydrate(root);
     root.querySelectorAll("[data-chart='rating']").forEach((host) => drawRating(host, profile.rating));
@@ -3977,6 +3998,8 @@
     const level = profile.level || { level: 1, into: 0, need: 300 };
     const name = player.name || "Wardly";
     const initials = name.trim().slice(0, 2).toUpperCase();
+    const worn = profile.equipped || {};
+    const shopItem = (id) => (profile.shop || []).find((item) => item.id === id);
     const avatar = h("div", { class: "pf-avatar" }, h("span", { class: "pf-initials", text: initials }));
     if (player.avatar_url && /^https:\/\//.test(player.avatar_url)) {
       const img = h("img", { src: player.avatar_url, alt: "", referrerpolicy: "no-referrer" });
@@ -3984,18 +4007,20 @@
       avatar.append(img);
     }
     const percent = Math.max(0, Math.min(100, Math.round((100 * level.into) / Math.max(1, level.need))));
+    const title = worn.title && worn.title !== "title_none" ? shopItem(worn.title)?.name : null;
     return h(
       "section",
       { class: "card pf-header" },
-      h("div", { class: "pf-banner", "aria-hidden": "true" }),
+      h("div", { class: `pf-banner cos-${worn.banner || "banner_plain"}`, "aria-hidden": "true" }),
       h(
         "div",
         { class: "pf-identity" },
-        avatar,
+        h("div", { class: `pf-avatar-wrap cos-${worn.frame || "frame_plain"}` }, avatar),
         h(
           "div",
           { class: "pf-name-block" },
-          h("p", { class: "pf-name", text: name }),
+          h("p", { class: `pf-name cos-${worn.name || "name_plain"}`, text: name }),
+          title ? h("p", { class: `pf-title cos-${worn.title}`, text: title }) : null,
           h(
             "p",
             { class: "pf-meta" },
@@ -4102,6 +4127,79 @@
       return { ...point, title: date, detail: [what, hero].filter(Boolean).join(" · ") };
     });
     window.LauncherCharts.rating(host, { points, ariaLabel: t("pfRating") });
+  }
+
+  // The shop: every look by kind with a preview, its price or condition and
+  // one button (buy, wear, or worn).
+  function shopCard(profile) {
+    const badges = Object.fromEntries((profile.achievements || []).map((badge) => [badge.id, badge.title]));
+    const message = h("p", { class: "pf-shop-message muted", role: "status", "aria-live": "polite" });
+    const act = async (op, id) => {
+      const result = await call(op, { id });
+      if (result.ok) {
+        state.profile = result.data.profile;
+        renderProfile();
+      } else {
+        message.textContent = tOptional(`pfShopErrors.${result.code}`) || "";
+      }
+    };
+    const groups = ["frame", "banner", "name", "title"].map((kind) => {
+      const items = (profile.shop || []).filter((item) => item.kind === kind);
+      return h(
+        "section",
+        { class: "pf-shop-group" },
+        h("h3", { class: "pf-shop-kind", text: t(`pfKinds.${kind}`) }),
+        h(
+          "ul",
+          { class: "pf-shop-items" },
+          items.map((item) => {
+            let condition = null;
+            if (!item.owned && item.locked === "level") {
+              condition = t("pfNeedLevel", item.level);
+            } else if (!item.owned && item.locked === "achievement" && item.achievement) {
+              condition = t("pfNeedAchievement", badges[item.achievement.id] || item.achievement.id, item.achievement.tier);
+            }
+            let button;
+            if (item.equipped) {
+              button = h("button", { class: "btn btn-sm", type: "button", disabled: true, text: t("pfWorn") });
+            } else if (item.owned) {
+              button = h("button", { class: "btn btn-sm", type: "button", text: t("pfWear"), onclick: () => act("shopEquip", item.id) });
+            } else {
+              button = h("button", {
+                class: "btn btn-sm btn-primary",
+                type: "button",
+                disabled: !item.affordable || Boolean(item.locked),
+                text: item.price ? t("pfBuy", item.price) : t("pfFree"),
+                onclick: () => act("shopBuy", item.id)
+              });
+            }
+            return h(
+              "li",
+              { class: `pf-shop-item${item.equipped ? " worn" : ""}${item.locked && !item.owned ? " locked" : ""}` },
+              shopPreview(item, profile),
+              h("p", { class: "pf-shop-name", text: item.name }),
+              condition ? h("p", { class: "pf-shop-condition muted", text: condition }) : null,
+              button
+            );
+          })
+        )
+      );
+    });
+    return h("section", { class: "card" }, h("div", { class: "card-body pf-shop" }, groups, message));
+  }
+
+  function shopPreview(item, profile) {
+    const cls = `cos-${item.id}`;
+    if (item.kind === "frame") {
+      return h("div", { class: "pf-preview" }, h("div", { class: `pf-avatar-wrap mini ${cls}` }, h("div", { class: "pf-avatar" })));
+    }
+    if (item.kind === "banner") {
+      return h("div", { class: `pf-preview pf-banner mini ${cls}` });
+    }
+    if (item.kind === "name") {
+      return h("div", { class: "pf-preview" }, h("span", { class: `pf-name mini ${cls}`, text: profile.player?.name || "Wardly" }));
+    }
+    return h("div", { class: "pf-preview" }, h("span", { class: `pf-title ${cls}`, text: item.id === "title_none" ? "—" : item.name }));
   }
 
   function achievementsCard(list) {

@@ -15,7 +15,7 @@ rebuilds from a backup and never drifts:
   a win and for a good review score.
 - Achievements: tiered goals over the matches played with the app.
 - Sparks («Искры»): earned per recorded match, per win and per achievement tier;
-  spent in the shop (0.34, `spent` in meta `sparks_spent:<account>`).
+  spent in the shop (cosmetics.py: the prices of the owned items).
 """
 
 from __future__ import annotations
@@ -25,6 +25,7 @@ from collections import Counter
 from datetime import UTC, datetime
 from typing import Any
 
+from app import cosmetics
 from app.analysis_texts import rank_label
 
 RANKED_LOBBY = 7
@@ -359,7 +360,7 @@ def build_profile(
     *,
     player: dict[str, Any] | None,
     mmr_raw: str | None,
-    spent: int,
+    cosmetics_raw: str | None = None,
     lang: str,
     now: float,
 ) -> dict[str, Any]:
@@ -378,6 +379,11 @@ def build_profile(
     graph = rating(rows, load_anchors(mmr_raw), rank_tier, now)
     badges, tier_sparks = achievements(app_rows, graph["gain_from_lowest"] if graph else 0, lang)
     earned = len(app_rows) * SPARKS_GAME + app_wins * SPARKS_WIN + tier_sparks
+    looks = cosmetics.load(cosmetics_raw)
+    spent = cosmetics.spent(looks)
+    balance = max(0, earned - spent)
+    level = level_of(xp)
+    tiers = {badge["id"]: badge["tier"] for badge in badges}
     minutes = sum((_int(r.get("duration")) or 0) for r in app_rows) // 60
     return {
         "player": {
@@ -386,10 +392,14 @@ def build_profile(
             "rank_tier": rank_tier,
             "rank_label": rank_label(rank_tier, lang),
         },
-        "level": level_of(xp),
+        "level": level,
         "rating": graph,
         "achievements": badges,
-        "sparks": {"balance": max(0, earned - spent), "earned": earned, "spent": spent},
+        "sparks": {"balance": balance, "earned": earned, "spent": spent},
+        "equipped": cosmetics.equipped(looks, level["level"], tiers),
+        "shop": cosmetics.shop(
+            looks, balance=balance, level=level["level"], tiers=tiers, lang=lang
+        ),
         "stats": {
             "app_games": len(app_rows),
             "app_wins": app_wins,

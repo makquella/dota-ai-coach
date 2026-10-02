@@ -38,7 +38,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
-from app import rank_history
+from app import cosmetics, rank_history
 from app.analysis_texts import rank_label, render_analysis
 from app.career_analysis import NOT_RECURRING, analyze_career
 from app.coach_llm import PROVIDERS, AISettings, CoachLLM, CoachLLMError, settings_from
@@ -338,6 +338,7 @@ class PlayerService:
         self.llm = llm
         self.env_ai = env_ai
         self._coach_lock = threading.Lock()
+        self._shop_lock = threading.Lock()
         self._coach_jobs: dict[str, dict[str, Any]] = {}
         self.tracker = MatchTracker(
             self.data_dir / "live_match.json", on_finished=self._on_match_finished
@@ -620,18 +621,34 @@ class PlayerService:
         if primary is None:
             return None
         rows = self.store.list_matches(primary, limit=PROFILE_MATCHES_LIMIT)
-        try:
-            spent = int(self.store.get_meta(f"sparks_spent:{primary}") or 0)
-        except ValueError:
-            spent = 0
         return build_profile(
             rows,
             player=self.store.get_player(primary),
             mmr_raw=self.store.get_meta(f"mmr:{primary}"),
-            spent=spent,
+            cosmetics_raw=self.store.get_meta(f"cosmetics:{primary}"),
             lang=lang,
             now=time.time(),
         )
+
+    def shop_action(self, action: str, item_id: str, lang: str) -> dict[str, Any]:
+        """Buy or wear a profile look (cosmetics.py); ValueError(code) when not
+        possible. The balance and the unlocks come from the profile itself."""
+        primary = self.store.primary_account_id()
+        if primary is None:
+            raise ValueError("not_linked")
+        with self._shop_lock:
+            profile = self.profile(lang) or {}
+            key = f"cosmetics:{primary}"
+            state = cosmetics.load(self.store.get_meta(key))
+            level = int((profile.get("level") or {}).get("level") or 1)
+            tiers = {b["id"]: b["tier"] for b in profile.get("achievements") or []}
+            if action == "buy":
+                balance = int((profile.get("sparks") or {}).get("balance") or 0)
+                state = cosmetics.buy(state, item_id, balance=balance, level=level, tiers=tiers)
+            else:
+                state = cosmetics.equip(state, item_id, level=level, tiers=tiers)
+            self.store.set_meta(key, cosmetics.dump(state))
+        return self.profile(lang) or {}
 
     def set_mmr(self, mmr: int) -> None:
         """The player's MMR now: a new anchor of the rating graph."""

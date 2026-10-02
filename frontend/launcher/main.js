@@ -1542,6 +1542,8 @@ const PLAYER_OPS = {
   profile: () => ["GET", `/player/profile?lang=${uiLocale()}`],
   profileMmr: (args) => ["POST", `/player/profile/mmr?lang=${uiLocale()}`, { mmr: clampInt(args.mmr, 0, 15000, 0) }],
   profileMmrClear: () => ["DELETE", `/player/profile/mmr?lang=${uiLocale()}`],
+  shopBuy: (args) => ["POST", `/player/shop/buy?lang=${uiLocale()}`, { id: shopIdArg(args) }],
+  shopEquip: (args) => ["POST", `/player/shop/equip?lang=${uiLocale()}`, { id: shopIdArg(args) }],
   session: () => ["GET", `/player/session?lang=${uiLocale()}`],
   summary: () => ["GET", `/player/summary?lang=${uiLocale()}`],
   // Compare with a friend (their public OpenDota matches, fetched by the backend).
@@ -1617,6 +1619,11 @@ function aiProviderArg(args) {
     throw new Error("Unknown AI provider.");
   }
   return provider;
+}
+
+function shopIdArg(args) {
+  const id = String(args.id || "");
+  return /^[a-z0-9_]{1,40}$/.test(id) ? id : "";
 }
 
 function clampInt(value, min, max, fallback) {
