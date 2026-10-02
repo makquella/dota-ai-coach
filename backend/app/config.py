@@ -112,6 +112,8 @@ ADVICE_FREQUENCY = os.getenv("DOTA_AI_ADVICE_FREQUENCY", "normal").strip().lower
 # support (app/live_role.py), and whether the overlay shows map hints at all.
 ADVICE_ROLE = os.getenv("DOTA_AI_ROLE", "auto").strip().lower()
 MAP_HINTS = os.getenv("DOTA_AI_MAP_HINTS", "true").strip().lower() != "false"
+# A week of match recordings kept on disk (match_records.py; off unless switched on).
+MATCH_RECORDS_ENABLED = os.getenv("DOTA_AI_MATCH_RECORDS", "false").strip().lower() == "true"
 LIVE_CONSERVATIVE_MODE = os.getenv("LIVE_CONSERVATIVE_MODE", "true").strip().lower() != "false"
 try:
     GSI_STALE_SECONDS = max(1.0, float(os.getenv("GSI_STALE_SECONDS", "5")))

@@ -460,6 +460,42 @@ label.setting {
   gap: var(--sp-2);
 }
 
+/* Match recordings: the switch beside the text, the week's matches under the row. */
+.records-row .setting-text {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+.records-list {
+  display: grid;
+  flex-basis: 100%;
+  gap: var(--sp-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.records-list[hidden] {
+  display: none;
+}
+
+.records-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-2);
+  color: var(--text-2);
+  font-size: var(--fs-13);
+  font-variant-numeric: tabular-nums;
+}
+
+.records-label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .report-label {
   color: var(--text-2);
   font-size: var(--fs-12);

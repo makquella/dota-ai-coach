@@ -71,6 +71,7 @@ from app.home_summary import home_summary
 from app.map_analysis import map_side, zone
 from app.map_hints import SAVE_ITEMS
 from app.match_facts import facts_from_opendota, facts_from_timeline, merge_facts
+from app.match_records import MATCH_RECORDS
 from app.match_tracker import MatchTracker, account_from_gsi
 from app.next_item import has_components, next_build_item, save_build_item
 from app.opendota import (
@@ -338,6 +339,8 @@ class PlayerService:
         self.tracker = MatchTracker(
             self.data_dir / "live_match.json", on_finished=self._on_match_finished
         )
+        # A week of match recordings lives next to the store (off unless switched on).
+        MATCH_RECORDS.configure(self.data_dir)
         self._detected: dict[str, Any] | None = None
         # Friend fetches that failed (code), by friend account id; cleared on retry.
         self._friend_errors: dict[int, str] = {}

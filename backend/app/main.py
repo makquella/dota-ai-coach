@@ -9,7 +9,7 @@ from typing import Any
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, ValidationError
 
@@ -24,6 +24,7 @@ from app.config import (
     LIVE_CONSERVATIVE_MODE,
     LLM_PROVIDER,
     MAP_HINTS,
+    MATCH_RECORDS_ENABLED,
     OPENDOTA_ENABLED,
     PLAYER_DATA_DIR,
     RESOURCE_ROOT,
@@ -50,6 +51,7 @@ from app.llm_provider import generate_llm_recommendation, is_llm_provider_enable
 from app.logger import log_recommendation, prune_logs
 from app.map_hints import map_hint, score_gap, timer_strip
 from app.match_memory import MATCH_MEMORY
+from app.match_records import KEEP_DAYS, MATCH_RECORDS
 from app.player_api import PLAYER_SERVICE
 from app.player_api import router as player_router
 from app.rag import retrieve_context
@@ -70,7 +72,7 @@ app = FastAPI(
     lifespan=_lifespan,
     title="Wardly",
     description="MVP-1: rule-based carry coach with local knowledge-base RAG.",
-    version="0.31.3",
+    version="0.32.0",
 )
 app.include_router(player_router)
 
@@ -104,7 +106,7 @@ if FRONTEND_DIR.exists():
 @app.get("/", summary="Health check")
 def root():
     """Simple health-check endpoint."""
-    return {"status": "ok", "service": "Wardly", "version": "0.31.3"}
+    return {"status": "ok", "service": "Wardly", "version": "0.32.0"}
 
 
 @app.get("/health", summary="Health check")
@@ -231,6 +233,7 @@ async def receive_gsi(request: Request):
     result = update_latest_gsi(payload)
     GSI_CENSUS.observe(payload)
     GSI_CENSUS.save_due(PLAYER_SERVICE.data_dir / CENSUS_FILE)
+    MATCH_RECORDS.record_gsi(payload)
     # Whole-match recording + Steam account detection (never breaks the live path).
     try:
         PLAYER_SERVICE.observe_gsi(payload)
@@ -736,10 +739,12 @@ class AdviceSettings(BaseModel):
     frequency: str | None = None
     role: str | None = None
     map_hints: bool | None = None
+    match_records: bool | None = None
 
 
 # Map hints (timers, role tips) on the overlay; the launcher switches them.
 _map_hints = {"enabled": MAP_HINTS}
+MATCH_RECORDS.set_enabled(MATCH_RECORDS_ENABLED)
 set_role_setting(ADVICE_ROLE)
 
 
@@ -750,6 +755,7 @@ def _advice_settings() -> dict[str, object]:
         "role": role_setting(),
         "role_options": list(ROLE_SETTINGS),
         "map_hints": _map_hints["enabled"],
+        "match_records": MATCH_RECORDS.enabled,
     }
 
 
@@ -766,7 +772,26 @@ def set_advice_settings(settings: AdviceSettings):
         set_role_setting(settings.role)
     if settings.map_hints is not None:
         _map_hints["enabled"] = bool(settings.map_hints)
+    if settings.match_records is not None:
+        MATCH_RECORDS.set_enabled(bool(settings.match_records))
     return _advice_settings()
+
+
+@app.get("/match-records", summary="Match recordings of the last week kept on this computer")
+def match_records():
+    return {
+        "enabled": MATCH_RECORDS.enabled,
+        "keep_days": KEEP_DAYS,
+        "records": MATCH_RECORDS.list(),
+    }
+
+
+@app.get("/match-records/{record_id}", summary="One match recording (gzip JSON lines)")
+def match_record_file(record_id: str):
+    path = MATCH_RECORDS.path_of(record_id)
+    if path is None:
+        return JSONResponse(status_code=404, content={"detail": "No such recording."})
+    return FileResponse(path, media_type="application/gzip", filename=path.name)
 
 
 def _census_for_report() -> dict[str, object]:
@@ -865,6 +890,10 @@ def _overlay_response(
     if record_history:
         COACH_SESSION_HISTORY.record_overlay_advice(response, state or {})
         LIVE_SESSION_RECORDER.record_advice(response, state or {})
+        extra = (state or {}).get("extra_context")
+        MATCH_RECORDS.record_advice(
+            {**response, "clock_time": extra.get("clock_time") if isinstance(extra, dict) else None}
+        )
     return {
         **response,
     }

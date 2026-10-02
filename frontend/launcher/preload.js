@@ -30,6 +30,7 @@ contextBridge.exposeInMainWorld("launcherApi", {
   setDiscordPresence: (enabled) => ipcRenderer.invoke("launcher:set-discord-presence", Boolean(enabled)),
   setShareStats: (enabled) => ipcRenderer.invoke("launcher:set-share-stats", Boolean(enabled)),
   statsPreview: () => ipcRenderer.invoke("launcher:stats-preview"),
+  matchRecords: (request) => ipcRenderer.invoke("launcher:match-records", request),
   deleteServerData: () => ipcRenderer.invoke("launcher:delete-server-data"),
   discordWeekly: (action, url) => ipcRenderer.invoke("launcher:discord-weekly", { action: String(action), url: typeof url === "string" ? url : "" }),
   setAdvicePreferences: (patch) => ipcRenderer.invoke("launcher:set-advice-preferences", patch),
