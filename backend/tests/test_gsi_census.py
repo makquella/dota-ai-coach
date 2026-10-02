@@ -168,3 +168,48 @@ def test_a_roshan_kill_among_many_chat_events_is_read():
     events = [{"event_type": "roshan_killed", "game_time": 1500}]
     events += [{"event_type": "chat_message", "game_time": 1500 + i} for i in range(40)]
     assert _objective_events(events) == [{"type": "roshan_killed", "game_time": 1500}]
+
+
+def _in_game(payload, state="DOTA_GAMERULES_STATE_GAME_IN_PROGRESS"):
+    payload["map"]["game_state"] = state
+    return payload
+
+
+def test_the_census_is_saved_and_shown_after_a_restart(client, repo_root, tmp_path):
+    """A real report (R-QXW4K6) was sent 16 s after a restart: the census was
+    empty although a match had been played. The last run's census is now saved."""
+    from app.gsi_census import CENSUS_FILE, SAVE_EVERY
+    from app.player_api import PLAYER_SERVICE
+
+    path = PLAYER_SERVICE.data_dir / CENSUS_FILE
+    census = GsiCensus()
+    census.observe(_in_game(_real(repo_root)))
+    assert census.save_due(path, now=1000.0)
+    census.observe(_in_game(_real(repo_root)))
+    assert not census.save_due(path, now=1000.0 + SAVE_EVERY - 1)  # too soon
+    assert census.save_due(path, now=1000.0 + SAVE_EVERY)
+    assert not census.save_due(path, now=5000.0)  # nothing new since
+    # The match ends: saved at once, whatever the time.
+    census.observe(_in_game(_real(repo_root)))
+    census.observe(_in_game(_real(repo_root), "DOTA_GAMERULES_STATE_POST_GAME"))
+    assert census.save_due(path, now=5001.0)
+
+    # A new run with no game yet: the report carries the saved census.
+    body = client.get("/diagnostics").json()["gsi_census"]
+    assert body["in_game_payloads"] == 0
+    assert body["previous_run"]["in_game_payloads"] == 3
+    assert body["previous_run"]["saved_at"]
+    # Once this run gets in-game data, only its own census is shown.
+    client.post("/gsi", json=_in_game(_real(repo_root)))
+    body = client.get("/diagnostics").json()["gsi_census"]
+    assert body["in_game_payloads"] == 1 and "previous_run" not in body
+
+
+def test_a_broken_census_file_is_ignored(client):
+    from app.gsi_census import CENSUS_FILE
+    from app.player_api import PLAYER_SERVICE
+
+    path = PLAYER_SERVICE.data_dir / CENSUS_FILE
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text("{not json", encoding="utf-8")
+    assert "previous_run" not in client.get("/diagnostics").json()["gsi_census"]

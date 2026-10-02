@@ -396,6 +396,15 @@ function send(channel, payload) {
   }
 }
 
+// Every way out says why in the log: a problem report from a match played
+// without the app (closed from the tray right after the horn) only showed a
+// clean "Stopping backend".
+function quitApp(reason) {
+  const during = live.inMatch ? " during a match" : dotaWatcher.getState().running ? " while Dota was running" : "";
+  appendLog("launcher", `Quit: ${reason}${during}.`, { force: true });
+  app.quit();
+}
+
 function appendLog(scope, text, options = {}) {
   const clean = String(text || "").replace(/\r/g, "").trimEnd();
   if (!clean) {
@@ -2749,7 +2758,7 @@ function createMainWindow({ show = true } = {}) {
   // Windows logoff/shutdown: let the window close so the session can end.
   mainWindow.on("session-end", () => {
     isQuitting = true;
-    app.quit();
+    quitApp("Windows sign-out or shutdown");
   });
   mainWindow.on("closed", () => {
     mainWindow = null;
@@ -2995,7 +3004,7 @@ function refreshTray() {
       { label: backendLine, enabled: false },
       { label: t("problemReport"), click: () => saveProblemReport() },
       { type: "separator" },
-      { label: t("quit"), click: () => app.quit() }
+      { label: t("quit"), click: () => quitApp("the tray menu") }
     ])
   );
 }
@@ -3484,7 +3493,7 @@ function bootstrap() {
   });
 
   for (const signal of ["SIGINT", "SIGTERM"]) {
-    process.on(signal, () => app.quit());
+    process.on(signal, () => quitApp(`signal ${signal}`));
   }
 }
 
