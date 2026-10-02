@@ -12,9 +12,14 @@ other values — so `GET /diagnostics` can carry it into a problem report.
 
 from __future__ import annotations
 
+import json
+import os
 import re
 import threading
+import time
 from collections import Counter
+from datetime import UTC, datetime
+from pathlib import Path
 from typing import Any
 
 MAX_PATHS = 600
@@ -70,6 +75,11 @@ FEATURES: list[tuple[str, str, list[list[str]]]] = [
 ]
 # Share of in-game payloads a path must come in to count as sent.
 PRESENT_SHARE = 0.5
+# The census is saved next to the match store (at most every SAVE_EVERY seconds
+# while a match sends data, and once when it stops), so a problem report sent
+# after the app was restarted still shows what the last match sent.
+CENSUS_FILE = "gsi_census.json"
+SAVE_EVERY = 30.0
 
 
 def _part(block: str, depth: int, key: str) -> str:
@@ -103,6 +113,9 @@ class GsiCensus:
         self.item_payloads = 0
         self.own_hero_names_max = 0
         self.hero_images: Counter[str] = Counter()
+        self._saved_in_game = 0
+        self._saved_at = 0.0
+        self._last_in_game: bool | None = None
         # Values of a Bottle's contains_rune (a game enum: which rune names come).
         self.bottle_runes: Counter[str] = Counter()
 
@@ -123,6 +136,7 @@ class GsiCensus:
         if isinstance(state, str) and len(self.game_states) < 20:
             self.game_states[state[:60]] += 1
         in_game = state == IN_PROGRESS
+        self._last_in_game = in_game
         if not in_game:
             return
         self.in_game += 1
@@ -207,6 +221,29 @@ class GsiCensus:
         if enemy:
             self.enemy_hero_payloads += 1
 
+    def save_due(self, path: Path, *, now: float | None = None) -> bool:
+        """Write the summary to `path` when in-game payloads came since the last
+        save and SAVE_EVERY seconds passed, or the match stopped sending them
+        (the last payload was not in game); never raises."""
+        now = time.monotonic() if now is None else now
+        with self._lock:
+            fresh = self.in_game > self._saved_in_game
+            ended = bool(self.game_states) and self._last_in_game is False
+            if not fresh or (now - self._saved_at < SAVE_EVERY and not ended):
+                return False
+            self._saved_in_game = self.in_game
+            self._saved_at = now
+        try:
+            data = {"saved_at": datetime.now(UTC).isoformat(timespec="seconds")}
+            data.update(self.summary())
+            path.parent.mkdir(parents=True, exist_ok=True)
+            tmp = path.with_suffix(".tmp")
+            tmp.write_text(json.dumps(data), encoding="utf-8")
+            os.replace(tmp, path)
+            return True
+        except (OSError, TypeError, ValueError):
+            return False
+
     def _share(self, path: str, base: int | None = None) -> float:
         base = self.in_game if base is None else base
         if not base:
@@ -255,6 +292,15 @@ class GsiCensus:
                 },
                 "paths": dict(sorted(self.paths.items())),
             }
+
+
+def load_previous(path: Path) -> dict[str, Any] | None:
+    """The census saved by an earlier run (None: none or unreadable)."""
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return None
+    return data if isinstance(data, dict) else None
 
 
 GSI_CENSUS = GsiCensus()

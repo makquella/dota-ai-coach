@@ -293,6 +293,9 @@ const I18N = {
     tourHint: "A short tour of the app, one minute",
     tourStart: "Show",
     whatsNew: {
+      "0.31.2": [
+        "A problem report sent after restarting the app still shows what the game sent during your last match."
+      ],
       "0.31.1": [
         "The death review names a Haste, Invisibility, Shield or Illusion rune left unused in the Bottle.",
         "Fixed: the review showed a dash instead of the hero's ability when you died with it ready."
@@ -903,6 +906,9 @@ const I18N = {
     tourHint: "Короткая экскурсия по приложению, на минуту",
     tourStart: "Показать",
     whatsNew: {
+      "0.31.2": [
+        "Отчёт о проблеме, отправленный после перезапуска приложения, всё равно показывает, что игра присылала в последнем матче."
+      ],
       "0.31.1": [
         "Разбор смерти говорит, если в бутылке осталась неиспользованная руна ускорения, невидимости, щита или иллюзий.",
         "Исправлено: в разборе стоял прочерк вместо способности героя, с которой вы погибли, не нажав её."
