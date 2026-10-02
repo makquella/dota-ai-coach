@@ -4209,3 +4209,318 @@ tr.row-link[data-result="loss"] > td:first-child {
     display: none;
   }
 }
+
+/* --- Profile tab (player_profile.py) ---------------------------------------
+   The profile card is the one place with a little show: a banner, the avatar
+   ring and tier medals. Cosmetics from the shop (0.34) restyle these parts. */
+#profile-root {
+  display: grid;
+  gap: var(--sp-5);
+}
+
+.pf-header {
+  position: relative;
+  overflow: hidden;
+  padding: 0;
+}
+
+.pf-banner {
+  height: 84px;
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--accent) 28%, transparent), transparent 60%),
+    repeating-linear-gradient(-45deg, var(--surface-2) 0 10px, var(--surface-1) 10px 20px);
+  border-bottom: 1px solid var(--border);
+}
+
+.pf-identity {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--sp-4);
+  padding: 0 var(--sp-5) var(--sp-4);
+  margin-top: -36px;
+  flex-wrap: wrap;
+}
+
+.pf-avatar {
+  position: relative;
+  width: 88px;
+  height: 88px;
+  flex: none;
+  border-radius: 50%;
+  background: var(--surface-2);
+  box-shadow: 0 0 0 4px var(--surface-1), 0 0 0 6px var(--accent);
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+}
+
+.pf-avatar img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.pf-initials {
+  font-size: var(--fs-20);
+  font-weight: var(--fw-semibold);
+  color: var(--text-2);
+}
+
+.pf-name-block {
+  display: grid;
+  gap: var(--sp-1);
+  padding-top: 44px; /* under the banner, beside the avatar that overlaps it */
+  min-width: 200px;
+  flex: 1 1 260px;
+}
+
+.pf-name {
+  font-size: var(--fs-28);
+  font-weight: var(--fw-semibold);
+  line-height: 1.1;
+  overflow-wrap: anywhere;
+}
+
+.pf-meta {
+  display: flex;
+  gap: var(--sp-2);
+  flex-wrap: wrap;
+  font-size: var(--fs-13);
+}
+
+.pf-level,
+.pf-rank {
+  padding: 2px var(--sp-2);
+  border-radius: var(--r-sm);
+  border: 1px solid var(--border-strong);
+  color: var(--text-2);
+}
+
+.pf-level {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--text);
+}
+
+.pf-xp {
+  display: grid;
+  gap: var(--sp-1);
+  max-width: 360px;
+  font-size: var(--fs-12);
+}
+
+.pf-xp-bar {
+  display: block;
+  height: 6px;
+  border-radius: 3px;
+  background: var(--border-strong);
+  overflow: hidden;
+}
+
+.pf-xp-bar > span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--accent);
+}
+
+.pf-sparks {
+  display: grid;
+  grid-template-columns: auto auto;
+  align-items: center;
+  column-gap: var(--sp-2);
+  padding: var(--sp-2) var(--sp-3);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--r-lg);
+  background: var(--surface-2);
+}
+
+.pf-sparks [data-icon],
+.pf-sparks svg {
+  grid-row: span 2;
+  color: var(--accent);
+}
+
+.pf-sparks-value {
+  font-size: var(--fs-20);
+  font-weight: var(--fw-semibold);
+  font-variant-numeric: tabular-nums;
+}
+
+.pf-sparks-label {
+  color: var(--text-3);
+  font-size: var(--fs-12);
+}
+
+.pf-rating-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: var(--sp-3);
+  flex-wrap: wrap;
+}
+
+.pf-rating-now {
+  display: grid;
+}
+
+.pf-rating-value {
+  font-size: var(--fs-28);
+  font-weight: var(--fw-semibold);
+  font-variant-numeric: tabular-nums;
+}
+
+.pf-rating-side {
+  display: grid;
+  justify-items: end;
+  gap: 2px;
+  font-size: var(--fs-13);
+  font-variant-numeric: tabular-nums;
+}
+
+.pf-rating-change {
+  font-size: var(--fs-16);
+  font-weight: var(--fw-semibold);
+}
+
+.pf-rating-change.up {
+  color: var(--ok);
+}
+
+.pf-rating-change.down {
+  color: var(--error);
+}
+
+.pf-rating-chart {
+  margin: var(--sp-3) 0;
+}
+
+.rating-line {
+  stroke: var(--accent);
+}
+
+.rating-area {
+  fill: var(--accent);
+  fill-opacity: 0.08;
+}
+
+.rating-dot-win {
+  fill: var(--ok);
+}
+
+.rating-dot-loss {
+  fill: var(--error);
+}
+
+.rating-dot-anchor {
+  fill: var(--surface-1);
+  stroke: var(--accent);
+  stroke-width: 2;
+}
+
+.pf-mmr-form {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  flex-wrap: wrap;
+  margin-top: var(--sp-3);
+}
+
+.pf-mmr-form .input {
+  width: 140px;
+}
+
+.pf-mmr-label {
+  font-size: var(--fs-13);
+  color: var(--text-2);
+}
+
+.pf-mmr-error {
+  flex-basis: 100%;
+  font-size: var(--fs-12);
+}
+
+.pf-mmr-error:empty {
+  display: none;
+}
+
+.pf-badges {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: var(--sp-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.pf-badge {
+  display: flex;
+  gap: var(--sp-3);
+  padding: var(--sp-3);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  background: var(--surface-1);
+}
+
+.pf-badge-medal {
+  --medal: var(--border-strong);
+  width: 44px;
+  height: 44px;
+  flex: none;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  border: 2px solid var(--medal);
+  color: var(--medal);
+  font-weight: var(--fw-semibold);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Tier colours: bronze, silver, gold, platinum, diamond, legend. */
+.pf-badge.tier-1 .pf-badge-medal { --medal: #c08457; }
+.pf-badge.tier-2 .pf-badge-medal { --medal: #b8bcc6; }
+.pf-badge.tier-3 .pf-badge-medal { --medal: #e3b341; }
+.pf-badge.tier-4 .pf-badge-medal { --medal: #6fc7c2; }
+.pf-badge.tier-5 .pf-badge-medal { --medal: #7aa7ff; }
+.pf-badge.tier-6 .pf-badge-medal { --medal: var(--accent); }
+
+.pf-badge.tier-0 {
+  opacity: 0.75;
+}
+
+.pf-badge-body {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+  flex: 1;
+}
+
+.pf-badge-title {
+  font-weight: var(--fw-semibold);
+}
+
+.pf-badge-tier,
+.pf-badge-text {
+  font-size: var(--fs-13);
+}
+
+.pf-badge-progress {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  column-gap: var(--sp-2);
+  row-gap: 2px;
+  margin-top: var(--sp-1);
+  font-size: var(--fs-12);
+  font-variant-numeric: tabular-nums;
+}
+
+.pf-badge-progress .pf-xp-bar {
+  grid-column: 1 / -1;
+}
+
+.pf-badge-reward {
+  color: var(--accent);
+}

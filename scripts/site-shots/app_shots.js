@@ -115,6 +115,8 @@ function playerRequest(lang, op, args = {}) {
       return `/player/career?lang=${lang}${hero}`;
     case "week":
       return `/player/week?lang=${lang}`;
+    case "profile":
+      return `/player/profile?lang=${lang}`;
     case "friend":
       return `/player/friend?lang=${lang}&group=${args.group || "all"}`;
     case "aiStatus":
@@ -135,6 +137,8 @@ const SHOTS = {
   review: [{ click: "#tab-matches", wait: 1500 }, { click: "tr.row-link", wait: 2500 }],
   "review-ai": [{ click: "#tab-matches", wait: 1500 }, { click: "tr.row-link", wait: 2500 }, { eval: scrollTo(".coach-card") }],
   progress: [{ click: "#tab-progress", wait: 2500 }],
+  profile: [{ click: "#tab-profile", wait: 2500 }],
+  "profile-badges": [{ click: "#tab-profile", wait: 2500 }, { eval: scrollTo(".pf-badges") }],
   "progress-ai": [{ click: "#tab-progress", wait: 2500 }, { eval: scrollTo(".coach-card") }],
   "progress-friend": [{ click: "#tab-progress", wait: 3000 }, { eval: scrollTo(".friend-card") }],
   "progress-ask": [{ click: "#tab-progress", wait: 3000 }, { eval: scrollTo(".ask-form") }],
@@ -195,6 +199,8 @@ async function loadPictures(page) {
   const browser = await chromium.launch(process.env.CHROMIUM ? { executablePath: process.env.CHROMIUM } : {});
   for (const lang of ["ru", "en"]) {
     for (const [name, steps] of Object.entries(SHOTS)) {
+      // ONLY=profile,home shoots just those (a quick look while working on a view).
+      if (process.env.ONLY && !process.env.ONLY.split(",").includes(name)) continue;
       const page = await openPage(browser, lang, name);
       for (const step of steps) {
         if (step.click) await page.click(step.click);
@@ -210,6 +216,7 @@ async function loadPictures(page) {
       console.log(`${lang}-${name}.png`);
       await page.close();
     }
+    if (process.env.ONLY) continue;
     const page = await openPage(browser, lang, "cards", CARD_SIZE);
     await page.click("#tab-matches");
     await page.waitForTimeout(1500);

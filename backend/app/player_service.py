@@ -85,6 +85,7 @@ from app.opendota import (
 from app.personal_baseline import MAX_GAMES as MAX_BASELINE_GAMES
 from app.personal_baseline import personal_baseline
 from app.player_goals import goal_streaks, tilt
+from app.player_profile import MMR_MAX, MMR_MIN, add_anchor, build_profile
 from app.player_store import PlayerStore
 from app.post_game import post_game_card
 from app.post_match_analysis import ANALYSIS_VERSION, analyze_match
@@ -99,6 +100,8 @@ from app.usage_stats import usage_stats
 from app.weekly_summary import weekly_summary
 
 RECENT_MATCHES_LIMIT = 50
+# The profile counts every stored match (achievements, level, the rating graph).
+PROFILE_MATCHES_LIMIT = 5000
 REVIEW_RECENT_MATCHES = 12
 # On sync, ask OpenDota to parse this many of the newest unparsed matches (a
 # parsed replay adds lanes, last hits at 10:00, the build and the map). Valve
@@ -609,6 +612,41 @@ class PlayerService:
         )
         self._plans[key] = (now, summary)
         return summary
+
+    def profile(self, lang: str) -> dict[str, Any] | None:
+        """The «Профиль» tab (app/player_profile.py): rating graph, level,
+        achievements and sparks, from the whole match table."""
+        primary = self.store.primary_account_id()
+        if primary is None:
+            return None
+        rows = self.store.list_matches(primary, limit=PROFILE_MATCHES_LIMIT)
+        try:
+            spent = int(self.store.get_meta(f"sparks_spent:{primary}") or 0)
+        except ValueError:
+            spent = 0
+        return build_profile(
+            rows,
+            player=self.store.get_player(primary),
+            mmr_raw=self.store.get_meta(f"mmr:{primary}"),
+            spent=spent,
+            lang=lang,
+            now=time.time(),
+        )
+
+    def set_mmr(self, mmr: int) -> None:
+        """The player's MMR now: a new anchor of the rating graph."""
+        primary = self.store.primary_account_id()
+        if primary is None:
+            raise ValueError("not_linked")
+        if not MMR_MIN <= int(mmr) <= MMR_MAX:
+            raise ValueError("bad_mmr")
+        key = f"mmr:{primary}"
+        self.store.set_meta(key, add_anchor(self.store.get_meta(key), int(mmr), time.time()))
+
+    def clear_mmr(self) -> None:
+        primary = self.store.primary_account_id()
+        if primary is not None:
+            self.store.set_meta(f"mmr:{primary}", None)
 
     def week(
         self, lang: str, until: float | None = None, since: float | None = None

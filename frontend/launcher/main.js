@@ -1539,6 +1539,9 @@ const PLAYER_OPS = {
   match: (args) => ["GET", `/player/matches/${matchIdArg(args)}?lang=${uiLocale()}`, undefined, 15000],
   refreshMatch: (args) => ["POST", `/player/matches/${matchIdArg(args)}/refresh`],
   week: () => ["GET", `/player/week?lang=${uiLocale()}`],
+  profile: () => ["GET", `/player/profile?lang=${uiLocale()}`],
+  profileMmr: (args) => ["POST", `/player/profile/mmr?lang=${uiLocale()}`, { mmr: clampInt(args.mmr, 0, 15000, 0) }],
+  profileMmrClear: () => ["DELETE", `/player/profile/mmr?lang=${uiLocale()}`],
   session: () => ["GET", `/player/session?lang=${uiLocale()}`],
   summary: () => ["GET", `/player/summary?lang=${uiLocale()}`],
   // Compare with a friend (their public OpenDota matches, fetched by the backend).

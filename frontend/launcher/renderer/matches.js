@@ -9,6 +9,40 @@
 (function () {
   const TEXT = {
     en: {
+      pfTitle: "Profile",
+      pfSub: "Your rating, level and achievements with Wardly.",
+      pfLevel: (n) => `Level ${n}`,
+      pfXp: (into, need) => `${into} / ${need} XP to the next level`,
+      pfSparks: "Sparks",
+      pfSparksHint: "Earned by playing with the coach: 10 a match, 5 more for a win, more for every achievement tier. Spend them on profile looks.",
+      pfGames: "Matches with Wardly",
+      pfWithApp: "With the coach",
+      pfWinrate: "Win rate",
+      pfHours: "Hours with the coach",
+      pfRating: "Rating",
+      pfRatingNone: "Enter your MMR from Dota to start the graph: every ranked game then moves it.",
+      pfRatingMedal: "Estimated from your medal. Enter your MMR from Dota for your own line.",
+      pfRatingManual: (step) => `An estimate: a ranked game moves it by about ${step}. Correct it when it drifts from Dota.`,
+      pfNow: "Now",
+      pfPeak: "Peak",
+      pfLast20: "Last 20 games",
+      pfRecord: (w, l) => `${w}–${l}`,
+      pfMmrLabel: "Your MMR now",
+      pfMmrPlaceholder: "e.g. 3200",
+      pfMmrSave: "Save",
+      pfMmrClear: "Back to the medal estimate",
+      pfMmrBad: "Enter a number from 0 to 15000.",
+      pfWin: "Win",
+      pfLoss: "Loss",
+      pfAnchor: "Your number",
+      pfAchievements: "Achievements",
+      pfAchievementsHint: "For matches played with Wardly. Every tier gives sparks.",
+      pfTierNone: "Not started",
+      pfTier: (name, tier, tiers) => `${name} · ${tier}/${tiers}`,
+      pfDone: "All tiers done",
+      pfReward: (n) => `+${n} sparks`,
+      pfProgress: (value, target) => `${value} / ${target}`,
+      pfEmpty: "Play a match with Wardly running: it starts your level, achievements and sparks.",
       linkTitle: "Link your Steam account",
       linkHint:
         "The coach reads your account from Dota automatically when you play. You can also paste your Friend ID (Dota profile), a steamcommunity.com/profiles/… link or an OpenDota/Dotabuff link.",
@@ -528,6 +562,40 @@
       aiCancel: "Cancel"
     },
     ru: {
+      pfTitle: "Профиль",
+      pfSub: "Ваш рейтинг, уровень и награды с Wardly.",
+      pfLevel: (n) => `Уровень ${n}`,
+      pfXp: (into, need) => `${into} / ${need} опыта до следующего уровня`,
+      pfSparks: "Искры",
+      pfSparksHint: "Даются за игру с тренером: 10 за матч, ещё 5 за победу и больше за каждую ступень награды. Тратятся на оформление профиля.",
+      pfGames: "Матчей с Wardly",
+      pfWithApp: "С тренером",
+      pfWinrate: "Процент побед",
+      pfHours: "Часов с тренером",
+      pfRating: "Рейтинг",
+      pfRatingNone: "Введите свой MMR из Доты, чтобы начать график: дальше его двигает каждая рейтинговая игра.",
+      pfRatingMedal: "Оценка по медали. Введите свой MMR из Доты — график станет вашим.",
+      pfRatingManual: (step) => `Это оценка: рейтинговая игра двигает его примерно на ${step}. Поправьте, если разойдётся с Дотой.`,
+      pfNow: "Сейчас",
+      pfPeak: "Пик",
+      pfLast20: "За 20 игр",
+      pfRecord: (w, l) => `${w}–${l}`,
+      pfMmrLabel: "Ваш MMR сейчас",
+      pfMmrPlaceholder: "например, 3200",
+      pfMmrSave: "Сохранить",
+      pfMmrClear: "Вернуть оценку по медали",
+      pfMmrBad: "Введите число от 0 до 15000.",
+      pfWin: "Победа",
+      pfLoss: "Поражение",
+      pfAnchor: "Ваше число",
+      pfAchievements: "Награды",
+      pfAchievementsHint: "За матчи, сыгранные с Wardly. Каждая ступень даёт искры.",
+      pfTierNone: "Не начато",
+      pfTier: (name, tier, tiers) => `${name} · ${tier}/${tiers}`,
+      pfDone: "Все ступени пройдены",
+      pfReward: (n) => `+${n} искр`,
+      pfProgress: (value, target) => `${value} / ${target}`,
+      pfEmpty: "Сыграйте матч с запущенным Wardly — с него начнутся уровень, награды и искры.",
       linkTitle: "Привяжите аккаунт Steam",
       linkHint:
         "Тренер сам узнаёт ваш аккаунт из Доты, когда вы играете. Можно и вручную: Friend ID из профиля в Доте, ссылка steamcommunity.com/profiles/… или ссылка на OpenDota/Dotabuff.",
@@ -1073,6 +1141,7 @@
     match: null,
     chartMetric: "lh",
     career: null,
+    profile: null,
     linkError: "",
     lastPlayerRefresh: 0,
     // AI coach settings panel: null (closed) | "form" | "info"
@@ -1264,7 +1333,7 @@
     for (const tab of document.querySelectorAll(".tabs [data-view]")) {
       tab.setAttribute("aria-selected", String(tab.dataset.view === tabView));
     }
-    for (const name of ["home", "matches", "match", "progress", "settings"]) {
+    for (const name of ["home", "matches", "match", "progress", "profile", "settings"]) {
       document.getElementById(`view-${name}`)?.classList.toggle("hidden", name !== view);
     }
     if (remember && view !== "match") {
@@ -1278,6 +1347,8 @@
       loadMatches();
     } else if (view === "progress") {
       loadCareer();
+    } else if (view === "profile") {
+      loadProfile();
     } else if (view === "settings") {
       renderAiSettings({ load: true });
     }
@@ -3858,6 +3929,218 @@
 
   // --- progress -------------------------------------------------------------------
 
+  // --- profile ----------------------------------------------------------------
+
+  async function loadProfile() {
+    const root = document.getElementById("profile-root");
+    if (!state.profile) {
+      root.replaceChildren(card(t("pfTitle"), "user", skeletonRows(4)));
+    }
+    if (!state.player) {
+      await refreshPlayer();
+    }
+    if (!state.player?.linked) {
+      root.replaceChildren(linkPanel());
+      hydrate(root);
+      return;
+    }
+    const result = await call("profile");
+    if (result.ok) {
+      state.profile = result.data.profile;
+    }
+    renderProfile();
+  }
+
+  function renderProfile() {
+    const root = document.getElementById("profile-root");
+    const profile = state.profile;
+    if (!root || state.view !== "profile") {
+      return;
+    }
+    if (!profile) {
+      root.replaceChildren(pageHead(t("pfTitle"), t("pfSub")), card(t("pfTitle"), "user", emptyState("user", t("pfTitle"), t("pfEmpty"))));
+      hydrate(root);
+      return;
+    }
+    root.replaceChildren(
+      pageHead(t("pfTitle"), t("pfSub")),
+      profileHeader(profile),
+      twoColumns([ratingCard(profile.rating)], [statsCard(profile)]),
+      zone(t("pfAchievements"), t("pfAchievementsHint"), [achievementsCard(profile.achievements || [])])
+    );
+    hydrate(root);
+    root.querySelectorAll("[data-chart='rating']").forEach((host) => drawRating(host, profile.rating));
+  }
+
+  function profileHeader(profile) {
+    const player = profile.player || {};
+    const level = profile.level || { level: 1, into: 0, need: 300 };
+    const name = player.name || "Wardly";
+    const initials = name.trim().slice(0, 2).toUpperCase();
+    const avatar = h("div", { class: "pf-avatar" }, h("span", { class: "pf-initials", text: initials }));
+    if (player.avatar_url && /^https:\/\//.test(player.avatar_url)) {
+      const img = h("img", { src: player.avatar_url, alt: "", referrerpolicy: "no-referrer" });
+      img.addEventListener("error", () => img.remove());
+      avatar.append(img);
+    }
+    const percent = Math.max(0, Math.min(100, Math.round((100 * level.into) / Math.max(1, level.need))));
+    return h(
+      "section",
+      { class: "card pf-header" },
+      h("div", { class: "pf-banner", "aria-hidden": "true" }),
+      h(
+        "div",
+        { class: "pf-identity" },
+        avatar,
+        h(
+          "div",
+          { class: "pf-name-block" },
+          h("p", { class: "pf-name", text: name }),
+          h(
+            "p",
+            { class: "pf-meta" },
+            h("span", { class: "pf-level", text: t("pfLevel", level.level) }),
+            player.rank_label ? h("span", { class: "pf-rank", text: player.rank_label }) : null
+          ),
+          h(
+            "div",
+            { class: "pf-xp", title: t("pfXp", level.into, level.need) },
+            h("div", { class: "pf-xp-bar" }, h("span", { style: `width: ${percent}%` })),
+            h("span", { class: "pf-xp-text muted", text: t("pfXp", level.into, level.need) })
+          )
+        ),
+        h(
+          "div",
+          { class: "pf-sparks", title: t("pfSparksHint") },
+          icon("sparkles"),
+          h("span", { class: "pf-sparks-value", text: String(profile.sparks?.balance ?? 0) }),
+          h("span", { class: "pf-sparks-label", text: t("pfSparks") })
+        )
+      )
+    );
+  }
+
+  function statsCard(profile) {
+    const stats = profile.stats || {};
+    return card(
+      t("pfWithApp"),
+      "trophy",
+      h(
+        "div",
+        { class: "tiles" },
+        tile(t("pfGames"), String(stats.app_games ?? 0)),
+        tile(t("pfWinrate"), stats.app_winrate === null || stats.app_winrate === undefined ? "—" : `${stats.app_winrate}%`),
+        tile(t("pfHours"), String(stats.app_hours ?? 0))
+      )
+    );
+  }
+
+  function ratingCard(rating) {
+    const form = h(
+      "form",
+      { class: "pf-mmr-form no-print" },
+      h("label", { class: "pf-mmr-label", for: "pf-mmr", text: t("pfMmrLabel") }),
+      h("input", { id: "pf-mmr", class: "input", type: "number", min: "0", max: "15000", step: "1", inputmode: "numeric", placeholder: t("pfMmrPlaceholder") }),
+      h("button", { class: "btn", type: "submit", text: t("pfMmrSave") }),
+      rating && rating.source === "manual" ? h("button", { class: "btn btn-ghost", type: "button", "data-mmr-clear": "1", text: t("pfMmrClear") }) : null,
+      h("p", { class: "pf-mmr-error muted", role: "status", "aria-live": "polite" })
+    );
+    form.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const input = form.querySelector("input");
+      const value = Number.parseInt(input.value, 10);
+      const error = form.querySelector(".pf-mmr-error");
+      if (!Number.isFinite(value) || value < 0 || value > 15000) {
+        error.textContent = t("pfMmrBad");
+        return;
+      }
+      const result = await call("profileMmr", { mmr: value });
+      if (result.ok) {
+        state.profile = result.data.profile;
+        renderProfile();
+      } else {
+        error.textContent = t("pfMmrBad");
+      }
+    });
+    form.querySelector("[data-mmr-clear]")?.addEventListener("click", async () => {
+      const result = await call("profileMmrClear");
+      if (result.ok) {
+        state.profile = result.data.profile;
+        renderProfile();
+      }
+    });
+    if (!rating) {
+      return card(t("pfRating"), "chart-line", [h("p", { class: "muted", text: t("pfRatingNone") }), form]);
+    }
+    const change = rating.change_20 || 0;
+    const sign = change > 0 ? "+" : "";
+    const head = h(
+      "div",
+      { class: "pf-rating-head" },
+      h("div", { class: "pf-rating-now" }, h("span", { class: "pf-rating-label muted", text: t("pfNow") }), h("span", { class: "pf-rating-value", text: `≈ ${rating.current}` })),
+      h(
+        "div",
+        { class: "pf-rating-side" },
+        h("span", { class: `pf-rating-change ${change > 0 ? "up" : change < 0 ? "down" : ""}`, text: `${sign}${change}` }),
+        h("span", { class: "muted", text: `${t("pfLast20")} · ${t("pfRecord", rating.wins_20, rating.losses_20)}` }),
+        h("span", { class: "muted", text: `${t("pfPeak")} ${rating.peak}` })
+      )
+    );
+    const note = rating.source === "medal" ? t("pfRatingMedal") : t("pfRatingManual", rating.step);
+    return card(t("pfRating"), "chart-line", [head, h("div", { class: "chart-host pf-rating-chart", "data-chart": "rating" }), h("p", { class: "muted small", text: note }), form]);
+  }
+
+  function drawRating(host, rating) {
+    if (!rating || !window.LauncherCharts?.rating) {
+      return;
+    }
+    const dateFormat = { day: "numeric", month: "short" };
+    const points = rating.points.map((point) => {
+      const date = point.t ? new Date(point.t * 1000).toLocaleDateString(state.locale === "ru" ? "ru-RU" : "en-GB", dateFormat) : "";
+      const hero = point.hero_id ? window.DotaIcons?.hero(point.hero_id)?.name : null;
+      const what = point.anchor ? t("pfAnchor") : point.win ? t("pfWin") : t("pfLoss");
+      return { ...point, title: date, detail: [what, hero].filter(Boolean).join(" · ") };
+    });
+    window.LauncherCharts.rating(host, { points, ariaLabel: t("pfRating") });
+  }
+
+  function achievementsCard(list) {
+    // Alone under the «Награды» zone heading: no second title on the card.
+    return h(
+      "section",
+      { class: "card" },
+      h("div", { class: "card-body" }, h(
+        "ul",
+        { class: "pf-badges" },
+        list.map((badge) => {
+          const percent = badge.done ? 100 : Math.max(0, Math.min(100, Math.round((100 * badge.value) / Math.max(1, badge.target))));
+          return h(
+            "li",
+            { class: `pf-badge tier-${badge.tier}${badge.done ? " done" : ""}` },
+            h("div", { class: "pf-badge-medal", "aria-hidden": "true" }, h("span", { text: badge.tier ? String(badge.tier) : "·" })),
+            h(
+              "div",
+              { class: "pf-badge-body" },
+              h("p", { class: "pf-badge-title", text: badge.title }),
+              h("p", { class: "pf-badge-tier muted", text: badge.tier ? t("pfTier", badge.tier_name, badge.tier, badge.tiers) : t("pfTierNone") }),
+              h("p", { class: "pf-badge-text", text: badge.done ? t("pfDone") : badge.text }),
+              badge.done
+                ? null
+                : h(
+                    "div",
+                    { class: "pf-badge-progress" },
+                    h("div", { class: "pf-xp-bar" }, h("span", { style: `width: ${percent}%` })),
+                    h("span", { class: "muted", text: t("pfProgress", badge.value, badge.target) }),
+                    badge.reward ? h("span", { class: "pf-badge-reward", text: t("pfReward", badge.reward) }) : null
+                  )
+            )
+          );
+        })
+      )
+      )
+    );
+  }
+
   async function loadCareer() {
     const root = document.getElementById("progress-root");
     if (!state.career) {
@@ -4767,7 +5050,7 @@
     } catch {
       // Storage unavailable: start on Home.
     }
-    if (["matches", "progress", "settings"].includes(saved)) {
+    if (["matches", "progress", "profile", "settings"].includes(saved)) {
       setView(saved, { remember: false });
     }
     // Keep the table fresh while it is open (new matches, sync results).
@@ -4784,6 +5067,8 @@
           drawMatchCharts(document.getElementById("match-root"), state.match.analysis);
         } else if (state.view === "progress" && state.career) {
           renderCareer();
+        } else if (state.view === "profile" && state.profile) {
+          renderProfile();
         } else if (state.view === "home" && shownWeek) {
           renderWeek(shownWeek); // the score chart measures its column
         }
