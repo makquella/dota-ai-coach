@@ -19,6 +19,7 @@ from app.career_deaths import death_map
 from app.dota_constants import hero_name
 from app.hero_build import hero_build
 from app.hero_meta import bracket_winrate, rank_bracket
+from app.lane_duel import career_lanes
 from app.peer_analysis import career_peers
 from app.self_compare import compare_best_worst
 
@@ -90,6 +91,7 @@ def analyze_career(
         "hero_build": hero_build(matches, lang),
         "opponents": opponents(analyzed),
         "death_map": death_map(analyzed, lang),
+        "lanes": career_lanes(analyzed),
         "series": _series(matches),
         "period": _period(matches),
         "best_match": _best(matches),

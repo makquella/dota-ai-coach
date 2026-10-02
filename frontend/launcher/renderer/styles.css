@@ -2637,6 +2637,73 @@ label.setting:has(.switch:disabled) {
   font-weight: var(--fw-semibold);
 }
 
+.lane-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sp-2);
+  margin-bottom: var(--sp-3);
+}
+
+.lane-result {
+  margin-left: auto;
+  padding: 2px var(--sp-2);
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  font-size: var(--fs-12);
+  font-weight: var(--fw-semibold);
+  color: var(--text-2);
+}
+
+.lane-result.lane-won {
+  border-color: var(--ok);
+  color: var(--ok);
+}
+
+.lane-result.lane-lost {
+  border-color: var(--error);
+  color: var(--error);
+}
+
+.lane-dots {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-1);
+  margin: var(--sp-2) 0;
+}
+
+.lane-dot {
+  width: 14px;
+  height: 14px;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  background: var(--surface-2);
+  cursor: pointer;
+}
+
+.lane-dot.lane-won {
+  background: var(--ok);
+}
+
+.lane-dot.lane-lost {
+  background: var(--error);
+}
+
+.lane-dot:hover,
+.lane-dot:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.lane-table td[data-state="good"] {
+  color: var(--ok);
+}
+
+.lane-table td[data-state="bad"] {
+  color: var(--error);
+}
+
 .friend-better {
   color: var(--text);
   font-weight: var(--fw-semibold);

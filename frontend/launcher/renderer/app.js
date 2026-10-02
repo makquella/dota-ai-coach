@@ -304,6 +304,10 @@ const I18N = {
     tourHint: "A short tour of the app, one minute",
     tourStart: "Show",
     whatsNew: {
+      "0.37.0": [
+        "A «Lane» card in the match review: last hits, denies, gold and XP at 3, 5, 7 and 10 minutes against the enemy core of your lane, and whether the lane was won.",
+        "«Your lanes» on Progress: how many of your last lanes you won, and the heroes you lose the lane to."
+      ],
       "0.36.0": [
         "Lane tips for cores in the first ten minutes: no regen on the way to lane, half HP with nothing to heal, no Magic Stick yet, too few denies.",
         "Items against the enemy lineup: Pipe of Insight or Black King Bar against magic damage, Glimmer Cape or Ghost Scepter for a support."
@@ -945,6 +949,10 @@ const I18N = {
     tourHint: "Короткая экскурсия по приложению, на минуту",
     tourStart: "Показать",
     whatsNew: {
+      "0.37.0": [
+        "Карточка «Линия» в разборе матча: добивания, денаи, золото и опыт на 3, 5, 7 и 10-й минутах против кора соперника на вашей линии и итог линии.",
+        "«Ваши линии» в «Прогрессе»: сколько последних линий вы выиграли и против каких героев проигрываете линию."
+      ],
       "0.36.0": [
         "Советы на линии для коров в первые десять минут: нет регенерации по дороге на линию, половина HP и нечем лечиться, ещё нет Magic Stick, мало добитых своих крипов.",
         "Предметы против состава врага: Pipe of Insight или Black King Bar против магического урона, Glimmer Cape или Ghost Scepter для саппорта."

@@ -485,6 +485,30 @@ FINDINGS: dict[str, dict[str, dict[str, str]]] = {
             "drill": "Keep 1–2 sentries from minute 10: at your wards, at Roshan and against invisible heroes.",
         },
     },
+    "lane_lost": {
+        "ru": {
+            "title": "Линия против {hero} проиграна",
+            "text": "К 10-й минуте {lh_mine} {lh_mine_word} у вас против {lh_theirs} у {hero} и на {gold} золота меньше{turn_text}.",
+            "drill": "На тяжёлой линии играйте от опыта: стойте в радиусе опыта, добивайте только безопасные крипы и зовите саппорта или ротацию до 5-й минуты, а не после.",
+        },
+        "en": {
+            "title": "Lost the lane against {hero}",
+            "text": "By minute 10, {lh_mine} last hits for you against {lh_theirs} for {hero}, and {gold} gold behind{turn_text}.",
+            "drill": "In a hard lane, play for experience: stay in XP range, take only the safe last hits and call your support or a rotation before minute 5, not after.",
+        },
+    },
+    "lane_won": {
+        "ru": {
+            "title": "Линия против {hero} выиграна",
+            "text": "К 10-й минуте {lh_mine} {lh_mine_word} у вас против {lh_theirs} у {hero} и на {gold} золота больше{turn_text}.",
+            "drill": "Выигранную линию превращайте в темп: башня, ротация к соседям или лес соперника, пока он отстаёт.",
+        },
+        "en": {
+            "title": "Won the lane against {hero}",
+            "text": "By minute 10, {lh_mine} last hits for you against {lh_theirs} for {hero}, and {gold} gold ahead{turn_text}.",
+            "drill": "Turn a won lane into tempo: a tower, a rotation to the next lane or the enemy jungle while they are behind.",
+        },
+    },
     "stuns_behind": {
         "ru": {
             "title": "Мало контроля в драках",
@@ -879,6 +903,20 @@ def _prepared_params(finding: dict[str, Any], lang: str) -> dict[str, Any]:
             if lang == "ru"
             else f"{count} death{'s' if count != 1 else ''}"
         )
+    if finding["id"] in ("lane_lost", "lane_won"):
+        turn = params.get("turn")
+        if isinstance(turn, int):
+            params["turn_text"] = (
+                f" — разрыв появился с {turn}-й минуты"
+                if lang == "ru"
+                else f"; the gap opened at minute {turn}"
+            )
+        else:
+            params["turn_text"] = ""
+        if lang == "ru" and params.get("lh_mine") is not None:
+            params["lh_mine_word"] = _plural_ru(
+                params["lh_mine"], "добивание", "добивания", "добиваний"
+            )
     if lang == "ru":
         if params.get("count") is not None:
             params["count_deaths"] = _plural_ru(params["count"], "смерть", "смерти", "смертей")

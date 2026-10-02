@@ -25,6 +25,7 @@ from typing import Any
 import requests
 
 from app.dota_constants import hero_name, hero_npc_name
+from app.lane_duel import lane_snapshot
 
 # Seconds to connect / to wait for the answer. A player's history can take
 # OpenDota half a minute on a cold cache (measured 13-35 s), so reading waits
@@ -452,7 +453,7 @@ def summary_from_recent(item: dict[str, Any]) -> dict[str, Any]:
 
 # Bump when trim_match keeps more: parsed matches stored by an older version are
 # fetched again on the next sync (PlayerService).
-TRIM_VERSION = 3
+TRIM_VERSION = 4  # 4: every player's first ten minutes (lane_t)
 
 
 def _my_teamfights(match: dict[str, Any], index: int | None) -> list[dict[str, Any]]:
@@ -503,6 +504,11 @@ def trim_match(match: dict[str, Any], account_id: int) -> dict[str, Any]:
             series = player.get(series_key)
             if isinstance(series, list) and len(series) > 10:
                 entry[key] = series[10]
+        if player is not me:
+            # The first ten minutes of everyone's lane (lane_duel.py).
+            lane = lane_snapshot(player)
+            if lane:
+                entry["lane_t"] = lane
         if player is me:
             entry["me"] = True
             for key in _TIMELINE_FIELDS:
