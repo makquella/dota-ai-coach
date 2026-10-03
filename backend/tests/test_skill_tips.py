@@ -183,3 +183,18 @@ def test_the_ultimate_is_named_without_the_hero_prefix():
     _feed(tips, 320, payload)
     hint = tips.tip(320 + UNSPENT_WAIT, "en", alive=True)
     assert hint["hint"].startswith("Omni Slash is ready to learn")
+
+
+def test_the_first_point_is_called_before_the_horn(client):
+    from match_fixtures import gsi_match_stream
+
+    for payload in gsi_match_stream(minutes=1, death_minutes=(), step_seconds=5):
+        clock = payload["map"]["clock_time"]
+        payload["hero"]["level"] = 1
+        payload.update(_payload(1, [0, 0, 0]) | {"hero": payload["hero"]})
+        client.post("/gsi", json=payload)
+        if clock == -60 + UNSPENT_WAIT:
+            hint = client.get("/overlay/recommendation?lang=en").json().get("map_hint")
+            assert hint and hint["title"] == "Unspent skill point"
+            return
+    raise AssertionError("the stream never reached the check")

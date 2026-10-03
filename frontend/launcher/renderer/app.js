@@ -304,6 +304,9 @@ const I18N = {
     tourHint: "A short tour of the app, one minute",
     tourStart: "Show",
     whatsNew: {
+      "0.40.0": [
+        "The first skill point: before the horn the card names the skill pros on your hero start with (when most of their games agree)."
+      ],
       "0.39.0": [
         "«Hard lane» and «Your lane»: when the hero in your lane has beaten you (or lost to you) in the lane before, the card says so in the first minutes, with your record against them."
       ],
@@ -955,6 +958,9 @@ const I18N = {
     tourHint: "Короткая экскурсия по приложению, на минуту",
     tourStart: "Показать",
     whatsNew: {
+      "0.40.0": [
+        "Первое очко навыка: ещё до начала игры карточка подскажет, с какого навыка начинают про-игроки на вашем герое (если большинство их игр сходится)."
+      ],
       "0.39.0": [
         "«Тяжёлая линия» и «Удобная линия»: если герой на вашей линии уже не раз обыгрывал вас на линии (или проигрывал вам), карточка скажет об этом в первые минуты — со счётом ваших прошлых линий против него."
       ],

@@ -361,3 +361,30 @@ def test_talent_rows_given_as_hero_levels_are_read_too():
     }
     data = OpenDotaClient(session=_Session(routes), min_interval=0).pro_skill_orders(8)
     assert data["talents"] == {TALENT: 15}
+
+
+def test_the_first_point_names_the_pros_opening_skill():
+    build = skill_order(DATA)
+    # All three games open with Blade Fury.
+    assert build["opening"] == {"name": FURY, "agree": 3, "games": 3}
+    ward_first = [WARD, *GAME[1:10], FURY, *GAME[11:]]
+    split = {**DATA, "orders": [GAME, [DANCE, FURY, *GAME[2:]], ward_first]}
+    assert skill_order(split)["opening"] is None  # no 60 % agreement
+    tips = SkillTips()
+    tips.observe(-80, read_skills(_payload(1, 0, 0, 0)))  # level 1, nothing learned
+    hint = tips.tip(-80 + UNSPENT_WAIT, "ru", alive=True, build=build)
+    assert hint["title"] == "Первое очко: Blade Fury"
+    assert hint["hint"] == "Про-игроки на этом герое начинают с Blade Fury (3 из 3 игр)."
+    # Without pro data: the plain unspent-point line.
+    assert tips.tip(-80 + UNSPENT_WAIT, "en", alive=True)["title"] == "Unspent skill point"
+
+
+def test_the_skill_tip_shows_before_the_horn():
+    from app.map_hints import RoleTips, map_hint
+
+    skill = {"kind": "tip", "id": "skill-point@1", "title": "First point", "hint": "x"}
+    tips = RoleTips()
+    base = {"alive": True, "has_ward": None, "lang": "en"}
+    assert map_hint(-60, None, tips, skill=skill, **base) is skill
+    assert map_hint(-60, "carry", tips, **base) is None
+    assert map_hint(None, "carry", tips, skill=skill, **base) is None

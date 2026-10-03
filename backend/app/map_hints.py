@@ -1168,7 +1168,9 @@ def map_hint(
     tip (skill_tips.py), which wins over any scheduled timer: it takes a second
     and the timers stay on the strip under the card."""
     if clock is None or clock < 0 or role is None:
-        return None
+        # Before the horn (or with no role yet) only the skill point: the first
+        # one is usually spent then.
+        return skill if clock is not None and objective is None else None
     tips.observe_level(level)
     tips.observe_bottle(bottle_rune, clock)
     if skill is not None and objective is None:
