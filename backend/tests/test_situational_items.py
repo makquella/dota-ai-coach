@@ -112,10 +112,10 @@ def test_the_farm_advice_says_why_this_item():
     assert translate_ru(now.reason).endswith("недостающие части стоят 4050 золота, у вас 4500.")
     unpriced = _advice(situational_item([_burst(1), _burst(2)], [], None))
     assert unpriced.reason == (
-        "2 deaths in 3 seconds or less from high health, and Aeon Disk gives you time against that."
+        "2 deaths, each from high health in 3 seconds or less, and Aeon Disk gives you time against that."
     )
     assert translate_ru(unpriced.reason) == (
-        "2 смерти за 3 секунды и быстрее с высокого здоровья — Aeon Disk даст время это пережить."
+        "2 раза вас убили с высокого здоровья быстрее чем за 3 секунды — Aeon Disk даст время это пережить."
     )
 
 
