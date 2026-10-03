@@ -12,12 +12,57 @@ counter advice is given.
 
 from __future__ import annotations
 
+import math
 from collections.abc import Callable
 from typing import Any
 
 TEAMS = {"radiant": 2, "dire": 3}
 MAX_ENEMIES = 5
 HERO_PREFIX = "npc_dota_hero_"
+# World coordinates run about ±8200; anything far outside is a broken value.
+MAX_COORDINATE = 12000
+
+
+def visible_enemy_units(
+    minimap: Any, team_name: Any, normalize: Callable[[Any], str]
+) -> list[dict[str, Any]] | None:
+    """[{hero, x, y}] of the enemy heroes on this tick's minimap, x/y in absolute
+    replay units (centre MAP_CENTER) or None when the unit has no position;
+    None without a minimap block or a known team."""
+    from app.advice_context import MAP_CENTER
+
+    own = TEAMS.get(str(team_name or "").strip().lower())
+    if not isinstance(minimap, dict) or own is None:
+        return None
+    units: list[dict[str, Any]] = []
+    for unit in minimap.values():
+        if not isinstance(unit, dict):
+            continue
+        raw = unit.get("unitname")
+        team = unit.get("team")
+        if not isinstance(raw, str) or not raw.lower().startswith(HERO_PREFIX):
+            continue
+        if isinstance(team, bool) or team not in (2, 3) or team == own:
+            continue
+        name = normalize(raw)
+        if not name or any(u["hero"] == name for u in units):
+            continue
+        x, y = _coordinate(unit.get("xpos")), _coordinate(unit.get("ypos"))
+        units.append(
+            {
+                "hero": name,
+                "x": x + MAP_CENTER if x is not None and y is not None else None,
+                "y": y + MAP_CENTER if x is not None and y is not None else None,
+            }
+        )
+    return units
+
+
+def _coordinate(value: Any) -> float | None:
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        return None
+    number = float(value)
+    return number if math.isfinite(number) and abs(number) <= MAX_COORDINATE else None
 
 
 def visible_enemy_heroes(

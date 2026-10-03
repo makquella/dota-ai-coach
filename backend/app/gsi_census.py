@@ -71,6 +71,7 @@ FEATURES: list[tuple[str, str, list[list[str]]]] = [
     ("team", "Player's team", [["player.team_name"]]),
     ("events", "Game events (Roshan, Aegis)", [["events[].event_type"]]),
     ("minimap", "Minimap units", [["minimap.*.unitname", "minimap.*.team"]]),
+    ("minimap_positions", "Minimap unit positions", [["minimap.*.xpos", "minimap.*.ypos"]]),
     ("aegis", "Aegis on the hero", [["hero.aegis"], ["items.slot*.name"]]),
 ]
 # Share of in-game payloads a path must come in to count as sent.
