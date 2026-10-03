@@ -107,6 +107,8 @@ class SchedulerState:
     _last_shown_action_hash: str | None = None
     # When a farm pace card (FARM_PACE_PREFIX) was last shown, whatever came after.
     _farm_pace_shown_game_time: float | None = None
+    # How many farm pace cards this match has shown (FARM_PACE_SLOW_AFTER).
+    _farm_pace_shown_count: int = 0
     _advice_game_time_gaps_seconds: list[float] = field(default_factory=list)
 
     # --- low-HP episode tracking ---

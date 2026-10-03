@@ -108,8 +108,11 @@ def test_a_pace_card_with_new_numbers_waits_four_minutes():
     from app.scheduler.hashing import _action_hash
     from app.schemas import RecommendationResponse
 
-    def remaining(previous, action, at, *, pace_at=None, category="post_laning_safe_farm_route"):
+    def remaining(
+        previous, action, at, *, pace_at=None, category="post_laning_safe_farm_route", shown=1
+    ):
         scheduler = ADVICE_SCHEDULER
+        scheduler.state._farm_pace_shown_count = shown
         scheduler.state._last_shown_game_time_seconds = 720.0
         scheduler.state._last_shown_category = category
         scheduler.state._last_shown_action_hash = _action_hash(previous)
@@ -142,6 +145,9 @@ def test_a_pace_card_with_new_numbers_waits_four_minutes():
     # at 11:00 still waits until 15:00.
     item = "Use your gold: Black King Bar can be bought now."
     assert remaining(item, pace.format(468, 84, 14), 840, pace_at=660.0, category="x") == 60
+    # After three of them the player has heard it: eight minutes.
+    assert remaining(first, pace.format(492, 96, 16), 960, pace_at=720.0, shown=3) == 240
+    assert remaining(first, pace.format(540, 120, 20), 1200, pace_at=720.0, shown=3) == 0
     # Any other advice keeps the two minutes.
     other = "Keep farming toward Black King Bar on the safest waves and camps."
     assert remaining(other, other, 840) == 0
