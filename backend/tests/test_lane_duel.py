@@ -135,3 +135,55 @@ def test_the_career_counts_the_judged_lanes():
     assert [g["match_id"] for g in lanes["games_list"]] == [1, 3, 4, 5]  # oldest first
     assert lanes["hard"] == [{"hero": "Axe", "lost": 2}]
     assert career_lanes(newest_first[:2]) is None
+
+
+def test_past_lanes_per_enemy_and_the_live_record():
+    from app.lane_duel import lane_record_for, lane_records
+
+    def match(result, enemy, judged=True):
+        return {"analysis": {"lane": {"judged": judged, "result": result, "enemy": enemy}}}
+
+    records = lane_records(
+        [
+            match("lost", "Axe"),
+            match("lost", "Axe"),
+            match("won", "Axe"),
+            match("won", "Mars"),
+            match("won", "Mars"),
+            match("lost", "Lina", judged=False),  # a support's lane: not counted
+            {"analysis": None},
+        ]
+    )
+    assert records["Axe"] == {"won": 1, "even": 0, "lost": 2, "games": 3}
+    assert "Lina" not in records
+    assert lane_record_for(["Rubick", "Axe"], records) == {
+        "hero": "Axe",
+        "kind": "hard",
+        "won": 1,
+        "even": 0,
+        "lost": 2,
+        "games": 3,
+    }
+    assert lane_record_for(["Mars"], records)["kind"] == "easy"
+    assert lane_record_for(["Rubick"], records) is None
+    assert lane_record_for([], records) is None
+
+
+def test_the_lane_record_tip_shows_once():
+    from app.map_hints import LANE_RECORD_SHOW, RoleTips
+
+    record = {"hero": "Axe", "kind": "hard", "won": 1, "even": 0, "lost": 2, "games": 3}
+    tips = RoleTips()
+    base = {"alive": True, "has_ward": None}
+    tip = tips.tip(100, "carry", lang="ru", lane_record=record, **base)
+    assert tip["title"] == "Тяжёлая линия: Axe"
+    assert "проиграли линию 2 из 3 раз" in tip["hint"]
+    assert (
+        tips.tip(100 + LANE_RECORD_SHOW + 1, "carry", lang="ru", lane_record=record, **base) is None
+    )
+    # A support's lane is not judged, so no record tip for it.
+    assert RoleTips().tip(100, "support", lang="en", lane_record=record, **base) is None
+    easy = {**record, "kind": "easy", "won": 3, "lost": 0}
+    assert (
+        RoleTips().tip(100, "mid", lang="en", lane_record=easy, **base)["title"] == "Your lane: Axe"
+    )

@@ -304,6 +304,9 @@ const I18N = {
     tourHint: "A short tour of the app, one minute",
     tourStart: "Show",
     whatsNew: {
+      "0.39.0": [
+        "«Hard lane» and «Your lane»: when the hero in your lane has beaten you (or lost to you) in the lane before, the card says so in the first minutes, with your record against them."
+      ],
       "0.38.0": [
         "«Missing» calls in the laning stage: when the enemy mid or your lane opponent has not been seen for 20 seconds, the card warns you (and the voice says it when it reads every advice)."
       ],
@@ -952,6 +955,9 @@ const I18N = {
     tourHint: "Короткая экскурсия по приложению, на минуту",
     tourStart: "Показать",
     whatsNew: {
+      "0.39.0": [
+        "«Тяжёлая линия» и «Удобная линия»: если герой на вашей линии уже не раз обыгрывал вас на линии (или проигрывал вам), карточка скажет об этом в первые минуты — со счётом ваших прошлых линий против него."
+      ],
       "0.38.0": [
         "Подсказка «соперник пропал» на линии: если мида соперника или вашего соперника по линии не видно 20 секунд, карточка предупредит (а голос скажет, если он читает все советы)."
       ],

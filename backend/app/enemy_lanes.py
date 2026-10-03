@@ -75,6 +75,12 @@ class EnemyLanes:
     def lanes(self) -> dict[str, str]:
         return {hero: lane for hero in self._samples if (lane := self.lane(hero))}
 
+    def opponents(self, my_lane: str | None) -> list[str]:
+        """The enemies who laned where the player stands (top / mid / bot)."""
+        if my_lane not in ("top", "mid", "bot"):
+            return []
+        return [hero for hero, lane in self.lanes().items() if lane == my_lane]
+
     def missing(self, clock: Any, my_lane: str | None) -> dict[str, Any] | None:
         """{hero, lane, kind (mid | lane), since, seconds} for the enemy to call
         missing now, or None. `my_lane`: top / mid / bot where the player is."""
