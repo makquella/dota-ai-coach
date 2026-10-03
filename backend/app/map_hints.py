@@ -445,6 +445,16 @@ TIPS = {
         "en": ("", "Take it and go straight to a side lane: the best moment to rotate."),
         "ru": ("", "Заберите её и сразу идите на боковую линию: лучший момент для ротации."),
     },
+    "mid_rune_full": {
+        "en": (
+            "",
+            "Your Bottle still holds a {rune} rune: use it now, or the new rune will not fit in.",
+        ),
+        "ru": (
+            "",
+            "В бутылке ещё лежит руна {rune_ru}: используйте её сейчас, иначе новая туда не поместится.",
+        ),
+    },
     "mid_rune_bottle": {
         "en": ("", "Bottle it if you do not need it now: keep it for a kill after the next wave."),
         "ru": (
@@ -690,6 +700,8 @@ class RoleTips:
         self._shown_record: dict[str, Any] = {}
         # (observer wards carried, the clock since when none was placed).
         self._ward_held: tuple[int, int] | None = None
+        # The clock of the last observer ward placed (the carried count went down).
+        self._ward_placed: int | None = None
         # Level 6 counts as reached only after a level below 6 was seen: a
         # backend started mid-game at level 8 must not call it a new spike.
         self._armed = False
@@ -874,7 +886,9 @@ class RoleTips:
             start = self._every("invis_dust", clock, INVIS_EVERY, INVIS_SHOW)
             if start is not None:
                 return _tip("invis_dust", f"invis_dust@{start}", lang, enemy=invisible)
-        if has_ward is False and clock >= WARD_FROM_CLOCK:
+        placed = self._ward_placed
+        just_warded = placed is not None and 0 <= clock - placed < WARD_EVERY
+        if has_ward is False and clock >= WARD_FROM_CLOCK and not just_warded:
             start = self._every("wards", clock, WARD_EVERY, WARD_SHOW)
             if start is not None:
                 return _tip("wards", f"wards@{start}", lang)
@@ -954,10 +968,12 @@ class RoleTips:
     def _observe_wards(self, charges: int | None, clock: int) -> int | None:
         """Seconds the carried observer wards went without one being placed; None
         without a ward. Buying more keeps the time, placing one restarts it."""
+        held = self._ward_held
+        if held is not None and clock >= held[1] and (charges or 0) < held[0]:
+            self._ward_placed = clock
         if not charges:
             self._ward_held = None
             return None
-        held = self._ward_held
         if held is None or charges < held[0] or clock < held[1]:
             self._ward_held = (charges, clock)
         elif charges > held[0]:
@@ -1185,6 +1201,17 @@ def map_hint(
     ):
         timer = objective
     if (
+        timer is not None
+        and role == "mid"
+        and timer["id"].startswith("power_rune@")
+        and bottle_rune in POWER_RUNES
+    ):
+        # The Bottle holds one rune: the one in it has to go before the next.
+        key = "ru" if lang == "ru" else "en"
+        timer["hint"] = TIPS["mid_rune_full"][key][1].format(
+            rune=bottle_rune, rune_ru=RUNES_RU.get(bottle_rune, bottle_rune)
+        )
+    elif (
         timer is not None
         and role == "mid"
         and timer["id"].startswith("power_rune@")

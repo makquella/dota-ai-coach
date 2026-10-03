@@ -282,6 +282,35 @@ def test_mid_last_hit_pace_and_bottle():
     assert RoleTips().tip(220, "mid", alive=True, has_ward=None, lang="en", items=None) is None
 
 
+def test_a_mid_with_a_power_rune_still_bottled_is_told_to_use_it_first():
+    for lang, text in (("en", "still holds a Haste rune"), ("ru", "лежит руна ускорения")):
+        rune = map_hint(
+            8 * 60 - 10,
+            "mid",
+            RoleTips(),
+            alive=True,
+            has_ward=None,
+            lang=lang,
+            level=7,
+            items=["item_bottle"],
+            bottle_rune="Haste",
+        )
+        assert rune["id"].startswith("power_rune@") and text in rune["hint"]
+    # A Regeneration rune in the Bottle is no reason: the usual rotation text.
+    regen = map_hint(
+        8 * 60 - 10,
+        "mid",
+        RoleTips(),
+        alive=True,
+        has_ward=None,
+        lang="en",
+        level=7,
+        items=["item_bottle"],
+        bottle_rune="Regeneration",
+    )
+    assert "side lane" in regen["hint"]
+
+
 def test_the_power_rune_is_a_rotation_for_a_mid_with_level_six():
     early = map_hint(8 * 60 - 10, "mid", RoleTips(), alive=True, has_ward=None, lang="en", level=5)
     assert early["title"] == "Power rune" and "rotate" not in early["hint"]
