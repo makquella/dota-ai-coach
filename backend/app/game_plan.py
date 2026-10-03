@@ -129,6 +129,21 @@ def _key_item(meta: dict[str, Any] | None) -> dict[str, Any] | None:
     return {"key": item["key"], "name": item["name"], "typical_t": None, "winrate": None}
 
 
+def build_items(meta: dict[str, Any] | None, limit: int = 5) -> list[dict[str, Any]]:
+    """The usual build as icons for the plan card: the two most bought early items,
+    then the mid game ones, [{key, name}] without repeats."""
+    if not meta:
+        return []
+    build = popular_build(meta.get("popularity"), meta.get("constants"))
+    rows: list[dict[str, Any]] = []
+    for item in (build.get("early") or [])[:2] + (build.get("mid") or []):
+        if item["key"] not in {row["key"] for row in rows}:
+            rows.append({"key": item["key"], "name": item["name"]})
+        if len(rows) >= limit:
+            break
+    return rows
+
+
 def build_game_plan(
     *,
     focus: str | None = None,
@@ -200,7 +215,12 @@ def build_game_plan(
 
     if not lines:
         return None
-    return _plan(text, hero, role, lines, record_rows)
+    plan = _plan(text, hero, role, lines, record_rows)
+    items = build_items(meta)
+    if items:
+        # Drawn as item icons on the overlay card (the player asked for them).
+        plan["items"] = items
+    return plan
 
 
 def _hard_opponents(

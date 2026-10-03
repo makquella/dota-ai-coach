@@ -199,7 +199,24 @@ body:not(.locked) .overlay-shell {
   -webkit-box-orient: vertical;
 }
 
-/* Plan for this game (pick to 1:30): one line per goal. */
+/* Item icons under the first line (the plan's build, the usual start). */
+.items-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: var(--sp-1);
+}
+
+.items-row.hidden {
+  display: none;
+}
+
+.items-row .dota-item.dota-pic-sm {
+  width: 32px;
+  height: 24px;
+}
+
+/* Plan for this game (-0:20 to 1:30): one line per goal. */
 .plan .action {
   font-size: var(--fs-14);
   -webkit-line-clamp: 2;
@@ -361,4 +378,9 @@ body:not(.locked) .overlay-shell {
 .priority {
   display: inline-flex;
   align-items: center;
+}
+
+/* With the item icons the plan keeps two lines of goals: the card stays in its window. */
+.plan:has(.items-row:not(.hidden)) .reason {
+  -webkit-line-clamp: 2;
 }

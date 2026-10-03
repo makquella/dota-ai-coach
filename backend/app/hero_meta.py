@@ -91,6 +91,38 @@ def build_items(
     return result
 
 
+# Items everyone gets at the start or that are no choice: never named as a start buy.
+NOT_START_ITEMS = {"tpscroll", "ward_observer", "ward_sentry", "ward_dispenser"}
+
+
+def start_items(
+    popularity: dict[str, dict[str, int]] | None,
+    constants: dict[str, Any] | None,
+    *,
+    limit: int = 6,
+    min_share: float = 0.4,
+) -> list[dict[str, Any]]:
+    """The hero's usual starting purchase from OpenDota's `start_game_items`:
+    the items bought in at least `min_share` as many games as the most bought
+    one, most bought first, as [{key, name}]; [] when unknown."""
+    if not popularity or not constants:
+        return []
+    counts = popularity.get("start_game_items") or {}
+    if not counts:
+        return []
+    by_id = constants.get("by_id") or {}
+    top = max(counts.values())
+    rows = []
+    for item_id, count in sorted(counts.items(), key=lambda kv: -kv[1]):
+        key = by_id.get(str(item_id))
+        if not key or key in NOT_START_ITEMS or count < top * min_share:
+            continue
+        rows.append({"key": key, "name": item_name(key, constants)})
+        if len(rows) >= limit:
+            break
+    return rows
+
+
 def popular_build(
     popularity: dict[str, dict[str, int]] | None,
     constants: dict[str, Any] | None,

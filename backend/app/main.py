@@ -485,19 +485,21 @@ def _gold_hint(
     clock = extra.get("clock_time")
     gold = state.get("gold")
     role_name = role.get("role") if role else None
+    hero = str(state.get("hero") or "")
+    names = extra.get("item_names") if isinstance(extra.get("item_names"), list) else None
     next_item = None
+    part = None
     if role_name != "support" and isinstance(clock, int) and clock >= 3 * 60:
-        names = extra.get("item_names")
         try:
-            item = PLAYER_SERVICE.next_item(
-                str(state.get("hero") or ""),
-                names if isinstance(names, list) else None,
-                minute=state.get("minute"),
-            )
+            item = PLAYER_SERVICE.next_item(hero, names, minute=state.get("minute"))
+            if isinstance(item, dict) and isinstance(item.get("key"), str):
+                next_item = item
+                # The quick-buy step: the part the gold already buys.
+                part = PLAYER_SERVICE.buy_now(
+                    hero, item["key"], names, gold if isinstance(gold, int) else None
+                )
         except Exception as error:  # noqa: BLE001 - never breaks the live path
             record_error("gold-hint", error)
-            item = None
-        next_item = item.get("name") if isinstance(item, dict) else None
     buyback = extra.get("buyback_cost")
     return MATCH_MEMORY.gold.tip(
         clock if isinstance(clock, int) else None,
@@ -506,8 +508,18 @@ def _gold_hint(
         alive=extra.get("alive") is not False,
         role=role_name,
         buyback_cost=buyback if isinstance(buyback, int) else None,
-        next_item=next_item if isinstance(next_item, str) else None,
+        next_item=next_item,
+        buy_now=part,
+        start_items=_start_items(state) if isinstance(clock, int) and clock < 3 * 60 else None,
     )
+
+
+def _start_items(state: Mapping[str, object]) -> list[dict[str, Any]] | None:
+    try:
+        return PLAYER_SERVICE.start_items(str(state.get("hero") or "")) or None
+    except Exception as error:  # noqa: BLE001 - never breaks the live path
+        record_error("start-items", error)
+        return None
 
 
 def _with_gold_hint(

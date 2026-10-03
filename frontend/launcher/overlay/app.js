@@ -5,6 +5,7 @@ const statusRow = document.querySelector("#status-row");
 const actionEl = document.querySelector("#action");
 const reasonEl = document.querySelector("#reason");
 const stripEl = document.querySelector("#timer-strip");
+const itemsEl = document.querySelector("#items-row");
 
 // Short card texts in the system language; advice itself comes from the backend.
 const OVERLAY_TEXT = {
@@ -168,6 +169,7 @@ let currentHint = null;
 const spokenHints = new Set();
 
 function renderOverlay(data) {
+  renderItems([]);
   renderStrip(data.post_game && data.post_game.main ? [] : data.timer_strip);
   // The score screen after a match: the summary of its review, nothing else.
   if (data.post_game && data.post_game.main) {
@@ -241,6 +243,19 @@ function renderOverlay(data) {
   }
 
   renderAdvice(data, { refreshTimer: true });
+}
+
+// Item icons under the card's first line ([{key, name}]): the plan's build, the
+// usual start on the empty-bag card. A picture that is not cached yet shows its
+// initials (dota-icons.js).
+function renderItems(items) {
+  const list = Array.isArray(items) ? items.filter((item) => item && item.key).slice(0, 6) : [];
+  itemsEl.classList.toggle("hidden", !list.length || !window.DotaIcons);
+  if (!list.length || !window.DotaIcons) {
+    itemsEl.replaceChildren();
+    return;
+  }
+  itemsEl.replaceChildren(...list.map((item) => window.DotaIcons.itemPicture(document, item.key, "sm", item.name)));
 }
 
 // The strip under the card: «Rune 0:50 · Stack 0:12 · Roshan 3:10», counting down.
@@ -399,6 +414,7 @@ function showPlan(data) {
   }
   actionEl.textContent = first;
   reasonEl.textContent = rest.join("\n");
+  renderItems(data.game_plan.items);
   renderStatusRow(data);
   reveal();
   markCard(`plan|${heroName}`);
@@ -431,10 +447,11 @@ function hintShort(hint) {
 function showHint(hint, data) {
   clearTimeout(hideTimer);
   shell.className = "overlay-shell hint coaching";
-  labelEl.textContent = tr("map");
+  labelEl.textContent = hint.label || tr("map");
   priorityEl.textContent = Number.isFinite(hint.in_seconds) ? tr("hintIn", Math.max(0, hint.in_seconds)) : "";
   actionEl.textContent = hint.title;
   reasonEl.textContent = hint.hint || "";
+  renderItems(hint.items);
   renderStatusRow(data);
   reveal();
   markCard(`hint|${hint.id || hint.title}`);
