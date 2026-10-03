@@ -688,9 +688,13 @@ export async function deleteDevice(installId, env) {
   return json({ ok: true, deleted: rows.length });
 }
 
+// The secret comes from a repository secret pasted by hand, which can carry a
+// trailing newline or space; the admin page trims what is typed. Both sides are
+// compared without the whitespace around them.
 function isAdmin(request, env) {
-  const token = env.ADMIN_TOKEN;
-  return Boolean(token) && request.headers.get("authorization") === `Bearer ${token}`;
+  const token = String(env.ADMIN_TOKEN || "").trim();
+  const header = String(request.headers.get("authorization") || "");
+  return Boolean(token) && header.startsWith("Bearer ") && header.slice(7).trim() === token;
 }
 
 async function adminList(env) {
