@@ -304,6 +304,9 @@ const I18N = {
     tourHint: "A short tour of the app, one minute",
     tourStart: "Show",
     whatsNew: {
+      "0.38.0": [
+        "«Missing» calls in the laning stage: when the enemy mid or your lane opponent has not been seen for 20 seconds, the card warns you (and the voice says it when it reads every advice)."
+      ],
       "0.37.0": [
         "A «Lane» card in the match review: last hits, denies, gold and XP at 3, 5, 7 and 10 minutes against the enemy core of your lane, and whether the lane was won.",
         "«Your lanes» on Progress: how many of your last lanes you won, and the heroes you lose the lane to."
@@ -949,6 +952,9 @@ const I18N = {
     tourHint: "Короткая экскурсия по приложению, на минуту",
     tourStart: "Показать",
     whatsNew: {
+      "0.38.0": [
+        "Подсказка «соперник пропал» на линии: если мида соперника или вашего соперника по линии не видно 20 секунд, карточка предупредит (а голос скажет, если он читает все советы)."
+      ],
       "0.37.0": [
         "Карточка «Линия» в разборе матча: добивания, денаи, золото и опыт на 3, 5, 7 и 10-й минутах против кора соперника на вашей линии и итог линии.",
         "«Ваши линии» в «Прогрессе»: сколько последних линий вы выиграли и против каких героев проигрываете линию."

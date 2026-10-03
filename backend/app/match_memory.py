@@ -16,6 +16,7 @@ from typing import Any
 
 from app.buyback_tracker import BuybackTracker
 from app.enemy_heroes import EnemyHeroes
+from app.enemy_lanes import EnemyLanes
 from app.farm_tracker import FarmTracker
 from app.live_role import LiveRoleTracker
 from app.map_hints import RoleTips
@@ -102,6 +103,7 @@ class MatchMemory:
         self.skills = SkillTips()
         self.roshan = RoshanTimer()
         self.enemies = EnemyHeroes()
+        self.enemy_lanes = EnemyLanes()
 
     def observe_state(self, state: dict[str, Any]) -> dict[str, Any]:
         now_dt = datetime.now(UTC)
@@ -180,6 +182,7 @@ class MatchMemory:
         if extra.get("source_type") == "live_gsi":
             self.roshan.observe(extra)
             self.enemies.observe(extra.get("visible_enemies"))
+            self.enemy_lanes.observe(_game_clock(state), extra.get("enemy_units"))
             skills = extra.get("skills")
             self.skills.observe(_game_clock(state), skills if isinstance(skills, dict) else None)
             self.role.observe(

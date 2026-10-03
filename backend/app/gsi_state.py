@@ -12,7 +12,7 @@ from typing import Any
 from app.advice_context import MAP_CENTER, build_advice_context
 from app.config import GSI_DEBUG_LOG, GSI_DEBUG_SAMPLES_DIR
 from app.dota_constants import NPC_TO_HERO_ID, hero_name
-from app.enemy_heroes import visible_enemy_heroes
+from app.enemy_heroes import visible_enemy_heroes, visible_enemy_units
 from app.hero_profiles import evaluate_laning_context
 from app.hero_safety import evaluate_hero_safety
 from app.item_timing import normalize_item_name
@@ -461,6 +461,10 @@ def _normalize_extra_context(
         "gsi_events": _objective_events(payload.get("events")),
         # Enemy heroes on the player's minimap (enemy_heroes.py; None: no block).
         "visible_enemies": visible_enemy_heroes(
+            payload.get("minimap"), player_block.get("team_name"), _normalize_hero_name
+        ),
+        # The same with their positions (enemy_lanes.py: who laned where, who is missing).
+        "enemy_units": visible_enemy_units(
             payload.get("minimap"), player_block.get("team_name"), _normalize_hero_name
         ),
         "has_aegis": _has_aegis(hero_block, payload.get("items")),

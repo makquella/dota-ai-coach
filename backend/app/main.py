@@ -44,7 +44,7 @@ from app.gsi_state import (
     update_latest_gsi,
 )
 from app.live_role import SETTINGS as ROLE_SETTINGS
-from app.live_role import role_setting, set_role_setting
+from app.live_role import lane_of, role_setting, set_role_setting
 from app.live_session_recorder import LIVE_SESSION_RECORDER
 from app.live_tools import disabled_copy
 from app.llm_provider import generate_llm_recommendation, is_llm_provider_enabled
@@ -72,7 +72,7 @@ app = FastAPI(
     lifespan=_lifespan,
     title="Wardly",
     description="MVP-1: rule-based carry coach with local knowledge-base RAG.",
-    version="0.37.0",
+    version="0.38.0",
 )
 app.include_router(player_router)
 
@@ -106,7 +106,7 @@ if FRONTEND_DIR.exists():
 @app.get("/", summary="Health check")
 def root():
     """Simple health-check endpoint."""
-    return {"status": "ok", "service": "Wardly", "version": "0.37.0"}
+    return {"status": "ok", "service": "Wardly", "version": "0.38.0"}
 
 
 @app.get("/health", summary="Health check")
@@ -340,6 +340,19 @@ def _advisor_coverage(state: Mapping[str, object]) -> str | None:
     return coverage
 
 
+def _missing_enemy(extra: dict[str, Any], clock: Any) -> dict[str, Any] | None:
+    """The enemy to call missing (enemy_lanes.py) for the lane the player stands
+    in; None while dead or without a position."""
+    x, y = extra.get("xpos"), extra.get("ypos")
+    if (
+        extra.get("alive") is False
+        or not isinstance(x, (int, float))
+        or not isinstance(y, (int, float))
+    ):
+        return None
+    return MATCH_MEMORY.enemy_lanes.missing(clock, lane_of(float(x), float(y)))
+
+
 def _plays_support(state: Mapping[str, object] | None) -> bool:
     state = state or {}
     raw_extra = state.get("extra_context")
@@ -412,6 +425,7 @@ def _live_role_and_hint(response: dict[str, object], lang: str) -> dict[str, obj
             denies=extra.get("denies") if isinstance(extra.get("denies"), int) else None,
             hp=state.get("hp_percent") if isinstance(state.get("hp_percent"), int) else None,
             regen=extra.get("regen_items") if isinstance(extra.get("regen_items"), list) else None,
+            missing=_missing_enemy(extra, clock),
             roshan_open=MATCH_MEMORY.roshan.maybe_up(clock if isinstance(clock, int) else None),
             objective=MATCH_MEMORY.roshan.hint(clock if isinstance(clock, int) else None, lang),
             skill=MATCH_MEMORY.skills.tip(

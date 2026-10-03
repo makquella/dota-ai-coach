@@ -73,6 +73,9 @@ SAVE_ITEMS = {
     "item_guardian_greaves",
 }
 SAVE_FROM = 12 * 60
+# «Missing» calls (enemy_lanes.py): shown this long, at most one per MISSING_GAP.
+MISSING_SHOW = 15
+MISSING_GAP = 45
 SAVE_GOLD = 1200
 SAVE_EVERY = 5 * 60
 SAVE_SHOW = 20
@@ -302,6 +305,31 @@ TIPS = {
             "{item} против их керри",
             "У врага {enemy} и другие керри с ударами с руки: {item} на несколько секунд "
             "спасает от их атак.",
+        ),
+    },
+    # An enemy gone from the minimap in the laning stage (enemy_lanes.py).
+    "missing_mid": {
+        "en": (
+            "Enemy mid missing: {hero}",
+            "{hero} has not been seen for {seconds} s and may be coming to your lane. "
+            "Stay closer to your tower.",
+        ),
+        "ru": (
+            "Не видно мида: {hero}",
+            "{hero} не видно уже {seconds} с — может идти на вашу линию. "
+            "Держитесь ближе к своей башне.",
+        ),
+    },
+    "missing_lane": {
+        "en": (
+            "Your lane opponent is missing: {hero}",
+            "{hero} has not been seen for {seconds} s: maybe coming around through the "
+            "trees or off to another lane. Don't push up too far.",
+        ),
+        "ru": (
+            "Соперник пропал с линии: {hero}",
+            "{hero} не видно уже {seconds} с — может обходить через лес или идти на "
+            "другую линию. Не заходите далеко вперёд.",
         ),
     },
     "mid_six": {
@@ -670,6 +698,35 @@ class RoleTips:
         if shown is None or clock - shown >= every or clock < shown:
             self._shown[key] = shown = clock
         return shown if clock - shown <= show else None
+
+    def missing(
+        self, clock: int, lang: str, missing: dict[str, Any] | None
+    ) -> dict[str, Any] | None:
+        """The «missing» call for one disappearance of an enemy: shown for
+        MISSING_SHOW seconds (with the seconds of its first second), at most
+        one call per MISSING_GAP; nothing once the enemy is seen again."""
+        if not missing or missing.get("kind") not in ("mid", "lane"):
+            return None
+        key = f"missing:{missing['hero']}@{missing['since']}"
+        if key not in self._shown:
+            last = self._shown.get("missing:last")
+            if isinstance(last, int) and clock - last < MISSING_GAP:
+                return None
+            self._shown[key] = clock
+            self._shown["missing:last"] = clock
+            self._shown[f"{key}:seconds"] = int(missing["seconds"])
+        start = self._shown[key]
+        if not 0 <= clock - start <= MISSING_SHOW:
+            return None
+        tip = _tip(
+            f"missing_{missing['kind']}",
+            key,
+            lang,
+            hero=missing["hero"],
+            seconds=self._shown[f"{key}:seconds"],
+        )
+        tip["speak"] = True
+        return tip
 
     def tip(
         self,
@@ -1043,6 +1100,7 @@ def map_hint(
     denies: int | None = None,
     hp: int | None = None,
     regen: list[str] | None = None,
+    missing: dict[str, Any] | None = None,
 ) -> dict[str, Any] | None:
     """A timer, but a role tip over a minor one (runes, lotus); None before the
     horn or without a role. `objective`: a Roshan / Aegis timer (roshan_timer.py),
@@ -1055,6 +1113,10 @@ def map_hint(
     tips.observe_bottle(bottle_rune, clock)
     if skill is not None and objective is None:
         return skill
+    # A missing enemy (enemy_lanes.py) is a danger now: over any scheduled timer.
+    called = tips.missing(clock, lang, missing if alive else None)
+    if called is not None:
+        return called
     timer = next_timer(clock, role, lang)
     if objective is not None and (
         timer is None or timer["minor"] or objective["in_seconds"] <= timer["in_seconds"]
