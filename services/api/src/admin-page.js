@@ -88,7 +88,10 @@ export const ADMIN_HTML = `<!doctype html>
 `;
 
 // Runs in the browser only (served as /admin/app.js); kept as a function so the
-// Worker never evaluates it and no template escaping is needed.
+// Worker never evaluates it and no template escaping is needed. The deploy
+// bundles it (wrangler/esbuild keep names), which adds calls to a `__name`
+// helper inside the function's text — ADMIN_JS defines it first, or the page's
+// script dies on its first line and the form does nothing.
 function adminApp() {
   const $ = (id) => document.getElementById(id);
   const KEY = "wardly-admin-token";
@@ -266,4 +269,4 @@ function adminApp() {
   load();
 }
 
-export const ADMIN_JS = `(${adminApp.toString()})();\n`;
+export const ADMIN_JS = `var __name = (target) => target;\n(${adminApp.toString()})();\n`;

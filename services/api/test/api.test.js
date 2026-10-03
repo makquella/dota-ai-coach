@@ -5,6 +5,8 @@ import worker, { cleanup, config, versionAtLeast } from "../src/index.js";
 import { RATE_PER_HOUR, redact, reportId, summarize, validateReport } from "../src/report.js";
 import { siteHome } from "../src/share.js";
 import { readFileSync } from "node:fs";
+import vm from "node:vm";
+import { ADMIN_JS } from "../src/admin-page.js";
 import { renderProfilePage } from "../src/profile.js";
 
 // In-memory stand-ins for the D1 and R2 bindings, for the statements the Worker uses.
@@ -248,6 +250,36 @@ test("a player can delete their reports; old ones expire", async () => {
   assert.equal(await cleanup(env, Date.now() + 181 * 24 * 3_600_000), 1);
   assert.equal(reports.length, 0);
   assert.equal(objects.size, 0);
+});
+
+test("the admin page script runs, also as the deploy bundles it", () => {
+  // wrangler/esbuild add __name(...) calls inside the function's text; without
+  // the helper the script died on its first line and «Показать» did nothing.
+  const bundled = ADMIN_JS.replace('const KEY = ', '__name(() => 0, "probe");\n  const KEY = ');
+  assert.notEqual(bundled, ADMIN_JS);
+  for (const source of [ADMIN_JS, bundled]) {
+    const listeners = {};
+    const node = (id) => ({
+      id,
+      value: "",
+      textContent: "",
+      className: "",
+      classList: { add() {}, remove() {} },
+      addEventListener(type) {
+        listeners[`${id}:${type}`] = true;
+      },
+      replaceChildren() {}
+    });
+    const nodes = {};
+    const context = {
+      document: { getElementById: (id) => (nodes[id] ||= node(id)), createElement: () => node("x") },
+      sessionStorage: { getItem: () => "", setItem() {}, removeItem() {} },
+      fetch: async () => ({ status: 404 })
+    };
+    vm.runInNewContext(source, context);
+    assert.ok(listeners["login:submit"], "the form listens for submit");
+    assert.ok(listeners["days:change"]);
+  }
 });
 
 test("admin endpoints need the token and hide otherwise", async () => {
