@@ -304,6 +304,11 @@ const I18N = {
     tourHint: "A short tour of the app, one minute",
     tourStart: "Show",
     whatsNew: {
+      "0.40.1": [
+        "The rating graph on the Profile tab is now a smooth line through your games instead of a zigzag.",
+        "Your profile page for friends looks the way it does in the app: the same frame, banner and name colour, and your Steam avatar.",
+        "Long titles in the shop sit in the middle of their card."
+      ],
       "0.40.0": [
         "The first skill point: before the horn the card names the skill pros on your hero start with (when most of their games agree)."
       ],
@@ -958,6 +963,11 @@ const I18N = {
     tourHint: "Короткая экскурсия по приложению, на минуту",
     tourStart: "Показать",
     whatsNew: {
+      "0.40.1": [
+        "График рейтинга во вкладке «Профиль» теперь плавная линия, а не ломаная.",
+        "Страница вашего профиля для друзей выглядит как в приложении: та же рамка, баннер и цвет ника, и ваша аватарка из Steam.",
+        "Длинные титулы в магазине стоят по центру карточки."
+      ],
       "0.40.0": [
         "Первое очко навыка: ещё до начала игры карточка подскажет, с какого навыка начинают про-игроки на вашем герое (если большинство их игр сходится)."
       ],

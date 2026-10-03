@@ -4,6 +4,8 @@ import test from "node:test";
 import worker, { cleanup, config, versionAtLeast } from "../src/index.js";
 import { RATE_PER_HOUR, redact, reportId, summarize, validateReport } from "../src/report.js";
 import { siteHome } from "../src/share.js";
+import { readFileSync } from "node:fs";
+import { renderProfilePage } from "../src/profile.js";
 
 // In-memory stand-ins for the D1 and R2 bindings, for the statements the Worker uses.
 function fakeEnv(vars = {}, { r2 = true } = {}) {
@@ -541,6 +543,7 @@ const TOKEN = "0123456789abcdef0123456789abcdef";
 const CARD = {
   lang: "ru",
   name: "farm_or_die 76561198000000000",
+  avatar: "0123456789abcdef0123456789abcdef01234567",
   title: "Легенда Wardly",
   level: 7,
   rank_tier: 54,
@@ -593,8 +596,34 @@ test("a profile card is published, read by friend code and shown as a page", asy
   assert.match(html, /WD-4K7P9QX2/);
   assert.match(html, /Легенда Wardly/);
   assert.doesNotMatch(html, /76561198/);
+  // The looks and the avatar as the launcher draws them.
+  assert.match(html, /class="pf-banner cos-banner_aurora"/);
+  assert.match(html, /class="pf-avatar-wrap cos-frame_arcana"/);
+  assert.match(html, /src="https:\/\/avatars\.steamstatic\.com\/0123456789abcdef0123456789abcdef01234567_full\.jpg"/);
+  assert.match(response.headers.get("content-security-policy"), /img-src [^;]*https:\/\/avatars\.steamstatic\.com/);
   response = await worker.fetch(new Request("https://api.example/p/zzzzzzzz"), env, ctx);
   assert.equal(response.status, 404);
+});
+
+test("a profile page without looks or avatar wears the free looks, and a bad avatar is dropped", async () => {
+  const { env, profiles } = fakeEnv();
+  const card = { ...CARD, avatar: "https://evil.example/x.jpg", equipped: {} };
+  await worker.fetch(putCard("4k7p9qx2", { card }), env, ctx);
+  assert.equal(JSON.parse(profiles[0].body).avatar, null);
+  const html = await (await worker.fetch(new Request("https://api.example/p/4k7p9qx2"), env, ctx)).text();
+  assert.match(html, /class="pf-banner cos-banner_plain"/);
+  assert.match(html, /class="pf-avatar-wrap cos-frame_plain"/);
+  assert.doesNotMatch(html, /<img src="https:\/\/evil/);
+});
+
+test("the profile page carries every look the launcher has", () => {
+  const css = readFileSync(new URL("../../../frontend/launcher/renderer/styles.css", import.meta.url), "utf8");
+  const looks = new Set(css.match(/\.cos-(?:frame|banner|name|title)_[a-z0-9_]+/g));
+  assert.ok(looks.size > 15);
+  const html = renderProfilePage({ ...CARD, name: "x", avatar: null, achievements: [], stats: { app_games: 0, app_winrate: null }, mmr: null }, { id: "4k7p9qx2", url: "" });
+  for (const cls of looks) {
+    assert.ok(html.includes(cls), `${cls} is not on the profile page`);
+  }
 });
 
 test("a profile card is hidden with its token, by the device delete and after 180 days", async () => {

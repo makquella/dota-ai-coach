@@ -4386,6 +4386,17 @@
     return h("section", { class: "card", id: "pf-friends" }, h("div", { class: "card-body pf-friends" }, parts));
   }
 
+  // A friend's Steam avatar from its image hash (the card keeps nothing else of it).
+  function friendAvatar(hash, initials) {
+    const avatar = h("div", { class: "pf-avatar" }, h("span", { class: "pf-initials small", text: initials }));
+    if (/^[0-9a-f]{40}$/.test(String(hash || ""))) {
+      const img = h("img", { src: `https://avatars.steamstatic.com/${hash}_full.jpg`, alt: "", referrerpolicy: "no-referrer" });
+      img.addEventListener("error", () => img.remove());
+      avatar.append(img);
+    }
+    return avatar;
+  }
+
   function boardRow(row) {
     const card = row.card || {};
     const worn = card.equipped || {};
@@ -4395,7 +4406,7 @@
       "li",
       { class: `pf-board-row${row.me ? " me" : ""}` },
       h("span", { class: "pf-place", text: String(row.place) }),
-      h("div", { class: `pf-avatar-wrap mini cos-${worn.frame || "frame_plain"}` }, h("div", { class: "pf-avatar" }, h("span", { class: "pf-initials small", text: initials }))),
+      h("div", { class: `pf-avatar-wrap mini cos-${worn.frame || "frame_plain"}` }, friendAvatar(card.avatar, initials)),
       h(
         "div",
         { class: "pf-board-who" },

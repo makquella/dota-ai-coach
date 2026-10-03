@@ -213,6 +213,7 @@
       showTip(host, tip, (x(i) / width) * box.width, PAD.top, options.xLabel ? options.xLabel(i) : String(i), rows);
     };
     const hide = () => {
+      marker.classList.add("hidden");
       cross.classList.add("hidden");
       tip.classList.add("hidden");
     };
@@ -512,6 +513,66 @@
    * an anchor (the player's own number) hollow — and one tooltip.
    * options: { points: [{ mmr, win, anchor, title, detail }], height, ariaLabel }
    */
+  const SMOOTH_WINDOW = 5;
+
+  /** A centred moving average; the first and the last value stay exact. */
+  function smoothed(values) {
+    const half = Math.floor(SMOOTH_WINDOW / 2);
+    return values.map((value, i) => {
+      if (i === 0 || i === values.length - 1) {
+        return value;
+      }
+      const from = Math.max(0, i - half);
+      const to = Math.min(values.length - 1, i + half);
+      let sum = 0;
+      for (let k = from; k <= to; k += 1) {
+        sum += values[k];
+      }
+      return sum / (to - from + 1);
+    });
+  }
+
+  /** A monotone cubic (Fritsch–Carlson) path through the points: smooth,
+   * and it never overshoots between two of them. */
+  function smoothPath(pts) {
+    const n = pts.length;
+    if (n < 3) {
+      return `M${pts.map((p) => p.join(",")).join(" L")}`;
+    }
+    const dx = [];
+    const slope = [];
+    for (let i = 0; i < n - 1; i += 1) {
+      dx.push(pts[i + 1][0] - pts[i][0]);
+      slope.push((pts[i + 1][1] - pts[i][1]) / (dx[i] || 1));
+    }
+    const tangent = [slope[0]];
+    for (let i = 1; i < n - 1; i += 1) {
+      tangent.push(slope[i - 1] * slope[i] <= 0 ? 0 : (slope[i - 1] + slope[i]) / 2);
+    }
+    tangent.push(slope[n - 2]);
+    for (let i = 0; i < n - 1; i += 1) {
+      if (slope[i] === 0) {
+        tangent[i] = 0;
+        tangent[i + 1] = 0;
+        continue;
+      }
+      const a = tangent[i] / slope[i];
+      const b = tangent[i + 1] / slope[i];
+      const h = a * a + b * b;
+      if (h > 9) {
+        const t = 3 / Math.sqrt(h);
+        tangent[i] = t * a * slope[i];
+        tangent[i + 1] = t * b * slope[i];
+      }
+    }
+    let d = `M${pts[0][0]},${pts[0][1]}`;
+    for (let i = 0; i < n - 1; i += 1) {
+      const third = dx[i] / 3;
+      d += ` C${pts[i][0] + third},${pts[i][1] + tangent[i] * third} ${pts[i + 1][0] - third},${pts[i + 1][1] - tangent[i + 1] * third} ${pts[i + 1][0]},${pts[i + 1][1]}`;
+    }
+    return d;
+  }
+
   function rating(host, options) {
     host.replaceChildren();
     host.classList.add("chart");
@@ -537,14 +598,29 @@
       const label = el("text", { x: pad.left - 8, y: y(value) + 4, class: "chart-tick", "text-anchor": "end" }, svg);
       label.textContent = formatNumber(value);
     }
+    // Every game moves the rating by ±25, so the raw line is a saw: the curve
+    // shows the trend (a moving average over SMOOTH_WINDOW games, the first and
+    // the last point kept exact) drawn as a smooth monotone curve. The real
+    // value of each game stays in the tooltip.
     const coords = points.map((p, i) => [x(i), y(p.mmr)]);
-    const d = `M${coords[0][0]},${y(low)} L${coords.map((c) => c.join(",")).join(" L")} L${coords[count - 1][0]},${y(low)} Z`;
-    el("path", { d, class: "rating-area" }, svg);
-    el("polyline", { points: coords.map((c) => c.join(",")).join(" "), class: "chart-line rating-line" }, svg);
+    const trend = smoothed(values).map((v, i) => [x(i), y(v)]);
+    const curve = smoothPath(trend);
+    el("path", { d: `${curve} L${trend[count - 1][0]},${y(low)} L${trend[0][0]},${y(low)} Z`, class: "rating-area" }, svg);
+    el("path", { d: curve, class: "chart-line rating-line" }, svg);
     points.forEach((p, i) => {
-      const kind = p.anchor ? "rating-dot-anchor" : p.win ? "rating-dot-win" : "rating-dot-loss";
-      el("circle", { cx: coords[i][0], cy: coords[i][1], r: count > 40 ? 2.5 : 3.5, class: `rating-dot ${kind}` }, svg);
+      if (!p.anchor) {
+        return;
+      }
+      el("circle", { cx: trend[i][0], cy: trend[i][1], r: 3.5, class: "rating-dot rating-dot-anchor" }, svg);
     });
+    const lastPoint = points[count - 1];
+    el("circle", {
+      cx: coords[count - 1][0],
+      cy: coords[count - 1][1],
+      r: 4,
+      class: `rating-dot ${lastPoint.win ? "rating-dot-win" : "rating-dot-loss"}`
+    }, svg);
+    const marker = el("circle", { cx: 0, cy: 0, r: 4, class: "rating-dot rating-dot-anchor hidden" }, svg);
     const last = coords[count - 1];
     const end = el("text", { x: last[0] + 8, y: last[1] + 4, class: "chart-end" }, svg);
     end.textContent = formatNumber(points[count - 1].mmr);
@@ -559,6 +635,9 @@
       return Math.max(0, Math.min(count - 1, Math.round(((px - pad.left) / innerW) * (count - 1))));
     };
     const show = (i) => {
+      marker.setAttribute("cx", trend[i][0]);
+      marker.setAttribute("cy", trend[i][1]);
+      marker.classList.remove("hidden");
       cross.setAttribute("x1", coords[i][0]);
       cross.setAttribute("x2", coords[i][0]);
       cross.classList.remove("hidden");

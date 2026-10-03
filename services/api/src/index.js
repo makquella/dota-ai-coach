@@ -97,9 +97,9 @@ const HTML_HEADERS = {
   "content-type": "text/html; charset=utf-8",
   "x-content-type-options": "nosniff",
   "referrer-policy": "no-referrer",
-  // Styles are inline; images come from the site and Valve's CDN; no scripts at all.
+  // Styles are inline; images come from the site, Valve's CDN and Steam avatars; no scripts at all.
   "content-security-policy":
-    "default-src 'none'; style-src 'unsafe-inline'; img-src https://luhovyimvp.dev https://cdn.cloudflare.steamstatic.com; base-uri 'none'; form-action 'none'; frame-ancestors 'none'"
+    "default-src 'none'; style-src 'unsafe-inline'; img-src https://luhovyimvp.dev https://cdn.cloudflare.steamstatic.com https://avatars.steamstatic.com; base-uri 'none'; form-action 'none'; frame-ancestors 'none'"
 };
 
 function json(data, status = 200) {
