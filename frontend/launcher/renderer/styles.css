@@ -3347,6 +3347,19 @@ label.setting:has(.switch:disabled) {
   color: var(--text);
   transition: left var(--dur-slow) var(--ease), top var(--dur-slow) var(--ease);
 }
+.tour-bubble-wide {
+  width: min(420px, calc(100vw - 24px));
+}
+.tour-image {
+  display: block;
+  width: 100%;
+  height: auto;
+  margin: 0 0 var(--sp-3);
+  border-radius: var(--r-md);
+}
+.tour-image[hidden] {
+  display: none;
+}
 .tour-count {
   margin: 0 0 var(--sp-1);
   color: var(--text-3);

@@ -261,7 +261,19 @@ const I18N = {
       steps: {
         welcome: {
           title: "Hi! This is Wardly",
-          text: "The coach watches your match with you: short advice over the game and out loud, and a review with what to fix after it. A quick look around takes a minute."
+          text: "The coach watches your match with you: short advice over the game and out loud, and a review with what to fix after it. A two-minute look around: what the advice looks like, where everything is and what to set up."
+        },
+        card: {
+          title: "What advice looks like",
+          text: "A card over the game. The big line is what to do now, the line below is why. «Urgent» with a red dot means right now: low HP, a death coming. The rest are tips you can do at the next good moment. The card shows only during a match, while Dota is in front."
+        },
+        mapline: {
+          title: "Map timers and calls",
+          text: "Runes, stacks, Roshan, the Tormentor, an enemy missing from your lane, an unspent skill point: these come as a «Map» card with the time left. Under the card a strip counts down the next timers."
+        },
+        plan: {
+          title: "Plan, death screen and score",
+          text: "Before the horn the card shows a plan: last hits to reach by 10:00, the key item and your focus. While you are dead it says why you died and what to buy, and on the score screen it gives the match score and one thing to fix."
         },
         status: {
           title: "Status line",
@@ -269,11 +281,11 @@ const I18N = {
         },
         setup: {
           title: "Getting started",
-          text: "What is set up and what is left. Most steps do themselves; the first match with the app finishes the list."
+          text: "What is set up and what is left. Most steps do themselves. If Dota asks for it, add -gamestateintegration to its launch options (the button copies it). The first match with the app finishes the list."
         },
         match: {
           title: "Current match",
-          text: "Your hero, the match time and the advice the coach gave. The advice itself appears over the game: you do not need to look here while playing."
+          text: "Your hero, the match time and the advice the coach gave. Under each advice, «Why this advice?» says what the coach saw. During a match the advice appears over the game: you do not need to look here."
         },
         matches: {
           title: "Matches",
@@ -281,7 +293,11 @@ const I18N = {
         },
         progress: {
           title: "Progress",
-          text: "How you play over the last games: the trends, the mistakes that repeat, your heroes, and a goal to work on."
+          text: "How you play over the last games: the trends, the mistakes that repeat, your lanes and heroes. Pick one problem as your focus: every next match shows whether you fixed it."
+        },
+        profile: {
+          title: "Profile and friends",
+          text: "Your rating graph, level and achievements for matches with the app. Sparks from games buy frames, banners and titles. Share your friend code to see each other on a leaderboard."
         },
         settings: {
           title: "Card over the game",
@@ -289,11 +305,19 @@ const I18N = {
         },
         voice: {
           title: "Advice and voice",
-          text: "How often the coach speaks, your role for the map timers, and the voice: it reads the advice out loud, which also works in exclusive fullscreen."
+          text: "How often the coach speaks, your role and the voice. Leave the role on «Auto»: the coach works it out from your lane. The voice reads the advice out loud and also works in exclusive fullscreen, where no card can be drawn."
+        },
+        ai: {
+          title: "AI coach (optional)",
+          text: "With a free Google AI Studio key the review gets a written breakdown and you can ask the coach about any match. Everything else works without it."
+        },
+        help: {
+          title: "Help",
+          text: "This tour opens again from here. If something does not work, «Report a problem» sends the developer a report with what the game sent (no keys or passwords)."
         },
         done: {
           title: "All set",
-          text: "Start Dota and play a match: the first advice appears by itself. This tour can be opened again in Settings → Help."
+          text: "Start Dota and play a match: the first advice appears by itself, and the review is ready a minute or two after the game. Good luck!"
         }
       }
     },
@@ -304,6 +328,9 @@ const I18N = {
     tourHint: "A short tour of the app, one minute",
     tourStart: "Show",
     whatsNew: {
+      "0.40.3": [
+        "A new first-run tour: real advice cards with what each line means, map calls, the game plan, the profile, the AI coach and help. Open it in Settings → Help → «Show»."
+      ],
       "0.40.2": [
         "Mid: when the next power rune is coming and your Bottle still holds the last one, the card tells you to use it first.",
         "Fewer repeats: the farm pace card and the support's «No observer wards» come less often once you have seen them three times, and the ward reminder waits after you place your last ward."
@@ -924,7 +951,19 @@ const I18N = {
       steps: {
         welcome: {
           title: "Привет! Это Wardly",
-          text: "Тренер смотрит матч вместе с тобой: короткие советы поверх игры и голосом, а после матча — разбор, что исправить. Покажу, что где, — это займёт минуту."
+          text: "Тренер смотрит матч вместе с тобой: короткие советы поверх игры и голосом, а после матча — разбор, что исправить. За пару минут покажу, как выглядят советы, что где лежит и что настроить."
+        },
+        card: {
+          title: "Как выглядит совет",
+          text: "Карточка поверх игры. Крупная строка — что сделать сейчас, ниже — почему. «Срочно» с красной точкой — делай сразу: мало HP, рядом смерть. Остальное — подсказки, которые можно сделать в ближайший удобный момент. Карточка видна только в матче, когда Дота на переднем плане."
+        },
+        mapline: {
+          title: "Таймеры и подсказки по карте",
+          text: "Руны, стаки, Рошан, Торментор, пропавший с линии соперник, невложенное очко навыка — приходят карточкой «Карта» с временем до события. Под карточкой полоса таймеров отсчитывает ближайшие события."
+        },
+        plan: {
+          title: "План, экран смерти и итог",
+          text: "До горна карточка покажет план: сколько добить к 10:00, ключевой предмет и твой фокус. Пока ты мёртв — почему умер и что купить, а на экране счёта — оценку матча и одну вещь, которую стоит исправить."
         },
         status: {
           title: "Строка состояния",
@@ -932,11 +971,11 @@ const I18N = {
         },
         setup: {
           title: "Первый запуск",
-          text: "Что уже настроено и что осталось. Большинство шагов выполняются сами; первый матч с приложением закроет список."
+          text: "Что уже настроено и что осталось. Большинство шагов выполняются сами. Если Дота попросит, добавь в параметры запуска -gamestateintegration (кнопка скопирует). Первый матч с приложением закроет список."
         },
         match: {
           title: "Текущий матч",
-          text: "Твой герой, время матча и советы тренера. Сами советы появляются поверх игры — во время матча сюда смотреть не нужно."
+          text: "Твой герой, время матча и советы тренера. Под каждым советом «Почему этот совет?» — что тренер увидел. Во время матча советы появляются поверх игры, сюда смотреть не нужно."
         },
         matches: {
           title: "Матчи",
@@ -944,7 +983,11 @@ const I18N = {
         },
         progress: {
           title: "Прогресс",
-          text: "Как ты играешь за последние игры: тренды, повторяющиеся ошибки, твои герои и цель, над которой работать."
+          text: "Как ты играешь за последние игры: тренды, повторяющиеся ошибки, линии и герои. Выбери одну проблему фокусом — каждый следующий матч покажет, получилось ли её исправить."
+        },
+        profile: {
+          title: "Профиль и друзья",
+          text: "График рейтинга, уровень и награды за матчи с приложением. За игры начисляются искры — на них покупаются рамки, баннеры и титулы. Поделись кодом друга, чтобы видеть друг друга в таблице."
         },
         settings: {
           title: "Карточка в игре",
@@ -952,11 +995,19 @@ const I18N = {
         },
         voice: {
           title: "Советы и голос",
-          text: "Как часто тренер подсказывает, твоя роль для таймеров карты и голос: он читает советы вслух и работает даже в полноэкранном режиме."
+          text: "Как часто тренер подсказывает, твоя роль и голос. Роль лучше оставить на «Авто»: тренер сам поймёт её по линии. Голос читает советы вслух и работает даже в полноэкранном режиме, где карточку не видно."
+        },
+        ai: {
+          title: "ИИ-тренер (по желанию)",
+          text: "С бесплатным ключом Google AI Studio в разборе появится текстовый разбор от тренера, и про любой матч можно будет задать вопрос. Всё остальное работает и без ключа."
+        },
+        help: {
+          title: "Помощь",
+          text: "Отсюда обучение открывается снова. Если что-то не работает, «Сообщить о проблеме» отправит разработчику отчёт с тем, что присылала игра (без ключей и паролей)."
         },
         done: {
           title: "Всё готово",
-          text: "Запусти Доту и начни матч — первая подсказка появится сама. Обучение можно открыть снова в «Настройки → Помощь»."
+          text: "Запусти Доту и начни матч — первая подсказка появится сама, а разбор будет готов через минуту-две после игры. Удачи!"
         }
       }
     },
@@ -967,6 +1018,9 @@ const I18N = {
     tourHint: "Короткая экскурсия по приложению, на минуту",
     tourStart: "Показать",
     whatsNew: {
+      "0.40.3": [
+        "Новое обучение: настоящие карточки советов с объяснением, что значит каждая строка, подсказки по карте, план на игру, профиль, ИИ-тренер и помощь. Открыть: «Настройки → Помощь → Показать»."
+      ],
       "0.40.2": [
         "Мид: если подходит руна силы, а в бутылке ещё лежит прошлая, карточка напомнит сначала использовать её.",
         "Меньше повторов: карточка про темп фарма и «Нет вардов» у саппорта приходят реже после трёх раз, а напоминание о вардах ждёт, если вы только что поставили последний."
@@ -1992,15 +2046,23 @@ async function init() {
 // First-run tour (renderer/tour.js draws it; the steps and texts are here)
 // ---------------------------------------------------------------------------
 
+// The steps of the first-run tour; `image` is a real advice card shot from the
+// overlay (assets/tour/<lang>/, the same pictures as the site).
 const TOUR_STEPS = [
   { id: "welcome", view: "home" },
+  { id: "card", view: "home", image: "lowhp" },
+  { id: "mapline", view: "home", image: "timer" },
+  { id: "plan", view: "home", image: "plan" },
   { id: "status", view: "home", target: "#status" },
   { id: "setup", view: "home", target: "#setup-card" },
   { id: "match", view: "home", target: "#match-card" },
   { id: "matches", view: "home", target: "#tab-matches" },
   { id: "progress", view: "home", target: "#tab-progress" },
+  { id: "profile", view: "home", target: "#tab-profile" },
   { id: "settings", view: "settings", target: "#overlay-card" },
   { id: "voice", view: "settings", target: "#advice-settings-card" },
+  { id: "ai", view: "settings", target: "#ai-settings-root" },
+  { id: "help", view: "settings", target: "#help-card" },
   { id: "done", view: "home" }
 ];
 
@@ -2020,7 +2082,12 @@ function startTour() {
   }
   tourShown = true;
   activeTour = window.LauncherTour.start({
-    steps: TOUR_STEPS.map((step) => ({ ...step, title: tr(`tour.steps.${step.id}.title`), text: tr(`tour.steps.${step.id}.text`) })),
+    steps: TOUR_STEPS.map((step) => ({
+      ...step,
+      title: tr(`tour.steps.${step.id}.title`),
+      text: tr(`tour.steps.${step.id}.text`),
+      image: step.image ? `../assets/tour/${locale === "ru" ? "ru" : "en"}/${step.image}.webp` : undefined
+    })),
     labels: {
       next: tr("tour.next"),
       back: tr("tour.back"),
