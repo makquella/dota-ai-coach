@@ -30,6 +30,8 @@ SAME_ACTION_GAME_TIME_GAP_SECONDS = 120
 # The farm pace cards (post_laning_coach: the pace, the farm to recover) change
 # only their numbers: the same line comes back at most this often.
 FARM_PACE_REPEAT_SECONDS = 240
+# After this many of them in a match the player has heard it: twice the pause.
+FARM_PACE_SLOW_AFTER = 3
 FARM_PACE_PREFIX = ("Keep farming: ", "Recover farm: ")
 RECENT_SAFETY_GAME_TIME_GAP_SECONDS = 35
 HEARTBEAT_NUDGE_SECONDS = 150

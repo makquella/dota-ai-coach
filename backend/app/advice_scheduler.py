@@ -60,6 +60,7 @@ from app.scheduler.constants import (
     DEATH_REVIEW_DECISIONS,
     FARM_PACE_PREFIX,
     FARM_PACE_REPEAT_SECONDS,
+    FARM_PACE_SLOW_AFTER,
     HEARTBEAT_DUPLICATE_WAIT_SECONDS,
     HEARTBEAT_NUDGE_SECONDS,
     LLM_REFINEMENT_EVERY_N_ADVICES,
@@ -1780,7 +1781,10 @@ class AdviceScheduler:
         pace_at = self.state._farm_pace_shown_game_time
         pace_left = 0.0
         if recommendation.action.startswith(FARM_PACE_PREFIX) and pace_at is not None:
-            pace_left = scaled_seconds(FARM_PACE_REPEAT_SECONDS, self.frequency) - max(
+            repeat = FARM_PACE_REPEAT_SECONDS * (
+                2 if self.state._farm_pace_shown_count >= FARM_PACE_SLOW_AFTER else 1
+            )
+            pace_left = scaled_seconds(repeat, self.frequency) - max(
                 0.0, game_time_seconds - pace_at
             )
         left = max(min_gap - gap if min_gap > 0 else 0.0, pace_left)
@@ -1893,6 +1897,7 @@ class AdviceScheduler:
         self.state._last_shown_action_hash = _action_hash(recommendation.action)
         if recommendation.action.startswith(FARM_PACE_PREFIX):
             self.state._farm_pace_shown_game_time = game_time_seconds
+            self.state._farm_pace_shown_count += 1
         return None if gap is None else round(gap, 1)
 
     def _result_locked(

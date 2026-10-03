@@ -304,6 +304,10 @@ const I18N = {
     tourHint: "A short tour of the app, one minute",
     tourStart: "Show",
     whatsNew: {
+      "0.40.2": [
+        "Mid: when the next power rune is coming and your Bottle still holds the last one, the card tells you to use it first.",
+        "Fewer repeats: the farm pace card and the support's «No observer wards» come less often once you have seen them three times, and the ward reminder waits after you place your last ward."
+      ],
       "0.40.1": [
         "The rating graph on the Profile tab is now a smooth line through your games instead of a zigzag.",
         "Your profile page for friends looks the way it does in the app: the same frame, banner and name colour, and your Steam avatar.",
@@ -963,6 +967,10 @@ const I18N = {
     tourHint: "Короткая экскурсия по приложению, на минуту",
     tourStart: "Показать",
     whatsNew: {
+      "0.40.2": [
+        "Мид: если подходит руна силы, а в бутылке ещё лежит прошлая, карточка напомнит сначала использовать её.",
+        "Меньше повторов: карточка про темп фарма и «Нет вардов» у саппорта приходят реже после трёх раз, а напоминание о вардах ждёт, если вы только что поставили последний."
+      ],
       "0.40.1": [
         "График рейтинга во вкладке «Профиль» теперь плавная линия, а не ломаная.",
         "Страница вашего профиля для друзей выглядит как в приложении: та же рамка, баннер и цвет ника, и ваша аватарка из Steam.",

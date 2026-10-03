@@ -181,6 +181,7 @@ _BASELINE: dict[str, object] = {
     "_last_shown_action_hash": "e0ad389e6bb2",
     # 0.25: when a farm pace card was last shown (none in this sequence).
     "_farm_pace_shown_game_time": None,
+    "_farm_pace_shown_count": 0,
     "_last_shown_category": "post_laning_low_hp_reset",
     "_last_shown_decision_point": "LOW_HP",
     "_last_shown_game_time_seconds": 900.0,
