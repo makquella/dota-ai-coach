@@ -43,6 +43,8 @@ STACK_UNTIL_SECOND = 53
 # Support tip: no observer ward in the inventory.
 WARD_FROM_CLOCK = 150
 WARD_EVERY = 5 * 60
+# After this many «No observer wards» reminders, twice the pause.
+WARD_SLOW_AFTER = 3
 WARD_SHOW = 20
 
 WARD_ITEMS = {"item_ward_observer", "item_ward_dispenser"}
@@ -702,6 +704,8 @@ class RoleTips:
         self._ward_held: tuple[int, int] | None = None
         # The clock of the last observer ward placed (the carried count went down).
         self._ward_placed: int | None = None
+        # How many «No observer wards» reminders this match has shown.
+        self._ward_nags = 0
         # Level 6 counts as reached only after a level below 6 was seen: a
         # backend started mid-game at level 8 must not call it a new spike.
         self._armed = False
@@ -889,8 +893,11 @@ class RoleTips:
         placed = self._ward_placed
         just_warded = placed is not None and 0 <= clock - placed < WARD_EVERY
         if has_ward is False and clock >= WARD_FROM_CLOCK and not just_warded:
-            start = self._every("wards", clock, WARD_EVERY, WARD_SHOW)
+            every = WARD_EVERY * (2 if self._ward_nags >= WARD_SLOW_AFTER else 1)
+            start = self._every("wards", clock, every, WARD_SHOW)
             if start is not None:
+                if start == clock:
+                    self._ward_nags += 1
                 return _tip("wards", f"wards@{start}", lang)
         if held_for is not None and held_for >= WARD_HELD and clock >= WARD_FROM_CLOCK:
             start = self._every("ward_bag", clock, WARD_HELD_EVERY, WARD_SHOW)

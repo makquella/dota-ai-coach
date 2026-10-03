@@ -129,6 +129,21 @@ def test_no_ward_nag_right_after_placing_the_last_one():
     assert idle["title"] == "No observer wards on you"
 
 
+def test_the_ward_reminder_slows_down_after_three():
+    from app.map_hints import WARD_EVERY
+
+    tips = RoleTips()
+    shown = []
+    for clock in range(150, 40 * 60, 5):
+        hint = tips.tip(clock, "support", alive=True, has_ward=False, lang="en")
+        if hint and hint["title"] == "No observer wards on you" and hint["id"] not in shown:
+            shown.append(hint["id"])
+    starts = [int(i.split("@")[1]) for i in shown]
+    gaps = [b - a for a, b in zip(starts, starts[1:], strict=False)]
+    assert gaps[:2] == [WARD_EVERY, WARD_EVERY]
+    assert set(gaps[2:]) == {2 * WARD_EVERY}
+
+
 def test_no_save_item_after_twelve_minutes_with_gold():
     items = ["item_tranquil_boots", "item_magic_wand"]
     hint = RoleTips().tip(
