@@ -72,3 +72,21 @@ test("an element scrolled out of the window has no cut-out", () => {
   assert.equal(onScreen({ left: 100, top: 820, width: 200, height: 50 }, viewport), false);
   assert.equal(onScreen({ left: 100, top: 100, width: 0, height: 0 }, viewport), false);
 });
+
+test("every tour step with a picture has it in both languages, and every target exists", () => {
+  const fs = require("node:fs");
+  const path = require("node:path");
+  const app = fs.readFileSync(path.join(__dirname, "../renderer/app.js"), "utf8");
+  const html = fs.readFileSync(path.join(__dirname, "../renderer/index.html"), "utf8");
+  const block = app.slice(app.indexOf("const TOUR_STEPS = ["), app.indexOf("];", app.indexOf("const TOUR_STEPS = [")));
+  const images = [...block.matchAll(/image: "([a-z]+)"/g)].map((m) => m[1]);
+  assert.ok(images.length >= 3);
+  for (const lang of ["ru", "en"]) {
+    for (const image of images) {
+      assert.ok(fs.existsSync(path.join(__dirname, `../assets/tour/${lang}/${image}.webp`)), `${lang}/${image}.webp`);
+    }
+  }
+  for (const [, id] of block.matchAll(/target: "#([a-z-]+)"/g)) {
+    assert.ok(html.includes(`id="${id}"`), `#${id} is in index.html`);
+  }
+});

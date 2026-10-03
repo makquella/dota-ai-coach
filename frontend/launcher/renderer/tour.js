@@ -100,7 +100,7 @@
   }
 
   /**
-   * Starts the tour. options: { steps: [{ id, target?, view?, title, text }],
+   * Starts the tour. options: { steps: [{ id, target?, view?, title, text, image? }],
    * labels: { next, back, skip, done, count(i, n) }, openView(view), viewSelector, onClose(completed) }.
    * A step whose element is hidden (other than by its closed view) is skipped; a
    * step without `target` never is.
@@ -141,6 +141,11 @@
     const text = doc.createElement("p");
     text.id = "tour-text";
     text.className = "tour-text";
+    // A step can show a picture (a real advice card) between the title and the text.
+    const picture = doc.createElement("img");
+    picture.className = "tour-image";
+    picture.alt = "";
+    picture.hidden = true;
     const actions = doc.createElement("div");
     actions.className = "tour-actions";
     const skip = button(doc, "btn btn-ghost btn-sm", labels.skip);
@@ -149,7 +154,7 @@
     const spacer = doc.createElement("span");
     spacer.className = "tour-spacer";
     actions.append(skip, spacer, back, next);
-    bubble.append(count, title, text, actions);
+    bubble.append(count, title, picture, text, actions);
     layer.append(spot, bubble);
     doc.body.append(layer);
 
@@ -194,6 +199,15 @@
       count.textContent = labels.count(shown.indexOf(step) + 1, shown.length);
       title.textContent = step.title;
       text.textContent = step.text;
+      picture.hidden = !step.image;
+      if (step.image) {
+        picture.src = step.image;
+        // The card's size changes once the picture is there: place it again.
+        picture.onload = () => position(false);
+      } else {
+        picture.removeAttribute("src");
+      }
+      bubble.classList.toggle("tour-bubble-wide", Boolean(step.image));
       back.disabled = i === first;
       next.textContent = i === last ? labels.done : labels.next;
       win.cancelAnimationFrame(frame);
