@@ -4761,6 +4761,9 @@ tr.row-link[data-result="loss"] > td:first-child {
   height: 64px;
   display: grid;
   place-items: center;
+  /* A title that wraps to two lines stays centred too. */
+  text-align: center;
+  padding: 0 var(--sp-2);
   margin-bottom: var(--sp-1);
   border-radius: var(--r-md);
   overflow: hidden;

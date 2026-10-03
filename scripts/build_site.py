@@ -383,7 +383,7 @@ def english_page(source: str, en: dict[str, str], page: dict) -> str:
 T = {
     "ru": {
         "skip": "Перейти к содержанию",
-        "nav": [("#ingame", "В игре"), ("#how", "Как это работает"), ("#review", "Разбор")],
+        "nav": [("#ingame", "В игре"), ("#how", "Как это работает"), ("#review", "Разбор"), ("#profile", "Профиль")],
         "heroes": "Герои",
         "faq": "Вопросы",
         "download": "Скачать",
@@ -442,7 +442,7 @@ T = {
     },
     "en": {
         "skip": "Skip to content",
-        "nav": [("#ingame", "In game"), ("#how", "How it works"), ("#review", "Review")],
+        "nav": [("#ingame", "In game"), ("#how", "How it works"), ("#review", "Review"), ("#profile", "Profile")],
         "heroes": "Heroes",
         "faq": "FAQ",
         "download": "Download",

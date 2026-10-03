@@ -21,6 +21,7 @@ rebuilds from a backup and never drifts:
 from __future__ import annotations
 
 import json
+import re
 from collections import Counter
 from datetime import UTC, datetime
 from typing import Any
@@ -413,10 +414,25 @@ def build_profile(
     }
 
 
+AVATAR_URL = re.compile(
+    r"^https://(?:avatars(?:\.akamai|\.cloudflare|\.fastly)?\.steamstatic\.com"
+    r"|steamcdn-a\.akamaihd\.net/steamcommunity/public/images/avatars/[0-9a-f]{2})"
+    r"/([0-9a-f]{40})(?:_full|_medium)?\.jpg$"
+)
+
+
+def avatar_hash(url: Any) -> str | None:
+    """The Steam avatar's image hash from its CDN address (OpenDota's
+    `avatarfull`), the only part of it a public card keeps; None otherwise."""
+    match = AVATAR_URL.match(url) if isinstance(url, str) else None
+    return match.group(1) if match else None
+
+
 def public_card(profile: dict[str, Any], lang: str, *, show_mmr: bool = True) -> dict[str, Any]:
     """The part of the profile a player shows friends (services/api/src/profile.js
-    validates it again): name, level, medal, the rating when typed in, looks,
-    achievement tiers and app stats — never an account id or the match list."""
+    validates it again): name, the Steam avatar's image hash, level, medal, the
+    rating when typed in, looks, achievement tiers and app stats — never an
+    account id or the match list."""
     player = profile.get("player") or {}
     rating_ = profile.get("rating") or {}
     worn = profile.get("equipped") or {}
@@ -427,6 +443,7 @@ def public_card(profile: dict[str, Any], lang: str, *, show_mmr: bool = True) ->
     return {
         "lang": "en" if lang == "en" else "ru",
         "name": (player.get("name") or "Wardly")[:32],
+        "avatar": avatar_hash(player.get("avatar_url")),
         "title": titles.get(title_id) if title_id and title_id != "title_none" else None,
         "level": (profile.get("level") or {}).get("level", 1),
         "rank_tier": player.get("rank_tier"),

@@ -170,10 +170,12 @@ def test_the_public_card_shows_no_account_and_the_mmr_only_when_typed_in():
     medal = build_profile(rows, player=player, mmr_raw=None, lang="ru", now=T0 + 5 * DAY)
     card = public_card(medal, "ru")
     assert card["name"] == "farm_or_die" and card["mmr"] is None  # a medal guess is not shown
+    assert card["avatar"] is None  # not a Steam avatar address
     assert card["level"] == medal["level"]["level"] and card["stats"]["app_games"] == 4
     assert set(card) == {
         "lang",
         "name",
+        "avatar",
         "title",
         "level",
         "rank_tier",
@@ -198,3 +200,20 @@ def test_the_public_card_shows_no_account_and_the_mmr_only_when_typed_in():
         now=T0,
     )
     assert public_card(worn, "ru")["title"] == "Фармила"
+
+
+def test_the_public_card_keeps_only_the_steam_avatar_hash():
+    from app.player_profile import avatar_hash
+
+    image = "0123456789abcdef0123456789abcdef01234567"
+    assert avatar_hash(f"https://avatars.steamstatic.com/{image}_full.jpg") == image
+    assert avatar_hash(f"https://avatars.akamai.steamstatic.com/{image}_medium.jpg") == image
+    assert (
+        avatar_hash(
+            f"https://steamcdn-a.akamaihd.net/steamcommunity/public/images/avatars/01/{image}_full.jpg"
+        )
+        == image
+    )
+    assert avatar_hash(f"https://evil.example/{image}_full.jpg") is None
+    assert avatar_hash(f"http://avatars.steamstatic.com/{image}_full.jpg") is None
+    assert avatar_hash(None) is None
