@@ -294,6 +294,14 @@ test("admin endpoints need the token and hide otherwise", async () => {
   assert.ok(text.includes("ERROR sync failed"));
   const noToken = fakeEnv();
   assert.equal((await worker.fetch(new Request("https://api.example/v1/admin/reports", auth), noToken.env, ctx)).status, 404);
+  // A secret pasted with a trailing newline still matches; another token does not.
+  const pasted = fakeEnv({ ADMIN_TOKEN: "t0ken\n" });
+  assert.equal((await worker.fetch(new Request("https://api.example/v1/admin/reports", auth), pasted.env, ctx)).status, 200);
+  const wrong = { headers: { authorization: "Bearer t0ke" } };
+  assert.equal((await worker.fetch(new Request("https://api.example/v1/admin/reports", wrong), pasted.env, ctx)).status, 404);
+  const blank = fakeEnv({ ADMIN_TOKEN: " \n" });
+  const empty = { headers: { authorization: "Bearer " } };
+  assert.equal((await worker.fetch(new Request("https://api.example/v1/admin/reports", empty), blank.env, ctx)).status, 404);
 });
 
 test("cleanup removes every expired report, object and row together", async () => {

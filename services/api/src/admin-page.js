@@ -237,7 +237,7 @@ function adminApp() {
       });
       if (response.status === 404) {
         remember("");
-        $("status").textContent = "Ключ не подошёл.";
+        $("status").textContent = "Ключ не подошёл. Если вы меняли секрет API_ADMIN_TOKEN, перезапустите выкладку: GitHub → Actions → API → Run workflow.";
         $("status").className = "error";
         $("view").classList.add("hidden");
         $("logout").classList.add("hidden");
