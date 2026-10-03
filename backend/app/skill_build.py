@@ -20,6 +20,7 @@ before this.
 from __future__ import annotations
 
 import re
+from collections import Counter
 from statistics import median
 from typing import Any
 
@@ -62,7 +63,11 @@ def skill_order(data: dict[str, Any] | None) -> dict[str, Any] | None:
         return None
     maxed_at: dict[str, list[int]] = {}
     firsts: list[str] = []
+    openings: list[str] = []
     for order in games:
+        opening = next((ALIASES.get(n, n) for n in order if not n.startswith(TALENT_PREFIX)), None)
+        if opening:
+            openings.append(opening)
         counts: dict[str, int] = {}
         game_first = None
         for index, name in enumerate(order):
@@ -95,7 +100,23 @@ def skill_order(data: dict[str, Any] | None) -> dict[str, Any] | None:
         },
         "first_agree": sum(1 for name in firsts if name == order[0]),
         "games": len(games),
+        # The level-1 skill when OPENING_AGREE of the games start with it.
+        "opening": _opening(openings, len(games)),
     }
+
+
+OPENING_AGREE = 0.6
+
+
+def _opening(openings: list[str], games: int) -> dict[str, Any] | None:
+    """{name, agree, games}: the skill most pro games level first, when
+    OPENING_AGREE of them agree; None otherwise."""
+    if not openings:
+        return None
+    name, agree = Counter(openings).most_common(1)[0]
+    if agree < OPENING_AGREE * games:
+        return None
+    return {"name": name, "agree": agree, "games": games}
 
 
 def _pro_talents(

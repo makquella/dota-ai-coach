@@ -56,6 +56,16 @@ TEXTS = {
         "en": ("Put the point in {name}", "The pro order on this hero: {order}."),
         "ru": ("Вложите очко в {name}", "Порядок прокачки у про-игроков на этом герое: {order}."),
     },
+    "opening": {
+        "en": (
+            "First point: {name}",
+            "Pros on this hero start with {name} ({agree} of {games} games).",
+        ),
+        "ru": (
+            "Первое очко: {name}",
+            "Про-игроки на этом герое начинают с {name} ({agree} из {games} игр).",
+        ),
+    },
     "point": {
         "en": (
             "Unspent skill point",
@@ -169,7 +179,9 @@ class SkillTips:
             return
         level, spent = skills["level"], skills["spent"]
         if self._base is None or level < self._base[0]:
-            self._base = (level, spent)  # first tick or a new match: all spent
+            # First tick or a new match: all spent — except a level-1 hero with
+            # nothing learned, whose first point is plainly still to spend.
+            self._base = (0, 0) if (level, spent) == (1, 0) else (level, spent)
         owed = (level - self._base[0]) - (spent - self._base[1])
         if owed <= 0:
             # Caught up (or more levels than points: an innate) → a new base.
@@ -237,6 +249,18 @@ class SkillTips:
     def _point(self, level: int, lang: str, build: dict[str, Any] | None) -> dict[str, Any]:
         """The unspent point: the ability the pro order puts it in, when known."""
         skills = self._skills or {}
+        opening = (build or {}).get("opening")
+        levels = skills.get("levels") or {}
+        if level == 1 and opening and not any(levels.values()):
+            names = (build or {}).get("names") or {}
+            return _hint(
+                "opening",
+                "skill-point@1",
+                lang,
+                name=names.get(opening["name"]) or label(opening["name"], skills.get("hero_key")),
+                agree=opening["agree"],
+                games=opening["games"],
+            )
         name = next_skill(build, skills.get("levels"), level)
         if build and name:
             names = build.get("names") or {}
