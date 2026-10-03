@@ -226,3 +226,40 @@ def career_lanes(matches: list[dict[str, Any]]) -> dict[str, Any] | None:
         ],
         "hard": hard,
     }
+
+
+RECORD_MIN_GAMES = 2
+
+
+def lane_records(matches: list[dict[str, Any]]) -> dict[str, dict[str, int]]:
+    """{enemy core: {won, even, lost, games}} over the judged lanes of the
+    analysed `matches` (any hero of the player's), for the live «hard lane» tip."""
+    records: dict[str, dict[str, int]] = {}
+    for match in matches:
+        lane = (match.get("analysis") or {}).get("lane")
+        if not isinstance(lane, dict) or not lane.get("judged"):
+            continue
+        enemy, result = lane.get("enemy"), lane.get("result")
+        if not isinstance(enemy, str) or result not in ("won", "even", "lost"):
+            continue
+        row = records.setdefault(enemy, {"won": 0, "even": 0, "lost": 0, "games": 0})
+        row[result] += 1
+        row["games"] += 1
+    return records
+
+
+def lane_record_for(
+    opponents: list[str], records: dict[str, dict[str, int]]
+) -> dict[str, Any] | None:
+    """The first lane opponent with a clear past record against them
+    (RECORD_MIN_GAMES+ lanes lost, or won, and more of those than the other):
+    {hero, kind (hard | easy), won, lost, games}; None otherwise."""
+    for hero in opponents:
+        row = records.get(hero)
+        if not row:
+            continue
+        if row["lost"] >= RECORD_MIN_GAMES and row["lost"] > row["won"]:
+            return {"hero": hero, "kind": "hard", **row}
+        if row["won"] >= RECORD_MIN_GAMES and row["won"] > row["lost"]:
+            return {"hero": hero, "kind": "easy", **row}
+    return None

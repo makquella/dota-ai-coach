@@ -73,6 +73,9 @@ SAVE_ITEMS = {
     "item_guardian_greaves",
 }
 SAVE_FROM = 12 * 60
+# The past-lanes tip (lane_duel.lane_record_for): once per match, in this window.
+LANE_RECORD_FROM, LANE_RECORD_UNTIL = 90, 8 * 60
+LANE_RECORD_SHOW = 20
 # «Missing» calls (enemy_lanes.py): shown this long, at most one per MISSING_GAP.
 MISSING_SHOW = 15
 MISSING_GAP = 45
@@ -305,6 +308,31 @@ TIPS = {
             "{item} против их керри",
             "У врага {enemy} и другие керри с ударами с руки: {item} на несколько секунд "
             "спасает от их атак.",
+        ),
+    },
+    # The player's past lanes against the hero now in their lane (lane_duel.py).
+    "lane_hard": {
+        "en": (
+            "Hard lane: {hero}",
+            "You lost the lane to {hero} {lost} of {games} times: play for experience, "
+            "take only the safe last hits and call your support early.",
+        ),
+        "ru": (
+            "Тяжёлая линия: {hero}",
+            "Против {hero} вы проиграли линию {lost} из {games} раз: играйте от опыта, "
+            "добивайте только безопасные крипы и зовите саппорта заранее.",
+        ),
+    },
+    "lane_easy": {
+        "en": (
+            "Your lane: {hero}",
+            "You won the lane against {hero} {won} of {games} times: press from the "
+            "first minutes and take their last hits away.",
+        ),
+        "ru": (
+            "Удобная линия: {hero}",
+            "Против {hero} вы выиграли линию {won} из {games} раз: давите с первых минут "
+            "и не давайте добивать.",
         ),
     },
     # An enemy gone from the minimap in the laning stage (enemy_lanes.py).
@@ -659,6 +687,7 @@ class RoleTips:
 
     def reset(self) -> None:
         self._shown: dict[str, int] = {}
+        self._shown_record: dict[str, Any] = {}
         # (observer wards carried, the clock since when none was placed).
         self._ward_held: tuple[int, int] | None = None
         # Level 6 counts as reached only after a level below 6 was seen: a
@@ -698,6 +727,32 @@ class RoleTips:
         if shown is None or clock - shown >= every or clock < shown:
             self._shown[key] = shown = clock
         return shown if clock - shown <= show else None
+
+    def _lane_record(
+        self, clock: int, lang: str, record: dict[str, Any] | None
+    ) -> dict[str, Any] | None:
+        """The past record against the lane opponent, once per match for
+        LANE_RECORD_SHOW seconds from the first second it is known."""
+        if not (LANE_RECORD_FROM <= clock <= LANE_RECORD_UNTIL):
+            return None
+        if not record or record.get("kind") not in ("hard", "easy"):
+            return None
+        key = "lane_record"
+        if key not in self._shown:
+            self._shown[key] = clock
+            self._shown_record = dict(record)
+        if clock - self._shown[key] > LANE_RECORD_SHOW:
+            return None
+        shown = self._shown_record
+        return _tip(
+            f"lane_{shown['kind']}",
+            f"lane_record@{self._shown[key]}",
+            lang,
+            hero=shown["hero"],
+            won=shown["won"],
+            lost=shown["lost"],
+            games=shown["games"],
+        )
 
     def missing(
         self, clock: int, lang: str, missing: dict[str, Any] | None
@@ -753,6 +808,7 @@ class RoleTips:
         denies: int | None = None,
         hp: int | None = None,
         regen: list[str] | None = None,
+        lane_record: dict[str, Any] | None = None,
     ) -> dict[str, Any] | None:
         held_for = self._observe_wards(ward_charges, clock)
         if not alive or role is None:
@@ -772,6 +828,9 @@ class RoleTips:
         if bottled is not None:
             return bottled
         if role in CORE_ROLES:
+            record = self._lane_record(clock, lang, lane_record)
+            if record is not None:
+                return record
             lane = self._lane(clock, role, lang, items, gold, last_hits, denies, hp, regen)
             if lane is not None:
                 return lane
@@ -1101,6 +1160,7 @@ def map_hint(
     hp: int | None = None,
     regen: list[str] | None = None,
     missing: dict[str, Any] | None = None,
+    lane_record: dict[str, Any] | None = None,
 ) -> dict[str, Any] | None:
     """A timer, but a role tip over a minor one (runes, lotus); None before the
     horn or without a role. `objective`: a Roshan / Aegis timer (roshan_timer.py),
@@ -1159,5 +1219,6 @@ def map_hint(
         denies=denies,
         hp=hp,
         regen=regen,
+        lane_record=lane_record,
     )
     return tip or timer

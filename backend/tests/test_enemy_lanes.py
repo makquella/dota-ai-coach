@@ -96,3 +96,35 @@ def test_the_call_reaches_the_overlay(client):
             assert hint["title"] == "Your lane opponent is missing: Axe"
             return
     raise AssertionError("the stream never reached 3:45")
+
+
+def test_the_lane_opponents_are_the_enemies_of_that_lane():
+    lanes = _laned()
+    assert lanes.opponents("bot") == ["Axe"]
+    assert lanes.opponents("mid") == ["Lina"]
+    assert lanes.opponents("top") == [] and lanes.opponents(None) == []
+
+
+def test_the_past_lane_record_reaches_the_overlay(client, monkeypatch):
+    from app.live_role import set_role_setting
+    from app.player_api import PLAYER_SERVICE
+
+    set_role_setting("carry")
+    monkeypatch.setattr(
+        PLAYER_SERVICE,
+        "lane_records",
+        lambda: {"Axe": {"won": 0, "even": 1, "lost": 3, "games": 4}},
+    )
+    for payload in gsi_match_stream(minutes=3, death_minutes=(), positions=True, step_seconds=5):
+        clock = payload["map"]["clock_time"]
+        x, y = payload["hero"]["xpos"], payload["hero"]["ypos"]
+        payload["minimap"] = {
+            "o1": {"unitname": "npc_dota_hero_axe", "team": 3, "xpos": x + 300, "ypos": y}
+        }
+        client.post("/gsi", json=payload)
+        if clock == 95:
+            hint = client.get("/overlay/recommendation?lang=en").json()["map_hint"]
+            assert hint["title"] == "Hard lane: Axe"
+            assert "3 of 4 times" in hint["hint"]
+            return
+    raise AssertionError("the stream never reached 1:35")

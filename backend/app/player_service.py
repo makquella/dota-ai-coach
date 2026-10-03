@@ -68,6 +68,7 @@ from app.game_plan import build_game_plan, key_item
 from app.hero_profiles import get_hero_position
 from app.history_backup import export_backup, import_backup
 from app.home_summary import home_summary
+from app.lane_duel import lane_records
 from app.map_analysis import map_side, zone
 from app.map_hints import SAVE_ITEMS
 from app.match_facts import facts_from_opendota, facts_from_timeline, merge_facts
@@ -490,6 +491,21 @@ class PlayerService:
         )
         self._plans[key] = (now, plan)
         return plan
+
+    def lane_records(self) -> dict[str, dict[str, int]]:
+        """The player's past lanes per enemy core (lane_duel.lane_records over
+        the reviewed matches), for the live «hard lane» tip; cached a minute."""
+        primary = self.store.primary_account_id()
+        if primary is None:
+            return {}
+        key = ("lane_records", primary)
+        cached = self._plans.get(key)
+        now = time.monotonic()
+        if cached is not None and now - cached[0] < GAME_PLAN_CACHE_SECONDS:
+            return cached[1]
+        records = lane_records(self.store.matches_for_career(primary, limit=RECENT_MATCHES_LIMIT))
+        self._plans[key] = (now, records)
+        return records
 
     def key_item(self, hero: str) -> dict[str, Any] | None:
         """The hero's most bought mid/early item and its typical finish time
