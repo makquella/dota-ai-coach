@@ -198,3 +198,21 @@ def test_the_first_point_is_called_before_the_horn(client):
             assert hint and hint["title"] == "Unspent skill point"
             return
     raise AssertionError("the stream never reached the check")
+
+
+def test_the_skill_tip_stays_with_map_timers_off(client):
+    """«Map timers» off hides runes and stacks, never the skill point: it is no timer."""
+    from match_fixtures import gsi_match_stream
+
+    client.post("/settings/advice", json={"map_hints": False})
+    for payload in gsi_match_stream(minutes=1, death_minutes=(), step_seconds=5):
+        clock = payload["map"]["clock_time"]
+        payload["hero"]["level"] = 1
+        payload.update(_payload(1, [0, 0, 0]) | {"hero": payload["hero"]})
+        client.post("/gsi", json=payload)
+        if clock == -60 + UNSPENT_WAIT:
+            answer = client.get("/overlay/recommendation?lang=en").json()
+            assert answer["map_hint"]["title"] == "Unspent skill point"
+            assert "timer_strip" not in answer
+            return
+    raise AssertionError("the stream never reached the check")

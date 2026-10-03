@@ -111,7 +111,11 @@ def test_supports_get_no_last_hit_target():
 def test_overlay_shows_the_plan_only_early_and_while_the_card_is_free(client, tmp_path):
     _synced(client, tmp_path)
 
+    # Before -0:20 the card is the first skill point's, not the plan's.
     client.post("/gsi", json=_gsi_at(-40, game_state="DOTA_GAMERULES_STATE_PRE_GAME"))
+    assert "game_plan" not in client.get("/overlay/recommendation?lang=ru").json()
+
+    client.post("/gsi", json=_gsi_at(-20, game_state="DOTA_GAMERULES_STATE_PRE_GAME"))
     early = client.get("/overlay/recommendation?lang=ru").json()
     assert early["recommendation"] is None
     assert early["game_plan"]["title"] == "План на игру"

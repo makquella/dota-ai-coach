@@ -150,6 +150,17 @@ def update_latest_gsi(payload: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+# Game rules states before the heroes are on the map.
+_PRE_SPAWN_STATES = frozenset(
+    {
+        "DOTA_GAMERULES_STATE_HERO_SELECTION",
+        "DOTA_GAMERULES_STATE_STRATEGY_TIME",
+        "DOTA_GAMERULES_STATE_TEAM_SHOWCASE",
+        "DOTA_GAMERULES_STATE_WAIT_FOR_MAP_TO_LOAD",
+        "DOTA_GAMERULES_STATE_WAIT_FOR_PLAYERS_TO_LOAD",
+    }
+)
+
 # Dota game rules states in which a hero is picked and the match is on.
 _IN_MATCH_GAME_STATES = frozenset(
     {
@@ -283,6 +294,11 @@ def normalize_gsi_payload(
     hero_block = _dict_value(payload.get("hero"))
     player_block = _dict_value(payload.get("player"))
     map_block = _dict_value(payload.get("map"))
+    # Before the heroes spawn (strategy time, the showcase, loading) GSI reports the
+    # picked hero as not alive: that is no death (a «respawn» card came at 00:00).
+    if hero_block.get("alive") is False and map_block.get("game_state") in _PRE_SPAWN_STATES:
+        hero_block = {**hero_block, "alive": True}
+        payload = {**payload, "hero": hero_block}
 
     hero = _normalize_hero_name(
         _first_value(

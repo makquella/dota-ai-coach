@@ -400,11 +400,9 @@ def test_support_pull_in_the_safe_lane_and_unspent_gold():
         is None
     )
     assert RoleTips().tip(3 * 60 + 36, "support", alive=True, has_ward=True, lang="en") is None
-    gold = RoleTips().tip(9 * 60, "support", alive=True, has_ward=True, lang="en", gold=1680)
-    assert gold["title"] == "1600 gold unspent"
-    assert RoleTips().tip(9 * 60, "support", alive=True, has_ward=True, lang="en", gold=900) is None
+    # Unspent gold moved to app/gold_tips.py (any role): no role tip for it.
     assert (
-        RoleTips().tip(6 * 60, "support", alive=True, has_ward=True, lang="en", gold=2000) is None
+        RoleTips().tip(9 * 60, "support", alive=True, has_ward=True, lang="en", gold=1680) is None
     )
 
 

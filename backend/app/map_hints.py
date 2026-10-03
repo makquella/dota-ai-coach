@@ -154,10 +154,6 @@ KEY_ITEM_EARLY = 2 * 60
 KEY_ITEM_SHOW = 25
 CORE_ROLES = {"carry", "mid", "offlane"}
 # Support: gold kept instead of wards, dust, smoke and a save item.
-SPEND_FROM = 8 * 60
-SPEND_GOLD = 1500
-SPEND_EVERY = 4 * 60
-SPEND_SHOW = 20
 
 TIPS = {
     "stack": {
@@ -502,16 +498,6 @@ TIPS = {
         "ru": (
             "{item} раньше обычного",
             "Обычно его собирают к {time}: сейчас ваше окно — давите и ищите драки.",
-        ),
-    },
-    "spend_gold": {
-        "en": (
-            "{gold} gold unspent",
-            "Spend it now: wards, dust, a smoke or a save item such as Force Staff or Glimmer Cape.",
-        ),
-        "ru": (
-            "{gold} золота не потрачено",
-            "Потратьте сейчас: варды, дасты, смок или спасающий предмет — Force Staff, Glimmer Cape.",
         ),
     },
     "offlane_six": {
@@ -913,11 +899,7 @@ class RoleTips:
             start = self._every("save_item", clock, SAVE_EVERY, SAVE_SHOW)
             if start is not None:
                 return _save_item_tip(f"save_item@{start}", lang, save_item, gold)
-        if gold is not None and gold >= SPEND_GOLD and clock >= SPEND_FROM:
-            start = self._every("spend_gold", clock, SPEND_EVERY, SPEND_SHOW)
-            if start is not None:
-                # Rounded down to hundreds, as the player reads it on screen.
-                return _tip("spend_gold", f"spend_gold@{start}", lang, gold=gold // 100 * 100)
+        # Unspent gold is app/gold_tips.py now: any role, map timers on or off.
         return None
 
     def _lane(

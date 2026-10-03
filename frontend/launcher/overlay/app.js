@@ -186,7 +186,14 @@ function renderOverlay(data) {
     return;
   }
 
-  // From pick to 1:30, while there is no advice: the plan for this game.
+  // A skill point to spend (the first one before the horn) keeps the card over
+  // the plan: the plan used to replace it before anyone could read it.
+  if (currentHint && (currentHint.over_plan || String(currentHint.id || "").startsWith("skill-")) && PLAN_STATUSES.has(data.status)) {
+    showHint(currentHint, data);
+    return;
+  }
+
+  // From -0:20 to 1:30, while there is no advice: the plan for this game.
   if (data.game_plan && Array.isArray(data.game_plan.lines) && data.game_plan.lines.length && PLAN_STATUSES.has(data.status)) {
     showPlan(data);
     return;
@@ -262,12 +269,21 @@ function countdown(seconds) {
 }
 
 // A new card slides in (a short fade); the same card refreshed stays still.
+// A card left unchanged for IDLE_AFTER_MS fades to the background (body.idle):
+// the plan or a timer does not sit bright over the game for minutes, and the
+// next new card comes back at full strength, so the player notices it. Urgent
+// advice, the score screen and a card being moved never fade (styles.css).
+const IDLE_AFTER_MS = 20000;
 let shownCardKey = "";
+let idleTimer = 0;
 function markCard(key) {
   if (key === shownCardKey) {
     return;
   }
   shownCardKey = key;
+  document.body.classList.remove("idle");
+  clearTimeout(idleTimer);
+  idleTimer = setTimeout(() => document.body.classList.add("idle"), IDLE_AFTER_MS);
   shell.classList.remove("enter");
   void shell.offsetWidth; // restart the animation
   shell.classList.add("enter");

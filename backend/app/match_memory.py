@@ -18,6 +18,7 @@ from app.buyback_tracker import BuybackTracker
 from app.enemy_heroes import EnemyHeroes
 from app.enemy_lanes import EnemyLanes
 from app.farm_tracker import FarmTracker
+from app.gold_tips import GoldTips
 from app.live_role import LiveRoleTracker
 from app.map_hints import RoleTips
 from app.roshan_timer import RoshanTimer
@@ -101,6 +102,7 @@ class MatchMemory:
         self.role = LiveRoleTracker()
         self.tips = RoleTips()
         self.skills = SkillTips()
+        self.gold = GoldTips()
         self.roshan = RoshanTimer()
         self.enemies = EnemyHeroes()
         self.enemy_lanes = EnemyLanes()
@@ -185,6 +187,8 @@ class MatchMemory:
             self.enemy_lanes.observe(_game_clock(state), extra.get("enemy_units"))
             skills = extra.get("skills")
             self.skills.observe(_game_clock(state), skills if isinstance(skills, dict) else None)
+            names = extra.get("item_names")
+            self.gold.observe(_game_clock(state), names if isinstance(names, list) else None)
             self.role.observe(
                 _game_clock(state),
                 x=_number_or_none(extra.get("xpos")),

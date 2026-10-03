@@ -33,6 +33,7 @@ from app.config import (
 )
 from app.decision_points import detect_decision_point
 from app.diagnostics import recent_errors, record_error, runtime_info
+from app.game_plan import SHOW_FROM_CLOCK as GAME_PLAN_SHOW_FROM_CLOCK
 from app.game_plan import SHOW_UNTIL_CLOCK as GAME_PLAN_SHOW_UNTIL_CLOCK
 from app.gsi_census import CENSUS_FILE, GSI_CENSUS, load_previous
 from app.gsi_state import (
@@ -73,7 +74,7 @@ app = FastAPI(
     lifespan=_lifespan,
     title="Wardly",
     description="MVP-1: rule-based carry coach with local knowledge-base RAG.",
-    version="0.40.3",
+    version="0.41.0",
 )
 app.include_router(player_router)
 
@@ -107,7 +108,7 @@ if FRONTEND_DIR.exists():
 @app.get("/", summary="Health check")
 def root():
     """Simple health-check endpoint."""
-    return {"status": "ok", "service": "Wardly", "version": "0.40.3"}
+    return {"status": "ok", "service": "Wardly", "version": "0.41.0"}
 
 
 @app.get("/health", summary="Health check")
@@ -394,6 +395,7 @@ def _live_role_and_hint(response: dict[str, object], lang: str) -> dict[str, obj
         return {}
     role = _live_role(state)
     result: dict[str, object] = {"live_role": role}
+    gold = _gold_hint(state, extra, role, lang)
     if _map_hints["enabled"]:
         clock = extra.get("clock_time")
         carry_advisor = hero_coverage(str(state.get("hero") or "")) == "full" and not (
@@ -449,6 +451,7 @@ def _live_role_and_hint(response: dict[str, object], lang: str) -> dict[str, obj
                 build=PLAYER_SERVICE.skill_build(str(state.get("hero") or "")),
             ),
         )
+        hint = _with_gold_hint(hint, gold)
         if hint is not None:
             result["map_hint"] = hint
         # The overlay's strip of the next events (runes, stacks, Roshan, Aegis).
@@ -460,14 +463,73 @@ def _live_role_and_hint(response: dict[str, object], lang: str) -> dict[str, obj
         )
         if strip:
             result["timer_strip"] = strip
+    else:
+        # «Map timers» off still leaves the skill point tips: they are not timers.
+        clock = extra.get("clock_time")
+        skill = MATCH_MEMORY.skills.tip(
+            clock if isinstance(clock, int) else None,
+            lang,
+            alive=extra.get("alive") is not False,
+            build=PLAYER_SERVICE.skill_build(str(state.get("hero") or "")),
+        )
+        hint = _with_gold_hint(skill, gold)
+        if hint is not None:
+            result["map_hint"] = hint
     return result
+
+
+def _gold_hint(
+    state: Mapping[str, object], extra: Mapping[str, object], role: dict | None, lang: str
+) -> dict[str, Any] | None:
+    """An empty bag at the start or gold left unspent (app/gold_tips.py), any role."""
+    clock = extra.get("clock_time")
+    gold = state.get("gold")
+    role_name = role.get("role") if role else None
+    next_item = None
+    if role_name != "support" and isinstance(clock, int) and clock >= 3 * 60:
+        names = extra.get("item_names")
+        try:
+            item = PLAYER_SERVICE.next_item(
+                str(state.get("hero") or ""),
+                names if isinstance(names, list) else None,
+                minute=state.get("minute"),
+            )
+        except Exception as error:  # noqa: BLE001 - never breaks the live path
+            record_error("gold-hint", error)
+            item = None
+        next_item = item.get("name") if isinstance(item, dict) else None
+    buyback = extra.get("buyback_cost")
+    return MATCH_MEMORY.gold.tip(
+        clock if isinstance(clock, int) else None,
+        lang,
+        gold=gold if isinstance(gold, int) else None,
+        alive=extra.get("alive") is not False,
+        role=role_name,
+        buyback_cost=buyback if isinstance(buyback, int) else None,
+        next_item=next_item if isinstance(next_item, str) else None,
+    )
+
+
+def _with_gold_hint(
+    hint: dict[str, Any] | None, gold: dict[str, Any] | None
+) -> dict[str, Any] | None:
+    """The gold card goes before timers and role tips; a skill point, a missing
+    enemy and Roshan/Aegis keep the card."""
+    if gold is None:
+        return hint
+    if hint is not None and (
+        hint.get("over_plan")
+        or str(hint.get("id") or "").startswith(("missing", "roshan", "aegis"))
+    ):
+        return hint
+    return gold
 
 
 GAME_PLAN_STATUSES = {"no_advice", "monitoring", "unsupported_hero"}
 
 
 def _game_plan_for_overlay(response: dict[str, object], lang: str) -> dict[str, object] | None:
-    """The plan for this game while nothing else is on the card (pick to 1:30)."""
+    """The plan for this game while nothing else is on the card (-0:20 to 1:30)."""
     if response.get("status") not in GAME_PLAN_STATUSES or response.get("demo_mode"):
         return None
     current = get_current_state()
@@ -476,7 +538,9 @@ def _game_plan_for_overlay(response: dict[str, object], lang: str) -> dict[str, 
     if extra.get("source_type") != "live_gsi":
         return None
     clock = extra.get("clock_time")
-    if not isinstance(clock, int) or clock >= GAME_PLAN_SHOW_UNTIL_CLOCK:
+    if not isinstance(clock, int) or not (
+        GAME_PLAN_SHOW_FROM_CLOCK <= clock < GAME_PLAN_SHOW_UNTIL_CLOCK
+    ):
         return None
     try:
         return PLAYER_SERVICE.game_plan(str(state.get("hero") or ""), lang)

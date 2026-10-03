@@ -34,7 +34,10 @@ from app.hero_profiles import get_hero_position
 from app.post_match_analysis import TARGETS
 from app.schemas import is_supported_hero
 
-# The window: from hero pick (negative clock) until this game time.
+# The window: from 20 s before the horn (the first bounty runes) until this
+# game time. Earlier the card is the first skill point's (players asked for
+# time to read it; the plan used to replace it right after the pick).
+SHOW_FROM_CLOCK = -20
 SHOW_UNTIL_CLOCK = 90
 MIN_HERO_REVIEWS_FOR_REMINDER = 3
 MIN_RECORD_GAMES = 3
