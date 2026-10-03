@@ -829,14 +829,15 @@ def _counter_reason(groups: dict[str, str]) -> str:
 
 def _situational_reason(groups: dict[str, str]) -> str:
     count = int(groups["count"])
-    if groups["kind"].startswith("under stuns"):
+    if groups["kind"].strip().startswith("under stuns"):
         head = (
             f"{count} {_deaths_word(count)} под контролем без единой свободной секунды — "
             f"{groups['name']} это исправит"
         )
     else:
+        times = "раза" if 2 <= count % 10 <= 4 and not 12 <= count % 100 <= 14 else "раз"
         head = (
-            f"{count} {_deaths_word(count)} за 3 секунды и быстрее с высокого здоровья — "
+            f"{count} {times} вас убили с высокого здоровья быстрее чем за 3 секунды — "
             f"{groups['name']} даст время это пережить"
         )
     for pattern, tail in _SITUATIONAL_TAILS:
@@ -889,8 +890,8 @@ _RU_FUNCTIONS: tuple[tuple[re.Pattern[str], Callable[[dict[str, str]], str]], ..
     ),
     (
         re.compile(
-            r"^(?P<count>\d+) deaths (?P<kind>under stuns with no free second|in 3 seconds or "
-            r"less from high health), and (?P<name>.+?) (?:stops that|gives you time against "
+            r"^(?P<count>\d+) deaths(?P<kind> under stuns with no free second|, each from high "
+            r"health in 3 seconds or less), and (?P<name>.+?) (?:stops that|gives you time against "
             r"that)(?P<tail>(?:\.|: \d+ gold to go.*|; its missing parts cost.*))$"
         ),
         _situational_reason,

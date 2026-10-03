@@ -479,7 +479,7 @@ def _situational_farm_copy(
 
 SITUATIONAL_BECAUSE = {
     "disabled": "{count} deaths under stuns with no free second, and {name} stops that",
-    "burst": "{count} deaths in 3 seconds or less from high health, and {name} gives you time against that",
+    "burst": "{count} deaths, each from high health in 3 seconds or less, and {name} gives you time against that",
     "targeted": "{count} deaths under stuns against {enemy}, and {name} blocks {spell}",
     "evasion": "{enemy} dodges your attacks, and {name} never misses",
     "healing": "{enemy} heals a lot, and {name} cuts the healing",
