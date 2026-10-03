@@ -328,6 +328,11 @@ const I18N = {
     tourHint: "A short tour of the app, one minute",
     tourStart: "Show",
     whatsNew: {
+      "0.41.0": [
+        "The first skill point stays on the card until you level it; the game plan comes 20 seconds before the horn.",
+        "No starting items or gold piling up: the card says so for every role, even with map timers off.",
+        "A card that stays the same for 20 seconds fades into the background; the next new one comes back bright."
+      ],
       "0.40.3": [
         "A new first-run tour: real advice cards with what each line means, map calls, the game plan, the profile, the AI coach and help. Open it in Settings → Help → «Show»."
       ],
@@ -1018,6 +1023,11 @@ const I18N = {
     tourHint: "Короткая экскурсия по приложению, на минуту",
     tourStart: "Показать",
     whatsNew: {
+      "0.41.0": [
+        "Первое очко навыка держится на карточке, пока вы его не вложите; план на игру появляется за 20 секунд до горна.",
+        "Пустой инвентарь в начале или копящееся золото: карточка скажет об этом на любой роли, даже с выключенными таймерами карты.",
+        "Карточка, которая не меняется 20 секунд, становится полупрозрачной; новая снова яркая — её сразу заметно."
+      ],
       "0.40.3": [
         "Новое обучение: настоящие карточки советов с объяснением, что значит каждая строка, подсказки по карте, план на игру, профиль, ИИ-тренер и помощь. Открыть: «Настройки → Помощь → Показать»."
       ],

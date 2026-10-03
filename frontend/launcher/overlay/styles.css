@@ -62,6 +62,13 @@ body {
   }
 }
 
+/* Unchanged for 20 s (overlay/app.js markCard): into the background until the
+   next new card. Urgent advice and the score screen stay bright. */
+body.idle.locked .overlay-shell:not(.urgent):not(.post-game):not(.hidden) {
+  opacity: 0.35;
+  transition: opacity 600ms var(--ease);
+}
+
 /* Compact card (Settings → Overlay): only what to do. */
 body.compact .reason,
 body.compact .status-row {

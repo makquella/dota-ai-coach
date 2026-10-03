@@ -99,7 +99,7 @@ def test_focus_end_to_end(client, tmp_path):
 
     # The in-game plan reminds of the chosen focus.
     payload = copy.deepcopy(gsi_match_stream(match_id=MATCH_ID + 3, minutes=1)[0])
-    payload["map"]["clock_time"] = -30
+    payload["map"]["clock_time"] = -15
     client.post("/gsi", json=payload)
     plan = client.get("/overlay/recommendation?lang=ru").json()["game_plan"]
     assert plan["lines"][-1] == "Ваш фокус: серия смертей"

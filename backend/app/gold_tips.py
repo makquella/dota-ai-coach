@@ -1,0 +1,176 @@
+"""
+gold_tips.py - gold the player is not spending, for every role (live GSI only).
+
+A player who walked to the lane with an empty bag and 600 gold, or ran for
+minutes with 2500 in the pocket, heard nothing: the purchase tips were a core's
+advice and a support's map tip (off with «Map timers»). These two cards go out
+on the map line for any role and with the map timers switched off:
+
+- the start: from the pre-game, an empty inventory (no item in the inventory,
+  backpack or stash; the TP slot is not counted) for START_WAIT seconds of clock
+  with START_GOLD+ gold → «Buy your starting items», until START_UNTIL;
+- a stall: after START_UNTIL, alive, gold over the role's threshold (from 30:00
+  the buyback cost is set aside when known) and no change of the items for
+  STALL_SECONDS → «N gold unspent», 20 s every STALL_EVERY while it lasts.
+
+The start card wins over the game plan on the overlay (`over_plan`).
+"""
+
+from __future__ import annotations
+
+from typing import Any
+
+START_GOLD = 300
+START_WAIT = 10
+START_UNTIL = 3 * 60
+STALL_SECONDS = 120
+STALL_EVERY = 3 * 60
+SHOW = 20
+SUPPORT_GOLD = 900
+CORE_GOLD = 1200
+CORE_GOLD_LATE = 2000
+LATE_FROM = 15 * 60
+BUYBACK_FROM = 30 * 60
+
+TEXTS = {
+    "start": {
+        "en": (
+            "Buy your starting items",
+            "{gold} gold and an empty bag: take regen (Tango, Healing Salve) "
+            "and stat items before the lane.",
+        ),
+        "ru": (
+            "Купите стартовые предметы",
+            "{gold} золота и пустой инвентарь: возьмите реген (Tango, Healing Salve) "
+            "и предметы на характеристики до выхода на линию.",
+        ),
+    },
+    "stall_support": {
+        "en": (
+            "{gold} gold unspent",
+            "Spend it now: wards, dust, a smoke or a save item such as Force Staff or Glimmer Cape.",
+        ),
+        "ru": (
+            "{gold} золота не потрачено",
+            "Потратьте сейчас: варды, дасты, смок или спасающий предмет — Force Staff, Glimmer Cape.",
+        ),
+    },
+    "stall": {
+        "en": (
+            "{gold} gold unspent",
+            "Buy parts of your next item: gold in the pocket does nothing, "
+            "and you lose some of it when you die.",
+        ),
+        "ru": (
+            "{gold} золота не потрачено",
+            "Купите части следующего предмета: золото в кармане ничего не даёт, "
+            "а при смерти часть теряется.",
+        ),
+    },
+    "stall_item": {
+        "en": (
+            "{gold} gold unspent",
+            "{item} is next in your build: buy its parts now, gold in the pocket does nothing.",
+        ),
+        "ru": (
+            "{gold} золота не потрачено",
+            "Следующий по сборке — {item}: купите части сейчас, золото в кармане ничего не даёт.",
+        ),
+    },
+}
+
+
+class GoldTips:
+    """Per match (MATCH_MEMORY.gold): fed every live tick, asked by the overlay."""
+
+    def __init__(self) -> None:
+        self._bag: tuple[str, ...] | None = None
+        self._changed_at: int | None = None
+        self._empty_since: int | None = None
+        self._shown: dict[str, int] = {}
+
+    def observe(self, clock: int | None, items: list[str] | None) -> None:
+        """`items`: the names in the inventory, backpack and stash (map_hints.item_names);
+        None without an items block, which changes nothing."""
+        if clock is None or items is None:
+            return
+        bag = tuple(sorted(items))
+        if bag != self._bag or self._changed_at is None or clock < self._changed_at:
+            self._bag = bag
+            self._changed_at = clock
+        if bag:
+            self._empty_since = None
+        elif self._empty_since is None or clock < self._empty_since:
+            self._empty_since = clock
+
+    def tip(
+        self,
+        clock: int | None,
+        lang: str,
+        *,
+        gold: int | None,
+        alive: bool,
+        role: str | None,
+        buyback_cost: int | None = None,
+        next_item: str | None = None,
+    ) -> dict[str, Any] | None:
+        if clock is None or gold is None or not alive or self._bag is None:
+            return None
+        lang = "ru" if lang == "ru" else "en"
+        if clock < START_UNTIL:
+            empty = self._empty_since
+            if empty is None or gold < START_GOLD or clock - empty < START_WAIT:
+                return None
+            # Shown for as long as the bag stays empty: nothing matters more then.
+            return _hint("start", f"gold-start@{empty}", lang, gold=_round(gold), over_plan=True)
+        spare = gold
+        if clock >= BUYBACK_FROM and buyback_cost:
+            spare = gold - buyback_cost
+        if spare < _threshold(role, clock) or self._changed_at is None:
+            return None
+        if clock - self._changed_at < STALL_SECONDS:
+            return None
+        start = self._every("stall", clock)
+        if start is None:
+            return None
+        if role == "support":
+            key = "stall_support"
+        elif next_item:
+            key = "stall_item"
+        else:
+            key = "stall"
+        return _hint(key, f"gold-stall@{start}", lang, gold=_round(spare), item=next_item or "")
+
+    def _every(self, key: str, clock: int) -> int | None:
+        shown = self._shown.get(key)
+        if shown is None or clock - shown >= STALL_EVERY or clock < shown:
+            self._shown[key] = shown = clock
+        return shown if clock - shown <= SHOW else None
+
+
+def _threshold(role: str | None, clock: int) -> int:
+    if role == "support":
+        return SUPPORT_GOLD
+    return CORE_GOLD_LATE if clock >= LATE_FROM else CORE_GOLD
+
+
+def _round(gold: int) -> int:
+    """Down to hundreds, as the player reads it on screen."""
+    return max(0, gold) // 100 * 100
+
+
+def _hint(
+    key: str, hint_id: str, lang: str, *, over_plan: bool = False, **params: Any
+) -> dict[str, Any]:
+    title, text = TEXTS[key][lang]
+    return {
+        "kind": "tip",
+        "id": hint_id,
+        "at": None,
+        "at_label": None,
+        "in_seconds": None,
+        "title": title.format(**params),
+        "hint": text.format(**params),
+        "speak": True,
+        "over_plan": over_plan,
+    }

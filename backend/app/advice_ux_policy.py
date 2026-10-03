@@ -144,6 +144,10 @@ def _coaching_action(action: str) -> str:
         return action
     if lowered.startswith(("after respawn", "check", "conserve", "stay", "use", "wait", "respect")):
         return action
+    # Getting out of a fight is never softened: «Consider: step out of enemy range
+    # and use Bottle» read as if the coach was not sure.
+    if lowered.startswith(("step out", "leave", "walk out", "back off")):
+        return action
     if lowered.startswith("after this item pickup"):
         return action
     # "Consider: farm back your gold" (with a colon: the action stays an imperative;
