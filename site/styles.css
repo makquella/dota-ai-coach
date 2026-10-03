@@ -644,6 +644,9 @@ h2 {
   position: relative;
   aspect-ratio: 1 / 0.9;
 }
+.split-rev {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr);
+}
 .split-stage .win {
   width: 80%;
 }

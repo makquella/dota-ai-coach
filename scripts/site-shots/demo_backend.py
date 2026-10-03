@@ -82,6 +82,10 @@ def main() -> None:
                 state["equipped"][item["kind"]] = item_id
             PLAYER_SERVICE.store.set_meta(f"cosmetics:{ME}", cosmetics.dump(state))
             PLAYER_SERVICE.store.set_meta(f"mmr:{ME}", None)
+            # A profile worth showing: every demo match counts as played with
+            # the app (level, sparks and achievement tiers come from those).
+            for row in PLAYER_SERVICE.store.list_matches(ME, limit=200):
+                PLAYER_SERVICE.store.upsert_match(ME, row["match_id"], source="gsi")
         client.post("/player/friend", json={"steam": str(friend_id)})
         PLAYER_SERVICE.jobs.run_pending(until=float("inf"))
         for lang in ("ru", "en"):

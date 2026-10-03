@@ -34,6 +34,11 @@ backend/.venv/bin/python scripts/site-shots/game_frames.py /tmp/site-shots/raw
   matches are dated this week (the newest three hours ago) so Home has a week.
   Hero portraits and item icons go through the app's own `dota-assets.js`
   handler (cached in `$ASSET_CACHE`, default the system temp folder).
+- Profile pictures (`profile`, `profile-shop`, `profile-friends`): run the demo
+  backend with `DEMO_LOOKS=frame_gold,title_immortal` (looks a profile of its
+  level can own — every demo match then counts as played with the app, so the
+  level, sparks and tiers are real) and shoot with
+  `ONLY=profile,profile-friends` into an empty folder (`export.py` exports every picture it finds there and skips the rest).
 - `overlay_shots.js` — one overlay card per case in `overlay_cases.json`, at the
   overlay window's width (420 px), transparent background. The texts are the
   app's own advice strings (see `backend/app/advice_i18n.py`).
