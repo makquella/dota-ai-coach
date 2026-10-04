@@ -104,10 +104,10 @@ const I18N = {
     overlaySizeHint: "Larger on big and high-resolution screens",
     overlayTimers: "Timer strip",
     skillArrowsTitle: "Arrows over your abilities",
-    skillArrowsCalibrate: "Set up the frame",
+    skillArrowsCalibrate: "Fine-tune",
     skillArrowsHint: {
-      none: "When a skill point is due, an arrow points at the ability on Dota's bar. Lay the frame over your ability icons once, in a game.",
-      on: "On: the arrow shows over the ability to level. Set up the frame again after changing the resolution or the HUD.",
+      on: "When a skill point is due, an arrow points at the ability right on Dota's bar. It finds the icons by itself (Full HD, 2K, 4K); «Fine-tune» only if it misses.",
+      manual: "On, with your own frame. «Fine-tune» → «Automatic» goes back to finding the icons by itself.",
       off: "Off. The card still names the ability to level."
     },
     overlayTimersHint: "Always under the card: how long until the next runes, stacks, Roshan and Aegis for your role",
@@ -337,6 +337,10 @@ const I18N = {
     tourHint: "A short tour of the app, one minute",
     tourStart: "Show",
     whatsNew: {
+      "0.43.2": [
+        "Skill arrows find the ability icons by themselves (Full HD, 2K, 4K) and point at the «+» button to press; a hero with more abilities, or a new one from Aghanim's or the Shard, needs nothing. «Fine-tune» stays for another HUD.",
+        "No more «plan a safer route» card before the horn: the moment the hero appears on the map is no death."
+      ],
       "0.43.1": [
         "Role chosen by accident: if «Your role» says support but you play mid or carry, the card and Home say so once, with a button to switch back to Auto."
       ],
@@ -819,10 +823,10 @@ const I18N = {
     overlaySizeHint: "Крупнее — для больших экранов и высокого разрешения",
     overlayTimers: "Полоса таймеров",
     skillArrowsTitle: "Стрелки над навыками",
-    skillArrowsCalibrate: "Настроить рамку",
+    skillArrowsCalibrate: "Подправить",
     skillArrowsHint: {
-      none: "Когда есть очко навыка, стрелка показывает на способность прямо на панели Доты. Один раз совместите рамку с иконками способностей — в игре.",
-      on: "Включено: стрелка появится над способностью, которую стоит прокачать. После смены разрешения или интерфейса настройте рамку заново.",
+      on: "Когда есть очко навыка, стрелка показывает на способность прямо на панели Доты. Иконки она находит сама (Full HD, 2K, 4K); «Подправить» — только если промахивается.",
+      manual: "Включено, со своей рамкой. «Подправить» → «Автоматически» вернёт поиск иконок самой стрелкой.",
       off: "Выключено. Карточка всё равно называет способность."
     },
     overlayTimersHint: "Всегда под карточкой: сколько осталось до ближайших рун, стаков, Рошана и Аегиса для вашей роли",
@@ -1052,6 +1056,10 @@ const I18N = {
     tourHint: "Короткая экскурсия по приложению, на минуту",
     tourStart: "Показать",
     whatsNew: {
+      "0.43.2": [
+        "Стрелки над навыками сами находят иконки способностей (Full HD, 2K, 4K) и показывают на кнопку «+», которую нужно нажать. У героя с другим числом способностей и после новой способности от аганима или шарда ничего настраивать не нужно. «Подправить» осталось на случай другого интерфейса.",
+        "Больше нет карточки «спланируйте безопасный маршрут» до горна: появление героя на карте — не смерть."
+      ],
       "0.43.1": [
         "Роль выбрана по ошибке: если в «Ваша роль» стоит саппорт, а вы играете мид или керри, карточка и Главная один раз скажут об этом — с кнопкой, чтобы вернуть «Авто»."
       ],
@@ -2814,12 +2822,12 @@ function renderOverlaySettings(status) {
   els.overlayCompact.disabled = !enabled;
 
   // Skill arrows: on until switched off, drawn once the frame is laid.
-  const arrows = status.skillArrows || { enabled: true, calibrated: false };
+  const arrows = status.skillArrows || { enabled: true, manual: false };
   els.skillArrows.checked = arrows.enabled !== false;
   els.skillArrows.disabled = !enabled;
   els.skillArrowsCalibrate.disabled = !enabled || arrows.calibrating === true;
   els.skillArrowsHint.textContent = tr(
-    `skillArrowsHint.${arrows.enabled === false ? "off" : arrows.calibrated ? "on" : "none"}`
+    `skillArrowsHint.${arrows.enabled === false ? "off" : arrows.manual ? "manual" : "on"}`
   );
 
   const frequency = status.adviceFrequency || "normal";

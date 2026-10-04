@@ -10,7 +10,7 @@ const readline = require("node:readline");
 // where no other window can be drawn on top of it.
 //
 // Windows: one long-lived hidden PowerShell process calls user32
-// GetForegroundWindow/GetWindowThreadProcessId/IsIconic/GetWindowRect and
+// GetForegroundWindow/GetWindowThreadProcessId/IsIconic/GetClientRect and
 // shell32 SHQueryUserNotificationState in a loop and prints a JSON line
 // whenever the state changes (plus a heartbeat line every ~20 polls so the
 // launcher can tell it is alive). No native Node modules are needed, and the
@@ -35,7 +35,9 @@ public struct RECT { public int Left; public int Top; public int Right; public i
 [DllImport("user32.dll")] public static extern System.IntPtr GetForegroundWindow();
 [DllImport("user32.dll")] public static extern uint GetWindowThreadProcessId(System.IntPtr hWnd, out uint processId);
 [DllImport("user32.dll")] public static extern bool IsIconic(System.IntPtr hWnd);
-[DllImport("user32.dll")] public static extern bool GetWindowRect(System.IntPtr hWnd, out RECT rect);
+public struct POINT { public int X; public int Y; }
+[DllImport("user32.dll")] public static extern bool GetClientRect(System.IntPtr hWnd, out RECT rect);
+[DllImport("user32.dll")] public static extern bool ClientToScreen(System.IntPtr hWnd, ref POINT point);
 [DllImport("user32.dll")] public static extern bool SetProcessDPIAware();
 [DllImport("shell32.dll")] public static extern int SHQueryUserNotificationState(out int state);
 '@
@@ -62,8 +64,9 @@ while ($true) {
       try { $main = $p.MainWindowHandle } catch { }
       if ($main -ne [System.IntPtr]::Zero -and -not [DotaAICoach.Win32]::IsIconic($main)) {
         $r = New-Object DotaAICoach.Win32+RECT
-        if ([DotaAICoach.Win32]::GetWindowRect($main, [ref]$r) -and $r.Right -gt $r.Left -and $r.Bottom -gt $r.Top) {
-          $rect = @($r.Left, $r.Top, $r.Right, $r.Bottom)
+        $o = New-Object DotaAICoach.Win32+POINT
+        if ([DotaAICoach.Win32]::GetClientRect($main, [ref]$r) -and $r.Right -gt 0 -and [DotaAICoach.Win32]::ClientToScreen($main, [ref]$o)) {
+          $rect = @($o.X, $o.Y, ($o.X + $r.Right), ($o.Y + $r.Bottom))
         }
       }
       $p.Dispose()

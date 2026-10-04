@@ -3,53 +3,85 @@ const test = require("node:test");
 
 const {
   ARROW_SPACE,
-  DEFAULT_FRAME,
   arrowLayout,
   arrowTarget,
-  barRect,
+  autoBar,
+  barFrame,
   frameFractions,
-  frameRect,
+  manualBar,
   validFrame
 } = require("../skill-arrow-placement");
 
-const DOTA = { x: 0, y: 0, width: 1920, height: 1080 };
-const SECOND = { x: 1920, y: -200, width: 2560, height: 1440 };
+const FULL_HD = { x: 0, y: 0, width: 1920, height: 1080 };
+const TWO_K = { x: 0, y: 0, width: 2560, height: 1440 };
 
-test("a frame laid by hand comes back from its fractions on any window of that shape", () => {
-  const rect = { x: 830, y: 980, width: 256, height: 64 };
-  const fractions = frameFractions(rect, DOTA, 4);
-  assert.deepEqual(frameRect(fractions, DOTA), rect);
-  // The same game on a bigger monitor: the frame scales with it.
-  const moved = frameRect(fractions, SECOND);
-  assert.equal(moved.x, 1920 + Math.round((830 / 1920) * 2560));
-  assert.equal(moved.width, Math.round((256 / 1920) * 2560));
+function near(actual, expected, tolerance = 1.5) {
+  assert.ok(Math.abs(actual - expected) <= tolerance, `${actual} is not ${expected} ± ${tolerance}`);
+}
+
+test("Full HD: the six icons where the 1080p screenshot has them", () => {
+  // Shadow Fiend, 7.39 HUD: icons at x 779, 837, 895, 953, 1011, 1069 (51 px), top 943.
+  const bar = autoBar(FULL_HD, 6);
+  near(bar.x, 779);
+  near(bar.pitch, 58, 0.01);
+  near(bar.icon, 51, 0.01);
+  near(bar.y, 943);
+  near(bar.plusTop, 903);
+  near(bar.x + 5 * bar.pitch + bar.icon, 1120);
 });
 
-test("a hero with more abilities keeps the icon size around the same centre", () => {
-  const frame = frameFractions({ x: 830, y: 980, width: 256, height: 64 }, DOTA, 4);
-  const six = barRect(frame, DOTA, 6);
-  assert.equal(six.width, 384);
-  assert.equal(six.x + six.width / 2, 830 + 128);
-  assert.deepEqual(barRect(frame, DOTA, 4), { x: 830, y: 980, width: 256, height: 64 });
+test("2K: the same bar scaled with the height and centred", () => {
+  const bar = autoBar(TWO_K, 6);
+  near(bar.icon, 68, 0.01);
+  near(bar.y, 1440 - 137 * (4 / 3));
+  near(bar.x + (5 * bar.pitch + bar.icon) / 2, 1280 - 14);
 });
 
-test("the arrow window sits over the bar with the slot inside it", () => {
-  const bar = { x: 830, y: 980, width: 256, height: 64 };
-  const layout = arrowLayout(bar, 3, 4);
-  assert.equal(layout.window.y, 980 - ARROW_SPACE);
-  assert.ok(layout.window.width >= 320);
-  // The ultimate: the last quarter of the bar, in window coordinates.
-  assert.equal(layout.window.x + layout.slot.x, 830 + 192);
-  assert.equal(layout.slot.width, 64);
+test("another count keeps the middle: four abilities, or a seventh from the Shard", () => {
+  const six = autoBar(FULL_HD, 6);
+  const middle = (bar, n) => bar.x + ((n - 1) * bar.pitch + bar.icon) / 2;
+  near(middle(autoBar(FULL_HD, 4), 4), middle(six, 6), 0.01);
+  near(middle(autoBar(FULL_HD, 7), 7), middle(six, 6), 0.01);
+  assert.ok(autoBar(FULL_HD, 7).x < six.x);
+});
+
+test("a windowed game: the bar follows the picture, not the screen", () => {
+  const windowed = { x: 300, y: 200, width: 1280, height: 720 };
+  const bar = autoBar(windowed, 4);
+  assert.ok(bar.x > 300 && bar.x + 4 * bar.pitch < 300 + 1280);
+  near(bar.y, 200 + 720 - 137 * (720 / 1080));
+});
+
+test("the arrow window outlines the «+» button and the icon of the slot", () => {
+  const bar = autoBar(FULL_HD, 6);
+  const layout = arrowLayout(bar, 0);
+  near(layout.window.x + layout.slot.x, 779);
+  near(layout.window.y + layout.slot.y, 903);
+  near(layout.slot.height, 994 - 903);
   assert.equal(layout.slot.y, ARROW_SPACE);
+  // The ultimate, the sixth icon.
+  const ult = arrowLayout(bar, 5);
+  near(ult.window.x + ult.slot.x, 1069);
+});
+
+test("a frame laid by hand gives the same bar back, and other counts around it", () => {
+  const auto = autoBar(FULL_HD, 6);
+  const frame = frameFractions(barFrame(auto, 6), FULL_HD, 6);
+  const manual = manualBar(validFrame(frame), FULL_HD, 6);
+  near(manual.x, auto.x);
+  near(manual.pitch, auto.pitch, 0.3);
+  near(manual.plusTop, auto.plusTop);
+  const four = manualBar(frame, FULL_HD, 4);
+  near(four.x + (3 * four.pitch + four.icon) / 2, auto.x + (5 * auto.pitch + auto.icon) / 2);
 });
 
 test("broken calibrations are not used", () => {
+  const good = { x: 0.4, y: 0.87, width: 0.18, height: 0.05, slots: 6 };
   assert.equal(validFrame(null), null);
-  assert.equal(validFrame({ ...DEFAULT_FRAME, slots: 0 }), null);
-  assert.equal(validFrame({ ...DEFAULT_FRAME, width: Number.NaN }), null);
-  assert.equal(validFrame({ ...DEFAULT_FRAME, width: 3 }), null);
-  assert.deepEqual(validFrame(DEFAULT_FRAME), DEFAULT_FRAME);
+  assert.equal(validFrame({ ...good, slots: 0 }), null);
+  assert.equal(validFrame({ ...good, width: Number.NaN }), null);
+  assert.equal(validFrame({ ...good, width: 3 }), null);
+  assert.deepEqual(validFrame(good), good);
 });
 
 test("the target comes only from a skill hint with a sane slot", () => {

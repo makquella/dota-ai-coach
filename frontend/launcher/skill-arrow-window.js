@@ -2,12 +2,13 @@ const { BrowserWindow, ipcMain, screen } = require("electron");
 const path = require("node:path");
 
 const {
-  DEFAULT_FRAME,
   MAX_SLOTS,
   arrowLayout,
   arrowTarget,
-  barRect,
+  autoBar,
+  barFrame,
   frameFractions,
+  manualBar,
   validFrame
 } = require("./skill-arrow-placement");
 const { sameBounds } = require("./overlay-placement");
@@ -15,8 +16,9 @@ const { sameBounds } = require("./overlay-placement");
 // Skill arrows (0.43): while the overlay names the ability to level («Learn
 // your ultimate: Omnislash»), an arrow over that icon of Dota's ability bar.
 // Two windows: the arrow itself (transparent, click-through, never focused)
-// and, once, the calibration screen where the player lays a frame over the
-// ability icons. Without a calibration there is no arrow: the card says it all.
+// and, only when wanted, a screen where the player moves the frame over the
+// ability icons by hand. By default the bar is laid out from Dota's HUD
+// geometry and the number of abilities (skill-arrow-placement.js autoBar).
 
 const ALWAYS_ON_TOP_LEVEL = "screen-saver";
 // The calibration screen covers the bottom of Dota's window, where the HUD is.
@@ -39,12 +41,19 @@ function createSkillArrowController({ settings, getDotaRect = () => null, getLoc
     return config().skillArrows !== false;
   }
 
+  // A frame moved by hand (0.43.2+; the 0.43.0 `skillFrame` was laid with no
+  // automatic layout to start from and is not used).
   function calibration() {
-    return validFrame(config().skillFrame);
+    return validFrame(config().skillFrameManual);
+  }
+
+  function bar(area, slots) {
+    const frame = calibration();
+    return frame ? manualBar(frame, area, slots) : autoBar(area, slots);
   }
 
   function state() {
-    return { enabled: isEnabled(), calibrated: Boolean(calibration()), calibrating: isOpen(calibrationWindow) };
+    return { enabled: isEnabled(), manual: Boolean(calibration()), calibrating: isOpen(calibrationWindow) };
   }
 
   function isOpen(win) {
@@ -82,13 +91,11 @@ function createSkillArrowController({ settings, getDotaRect = () => null, getLoc
   }
 
   function refresh() {
-    const frame = calibration();
-    if (!isEnabled() || !frame || !target || !overlayShown || isOpen(calibrationWindow)) {
+    if (!isEnabled() || !target || !overlayShown || isOpen(calibrationWindow)) {
       hideArrow();
       return;
     }
-    const bar = barRect(frame, dotaArea(), target.slots);
-    const layout = arrowLayout(bar, target.slot, target.slots);
+    const layout = arrowLayout(bar(dotaArea(), target.slots), target.slot);
     const win = openArrow();
     if (!sameBounds(win.getBounds(), layout.window)) {
       win.setBounds(layout.window);
@@ -151,15 +158,15 @@ function createSkillArrowController({ settings, getDotaRect = () => null, getLoc
   }
 
   // The calibration screen over the bottom of Dota's window: the frame starts
-  // where it was saved (or the default), sized for the bar the game shows now.
+  // where the arrows put the bar now (by hand or automatic), sized for the bar
+  // the game shows.
   function startCalibration() {
     hideArrow();
     const dota = dotaArea();
     const height = Math.round(dota.height * CALIBRATION_SHARE);
     calibrationArea = { x: dota.x, y: dota.y + dota.height - height, width: dota.width, height };
-    const frame = calibration() || DEFAULT_FRAME;
-    const slots = barSize || frame.slots;
-    const rect = barRect(frame, dota, slots);
+    const slots = barSize || calibration()?.slots || 4;
+    const rect = barFrame(bar(dota, slots), slots);
     const payload = {
       locale: getLocale(),
       slots,
@@ -216,9 +223,9 @@ function createSkillArrowController({ settings, getDotaRect = () => null, getLoc
         height: Number(result.height)
       };
       const slots = Number(result.slots);
-      const frame = validFrame(frameFractions(rect, dotaArea(), Number.isFinite(slots) ? slots : DEFAULT_FRAME.slots));
+      const frame = validFrame(frameFractions(rect, dotaArea(), Number.isFinite(slots) ? slots : 4));
       if (frame) {
-        settings.update("overlay", { skillFrame: frame, skillArrows: true });
+        settings.update("overlay", { skillFrameManual: frame, skillArrows: true });
         log(`Skill arrows: frame saved (${frame.slots} abilities).`);
       }
     }
@@ -234,8 +241,12 @@ function createSkillArrowController({ settings, getDotaRect = () => null, getLoc
     return state();
   }
 
+  // Back to the automatic layout.
   function resetCalibration() {
-    settings.update("overlay", { skillFrame: undefined });
+    settings.update("overlay", { skillFrame: undefined, skillFrameManual: undefined });
+    if (isOpen(calibrationWindow)) {
+      calibrationWindow.close();
+    }
     refresh();
     return state();
   }
@@ -249,6 +260,12 @@ function createSkillArrowController({ settings, getDotaRect = () => null, getLoc
   function registerIpc(onChange = () => {}) {
     ipcMain.handle("skill-arrow:save", (_event, result) => {
       const next = finishCalibration(result && typeof result === "object" ? result : null);
+      onChange();
+      return next;
+    });
+    ipcMain.handle("skill-arrow:auto", () => {
+      const next = resetCalibration();
+      log("Skill arrows: back to the automatic layout.");
       onChange();
       return next;
     });

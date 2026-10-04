@@ -232,3 +232,26 @@ def test_the_overlay_shows_the_start_in_strategy_time(client):
     client.post("/gsi", json=payload)
     hint = client.get("/overlay/recommendation?lang=ru").json().get("map_hint")
     assert hint is not None and hint["title"] == "Купите стартовые предметы"
+
+
+def test_the_spawn_tick_of_the_pre_game_is_not_a_death(client):
+    """A recorded bot game: the first PRE_GAME tick (-1:28) had the hero not alive,
+    0 deaths, 0 s to respawn — and a «plan a safer route» card came."""
+    payload = copy.deepcopy(gsi_match_stream(minutes=1, death_minutes=())[0])
+    payload["map"]["game_state"] = "DOTA_GAMERULES_STATE_PRE_GAME"
+    payload["map"]["clock_time"] = -88
+    payload["hero"]["alive"] = False
+    payload["hero"]["respawn_seconds"] = 0
+    payload["player"]["deaths"] = 0
+    client.post("/gsi", json=payload)
+    answer = client.get("/overlay/recommendation?lang=en").json()
+    assert answer.get("decision_point") not in {"DEATH_REVIEW", "REPEATED_DEATH_PATTERN"}
+    # A real death (counted) stays a death.
+    payload["map"]["game_state"] = "DOTA_GAMERULES_STATE_GAME_IN_PROGRESS"
+    payload["map"]["clock_time"] = 300
+    payload["player"]["deaths"] = 1
+    payload["hero"]["respawn_seconds"] = 20
+    client.post("/gsi", json=payload)
+    from app.gsi_state import get_current_state
+
+    assert get_current_state()["state"]["extra_context"]["alive"] is False

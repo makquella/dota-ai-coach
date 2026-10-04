@@ -297,7 +297,11 @@ def normalize_gsi_payload(
     map_block = _dict_value(payload.get("map"))
     # Before the heroes spawn (strategy time, the showcase, loading) GSI reports the
     # picked hero as not alive: that is no death (a «respawn» card came at 00:00).
-    if hero_block.get("alive") is False and map_block.get("game_state") in _PRE_SPAWN_STATES:
+    # Nor is the first second of the pre-game, when the hero is being placed on the
+    # map: not alive with no death counted yet (a «plan a safer route» card at -1:28).
+    if hero_block.get("alive") is False and (
+        map_block.get("game_state") in _PRE_SPAWN_STATES or player_block.get("deaths") == 0
+    ):
         hero_block = {**hero_block, "alive": True}
         payload = {**payload, "hero": hero_block}
 
