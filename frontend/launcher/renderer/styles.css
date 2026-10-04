@@ -1586,6 +1586,18 @@ label.setting:has(.switch:disabled) {
   gap: var(--sp-3);
 }
 
+/* «‹ Back» and «‹ Newer · Older ›» on the left of a review's toolbar. */
+.review-nav,
+.neighbour-nav {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-1);
+}
+
+.review-nav {
+  gap: var(--sp-3);
+}
+
 .toolbar-actions {
   display: inline-flex;
   flex: none;

@@ -81,6 +81,10 @@
       linkPlaceholder: "Friend ID, Steam ID or profile link",
       linkButton: "Link",
       linkSoon: "Once your account is linked, here you get:",
+      newerMatch: "Newer",
+      olderMatch: "Older",
+      newerMatchHint: (hero) => `The newer match${hero ? ` (${hero})` : ""} · ←`,
+      olderMatchHint: (hero) => `The older match${hero ? ` (${hero})` : ""} · →`,
       openOnSite: (name) => `Open this match on ${name}`,
       progressSoon: "Once a few matches are reviewed, here you get:",
       linkPerks: {
@@ -704,6 +708,10 @@
       linkPlaceholder: "Friend ID, Steam ID или ссылка на профиль",
       linkButton: "Привязать",
       linkSoon: "Когда аккаунт привязан, здесь будут:",
+      newerMatch: "Новее",
+      olderMatch: "Старее",
+      newerMatchHint: (hero) => `Более новый матч${hero ? ` (${hero})` : ""} · ←`,
+      olderMatchHint: (hero) => `Более старый матч${hero ? ` (${hero})` : ""} · →`,
       openOnSite: (name) => `Открыть этот матч на ${name}`,
       progressSoon: "Когда разобранных матчей станет больше, здесь будут:",
       linkPerks: {
@@ -2074,6 +2082,43 @@
     }
   }
 
+  // The match next to the open one in the list the player came from (newest
+  // first): step -1 = newer, +1 = older. Null when the review was opened from
+  // elsewhere and the match is not in the loaded list, or at its end.
+  function neighbourMatch(step) {
+    const index = state.matches.findIndex((row) => String(row.match_id) === state.matchId);
+    return index < 0 ? null : state.matches[index + step] || null;
+  }
+
+  // «‹ Newer · Older ›» next to «Back»: several reviews in a row without the list.
+  function neighbourButtons() {
+    if (!state.matches.some((row) => String(row.match_id) === state.matchId)) {
+      return null;
+    }
+    const button = (step, iconName, label, hint) => {
+      const row = neighbourMatch(step);
+      const parts = [h("span", { text: label })];
+      parts[step < 0 ? "unshift" : "push"](icon(iconName));
+      return h(
+        "button",
+        {
+          class: "btn btn-ghost btn-sm",
+          type: "button",
+          disabled: !row,
+          title: row ? hint(row.hero || "") : "",
+          onclick: () => row && openMatch(row.match_id)
+        },
+        parts
+      );
+    };
+    return h(
+      "span",
+      { class: "neighbour-nav" },
+      button(-1, "chevron-left", t("newerMatch"), (hero) => t("newerMatchHint", hero)),
+      button(1, "chevron-right", t("olderMatch"), (hero) => t("olderMatchHint", hero))
+    );
+  }
+
   function drawMatch() {
     const root = document.getElementById("match-root");
     const backButton = h("button", { class: "btn btn-ghost btn-sm back", type: "button", onclick: () => setView("matches") }, icon("chevron-left"), h("span", { text: t("back") }));
@@ -2082,7 +2127,7 @@
     const back = h(
       "div",
       { class: "review-toolbar no-print" },
-      backButton,
+      h("span", { class: "review-nav" }, backButton, neighbourButtons()),
       detail && detail.analysis
         ? h("span", { class: "toolbar-actions" }, shareButton(sharePanel, detail), pdfButton("match"))
         : null
@@ -5554,7 +5599,8 @@
       next.focus();
       setView(next.dataset.view);
     });
-    // Keyboard: Ctrl+1…5 opens a tab, Esc leaves a match review for the list.
+    // Keyboard: Ctrl+1…5 opens a tab, Esc leaves a match review for the list,
+    // ←/→ in a review open the newer / older match of the list.
     // Never while typing, and never under the first-run tour (it owns Esc).
     document.addEventListener("keydown", (event) => {
       if (event.defaultPrevented || event.altKey || event.metaKey || document.querySelector(".tour")) {
@@ -5573,6 +5619,16 @@
       } else if (event.key === "Escape" && !event.ctrlKey && state.view === "match") {
         event.preventDefault();
         setView("matches");
+      } else if ((event.key === "ArrowLeft" || event.key === "ArrowRight") && !event.ctrlKey && !event.shiftKey && state.view === "match") {
+        // ← newer, → older; the tabs and the charts keep their own arrows.
+        if (event.target?.closest?.(".tabs")) {
+          return;
+        }
+        const row = neighbourMatch(event.key === "ArrowLeft" ? -1 : 1);
+        if (row) {
+          event.preventDefault();
+          openMatch(row.match_id);
+        }
       }
     });
     api.onPlayerEvent?.((event) => {
