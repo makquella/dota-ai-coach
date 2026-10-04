@@ -130,8 +130,22 @@ jobs:
           # Hand-written notes for players when docs/release-notes/<tag>.md exists.
           $notes = "docs/release-notes/$($env:TAG).md"
           $notesArgs = if (Test-Path $notes) { @("--notes-file", $notes) } else { @("--generate-notes") }
-          gh release create $env:TAG @files --target $env:GITHUB_SHA --title "Wardly $version" @notesArgs
-          if ($LASTEXITCODE -ne 0) { throw "gh release create failed with exit code $LASTEXITCODE" }
+          # GitHub answers 5xx now and then (a 504 lost the 0.41.0 run after a
+          # full build): try three times; a release that got created before the
+          # error only needs its files.
+          $done = $false
+          foreach ($attempt in 1..3) {
+            gh release view $env:TAG *> $null
+            if ($LASTEXITCODE -eq 0) {
+              gh release upload $env:TAG @files --clobber
+            } else {
+              gh release create $env:TAG @files --target $env:GITHUB_SHA --title "Wardly $version" @notesArgs
+            }
+            if ($LASTEXITCODE -eq 0) { $done = $true; break }
+            Write-Host "Publishing failed (attempt $attempt), retrying in 30 s"
+            Start-Sleep -Seconds 30
+          }
+          if (-not $done) { throw "gh release create failed three times" }
 
       - name: Send the installer to VirusTotal
         # Optional (secret VT_API_KEY, the key of a free VirusTotal account).

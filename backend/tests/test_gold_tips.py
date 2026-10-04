@@ -42,8 +42,17 @@ def test_gold_left_unspent_for_two_minutes_is_named_by_role():
     support = tips.tip(7 * 60, "en", gold=2510, alive=True, role="support")
     assert support["title"] == "2500 gold unspent" and "wards" in support["hint"]
     core = _tips(3 * 60, lambda clock: bag, 7 * 60)
-    with_item = core.tip(7 * 60, "ru", gold=1300, alive=True, role="carry", next_item="Battle Fury")
+    bfury = {"key": "bfury", "name": "Battle Fury"}
+    with_item = core.tip(7 * 60, "ru", gold=1300, alive=True, role="carry", next_item=bfury)
     assert with_item["title"] == "1300 золота не потрачено" and "Battle Fury" in with_item["hint"]
+    assert with_item["items"] == [bfury]
+    # The quick-buy step: the part the gold already buys, drawn next to the item.
+    part = {"key": "quarterstaff", "name": "Quarterstaff", "cost": 875}
+    stepped = _tips(3 * 60, lambda clock: bag, 7 * 60).tip(
+        7 * 60, "ru", gold=1300, alive=True, role="carry", next_item=bfury, buy_now=part
+    )
+    assert "на Quarterstaff (875) золота уже хватает" in stepped["hint"]
+    assert [i["key"] for i in stepped["items"]] == ["bfury", "quarterstaff"]
     # A core under its threshold, or a purchase lately: no call.
     assert (
         _tips(3 * 60, lambda clock: bag, 7 * 60).tip(
@@ -105,3 +114,121 @@ def test_a_hero_not_spawned_yet_is_not_dead(client):
     assert answer.get("decision_point") not in {"DEATH_REVIEW", "REPEATED_DEATH_PATTERN"}
     action = (answer.get("recommendation") or {}).get("action") or ""
     assert "respawn" not in action.lower()
+
+
+CONSTANTS = {
+    "by_id": {
+        "44": "tango",
+        "16": "branches",
+        "11": "quelling_blade",
+        "39": "flask",
+        "46": "tpscroll",
+        "50": "phase_boots",
+        "145": "bfury",
+        "147": "manta",
+    },
+    "items": {
+        "tango": {"name": "Tango"},
+        "branches": {"name": "Iron Branch"},
+        "quelling_blade": {"name": "Quelling Blade"},
+        "flask": {"name": "Healing Salve"},
+        "tpscroll": {"name": "Town Portal Scroll"},
+        "phase_boots": {"name": "Phase Boots", "assembled": True, "cost": 1500},
+        "bfury": {"name": "Battle Fury", "assembled": True, "cost": 4100},
+        "manta": {"name": "Manta Style", "assembled": True, "cost": 4600},
+    },
+}
+
+
+def test_the_usual_start_leaves_out_the_tp_and_rare_buys():
+    from app.hero_meta import start_items
+
+    popularity = {
+        "start_game_items": {"44": 900, "16": 850, "11": 700, "39": 400, "46": 1000, "50": 10}
+    }
+    items = start_items(popularity, CONSTANTS)
+    assert [item["key"] for item in items] == ["tango", "branches", "quelling_blade", "flask"]
+    assert items[0]["name"] == "Tango"
+    assert (
+        start_items(None, CONSTANTS) == []
+        and start_items({"start_game_items": {}}, CONSTANTS) == []
+    )
+
+
+def test_the_start_card_names_the_usual_start_with_icons():
+    tips = _tips(-80, lambda clock: [], -60)
+    start = [{"key": "tango", "name": "Tango"}, {"key": "quelling_blade", "name": "Quelling Blade"}]
+    hint = tips.tip(-60, "ru", gold=625, alive=True, role="carry", start_items=start)
+    assert "Обычный старт на этом герое: Tango, Quelling Blade." in hint["hint"]
+    assert hint["items"] == start and hint["label"] == "Покупки"
+
+
+def test_the_plan_carries_the_build_as_icons():
+    from app.game_plan import build_items
+
+    meta = {
+        "popularity": {"early_game_items": {"50": 50}, "mid_game_items": {"145": 40, "147": 30}},
+        "constants": CONSTANTS,
+    }
+    # Cheap items (boots under the build-item price) are not part of the build.
+    assert [item["key"] for item in build_items(meta)] == ["bfury", "manta"]
+    assert build_items(None) == []
+
+
+def test_the_quick_buy_step_is_the_dearest_missing_part_the_gold_buys():
+    from app.hero_meta import item_name
+    from app.next_item import buy_now, missing_parts
+
+    constants = {
+        "items": {
+            "bfury": {
+                "cost": 4100,
+                "components": ["demon_edge", "quelling_blade", "ring_of_health", "void_stone"],
+            },
+            "demon_edge": {"cost": 2200},
+            "quelling_blade": {"cost": 100},
+            "ring_of_health": {"cost": 700},
+            "void_stone": {"cost": 700},
+            "perseverance": {"cost": 1400, "components": ["ring_of_health", "void_stone"]},
+        }
+    }
+    from collections import Counter
+
+    assert missing_parts("bfury", Counter({"quelling_blade": 1}), constants) == [
+        ("demon_edge", 2200),
+        ("ring_of_health", 700),
+        ("void_stone", 700),
+    ]
+    assert buy_now("bfury", ["item_quelling_blade"], constants, 2300)["key"] == "demon_edge"
+    assert buy_now("bfury", ["item_quelling_blade"], constants, 900)["key"] == "ring_of_health"
+    assert buy_now("bfury", ["item_quelling_blade"], constants, 50) is None
+    # Every part there, only the recipe left: the item at the recipe's price.
+    constants["items"]["bfury"]["cost"] = 4300
+    owned = ["item_quelling_blade", "item_demon_edge", "item_ring_of_health", "item_void_stone"]
+    assert buy_now("bfury", owned, constants, 700) == {
+        "key": "bfury",
+        "name": item_name("bfury", constants),
+        "cost": 600,
+    }
+
+
+def test_strategy_time_names_the_start_at_once():
+    """The shop opens with the pick: no wait while the hero is not on the map yet."""
+    tips = GoldTips()
+    tips.observe(-90, [])
+    start = [{"key": "tango", "name": "Tango"}]
+    assert tips.tip(-90, "en", gold=600, alive=True, role="mid", start_items=start) is None
+    hint = tips.tip(-90, "en", gold=600, alive=True, role="mid", start_items=start, pre_spawn=True)
+    assert hint["items"] == start and hint["over_plan"] is True
+
+
+def test_the_overlay_shows_the_start_in_strategy_time(client):
+    payload = copy.deepcopy(gsi_match_stream(minutes=1, death_minutes=())[0])
+    payload["map"]["game_state"] = "DOTA_GAMERULES_STATE_STRATEGY_TIME"
+    payload["map"]["clock_time"] = -100
+    payload["hero"]["alive"] = False
+    payload["items"] = {f"slot{i}": {"name": "empty"} for i in range(9)}
+    payload["player"]["gold"] = 600
+    client.post("/gsi", json=payload)
+    hint = client.get("/overlay/recommendation?lang=ru").json().get("map_hint")
+    assert hint is not None and hint["title"] == "Купите стартовые предметы"

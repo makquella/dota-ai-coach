@@ -280,6 +280,8 @@ def _hint(key: str, hint_id: str, lang: str, **params: Any) -> dict[str, Any]:
     title, text = TEXTS[key]["ru" if lang == "ru" else "en"]
     return {
         "kind": "tip",
+        # The overlay card's label (instead of «Map»).
+        "label": "Прокачка" if lang == "ru" else "Skills",
         "id": hint_id,
         "at": None,
         "at_label": None,

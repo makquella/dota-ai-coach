@@ -37,6 +37,7 @@ from app.game_plan import SHOW_FROM_CLOCK as GAME_PLAN_SHOW_FROM_CLOCK
 from app.game_plan import SHOW_UNTIL_CLOCK as GAME_PLAN_SHOW_UNTIL_CLOCK
 from app.gsi_census import CENSUS_FILE, GSI_CENSUS, load_previous
 from app.gsi_state import (
+    PRE_SPAWN_STATES,
     get_current_state,
     get_gsi_debug_fields,
     get_gsi_debug_latest,
@@ -74,7 +75,7 @@ app = FastAPI(
     lifespan=_lifespan,
     title="Wardly",
     description="MVP-1: rule-based carry coach with local knowledge-base RAG.",
-    version="0.41.0",
+    version="0.42.0",
 )
 app.include_router(player_router)
 
@@ -108,7 +109,7 @@ if FRONTEND_DIR.exists():
 @app.get("/", summary="Health check")
 def root():
     """Simple health-check endpoint."""
-    return {"status": "ok", "service": "Wardly", "version": "0.41.0"}
+    return {"status": "ok", "service": "Wardly", "version": "0.42.0"}
 
 
 @app.get("/health", summary="Health check")
@@ -485,19 +486,21 @@ def _gold_hint(
     clock = extra.get("clock_time")
     gold = state.get("gold")
     role_name = role.get("role") if role else None
+    hero = str(state.get("hero") or "")
+    names = extra.get("item_names") if isinstance(extra.get("item_names"), list) else None
     next_item = None
+    part = None
     if role_name != "support" and isinstance(clock, int) and clock >= 3 * 60:
-        names = extra.get("item_names")
         try:
-            item = PLAYER_SERVICE.next_item(
-                str(state.get("hero") or ""),
-                names if isinstance(names, list) else None,
-                minute=state.get("minute"),
-            )
+            item = PLAYER_SERVICE.next_item(hero, names, minute=state.get("minute"))
+            if isinstance(item, dict) and isinstance(item.get("key"), str):
+                next_item = item
+                # The quick-buy step: the part the gold already buys.
+                part = PLAYER_SERVICE.buy_now(
+                    hero, item["key"], names, gold if isinstance(gold, int) else None
+                )
         except Exception as error:  # noqa: BLE001 - never breaks the live path
             record_error("gold-hint", error)
-            item = None
-        next_item = item.get("name") if isinstance(item, dict) else None
     buyback = extra.get("buyback_cost")
     return MATCH_MEMORY.gold.tip(
         clock if isinstance(clock, int) else None,
@@ -506,8 +509,22 @@ def _gold_hint(
         alive=extra.get("alive") is not False,
         role=role_name,
         buyback_cost=buyback if isinstance(buyback, int) else None,
-        next_item=next_item if isinstance(next_item, str) else None,
+        next_item=next_item,
+        buy_now=part,
+        start_items=_start_items(state, role_name)
+        if isinstance(clock, int) and clock < 3 * 60
+        else None,
+        pre_spawn=state.get("game_state") in PRE_SPAWN_STATES,
     )
+
+
+def _start_items(state: Mapping[str, object], role: str | None) -> list[dict[str, Any]] | None:
+    """The usual start on the hero in the player's role (high-rank data, else OpenDota)."""
+    try:
+        return PLAYER_SERVICE.start_items(str(state.get("hero") or ""), role) or None
+    except Exception as error:  # noqa: BLE001 - never breaks the live path
+        record_error("start-items", error)
+        return None
 
 
 def _with_gold_hint(
@@ -543,7 +560,10 @@ def _game_plan_for_overlay(response: dict[str, object], lang: str) -> dict[str, 
     ):
         return None
     try:
-        return PLAYER_SERVICE.game_plan(str(state.get("hero") or ""), lang)
+        role = _live_role(state)
+        return PLAYER_SERVICE.game_plan(
+            str(state.get("hero") or ""), lang, role.get("role") if role else None
+        )
     except Exception as error:  # noqa: BLE001 - never breaks the live path
         record_error("game-plan", error)
         return None

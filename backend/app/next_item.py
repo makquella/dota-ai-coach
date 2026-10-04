@@ -66,6 +66,41 @@ def gold_left(key: str, owned: Counter[str], constants: dict[str, Any], depth: i
     return recipe + sum(gold_left(part, owned, constants, depth + 1) for part in parts)
 
 
+def missing_parts(
+    key: str, owned: Counter[str], constants: dict[str, Any], depth: int = 0
+) -> list[tuple[str, int]]:
+    """The parts of `key` still to buy with their prices, in the order the shop
+    lists them: a part the player has (or has built) is taken out of `owned`; a
+    part with parts of its own gives those (Mithril Hammer is never the step when
+    Ogre Axe is); when only a recipe is left, the item comes with the recipe's price."""
+    if owned.get(key, 0) > 0:
+        owned[key] -= 1
+        return []
+    parts = _components(key, constants)
+    if not parts or depth > MAX_DEPTH:
+        return [(key, _cost(key, constants))]
+    result: list[tuple[str, int]] = []
+    for part in parts:
+        result.extend(missing_parts(part, owned, constants, depth + 1))
+    recipe = _cost(key, constants) - sum(_cost(part, constants) for part in parts)
+    if recipe > 0 and not result:
+        return [(key, recipe)]
+    return result
+
+
+def buy_now(
+    key: str, owned_names: list[str], constants: dict[str, Any], gold: int
+) -> dict[str, Any] | None:
+    """The quick-buy step: the most expensive missing part of `key` that `gold`
+    already buys ({key, name, cost}); None when no part fits the gold."""
+    parts = missing_parts(key, Counter(item_key(n) for n in owned_names), constants)
+    affordable = [(part, cost) for part, cost in parts if 0 < cost <= gold]
+    if not affordable:
+        return None
+    part, cost = max(affordable, key=lambda row: row[1])
+    return {"key": part, "name": item_name(part, constants), "cost": cost}
+
+
 def has_components(constants: dict[str, Any] | None) -> bool:
     """Whether the cached item constants carry the components (kept since 0.12)."""
     items = (constants or {}).get("items") or {}

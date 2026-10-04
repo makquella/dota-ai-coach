@@ -38,7 +38,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
-from app import cosmetics, rank_history
+from app import cosmetics, rank_history, stratz_builds
 from app.analysis_texts import rank_label, render_analysis
 from app.career_analysis import NOT_RECURRING, analyze_career
 from app.coach_llm import PROVIDERS, AISettings, CoachLLM, CoachLLMError, settings_from
@@ -65,6 +65,7 @@ from app.finding_history import finding_history
 from app.focus_goal import can_focus, focus_summary, match_result, new_focus, played_after
 from app.friend_compare import compare
 from app.game_plan import build_game_plan, key_item
+from app.hero_meta import start_items
 from app.hero_profiles import get_hero_position
 from app.history_backup import export_backup, import_backup
 from app.home_summary import home_summary
@@ -74,7 +75,7 @@ from app.map_hints import SAVE_ITEMS
 from app.match_facts import facts_from_opendota, facts_from_timeline, merge_facts
 from app.match_records import MATCH_RECORDS
 from app.match_tracker import MatchTracker, account_from_gsi
-from app.next_item import has_components, next_build_item, save_build_item
+from app.next_item import buy_now, has_components, next_build_item, save_build_item
 from app.opendota import (
     TRIM_VERSION,
     OpenDotaClient,
@@ -464,14 +465,15 @@ class PlayerService:
     def check_stale(self) -> None:
         self.tracker.check_stale()
 
-    def game_plan(self, hero: str, lang: str) -> dict[str, Any] | None:
+    def game_plan(self, hero: str, lang: str, role: str | None = None) -> dict[str, Any] | None:
         """The overlay's plan for the first 1:30 (app/game_plan.py); polled every
-        second, so it is cached for a minute per account, hero and language."""
+        second, so it is cached for a minute per account, hero, language and the
+        live role (the high-rank build is the one of the player's position)."""
         primary = self.store.primary_account_id()
         hero_id = hero_id_from_name(hero)
         if primary is None or hero_id is None:
             return None
-        key = (primary, hero_id, lang)
+        key = (primary, hero_id, lang, role)
         cached = self._plans.get(key)
         now = time.monotonic()
         if cached is not None and now - cached[0] < GAME_PLAN_CACHE_SECONDS:
@@ -488,6 +490,7 @@ class PlayerService:
             meta=self._live_meta(hero_id),
             lang=lang,
             skills=self.skill_build(hero),
+            high_build=stratz_builds.build(hero_id, hero, role),
         )
         self._plans[key] = (now, plan)
         return plan
@@ -584,6 +587,19 @@ class PlayerService:
         )
         return situational or next_build_item(meta, owned)
 
+    def buy_now(
+        self, hero: str, item_key: str, owned: list[str] | None, gold: int | None
+    ) -> dict[str, Any] | None:
+        """The part of `item_key` the player's gold buys now (next_item.buy_now) for
+        the «gold unspent» card; None when unknown or nothing fits."""
+        hero_id = hero_id_from_name(hero)
+        if hero_id is None or owned is None or gold is None:
+            return None
+        constants = (self._live_meta(hero_id) or {}).get("constants") or {}
+        if not has_components(constants):
+            return None
+        return buy_now(item_key, owned, constants, gold)
+
     def save_item(
         self, hero: str, owned: list[str] | None, enemies: list[str] | None = None
     ) -> dict[str, Any] | None:
@@ -601,6 +617,27 @@ class PlayerService:
         if hero_id is None:
             return None
         return save_build_item(meta, owned, SAVE_ITEMS)
+
+    def start_items(self, hero: str, role: str | None = None) -> list[dict[str, Any]]:
+        """The hero's usual starting purchase for the empty-bag and strategy-time
+        cards: high-rank players in the player's position (app/stratz_builds.py),
+        else OpenDota's popularity (app/hero_meta.start_items); [] when unknown.
+        Polled every second: cached."""
+        hero_id = hero_id_from_name(hero)
+        if hero_id is None:
+            return []
+        high = stratz_builds.start_items(hero_id, hero, role)
+        if high:
+            return high
+        key = ("start_items", hero_id)
+        cached = self._plans.get(key)
+        now = time.monotonic()
+        if cached is not None and now - cached[0] < GAME_PLAN_CACHE_SECONDS:
+            return cached[1]
+        meta = self._live_meta(hero_id) or {}
+        items = start_items(meta.get("popularity"), meta.get("constants"))
+        self._plans[key] = (now, items)
+        return items
 
     def _live_meta(self, hero_id: int) -> dict[str, Any] | None:
         """The hero's cached build data for live tips, read once a minute (they
