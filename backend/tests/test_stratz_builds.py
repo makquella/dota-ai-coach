@@ -34,6 +34,26 @@ def test_the_mid_entry_has_the_start_and_the_build_in_order():
     assert "yasha" not in build and "kaya" not in build
 
 
+def test_the_start_list_fits_in_the_starting_gold():
+    keys = {1: "quelling_blade", 2: "tango", 3: "magic_stick", 4: "circlet", 5: "faerie_fire"}
+    items = {
+        "quelling_blade": {"cost": 100},
+        "tango": {"cost": 90},
+        "magic_stick": {"cost": 200},
+        "circlet": {"cost": 155},
+        "faerie_fire": {"cost": 65},
+    }
+    rows = [
+        {"itemId": item_id, "instance": 0, "matchCount": 1000 - item_id * 10} for item_id in keys
+    ]
+    rows.append({"itemId": 2, "instance": 1, "matchCount": 900})  # a second Tango
+    start = builder.start_items(rows, 1000, keys, items)
+    total = sum(items[key]["cost"] * count for key, count in start)
+    assert total <= builder.START_GOLD
+    # The rarer buy that would go over 600 is left out, a cheaper later one kept.
+    assert [key for key, _ in start] == ["quelling_blade", "tango", "magic_stick", "faerie_fire"]
+
+
 def test_the_query_asks_every_position_for_one_hero():
     text = builder.query_text(11)
     for position in builder.POSITIONS:
