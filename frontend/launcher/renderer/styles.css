@@ -1304,6 +1304,42 @@ label.setting:has(.switch:disabled) {
   gap: var(--sp-2);
 }
 
+/* What a tab will show once the account is linked. */
+.link-perks {
+  margin-top: var(--sp-5);
+  padding-top: var(--sp-4);
+  border-top: 1px solid var(--border);
+}
+
+.link-perks-title {
+  color: var(--text-3);
+  font-size: var(--fs-12);
+  font-weight: var(--fw-medium);
+}
+
+.link-perks ul {
+  display: grid;
+  gap: var(--sp-2);
+  margin: var(--sp-3) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.link-perks li {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  color: var(--text-2);
+  font-size: var(--fs-13);
+}
+
+.link-perks li svg {
+  flex: none;
+  width: 16px;
+  height: 16px;
+  color: var(--text-3);
+}
+
 /* «Перенос на другой компьютер»: the code is read off one screen and typed on another. */
 .transfer-code {
   display: block;
@@ -1353,10 +1389,14 @@ label.setting:has(.switch:disabled) {
 }
 
 .form-error {
-  min-height: 18px;
   margin-top: var(--sp-2);
   color: var(--error);
   font-size: var(--fs-12);
+}
+
+/* No room kept for an error that is not there. */
+.form-error:empty {
+  display: none;
 }
 
 .detected {
@@ -1602,6 +1642,43 @@ label.setting:has(.switch:disabled) {
   align-items: center;
   gap: var(--sp-2);
   font-size: var(--fs-13);
+}
+
+/* «OpenDota · Dotabuff · STRATZ» after the match id. */
+.site-links {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: var(--sp-1) var(--sp-3);
+  margin-left: var(--sp-1);
+}
+
+.site-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--text-3);
+  font: inherit;
+  font-size: var(--fs-12);
+  cursor: pointer;
+  transition: color var(--dur-fast) var(--ease);
+}
+
+.site-link .icon {
+  width: 12px;
+  height: 12px;
+}
+
+.site-link:hover {
+  color: var(--text);
+}
+
+.site-link:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 2px;
 }
 
 .review-source {
@@ -4377,6 +4454,11 @@ tr.row-link[data-result="loss"] > td:first-child {
   gap: var(--sp-5);
 }
 
+/* A grid adds its gap to the title's margin: the same room as on the other tabs. */
+#profile-root > .page-head {
+  margin-bottom: calc(var(--sp-6) - var(--sp-5));
+}
+
 .pf-header {
   position: relative;
   overflow: hidden;
@@ -4443,6 +4525,11 @@ tr.row-link[data-result="loss"] > td:first-child {
   font-size: var(--fs-20);
   font-weight: var(--fw-semibold);
   color: var(--text-2);
+}
+
+.pf-initials .icon {
+  width: 28px;
+  height: 28px;
 }
 
 .pf-name-block {
@@ -4665,6 +4752,11 @@ tr.row-link[data-result="loss"] > td:first-child {
 
 .pf-badge.tier-0 {
   opacity: 0.75;
+}
+
+.pf-badge.tier-0 .pf-badge-medal {
+  border-style: dashed;
+  color: var(--text-3);
 }
 
 .pf-badge-body {
@@ -4930,6 +5022,11 @@ tr.row-link[data-result="loss"] > td:first-child {
 .pf-friends {
   display: grid;
   gap: var(--sp-3);
+}
+
+/* A button of its own row keeps its width, not the card's. */
+.pf-friends > .btn {
+  justify-self: start;
 }
 
 .pf-code-row {

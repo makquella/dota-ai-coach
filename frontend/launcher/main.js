@@ -3467,6 +3467,16 @@ function registerIpc() {
   ipcMain.handle("launcher:open-simulation-results", () => openPath(SIMULATION_RESULTS_DIR));
   ipcMain.handle("launcher:open-session-records", () => openPath(SESSION_RECORDS_DIR));
   ipcMain.handle("launcher:open-readme", () => shell.openPath(README_PATH));
+  // A match on the sites players already use: fixed addresses, a numeric id only.
+  ipcMain.handle("launcher:open-match-site", (_event, site, matchId) => {
+    const sites = {
+      opendota: "https://www.opendota.com/matches/",
+      dotabuff: "https://www.dotabuff.com/matches/",
+      stratz: "https://stratz.com/matches/"
+    };
+    const id = String(matchId ?? "");
+    return Object.hasOwn(sites, String(site)) && /^\d{1,20}$/.test(id) ? shell.openExternal(sites[String(site)] + id) : false;
+  });
   ipcMain.handle("launcher:open-ai-key-page", (_event, provider) => {
     const pages = { ...AI_KEY_PAGES, opendota: "https://www.opendota.com/api-keys" };
     const url = pages[String(provider)];

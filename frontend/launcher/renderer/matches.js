@@ -19,6 +19,7 @@
       pfWithApp: "With the coach",
       pfWinrate: "Win rate",
       pfHours: "Hours with the coach",
+      pfNoName: "Player",
       pfRating: "Rating",
       pfRatingNone: "Enter your MMR from Dota to start the graph: every ranked game then moves it.",
       pfRatingMedal: "Estimated from your medal. Enter your MMR from Dota for your own line.",
@@ -79,6 +80,27 @@
         "The coach reads your account from Dota automatically when you play. You can also paste your Friend ID (Dota profile), a steamcommunity.com/profiles/… link or an OpenDota/Dotabuff link.",
       linkPlaceholder: "Friend ID, Steam ID or profile link",
       linkButton: "Link",
+      linkSoon: "Once your account is linked, here you get:",
+      openOnSite: (name) => `Open this match on ${name}`,
+      progressSoon: "Once a few matches are reviewed, here you get:",
+      linkPerks: {
+        matches: [
+          ["target", "every game with its score and what to fix first"],
+          ["skull", "each death: the minute, the place and what was ready to press"],
+          ["swords", "your build next to the pros and players of your rank"]
+        ],
+        progress: [
+          ["trending-up", "your last 10 games against the 10 before"],
+          ["repeat", "the mistakes that repeat, and one focus for the next game"],
+          ["map", "your heroes, your lanes and where you die most"]
+        ],
+        profile: [
+          ["chart-line", "your rating graph and your level"],
+          ["trophy", "achievements and looks for your card"],
+          ["users", "friends by code and a leaderboard"]
+        ]
+      },
+      progressSub: "How your game changes from match to match",
       linkErrors: {
         empty: "Enter a Friend ID, Steam ID or profile link.",
         vanity_url: "Custom links (steamcommunity.com/id/…) can't be resolved. Use your Friend ID from the Dota profile.",
@@ -620,6 +642,7 @@
       pfWithApp: "С тренером",
       pfWinrate: "Процент побед",
       pfHours: "Часов с тренером",
+      pfNoName: "Игрок",
       pfRating: "Рейтинг",
       pfRatingNone: "Введите свой MMR из Доты, чтобы начать график: дальше его двигает каждая рейтинговая игра.",
       pfRatingMedal: "Оценка по медали. Введите свой MMR из Доты — график станет вашим.",
@@ -680,6 +703,27 @@
         "Тренер сам узнаёт ваш аккаунт из Доты, когда вы играете. Можно и вручную: Friend ID из профиля в Доте, ссылка steamcommunity.com/profiles/… или ссылка на OpenDota/Dotabuff.",
       linkPlaceholder: "Friend ID, Steam ID или ссылка на профиль",
       linkButton: "Привязать",
+      linkSoon: "Когда аккаунт привязан, здесь будут:",
+      openOnSite: (name) => `Открыть этот матч на ${name}`,
+      progressSoon: "Когда разобранных матчей станет больше, здесь будут:",
+      linkPerks: {
+        matches: [
+          ["target", "все ваши игры с оценкой и тем, что исправить в первую очередь"],
+          ["skull", "каждая смерть: минута, место и что было готово к нажатию"],
+          ["swords", "ваш билд рядом с про-игроками и игроками вашего ранга"]
+        ],
+        progress: [
+          ["trending-up", "последние 10 игр против 10 игр до них"],
+          ["repeat", "ошибки, которые повторяются, и один фокус на следующую игру"],
+          ["map", "ваши герои, ваши линии и где вы умираете чаще всего"]
+        ],
+        profile: [
+          ["chart-line", "график рейтинга и ваш уровень"],
+          ["trophy", "награды и оформление вашей карточки"],
+          ["users", "друзья по коду и таблица лидеров"]
+        ]
+      },
+      progressSub: "Как меняется ваша игра от матча к матчу",
       linkErrors: {
         empty: "Введите Friend ID, Steam ID или ссылку на профиль.",
         vanity_url: "Короткие ссылки (steamcommunity.com/id/…) не распознать. Возьмите Friend ID из профиля в Доте.",
@@ -1480,7 +1524,14 @@
 
   // --- account ----------------------------------------------------------------
 
-  function linkPanel() {
+  // The tab's title and the link form, with what the tab will show once linked.
+  function linkPage(view) {
+    const titles = { matches: ["matchesTitle", "matchesSub"], progress: ["progressTitle", "progressSub"], profile: ["pfTitle", "pfSub"] };
+    const [title, sub] = titles[view] || titles.matches;
+    return [pageHead(t(title), t(sub)), linkPanel(view)];
+  }
+
+  function linkPanel(view) {
     const input = h("input", { class: "input input-lg", type: "text", placeholder: t("linkPlaceholder"), "aria-label": t("linkPlaceholder"), autocomplete: "off", spellcheck: "false" });
     const error = h("p", { class: "form-error", role: "alert", text: state.linkError });
     const button = h("button", { class: "btn btn-primary", type: "submit" }, icon("link"), h("span", { text: t("linkButton") }));
@@ -1524,8 +1575,22 @@
             )
           : null,
         form,
-        error
+        error,
+        linkPerks(view)
       )
+    );
+  }
+
+  function linkPerks(view, heading = "linkSoon") {
+    const perks = t(`linkPerks.${view}`);
+    if (!Array.isArray(perks)) {
+      return null;
+    }
+    return h(
+      "div",
+      { class: "link-perks" },
+      h("p", { class: "link-perks-title", text: t(heading) }),
+      h("ul", {}, perks.map(([name, text]) => h("li", {}, icon(name), h("span", { text }))))
     );
   }
 
@@ -1681,7 +1746,7 @@
       return;
     }
     if (!state.player.linked) {
-      root.replaceChildren(linkPanel());
+      root.replaceChildren(...linkPage("matches"));
       hydrate(root);
       return;
     }
@@ -2112,6 +2177,21 @@
     root.querySelectorAll("[data-chart='map-empty']").forEach((host) => drawMap(host, {}));
   }
 
+  // «OpenDota · Dotabuff · STRATZ»: the same match on the sites players use.
+  function matchSiteLinks(matchId) {
+    if (!/^\d{1,20}$/.test(String(matchId ?? "")) || typeof api.openMatchSite !== "function") {
+      return null;
+    }
+    const sites = [["opendota", "OpenDota"], ["dotabuff", "Dotabuff"], ["stratz", "STRATZ"]];
+    return h(
+      "span",
+      { class: "site-links no-print" },
+      sites.map(([site, name]) =>
+        h("button", { class: "site-link", type: "button", title: t("openOnSite", name), onclick: () => api.openMatchSite(site, String(matchId)) }, h("span", { text: name }), icon("external-link"))
+      )
+    );
+  }
+
   function reviewHeader(detail, analysis, summary) {
     const headline = (analysis && analysis.headline) || {};
     const win = headline.win ?? summary.win;
@@ -2165,7 +2245,7 @@
           "div",
           { class: "review-title" },
           h("h2", { class: "review-hero", text: headline.hero || summary.hero || "—" }),
-          h("p", { class: "review-meta" }, resultBadge(win), h("span", { class: "muted", text: `· ${relativeTime(summary.start_time)} · #${detail.match_id}` })),
+          h("p", { class: "review-meta" }, resultBadge(win), h("span", { class: "muted", text: `· ${relativeTime(summary.start_time)} · #${detail.match_id}` }), matchSiteLinks(detail.match_id)),
           h("p", { class: "review-source" }, icon(analysis && analysis.parsed ? "circle-check" : "info"), h("span", { text: sourceText })),
           statusText ? h("p", { class: "muted small", text: statusText }) : null,
           baselineLine(detail.baseline),
@@ -4152,7 +4232,7 @@
       await refreshPlayer();
     }
     if (!state.player?.linked) {
-      root.replaceChildren(linkPanel());
+      root.replaceChildren(...linkPage("profile"));
       hydrate(root);
       return;
     }
@@ -4209,11 +4289,13 @@
   function profileHeader(profile) {
     const player = profile.player || {};
     const level = profile.level || { level: 1, into: 0, need: 300 };
-    const name = player.name || "Wardly";
-    const initials = name.trim().slice(0, 2).toUpperCase();
+    // No Steam name yet (the account was linked by hand and OpenDota has not
+    // answered): a plain «Player» and the person icon, never the app's name.
+    const name = player.name || t("pfNoName");
+    const initials = player.name ? h("span", { class: "pf-initials", text: name.trim().slice(0, 2).toUpperCase() }) : h("span", { class: "pf-initials" }, h("i", { "data-icon": "user", "data-size": "28", "aria-hidden": "true" }));
     const worn = profile.equipped || {};
     const shopItem = (id) => (profile.shop || []).find((item) => item.id === id);
-    const avatar = h("div", { class: "pf-avatar" }, h("span", { class: "pf-initials", text: initials }));
+    const avatar = h("div", { class: "pf-avatar" }, initials);
     if (player.avatar_url && /^https:\/\//.test(player.avatar_url)) {
       const img = h("img", { src: player.avatar_url, alt: "", referrerpolicy: "no-referrer" });
       img.addEventListener("error", () => img.remove());
@@ -4268,9 +4350,18 @@
         { class: "tiles tiles-compact" },
         tile(t("pfGames"), String(stats.app_games ?? 0)),
         tile(t("pfWinrate"), stats.app_winrate === null || stats.app_winrate === undefined ? "—" : `${stats.app_winrate}%`),
-        tile(t("pfHours"), decimal(stats.app_hours ?? 0))
+        tile(t("pfHours"), hoursText(stats.app_hours))
       )
     );
+  }
+
+  // 0 → «0», 2.5 → «2,5», 37.4 → «37».
+  function hoursText(value) {
+    const hours = Number(value) || 0;
+    if (hours <= 0) {
+      return "0";
+    }
+    return hours >= 10 ? number(Math.round(hours)) : decimal(hours);
   }
 
   function ratingCard(rating) {
@@ -4359,7 +4450,7 @@
     } else if (!data.enabled) {
       parts.push(
         h("p", { class: "muted", text: t("pfFriendsOff") }),
-        h("button", { class: "btn btn-primary", type: "button", text: t("pfFriendsShow"), onclick: () => loadFriends({ op: "enable" }) })
+        h("button", { class: "btn btn-primary", type: "button", onclick: () => loadFriends({ op: "enable" }) }, icon("users"), h("span", { text: t("pfFriendsShow") }))
       );
     } else {
       const copied = (what) => async () => {
@@ -4526,7 +4617,7 @@
       return h("div", { class: `pf-preview pf-banner mini ${cls}` });
     }
     if (item.kind === "name") {
-      return h("div", { class: "pf-preview" }, h("span", { class: `pf-name mini ${cls}`, text: profile.player?.name || "Wardly" }));
+      return h("div", { class: "pf-preview" }, h("span", { class: `pf-name mini ${cls}`, text: profile.player?.name || t("pfNoName") }));
     }
     return h("div", { class: "pf-preview" }, h("span", { class: `pf-title ${cls}`, text: item.id === "title_none" ? "—" : item.name }));
   }
@@ -4544,7 +4635,8 @@
           return h(
             "li",
             { class: `pf-badge tier-${badge.tier}${badge.done ? " done" : ""}` },
-            h("div", { class: "pf-badge-medal", "aria-hidden": "true" }, h("span", { text: badge.tier ? String(badge.tier) : "·" })),
+            // No tier yet: an empty medal slot with a dim cup, not a stray dot.
+            h("div", { class: "pf-badge-medal", "aria-hidden": "true" }, badge.tier ? h("span", { text: String(badge.tier) }) : icon("trophy")),
             h(
               "div",
               { class: "pf-badge-body" },
@@ -4577,7 +4669,7 @@
       await refreshPlayer();
     }
     if (!state.player?.linked) {
-      root.replaceChildren(linkPanel());
+      root.replaceChildren(...linkPage("progress"));
       hydrate(root);
       return;
     }
@@ -4757,7 +4849,8 @@
     const career = state.career;
     if (!career || !career.matches) {
       root.replaceChildren(
-        card(t("tiles.winrate"), "chart-line", emptyState("chart-line", t("progressEmptyTitle"), t("progressEmptyHint"))),
+        pageHead(t("progressTitle"), t("progressSub")),
+        h("section", { class: "card" }, h("div", { class: "card-body" }, emptyState("chart-line", t("progressEmptyTitle"), t("progressEmptyHint")), linkPerks("progress", "progressSoon"))),
         (career && coachCard(career.coach, "career")) || ""
       );
       hydrate(root);

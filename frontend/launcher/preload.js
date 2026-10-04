@@ -76,6 +76,7 @@ contextBridge.exposeInMainWorld("launcherApi", {
   openSessionRecords: () => ipcRenderer.invoke("launcher:open-session-records"),
   openReadme: () => ipcRenderer.invoke("launcher:open-readme"),
   openAiKeyPage: (provider) => ipcRenderer.invoke("launcher:open-ai-key-page", provider),
+  openMatchSite: (site, matchId) => ipcRenderer.invoke("launcher:open-match-site", site, matchId),
   onStatus: (callback) => {
     ipcRenderer.on("launcher:status", (_event, status) => callback(status));
   },
