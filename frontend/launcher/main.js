@@ -1206,7 +1206,14 @@ async function pollGsiStatus() {
         // "full" carry advisor or "safety" (survival advice only) for this hero.
         coverage: status.hero_coverage || null,
         // Position for timers and role tips: { role, source: setting|lane|history|hero }.
-        role: status.live_role && status.live_role.role ? { role: String(status.live_role.role), source: String(status.live_role.source || "") } : null,
+        role: status.live_role && status.live_role.role
+          ? {
+              role: String(status.live_role.role),
+              source: String(status.live_role.source || ""),
+              // The lane read contradicts the role chosen in the settings.
+              mismatch: status.live_role.mismatch ? String(status.live_role.mismatch) : null
+            }
+          : null,
         clockTime: Number.isFinite(status.clock_time) ? status.clock_time : null,
         secondsSinceLastGsi: Number.isFinite(status.seconds_since_last_gsi) ? status.seconds_since_last_gsi : null,
         stage: status.stage || "unknown"

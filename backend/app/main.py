@@ -75,7 +75,7 @@ app = FastAPI(
     lifespan=_lifespan,
     title="Wardly",
     description="MVP-1: rule-based carry coach with local knowledge-base RAG.",
-    version="0.43.0",
+    version="0.43.1",
 )
 app.include_router(player_router)
 
@@ -109,7 +109,7 @@ if FRONTEND_DIR.exists():
 @app.get("/", summary="Health check")
 def root():
     """Simple health-check endpoint."""
-    return {"status": "ok", "service": "Wardly", "version": "0.43.0"}
+    return {"status": "ok", "service": "Wardly", "version": "0.43.1"}
 
 
 @app.get("/health", summary="Health check")
@@ -456,7 +456,7 @@ def _live_role_and_hint(response: dict[str, object], lang: str) -> dict[str, obj
                 build=PLAYER_SERVICE.skill_build(str(state.get("hero") or "")),
             ),
         )
-        hint = _with_gold_hint(hint, gold)
+        hint = _with_role_check(_with_gold_hint(hint, gold), role, clock, lang)
         if hint is not None:
             result["map_hint"] = hint
         # The overlay's strip of the next events (runes, stacks, Roshan, Aegis).
@@ -477,10 +477,28 @@ def _live_role_and_hint(response: dict[str, object], lang: str) -> dict[str, obj
             alive=extra.get("alive") is not False,
             build=PLAYER_SERVICE.skill_build(str(state.get("hero") or "")),
         )
-        hint = _with_gold_hint(skill, gold)
+        hint = _with_role_check(_with_gold_hint(skill, gold), role, clock, lang)
         if hint is not None:
             result["map_hint"] = hint
     return result
+
+
+def _with_role_check(
+    hint: dict[str, Any] | None, role: dict | None, clock: object, lang: str
+) -> dict[str, Any] | None:
+    """A role chosen in the settings that the lane contradicts (live_role.mismatch)
+    is said once, over timers and role tips; a skill point, the start card, a
+    missing call or Roshan/Aegis keep the card and the check waits for them."""
+    seen = role.get("mismatch") if role else None
+    if not seen or not isinstance(clock, int):
+        return hint
+    if hint is not None and (
+        hint.get("over_plan")
+        or str(hint.get("id") or "").startswith(("missing", "roshan", "aegis"))
+    ):
+        return hint
+    tip = MATCH_MEMORY.tips.role_mismatch(clock, lang, str(role["role"]), str(seen))
+    return tip or hint
 
 
 def _gold_hint(

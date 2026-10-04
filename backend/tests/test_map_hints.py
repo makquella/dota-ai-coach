@@ -70,8 +70,14 @@ def test_the_setting_wins():
     tracker = LiveRoleTracker()
     _lane(tracker, _world(4000, -6500), 6)
     set_role_setting("support")
-    # The lane read stays known (a safe-lane support gets pull tips).
-    assert tracker.role() == {"role": "support", "source": "setting", "lane": "safe"}
+    # The lane read stays known (a safe-lane support gets pull tips); farming at a
+    # carry's pace there reads as a role chosen by mistake (test_role_mismatch.py).
+    assert tracker.role() == {
+        "role": "support",
+        "source": "setting",
+        "lane": "safe",
+        "mismatch": "carry",
+    }
     assert LiveRoleTracker().role() == {"role": "support", "source": "setting"}
     assert set_role_setting("jungle") == "auto"
     assert tracker.role()["role"] == "carry"

@@ -3032,6 +3032,19 @@ label.setting:has(.switch:disabled) {
   margin-top: var(--sp-3);
 }
 
+/* The role chosen in the settings and the lane disagree: one line, one fix. */
+.role-mismatch {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--sp-2) var(--sp-3);
+  margin-top: var(--sp-2);
+}
+
+.role-mismatch.hidden {
+  display: none;
+}
+
 .skipped-note {
   margin: var(--sp-3) 0 0;
 }

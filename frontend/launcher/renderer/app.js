@@ -141,6 +141,8 @@ const I18N = {
       hero: "usual for this hero"
     },
     roleNote: (role, source) => `Role: ${role}, ${source}.`,
+    roleMismatch: (setting, seen) => `«Your role» is set to ${setting}, but you play like a ${seen}: some tips miss.`,
+    roleSetAuto: "Set to Auto",
     mapHintsTitle: "Map timers",
     mapHintsHint: "A reminder on the card 20 s before runes, shrines, Tormentor, stacks and wards — only the ones your role needs. Off also hides the timer strip",
     frequencyHint: {
@@ -335,6 +337,9 @@ const I18N = {
     tourHint: "A short tour of the app, one minute",
     tourStart: "Show",
     whatsNew: {
+      "0.43.1": [
+        "Role chosen by accident: if «Your role» says support but you play mid or carry, the card and Home say so once, with a button to switch back to Auto."
+      ],
       "0.43.0": [
         "Arrows over your abilities: when a skill point is due, an arrow and the ability's name appear right over its icon on Dota's bar. Lay the frame over your ability icons once: Settings → «Arrows over your abilities» → «Set up the frame»."
       ],
@@ -851,6 +856,8 @@ const I18N = {
       hero: "обычная для героя"
     },
     roleNote: (role, source) => `Роль: ${role}, ${source}.`,
+    roleMismatch: (setting, seen) => `В «Ваша роль» стоит ${setting}, а играете вы как ${seen} — часть подсказок не в тему.`,
+    roleSetAuto: "Поставить «Авто»",
     mapHintsTitle: "Таймеры карты",
     mapHintsHint: "Напоминание на карточке за 20 секунд до рун, святилищ, Торментора, стаков и вардов — только нужных вашей роли. Выключите — пропадёт и полоса таймеров",
     frequencyHint: {
@@ -1045,6 +1052,9 @@ const I18N = {
     tourHint: "Короткая экскурсия по приложению, на минуту",
     tourStart: "Показать",
     whatsNew: {
+      "0.43.1": [
+        "Роль выбрана по ошибке: если в «Ваша роль» стоит саппорт, а вы играете мид или керри, карточка и Главная один раз скажут об этом — с кнопкой, чтобы вернуть «Авто»."
+      ],
       "0.43.0": [
         "Стрелки над навыками: когда есть очко навыка, над нужной иконкой на панели Доты появляется стрелка с названием способности. Один раз совместите рамку с иконками: «Настройки → Стрелки над навыками → Настроить рамку»."
       ],
@@ -1460,6 +1470,9 @@ const els = {
   roleButtons: [...document.querySelectorAll("#role-group [data-role]")],
   roleHint: $("#role-hint"),
   roleNote: $("#role-note"),
+  roleMismatch: $("#role-mismatch"),
+  roleMismatchText: $("#role-mismatch-text"),
+  roleAuto: $("#role-auto"),
   mapHints: $("#map-hints"),
   frequencyHint: $("#frequency-hint"),
   voiceButtons: [...document.querySelectorAll("#voice-group [data-voice]")],
@@ -1745,6 +1758,9 @@ async function init() {
       run(async () => renderStatus(await window.launcherApi.setAdvicePreferences({ role: button.dataset.role })))
     );
   }
+  els.roleAuto.addEventListener("click", () =>
+    run(async () => renderStatus(await window.launcherApi.setAdvicePreferences({ role: "auto" })))
+  );
   els.mapHints.addEventListener("change", () =>
     run(async () => renderStatus(await window.launcherApi.setAdvicePreferences({ mapHints: els.mapHints.checked })))
   );
@@ -2636,6 +2652,11 @@ function renderMatch(status) {
   const role = live.role && tr(`roleNames.${live.role.role}`);
   els.roleNote.classList.toggle("hidden", !live.role);
   els.roleNote.textContent = live.role ? tr("roleNote", role, tr(`roleSource.${live.role.source}`)) : "";
+  const mismatch = live.role && live.role.mismatch;
+  els.roleMismatch.classList.toggle("hidden", !mismatch);
+  els.roleMismatchText.textContent = mismatch
+    ? tr("roleMismatch", role, tr(`roleNames.${live.role.mismatch}`))
+    : "";
   if (live.hero && window.DotaIcons?.hero(live.hero)) {
     // Keep the element while the hero stays the same (no flicker every second).
     if (els.statHero.dataset.hero !== live.hero) {
