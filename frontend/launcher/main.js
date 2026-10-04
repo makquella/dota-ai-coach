@@ -29,6 +29,7 @@ const adviceStats = require("./advice-stats");
 const friends = require("./friends");
 const { createDotaWatcher } = require("./dota-watcher");
 const { createOverlayController, OVERLAY_DEFAULTS } = require("./overlay-window");
+const { createSkillArrowController } = require("./skill-arrow-window");
 const {
   PRIVACY_URL,
   apiUrl,
@@ -229,6 +230,14 @@ const overlay = createOverlayController({
     updateStatus();
     refreshTray();
   },
+  log: (message) => appendLog("overlay", message, { force: true })
+});
+
+// The arrow over the ability to level, on Dota's own ability bar (0.43).
+const skillArrows = createSkillArrowController({
+  settings,
+  getDotaRect: () => dotaWatcher.getState().windowRect,
+  getLocale: () => uiLocale(),
   log: (message) => appendLog("overlay", message, { force: true })
 });
 
@@ -535,6 +544,7 @@ function publicStatus() {
     overlayPosition: overlay.position(),
     overlayVoice: overlay.voice(),
     overlayDisplay: overlay.display(),
+    skillArrows: skillArrows.state(),
     overlaySize: overlay.size(),
     adviceFrequency: adviceFrequency(),
     adviceRole: adviceRole(),
@@ -634,6 +644,7 @@ function refreshPresence() {
     postGame: live.postGame
   });
   overlay.setVisible(decision.visible);
+  skillArrows.setOverlayVisible(decision.visible);
   refreshDiscord();
   const status = dotaStatus({ dota, inMatch: live.inMatch });
   const visibilityChanged = decision.visible !== presence.visible || decision.reason !== presence.reason;
@@ -1878,7 +1889,9 @@ async function pollPlayerStatus() {
 
 async function fetchOverlayRecommendation() {
   try {
-    return { ok: true, data: await requestBackendJson(`/overlay/recommendation?lang=${uiLocale()}`) };
+    const data = await requestBackendJson(`/overlay/recommendation?lang=${uiLocale()}`);
+    skillArrows.update(data);
+    return { ok: true, data };
   } catch (error) {
     return { ok: false, error: error.message };
   }
@@ -3438,6 +3451,17 @@ function registerIpc() {
   });
 
   ipcMain.handle("overlay:get-config", () => overlay.publicConfig());
+  skillArrows.registerIpc(() => updateStatus());
+  ipcMain.handle("launcher:skill-arrows", (_event, action) => {
+    if (action === "calibrate") {
+      skillArrows.startCalibration();
+    } else if (action === "reset") {
+      skillArrows.resetCalibration();
+    } else if (action === "on" || action === "off") {
+      skillArrows.setEnabled(action === "on");
+    }
+    return publicStatus();
+  });
   ipcMain.handle("overlay:fetch-recommendation", () => fetchOverlayRecommendation());
 }
 
@@ -3451,6 +3475,7 @@ async function shutdownChildren() {
   dotaWatcher.stop();
   updater.stop();
   overlay.dispose();
+  skillArrows.dispose();
   if (processes.demo) {
     await stopManaged("demo");
   }
@@ -3621,6 +3646,7 @@ async function runSmokeTest(resultPath) {
   }
   dotaWatcher.stop();
   overlay.dispose();
+  skillArrows.dispose();
   app.exit(ok ? 0 : 1);
 }
 

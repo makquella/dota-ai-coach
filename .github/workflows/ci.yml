@@ -89,6 +89,10 @@ jobs:
           node --check frontend/launcher/discord-weekly.js
           node --check frontend/launcher/advice-stats.js
           node --check frontend/launcher/friends.js
+          node --check frontend/launcher/skill-arrow-window.js
+          node --check frontend/launcher/skill-arrow-placement.js
+          node --check frontend/launcher/skill-arrows-preload.js
+          node --check frontend/launcher/skill-arrows/app.js
           node --check frontend/launcher/assets/icons/lucide.js
 
       - name: Unit tests (node --test, no dependencies)

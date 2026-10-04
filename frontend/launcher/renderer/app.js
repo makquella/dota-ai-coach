@@ -103,6 +103,13 @@ const I18N = {
     overlaySize: "Card size",
     overlaySizeHint: "Larger on big and high-resolution screens",
     overlayTimers: "Timer strip",
+    skillArrowsTitle: "Arrows over your abilities",
+    skillArrowsCalibrate: "Set up the frame",
+    skillArrowsHint: {
+      none: "When a skill point is due, an arrow points at the ability on Dota's bar. Lay the frame over your ability icons once, in a game.",
+      on: "On: the arrow shows over the ability to level. Set up the frame again after changing the resolution or the HUD.",
+      off: "Off. The card still names the ability to level."
+    },
     overlayTimersHint: "Always under the card: how long until the next runes, stacks, Roshan and Aegis for your role",
     overlayCompact: "Short advice",
     overlayCompactHint: "Only what to do, without the reason: less to read during a fight",
@@ -803,6 +810,13 @@ const I18N = {
     overlaySize: "Размер карточки",
     overlaySizeHint: "Крупнее — для больших экранов и высокого разрешения",
     overlayTimers: "Полоса таймеров",
+    skillArrowsTitle: "Стрелки над навыками",
+    skillArrowsCalibrate: "Настроить рамку",
+    skillArrowsHint: {
+      none: "Когда есть очко навыка, стрелка показывает на способность прямо на панели Доты. Один раз совместите рамку с иконками способностей — в игре.",
+      on: "Включено: стрелка появится над способностью, которую стоит прокачать. После смены разрешения или интерфейса настройте рамку заново.",
+      off: "Выключено. Карточка всё равно называет способность."
+    },
     overlayTimersHint: "Всегда под карточкой: сколько осталось до ближайших рун, стаков, Рошана и Аегиса для вашей роли",
     overlayCompact: "Короткие подсказки",
     overlayCompactHint: "Только что делать, без объяснения: меньше читать во время драки",
@@ -1431,6 +1445,9 @@ const els = {
   positionHint: $("#position-hint"),
   sizeButtons: [...document.querySelectorAll("#size-group [data-size]")],
   overlayTimers: $("#overlay-timers"),
+  skillArrows: $("#skill-arrows"),
+  skillArrowsCalibrate: $("#skill-arrows-calibrate"),
+  skillArrowsHint: $("#skill-arrows-hint"),
   overlayCompact: $("#overlay-compact"),
   languageButtons: [...document.querySelectorAll("#language-group [data-language]")],
   frequencyButtons: [...document.querySelectorAll("#frequency-group [data-frequency]")],
@@ -1706,6 +1723,12 @@ async function init() {
       run(async () => renderStatus(await window.launcherApi.setOverlayDisplay({ [key]: input.checked })))
     );
   }
+  els.skillArrows.addEventListener("change", () =>
+    run(async () => renderStatus(await window.launcherApi.skillArrows(els.skillArrows.checked ? "on" : "off")))
+  );
+  els.skillArrowsCalibrate.addEventListener("click", () =>
+    run(async () => renderStatus(await window.launcherApi.skillArrows("calibrate")))
+  );
   for (const button of els.frequencyButtons) {
     button.addEventListener("click", () =>
       run(async () => renderStatus(await window.launcherApi.setAdviceFrequency(button.dataset.frequency)))
@@ -2762,6 +2785,15 @@ function renderOverlaySettings(status) {
   els.overlayCompact.checked = display.compact === true;
   els.overlayTimers.disabled = !enabled;
   els.overlayCompact.disabled = !enabled;
+
+  // Skill arrows: on until switched off, drawn once the frame is laid.
+  const arrows = status.skillArrows || { enabled: true, calibrated: false };
+  els.skillArrows.checked = arrows.enabled !== false;
+  els.skillArrows.disabled = !enabled;
+  els.skillArrowsCalibrate.disabled = !enabled || arrows.calibrating === true;
+  els.skillArrowsHint.textContent = tr(
+    `skillArrowsHint.${arrows.enabled === false ? "off" : arrows.calibrated ? "on" : "none"}`
+  );
 
   const frequency = status.adviceFrequency || "normal";
   for (const button of els.frequencyButtons) {

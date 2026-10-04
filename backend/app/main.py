@@ -396,6 +396,10 @@ def _live_role_and_hint(response: dict[str, object], lang: str) -> dict[str, obj
         return {}
     role = _live_role(state)
     result: dict[str, object] = {"live_role": role}
+    bar = MATCH_MEMORY.skills.bar_size()
+    if bar:
+        # The launcher sizes the skill arrows' frame by it (skill-arrows.js).
+        result["skill_bar"] = bar
     gold = _gold_hint(state, extra, role, lang)
     if _map_hints["enabled"]:
         clock = extra.get("clock_time")

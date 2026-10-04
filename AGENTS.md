@@ -154,7 +154,7 @@ Default `USE_LLM=false`. LLM providers only reword advice or run offline review.
 
 ## Frontend tooling
 
-No lint/typecheck. Verification is `node --check` on these twenty-three files (CI runs exactly this; `npm run check` in `frontend/launcher/` does the same) plus dependency-free unit tests for the Electron-free modules (`npm test` = `node --test test/*.test.js`, also in CI):
+No lint/typecheck. Verification is `node --check` on these twenty-seven files (CI runs exactly this; `npm run check` in `frontend/launcher/` does the same) plus dependency-free unit tests for the Electron-free modules (`npm test` = `node --test test/*.test.js`, also in CI):
 ```bash
 node --check frontend/launcher/main.js
 node --check frontend/launcher/preload.js
@@ -178,6 +178,10 @@ node --check frontend/launcher/transfer-code.js
 node --check frontend/launcher/discord-presence.js
 node --check frontend/launcher/discord-weekly.js
 node --check frontend/launcher/advice-stats.js
+node --check frontend/launcher/skill-arrow-window.js
+node --check frontend/launcher/skill-arrow-placement.js
+node --check frontend/launcher/skill-arrows-preload.js
+node --check frontend/launcher/skill-arrows/app.js
 node --check frontend/launcher/assets/icons/lucide.js
 ```
 A new module required by `main.js` (or its modules) must also be listed in `package.json` `build.files`, or the installed app fails at start while dev works; `test/package-files.test.js` checks it.
@@ -280,6 +284,7 @@ One Electron app, **`frontend/launcher/`** (product name "Wardly" — formerly "
 - `test/i18n.test.js` cuts the text tables out of `renderer/app.js`, `renderer/matches.js`, `overlay/app.js` and fails when a key is missing in one language or a `data-i18n` key of `index.html` is undefined.
 - Card size (`settings.overlay.size`: small / normal / large = zoom 0.85 / 1 / 1.25): the overlay window grows with the zoom and presets are recomputed with the scaled size.
 - Timer strip and compact card (`settings.overlay.timers`, default on; `settings.overlay.compact`, default off; «Полоса таймеров» / «Компактная карточка» in Settings → Overlay, `launcher:set-overlay-display`, `overlay.setDisplay`, `status.overlayDisplay`): `/overlay/recommendation` adds `timer_strip` (live GSI, map hints on: `map_hints.timer_strip` — the next event of each kind for the position within 3 min, a support's next stack, neutral tiers once, max 3, with Roshan's window and the player's Aegis from `RoshanTimer.strip` first) and the overlay draws it under the card as counting-down chips (`renderStrip`, ≤20 s → accent); compact hides the reason and the debug row. A new card fades in (`markCard`, `.enter`; none with `prefers-reduced-motion`). The window is 420×212 (card + strip).
+- Skill arrows (0.43, `skill-arrow-window.js` + pure `skill-arrow-placement.js` (tested) + `skill-arrows/` page + `skill-arrows-preload.js`): while the map hint is a skill tip with `ability` {key, name, slot, slots} (`skill_tips._arrow`: the ability's index on the HUD bar = `read_skills` `bar`, the GSI abilities in slot-number order without `plus_*` and hidden placeholders; ultimate, first point and pro-order point only — no arrow for a talent or a plain point), a second transparent click-through window draws the name, an arrow and an outline over that icon of Dota's own ability bar. Needs a one-time calibration («Стрелки над навыками» → «Настроить рамку» in Settings → В игре, `launcher:skill-arrows` on|off|calibrate|reset): an interactive window over the bottom 42 % of Dota's window where the player drags/resizes a frame over the ability icons and sets their count (prefilled from `/overlay/recommendation` `skill_bar`); saved as fractions of Dota's window + the count in `settings.overlay.skillFrame` (`validFrame`); another hero's bar keeps the icon size around the same centre (`barRect`). No calibration, the switch off, the overlay hidden or calibrating → no arrow; the card still names the ability. The ability's slot comes from GSI order, which may include an innate the HUD draws elsewhere: the label names the ability, so an arrow off by one still reads right.
 - `overlay-placement.js` — pure geometry: presets are computed inside Dota's window (`watcher.windowRect`, physical px → `screen.screenToDipRect`), so the card follows Dota to its monitor and stays inside a windowed game; hand-placed positions fall back to a preset when their monitor is gone.
 - «Что нового»: after an update main sets `settings.whatsNewPending` to the new version; status `whatsNew` shows a card on Home with the bullets from `I18N.<lang>.whatsNew[version]` in `renderer/app.js` (add them for each release; no bullets → no card) until «Понятно».
 - `updater.js` — `electron-updater` from GitHub Releases, packaged NSIS build only (never in dev, portable or `--smoke-test`). Downloads in the background; installs on "Restart and update" (tray / Updates row), on quit, or unattended once Dota has been closed for 5 min and the panel is hidden — never while Dota runs. `settings.startHiddenOnce` / `updatedFrom` bring the relaunched app back hidden and show "Updated to x".

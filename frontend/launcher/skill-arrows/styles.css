@@ -1,0 +1,241 @@
+/*
+ * The skill arrow over Dota's ability bar and its one-time calibration.
+ * Same calm look as the card: flat colours from ../assets/ui/tokens.css.
+ */
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  overflow: hidden;
+  background: transparent;
+  font-family: var(--font);
+  color: var(--text);
+  -webkit-font-smoothing: antialiased;
+  user-select: none;
+}
+
+.hidden {
+  display: none !important;
+}
+
+/* The arrow: a label, an arrow pointing down and an outline on the icon. */
+.arrow {
+  position: absolute;
+  inset: 0;
+}
+
+.arrow-label {
+  position: absolute;
+  top: 4px;
+  max-width: calc(100% - 8px);
+  padding: 4px 10px;
+  border-radius: var(--r-sm);
+  background: rgb(11 11 12 / 88%);
+  border: 1px solid var(--accent);
+  font-size: var(--fs-14);
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transform: translateX(-50%);
+}
+
+.arrow-mark {
+  position: absolute;
+  color: var(--accent);
+  transform: translateX(-50%);
+  animation: nudge 900ms ease-in-out infinite alternate;
+}
+
+.arrow-slot {
+  position: absolute;
+  border: 2px solid var(--accent);
+  border-radius: 6px;
+}
+
+@keyframes nudge {
+  from {
+    translate: 0 0;
+  }
+  to {
+    translate: 0 6px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .arrow-mark {
+    animation: none;
+  }
+}
+
+/* Calibration: a faint veil (so the window takes the mouse), the frame and a panel. */
+.calibrate {
+  position: absolute;
+  inset: 0;
+  background: rgb(0 0 0 / 22%);
+}
+
+.panel {
+  position: absolute;
+  top: 16px;
+  left: 50%;
+  width: min(560px, calc(100% - 32px));
+  padding: var(--sp-4);
+  border-radius: var(--r-md);
+  background: rgb(11 11 12 / 94%);
+  border: 1px solid rgb(255 255 255 / 12%);
+  transform: translateX(-50%);
+}
+
+.panel h1 {
+  margin: 0 0 6px;
+  font-size: var(--fs-16);
+  font-weight: 600;
+}
+
+.panel p {
+  margin: 0 0 12px;
+  color: var(--text-2);
+  font-size: var(--fs-13);
+  line-height: 1.45;
+}
+
+.slots-row,
+.buttons {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  font-size: var(--fs-13);
+}
+
+.buttons {
+  margin-top: 12px;
+}
+
+.muted {
+  color: var(--text-3);
+}
+
+output {
+  min-width: 2ch;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+
+button {
+  padding: 6px 12px;
+  border: 1px solid rgb(255 255 255 / 16%);
+  border-radius: var(--r-sm);
+  background: rgb(255 255 255 / 6%);
+  color: var(--text);
+  font: inherit;
+  font-size: var(--fs-13);
+  cursor: pointer;
+  transition: background 140ms ease-out;
+}
+
+button:hover {
+  background: rgb(255 255 255 / 12%);
+}
+
+button:focus-visible,
+.frame:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+button.primary {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: #fff;
+}
+
+.frame {
+  position: absolute;
+  border: 2px dashed var(--accent);
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+  cursor: move;
+}
+
+.frame-slots {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  pointer-events: none;
+}
+
+.frame-slots span {
+  flex: 1;
+  border-right: 1px dashed rgb(255 255 255 / 45%);
+}
+
+.frame-slots span:last-child {
+  border-right: 0;
+}
+
+.handle {
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  border-radius: 2px;
+  background: var(--accent);
+}
+
+.handle.n,
+.handle.s {
+  left: calc(50% - 6px);
+  cursor: ns-resize;
+}
+
+.handle.w,
+.handle.e {
+  top: calc(50% - 6px);
+  cursor: ew-resize;
+}
+
+.handle.n,
+.handle.nw,
+.handle.ne {
+  top: -7px;
+}
+
+.handle.s,
+.handle.sw,
+.handle.se {
+  bottom: -7px;
+}
+
+.handle.w,
+.handle.nw,
+.handle.sw {
+  left: -7px;
+}
+
+.handle.e,
+.handle.ne,
+.handle.se {
+  right: -7px;
+}
+
+.handle.nw,
+.handle.se {
+  cursor: nwse-resize;
+}
+
+.handle.ne,
+.handle.sw {
+  cursor: nesw-resize;
+}
