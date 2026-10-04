@@ -210,3 +210,25 @@ def test_the_quick_buy_step_is_the_dearest_missing_part_the_gold_buys():
         "name": item_name("bfury", constants),
         "cost": 600,
     }
+
+
+def test_strategy_time_names_the_start_at_once():
+    """The shop opens with the pick: no wait while the hero is not on the map yet."""
+    tips = GoldTips()
+    tips.observe(-90, [])
+    start = [{"key": "tango", "name": "Tango"}]
+    assert tips.tip(-90, "en", gold=600, alive=True, role="mid", start_items=start) is None
+    hint = tips.tip(-90, "en", gold=600, alive=True, role="mid", start_items=start, pre_spawn=True)
+    assert hint["items"] == start and hint["over_plan"] is True
+
+
+def test_the_overlay_shows_the_start_in_strategy_time(client):
+    payload = copy.deepcopy(gsi_match_stream(minutes=1, death_minutes=())[0])
+    payload["map"]["game_state"] = "DOTA_GAMERULES_STATE_STRATEGY_TIME"
+    payload["map"]["clock_time"] = -100
+    payload["hero"]["alive"] = False
+    payload["items"] = {f"slot{i}": {"name": "empty"} for i in range(9)}
+    payload["player"]["gold"] = 600
+    client.post("/gsi", json=payload)
+    hint = client.get("/overlay/recommendation?lang=ru").json().get("map_hint")
+    assert hint is not None and hint["title"] == "Купите стартовые предметы"

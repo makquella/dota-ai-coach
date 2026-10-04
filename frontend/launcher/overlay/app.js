@@ -32,6 +32,7 @@ const OVERLAY_TEXT = {
     noAction: "No urgent advice",
     plan: "Plan for this game",
     map: "Map",
+    itemMinute: (m) => `usually by minute ${m}`,
     hintIn: (seconds) => (seconds > 0 ? `in ${seconds} s` : "now"),
     hintSoon: (title) => `Soon: ${title}`
   },
@@ -58,6 +59,7 @@ const OVERLAY_TEXT = {
     noAction: "Срочных советов нет",
     plan: "План на игру",
     map: "Карта",
+    itemMinute: (m) => `обычно к ${m}-й минуте`,
     hintIn: (seconds) => (seconds > 0 ? `через ${seconds} с` : "сейчас"),
     hintSoon: (title) => `Скоро: ${title}`
   }
@@ -255,7 +257,22 @@ function renderItems(items) {
     itemsEl.replaceChildren();
     return;
   }
-  itemsEl.replaceChildren(...list.map((item) => window.DotaIcons.itemPicture(document, item.key, "sm", item.name)));
+  itemsEl.replaceChildren(...list.map(itemCell));
+}
+
+// One icon; a build item of the plan carries its usual minute as a corner badge
+// (as Dota draws charges), so the card keeps its height.
+function itemCell(item) {
+  const picture = window.DotaIcons.itemPicture(document, item.key, "sm", item.name);
+  if (!Number.isFinite(item.minute)) return picture;
+  const cell = document.createElement("span");
+  cell.className = "item-cell";
+  const minute = document.createElement("small");
+  minute.className = "item-min";
+  minute.textContent = `${Math.round(item.minute)}′`;
+  cell.title = `${item.name || item.key} · ${tr("itemMinute", Math.round(item.minute))}`;
+  cell.append(picture, minute);
+  return cell;
 }
 
 // The strip under the card: «Rune 0:50 · Stack 0:12 · Roshan 3:10», counting down.

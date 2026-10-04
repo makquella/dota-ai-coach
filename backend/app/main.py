@@ -37,6 +37,7 @@ from app.game_plan import SHOW_FROM_CLOCK as GAME_PLAN_SHOW_FROM_CLOCK
 from app.game_plan import SHOW_UNTIL_CLOCK as GAME_PLAN_SHOW_UNTIL_CLOCK
 from app.gsi_census import CENSUS_FILE, GSI_CENSUS, load_previous
 from app.gsi_state import (
+    PRE_SPAWN_STATES,
     get_current_state,
     get_gsi_debug_fields,
     get_gsi_debug_latest,
@@ -74,7 +75,7 @@ app = FastAPI(
     lifespan=_lifespan,
     title="Wardly",
     description="MVP-1: rule-based carry coach with local knowledge-base RAG.",
-    version="0.41.0",
+    version="0.42.0",
 )
 app.include_router(player_router)
 
@@ -108,7 +109,7 @@ if FRONTEND_DIR.exists():
 @app.get("/", summary="Health check")
 def root():
     """Simple health-check endpoint."""
-    return {"status": "ok", "service": "Wardly", "version": "0.41.0"}
+    return {"status": "ok", "service": "Wardly", "version": "0.42.0"}
 
 
 @app.get("/health", summary="Health check")
@@ -510,13 +511,17 @@ def _gold_hint(
         buyback_cost=buyback if isinstance(buyback, int) else None,
         next_item=next_item,
         buy_now=part,
-        start_items=_start_items(state) if isinstance(clock, int) and clock < 3 * 60 else None,
+        start_items=_start_items(state, role_name)
+        if isinstance(clock, int) and clock < 3 * 60
+        else None,
+        pre_spawn=state.get("game_state") in PRE_SPAWN_STATES,
     )
 
 
-def _start_items(state: Mapping[str, object]) -> list[dict[str, Any]] | None:
+def _start_items(state: Mapping[str, object], role: str | None) -> list[dict[str, Any]] | None:
+    """The usual start on the hero in the player's role (high-rank data, else OpenDota)."""
     try:
-        return PLAYER_SERVICE.start_items(str(state.get("hero") or "")) or None
+        return PLAYER_SERVICE.start_items(str(state.get("hero") or ""), role) or None
     except Exception as error:  # noqa: BLE001 - never breaks the live path
         record_error("start-items", error)
         return None
@@ -555,7 +560,10 @@ def _game_plan_for_overlay(response: dict[str, object], lang: str) -> dict[str, 
     ):
         return None
     try:
-        return PLAYER_SERVICE.game_plan(str(state.get("hero") or ""), lang)
+        role = _live_role(state)
+        return PLAYER_SERVICE.game_plan(
+            str(state.get("hero") or ""), lang, role.get("role") if role else None
+        )
     except Exception as error:  # noqa: BLE001 - never breaks the live path
         record_error("game-plan", error)
         return None

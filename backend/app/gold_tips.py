@@ -6,7 +6,8 @@ minutes with 2500 in the pocket, heard nothing: the purchase tips were a core's
 advice and a support's map tip (off with «Map timers»). These two cards go out
 on the map line for any role and with the map timers switched off:
 
-- the start: from the pre-game, an empty inventory (no item in the inventory,
+- the start: from strategy time (at once there: the shop opens with the pick,
+  `pre_spawn`), else an empty inventory (no item in the inventory,
   backpack or stash; the TP slot is not counted) for START_WAIT seconds of clock
   with START_GOLD+ gold → «Buy your starting items», until START_UNTIL;
 - a stall: after START_UNTIL, alive, gold over the role's threshold (from 30:00
@@ -135,17 +136,22 @@ class GoldTips:
         next_item: dict[str, Any] | None = None,
         buy_now: dict[str, Any] | None = None,
         start_items: list[dict[str, Any]] | None = None,
+        pre_spawn: bool = False,
     ) -> dict[str, Any] | None:
         """`next_item`: {key, name} of the next build item (cores), `buy_now`: its
         part the gold buys now (next_item.buy_now), both drawn as icons.
         `start_items`: the hero's usual start ([{key, name}], hero_meta.start_items
-        or the high-rank builds), named and drawn as icons on the start card."""
+        or the high-rank builds), named and drawn as icons on the start card.
+        `pre_spawn`: strategy time, the hero not on the map yet — the shop is open,
+        so the start card shows at once (no START_WAIT)."""
         if clock is None or gold is None or not alive or self._bag is None:
             return None
         lang = "ru" if lang == "ru" else "en"
         if clock < START_UNTIL:
             empty = self._empty_since
-            if empty is None or gold < START_GOLD or clock - empty < START_WAIT:
+            if empty is None or gold < START_GOLD:
+                return None
+            if clock - empty < START_WAIT and not pre_spawn:
                 return None
             # Shown for as long as the bag stays empty: nothing matters more then.
             if start_items:

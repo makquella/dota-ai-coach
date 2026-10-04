@@ -160,6 +160,7 @@ _PRE_SPAWN_STATES = frozenset(
         "DOTA_GAMERULES_STATE_WAIT_FOR_PLAYERS_TO_LOAD",
     }
 )
+PRE_SPAWN_STATES = _PRE_SPAWN_STATES
 
 # Dota game rules states in which a hero is picked and the match is on.
 _IN_MATCH_GAME_STATES = frozenset(

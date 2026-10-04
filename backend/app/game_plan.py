@@ -154,11 +154,14 @@ def build_game_plan(
     lang: str,
     record_history: list[dict[str, Any]] | None = None,
     skills: dict[str, Any] | None = None,
+    high_build: list[dict[str, Any]] | None = None,
 ) -> dict[str, Any] | None:
     """`history`: the player's recent matches on this hero (store rows with analysis);
     `all_recent`: recent matches on any hero (for the reminder); `meta`: cached hero meta;
     `record_history`: more rows on the hero for the record (default: `history`);
-    `skills`: the pro skill order (app/skill_build.skill_order)."""
+    `skills`: the pro skill order (app/skill_build.skill_order); `high_build`: the
+    build of high-rank players in the player's position (app/stratz_builds.build),
+    drawn as icons with their usual minute instead of OpenDota's popular items."""
     record_rows = history if record_history is None else record_history
     lang = "ru" if lang == "ru" else "en"
     text = TEXT[lang]
@@ -216,7 +219,10 @@ def build_game_plan(
     if not lines:
         return None
     plan = _plan(text, hero, role, lines, record_rows)
-    items = build_items(meta)
+    items = [
+        {"key": row["key"], "name": row["name"], "minute": row["minute"]}
+        for row in (high_build or [])[:5]
+    ] or build_items(meta)
     if items:
         # Drawn as item icons on the overlay card (the player asked for them).
         plan["items"] = items

@@ -1,0 +1,54 @@
+name: Stratz builds
+
+# Every Tuesday: rebuild data/meta/stratz_builds.json — what Divine and Immortal
+# players buy on every hero in every position (the starting purchase and the
+# build with its usual minutes), from STRATZ. The app reads the file
+# (app/stratz_builds.py) and never asks STRATZ itself: the token allows two IP
+# addresses per 15 minutes, so it is used here, on one runner, once a week.
+#
+# The token is the repository secret STRATZ_TOKEN and reaches the script only
+# through the environment. A changed file becomes a pull request (Settings →
+# Actions → General → "Allow GitHub Actions to create and approve pull requests").
+on:
+  schedule:
+    - cron: "41 5 * * 2"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: stratz-builds
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: backend/requirements.txt
+      - name: Install
+        working-directory: backend
+        run: pip install -r requirements.txt
+      - name: Rebuild stratz_builds.json
+        working-directory: backend
+        env:
+          STRATZ_TOKEN: ${{ secrets.STRATZ_TOKEN }}
+        run: python scripts/build_stratz_builds.py
+      - name: Open a pull request when it changed
+        uses: peter-evans/create-pull-request@v7
+        with:
+          branch: chore/stratz-builds
+          commit-message: "Refresh high-rank starting items and builds"
+          title: "Refresh high-rank starting items and builds"
+          body: |
+            `backend/scripts/build_stratz_builds.py` rebuilt `data/meta/stratz_builds.json` from STRATZ (Divine–Immortal games).
+            The overlay's start card, the game plan and the quick-buy step use it after the next release.
+          add-paths: data/meta/stratz_builds.json
+          delete-branch: true
