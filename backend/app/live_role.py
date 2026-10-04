@@ -35,6 +35,8 @@ SAMPLE_EVERY = 5
 # Last hits per minute that make a lane hero a farmer (carry / offlaner).
 CARRY_LH_PER_MIN = 2.0
 OFFLANE_LH_PER_MIN = 1.5
+# A «support» setting is called wrong for a side lane only at a plain core's pace.
+SUPPORT_CLASH_LH_PER_MIN = 4.0
 # Map geometry (centred world units): the mid lane runs along x == y.
 MID_BAND = 2200
 BASE_EDGE = 5500
@@ -85,6 +87,7 @@ class LiveRoleTracker:
         self._last_hits: int | None = None
         self._team: str | None = None
         self._current: dict[str, Any] | None = None
+        self._pace = 0.0
 
     def observe(
         self,
@@ -134,6 +137,7 @@ class LiveRoleTracker:
         else:
             role = "offlane" if pace >= OFFLANE_LH_PER_MIN else "support"
         self._current = {"role": role, "source": "lane", "lane": kind}
+        self._pace = pace
 
     def _sampled_lane(self) -> str | None:
         """safe / off / mid from the lane samples so far (a role setting needs no
@@ -152,9 +156,27 @@ class LiveRoleTracker:
             lane = self._sampled_lane()
             if lane is not None:
                 chosen["lane"] = lane
+            clash = self.mismatch()
+            if clash is not None:
+                chosen["mismatch"] = clash
             return chosen
         if self._current is not None:
             return dict(self._current)
         if prior and prior.get("role") in POSITIONS:
             return dict(prior)
         return None
+
+    def mismatch(self) -> str | None:
+        """The role the lane read sees when it plainly differs from the role chosen
+        in the settings (a role locked by accident gives advice for another
+        position), else None. Only clear cases: a «support» farming a core's pace
+        or standing mid, a «mid» in a side lane, a side-lane core in mid or in the
+        other side lane; a core read as a support (a lost lane) never counts."""
+        if _setting == "auto" or self._current is None:
+            return None
+        seen = self._current["role"]
+        if seen == _setting or seen == "support":
+            return None
+        if _setting == "support" and seen != "mid" and self._pace < SUPPORT_CLASH_LH_PER_MIN:
+            return None  # a support taking a few last hits in a side lane
+        return str(seen)

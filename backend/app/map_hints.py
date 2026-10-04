@@ -152,6 +152,14 @@ PULL_SHOW = 10
 KEY_ITEM_LATE = 2 * 60
 KEY_ITEM_EARLY = 2 * 60
 KEY_ITEM_SHOW = 25
+# A role chosen in the settings that the lane read contradicts: said once, after
+# the lane decision (3:00), for 20 s.
+ROLE_CHECK_FROM = 3 * 60
+ROLE_CHECK_SHOW = 20
+ROLE_NAMES = {
+    "en": {"carry": "carry", "mid": "mid", "offlane": "offlaner", "support": "support"},
+    "ru": {"carry": "керри", "mid": "мид", "offlane": "хардлайнер", "support": "саппорт"},
+}
 CORE_ROLES = {"carry", "mid", "offlane"}
 # Support: gold kept instead of wards, dust, smoke and a save item.
 
@@ -488,6 +496,16 @@ TIPS = {
         "ru": (
             "{item} опаздывает",
             "Обычно его собирают к {time}. Фармите лагеря между волнами и не лезьте в драки без него.",
+        ),
+    },
+    "role_mismatch": {
+        "en": (
+            "Role in the settings: {setting}",
+            "You play like a {seen}, so some tips miss. Set «Your role» to Auto in Wardly.",
+        ),
+        "ru": (
+            "Роль в настройках: {setting}",
+            "А играете вы как {seen}, поэтому часть подсказок не в тему. Поставьте «Ваша роль» → «Авто» в Wardly.",
         ),
     },
     "item_early": {
@@ -968,6 +986,25 @@ class RoleTips:
         elif charges > held[0]:
             self._ward_held = (charges, held[1])
         return clock - self._ward_held[1]
+
+    def role_mismatch(
+        self, clock: int | None, lang: str, setting: str, seen: str
+    ) -> dict[str, Any] | None:
+        """Once per match, from ROLE_CHECK_FROM: the role chosen in the settings
+        and the one the lane shows differ (live_role.mismatch)."""
+        if clock is None or clock < ROLE_CHECK_FROM:
+            return None
+        start = self._once("role_mismatch", clock, ROLE_CHECK_SHOW)
+        if start is None:
+            return None
+        names = ROLE_NAMES["ru" if lang == "ru" else "en"]
+        return _tip(
+            "role_mismatch",
+            f"role_mismatch@{start}",
+            lang,
+            setting=names.get(setting, setting),
+            seen=names.get(seen, seen),
+        )
 
     def _once(self, key: str, clock: int, show: int) -> int | None:
         """Once per match: the start while within `show` seconds of it."""
