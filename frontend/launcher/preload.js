@@ -38,6 +38,8 @@ contextBridge.exposeInMainWorld("launcherApi", {
   setOverlaySize: (name) => ipcRenderer.invoke("launcher:set-overlay-size", name),
   setOverlayVoice: (mode, volume) => ipcRenderer.invoke("launcher:set-overlay-voice", mode, volume),
   setOverlayDisplay: (patch) => ipcRenderer.invoke("launcher:set-overlay-display", patch),
+  // "on" | "off" | "calibrate" | "reset" (skill-arrow-window.js).
+  skillArrows: (action) => ipcRenderer.invoke("launcher:skill-arrows", action),
   setOverlayLocked: (locked) => ipcRenderer.invoke("launcher:set-overlay-locked", locked),
   dismissFullscreenWarning: () => ipcRenderer.invoke("launcher:dismiss-fullscreen-warning"),
   checkForUpdates: () => ipcRenderer.invoke("launcher:check-updates"),

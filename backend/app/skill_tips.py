@@ -112,10 +112,13 @@ def read_skills(payload: Any) -> dict[str, Any] | None:
     spent = 0
     ultimate = None
     levels: dict[str, int] = {}
-    for key in sorted(abilities):
+    bar: list[str] = []
+    for key in sorted(abilities, key=_slot_order):
         ability = abilities[key]
         if not isinstance(ability, dict) or not_hero_ability(ability.get("name")):
             continue
+        if isinstance(ability.get("name"), str) and not _hidden(ability["name"]):
+            bar.append(ability["name"])
         ability_level = _int(ability.get("level")) or 0
         if 0 <= ability_level <= 10:
             spent += ability_level
@@ -135,7 +138,30 @@ def read_skills(payload: Any) -> dict[str, Any] | None:
         "talents": {key: hero.get(key) is True for key in talent_keys},
         "levels": levels,
         "hero_key": _hero_key(hero.get("name")),
+        # The abilities in the order of the HUD's ability bar (the skill arrows).
+        "bar": bar,
     }
+
+
+def _slot_order(key: Any) -> tuple[int, str]:
+    """ability0 … ability10 in number order (a plain sort puts ability10 first)."""
+    text = str(key)
+    digits = text[len(text.rstrip("0123456789")) :]
+    return (int(digits) if digits else 1_000, text)
+
+
+def _hidden(name: str) -> bool:
+    """A placeholder slot the HUD does not draw."""
+    return name.startswith("generic_hidden") or "_empty" in name
+
+
+def ability_slot(skills: dict[str, Any] | None, raw_name: str | None) -> dict[str, int] | None:
+    """{slot, slots} of an ability on the bar, for the arrow over it; Shadowraze
+    2/3 point at the first of the three."""
+    bar = (skills or {}).get("bar") or []
+    if not raw_name or raw_name not in bar:
+        return None
+    return {"slot": bar.index(raw_name), "slots": len(bar)}
 
 
 def _hero_key(value: Any) -> str | None:
@@ -195,6 +221,11 @@ class SkillTips:
             owed = 0
         self._skills = {**skills, "owed": max(0, owed)}
 
+    def bar_size(self) -> int | None:
+        """How many abilities the HUD bar shows (the arrow frame's calibration)."""
+        bar = (self._skills or {}).get("bar")
+        return len(bar) if bar else None
+
     def tip(
         self,
         clock: int | None,
@@ -225,7 +256,8 @@ class SkillTips:
                 ultimate["raw_name"], skills.get("hero_key")
             )
             need = ULTIMATE_LEVELS[ultimate["level"]] if ultimate["level"] < 3 else level
-            return _hint("ultimate", f"skill-ult@{level}", lang, name=name, level=need)
+            hint = _hint("ultimate", f"skill-ult@{level}", lang, name=name, level=need)
+            return self._arrow(hint, ultimate["raw_name"], name)
         if not skills["has_talents"]:
             if level >= TALENT_LEVELS[0]:
                 return None  # a talent taken would look like a point left unspent
@@ -253,27 +285,32 @@ class SkillTips:
         levels = skills.get("levels") or {}
         if level == 1 and opening and not any(levels.values()):
             names = (build or {}).get("names") or {}
-            return _hint(
+            name = names.get(opening["name"]) or label(opening["name"], skills.get("hero_key"))
+            hint = _hint(
                 "opening",
                 "skill-point@1",
                 lang,
-                name=names.get(opening["name"]) or label(opening["name"], skills.get("hero_key")),
+                name=name,
                 agree=opening["agree"],
                 games=opening["games"],
             )
+            return self._arrow(hint, opening["name"], name)
         name = next_skill(build, skills.get("levels"), level)
         if build and name:
             names = build.get("names") or {}
             key = skills.get("hero_key")
             order = " → ".join(str(names.get(n) or label(n, key)) for n in build["order"])
-            return _hint(
-                "skill",
-                f"skill-point@{level}",
-                lang,
-                name=names.get(name) or label(name, key),
-                order=order,
-            )
+            shown = names.get(name) or label(name, key)
+            hint = _hint("skill", f"skill-point@{level}", lang, name=shown, order=order)
+            return self._arrow(hint, name, shown)
         return _hint("point", f"skill-point@{level}", lang)
+
+    def _arrow(self, hint: dict[str, Any], raw_name: str, name: str) -> dict[str, Any]:
+        """The ability's place on the HUD bar: the launcher draws an arrow over it."""
+        slot = ability_slot(self._skills, raw_name)
+        if slot is not None:
+            hint["ability"] = {"key": raw_name, "name": name, **slot}
+        return hint
 
 
 def _hint(key: str, hint_id: str, lang: str, **params: Any) -> dict[str, Any]:

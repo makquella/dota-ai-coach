@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self'; script-src 'self'">
+    <title>Wardly skill arrow</title>
+    <link rel="stylesheet" href="../assets/fonts/fonts.css">
+    <link rel="stylesheet" href="../assets/ui/tokens.css">
+    <link rel="stylesheet" href="./styles.css">
+  </head>
+  <body>
+    <!-- The arrow over the ability to level (mode=arrow). -->
+    <div id="arrow" class="arrow hidden" aria-hidden="true">
+      <div id="arrow-label" class="arrow-label"></div>
+      <svg class="arrow-mark" viewBox="0 0 24 24" width="28" height="28" aria-hidden="true">
+        <path d="M12 3v15m0 0-6-6m6 6 6-6" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      <div id="arrow-slot" class="arrow-slot"></div>
+    </div>
+
+    <!-- Calibration (mode=calibrate): lay the frame over the ability icons. -->
+    <main id="calibrate" class="calibrate hidden">
+      <section class="panel" role="dialog" aria-labelledby="cal-title">
+        <h1 id="cal-title"></h1>
+        <p id="cal-text"></p>
+        <div class="slots-row">
+          <span id="cal-slots-label"></span>
+          <button id="cal-minus" type="button" aria-label="−">−</button>
+          <output id="cal-slots" aria-live="polite"></output>
+          <button id="cal-plus" type="button" aria-label="+">+</button>
+          <span id="cal-detected" class="muted"></span>
+        </div>
+        <div class="buttons">
+          <button id="cal-save" type="button" class="primary"></button>
+          <button id="cal-reset" type="button"></button>
+          <button id="cal-cancel" type="button"></button>
+        </div>
+      </section>
+      <div id="frame" class="frame" tabindex="0">
+        <div id="frame-slots" class="frame-slots"></div>
+        <span class="handle n" data-edge="n"></span>
+        <span class="handle s" data-edge="s"></span>
+        <span class="handle w" data-edge="w"></span>
+        <span class="handle e" data-edge="e"></span>
+        <span class="handle nw" data-edge="nw"></span>
+        <span class="handle ne" data-edge="ne"></span>
+        <span class="handle sw" data-edge="sw"></span>
+        <span class="handle se" data-edge="se"></span>
+      </div>
+    </main>
+    <script src="./app.js"></script>
+  </body>
+</html>

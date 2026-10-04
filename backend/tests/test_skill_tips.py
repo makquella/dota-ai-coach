@@ -216,3 +216,42 @@ def test_the_skill_tip_stays_with_map_timers_off(client):
             assert "timer_strip" not in answer
             return
     raise AssertionError("the stream never reached the check")
+
+
+def test_the_tip_carries_the_ability_slot_for_the_arrow():
+    """0.43: the launcher draws an arrow over the ability on the HUD bar."""
+    payload = _payload(5, [2, 2, 1])
+    # Dota Plus abilities and hidden placeholders are not on the bar.
+    payload["abilities"]["ability4"] = {"name": "plus_high_five", "level": 1}
+    payload["abilities"]["ability5"] = {"name": "generic_hidden", "level": 0}
+    tips = SkillTips()
+    _feed(tips, 300, payload)
+    payload = _payload(6, [2, 2, 1])
+    payload["abilities"]["ability4"] = {"name": "plus_high_five", "level": 1}
+    _feed(tips, 320, payload)
+    hint = tips.tip(320 + UNSPENT_WAIT, "en", alive=True)
+    ability = hint["ability"]
+    assert (ability["key"], ability["slot"], ability["slots"]) == ("juggernaut_omni_slash", 3, 4)
+    assert "Omni Slash" in ability["name"]
+    # A point with no named ability (no pro order): no arrow.
+    plain = SkillTips()
+    _feed(plain, 100, _payload(3, [1, 1, 1]))
+    _feed(plain, 110, _payload(4, [1, 1, 1]))
+    assert "ability" not in plain.tip(110 + UNSPENT_WAIT, "en", alive=True)
+
+
+def test_the_bar_keeps_the_slot_numbers_in_order():
+    abilities = {f"ability{i}": {"name": f"spell_{i}", "level": 0} for i in range(11)}
+    skills = read_skills({"hero": {"level": 1}, "abilities": abilities})
+    assert skills["bar"] == [f"spell_{i}" for i in range(11)]
+
+
+def test_the_overlay_answer_carries_the_bar_size(client):
+    from match_fixtures import gsi_match_stream
+
+    payload = gsi_match_stream(minutes=1, death_minutes=())[3]
+    payload["abilities"] = {
+        f"ability{i}": {"name": f"juggernaut_spell_{i}", "level": 1} for i in range(4)
+    }
+    client.post("/gsi", json=payload)
+    assert client.get("/overlay/recommendation?lang=en").json().get("skill_bar") == 4

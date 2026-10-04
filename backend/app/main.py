@@ -75,7 +75,7 @@ app = FastAPI(
     lifespan=_lifespan,
     title="Wardly",
     description="MVP-1: rule-based carry coach with local knowledge-base RAG.",
-    version="0.42.0",
+    version="0.43.0",
 )
 app.include_router(player_router)
 
@@ -109,7 +109,7 @@ if FRONTEND_DIR.exists():
 @app.get("/", summary="Health check")
 def root():
     """Simple health-check endpoint."""
-    return {"status": "ok", "service": "Wardly", "version": "0.42.0"}
+    return {"status": "ok", "service": "Wardly", "version": "0.43.0"}
 
 
 @app.get("/health", summary="Health check")
@@ -396,6 +396,10 @@ def _live_role_and_hint(response: dict[str, object], lang: str) -> dict[str, obj
         return {}
     role = _live_role(state)
     result: dict[str, object] = {"live_role": role}
+    bar = MATCH_MEMORY.skills.bar_size()
+    if bar:
+        # The launcher sizes the skill arrows' frame by it (skill-arrows.js).
+        result["skill_bar"] = bar
     gold = _gold_hint(state, extra, role, lang)
     if _map_hints["enabled"]:
         clock = extra.get("clock_time")

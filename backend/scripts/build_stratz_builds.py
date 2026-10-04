@@ -40,6 +40,8 @@ POSITIONS = ("POSITION_1", "POSITION_2", "POSITION_3", "POSITION_4", "POSITION_5
 MIN_GAMES = 150
 # A start item is listed when this share of the games buys it (each copy apart).
 START_SHARE = 0.4
+# The gold every hero starts with: a start list never asks for more.
+START_GOLD = 600
 # A build item: bought in this share of the games, at least this expensive.
 BUILD_SHARE = 0.2
 BUILD_MIN_COST = 1000
@@ -116,9 +118,16 @@ def by_id(items: dict[str, dict[str, Any]]) -> dict[int, str]:
     }
 
 
-def start_items(rows: list[dict[str, Any]], games: int, keys: dict[int, str]) -> list[list[Any]]:
+def start_items(
+    rows: list[dict[str, Any]],
+    games: int,
+    keys: dict[int, str],
+    items: dict[str, dict[str, Any]] | None = None,
+) -> list[list[Any]]:
     """[[key, count]] bought by START_SHARE+ of the games (a copy given by a
-    teammate — a support's branches — is not a buy), most bought first."""
+    teammate — a support's branches — is not a buy), most bought first, as long
+    as the whole list fits in START_GOLD (with `items` known: a rarer buy that
+    would go over it is left out)."""
     counts: dict[str, int] = {}
     best: dict[str, int] = {}
     for row in rows:
@@ -129,7 +138,15 @@ def start_items(rows: list[dict[str, Any]], games: int, keys: dict[int, str]) ->
             continue
         counts[key] = counts.get(key, 0) + 1
         best[key] = max(best.get(key, 0), int(row["matchCount"]))
-    return [[key, counts[key]] for key in sorted(counts, key=lambda k: -best[k])]
+    result = []
+    spent = 0
+    for key in sorted(counts, key=lambda k: -best[k]):
+        cost = int((items or {}).get(key, {}).get("cost") or 0) * counts[key]
+        if items is not None and spent + cost > START_GOLD:
+            continue
+        spent += cost
+        result.append([key, counts[key]])
+    return result
 
 
 def build_items(
@@ -189,7 +206,7 @@ def hero_entry(
         games, wins = games_by_position.get(position, (0, 0))
         if games < MIN_GAMES:
             continue
-        start = start_items(stats.get(f"start_{position}") or [], games, keys)
+        start = start_items(stats.get(f"start_{position}") or [], games, keys, items)
         build = build_items(stats.get(f"full_{position}") or [], games, keys, items)
         if start or build:
             entry[f"pos{position[-1]}"] = {
