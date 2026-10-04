@@ -3641,13 +3641,14 @@ async function runSmokeTest(resultPath) {
     // errors that a plain "page loaded" check would miss). Only app.js sets
     // these values: the static HTML has data-state="starting", "—" and an empty action.
     await delay(1500);
+    // The port is in the status line's tooltip since 0.44 (a developer's detail).
     const panel = await mainWindow.webContents.executeJavaScript(
-      "({ state: document.querySelector('#service')?.dataset.state || '', text: document.querySelector('#service-text')?.textContent || '' })"
+      "({ state: document.querySelector('#service')?.dataset.state || '', text: document.querySelector('#service-text')?.textContent || '', title: document.querySelector('#service')?.title || '' })"
     );
     step(
       "control panel rendered",
-      panel.state === "running" && panel.text.includes(String(backend.port)),
-      `${panel.state}: ${panel.text}`
+      panel.state === "running" && Boolean(panel.text.trim()) && panel.title.includes(String(backend.port)),
+      `${panel.state}: ${panel.text} (${panel.title})`
     );
     const overlayAction = await overlayWindow.webContents.executeJavaScript(
       "document.querySelector('#action')?.textContent || ''"

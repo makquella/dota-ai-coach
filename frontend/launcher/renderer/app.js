@@ -349,6 +349,12 @@ const I18N = {
     tourHint: "A short tour of the app, one minute",
     tourStart: "Show",
     whatsNew: {
+      "0.44.0": [
+        "Reviews in a row: «‹ Newer · Older ›» next to «Matches», or the ← and → keys. Every review also links the match on OpenDota, Dotabuff and STRATZ.",
+        "Hotkeys: Ctrl+1…5 open the tabs, Esc goes back to the match list; the whole list is in Settings → «Hotkeys». The tray menu opens your latest review.",
+        "Urgent advice on the card is red now, and while you move the card it shows a sample advice of the real size.",
+        "Numbers as you read them, chart tooltips that close, a tidier Progress and Profile, and tabs that say what they will show before your account is linked."
+      ],
       "0.43.2": [
         "Skill arrows find the ability icons by themselves (Full HD, 2K, 4K) and point at the «+» button to press; a hero with more abilities, or a new one from Aghanim's or the Shard, needs nothing. «Fine-tune» stays for another HUD.",
         "No more «plan a safer route» card before the horn: the moment the hero appears on the map is no death."
@@ -1080,6 +1086,12 @@ const I18N = {
     tourHint: "Короткая экскурсия по приложению, на минуту",
     tourStart: "Показать",
     whatsNew: {
+      "0.44.0": [
+        "Разборы подряд: «‹ Новее · Старее ›» рядом с «Матчи» или клавиши ← и →. В каждом разборе есть ссылки на этот матч на OpenDota, Dotabuff и STRATZ.",
+        "Горячие клавиши: Ctrl+1…5 открывают вкладки, Esc возвращает к списку матчей; весь список — в «Настройки → Горячие клавиши». В меню в трее — разбор последнего матча.",
+        "Срочный совет на карточке теперь красный, а пока вы перемещаете карточку, на ней виден пример совета настоящего размера.",
+        "Числа записаны как принято (7,5), подсказки на графиках закрываются, «Прогресс» и «Профиль» аккуратнее, а вкладки до привязки аккаунта рассказывают, что на них будет."
+      ],
       "0.43.2": [
         "Стрелки над навыками сами находят иконки способностей (Full HD, 2K, 4K) и показывают на кнопку «+», которую нужно нажать. У героя с другим числом способностей и после новой способности от аганима или шарда ничего настраивать не нужно. «Подправить» осталось на случай другого интерфейса.",
         "Больше нет карточки «спланируйте безопасный маршрут» до горна: появление героя на карте — не смерть."
