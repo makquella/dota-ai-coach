@@ -335,6 +335,9 @@ const I18N = {
     tourHint: "A short tour of the app, one minute",
     tourStart: "Show",
     whatsNew: {
+      "0.43.0": [
+        "Arrows over your abilities: when a skill point is due, an arrow and the ability's name appear right over its icon on Dota's bar. Lay the frame over your ability icons once: Settings → «Arrows over your abilities» → «Set up the frame»."
+      ],
       "0.42.0": [
         "Your starting items as icons: the card shows what Divine and Immortal players buy on your hero in your role — already during strategy time.",
         "The game plan draws the build as icons with the usual minute of each item.",
@@ -1042,6 +1045,9 @@ const I18N = {
     tourHint: "Короткая экскурсия по приложению, на минуту",
     tourStart: "Показать",
     whatsNew: {
+      "0.43.0": [
+        "Стрелки над навыками: когда есть очко навыка, над нужной иконкой на панели Доты появляется стрелка с названием способности. Один раз совместите рамку с иконками: «Настройки → Стрелки над навыками → Настроить рамку»."
+      ],
       "0.42.0": [
         "Стартовые предметы иконками: карточка показывает, что покупают на вашем герое и вашей роли игроки Divine и Immortal, — уже на стадии стратегии.",
         "План на игру рисует сборку иконками с обычной минутой каждого предмета.",
