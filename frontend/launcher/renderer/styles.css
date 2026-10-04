@@ -284,7 +284,7 @@ h1 {
 .advice-item {
   display: grid;
   grid-template-columns: 6px minmax(0, 1fr) auto;
-  align-items: center;
+  align-items: baseline;
   column-gap: var(--sp-3);
   padding: var(--sp-2) 0;
   border-top: 1px solid var(--border);
@@ -307,13 +307,17 @@ h1 {
   grid-column: 1 / -1;
 }
 
+/* Two lines: the numbers that make the advice useful («…98, a good pace is
+   120+») often come at the end of the sentence. */
 .advice-action {
+  display: -webkit-box;
   overflow: hidden;
   color: var(--text);
   font-size: var(--fs-14);
   font-weight: var(--fw-medium);
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  line-height: 1.4;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
 }
 
 .advice-reason {
@@ -1093,6 +1097,13 @@ label.setting:has(.switch:disabled) {
   margin-top: var(--sp-3);
 }
 
+/* A zone (or the two-column part) after another one starts a new area: the
+   room of .zone + .zone, which the rule above (an id wins) cut to 12 px —
+   «Цели» sat right under the tiles of «Итоги». */
+:is(.view, #matches-root, #match-root, #progress-root, #profile-root) > :is(.zone, .layout-2) + :is(.zone, .layout-2) {
+  margin-top: var(--sp-8);
+}
+
 @keyframes view-in {
   from {
     opacity: 0;
@@ -1504,6 +1515,8 @@ label.setting:has(.switch:disabled) {
   display: inline-flex;
   align-items: center;
   gap: var(--sp-2);
+  color: var(--text-2);
+  font-weight: var(--fw-semibold);
 }
 
 .grade-none {
@@ -1880,9 +1893,15 @@ label.setting:has(.switch:disabled) {
 
 .tiles {
   display: grid;
-  /* Five tiles fit in one row at the default window width (760 px). */
-  grid-template-columns: repeat(auto-fit, minmax(96px, 1fr));
+  /* Five tiles in one row from the default 1280 px window; a narrow window
+     wraps them (3 + 2) instead of squeezing «vs previous 10» onto three lines. */
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
   gap: var(--sp-3);
+}
+
+/* Three short tiles in the side column («С тренером» on the profile). */
+.tiles.tiles-compact {
+  grid-template-columns: repeat(auto-fit, minmax(96px, 1fr));
 }
 
 .tile {
@@ -3078,6 +3097,44 @@ label.setting:has(.switch:disabled) {
 
 .explain > summary:hover {
   color: var(--text-2);
+}
+
+/* «Горячие клавиши» under the overlay settings: the game's, then the window's. */
+.hotkeys-group {
+  margin: var(--sp-3) 0 0;
+  color: var(--text-3);
+  font-size: var(--fs-12);
+  font-weight: var(--fw-medium);
+}
+
+.hotkeys-list {
+  display: grid;
+  gap: var(--sp-2);
+  margin: var(--sp-2) 0 0;
+}
+
+.hotkeys-list > div {
+  display: grid;
+  grid-template-columns: 11em minmax(0, 1fr);
+  gap: var(--sp-3);
+  align-items: baseline;
+}
+
+.hotkeys-list dd {
+  margin: 0;
+  line-height: 1.45;
+}
+
+kbd {
+  padding: 1px var(--sp-1);
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  background: var(--surface-2);
+  color: var(--text);
+  font-family: inherit;
+  font-size: var(--fs-12);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
 
 .explain > summary:focus-visible {
@@ -4278,9 +4335,18 @@ tr.row-link[data-result="loss"] > td:first-child {
   flex: none;
 }
 
-/* The page's buttons stay on one line next to the title. */
+/* The page's buttons stay on one line next to the title (Chrome measures a
+   wrapping flex row narrower than its buttons and pushed «Save PDF» under the
+   others); only a narrow window lets them wrap. */
 .page-actions {
   flex: none;
+  flex-wrap: nowrap;
+}
+
+@media (max-width: 720px) {
+  .page-actions {
+    flex-wrap: wrap;
+  }
 }
 
 /* «Смотреть» next to a death or a key moment: copies the replay jump command. */
@@ -4756,10 +4822,12 @@ tr.row-link[data-result="loss"] > td:first-child {
   list-style: none;
 }
 
+/* A column: the button sits at the bottom, so a row of items lines up its
+   buttons whatever the length of the condition above them. */
 .pf-shop-item {
-  display: grid;
+  display: flex;
+  flex-direction: column;
   gap: var(--sp-1);
-  align-content: start;
   padding: var(--sp-3);
   border: 1px solid var(--border);
   border-radius: var(--r-lg);
@@ -4840,9 +4908,21 @@ tr.row-link[data-result="loss"] > td:first-child {
   }
 }
 
+.pf-shop-item > .btn {
+  margin-top: auto;
+}
+
 .pf-shop-item .btn:disabled {
   opacity: 0.45;
   cursor: not-allowed;
+}
+
+/* Not open yet / not enough sparks: a quiet outline, never the primary colour. */
+.pf-shop-item .btn.pf-shop-closed:disabled {
+  border-color: var(--border);
+  background: transparent;
+  color: var(--text-3);
+  opacity: 1;
 }
 
 

@@ -72,6 +72,7 @@ const I18N = {
     statStage: "Phase",
     statData: "Link to the game",
     dataFresh: (s) => `updated ${s} s ago`,
+    dataFreshNow: "updated just now",
     matchEmptyTitle: "No match right now",
     matchEmptyHint: "Hero and time show up here when a match starts.",
     offlineTitle: "The coach is not running",
@@ -106,13 +107,23 @@ const I18N = {
     skillArrowsTitle: "Arrows over your abilities",
     skillArrowsCalibrate: "Fine-tune",
     skillArrowsHint: {
-      on: "When a skill point is due, an arrow points at the ability right on Dota's bar. It finds the icons by itself (Full HD, 2K, 4K); «Fine-tune» only if it misses.",
+      on: "With a skill point to spend, an arrow points at the ability right on Dota's bar and finds the icons by itself. «Fine-tune» if it misses.",
       manual: "On, with your own frame. «Fine-tune» → «Automatic» goes back to finding the icons by itself.",
       off: "Off. The card still names the ability to level."
     },
     overlayTimersHint: "Always under the card: how long until the next runes, stacks, Roshan and Aegis for your role",
     overlayCompact: "Short advice",
     overlayCompactHint: "Only what to do, without the reason: less to read during a fight",
+    hotkeysTitle: "Hotkeys",
+    hotkeysGame: "In the game",
+    hotkeysApp: "In this window",
+    hotkeyTabs: "Home, Matches, Progress, Profile, Settings",
+    hotkeyBack: "From a match review back to the list",
+    hotkeyToggle: "Turn the advice card on or off",
+    hotkeyRepeat: "Show (and say) the last advice again",
+    hotkeyMute: "No advice for 5 minutes",
+    hotkeyMove: "Unlock the card to drag it, press again to lock",
+    hotkeyPlace: "The card on the left / on the right / at the bottom",
     sizeSmall: "Small",
     sizeNormal: "Normal",
     sizeLarge: "Large",
@@ -791,6 +802,7 @@ const I18N = {
     statStage: "Этап",
     statData: "Связь с игрой",
     dataFresh: (s) => `обновлено ${s} с назад`,
+    dataFreshNow: "обновлено только что",
     matchEmptyTitle: "Матч не идёт",
     matchEmptyHint: "Герой и время появятся здесь, когда начнётся матч.",
     offlineTitle: "Тренер не запущен",
@@ -825,13 +837,23 @@ const I18N = {
     skillArrowsTitle: "Стрелки над навыками",
     skillArrowsCalibrate: "Подправить",
     skillArrowsHint: {
-      on: "Когда есть очко навыка, стрелка показывает на способность прямо на панели Доты. Иконки она находит сама (Full HD, 2K, 4K); «Подправить» — только если промахивается.",
+      on: "Когда есть очко навыка, стрелка показывает на способность прямо на панели Доты и сама находит иконки. «Подправить» — если промахивается.",
       manual: "Включено, со своей рамкой. «Подправить» → «Автоматически» вернёт поиск иконок самой стрелкой.",
       off: "Выключено. Карточка всё равно называет способность."
     },
     overlayTimersHint: "Всегда под карточкой: сколько осталось до ближайших рун, стаков, Рошана и Аегиса для вашей роли",
     overlayCompact: "Короткие подсказки",
     overlayCompactHint: "Только что делать, без объяснения: меньше читать во время драки",
+    hotkeysTitle: "Горячие клавиши",
+    hotkeysGame: "В игре",
+    hotkeysApp: "В этом окне",
+    hotkeyTabs: "Главная, Матчи, Прогресс, Профиль, Настройки",
+    hotkeyBack: "Из разбора матча обратно к списку",
+    hotkeyToggle: "Включить или выключить карточку с подсказками",
+    hotkeyRepeat: "Показать (и озвучить) последний совет ещё раз",
+    hotkeyMute: "Без подсказок на 5 минут",
+    hotkeyMove: "Открепить карточку, чтобы перетащить; ещё раз — закрепить",
+    hotkeyPlace: "Карточка слева / справа / снизу",
     sizeSmall: "Мелкий",
     sizeNormal: "Обычный",
     sizeLarge: "Крупный",
@@ -2515,8 +2537,9 @@ function isOffline(status) {
 function renderService(status) {
   const state = status.backend || "stopped";
   els.service.dataset.state = state;
-  const port = status.backendPort && state === "running" ? ` · :${status.backendPort}` : "";
-  els.serviceText.textContent = `${tr("service")} ${tr(`serviceStates.${state}`)}${port}`;
+  // The port is a developer's detail (also under «Для разработчика»): a tooltip here.
+  els.serviceText.textContent = `${tr("service")} ${tr(`serviceStates.${state}`)}`;
+  els.service.title = status.backendPort && state === "running" ? `127.0.0.1:${status.backendPort}` : "";
 }
 
 function formatClock(seconds) {
@@ -2682,13 +2705,14 @@ function renderMatch(status) {
   }
   els.statClock.textContent = formatClock(live.clockTime) || "—";
   els.statStage.textContent = live.stage && live.stage !== "unknown" ? stageLabel(live.stage) : "—";
-  const seconds = Number.isFinite(live.secondsSinceLastGsi) ? live.secondsSinceLastGsi.toFixed(1) : null;
+  // Whole seconds: Dota sends data several times a second, «0.4 s» says nothing more.
+  const seconds = Number.isFinite(live.secondsSinceLastGsi) ? Math.round(live.secondsSinceLastGsi) : null;
   const dot = document.createElement("span");
   dot.className = "dot";
   dot.dataset.tone = live.connected ? "ok" : "warn";
   const text = document.createElement("span");
   text.className = "num";
-  text.textContent = seconds === null ? "—" : tr("dataFresh", seconds);
+  text.textContent = seconds === null ? "—" : seconds < 2 ? tr("dataFreshNow") : tr("dataFresh", seconds);
   els.statData.replaceChildren(dot, text);
 }
 

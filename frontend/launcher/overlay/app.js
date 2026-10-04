@@ -14,7 +14,6 @@ const OVERLAY_TEXT = {
     tip: "Tip",
     coach: "Coach",
     demo: "Demo",
-    priority: { high: "high priority", urgent: "high priority", medium: "medium priority", low: "low priority", safe: "calm" },
     waitingBackend: "Starting the coach…",
     backendStopped: "The coach is stopped: open Wardly to start it.",
     waitingGsi: "Waiting for Dota 2 to connect…",
@@ -41,7 +40,6 @@ const OVERLAY_TEXT = {
     tip: "Совет",
     coach: "Тренер",
     demo: "Демо",
-    priority: { high: "высокий приоритет", urgent: "высокий приоритет", medium: "средний приоритет", low: "низкий приоритет", safe: "спокойно" },
     waitingBackend: "Запускаем тренера…",
     backendStopped: "Тренер остановлен: откройте Wardly, чтобы запустить.",
     waitingGsi: "Ждём, пока Dota 2 подключится…",
@@ -261,17 +259,20 @@ function renderItems(items) {
 }
 
 // One icon; a build item of the plan carries its usual minute as a corner badge
-// (as Dota draws charges), so the card keeps its height.
+// (as Dota draws charges), a start item bought twice its count («×2»), so the
+// card keeps its height.
 function itemCell(item) {
   const picture = window.DotaIcons.itemPicture(document, item.key, "sm", item.name);
-  if (!Number.isFinite(item.minute)) return picture;
+  const minute = Number.isFinite(item.minute) ? Math.round(item.minute) : null;
+  const count = Number.isInteger(item.count) && item.count > 1 ? item.count : null;
+  if (minute === null && count === null) return picture;
   const cell = document.createElement("span");
   cell.className = "item-cell";
-  const minute = document.createElement("small");
-  minute.className = "item-min";
-  minute.textContent = `${Math.round(item.minute)}′`;
-  cell.title = `${item.name || item.key} · ${tr("itemMinute", Math.round(item.minute))}`;
-  cell.append(picture, minute);
+  const badge = document.createElement("small");
+  badge.className = "item-min";
+  badge.textContent = minute !== null ? `${minute}′` : `×${count}`;
+  cell.title = minute !== null ? `${item.name || item.key} · ${tr("itemMinute", minute)}` : item.name || item.key;
+  cell.append(picture, badge);
   return cell;
 }
 
@@ -339,7 +340,9 @@ function renderAdvice(data, options = { refreshTimer: true }) {
     priorityClassName(recommendation.priority)
   ].filter(Boolean).join(" ");
   labelEl.textContent = labelText(adviceMode, data);
-  priorityEl.textContent = currentHint ? hintShort(currentHint) : priorityText(recommendation, data);
+  // The corner carries the map timing when there is one; «medium priority»
+  // only repeated the label on the left («Совет» / «Срочно») and its colour.
+  priorityEl.textContent = currentHint ? hintShort(currentHint) : "";
   actionEl.textContent = recommendation.action || tr("noAction");
   reasonEl.textContent = recommendation.reason || "";
   renderStatusRow(data);
@@ -611,12 +614,6 @@ function labelText(adviceMode, data) {
 
 function statusLabel(data) {
   return data.demo_mode ? `${tr("coach")} · ${tr("demo")}` : tr("coach");
-}
-
-function priorityText(recommendation) {
-  const value = String(recommendation.priority || "").toLowerCase();
-  const label = value ? tr(`priority.${value}`) : "";
-  return label.startsWith("priority.") ? value : label;
 }
 
 function priorityClassName(priority) {

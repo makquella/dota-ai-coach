@@ -176,7 +176,13 @@ def build_game_plan(
         else:
             lines.append(text["lh"].format(target=target))
 
-    item = _key_item(meta)
+    high_items = [
+        {"key": row["key"], "name": row["name"], "minute": row["minute"]}
+        for row in (high_build or [])[:5]
+    ]
+    # The high-rank build is drawn as icons with their minutes: no line repeats
+    # it, so the card's two lines under the first keep the skills and the focus.
+    item = None if high_items else _key_item(meta)
     if item and item["typical_t"] is not None:
         lines.append(
             text["item"].format(
@@ -219,10 +225,7 @@ def build_game_plan(
     if not lines:
         return None
     plan = _plan(text, hero, role, lines, record_rows)
-    items = [
-        {"key": row["key"], "name": row["name"], "minute": row["minute"]}
-        for row in (high_build or [])[:5]
-    ] or build_items(meta)
+    items = high_items or build_items(meta)
     if items:
         # Drawn as item icons on the overlay card (the player asked for them).
         plan["items"] = items

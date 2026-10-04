@@ -37,7 +37,11 @@ def _gsi_at(clock, *, game_state="DOTA_GAMERULES_STATE_GAME_IN_PROGRESS"):
     return payload
 
 
-def test_plan_names_the_farm_target_key_item_and_recurring_mistake(client, tmp_path):
+def test_plan_names_the_farm_target_key_item_and_recurring_mistake(client, tmp_path, monkeypatch):
+    # The OpenDota path: no high-rank build (with one, its icons replace the item line).
+    from app import stratz_builds
+
+    monkeypatch.setattr(stratz_builds, "build", lambda *args, **kwargs: [])
     service = _synced(client, tmp_path)
     plan = service.game_plan("Juggernaut", "ru")
     assert plan is not None
@@ -213,3 +217,33 @@ def test_the_focus_comes_before_the_matchups():
     assert (
         matchups.startswith("Hard matchups: ") and "Axe 0–3" in matchups and "Lina 0–3" in matchups
     )
+
+
+def test_the_high_rank_icons_replace_the_build_line():
+    """Drawn as icons with their minutes, the build needs no text line: the two
+    lines the card shows under the first keep the skills and the focus."""
+    meta = {
+        "popularity": {"mid_game_items": {"145": 40}},
+        "constants": {
+            "by_id": {"145": "bfury"},
+            "items": {"bfury": {"name": "Battle Fury", "assembled": True, "cost": 4100}},
+        },
+        "timings": None,
+    }
+    high = [{"key": "bfury", "name": "Battle Fury", "minute": 14, "share": 80, "win": 55}]
+    with_icons = build_game_plan(
+        hero="Juggernaut",
+        history=[],
+        all_recent=[],
+        meta=meta,
+        lang="en",
+        focus="Die less",
+        high_build=high,
+    )
+    assert with_icons["items"] == [{"key": "bfury", "name": "Battle Fury", "minute": 14}]
+    assert not any("Battle Fury" in line for line in with_icons["lines"])
+    # Without the high-rank build the popular item keeps its line (no minutes on the icons).
+    plain = build_game_plan(
+        hero="Juggernaut", history=[], all_recent=[], meta=meta, lang="en", focus="Die less"
+    )
+    assert any("Battle Fury" in line for line in plain["lines"])

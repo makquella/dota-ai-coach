@@ -163,7 +163,15 @@ class GoldTips:
                     items=", ".join(item["name"] for item in start_items),
                     over_plan=True,
                 )
-                hint["items"] = [{"key": i["key"], "name": i["name"]} for i in start_items]
+                # Copies (two Iron Branches) as a count on the icon.
+                hint["items"] = [
+                    {
+                        "key": i["key"],
+                        "name": i["name"],
+                        **({"count": i["count"]} if i.get("count", 1) > 1 else {}),
+                    }
+                    for i in start_items
+                ]
                 return hint
             return _hint("start", f"gold-start@{empty}", lang, gold=_round(gold), over_plan=True)
         spare = gold

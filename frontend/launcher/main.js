@@ -331,6 +331,7 @@ const TRAY_TEXT = {
     sessionReady: (games, wins, losses, score) =>
       `Your evening: ${games} matches, ${wins}–${losses}${score !== null && score !== undefined ? `, average score ${score}` : ""}. Click to see it and copy it for friends.`,
     problemReport: "Save a problem report",
+    lastReview: (score) => `Latest match review${score !== null && score !== undefined ? ` · ${score}/100` : ""}`,
     reportSentLater: (id) => `Your problem report was sent. Number: ${id}.`,
     voice: "Voice",
     voice_off: "Off",
@@ -362,6 +363,7 @@ const TRAY_TEXT = {
     sessionReady: (games, wins, losses, score) =>
       `Итог вечера: ${games} ${games % 10 >= 2 && games % 10 <= 4 && (games % 100 < 12 || games % 100 > 14) ? "матча" : games % 10 === 1 && games % 100 !== 11 ? "матч" : "матчей"}, ${wins}–${losses}${score !== null && score !== undefined ? `, средняя оценка ${score}` : ""}. Нажмите, чтобы посмотреть и скопировать для друзей.`,
     problemReport: "Сохранить отчёт о проблеме",
+    lastReview: (score) => `Разбор последнего матча${score !== null && score !== undefined ? ` · ${score}/100` : ""}`,
     reportSentLater: (id) => `Отчёт о проблеме отправлен. Номер: ${id}.`,
     voice: "Голос",
     voice_off: "Выключен",
@@ -1878,6 +1880,10 @@ async function pollPlayerStatus() {
     // Launch options are per Steam account: check the linked one.
     refreshLaunchOptions();
   }
+  if (reviewKey !== previousKey) {
+    // The tray's «latest match review» item follows the newest review.
+    refreshTray();
+  }
   if (!first && reviewKey && reviewKey !== previousKey) {
     const reviewsBefore = Number(settings.get("liveReviews")) || 0;
     settings.set("liveReviews", reviewsBefore + 1);
@@ -3235,6 +3241,16 @@ function refreshTray() {
       ...topItems,
       { type: "separator" },
       { label: t("open"), click: showMainWindow },
+      // Straight to the newest review (it opens the panel on it).
+      ...(live.player && live.player.lastReview
+        ? [{
+            label: t("lastReview", live.player.lastReview.score),
+            click: () => {
+              showMainWindow();
+              send("launcher:player-event", { type: "open-match", matchId: live.player.lastReview.match_id });
+            }
+          }]
+        : []),
       {
         label: t("overlay"),
         type: "checkbox",

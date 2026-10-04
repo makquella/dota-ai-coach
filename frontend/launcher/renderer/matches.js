@@ -69,6 +69,8 @@
       pfWear: "Wear",
       pfWorn: "Worn",
       pfFree: "Free",
+      pfNeedSparks: (n) => `${n} more ${n === 1 ? "spark" : "sparks"}`,
+      pfLockedHint: "Not open yet: see the line above",
       pfNeedLevel: (n) => `From level ${n}`,
       pfNeedAchievement: (name, tier) => `For «${name}», tier ${tier}`,
       pfShopErrors: { not_enough: "Not enough sparks yet.", locked_level: "Your level is too low for it.", locked_achievement: "It comes with an achievement.", owned: "You already have it." },
@@ -255,7 +257,7 @@
         spot: "Where deaths repeat"
       },
       mapSpotTitle: (count, place) => `${count} deaths · ${place}`,
-      mapSpotLine: (place, count) => `Most often: ${place} — ${count}`,
+      mapSpotLine: (place, count) => `Most often: ${place} (${count} ${count === 1 ? "death" : "deaths"})`,
       watchMoment: "Watch",
       watchMomentHint: "Copies a Dota console command. Open this match's replay in Dota, press \\ for the console and paste it: the replay jumps to about 10 s before this moment.",
       watchCopied: "Copied: paste in the replay console",
@@ -668,6 +670,8 @@
       pfWear: "Надеть",
       pfWorn: "Надето",
       pfFree: "Бесплатно",
+      pfNeedSparks: (n) => `Ещё ${n} ${plural(n, "искра", "искры", "искр")}`,
+      pfLockedHint: "Пока закрыто: условие написано выше",
       pfNeedLevel: (n) => `С ${n}-го уровня`,
       pfNeedAchievement: (name, tier) => `За награду «${name}», ступень ${tier}`,
       pfShopErrors: { not_enough: "Пока не хватает искр.", locked_level: "Нужен уровень выше.", locked_achievement: "Даётся за награду.", owned: "Уже есть." },
@@ -854,7 +858,7 @@
         spot: "Место, где умираете снова"
       },
       mapSpotTitle: (count, place) => `${count} ${plural(count, "смерть", "смерти", "смертей")} · ${place}`,
-      mapSpotLine: (place, count) => `Чаще всего: ${place} — ${count}`,
+      mapSpotLine: (place, count) => `Чаще всего: ${place} (${count} ${plural(count, "смерть", "смерти", "смертей")})`,
       watchMoment: "Смотреть",
       watchMomentHint: "Копирует команду консоли Доты. Откройте запись этого матча в Доте, нажмите \\ (консоль) и вставьте: запись перемотается примерно за 10 с до этого момента.",
       watchCopied: "Скопировано: вставьте в консоль записи",
@@ -1306,6 +1310,14 @@
     return value === null || value === undefined ? "—" : Math.round(value).toLocaleString(state.locale);
   }
 
+  // A fraction the way the player reads it: «7,5» in Russian, «7.5» in English.
+  function decimal(value, digits = 1) {
+    if (value === null || value === undefined || !Number.isFinite(Number(value))) {
+      return "—";
+    }
+    return Number(value).toLocaleString(state.locale, { minimumFractionDigits: digits, maximumFractionDigits: digits });
+  }
+
   function h(tag, attrs = {}, ...children) {
     const node = document.createElement(tag);
     for (const [key, value] of Object.entries(attrs || {})) {
@@ -1410,10 +1422,11 @@
     return h("details", { class: "explain no-print" }, h("summary", {}, icon("circle-help"), h("span", { text: t("explainTitle") })), h("p", { text: t(key) }));
   }
 
+  // The letter next to the score ring: the ring already carries the colour, so
+  // no third signal (a coloured dot) for the same value.
   function gradeLetter(score) {
     const letter = score >= 80 ? "A" : score >= 65 ? "B" : score >= 50 ? "C" : "D";
-    const tone = score >= 65 ? "good" : score >= 50 ? "warn" : "bad";
-    return h("span", { class: "grade" }, h("span", { class: "dot", "data-tone": tone }), h("span", { text: letter }));
+    return h("span", { class: "grade", text: letter });
   }
 
   // --- navigation -------------------------------------------------------------
@@ -2662,10 +2675,10 @@
       return "—";
     }
     if (key === "kda" || key === "lh_per_min") {
-      return Number(value).toFixed(1);
+      return decimal(value);
     }
     if (key === "deaths") {
-      return Number(value).toFixed(Number.isInteger(value) ? 0 : 1);
+      return Number.isInteger(value) ? number(value) : decimal(value);
     }
     return number(value);
   }
@@ -2683,8 +2696,7 @@
   }
 
   function percent1(value) {
-    const text = `${Number(value).toFixed(1)}%`;
-    return state.locale === "ru" ? text.replace(".", ",") : text;
+    return `${decimal(value)}%`;
   }
 
   function signedPercent(value) {
@@ -2780,10 +2792,25 @@
     return h(
       "span",
       { class: "toolbar-actions no-print" },
+      // Icon buttons with their names as tooltips: two worded buttons squeezed
+      // the card's title («Сравнение с другом») onto two lines.
       data.state !== "loading"
-        ? h("button", { class: "btn btn-ghost btn-sm", type: "button", disabled: busy, onclick: () => loadFriend("friendRefresh") }, icon("refresh-cw"), h("span", { text: busy ? t("friendUpdating") : t("friendRefresh") }))
+        ? h("button", {
+            class: "btn btn-ghost btn-sm btn-icon",
+            type: "button",
+            disabled: busy,
+            title: busy ? t("friendUpdating") : t("friendRefresh"),
+            "aria-label": busy ? t("friendUpdating") : t("friendRefresh"),
+            onclick: () => loadFriend("friendRefresh")
+          }, icon("refresh-cw"))
         : null,
-      h("button", { class: "btn btn-ghost btn-sm", type: "button", onclick: () => loadFriend("friendRemove").then(() => loadFriend()) }, icon("x"), h("span", { text: t("friendChange") }))
+      h("button", {
+        class: "btn btn-ghost btn-sm btn-icon",
+        type: "button",
+        title: t("friendChange"),
+        "aria-label": t("friendChange"),
+        onclick: () => loadFriend("friendRemove").then(() => loadFriend())
+      }, icon("x"))
     );
   }
 
@@ -2794,7 +2821,7 @@
     if (key === "win_rate") {
       return `${value}%`;
     }
-    return ["kills", "deaths", "assists", "lh_per_min"].includes(key) ? Number(value).toFixed(1) : number(value);
+    return ["kills", "deaths", "assists", "lh_per_min"].includes(key) ? decimal(value) : number(value);
   }
 
   function renderFriend() {
@@ -4238,10 +4265,10 @@
       "trophy",
       h(
         "div",
-        { class: "tiles" },
+        { class: "tiles tiles-compact" },
         tile(t("pfGames"), String(stats.app_games ?? 0)),
         tile(t("pfWinrate"), stats.app_winrate === null || stats.app_winrate === undefined ? "—" : `${stats.app_winrate}%`),
-        tile(t("pfHours"), String(stats.app_hours ?? 0))
+        tile(t("pfHours"), decimal(stats.app_hours ?? 0))
       )
     );
   }
@@ -4455,11 +4482,22 @@
               button = h("button", { class: "btn btn-sm", type: "button", disabled: true, text: t("pfWorn") });
             } else if (item.owned) {
               button = h("button", { class: "btn btn-sm", type: "button", text: t("pfWear"), onclick: () => act("shopEquip", item.id) });
+            } else if (item.locked) {
+              // Closed by a level or an achievement: a lock with the price, not a «Buy» that does nothing.
+              button = h(
+                "button",
+                { class: "btn btn-sm pf-shop-closed", type: "button", disabled: true, title: t("pfLockedHint") },
+                icon("lock"),
+                h("span", { text: item.price ? String(item.price) : t("pfFree") })
+              );
+            } else if (!item.affordable) {
+              // How many sparks are missing, instead of a dimmed «Buy».
+              const missing = Math.max(1, (item.price || 0) - (profile.sparks?.balance ?? 0));
+              button = h("button", { class: "btn btn-sm pf-shop-closed", type: "button", disabled: true, text: t("pfNeedSparks", missing) });
             } else {
               button = h("button", {
                 class: "btn btn-sm btn-primary",
                 type: "button",
-                disabled: !item.affordable || Boolean(item.locked),
                 text: item.price ? t("pfBuy", item.price) : t("pfFree"),
                 onclick: () => act("shopBuy", item.id)
               });
@@ -4733,7 +4771,7 @@
       "div",
       { class: "tiles" },
       tile(t("tiles.winrate"), career.winrate == null ? "—" : `${career.winrate}%`, trendDelta(trend, "winrate", (v) => `${Math.round(v)}%`), streakText || t("recordLine", career.wins, career.losses, career.matches)),
-      tile(t("tiles.kda"), avg.kda == null ? "—" : avg.kda.toFixed(1), trendDelta(trend, "kda", (v) => v.toFixed(1))),
+      tile(t("tiles.kda"), decimal(avg.kda), trendDelta(trend, "kda", (v) => decimal(v))),
       tile(t("tiles.gpm"), number(avg.gpm), trendDelta(trend, "gpm", (v) => Math.round(v))),
       tile(t("tiles.lh10"), number(avg.lh_10), trendDelta(trend, "lh_10", (v) => Math.round(v))),
       tile(t("tiles.score"), avg.score == null ? "—" : String(Math.round(avg.score)), trendDelta(trend, "score", (v) => Math.round(v)))
@@ -4827,7 +4865,8 @@
             { class: "table-wrap" },
             h(
               "table",
-              { class: "table" },
+              // Headers wrap («На вашем / ранге»): seven columns fit the main column without a sideways scroll.
+              { class: "table table-wrapping" },
               h("thead", {}, h("tr", {}, h("th", { text: t("colHero") }), h("th", { class: "num-col", text: t("colMatches") }), h("th", { class: "num-col", text: t("colWinrate") }), h("th", { class: "num-col", text: t("colBracket"), title: career.rank_bracket_label ? t("bracketHint", career.rank_bracket_label) : "" }), h("th", { class: "num-col hide-narrow", text: "KDA" }), h("th", { class: "num-col hide-narrow", text: t("colGpm") }), h("th", { class: "num-col", text: t("colScore") }))),
               h(
                 "tbody",
@@ -4839,8 +4878,8 @@
                     h("td", {}, heroLabel(hero.hero_id || hero.hero, hero.hero)),
                     h("td", { class: "num-col num", text: String(hero.matches) }),
                     h("td", { class: "num-col num", text: hero.winrate == null ? "—" : `${hero.winrate}%` }),
-                    h("td", { class: "num-col num muted", text: hero.bracket_winrate == null ? "—" : `${hero.bracket_winrate}%` }),
-                    h("td", { class: "num-col num hide-narrow", text: hero.kda == null ? "—" : hero.kda.toFixed(1) }),
+                    h("td", { class: "num-col num muted", text: hero.bracket_winrate == null ? "—" : percent1(hero.bracket_winrate) }),
+                    h("td", { class: "num-col num hide-narrow", text: decimal(hero.kda) }),
                     h("td", { class: "num-col num hide-narrow", text: number(hero.gpm) }),
                     h("td", { class: "num-col num", text: hero.score == null ? "—" : String(Math.round(hero.score)) })
                   )
@@ -5421,6 +5460,27 @@
       const next = tabs[(index + (event.key === "ArrowRight" ? 1 : tabs.length - 1)) % tabs.length];
       next.focus();
       setView(next.dataset.view);
+    });
+    // Keyboard: Ctrl+1…5 opens a tab, Esc leaves a match review for the list.
+    // Never while typing, and never under the first-run tour (it owns Esc).
+    document.addEventListener("keydown", (event) => {
+      if (event.defaultPrevented || event.altKey || event.metaKey || document.querySelector(".tour")) {
+        return;
+      }
+      if (event.target?.closest?.("input, textarea, select, [contenteditable='true']")) {
+        return;
+      }
+      if (event.ctrlKey && !event.shiftKey && /^[1-5]$/.test(event.key)) {
+        const tab = document.querySelectorAll(".tabs [data-view]")[Number(event.key) - 1];
+        if (tab) {
+          event.preventDefault();
+          tab.focus();
+          setView(tab.dataset.view);
+        }
+      } else if (event.key === "Escape" && !event.ctrlKey && state.view === "match") {
+        event.preventDefault();
+        setView("matches");
+      }
     });
     api.onPlayerEvent?.((event) => {
       if (event.type === "open-match" && event.matchId) {

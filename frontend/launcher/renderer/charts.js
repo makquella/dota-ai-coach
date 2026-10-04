@@ -33,15 +33,22 @@
     return 10 * exponent;
   }
 
+  // Numbers in the page's language (app.js sets <html lang>): «3 619» and
+  // «12,5k» in Russian, «3,619» and «12.5k» in English.
+  function pageLocale() {
+    return (typeof document !== "undefined" && document.documentElement && document.documentElement.lang) || "en-US";
+  }
+
   function formatNumber(value) {
     if (value === null || value === undefined || Number.isNaN(value)) {
       return "—";
     }
     const abs = Math.abs(value);
     if (abs >= 10000) {
-      return `${(value / 1000).toFixed(abs >= 100000 ? 0 : 1).replace(/\.0$/, "")}k`;
+      const thousands = value / 1000;
+      return `${thousands.toLocaleString(pageLocale(), { maximumFractionDigits: abs >= 100000 ? 0 : 1 })}k`;
     }
-    return Math.round(value).toLocaleString("en-US");
+    return Math.round(value).toLocaleString(pageLocale());
   }
 
   function tooltip(host) {
@@ -213,7 +220,6 @@
       showTip(host, tip, (x(i) / width) * box.width, PAD.top, options.xLabel ? options.xLabel(i) : String(i), rows);
     };
     const hide = () => {
-      marker.classList.add("hidden");
       cross.classList.add("hidden");
       tip.classList.add("hidden");
     };
@@ -647,6 +653,7 @@
       showTip(host, tip, (coords[i][0] / width) * box.width, pad.top, p.title || "", rows);
     };
     const hide = () => {
+      marker.classList.add("hidden");
       cross.classList.add("hidden");
       tip.classList.add("hidden");
     };
