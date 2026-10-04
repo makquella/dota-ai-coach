@@ -292,7 +292,7 @@ class _Translator(HTMLParser):
         pictures = {
             "data-img": "assets/app/en/{}.jpg?v={v}",
             "data-ov": "assets/overlay/en/{}.webp?v={v}",
-            "data-game": "assets/game/{}-en.jpg",
+            "data-game": "assets/game/{}-en.jpg?v={v}",
             "data-shot": "assets/shots/en/{}.jpg?v={v}",
         }
         for attr, pattern in pictures.items():

@@ -118,6 +118,14 @@ def by_id(items: dict[str, dict[str, Any]]) -> dict[int, str]:
     }
 
 
+def share_base(games: int, counts: list[int]) -> int:
+    """The games a share is counted against. STRATZ may count the item purchases
+    over another window than the position's games (an item «in 140 % of the
+    games» in October 2026): when an item outnumbers the games, the most bought
+    one stands in for them, so a share stays a share and the thresholds hold."""
+    return max([games, *counts])
+
+
 def start_items(
     rows: list[dict[str, Any]],
     games: int,
@@ -130,11 +138,14 @@ def start_items(
     would go over it is left out)."""
     counts: dict[str, int] = {}
     best: dict[str, int] = {}
+    base = share_base(
+        games, [int(row.get("matchCount") or 0) for row in rows if not row.get("wasGiven")]
+    )
     for row in rows:
         key = keys.get(int(row.get("itemId") or 0))
         if not key or key in SKIP_ITEMS or row.get("wasGiven"):
             continue
-        if (row.get("matchCount") or 0) < games * START_SHARE:
+        if (row.get("matchCount") or 0) < base * START_SHARE:
             continue
         counts[key] = counts.get(key, 0) + 1
         best[key] = max(best.get(key, 0), int(row["matchCount"]))
@@ -171,14 +182,15 @@ def build_items(
             )
         )
     result = []
+    base = share_base(games, [sum(count for _, count, _ in b) for b in per_item.values()])
     for key, buckets in per_item.items():
         bought = sum(count for _, count, _ in buckets)
-        if bought < games * BUILD_SHARE:
+        if not bought or bought < base * BUILD_SHARE:
             continue
         minutes = [minute for minute, count, _ in buckets for _ in range(count)]
         wins = sum(win for _, _, win in buckets)
         result.append(
-            [key, int(median(minutes)), round(100 * bought / games), round(100 * wins / bought)]
+            [key, int(median(minutes)), round(100 * bought / base), round(100 * wins / bought)]
         )
     # A part of another build item (Yasha for Sange and Yasha) is that item's step,
     # not a build line of its own.

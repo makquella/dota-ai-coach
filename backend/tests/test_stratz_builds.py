@@ -54,6 +54,25 @@ def test_the_start_list_fits_in_the_starting_gold():
     assert [key for key, _ in start] == ["quelling_blade", "tango", "magic_stick", "faerie_fire"]
 
 
+def test_a_share_never_goes_over_the_games():
+    # STRATZ counted Battle Fury in «140 %» of Juggernaut's games (another window
+    # than the games): the most bought item stands in for the games then.
+    keys = {1: "bfury", 2: "manta", 3: "black_king_bar"}
+    items = {"bfury": {"cost": 4100}, "manta": {"cost": 4650}, "black_king_bar": {"cost": 4050}}
+    rows = [
+        {"itemId": 1, "instance": 0, "time": 14, "matchCount": 90, "winCount": 50},
+        {"itemId": 1, "instance": 0, "time": 15, "matchCount": 50, "winCount": 25},
+        {"itemId": 2, "instance": 0, "time": 21, "matchCount": 70, "winCount": 40},
+        # 25 of 100 games by the raw count, 18 % of the purchases' own window.
+        {"itemId": 3, "instance": 0, "time": 25, "matchCount": 25, "winCount": 12},
+    ]
+    build = builder.build_items(rows, 100, keys, items)
+    assert [row[0] for row in build] == ["bfury", "manta"]
+    assert [row[2] for row in build] == [100, 50]
+    # Consistent counts keep the plain share.
+    assert builder.share_base(1000, [600, 300]) == 1000
+
+
 def test_the_query_asks_every_position_for_one_hero():
     text = builder.query_text(11)
     for position in builder.POSITIONS:

@@ -6,7 +6,7 @@
   const LANG_KEY = "dac.lang";
   const API = "https://api.luhovyimvp.dev";
   // Bump with every reshoot of the pictures (scripts/site-shots) and in index.html.
-  const SHOTS_VERSION = "10";
+  const SHOTS_VERSION = "11";
 
   const EN = Object.assign({}, window.WARDLY_EN || {}, {
     version: (v, mb) => `Version ${v} · Windows 10 and 11 · ${mb} MB`
@@ -103,7 +103,7 @@
       img.src = `assets/overlay/${lang}/${img.dataset.ov}.webp?v=${SHOTS_VERSION}`;
     });
     document.querySelectorAll("img[data-game]").forEach((img) => {
-      img.src = `assets/game/${img.dataset.game}-${lang}.jpg`;
+      img.src = `assets/game/${img.dataset.game}-${lang}.jpg?v=${SHOTS_VERSION}`;
     });
     document.querySelectorAll("img[data-shot]").forEach((img) => {
       img.src = `assets/shots/${lang}/${img.dataset.shot}.jpg?v=${SHOTS_VERSION}`;

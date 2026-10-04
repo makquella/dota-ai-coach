@@ -168,6 +168,16 @@ body:not(.locked) .overlay-shell {
   font-weight: var(--fw-medium);
 }
 
+/* Urgent advice reads as urgent from the corner of the eye: the label and the
+   frame turn red (a moved card keeps its accent frame, rule above). */
+.overlay-shell.urgent {
+  border-color: color-mix(in srgb, var(--error) 55%, transparent);
+}
+
+.overlay-shell.urgent .label {
+  color: var(--error);
+}
+
 .priority {
   margin-left: auto;
   color: var(--text-3);

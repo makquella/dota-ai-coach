@@ -86,8 +86,41 @@
     "role": "core",
     "lines": [
      "К 10:00 — 55 добиваний (ваш средний: 41)",
-     "Battle Fury к 14:00, как у большинства: побед 54%",
+     "Прокачка у про: сначала Blade Fury, потом Blade Dance",
      "Ваш фокус: смерти на линии"
+    ],
+    "record": "6–4",
+    "items": [
+     {
+      "key": "bfury",
+      "name": "Battle Fury",
+      "minute": 14
+     },
+     {
+      "key": "manta",
+      "name": "Manta Style",
+      "minute": 21
+     },
+     {
+      "key": "butterfly",
+      "name": "Butterfly",
+      "minute": 27
+     },
+     {
+      "key": "monkey_king_bar",
+      "name": "Monkey King Bar",
+      "minute": 31
+     },
+     {
+      "key": "ultimate_scepter",
+      "name": "Aghanim's Scepter",
+      "minute": 31
+     },
+     {
+      "key": "swift_blink",
+      "name": "Swift Blink",
+      "minute": 38
+     }
     ]
    }
   },
@@ -203,8 +236,41 @@
     "role": "core",
     "lines": [
      "55 last hits by 10:00 (your average: 41)",
-     "Battle Fury by 14:00, like most players: 54% wins",
+     "Pros max Blade Fury first, then Blade Dance",
      "Your focus: lane deaths"
+    ],
+    "record": "6–4",
+    "items": [
+     {
+      "key": "bfury",
+      "name": "Battle Fury",
+      "minute": 14
+     },
+     {
+      "key": "manta",
+      "name": "Manta Style",
+      "minute": 21
+     },
+     {
+      "key": "butterfly",
+      "name": "Butterfly",
+      "minute": 27
+     },
+     {
+      "key": "monkey_king_bar",
+      "name": "Monkey King Bar",
+      "minute": 31
+     },
+     {
+      "key": "ultimate_scepter",
+      "name": "Aghanim's Scepter",
+      "minute": 31
+     },
+     {
+      "key": "swift_blink",
+      "name": "Swift Blink",
+      "minute": 38
+     }
     ]
    }
   },
