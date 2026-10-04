@@ -4,23 +4,25 @@
 
 const TEXT = {
   en: {
-    title: "Skill arrows: lay the frame over your abilities",
+    title: "Skill arrows: fine-tune the frame",
     text:
-      "In a game (a bot match will do), drag the frame onto the ability icons at the bottom — from the first ability to the last, without the talent tree. Pull the edges to fit the size. Arrows ←↑→↓ move it by a pixel, with Shift by ten.",
+      "The arrows find your ability icons by themselves. If they miss (another HUD or screen shape), drag the frame onto the icons at the bottom — from the first ability to the last, without the talent tree — and pull the edges to fit. Arrows ←↑→↓ move it by a pixel, with Shift by ten.",
     slots: "Abilities on the bar:",
     detected: "(seen in the game)",
     save: "Save",
     reset: "Undo my changes",
+    auto: "Automatic",
     cancel: "Cancel"
   },
   ru: {
-    title: "Стрелки над навыками: совместите рамку со способностями",
+    title: "Стрелки над навыками: подправить рамку",
     text:
-      "В игре (подойдёт матч с ботами) перетащите рамку на иконки способностей внизу экрана — от первой способности до последней, без дерева талантов. Края тянутся, чтобы подогнать размер. Стрелки ←↑→↓ двигают рамку на пиксель, с Shift — на десять.",
+      "Стрелки сами находят иконки способностей. Если промахиваются (другой интерфейс или формат экрана), перетащите рамку на иконки внизу — от первой способности до последней, без дерева талантов — и подтяните края. Стрелки ←↑→↓ двигают рамку на пиксель, с Shift — на десять.",
     slots: "Способностей на панели:",
     detected: "(видно в игре)",
     save: "Сохранить",
     reset: "Вернуть как было",
+    auto: "Автоматически",
     cancel: "Отмена"
   }
 };
@@ -83,6 +85,7 @@ function startCalibration(payload) {
   $("cal-detected").textContent = payload.detected ? text.detected : "";
   $("cal-save").textContent = text.save;
   $("cal-reset").textContent = text.reset;
+  $("cal-auto").textContent = text.auto;
   $("cal-cancel").textContent = text.cancel;
   calibration.frame = { ...payload.frame };
   calibration.initial = { ...payload.frame };
@@ -230,6 +233,7 @@ if (mode === "calibrate") {
   $("cal-plus").addEventListener("click", () => setSlots(1));
   $("cal-save").addEventListener("click", save);
   $("cal-reset").addEventListener("click", resetFrame);
+  $("cal-auto").addEventListener("click", () => window.skillArrowApi.auto());
   $("cal-cancel").addEventListener("click", () => window.skillArrowApi.cancel());
   document.addEventListener("keydown", onKey);
 } else {

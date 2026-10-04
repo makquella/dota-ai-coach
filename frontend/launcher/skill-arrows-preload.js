@@ -9,5 +9,6 @@ contextBridge.exposeInMainWorld("skillArrowApi", {
     ipcRenderer.on("skill-arrow:calibrate", (_event, payload) => callback(payload));
   },
   save: (frame) => ipcRenderer.invoke("skill-arrow:save", frame),
-  cancel: () => ipcRenderer.invoke("skill-arrow:cancel")
+  cancel: () => ipcRenderer.invoke("skill-arrow:cancel"),
+  auto: () => ipcRenderer.invoke("skill-arrow:auto")
 });
