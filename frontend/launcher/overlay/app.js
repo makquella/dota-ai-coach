@@ -33,7 +33,10 @@ const OVERLAY_TEXT = {
     map: "Map",
     itemMinute: (m) => `usually by minute ${m}`,
     hintIn: (seconds) => (seconds > 0 ? `in ${seconds} s` : "now"),
-    hintSoon: (title) => `Soon: ${title}`
+    hintSoon: (title) => `Soon: ${title}`,
+    sample: "Example",
+    sampleAction: "Leave the wave now and reset HP before rejoining.",
+    sampleReason: "Drag the card where you like, then press «Done» or Ctrl+Alt+L."
   },
   ru: {
     urgent: "Срочно",
@@ -59,7 +62,10 @@ const OVERLAY_TEXT = {
     map: "Карта",
     itemMinute: (m) => `обычно к ${m}-й минуте`,
     hintIn: (seconds) => (seconds > 0 ? `через ${seconds} с` : "сейчас"),
-    hintSoon: (title) => `Скоро: ${title}`
+    hintSoon: (title) => `Скоро: ${title}`,
+    sample: "Пример",
+    sampleAction: "Уходите с волны сейчас и восстановите HP, прежде чем вернуться.",
+    sampleReason: "Перетащите карточку, куда удобно, и нажмите «Готово» или Ctrl+Alt+L."
   }
 };
 
@@ -198,6 +204,13 @@ function renderOverlay(data) {
   // From -0:20 to 1:30, while there is no advice: the plan for this game.
   if (data.game_plan && Array.isArray(data.game_plan.lines) && data.game_plan.lines.length && PLAN_STATUSES.has(data.status)) {
     showPlan(data);
+    return;
+  }
+
+  // Moving the card with nothing to show: a sample advice, so the player sets
+  // the place and the size by a card of the real size, not a one-line status.
+  if (!config.locked && !(data.status === "cooldown" && lastVisibleAdvice)) {
+    showSample(data);
     return;
   }
 
@@ -461,6 +474,18 @@ function showPlan(data) {
 function hintShort(hint) {
   const when = Number.isFinite(hint.in_seconds) ? ` · ${tr("hintIn", Math.max(0, hint.in_seconds))}` : "";
   return `${hint.title}${when}`;
+}
+
+function showSample(data) {
+  clearTimeout(hideTimer);
+  shell.className = "overlay-shell coaching priority-medium sample";
+  labelEl.textContent = tr("sample");
+  priorityEl.textContent = "";
+  actionEl.textContent = tr("sampleAction");
+  reasonEl.textContent = tr("sampleReason");
+  renderStatusRow(data);
+  reveal();
+  markCard("sample");
 }
 
 // While no advice is on the card, the map hint takes it (not while waiting for data).
