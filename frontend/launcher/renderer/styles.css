@@ -1760,15 +1760,19 @@ span.setup-mark {
   margin-left: calc(-1 * var(--sp-2));
 }
 
-.review-toolbar {
+.review-toolbar,
+.page-toolbar {
   position: sticky;
   top: 0;
   z-index: 6;
   display: flex;
-  flex-wrap: wrap;
+  /* One line always: a bar that changed its height when it sticks would move
+     the whole page under it. What does not fit is the zone links' to scroll. */
+  flex-wrap: nowrap;
   align-items: center;
   justify-content: space-between;
   gap: var(--sp-3);
+  min-height: 48px;
   margin: 0 calc(-1 * var(--sp-3));
   padding: var(--sp-2) var(--sp-3);
   border: 1px solid transparent;
@@ -1777,16 +1781,117 @@ span.setup-mark {
 }
 
 /* Scrolled past the header: a solid bar with the match it is about. */
-.review-toolbar.is-stuck {
+.review-toolbar.is-stuck,
+.page-toolbar.is-stuck {
   border-color: var(--border);
   border-top-color: transparent;
   background: var(--surface-1);
   box-shadow: var(--shadow);
 }
 
+/* Progress: the zone links under the title; stuck, the bar names the page. */
+.page-toolbar {
+  justify-content: flex-start;
+  margin-top: calc(-1 * var(--sp-2));
+}
+
+.page-toolbar-title {
+  display: none;
+  font-family: var(--display);
+  font-weight: 700;
+}
+
+.page-toolbar.is-stuck .page-toolbar-title {
+  display: inline;
+}
+
+/* «Fix · The match · Scores · Map · Teams»: the zones of a long page. */
+.section-nav {
+  display: flex;
+  flex: 1 1 auto;
+  flex-wrap: nowrap;
+  justify-content: safe center;
+  gap: 2px;
+  min-width: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.section-nav::-webkit-scrollbar {
+  display: none;
+}
+
+.page-toolbar .section-nav {
+  justify-content: flex-start;
+}
+
+/* Links scrolled sideways fade out at the cut edge, so more are to be found. */
+.section-nav.fade-start {
+  mask-image: linear-gradient(to right, transparent, #000 24px);
+}
+
+.section-nav.fade-end {
+  mask-image: linear-gradient(to left, transparent, #000 24px);
+}
+
+.section-nav.fade-start.fade-end {
+  mask-image: linear-gradient(to right, transparent, #000 24px, #000 calc(100% - 24px), transparent);
+}
+
+/* A narrower window: the stuck bar keeps the hero's portrait, not the name. */
+@media (max-width: 1239px) {
+  .review-toolbar.is-stuck .toolbar-hero {
+    display: none;
+  }
+}
+
+.section-link {
+  padding: 5px 10px;
+  border: 0;
+  border-radius: 999px;
+  background: none;
+  color: var(--text-2);
+  font: inherit;
+  font-size: var(--fs-13);
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background-color var(--dur-fast) var(--ease), color var(--dur-fast) var(--ease);
+}
+
+.section-link:hover {
+  background: var(--surface-2);
+  color: var(--text);
+}
+
+.section-link.is-current {
+  background: var(--surface-3);
+  color: var(--text);
+}
+
+.section-link:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+/* A zone scrolled to stops under the sticky bar, not behind it. */
+.zone {
+  scroll-margin-top: 72px;
+}
+
+.zone-title:focus {
+  outline: none;
+}
+
+/* Stuck, the bar keeps the icons of ‹ › and of Share / PDF (their titles name
+   them), so the match and the zone links fit on one line. */
+.review-toolbar.is-stuck .neighbour-nav .btn > span,
+.review-toolbar.is-stuck .toolbar-actions .btn > span {
+  display: none;
+}
+
 .toolbar-match {
   display: none;
-  flex: 1;
+  flex: none;
   align-items: center;
   gap: var(--sp-2);
   min-width: 0;
@@ -1823,6 +1928,7 @@ span.setup-mark {
 .review-nav,
 .neighbour-nav {
   display: inline-flex;
+  flex: none;
   align-items: center;
   gap: var(--sp-1);
 }

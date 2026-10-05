@@ -166,6 +166,18 @@
       zoneCompareHint: "Players of your rank, enemy heroes, a friend",
       zoneHero: "Your main hero",
       zoneHeroHint: "Your best games against your worst, your build",
+      sectionNav: "Page sections",
+      navFix: "Fix",
+      navStory: "The match",
+      navScores: "Scores",
+      navMap: "Map and items",
+      navTeams: "Teams",
+      navSummary: "Summary",
+      navGoals: "Goals",
+      navCoach: "Coach",
+      navGames: "Games",
+      navCompare: "Comparison",
+      navHero: "Main hero",
       colResult: "Result",
       colHero: "Hero",
       colKda: "K / D / A",
@@ -810,6 +822,18 @@
       zoneCompareHint: "Игроки вашего ранга, вражеские герои, друг",
       zoneHero: "Ваш основной герой",
       zoneHeroHint: "Лучшие игры против худших, ваш билд",
+      sectionNav: "Разделы страницы",
+      navFix: "Исправить",
+      navStory: "Ход матча",
+      navScores: "Оценки",
+      navMap: "Карта и предметы",
+      navTeams: "Составы",
+      navSummary: "Итоги",
+      navGoals: "Цели",
+      navCoach: "Тренер",
+      navGames: "Матчи",
+      navCompare: "Сравнение",
+      navHero: "Герой",
       colResult: "Итог",
       colHero: "Герой",
       colKda: "У / С / П",
@@ -2071,7 +2095,8 @@
   // «Поделиться разбором»: a link to the public part of the review (main.js createShare).
   // `kind` "progress": the same panel for the Progress page (main.js keys it "progress").
   function shareButton(panel, detail, kind = "match") {
-    const button = h("button", { class: "btn btn-ghost btn-sm", type: "button", "aria-expanded": "false" }, icon("share-2"), h("span", { text: t("shareButton") }));
+    // The title names it when the sticky bar shows the icon alone.
+    const button = h("button", { class: "btn btn-ghost btn-sm", type: "button", "aria-expanded": "false", title: t("shareButton") }, icon("share-2"), h("span", { text: t("shareButton") }));
     button.addEventListener("click", async () => {
       const open = panel.hidden;
       panel.hidden = !open;
@@ -2168,6 +2193,7 @@
       {
         class: "btn btn-ghost btn-sm",
         type: "button",
+        title: t("pdfSave"),
         onclick: async () => {
           button.disabled = true;
           note.textContent = "";
@@ -2303,23 +2329,29 @@
         // was a wall of lists.
         rest.length ? findingsCard(t("improveTitle"), "target", rest, "", true, detail.repeats, 1) : null,
         askCard(detail)
-      ]));
-      add(main, zone(t("zoneStory"), t("zoneStoryHint"), [chartCard(analysis), laneCard(analysis), deathsCard(analysis), adviceLogCard(analysis)]));
+      ], { id: "fix", label: t("navFix") }));
+      add(main, zone(t("zoneStory"), t("zoneStoryHint"), [chartCard(analysis), laneCard(analysis), deathsCard(analysis), adviceLogCard(analysis)], { id: "story", label: t("navStory") }));
       add(side, zone(t("zoneScores"), t("zoneScoresHint"), [
         sectionsCard(analysis),
         findingsCard(t("strengthsTitle"), "sparkles", analysis.strengths, t("nothingStrong"), false),
         rankCard(analysis),
         draftCard(analysis)
-      ]));
-      add(side, zone(t("zoneMapItems"), t("zoneMapItemsHint"), [mapCard(analysis), buildCard(analysis), skillsCard(analysis), momentsCard(analysis)]));
+      ], { id: "scores", label: t("navScores") }));
+      add(side, zone(t("zoneMapItems"), t("zoneMapItemsHint"), [mapCard(analysis), buildCard(analysis), skillsCard(analysis), momentsCard(analysis)], { id: "map", label: t("navMap") }));
       parts.push(twoColumns(main, side));
     }
     if (detail.scoreboard) {
-      parts.push(zone(t("zoneTeams"), "", [scoreboardCard(detail.scoreboard)]));
+      parts.push(zone(t("zoneTeams"), "", [scoreboardCard(detail.scoreboard)], { id: "teams", label: t("navTeams") }));
     }
     root.replaceChildren(...parts);
+    // The zone links sit in the sticky bar, before «Share · Save PDF».
+    const nav = sectionNav(root);
+    if (nav) {
+      back.insertBefore(nav, back.querySelector(".toolbar-actions"));
+    }
     hydrate(root);
     stickToolbar(back, header);
+    watchSections(nav);
     // Charts measure their container, so draw after insertion.
     drawMatchCharts(root, analysis);
   }
@@ -2363,13 +2395,132 @@
     );
   }
 
+  // A zone counts as being read once its top passes this line (px from the top
+  // of the window: under the sticky bar of the review and of Progress).
+  const SECTION_LINE = 120;
+
   // Cards grouped under a small heading (styles.css .zone); null without cards.
-  function zone(title, hint, cards) {
+  // `nav` ({id, label}) lists the zone in the page's section links (sectionNav).
+  function zone(title, hint, cards, nav) {
     const items = cards.filter(Boolean);
     if (!items.length) {
       return null;
     }
-    return h("section", { class: "zone" }, h("header", { class: "zone-head" }, h("h2", { class: "zone-title", text: title }), hint ? h("p", { class: "zone-hint", text: hint }) : null), items);
+    return h(
+      "section",
+      { class: "zone", id: nav ? `zone-${nav.id}` : null, dataset: nav ? { nav: nav.label } : null },
+      h("header", { class: "zone-head" }, h("h2", { class: "zone-title", text: title }), hint ? h("p", { class: "zone-hint", text: hint }) : null),
+      items
+    );
+  }
+
+  // «Fix · The match · Scores · Map · Teams»: one link per zone of a long page
+  // (the zones made with a `nav`), in the page's order; three zones or more.
+  function sectionNav(root) {
+    const zones = Array.from(root.querySelectorAll("section.zone[data-nav]"));
+    if (zones.length < 3) {
+      return null;
+    }
+    const nav = h("nav", { class: "section-nav no-print", "aria-label": t("sectionNav") });
+    nav.append(
+      ...zones.map((zoneEl) =>
+        h("button", {
+          type: "button",
+          class: "section-link",
+          dataset: { target: zoneEl.id },
+          text: zoneEl.dataset.nav,
+          onclick: () => {
+            // Two columns start zones side by side: the one clicked wins the tie.
+            nav.dataset.picked = zoneEl.id;
+            goToZone(zoneEl);
+          }
+        })
+      )
+    );
+    return nav;
+  }
+
+  function goToZone(zoneEl) {
+    const calm = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+    zoneEl.scrollIntoView({ behavior: calm ? "auto" : "smooth", block: "start" });
+    // Keyboard users go on from the zone, not from the top of the page.
+    const heading = zoneEl.querySelector(".zone-title");
+    if (heading) {
+      heading.tabIndex = -1;
+      heading.focus({ preventScroll: true });
+    }
+  }
+
+  // The zone being read is marked in the links: the last one whose top has
+  // passed under the sticky bar (at the very bottom, the last zone).
+  function watchSections(nav) {
+    if (state.sectionSpy) {
+      window.removeEventListener("scroll", state.sectionSpy, true);
+      state.sectionSpy = null;
+    }
+    if (!nav) {
+      return;
+    }
+    const links = Array.from(nav.querySelectorAll(".section-link"));
+    let frame = 0;
+    let shown = null;
+    const update = () => {
+      frame = 0;
+      if (!nav.isConnected) {
+        window.removeEventListener("scroll", spy, true);
+        return;
+      }
+      const scroller = document.scrollingElement || document.documentElement;
+      const atBottom = scroller.scrollTop > 0 && scroller.scrollTop + window.innerHeight >= scroller.scrollHeight - 4;
+      let current = atBottom ? links[links.length - 1] : null;
+      let best = -Infinity;
+      if (!current) {
+        for (const link of links) {
+          const top = document.getElementById(link.dataset.target)?.getBoundingClientRect().top;
+          if (top === undefined || top > SECTION_LINE) {
+            continue;
+          }
+          const tie = Math.abs(top - best) <= 2;
+          if ((!tie && top > best) || (tie && link.dataset.target === nav.dataset.picked)) {
+            best = top;
+            current = link;
+          }
+        }
+      }
+      links.forEach((link) => {
+        link.classList.toggle("is-current", link === current);
+        if (link === current) {
+          link.setAttribute("aria-current", "true");
+        } else {
+          link.removeAttribute("aria-current");
+        }
+      });
+      // In a narrow window the links scroll sideways: keep the current one in
+      // view, and back at the top of the page start from the first link.
+      if (!current && shown) {
+        shown = null;
+        nav.scrollLeft = 0;
+      }
+      if (current && current !== shown) {
+        shown = current;
+        const box = current.getBoundingClientRect();
+        const area = nav.getBoundingClientRect();
+        if (box.left < area.left || box.right > area.right) {
+          nav.scrollLeft += box.left - area.left - (area.width - box.width) / 2;
+        }
+      }
+      const hidden = nav.scrollWidth - nav.clientWidth;
+      nav.classList.toggle("fade-start", hidden > 1 && nav.scrollLeft > 1);
+      nav.classList.toggle("fade-end", hidden > 1 && nav.scrollLeft < hidden - 1);
+    };
+    const spy = () => {
+      if (!frame) {
+        frame = requestAnimationFrame(update);
+      }
+    };
+    window.addEventListener("scroll", spy, { capture: true, passive: true });
+    state.sectionSpy = spy;
+    update();
   }
 
   // Main and side cards as two columns (styles.css .layout-2).
@@ -5297,16 +5448,17 @@
       : null;
 
     const sharePanel = h("section", { class: "card share-panel no-print", hidden: true });
+    const head = pageHead(t("progressTitle"), t("analyzed", career.analyzed, career.matches), [
+      careerHeroSelect(career),
+      // Progress over all heroes only: that is what the page shows.
+      state.careerHero === null && career.analyzed ? shareButton(sharePanel, career, "progress") : null,
+      pdfButton("career")
+    ].filter(Boolean));
     root.replaceChildren(
-      pageHead(t("progressTitle"), t("analyzed", career.analyzed, career.matches), [
-        careerHeroSelect(career),
-        // Progress over all heroes only: that is what the page shows.
-        state.careerHero === null && career.analyzed ? shareButton(sharePanel, career, "progress") : null,
-        pdfButton("career")
-      ].filter(Boolean)),
+      head,
       sharePanel,
-      zone(t("zoneSummary"), t("zoneSummaryHint"), [tiles]),
-      zone(t("zoneGoals"), t("zoneGoalsHint"), [goalsCard(career)]),
+      zone(t("zoneSummary"), t("zoneSummaryHint"), [tiles], { id: "summary", label: t("navSummary") }),
+      zone(t("zoneGoals"), t("zoneGoalsHint"), [goalsCard(career)], { id: "goals", label: t("navGoals") }),
       twoColumns(
         [
           zone(t("zoneCoach"), t("zoneCoachHint"), [
@@ -5314,7 +5466,7 @@
             planCard,
             // Asking needs at least one review (the backend answers not_enough without one).
             state.careerHero === null && career.analyzed ? askCard(career, true) : null
-          ]),
+          ], { id: "coach", label: t("navCoach") }),
           zone(t("zoneGames"), t("zoneGamesHint"), [
             scoreCard,
             deathMapCard(career.death_map),
@@ -5322,7 +5474,7 @@
             heroesCard,
             state.careerHero === null ? heroPoolCard(career.hero_pool) : null,
             strengthsCard
-          ])
+          ], { id: "games", label: t("navGames") })
         ].filter(Boolean),
         [
           zone(t("zoneCompare"), t("zoneCompareHint"), [
@@ -5330,11 +5482,20 @@
             state.careerHero === null ? rankHistoryCard(career.rank_history) : null,
             opponentsCard(career.opponents),
             state.careerHero === null ? friendCard() : null
-          ]),
-          zone(t("zoneHero"), t("zoneHeroHint"), [selfCompareCard(career.self_compare), heroBuildCard(career.hero_build)])
+          ], { id: "compare", label: t("navCompare") }),
+          zone(t("zoneHero"), t("zoneHeroHint"), [selfCompareCard(career.self_compare), heroBuildCard(career.hero_build)], { id: "hero", label: t("navHero") })
         ].filter(Boolean)
       )
     );
+    // A sticky bar with the zone links under the title; once the title has
+    // scrolled away it names the page.
+    const nav = sectionNav(root);
+    if (nav) {
+      const bar = h("div", { class: "page-toolbar no-print" }, h("span", { class: "page-toolbar-title", text: t("progressTitle") }), nav);
+      head.after(bar);
+      stickToolbar(bar, head);
+    }
+    watchSections(nav);
     hydrate(root);
     const careerMap = root.querySelector('[data-chart="career-map"]');
     if (careerMap) {
