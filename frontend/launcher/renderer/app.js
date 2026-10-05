@@ -349,6 +349,11 @@ const I18N = {
     tourHint: "A short tour of the app, one minute",
     tourStart: "Show",
     whatsNew: {
+      "0.46.0": [
+        "Scroll down a review and its top bar stays with you: the hero, the result, the score and ‹ Newer · Older ›.",
+        "Progress tiles show your last 20 matches: wins and losses, and how gold, last hits and the score went.",
+        "Match scores on the charts are coloured like the score rings; the first start shows its progress and a real advice card."
+      ],
       "0.45.0": [
         "A new look: Wardly's red, warmer colours and bolder headings, the same as on the site.",
         "The review header and the current match show your hero large; win and loss are coloured tags.",
@@ -1102,6 +1107,11 @@ const I18N = {
     tourHint: "Короткая экскурсия по приложению, на минуту",
     tourStart: "Показать",
     whatsNew: {
+      "0.46.0": [
+        "При прокрутке разбора верхняя полоса остаётся на месте: герой, итог, оценка и «‹ Новее · Старее ›».",
+        "Плитки «Прогресса» показывают последние 20 матчей: победы и поражения, как менялись золото, добивания и оценка.",
+        "Оценки матчей на графиках окрашены как кольца оценок; первый запуск показывает, сколько осталось, и пример настоящей подсказки."
+      ],
       "0.45.0": [
         "Новый облик: фирменный красный Wardly, тёплые цвета и выразительные заголовки — как на сайте.",
         "В шапке разбора и в текущем матче — ваш герой крупным планом, победа и поражение — цветные метки.",
