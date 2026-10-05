@@ -13,6 +13,7 @@
   let heroByName = null;
   let itemByName = null;
   let itemKeys = null;
+  let itemNames = null;
 
   function normalize(value) {
     return String(value ?? "")
@@ -33,9 +34,13 @@
     }
     itemByName = new Map();
     itemKeys = new Set();
+    itemNames = new Map();
     for (const [name, key] of Object.entries(data.items || {})) {
       itemByName.set(normalize(name), key);
       itemKeys.add(key);
+      if (!itemNames.has(key)) {
+        itemNames.set(key, name);
+      }
     }
   }
 
@@ -66,6 +71,12 @@
       return text;
     }
     return itemByName.get(text) || null;
+  }
+
+  // picture key ("bfury") -> the in-game name ("Battle Fury"), else null.
+  function itemName(value) {
+    const key = itemKey(value);
+    return key ? itemNames.get(key) || null : null;
   }
 
   function initials(name) {
@@ -136,7 +147,8 @@
     const key = itemKey(value);
     return picture(doc, {
       src: key ? `dota-asset://item/${key}` : null,
-      label: label || String(value ?? ""),
+      // A bare key ("bfury") is named as the game names it (the hover title).
+      label: label || itemName(value) || String(value ?? ""),
       className: "dota-item",
       size
     });
@@ -154,5 +166,5 @@
     });
   }
 
-  return { hero, itemKey, initials, heroPicture, heroArt, itemPicture, abilityPicture };
+  return { hero, itemKey, itemName, initials, heroPicture, heroArt, itemPicture, abilityPicture };
 });
