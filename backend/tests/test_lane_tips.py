@@ -59,7 +59,7 @@ def test_a_magic_stick_by_mid_lane_once():
 def test_denies_at_four_minutes_for_a_carry_or_a_mid():
     kw = {"denies": 1, "last_hits": 14, "items": ["item_tango", "item_magic_stick"], "gold": 50}
     tip = _tip(RoleTips(), DENY_AT + 2, **kw)
-    assert tip["title"] == "Добито своих крипов к 4:00: 1"
+    assert tip["title"] == "Денаев к 4:00: 1"
     assert _tip(RoleTips(), DENY_AT + 2, role="mid", **kw)["id"] == f"lane_denies@{DENY_AT}"
     assert _tip(RoleTips(), DENY_AT + 2, role="offlane", **kw) is None
     assert _tip(RoleTips(), DENY_AT + 2, **{**kw, "denies": 5}) is None

@@ -93,7 +93,7 @@ def test_deaths_with_a_ready_bkb_become_a_finding(tmp_path):
     finding = next(f for f in analysis["improvements"] if f["id"] == "died_with_saver_ready")
     assert finding["params"]["count"] == 2 and finding["params"]["times"] == [1080, 1440]
     text = render_finding(finding, "ru")["text"]
-    assert text.startswith("2 раза вы погибли, когда Black King Bar был готов")
+    assert text.startswith("2 раза вы погибли, хотя успевали нажать Black King Bar")
     assert "18:00, 24:00" in text
 
 

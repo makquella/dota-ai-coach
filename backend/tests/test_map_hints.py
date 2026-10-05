@@ -336,7 +336,7 @@ def test_the_power_rune_is_a_rotation_for_a_mid_with_level_six():
         level=5,
         items=["item_bottle"],
     )
-    assert bottled["title"] == "Руна силы" and "Bottle" in bottled["hint"]
+    assert bottled["title"] == "Руна силы" and "бутылку" in bottled["hint"]
     # No level in GSI: the plain rune hint, never the pre-six Bottle one.
     unknown = map_hint(
         8 * 60 - 10,

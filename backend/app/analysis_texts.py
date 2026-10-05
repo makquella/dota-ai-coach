@@ -214,7 +214,7 @@ FINDINGS: dict[str, dict[str, dict[str, str]]] = {
     "died_with_saver_ready": {
         "ru": {
             "title": "Спасающий предмет не нажат",
-            "text": "{count} {count_times} вы погибли, когда {item_label} был готов, а у героя было время его нажать ({times}).",
+            "text": "{count} {count_times} вы погибли, хотя успевали нажать {item_label} ({times}).",
             "drill": "Держите {item_label} на удобной клавише и решайте заранее: ниже половины здоровья в драке — нажимаю сразу, не жду.",
         },
         "en": {
