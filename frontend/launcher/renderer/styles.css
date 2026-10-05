@@ -47,6 +47,14 @@ dd {
   padding: var(--sp-8) var(--sp-6) var(--sp-10);
 }
 
+/* A narrow window (under 960 px, no side navigation) uses its width: at 640 px
+   the match table hid its score column in an 860 px window. Print keeps 640. */
+@media screen {
+  .page {
+    max-width: 920px;
+  }
+}
+
 /* Icons (Lucide, 16px) ---------------------------------------------------- */
 
 .icon {
@@ -261,6 +269,11 @@ h1 {
   margin-bottom: var(--sp-1);
 }
 
+/* An action under the hint, not glued to it. */
+.empty > .btn {
+  margin-top: var(--sp-3);
+}
+
 .empty-title {
   color: var(--text-2);
   font-size: var(--fs-14);
@@ -271,6 +284,10 @@ h1 {
   max-width: 380px;
   color: var(--text-3);
   font-size: var(--fs-13);
+}
+
+.empty-hint:empty {
+  display: none;
 }
 
 /* Recent advice */

@@ -933,6 +933,11 @@ def _prepared_params(finding: dict[str, Any], lang: str) -> dict[str, Any]:
             params["runes_word"] = _plural_ru(params["runes"], "руну", "руны", "рун")
         if params.get("stacks") is not None:
             params["stacks_word"] = _plural_ru(params["stacks"], "стак", "стака", "стаков")
+        # A fraction in a Russian sentence is «2,5», not «2.5» (the texts only
+        # print the values; the finding keeps its numbers).
+        for key, value in list(params.items()):
+            if isinstance(value, float) and not value.is_integer():
+                params[key] = str(value).replace(".", ",")
     return params
 
 

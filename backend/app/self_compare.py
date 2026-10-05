@@ -102,8 +102,8 @@ def compare_best_worst(matches: list[dict[str, Any]], lang: str) -> dict[str, An
         template = SELF_COMPARE[lang][row["key"]]
         highlights.append(
             template.format(
-                best=_fmt(row["key"], row["best"]),
-                worst=_fmt(row["key"], row["worst"]),
+                best=_fmt(row["key"], row["best"], lang),
+                worst=_fmt(row["key"], row["worst"], lang),
                 item_best=item_best,
                 item_worst=item_worst,
             )
@@ -127,11 +127,13 @@ def _common_item(matches: list[dict[str, Any]]) -> str | None:
     return max(set(named), key=named.count) if named else None
 
 
-def _fmt(key: str, value: float) -> str:
+def _fmt(key: str, value: float, lang: str = "en") -> str:
     if key == "first_item_t":
         return clock(value)
     if key == "kill_participation":
         return f"{round(value)}%"
     if key in {"deaths", "lane_deaths"}:
-        return f"{value:.1f}".rstrip("0").rstrip(".")
+        text = f"{value:.1f}".rstrip("0").rstrip(".")
+        # «0,5» in Russian, as the launcher writes its own numbers.
+        return text.replace(".", ",") if lang == "ru" else text
     return str(round(value))

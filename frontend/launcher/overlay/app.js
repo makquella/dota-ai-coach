@@ -36,7 +36,7 @@ const OVERLAY_TEXT = {
     hintSoon: (title) => `Soon: ${title}`,
     sample: "Example",
     sampleAction: "Leave the wave now and reset HP before rejoining.",
-    sampleReason: "Drag the card where you like, then press «Done» or Ctrl+Alt+L."
+    sampleReason: "Drag the card where you like, then press “Done” or Ctrl+Alt+L."
   },
   ru: {
     urgent: "Срочно",
