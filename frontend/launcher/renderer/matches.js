@@ -1404,18 +1404,23 @@
     return `${sign}${Math.floor(abs / 60)}:${String(abs % 60).padStart(2, "0")}`;
   }
 
-  function relativeTime(unixSeconds) {
+  // `style` "short" («3 ч. назад») where a column is narrow (the match table).
+  function relativeTime(unixSeconds, style = "long") {
     if (!unixSeconds) {
       return "—";
     }
     const diff = Math.round(unixSeconds - Date.now() / 1000);
-    const rtf = new Intl.RelativeTimeFormat(state.locale, { numeric: "auto" });
+    const rtf = new Intl.RelativeTimeFormat(state.locale, { numeric: "auto", style });
     const abs = Math.abs(diff);
     if (abs < 3600) {
       return rtf.format(Math.round(diff / 60), "minute");
     }
     if (abs < 86400) {
       return rtf.format(Math.round(diff / 3600), "hour");
+    }
+    // Short: «вчера», then the date («2 окт.»): «3 дн. назад» broke the column.
+    if (style === "short" && abs >= 86400 * 1.5) {
+      return new Date(unixSeconds * 1000).toLocaleDateString(state.locale, { day: "numeric", month: "short" });
     }
     if (abs < 86400 * 30) {
       return rtf.format(Math.round(diff / 86400), "day");
@@ -2059,7 +2064,7 @@
           h("td", { class: "num-col num", text: clock(row.duration) }),
           h("td", {}, h("span", { class: "score-cell" }, scoreRing(row.score, "sm"), row.score == null ? null : gradeLetter(row.score))),
           itemsCell(row.items),
-          h("td", { class: "muted hide-narrow when-col", text: relativeTime(row.start_time) })
+          h("td", { class: "muted hide-narrow when-col", text: relativeTime(row.start_time, "short") })
         )
       );
     }

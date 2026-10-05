@@ -351,6 +351,10 @@ const I18N = {
     tourHint: "A short tour of the app, one minute",
     tourStart: "Show",
     whatsNew: {
+      "0.50.0": [
+        "Items everywhere: the match table shows what you ended each game with, the review's header too, and the scoreboard shows every player's items.",
+        "Home's last matches carry their items as well; hover an item for its name."
+      ],
       "0.49.0": [
         "Skill tips show the ability's own icon, and the pros' skill order as icons with the one to level now outlined; the review's skill card has the icons too.",
         "Long pages have section links: the review's top bar and Progress list their parts, jump to one with a click and mark the part you are reading.",
@@ -1126,6 +1130,10 @@ const I18N = {
     tourHint: "Короткая экскурсия по приложению, на минуту",
     tourStart: "Показать",
     whatsNew: {
+      "0.50.0": [
+        "Предметы везде: в таблице матчей видно, с чем вы закончили каждую игру, то же — в шапке разбора, а в «Итогах матча» — предметы всех десяти игроков.",
+        "У «Последних матчей» на Главной тоже есть предметы; наведите на иконку — появится название."
+      ],
       "0.49.0": [
         "Подсказки по прокачке показывают иконку способности, а порядок прокачки у про — иконками, нужная сейчас обведена; в карточке «Прокачка» разбора тоже иконки.",
         "У длинных страниц есть разделы: в верхней полосе разбора и в «Прогрессе» — ссылки на части страницы, переход в один клик, текущая часть подсвечена.",

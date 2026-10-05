@@ -1669,10 +1669,15 @@ span.setup-mark {
   opacity: 0.5;
 }
 
-/* «12 часов назад» may take two lines: the items fit at the window's
+/* A rare long date may take two lines: the items fit at the window's
    default 1280 px without a sideways scroll. */
 .table td.when-col {
   white-space: normal;
+}
+
+/* The pill's colour says win or loss; in the table its dot is room for the items. */
+.table .result[data-tone] .dot {
+  display: none;
 }
 
 /* The default 1280 px window: a size smaller, so the row fits. */
