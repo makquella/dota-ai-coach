@@ -484,7 +484,7 @@ TIPS = {
             "Pull the small camp into your wave so it meets at your tower.",
         ),
         "ru": (
-            "Пул на {at_label}",
+            "Пулл в {at_label}",
             "Отведите малый лагерь в свою волну: линия встанет у вашей вышки.",
         ),
     },

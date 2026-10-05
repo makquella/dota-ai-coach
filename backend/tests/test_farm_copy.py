@@ -47,7 +47,7 @@ def test_else_the_pace_in_numbers():
     assert advice.action == "Keep farming: 512 gold per minute, 140 last hits at minute 21."
     assert (
         translate_ru(advice.action)
-        == "Фармите дальше: 512 золота в минуту, добиваний к 21-й минуте: 140."
+        == "Фармите дальше: 512 золота в минуту, добиваний к 21-й минуте — 140."
     )
     assert translate_ru(advice.reason) == (
         "Берите самые безопасные волны и лагеря: темп растёт и без рискованных драк."

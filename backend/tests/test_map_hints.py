@@ -396,7 +396,7 @@ def test_offlane_hard_lane_once():
 def test_support_pull_in_the_safe_lane_and_unspent_gold():
     tips = RoleTips()
     pull = tips.tip(3 * 60 + 36, "support", alive=True, has_ward=True, lang="ru", lane="safe")
-    assert pull["title"] == "Пул на 3:45" and pull["in_seconds"] == 9
+    assert pull["title"] == "Пулл в 3:45" and pull["in_seconds"] == 9
     # At most every two minutes, and only in the safe lane.
     assert (
         tips.tip(4 * 60 + 6, "support", alive=True, has_ward=True, lang="ru", lane="safe") is None
