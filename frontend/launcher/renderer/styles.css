@@ -3050,6 +3050,12 @@ span.setup-mark {
   gap: var(--sp-3);
 }
 
+/* The panel's buttons under its text, where the eye already is — not in the
+   far corner of a wide card. */
+.share-body > .toolbar-actions {
+  justify-content: flex-start;
+}
+
 .share-link {
   flex: 1;
   font-variant-numeric: tabular-nums;
