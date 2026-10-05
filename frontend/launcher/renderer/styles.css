@@ -1925,7 +1925,8 @@ label.setting:has(.switch:disabled) {
 
 .moment {
   display: grid;
-  grid-template-columns: 44px 20px minmax(0, 1fr);
+  /* time · icon · text · «Смотреть» (the last column is empty without a replay) */
+  grid-template-columns: 44px 20px minmax(0, 1fr) auto;
   align-items: center;
   gap: var(--sp-2);
 }
@@ -4455,10 +4456,9 @@ tr.row-link[data-result="loss"] > td:first-child {
   }
 }
 
-/* «Смотреть» next to a death or a key moment: copies the replay jump command. */
+/* «Смотреть» at the end of a death or a key moment: copies the replay jump command. */
 .moment .watch-moment {
-  margin-left: auto;
-  align-self: flex-start;
+  align-self: start;
   opacity: 0.75;
 }
 
