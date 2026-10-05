@@ -32,13 +32,13 @@ const I18N = {
       loadingTitle: "Starting the coach…",
       loadingHint: "Usually takes a couple of seconds.",
       backendDownTitle: "The coach is stopped",
-      backendDownHint: "No advice while it is stopped. Press «Start»: it takes a couple of seconds.",
+      backendDownHint: "No advice while it is stopped. Press “Start”: it takes a couple of seconds.",
       gsiErrorTitle: "Could not connect to Dota",
       gsiErrorHint: "No access to the Dota folder. Point to the game folder manually.",
       noDotaTitle: "Dota not found",
       noDotaHint: "Dota 2 was not found in Steam. Point to the game folder and the app does the rest.",
       noGsiTitle: "Connect Dota",
-      noGsiHint: "Press «Connect»: the app puts a small file into the Dota folder, and through it the game tells the coach what happens in your match.",
+      noGsiHint: "Press “Connect”: the app puts a small file into the Dota folder, and through it the game tells the coach what happens in your match.",
       notRunningTitle: "Dota is not running",
       notRunningHint: "Start Dota 2; the coach connects by itself. You can close this window.",
       connectedTitle: "Dota is connected, waiting for a match",
@@ -107,8 +107,8 @@ const I18N = {
     skillArrowsTitle: "Arrows over your abilities",
     skillArrowsCalibrate: "Fine-tune",
     skillArrowsHint: {
-      on: "With a skill point to spend, an arrow points at the ability right on Dota's bar and finds the icons by itself. «Fine-tune» if it misses.",
-      manual: "On, with your own frame. «Fine-tune» → «Automatic» goes back to finding the icons by itself.",
+      on: "With a skill point to spend, an arrow points at the ability right on Dota's bar and finds the icons by itself. “Fine-tune” if it misses.",
+      manual: "On, with your own frame. “Fine-tune” → “Automatic” goes back to finding the icons by itself.",
       off: "Off. The card still names the ability to level."
     },
     overlayTimersHint: "Always under the card: how long until the next runes, stacks, Roshan and Aegis for your role",
@@ -153,7 +153,7 @@ const I18N = {
       hero: "usual for this hero"
     },
     roleNote: (role, source) => `Role: ${role}, ${source}.`,
-    roleMismatch: (setting, seen) => `«Your role» is set to ${setting}, but you play like a ${seen}: some tips miss.`,
+    roleMismatch: (setting, seen) => `“Your role” is set to ${setting}, but you play like a ${seen}: some tips miss.`,
     roleSetAuto: "Set to Auto",
     mapHintsTitle: "Map timers",
     mapHintsHint: "A reminder on the card 20 s before runes, shrines, Tormentor, stacks and wards — only the ones your role needs. Off also hides the timer strip",
@@ -203,13 +203,13 @@ const I18N = {
     serverDeleted: "Deleted: problem reports, shared links and statistics of this computer are gone from the server.",
     serverDeleteFailed: (code) => `Could not delete (${code}): check the internet and try again.`,
     discordTitle: "Status in Discord",
-    discordHint: "Your Discord friends see «Playing Juggernaut · with the Wardly coach» while Dota runs",
+    discordHint: "Your Discord friends see “Playing Juggernaut · with the Wardly coach” while Dota runs",
     discordStates: {
       idle: "It appears once Dota is running.",
       connecting: "Connecting to Discord…",
       no_discord: "Discord not found: open the Discord app on this computer (the browser version cannot show it).",
       connected: "Discord connected. The status appears once Dota is running.",
-      shown: "Shown in Discord. Friends do not see it? Discord → Settings → Activity Privacy → «Share your detected activities with others».",
+      shown: "Shown in Discord. Friends do not see it? Discord → Settings → Activity Privacy → “Share your detected activities with others”.",
       rejected: (error) => `Discord did not accept the status: ${error}`
     },
     settingsMore: "More settings",
@@ -286,11 +286,11 @@ const I18N = {
         },
         card: {
           title: "What advice looks like",
-          text: "A card over the game. The big line is what to do now, the line below is why. «Urgent» with a red dot means right now: low HP, a death coming. The rest are tips you can do at the next good moment. The card shows only during a match, while Dota is in front."
+          text: "A card over the game. The big line is what to do now, the line below is why. “Urgent” with a red dot means right now: low HP, a death coming. The rest are tips you can do at the next good moment. The card shows only during a match, while Dota is in front."
         },
         mapline: {
           title: "Map timers and calls",
-          text: "Runes, stacks, Roshan, the Tormentor, an enemy missing from your lane, an unspent skill point: these come as a «Map» card with the time left. Under the card a strip counts down the next timers."
+          text: "Runes, stacks, Roshan, the Tormentor, an enemy missing from your lane, an unspent skill point: these come as a “Map” card with the time left. Under the card a strip counts down the next timers."
         },
         plan: {
           title: "Plan, death screen and score",
@@ -306,7 +306,7 @@ const I18N = {
         },
         match: {
           title: "Current match",
-          text: "Your hero, the match time and the advice the coach gave. Under each advice, «Why this advice?» says what the coach saw. During a match the advice appears over the game: you do not need to look here."
+          text: "Your hero, the match time and the advice the coach gave. Under each advice, “Why this advice?” says what the coach saw. During a match the advice appears over the game: you do not need to look here."
         },
         matches: {
           title: "Matches",
@@ -326,7 +326,7 @@ const I18N = {
         },
         voice: {
           title: "Advice and voice",
-          text: "How often the coach speaks, your role and the voice. Leave the role on «Auto»: the coach works it out from your lane. The voice reads the advice out loud and also works in exclusive fullscreen, where no card can be drawn."
+          text: "How often the coach speaks, your role and the voice. Leave the role on “Auto”: the coach works it out from your lane. The voice reads the advice out loud and also works in exclusive fullscreen, where no card can be drawn."
         },
         ai: {
           title: "AI coach (optional)",
@@ -334,7 +334,7 @@ const I18N = {
         },
         help: {
           title: "Help",
-          text: "This tour opens again from here. If something does not work, «Report a problem» sends the developer a report with what the game sent (no keys or passwords)."
+          text: "This tour opens again from here. If something does not work, “Report a problem” sends the developer a report with what the game sent (no keys or passwords)."
         },
         done: {
           title: "All set",
@@ -350,20 +350,20 @@ const I18N = {
     tourStart: "Show",
     whatsNew: {
       "0.44.0": [
-        "Reviews in a row: «‹ Newer · Older ›» next to «Matches», or the ← and → keys. Every review also links the match on OpenDota, Dotabuff and STRATZ.",
-        "Hotkeys: Ctrl+1…5 open the tabs, Esc goes back to the match list; the whole list is in Settings → «Hotkeys». The tray menu opens your latest review.",
+        "Reviews in a row: “‹ Newer · Older ›” next to “Matches”, or the ← and → keys. Every review also links the match on OpenDota, Dotabuff and STRATZ.",
+        "Hotkeys: Ctrl+1…5 open the tabs, Esc goes back to the match list; the whole list is in Settings → “Hotkeys”. The tray menu opens your latest review.",
         "Urgent advice on the card is red now, and while you move the card it shows a sample advice of the real size.",
         "Numbers as you read them, chart tooltips that close, a tidier Progress and Profile, and tabs that say what they will show before your account is linked."
       ],
       "0.43.2": [
-        "Skill arrows find the ability icons by themselves (Full HD, 2K, 4K) and point at the «+» button to press; a hero with more abilities, or a new one from Aghanim's or the Shard, needs nothing. «Fine-tune» stays for another HUD.",
-        "No more «plan a safer route» card before the horn: the moment the hero appears on the map is no death."
+        "Skill arrows find the ability icons by themselves (Full HD, 2K, 4K) and point at the “+” button to press; a hero with more abilities, or a new one from Aghanim's or the Shard, needs nothing. “Fine-tune” stays for another HUD.",
+        "No more “plan a safer route” card before the horn: the moment the hero appears on the map is no death."
       ],
       "0.43.1": [
-        "Role chosen by accident: if «Your role» says support but you play mid or carry, the card and Home say so once, with a button to switch back to Auto."
+        "Role chosen by accident: if “Your role” says support but you play mid or carry, the card and Home say so once, with a button to switch back to Auto."
       ],
       "0.43.0": [
-        "Arrows over your abilities: when a skill point is due, an arrow and the ability's name appear right over its icon on Dota's bar. Lay the frame over your ability icons once: Settings → «Arrows over your abilities» → «Set up the frame»."
+        "Arrows over your abilities: when a skill point is due, an arrow and the ability's name appear right over its icon on Dota's bar. Lay the frame over your ability icons once: Settings → “Arrows over your abilities” → “Set up the frame”."
       ],
       "0.42.0": [
         "Your starting items as icons: the card shows what Divine and Immortal players buy on your hero in your role — already during strategy time.",
@@ -376,11 +376,11 @@ const I18N = {
         "A card that stays the same for 20 seconds fades into the background; the next new one comes back bright."
       ],
       "0.40.3": [
-        "A new first-run tour: real advice cards with what each line means, map calls, the game plan, the profile, the AI coach and help. Open it in Settings → Help → «Show»."
+        "A new first-run tour: real advice cards with what each line means, map calls, the game plan, the profile, the AI coach and help. Open it in Settings → Help → “Show”."
       ],
       "0.40.2": [
         "Mid: when the next power rune is coming and your Bottle still holds the last one, the card tells you to use it first.",
-        "Fewer repeats: the farm pace card and the support's «No observer wards» come less often once you have seen them three times, and the ward reminder waits after you place your last ward."
+        "Fewer repeats: the farm pace card and the support's “No observer wards” come less often once you have seen them three times, and the ward reminder waits after you place your last ward."
       ],
       "0.40.1": [
         "The rating graph on the Profile tab is now a smooth line through your games instead of a zigzag.",
@@ -391,30 +391,30 @@ const I18N = {
         "The first skill point: before the horn the card names the skill pros on your hero start with (when most of their games agree)."
       ],
       "0.39.0": [
-        "«Hard lane» and «Your lane»: when the hero in your lane has beaten you (or lost to you) in the lane before, the card says so in the first minutes, with your record against them."
+        "“Hard lane” and “Your lane”: when the hero in your lane has beaten you (or lost to you) in the lane before, the card says so in the first minutes, with your record against them."
       ],
       "0.38.0": [
-        "«Missing» calls in the laning stage: when the enemy mid or your lane opponent has not been seen for 20 seconds, the card warns you (and the voice says it when it reads every advice)."
+        "“Missing” calls in the laning stage: when the enemy mid or your lane opponent has not been seen for 20 seconds, the card warns you (and the voice says it when it reads every advice)."
       ],
       "0.37.0": [
-        "A «Lane» card in the match review: last hits, denies, gold and XP at 3, 5, 7 and 10 minutes against the enemy core of your lane, and whether the lane was won.",
-        "«Your lanes» on Progress: how many of your last lanes you won, and the heroes you lose the lane to."
+        "A “Lane” card in the match review: last hits, denies, gold and XP at 3, 5, 7 and 10 minutes against the enemy core of your lane, and whether the lane was won.",
+        "“Your lanes” on Progress: how many of your last lanes you won, and the heroes you lose the lane to."
       ],
       "0.36.0": [
         "Lane tips for cores in the first ten minutes: no regen on the way to lane, half HP with nothing to heal, no Magic Stick yet, too few denies.",
         "Items against the enemy lineup: Pipe of Insight or Black King Bar against magic damage, Glimmer Cape or Ghost Scepter for a support."
       ],
       "0.35.0": [
-        "Friends on the «Profile» tab: show your profile by a friend code, add friends by theirs and see who is on top — level, rating, looks.",
+        "Friends on the “Profile” tab: show your profile by a friend code, add friends by theirs and see who is on top — level, rating, looks.",
         "Your profile as a page to send to a chat: api.luhovyimvp.dev/p/<code>."
       ],
       "0.34.0": [
-        "New tab «Profile»: your rating graph like on FACEIT — enter your MMR once and every ranked game moves it.",
+        "New tab “Profile”: your rating graph like on FACEIT — enter your MMR once and every ranked game moves it.",
         "Levels, achievements and sparks for playing with Wardly.",
         "Spend sparks in the profile shop: avatar frames, banners, name colours and titles; the rare ones need a level or an achievement."
       ],
       "0.32.0": [
-        "New in «More settings»: keep match recordings for a week. Save any match as a file and send it to the developer, the next day too.",
+        "New in “More settings”: keep match recordings for a week. Save any match as a file and send it to the developer, the next day too.",
         "The problem report says which match the app recorded last and whether its review is ready."
       ],
       "0.31.2": [
@@ -448,26 +448,26 @@ const I18N = {
       ],
       "0.29.2": [
         "Items against the enemy heroes: dying under Beastmaster's Primal Roar, Doom or Duel brings a Linken's Sphere tip that says why; Monkey King Bar against evasion, Spirit Vessel against healing, Dust for a support against invisible heroes.",
-        "An unlearned Blink no longer counts as on cooldown, and «you died with Blink ready» needs two free seconds to press it.",
+        "An unlearned Blink no longer counts as on cooldown, and “you died with Blink ready” needs two free seconds to press it.",
         "Repeated low-HP cards say how many times it happened and ask to heal up fully."
       ],
       "0.29.1": [
         "A mid gets the power rune timer until minute 20, not all game, and before level 6 with a Bottle the hint says to keep the rune in it for a kill."
       ],
       "0.29.0": [
-        "The match review is shorter: past the three main points, the other remarks and the long list of deaths open with «Show more».",
-        "The health line under each death says what it is, and «Net worth» is named plainly."
+        "The match review is shorter: past the three main points, the other remarks and the long list of deaths open with “Show more”.",
+        "The health line under each death says what it is, and “Net worth” is named plainly."
       ],
       "0.28.0": [
-        "The first advice after a death names the lane or part of the map where you died, or how fast the kill came, instead of «plan a safer route».",
-        "Supports: the «no save item» tip names the save item most bought on your hero and how much gold it still needs; the ward tip says where to put it (your lane's river, Roshan's pit, your own or the enemy jungle by the score).",
-        "A lane under a good farm pace gets the numbers: «Recover farm: 12 last hits at minute 5, a good pace is 18+»."
+        "The first advice after a death names the lane or part of the map where you died, or how fast the kill came, instead of “plan a safer route”.",
+        "Supports: the “no save item” tip names the save item most bought on your hero and how much gold it still needs; the ward tip says where to put it (your lane's river, Roshan's pit, your own or the enemy jungle by the score).",
+        "A lane under a good farm pace gets the numbers: “Recover farm: 12 last hits at minute 5, a good pace is 18+”."
       ],
       "0.27.0": [
-        "The advice after a death says how many times you have died, lately or this game, instead of the same «change your route» line."
+        "The advice after a death says how many times you have died, lately or this game, instead of the same “change your route” line."
       ],
       "0.26.0": [
-        "The match review has a «Skill order» card: which skill you maxed first and how pro players level your hero."
+        "The match review has a “Skill order” card: which skill you maxed first and how pro players level your hero."
       ],
       "0.25.0": [
         "The farm cards put the numbers on the main line: your gold per minute and last hits, or how far behind a good pace you are.",
@@ -483,12 +483,12 @@ const I18N = {
       "0.22.0": [
         "Skill points: the coach names your ultimate at 6/12/18 and the talent at 10/15/20/25 when a point is left unspent.",
         "A situational item: two deaths under stuns → Black King Bar, two burst deaths → Aeon Disk, with the reason and the gold still needed.",
-        "Less banal advice: a kill streak, the kill score gap or your pace in numbers instead of the same «farm safely»."
+        "Less banal advice: a kill streak, the kill score gap or your pace in numbers instead of the same “farm safely”."
       ],
       "0.21.0": [
         "Settings are rebuilt: five clear groups, bigger text, fewer buttons, and a plain line under every setting. Moving to another computer now explains itself step by step.",
-        "«Why this advice?» under every advice on Home and in the review: what the coach saw.",
-        "«What does this mean?» for the match score, the rank comparison and the focus, and no more technical words across the app."
+        "“Why this advice?” under every advice on Home and in the review: what the coach saw.",
+        "“What does this mean?” for the match score, the rank comparison and the focus, and no more technical words across the app."
       ],
       "0.20.0": [
         "Full advice for 25 supports (positions 4 and 5) with their own saves, reminders to place the wards in your bag and to get a save item, and a support review: your save item's timing and the wards you placed.",
@@ -505,11 +505,11 @@ const I18N = {
         "The coach knows their own saves (Blink, Ball Lightning, Refraction, Guardian Sprint…), and an offlaner's farm is measured against an offlaner's pace, not a carry's."
       ],
       "0.17.0": [
-        "Optional anonymous statistics (Settings → App, off by default): which advice was shown and which warnings came before a death, to make the advice better. «What is sent» shows the exact text.",
-        "«Delete my data on the server» removes your problem reports, shared links and statistics in one press."
+        "Optional anonymous statistics (Settings → App, off by default): which advice was shown and which warnings came before a death, to make the advice better. “What is sent” shows the exact text.",
+        "“Delete my data on the server” removes your problem reports, shared links and statistics in one press."
       ],
       "0.16.0": [
-        "In a review, «Watch» next to a death or a key moment copies the replay command that jumps 10 s before it.",
+        "In a review, “Watch” next to a death or a key moment copies the replay command that jumps 10 s before it.",
         "The match chart shows your best match on this hero as a dashed line.",
         "Home: streak goals (5 matches in a row with 5 deaths or fewer) and a gentle note after 3 losses in a row.",
         "Progress: heroes to play more and heroes to park, against your rank."
@@ -517,7 +517,7 @@ const I18N = {
       "0.15.0": [
         "Roshan and Aegis timers: the respawn window after a kill, and your Aegis warns a minute before it expires.",
         "While you wait to respawn: how you died, what was left unpressed, what to buy now.",
-        "No more «wait out the disable» when there is nothing to press after the stun."
+        "No more “wait out the disable” when there is nothing to press after the stun."
       ],
       "0.14.0": [
         "Advice knows your hero: Blink to get out, Blade Fury to walk out of a fight, and how many seconds until your escape is back.",
@@ -531,7 +531,7 @@ const I18N = {
         "Every tab is split into clear areas: what to look at first, then the details.",
         "Your week on Home: the score against the week before and a chart of every match.",
         "Farm advice for carries names your next item, the gold it needs and how long to farm it.",
-        "Fixed: some reviews stayed on «Loading the match» forever."
+        "Fixed: some reviews stayed on “Loading the match” forever."
       ],
       "0.11.0": [
         "The app uses the whole window: side navigation, two columns, both teams side by side.",
@@ -545,7 +545,7 @@ const I18N = {
         "Problem reports no longer include the delete tokens of your shared links."
       ],
       "0.9.0": [
-        "Status in Discord: your friends see «Playing <hero> · with the Wardly coach». Switch it off in Settings → App.",
+        "Status in Discord: your friends see “Playing <hero> · with the Wardly coach”. Switch it off in Settings → App.",
         "Links to reviews and progress are shorter now: luhovyimvp.dev/r/…",
         "The website in the logo's colours."
       ],
@@ -579,16 +579,16 @@ const I18N = {
       ],
       "0.4.0": [
         "The match map is drawn on the real Dota minimap: your path, lane position, wards and deaths.",
-        "Good-pace lines for gold and XP on the «Over the match» chart.",
-        "A «Deaths» card: where, who killed you, unspent gold and the advice shown before each death.",
-        "Mistakes that keep coming back are marked: «3 matches in a row».",
+        "Good-pace lines for gold and XP on the “Over the match” chart.",
+        "A “Deaths” card: where, who killed you, unspent gold and the advice shown before each death.",
+        "Mistakes that keep coming back are marked: “3 matches in a row”.",
         "This week on Home: matches, score change, best match, the most frequent mistake and a 3-match plan for your focus."
       ],
       "0.3.0": [
         "Map timers on the overlay 20 s ahead: runes, wisdom shrines, lotuses, the Tormentor, neutral item tiers — only the ones your role needs.",
         "Your role is found from your lane in the first minutes (or chosen in Settings → Advice) and shown on Home.",
         "Support tips: stack a camp, take wards, leave the last hits to your carry. No carry farm advice on a support; the TP reminder works on every hero.",
-        "«Send to developer» in the problem report: one click, with a note and a preview; keys, nickname and Steam ID are removed.",
+        "“Send to developer” in the problem report: one click, with a note and a preview; keys, nickname and Steam ID are removed.",
         "Draft advice suggests only heroes of the position you played."
       ],
       "0.2.1": [
@@ -599,7 +599,7 @@ const I18N = {
       ],
       "0.2.0": [
         "A plan at the start of each match, and a focus: pick one mistake to work on — every review says whether you avoided it.",
-        "«Ask the coach»: your own question about a match, answered from its data.",
+        "“Ask the coach”: your own question about a match, answered from its data.",
         "Spoken advice, advice frequency, survival advice for every hero, reminders to carry a TP scroll and to spend gold while dead.",
         "Match map, this match against your usual numbers, match filters and PDF export.",
         "A check for Dota's -gamestateintegration launch option, without which no game data arrives."
@@ -619,7 +619,7 @@ const I18N = {
     },
     setupActions: { dota: "Choose folder", gsi: "Connect", launch: "Copy", account: "Link", ai: "Set up" },
     reportTitle: "Report a problem",
-    reportHint: "Something does not work? Press «Report» and describe it in a few words: the developer gets the app's log. Keys and passwords are cut out.",
+    reportHint: "Something does not work? Press “Report” and describe it in a few words: the developer gets the app's log. Keys and passwords are cut out.",
     reportSave: "Save as a file instead",
     backupTitle: "Spare copy in a file",
     backupHint: "Saves all your matches and reviews into one file, for example before reinstalling Windows. Open it later in Wardly on any computer. Keys are not saved.",
@@ -636,8 +636,8 @@ const I18N = {
     zoneHelp: "Help",
     zoneHelpHint: "How to use the app, and what to do if something breaks",
     transferIntro: "Installed Wardly on a new computer? Move your matches and reviews there, it takes a minute.",
-    transferStep1: "Here, press «Get a code».",
-    transferStep2: "On the new computer: Wardly → Settings → Move to another computer → «I have a code», and type it in.",
+    transferStep1: "Here, press “Get a code”.",
+    transferStep2: "On the new computer: Wardly → Settings → Move to another computer → “I have a code”, and type it in.",
     transferHave: "I have a code",
     transferHint: "The code works for 15 minutes. Your matches travel encrypted; keys are not moved.",
     transferSend: "Get a code",

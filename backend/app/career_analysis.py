@@ -300,7 +300,7 @@ def _recurring(analyzed: list[dict[str, Any]], kind: str, lang: str) -> list[dic
                 "text": (
                     f"В {count} из {total} последних разобранных матчей"
                     if lang == "ru"
-                    else f"In {count} of your last {total} analysed matches"
+                    else f"In {count} of your last {total} reviewed matches"
                 ),
             }
         )

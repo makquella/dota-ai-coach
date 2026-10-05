@@ -900,3 +900,11 @@ def test_a_targeted_disable_that_keeps_killing_asks_for_linkens():
     facts["deaths_log"] = facts["deaths_log"][:1]
     block, _ = analyze_draft(facts, trimmed, _draft_meta(), "core")
     assert not [c for c in block["counters"] if c["reason"] == "targeted"]
+
+
+def test_best_vs_worst_numbers_are_written_in_the_language():
+    from app.self_compare import _fmt
+
+    assert _fmt("lane_deaths", 0.5, "ru") == "0,5"
+    assert _fmt("lane_deaths", 2.5, "en") == "2.5"
+    assert _fmt("deaths", 3.0, "ru") == "3"

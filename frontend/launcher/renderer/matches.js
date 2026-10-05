@@ -73,7 +73,7 @@
       pfNeedSparks: (n) => `${n} more ${n === 1 ? "spark" : "sparks"}`,
       pfLockedHint: "Not open yet: see the line above",
       pfNeedLevel: (n) => `From level ${n}`,
-      pfNeedAchievement: (name, tier) => `For «${name}», tier ${tier}`,
+      pfNeedAchievement: (name, tier) => `For “${name}”, tier ${tier}`,
       pfShopErrors: { not_enough: "Not enough sparks yet.", locked_level: "Your level is too low for it.", locked_achievement: "It comes with an achievement.", owned: "You already have it." },
       linkTitle: "Link your Steam account",
       linkHint:
@@ -244,7 +244,7 @@
       sessionDeaths: (deaths) => `deaths a match on average: ${deaths}`,
       sessionProblem: "To work on:",
       sessionProblemText: (title, count, of) => `${title} — in ${count} of ${of}`,
-      sessionFocus: (title, met, total) => `Focus «${title}»: done in ${met} of ${total}`,
+      sessionFocus: (title, met, total) => `Focus “${title}”: done in ${met} of ${total}`,
       sessionCopy: "Copy for friends",
       sessionCopied: "Copied",
       sessionPreview: "What will be copied",
@@ -252,7 +252,7 @@
       deathNoFacts: "Nothing else is known about this death.",
       deathGold: (gold) => `${gold} unspent gold`,
       deathAfterRespawn: (seconds) => `${seconds} s after respawning`,
-      deathWarned: (time, action) => `The coach warned at ${time}: «${action}»`,
+      deathWarned: (time, action) => `The coach warned at ${time}: “${action}”`,
       deathNote: {
         enemy_half: "on the enemy half",
         unspent_gold: "with 1000+ unspent gold",
@@ -340,8 +340,8 @@
       sectionFacts: {
         laning: (s) => [s.lh10 != null && `${s.lh10} last hits by 10:00`, s.lane_efficiency != null && `lane efficiency ${Math.round(s.lane_efficiency)}%`, s.lane_deaths ? `${s.lane_deaths} deaths in lane` : null, s.runes != null && `${s.runes} runes${s.enemy_runes != null ? ` (enemy mid ${s.enemy_runes})` : ""}`],
         farm: (s) => [s.gpm != null && `${s.gpm} gold a minute`, s.gpm_pct != null && `better than ${Math.round(s.gpm_pct * 100)}%`],
-        survival: (s) => [`${s.deaths} deaths`, s.deaths_per_10 != null && `${s.deaths_per_10} per 10 min`],
-        fights: (s) => [s.kill_participation != null && `${s.kill_participation}% kill participation`, s.stuns != null && `${s.stuns} s of stuns${s.enemy_stuns != null ? ` (enemy offlaner ${s.enemy_stuns} s)` : ""}`, s.enemy_tower_damage != null && s.tower_damage != null && `${s.tower_damage} building damage (enemy offlaner ${s.enemy_tower_damage})`],
+        survival: (s) => [`${s.deaths} deaths`, s.deaths_per_10 != null && `${decimal(s.deaths_per_10)} per 10 min`],
+        fights: (s) => [s.kill_participation != null && `${s.kill_participation}% kill participation`, s.stuns != null && `${decimal(s.stuns)} s of stuns${s.enemy_stuns != null ? ` (enemy offlaner ${decimal(s.enemy_stuns)} s)` : ""}`, s.enemy_tower_damage != null && s.tower_damage != null && `${number(s.tower_damage)} building damage (enemy offlaner ${number(s.enemy_tower_damage)})`],
         items: (s) => [
           s.first_item && `${s.first_item.item} at ${clock(s.first_item.t)}`,
           s.save_item && `Save item: ${s.save_item.item} at ${clock(s.save_item.t)}`,
@@ -377,7 +377,7 @@
       goalCurrent: "Focus",
       goalMet: "done",
       goalMissed: "happened again",
-      goalMatch: (title, met) => `Your focus «${title}»: ${met ? "done in this match" : "it happened again"}`,
+      goalMatch: (title, met) => `Your focus “${title}”: ${met ? "done in this match" : "it happened again"}`,
       planTitle: "What to work on",
       planHint: "Problems that keep coming back in your recent matches, with one drill each.",
       planEmpty: "No repeated problems found — keep it up.",
@@ -462,7 +462,7 @@
       trendSame: "about the same",
       trendMinute: "Minute",
       deathMapTitle: "Where you die",
-      deathMapNote: (matches, total, per) => `Matches with a map: ${matches}. ${total} deaths, ${per} a match.`,
+      deathMapNote: (matches, total, per) => `${total} ${total === 1 ? "death" : "deaths"} in ${matches} ${matches === 1 ? "match" : "matches"} with a map, ${per} a match.`,
       deathMapTurned: "Dire games are turned half a turn, so your base is always bottom left.",
       deathMapSpot: (place, count, matches) => `${place}: ${count} deaths in ${matches} matches`,
       deathMapSpots: "Deaths keep repeating here:",
@@ -507,7 +507,7 @@
       friendFailed: "Could not save the friend.",
       friendLoading: (name) => `Loading the matches of ${name} from OpenDota…`,
       friendPrivate: (name) => `${name} hides their match data.`,
-      friendPrivateHint: "They can allow it in Dota 2: Settings → Social → «Expose Public Match Data». Then press Refresh (OpenDota needs a match played after that).",
+      friendPrivateHint: "They can allow it in Dota 2: Settings → Social → “Expose Public Match Data”. Then press Refresh (OpenDota needs a match played after that).",
       friendOffline: "The comparison needs OpenDota (internet).",
       friendError: (code) => `OpenDota did not answer${code ? ` (${code})` : ""}. Try Refresh later.`,
       friendRefresh: "Refresh",
@@ -967,8 +967,8 @@
       sectionFacts: {
         laning: (s) => [s.lh10 != null && `${s.lh10} добиваний к 10:00`, s.lane_efficiency != null && `эффективность ${Math.round(s.lane_efficiency)}%`, s.lane_deaths ? `смертей на линии: ${s.lane_deaths}` : null, s.runes != null && `рун: ${s.runes}${s.enemy_runes != null ? ` (у вражеского мида ${s.enemy_runes})` : ""}`],
         farm: (s) => [s.gpm != null && `${s.gpm} золота в минуту`, s.gpm_pct != null && `лучше ${Math.round(s.gpm_pct * 100)}% игроков`],
-        survival: (s) => [`смертей: ${s.deaths}`, s.deaths_per_10 != null && `${s.deaths_per_10} за 10 мин`],
-        fights: (s) => [s.kill_participation != null && `участие в убийствах ${s.kill_participation}%`, s.stuns != null && `оглушений ${s.stuns} с${s.enemy_stuns != null ? ` (у вражеского хардлайнера ${s.enemy_stuns} с)` : ""}`, s.enemy_tower_damage != null && s.tower_damage != null && `урон по строениям ${s.tower_damage} (у вражеского хардлайнера ${s.enemy_tower_damage})`],
+        survival: (s) => [`смертей: ${s.deaths}`, s.deaths_per_10 != null && `${decimal(s.deaths_per_10)} за 10 мин`],
+        fights: (s) => [s.kill_participation != null && `участие в убийствах ${s.kill_participation}%`, s.stuns != null && `оглушений ${decimal(s.stuns)} с${s.enemy_stuns != null ? ` (у вражеского хардлайнера ${decimal(s.enemy_stuns)} с)` : ""}`, s.enemy_tower_damage != null && s.tower_damage != null && `урон по строениям ${number(s.tower_damage)} (у вражеского хардлайнера ${number(s.enemy_tower_damage)})`],
         items: (s) => [
           s.first_item && `${s.first_item.item} к ${clock(s.first_item.t)}`,
           s.save_item && `Спасающий предмет: ${s.save_item.item} к ${clock(s.save_item.t)}`,
@@ -1089,7 +1089,7 @@
       trendSame: "примерно так же",
       trendMinute: "Минута",
       deathMapTitle: "Где вы умираете",
-      deathMapNote: (matches, total, per) => `Матчей с картой: ${matches}. ${total} ${plural(total, "смерть", "смерти", "смертей")}, ${String(per).replace(".", ",")} за матч.`,
+      deathMapNote: (matches, total, per) => `${total} ${plural(total, "смерть", "смерти", "смертей")} в ${matches} ${plural(matches, "матче", "матчах", "матчах")} с картой, ${String(per).replace(".", ",")} за матч.`,
       deathMapTurned: "Игры за Силы Тьмы повёрнуты на пол-оборота: ваша база всегда слева внизу.",
       deathMapSpot: (place, count, matches) => `${place}: ${count} ${plural(count, "смерть", "смерти", "смертей")} в ${matches} ${plural(matches, "матче", "матчах", "матчах")}`,
       deathMapSpots: "Здесь смерти повторяются:",
@@ -4451,13 +4451,13 @@
     const head = h(
       "div",
       { class: "pf-rating-head" },
-      h("div", { class: "pf-rating-now" }, h("span", { class: "pf-rating-label muted", text: t("pfNow") }), h("span", { class: "pf-rating-value", text: `≈ ${rating.current}` })),
+      h("div", { class: "pf-rating-now" }, h("span", { class: "pf-rating-label muted", text: t("pfNow") }), h("span", { class: "pf-rating-value", text: `≈ ${number(rating.current)}` })),
       h(
         "div",
         { class: "pf-rating-side" },
         h("span", { class: `pf-rating-change ${change > 0 ? "up" : change < 0 ? "down" : ""}`, text: `${sign}${change}` }),
         h("span", { class: "muted", text: `${t("pfLast20")} · ${t("pfRecord", rating.wins_20, rating.losses_20)}` }),
-        h("span", { class: "muted", text: `${t("pfPeak")} ${rating.peak}` })
+        h("span", { class: "muted", text: `${t("pfPeak")} ${number(rating.peak)}` })
       )
     );
     const note = rating.source === "medal" ? t("pfRatingMedal") : t("pfRatingManual", rating.step);
@@ -4564,7 +4564,7 @@
     const card = row.card || {};
     const worn = card.equipped || {};
     const initials = String(card.name || "?").trim().slice(0, 2).toUpperCase();
-    const meta = [t("pfLevel", card.level || 1), card.rank_label, Number.isFinite(card.mmr) ? `≈ ${card.mmr}` : null, t("pfFriendsWeek", card.stats?.week_games || 0)].filter(Boolean).join(" · ");
+    const meta = [t("pfLevel", card.level || 1), card.rank_label, Number.isFinite(card.mmr) ? `≈ ${number(card.mmr)}` : null, t("pfFriendsWeek", card.stats?.week_games || 0)].filter(Boolean).join(" · ");
     return h(
       "li",
       { class: `pf-board-row${row.me ? " me" : ""}` },
