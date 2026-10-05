@@ -126,8 +126,8 @@ const TEXTS = {
 // friend sees the card as its owner does in the app. test/api.test.js checks
 // that every cos- class of the launcher is here.
 const LOOK_CSS = `
-.pf-banner{height:96px;background:linear-gradient(135deg,rgba(124,140,255,.28),transparent 60%),repeating-linear-gradient(-45deg,#1b1b1e 0 10px,#141416 10px 20px);border-bottom:1px solid #2a2a30}
-.pf-avatar-wrap{--frame:#7c8cff;position:relative;width:96px;height:96px;flex:none;display:grid;place-items:center}
+.pf-banner{height:96px;background:linear-gradient(135deg,rgba(240,85,96,.28),transparent 60%),repeating-linear-gradient(-45deg,#1b1b1e 0 10px,#141416 10px 20px);border-bottom:1px solid #2a2a30}
+.pf-avatar-wrap{--frame:#f05560;position:relative;width:96px;height:96px;flex:none;display:grid;place-items:center}
 .pf-avatar-wrap::before{content:"";position:absolute;inset:0;border-radius:50%;background:var(--frame)}
 .pf-avatar{position:relative;width:86px;height:86px;border-radius:50%;background:#1b1b1e;box-shadow:0 0 0 3px #141416;display:grid;place-items:center;overflow:hidden;font-size:20px;font-weight:600;color:#a1a1aa}
 .pf-avatar img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
