@@ -349,6 +349,12 @@ const I18N = {
     tourHint: "A short tour of the app, one minute",
     tourStart: "Show",
     whatsNew: {
+      "0.45.0": [
+        "A new look: Wardly's red, warmer colours and bolder headings, the same as on the site.",
+        "The review header and the current match show your hero large; win and loss are coloured tags.",
+        "Your Steam name and picture at the bottom of the side menu open your profile.",
+        "Clearer English texts in the in-game tips and the reviews."
+      ],
       "0.44.2": [
         "A review saved as a PDF keeps every hero and item picture, charts at their real size and no cards over each other.",
         "Clearer in-game and review texts in Russian."
@@ -1094,6 +1100,12 @@ const I18N = {
     tourHint: "Короткая экскурсия по приложению, на минуту",
     tourStart: "Показать",
     whatsNew: {
+      "0.45.0": [
+        "Новый облик: фирменный красный Wardly, тёплые цвета и выразительные заголовки — как на сайте.",
+        "В шапке разбора и в текущем матче — ваш герой крупным планом, победа и поражение — цветные метки.",
+        "Ваш ник и аватар Steam внизу бокового меню открывают профиль.",
+        "Понятнее английские тексты подсказок и разборов."
+      ],
       "0.44.2": [
         "Разбор в PDF: на месте все портреты героев и иконки предметов, графики нормального размера, карточки не наезжают друг на друга.",
         "Понятнее тексты подсказок в игре и разборов: «Смерть от Axe», «Денаев к 4:00», «Пулл в 2:15» и другие мелочи."

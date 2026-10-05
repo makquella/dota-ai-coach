@@ -3994,10 +3994,14 @@ kbd {
   color: var(--text-3);
   font-size: var(--fs-12);
 }
+/* The result tag goes under a long name in a narrow column instead of over
+   the score ring. */
 .summary-hero {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: var(--sp-2);
+  gap: 2px var(--sp-2);
+  min-width: 0;
   font-size: var(--fs-16);
   font-weight: var(--fw-semibold);
 }
@@ -5448,6 +5452,10 @@ tr.row-link[data-result="loss"] > td:first-child {
 /* The facts keep clear of the art. */
 #match-card.art-card #match-body {
   padding-right: 230px;
+}
+
+#match-card.art-card .stat dd {
+  white-space: normal;
 }
 
 #match-card.art-card .stats {

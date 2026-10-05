@@ -115,6 +115,8 @@ function playerRequest(lang, op, args = {}) {
       return `/player/career?lang=${lang}${hero}`;
     case "week":
       return `/player/week?lang=${lang}`;
+    case "summary":
+      return `/player/summary?lang=${lang}`;
     case "profile":
       return `/player/profile?lang=${lang}`;
     case "friend":
