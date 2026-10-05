@@ -4082,7 +4082,9 @@ kbd {
   width: 160px;
   height: 32px;
   flex: none;
-  border-bottom: 1px solid var(--viz-axis);
+  overflow: hidden;
+  border-radius: var(--r-sm);
+  background: var(--surface-2);
 }
 
 .death-hp polyline {
@@ -4090,6 +4092,24 @@ kbd {
   stroke: var(--viz-2);
   stroke-width: 1.5;
   stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+}
+
+.death-hp-area {
+  fill: color-mix(in srgb, var(--viz-2) 18%, transparent);
+}
+
+.death-hp-half {
+  stroke: var(--viz-axis);
+  stroke-dasharray: 2 3;
+  vector-effect: non-scaling-stroke;
+}
+
+.death-hp-end {
+  fill: none;
+  stroke: var(--error);
+  stroke-width: 1.5;
+  stroke-linecap: round;
   vector-effect: non-scaling-stroke;
 }
 

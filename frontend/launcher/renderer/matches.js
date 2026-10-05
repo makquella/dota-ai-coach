@@ -3720,15 +3720,26 @@
     const H = 32;
     const x = (s) => ((20 + Math.max(-20, Math.min(0, s))) / 20) * W;
     const y = (hp) => H - 2 - (Math.max(0, Math.min(100, hp)) / 100) * (H - 4);
-    const points = [...last.hp, [0, 0]].map(([s, hp]) => `${x(s).toFixed(1)},${y(hp).toFixed(1)}`).join(" ");
-    const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    const curve = [...last.hp, [0, 0]];
+    const points = curve.map(([s, hp]) => `${x(s).toFixed(1)},${y(hp).toFixed(1)}`).join(" ");
+    const NS = "http://www.w3.org/2000/svg";
+    const svg = document.createElementNS(NS, "svg");
     svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
     svg.setAttribute("class", "death-hp");
     svg.setAttribute("role", "img");
     svg.setAttribute("aria-label", `${t("deathLastTitle")}: ${last.hp.map(([, hp]) => `${hp}%`).join(", ")}`);
-    const line = document.createElementNS("http://www.w3.org/2000/svg", "polyline");
+    // Half HP as a faint guide, the HP as a filled line, the death as a cross.
+    const half = document.createElementNS(NS, "line");
+    Object.entries({ x1: 0, x2: W, y1: y(50), y2: y(50), class: "death-hp-half" }).forEach(([key, value]) => half.setAttribute(key, value));
+    const area = document.createElementNS(NS, "polygon");
+    area.setAttribute("points", `${x(curve[0][0]).toFixed(1)},${H} ${points} ${W},${H}`);
+    area.setAttribute("class", "death-hp-area");
+    const line = document.createElementNS(NS, "polyline");
     line.setAttribute("points", points);
-    svg.append(line);
+    const cross = document.createElementNS(NS, "path");
+    cross.setAttribute("d", `M${W - 7},${H - 9} l5,5 m0,-5 l-5,5`);
+    cross.setAttribute("class", "death-hp-end");
+    svg.append(half, area, line, cross);
     // What the line is, in words: a bare falling line meant nothing to a new player.
     const lines = [h("span", { class: "muted small", text: t("deathLastTitle") })];
     if (last.burst_s) {
