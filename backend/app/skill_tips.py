@@ -45,7 +45,7 @@ TEXTS = {
     "talent_pro": {
         "en": (
             "Pick a talent",
-            "Level {tier}: pros on this hero take «{name}» ({picked} of {games}).",
+            "Level {tier}: pros on this hero take “{name}” ({picked} of {games}).",
         ),
         "ru": (
             "Выберите талант",

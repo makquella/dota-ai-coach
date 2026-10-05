@@ -153,7 +153,7 @@ const I18N = {
       hero: "usual for this hero"
     },
     roleNote: (role, source) => `Role: ${role}, ${source}.`,
-    roleMismatch: (setting, seen) => `“Your role” is set to ${setting}, but you play like a ${seen}: some tips miss.`,
+    roleMismatch: (setting, seen) => `“Your role” is set to ${setting}, but you play as ${seen}: some tips miss.`,
     roleSetAuto: "Set to Auto",
     mapHintsTitle: "Map timers",
     mapHintsHint: "A reminder on the card 20 s before runes, shrines, Tormentor, stacks and wards — only the ones your role needs. Off also hides the timer strip",
