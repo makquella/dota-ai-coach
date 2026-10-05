@@ -1206,7 +1206,7 @@ label.setting:has(.switch:disabled) {
 .setup-steps {
   display: grid;
   margin: 0;
-  padding: var(--sp-1) var(--sp-4);
+  padding: var(--sp-2) var(--sp-5) var(--sp-2);
   list-style: none;
 }
 
@@ -1223,10 +1223,58 @@ label.setting:has(.switch:disabled) {
   border-top: 0;
 }
 
+/* How far the setup is: a thin bar under the card's title. */
+.setup-progress {
+  height: 4px;
+  margin: var(--sp-3) var(--sp-5) 0;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--surface-3);
+}
+
+.setup-progress > span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--accent-fill);
+  transition: width var(--dur-slow) var(--ease);
+}
+
 .setup-mark {
   display: inline-flex;
   flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
   color: var(--text-3);
+}
+
+span.setup-mark {
+  width: 22px;
+  height: 22px;
+  border: 1px solid var(--border-strong);
+  border-radius: 50%;
+  font-size: var(--fs-12);
+  font-weight: var(--fw-semibold);
+  font-variant-numeric: tabular-nums;
+}
+
+.setup-step[data-current="true"] span.setup-mark {
+  border-color: var(--accent-fill);
+  background: var(--accent-fill);
+  color: var(--accent-text);
+}
+
+.setup-step[data-current="true"] .setup-step-title {
+  font-weight: var(--fw-semibold);
+}
+
+.setup-preview-img {
+  display: block;
+  width: 100%;
+  height: auto;
+  margin-bottom: var(--sp-3);
+  border-radius: var(--r-md);
 }
 
 .setup-step[data-done="true"] .setup-mark {
@@ -1641,11 +1689,56 @@ label.setting:has(.switch:disabled) {
 }
 
 .review-toolbar {
+  position: sticky;
+  top: 0;
+  z-index: 6;
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
   gap: var(--sp-3);
+  margin: 0 calc(-1 * var(--sp-3));
+  padding: var(--sp-2) var(--sp-3);
+  border: 1px solid transparent;
+  border-radius: 0 0 var(--r-lg) var(--r-lg);
+  transition: background-color var(--dur) var(--ease), border-color var(--dur) var(--ease), box-shadow var(--dur) var(--ease);
+}
+
+/* Scrolled past the header: a solid bar with the match it is about. */
+.review-toolbar.is-stuck {
+  border-color: var(--border);
+  border-top-color: transparent;
+  background: var(--surface-1);
+  box-shadow: var(--shadow);
+}
+
+.toolbar-match {
+  display: none;
+  flex: 1;
+  align-items: center;
+  gap: var(--sp-2);
+  min-width: 0;
+}
+
+.review-toolbar.is-stuck .toolbar-match {
+  display: inline-flex;
+}
+
+.toolbar-hero {
+  overflow: hidden;
+  font-family: var(--display);
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.toolbar-match .score-ring {
+  width: 30px;
+  height: 30px;
+}
+
+.toolbar-match .score-ring-value {
+  font-size: 11px;
 }
 
 /* «‹ Back» and «‹ Newer · Older ›» on the left of a review's toolbar. */
@@ -2175,6 +2268,51 @@ label.setting:has(.switch:disabled) {
   line-height: 1.15;
   letter-spacing: -0.02em;
   font-variant-numeric: tabular-nums;
+}
+
+/* The last matches inside a tile (Progress): a line of the values or the
+   win/loss marks, at the tile's foot. */
+.tile {
+  display: flex;
+  flex-direction: column;
+}
+
+.spark-wrap,
+.result-strip {
+  margin-top: auto;
+  padding-top: var(--sp-3);
+}
+
+.spark {
+  display: block;
+  width: 100%;
+  height: 24px;
+  overflow: visible;
+}
+
+.spark-line {
+  fill: none;
+  stroke: var(--viz-1);
+  stroke-width: 1.5;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+  vector-effect: non-scaling-stroke;
+}
+
+.result-strip {
+  display: flex;
+  gap: 2px;
+}
+
+.result-strip > span {
+  flex: 1;
+  height: 6px;
+  border-radius: 2px;
+  background: color-mix(in srgb, var(--error) 70%, var(--surface-1));
+}
+
+.result-strip > span[data-win="true"] {
+  background: color-mix(in srgb, var(--ok) 70%, var(--surface-1));
 }
 
 .tile-sub {
@@ -3759,6 +3897,12 @@ kbd {
 }
 .whats-new {
   margin-bottom: var(--sp-3);
+  border-color: color-mix(in srgb, var(--accent) 28%, var(--border));
+}
+
+.whats-new .card-head .icon,
+.whats-new-list li::marker {
+  color: var(--accent);
 }
 
 .whats-new-list {

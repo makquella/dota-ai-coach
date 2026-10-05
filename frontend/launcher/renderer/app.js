@@ -349,6 +349,11 @@ const I18N = {
     tourHint: "A short tour of the app, one minute",
     tourStart: "Show",
     whatsNew: {
+      "0.46.0": [
+        "Scroll down a review and its top bar stays with you: the hero, the result, the score and ‹ Newer · Older ›.",
+        "Progress tiles show your last 20 matches: wins and losses, and how gold, last hits and the score went.",
+        "Match scores on the charts are coloured like the score rings; the first start shows its progress and a real advice card."
+      ],
       "0.45.0": [
         "A new look: Wardly's red, warmer colours and bolder headings, the same as on the site.",
         "The review header and the current match show your hero large; win and loss are coloured tags.",
@@ -620,6 +625,8 @@ const I18N = {
       ]
     },
     setupTitle: "Getting started",
+    setupPreviewTitle: "What you will see in game",
+    setupPreviewText: "Advice appears over the game when it matters, and after the match the coach writes a review with a score and one thing to fix.",
     setupHide: "Hide",
     setupCount: (done, total) => `${done} of ${total}`,
     setup: {
@@ -1033,11 +1040,11 @@ const I18N = {
       steps: {
         welcome: {
           title: "Привет! Это Wardly",
-          text: "Тренер смотрит матч вместе с тобой: короткие советы поверх игры и голосом, а после матча — разбор, что исправить. За пару минут покажу, как выглядят советы, что где лежит и что настроить."
+          text: "Тренер смотрит матч вместе с вами: короткие советы поверх игры и голосом, а после матча — разбор, что исправить. За пару минут покажем, как выглядят советы, что где лежит и что настроить."
         },
         card: {
           title: "Как выглядит совет",
-          text: "Карточка поверх игры. Крупная строка — что сделать сейчас, ниже — почему. «Срочно» с красной точкой — делай сразу: мало HP, рядом смерть. Остальное — подсказки, которые можно сделать в ближайший удобный момент. Карточка видна только в матче, когда Дота на переднем плане."
+          text: "Карточка поверх игры. Крупная строка — что сделать сейчас, ниже — почему. «Срочно» с красной точкой — делайте сразу: мало HP, рядом смерть. Остальное — подсказки, которые можно сделать в ближайший удобный момент. Карточка видна только в матче, когда Дота на переднем плане."
         },
         mapline: {
           title: "Таймеры и подсказки по карте",
@@ -1045,7 +1052,7 @@ const I18N = {
         },
         plan: {
           title: "План, экран смерти и итог",
-          text: "До горна карточка покажет план: сколько добить к 10:00, ключевой предмет и твой фокус. Пока ты мёртв — почему умер и что купить, а на экране счёта — оценку матча и одну вещь, которую стоит исправить."
+          text: "До горна карточка покажет план: сколько добить к 10:00, ключевой предмет и ваш фокус. Пока герой мёртв — почему вы погибли и что купить, а на экране счёта — оценку матча и одну вещь, которую стоит исправить."
         },
         status: {
           title: "Строка состояния",
@@ -1053,23 +1060,23 @@ const I18N = {
         },
         setup: {
           title: "Первый запуск",
-          text: "Что уже настроено и что осталось. Большинство шагов выполняются сами. Если Дота попросит, добавь в параметры запуска -gamestateintegration (кнопка скопирует). Первый матч с приложением закроет список."
+          text: "Что уже настроено и что осталось. Большинство шагов выполняются сами. Если Дота попросит, добавьте в параметры запуска -gamestateintegration (кнопка скопирует). Первый матч с приложением закроет список."
         },
         match: {
           title: "Текущий матч",
-          text: "Твой герой, время матча и советы тренера. Под каждым советом «Почему этот совет?» — что тренер увидел. Во время матча советы появляются поверх игры, сюда смотреть не нужно."
+          text: "Ваш герой, время матча и советы тренера. Под каждым советом «Почему этот совет?» — что тренер увидел. Во время матча советы появляются поверх игры, сюда смотреть не нужно."
         },
         matches: {
           title: "Матчи",
-          text: "Каждый матч с разбором: оценки по областям, где ты умирал, тайминги предметов и что исправить в первую очередь. Разбор готов через минуту-две после матча."
+          text: "Каждый матч с разбором: оценки по областям, где вы погибали, тайминги предметов и что исправить в первую очередь. Разбор готов через минуту-две после матча."
         },
         progress: {
           title: "Прогресс",
-          text: "Как ты играешь за последние игры: тренды, повторяющиеся ошибки, линии и герои. Выбери одну проблему фокусом — каждый следующий матч покажет, получилось ли её исправить."
+          text: "Как вы играете в последних матчах: тренды, повторяющиеся ошибки, линии и герои. Выберите одну проблему фокусом — каждый следующий матч покажет, получилось ли её исправить."
         },
         profile: {
           title: "Профиль и друзья",
-          text: "График рейтинга, уровень и награды за матчи с приложением. За игры начисляются искры — на них покупаются рамки, баннеры и титулы. Поделись кодом друга, чтобы видеть друг друга в таблице."
+          text: "График рейтинга, уровень и награды за матчи с приложением. За игры начисляются искры — на них покупаются рамки, баннеры и титулы. Обменяйтесь кодами с другом, чтобы видеть друг друга в таблице."
         },
         settings: {
           title: "Карточка в игре",
@@ -1077,7 +1084,7 @@ const I18N = {
         },
         voice: {
           title: "Советы и голос",
-          text: "Как часто тренер подсказывает, твоя роль и голос. Роль лучше оставить на «Авто»: тренер сам поймёт её по линии. Голос читает советы вслух и работает даже в полноэкранном режиме, где карточку не видно."
+          text: "Как часто тренер подсказывает, ваша роль и голос. Роль лучше оставить на «Авто»: тренер сам поймёт её по линии. Голос читает советы вслух и работает даже в полноэкранном режиме, где карточку не видно."
         },
         ai: {
           title: "ИИ-тренер (по желанию)",
@@ -1089,7 +1096,7 @@ const I18N = {
         },
         done: {
           title: "Всё готово",
-          text: "Запусти Доту и начни матч — первая подсказка появится сама, а разбор будет готов через минуту-две после игры. Удачи!"
+          text: "Запустите Доту и начните матч — первая подсказка появится сама, а разбор будет готов через минуту-две после игры. Удачи!"
         }
       }
     },
@@ -1100,6 +1107,11 @@ const I18N = {
     tourHint: "Короткая экскурсия по приложению, на минуту",
     tourStart: "Показать",
     whatsNew: {
+      "0.46.0": [
+        "При прокрутке разбора верхняя полоса остаётся на месте: герой, итог, оценка и «‹ Новее · Старее ›».",
+        "Плитки «Прогресса» показывают последние 20 матчей: победы и поражения, как менялись золото, добивания и оценка.",
+        "Оценки матчей на графиках окрашены как кольца оценок; первый запуск показывает, сколько осталось, и пример настоящей подсказки."
+      ],
       "0.45.0": [
         "Новый облик: фирменный красный Wardly, тёплые цвета и выразительные заголовки — как на сайте.",
         "В шапке разбора и в текущем матче — ваш герой крупным планом, победа и поражение — цветные метки.",
@@ -1371,6 +1383,8 @@ const I18N = {
       ]
     },
     setupTitle: "Первый запуск",
+    setupPreviewTitle: "Так это выглядит в игре",
+    setupPreviewText: "Подсказка появляется поверх игры, когда она нужна, а после матча тренер пишет разбор с оценкой и одним главным, что исправить.",
     setupHide: "Скрыть",
     setupCount: (done, total) => `${done} из ${total}`,
     setup: {
@@ -1581,6 +1595,9 @@ const els = {
   setupCard: $("#setup-card"),
   setupSteps: $("#setup-steps"),
   setupCount: $("#setup-count"),
+  setupBar: $("#setup-bar"),
+  setupPreview: $("#setup-preview"),
+  setupPreviewImg: $("#setup-preview-img"),
   setupDismiss: $("#setup-dismiss"),
   odHint: $("#od-hint"),
   odForm: $("#od-form"),
@@ -2520,10 +2537,16 @@ function renderSetup(status) {
   const doneCount = required.filter((step) => step.done).length;
   const hide = isLoading(status) || status.setup?.dismissed || doneCount === required.length;
   els.setupCard.classList.toggle("hidden", Boolean(hide));
+  els.setupPreview.classList.toggle("hidden", Boolean(hide));
   if (hide) {
     return;
   }
   els.setupCount.textContent = tr("setupCount", doneCount, required.length);
+  els.setupBar.style.width = `${Math.round((doneCount / Math.max(1, required.length)) * 100)}%`;
+  const preview = `../assets/tour/${locale === "ru" ? "ru" : "en"}/lowhp.webp`;
+  if (!els.setupPreviewImg.src.endsWith(preview.slice(2))) {
+    els.setupPreviewImg.src = preview;
+  }
   // The first open step gets the action; later ones wait for it.
   const next = steps.find((step) => !step.done);
   const signature = JSON.stringify([locale, steps.map((step) => step.done), next?.id]);
@@ -2532,14 +2555,22 @@ function renderSetup(status) {
   }
   els.setupSteps.dataset.signature = signature;
   els.setupSteps.replaceChildren(
-    ...steps.map((step) => {
+    ...steps.map((step, index) => {
       const [title, hint] = tr(`setup.${step.id}`);
       const item = document.createElement("li");
       item.className = "setup-step";
       item.dataset.done = String(step.done);
-      const mark = document.createElement("i");
+      item.dataset.current = String(step === next);
+      // A done step is a check; an open required one shows its number (the next
+      // one in red); the optional one is not counted in «3 of 6», so no number.
+      const numbered = !step.done && !step.optional;
+      const mark = document.createElement(numbered ? "span" : "i");
       mark.className = "setup-mark";
-      mark.dataset.icon = step.done ? "circle-check" : "circle";
+      if (numbered) {
+        mark.textContent = String(index + 1);
+      } else {
+        mark.dataset.icon = step.done ? "circle-check" : "sparkles";
+      }
       const text = document.createElement("span");
       text.className = "setup-text";
       const titleEl = document.createElement("span");

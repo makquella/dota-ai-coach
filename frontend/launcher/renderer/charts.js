@@ -276,7 +276,7 @@
         const left = cx - barW / 2;
         const d = `M${left},${y(0)} L${left},${top + r} Q${left},${top} ${left + r},${top} L${left + barW - r},${top} Q${left + barW},${top} ${left + barW},${top + r} L${left + barW},${y(0)} Z`;
         // A muted column is context; the highlighted ones carry the series colour.
-        el("path", { d, fill: item.muted ? options.mutedColor || "var(--viz-muted)" : options.color, class: "chart-bar" }, group);
+        el("path", { d, fill: item.muted ? options.mutedColor || "var(--viz-muted)" : item.color || options.color, class: "chart-bar" }, group);
         if (options.valueLabels) {
           const value = el("text", { x: cx, y: top - 6, class: item.muted ? "chart-value" : "chart-value is-strong", "text-anchor": "middle" }, group);
           value.textContent = `${formatNumber(item.value)}${options.valueSuffix || ""}`;
@@ -294,7 +294,7 @@
       const show = () => {
         const box = svg.getBoundingClientRect();
         showTip(host, tip, (cx / width) * box.width, (top / height) * box.height, item.title || item.label, [
-          { label: options.valueLabel || "", value: item.value === null || item.value === undefined ? "—" : `${formatNumber(item.value)}${options.valueSuffix || ""}`, color: options.color, kind: "bar" },
+          { label: options.valueLabel || "", value: item.value === null || item.value === undefined ? "—" : `${formatNumber(item.value)}${options.valueSuffix || ""}`, color: item.color || options.color, kind: "bar" },
           ...(item.detail ? [{ label: item.detail, value: "", kind: "none" }] : [])
         ]);
         group.classList.add("is-active");

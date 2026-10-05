@@ -2218,7 +2218,9 @@
     }
     const analysis = detail.analysis;
     const summary = detail.summary || {};
-    const parts = [back, sharePanel, reviewHeader(detail, analysis, summary)];
+    const header = reviewHeader(detail, analysis, summary);
+    back.insertBefore(toolbarMatch(detail, analysis, summary), back.children[1] || null);
+    const parts = [back, sharePanel, header];
     if (!analysis) {
       parts.push(card(t("reviewLoading"), "hourglass", emptyState("hourglass", t("reviewPending"), tOptional(`parseStatus.${detail.parse_status}`) || "")));
     } else {
@@ -2257,8 +2259,38 @@
     }
     root.replaceChildren(...parts);
     hydrate(root);
+    stickToolbar(back, header);
     // Charts measure their container, so draw after insertion.
     drawMatchCharts(root, analysis);
+  }
+
+  // The review's toolbar stays at the top of the window; once the header has
+  // scrolled away it names the match (hero, result, score), so a long review
+  // never loses which game it is about, and ‹ Newer · Older › stay at hand.
+  function toolbarMatch(detail, analysis, summary) {
+    const headline = (analysis && analysis.headline) || {};
+    const win = headline.win ?? summary.win;
+    const score = headline.score ?? summary.score;
+    const hero = summary.hero_id || headline.hero_id || headline.hero || summary.hero;
+    return h(
+      "span",
+      { class: "toolbar-match", "aria-hidden": "true" },
+      window.DotaIcons ? window.DotaIcons.heroPicture(document, hero, "sm") : null,
+      h("span", { class: "toolbar-hero", text: headline.hero || summary.hero || "—" }),
+      resultBadge(win),
+      Number.isFinite(score) ? scoreRing(score, "md") : null
+    );
+  }
+
+  function stickToolbar(bar, header) {
+    state.toolbarObserver?.disconnect();
+    state.toolbarObserver = null;
+    if (!header || typeof IntersectionObserver !== "function") {
+      return;
+    }
+    const observer = new IntersectionObserver(([entry]) => bar.classList.toggle("is-stuck", !entry.isIntersecting), { rootMargin: "-64px 0px 0px 0px" });
+    observer.observe(header);
+    state.toolbarObserver = observer;
   }
 
   // A page title (Matches, Progress) with its one-line summary and actions.
@@ -4852,8 +4884,42 @@
     return h("span", { class: `delta delta-${tone}` }, icon(iconName), h("span", { class: "num", text: `${sign}${format(item.delta)}` }), h("span", { class: "muted", text: ` ${t("vsPrevious", trend.window)}` }));
   }
 
-  function tile(label, value, delta, sub) {
-    return h("div", { class: "tile" }, h("p", { class: "tile-label", text: label }), h("p", { class: "tile-value", text: value }), delta || null, sub ? h("p", { class: "tile-sub muted", text: sub }) : null);
+  function tile(label, value, delta, sub, extra) {
+    return h("div", { class: "tile" }, h("p", { class: "tile-label", text: label }), h("p", { class: "tile-value", text: value }), delta || null, sub ? h("p", { class: "tile-sub muted", text: sub }) : null, extra || null);
+  }
+
+  // A tile's last matches at a glance (oldest left): a thin line of the values
+  // the series has, the newest as a dot; decoration, the numbers stay above.
+  function sparkline(values) {
+    const points = values.map((value, index) => [index, value]).filter(([, value]) => Number.isFinite(value));
+    if (points.length < 3) {
+      return null;
+    }
+    const NS = "http://www.w3.org/2000/svg";
+    const svg = document.createElementNS(NS, "svg");
+    svg.setAttribute("class", "spark");
+    svg.setAttribute("viewBox", "0 0 100 24");
+    svg.setAttribute("preserveAspectRatio", "none");
+    svg.setAttribute("aria-hidden", "true");
+    const low = Math.min(...points.map(([, v]) => v));
+    const high = Math.max(...points.map(([, v]) => v));
+    const span = high - low || 1;
+    const last = values.length - 1 || 1;
+    const xy = points.map(([i, v]) => [(i / last) * 100, 21 - ((v - low) / span) * 18]);
+    const line = document.createElementNS(NS, "polyline");
+    line.setAttribute("points", xy.map(([x, y]) => `${x.toFixed(1)},${y.toFixed(1)}`).join(" "));
+    line.setAttribute("class", "spark-line");
+    svg.append(line);
+    return h("div", { class: "spark-wrap" }, svg);
+  }
+
+  // Wins and losses of the last matches as small marks, oldest left.
+  function resultStrip(series) {
+    const known = series.filter((match) => match.win === true || match.win === false);
+    if (known.length < 3) {
+      return null;
+    }
+    return h("div", { class: "result-strip", "aria-hidden": "true" }, known.map((match) => h("span", { dataset: { win: String(match.win) } })));
   }
 
   function careerArgs() {
@@ -4994,16 +5060,17 @@
     }
     const avg = career.averages || {};
     const trend = career.trend || {};
+    const series = career.series || [];
     const streak = career.streak;
     const streakText = streak && streak.length >= 2 ? (streak.win ? t("streakWin", streak.length) : t("streakLoss", streak.length)) : null;
     const tiles = h(
       "div",
       { class: "tiles" },
-      tile(t("tiles.winrate"), career.winrate == null ? "—" : `${career.winrate}%`, trendDelta(trend, "winrate", (v) => `${Math.round(v)}%`), streakText || t("recordLine", career.wins, career.losses, career.matches)),
+      tile(t("tiles.winrate"), career.winrate == null ? "—" : `${career.winrate}%`, trendDelta(trend, "winrate", (v) => `${Math.round(v)}%`), streakText || t("recordLine", career.wins, career.losses, career.matches), resultStrip(series)),
       tile(t("tiles.kda"), decimal(avg.kda), trendDelta(trend, "kda", (v) => decimal(v))),
-      tile(t("tiles.gpm"), number(avg.gpm), trendDelta(trend, "gpm", (v) => Math.round(v))),
-      tile(t("tiles.lh10"), number(avg.lh_10), trendDelta(trend, "lh_10", (v) => Math.round(v))),
-      tile(t("tiles.score"), avg.score == null ? "—" : String(Math.round(avg.score)), trendDelta(trend, "score", (v) => Math.round(v)))
+      tile(t("tiles.gpm"), number(avg.gpm), trendDelta(trend, "gpm", (v) => Math.round(v)), null, sparkline(series.map((match) => match.gpm))),
+      tile(t("tiles.lh10"), number(avg.lh_10), trendDelta(trend, "lh_10", (v) => Math.round(v)), null, sparkline(series.map((match) => match.lh_10))),
+      tile(t("tiles.score"), avg.score == null ? "—" : String(Math.round(avg.score)), trendDelta(trend, "score", (v) => Math.round(v)), null, sparkline(series.map((match) => match.score)))
     );
 
     const chartHost = h("div", { class: "chart-host", dataset: { chart: "career" } });
@@ -5170,6 +5237,7 @@
     const items = (career.series || []).map((match) => ({
       label: String(match.match_id),
       value: match.score,
+      color: TONE_COLORS[scoreTone(match.score)],
       title: `${match.hero || "—"} · ${match.win === true ? t("win") : match.win === false ? t("loss") : "—"}`,
       detail: relativeTime(match.start_time),
       key: match.win === true ? "win" : match.win === false ? "loss" : null,
@@ -5396,9 +5464,23 @@
   }
 
   // The review score as a small ring (0–100) in the grade's tone; "—" without one.
+  // The score's tone, the same for its ring and its column on the charts.
+  function scoreTone(score) {
+    return !Number.isFinite(score) ? "idle" : score >= 65 ? "good" : score >= 50 ? "warn" : "bad";
+  }
+
+  // A little of the card's colour mixed in: whole columns in the pure status
+  // colours were louder than the rings they match.
+  const TONE_COLORS = {
+    good: "color-mix(in srgb, var(--ok) 78%, var(--surface-1))",
+    warn: "color-mix(in srgb, var(--warn) 78%, var(--surface-1))",
+    bad: "color-mix(in srgb, var(--error) 78%, var(--surface-1))",
+    idle: "var(--viz-muted)"
+  };
+
   function scoreRing(score, size = "md") {
     const known = Number.isFinite(score);
-    const tone = !known ? "idle" : score >= 65 ? "good" : score >= 50 ? "warn" : "bad";
+    const tone = scoreTone(score);
     const radius = 15.5;
     const length = 2 * Math.PI * radius;
     const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
@@ -5630,6 +5712,7 @@
         items: scored.map((match) => ({
           label: String(match.match_id),
           value: match.score,
+          color: TONE_COLORS[scoreTone(match.score)],
           title: `${match.hero || "—"} · ${match.win === true ? t("win") : match.win === false ? t("loss") : "—"}`,
           detail: relativeTime(match.start_time),
           key: match.win === true ? "win" : match.win === false ? "loss" : null,
