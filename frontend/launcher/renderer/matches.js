@@ -2218,7 +2218,9 @@
     }
     const analysis = detail.analysis;
     const summary = detail.summary || {};
-    const parts = [back, sharePanel, reviewHeader(detail, analysis, summary)];
+    const header = reviewHeader(detail, analysis, summary);
+    back.insertBefore(toolbarMatch(detail, analysis, summary), back.children[1] || null);
+    const parts = [back, sharePanel, header];
     if (!analysis) {
       parts.push(card(t("reviewLoading"), "hourglass", emptyState("hourglass", t("reviewPending"), tOptional(`parseStatus.${detail.parse_status}`) || "")));
     } else {
@@ -2257,8 +2259,38 @@
     }
     root.replaceChildren(...parts);
     hydrate(root);
+    stickToolbar(back, header);
     // Charts measure their container, so draw after insertion.
     drawMatchCharts(root, analysis);
+  }
+
+  // The review's toolbar stays at the top of the window; once the header has
+  // scrolled away it names the match (hero, result, score), so a long review
+  // never loses which game it is about, and ‹ Newer · Older › stay at hand.
+  function toolbarMatch(detail, analysis, summary) {
+    const headline = (analysis && analysis.headline) || {};
+    const win = headline.win ?? summary.win;
+    const score = headline.score ?? summary.score;
+    const hero = summary.hero_id || headline.hero_id || headline.hero || summary.hero;
+    return h(
+      "span",
+      { class: "toolbar-match", "aria-hidden": "true" },
+      window.DotaIcons ? window.DotaIcons.heroPicture(document, hero, "sm") : null,
+      h("span", { class: "toolbar-hero", text: headline.hero || summary.hero || "—" }),
+      resultBadge(win),
+      Number.isFinite(score) ? scoreRing(score, "md") : null
+    );
+  }
+
+  function stickToolbar(bar, header) {
+    state.toolbarObserver?.disconnect();
+    state.toolbarObserver = null;
+    if (!header || typeof IntersectionObserver !== "function") {
+      return;
+    }
+    const observer = new IntersectionObserver(([entry]) => bar.classList.toggle("is-stuck", !entry.isIntersecting), { rootMargin: "-64px 0px 0px 0px" });
+    observer.observe(header);
+    state.toolbarObserver = observer;
   }
 
   // A page title (Matches, Progress) with its one-line summary and actions.

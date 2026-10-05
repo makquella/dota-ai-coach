@@ -1689,11 +1689,56 @@ span.setup-mark {
 }
 
 .review-toolbar {
+  position: sticky;
+  top: 0;
+  z-index: 6;
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
   gap: var(--sp-3);
+  margin: 0 calc(-1 * var(--sp-3));
+  padding: var(--sp-2) var(--sp-3);
+  border: 1px solid transparent;
+  border-radius: 0 0 var(--r-lg) var(--r-lg);
+  transition: background-color var(--dur) var(--ease), border-color var(--dur) var(--ease), box-shadow var(--dur) var(--ease);
+}
+
+/* Scrolled past the header: a solid bar with the match it is about. */
+.review-toolbar.is-stuck {
+  border-color: var(--border);
+  border-top-color: transparent;
+  background: var(--surface-1);
+  box-shadow: var(--shadow);
+}
+
+.toolbar-match {
+  display: none;
+  flex: 1;
+  align-items: center;
+  gap: var(--sp-2);
+  min-width: 0;
+}
+
+.review-toolbar.is-stuck .toolbar-match {
+  display: inline-flex;
+}
+
+.toolbar-hero {
+  overflow: hidden;
+  font-family: var(--display);
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.toolbar-match .score-ring {
+  width: 30px;
+  height: 30px;
+}
+
+.toolbar-match .score-ring-value {
+  font-size: 11px;
 }
 
 /* «‹ Back» and «‹ Newer · Older ›» on the left of a review's toolbar. */
