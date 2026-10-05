@@ -85,6 +85,8 @@ def empty_facts(match_id: int) -> dict[str, Any]:
         "buybacks": [],
         "killed_by": {},
         "final_items": [],
+        # The six inventory slots at the end (OpenDota item ids or GSI item_* names).
+        "inventory": [],
         # Map: the hero every 15 s (GSI), wards placed and lane position (parsed replay).
         "path": [],
         "wards": [],
@@ -178,6 +180,7 @@ def facts_from_opendota(trimmed: dict[str, Any]) -> dict[str, Any] | None:
                 for npc, count in _dict(me.get("killed_by")).items()
                 if str(npc).startswith("npc_dota_hero_")
             },
+            "inventory": [me.get(f"item_{slot}") for slot in range(6) if me.get(f"item_{slot}")],
             "final_items": [
                 me.get(key)
                 for key in (
@@ -303,6 +306,11 @@ def facts_from_timeline(timeline: dict[str, Any]) -> dict[str, Any]:
             "level": _int(final.get("level")),
             # Observer wards placed, counted from the inventory (match_tracker).
             "obs_placed": _int(timeline.get("obs_placed")),
+            "inventory": [
+                str(name)
+                for name in final.get("inventory") or []
+                if isinstance(name, str) and name.startswith("item_")
+            ][:6],
             "lh_t": _per_minute(samples, "lh", duration),
             "dn_t": _per_minute(samples, "dn", duration),
             "gold_t": _earned_gold_per_minute(samples, duration),

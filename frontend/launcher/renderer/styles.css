@@ -1648,6 +1648,54 @@ span.setup-mark {
   outline-offset: 2px;
 }
 
+/* The match table's final items: six slots, as Dota's inventory. */
+.items-cell {
+  display: inline-grid;
+  grid-template-columns: repeat(6, 28px);
+  gap: 3px;
+  vertical-align: middle;
+}
+
+.items-cell .dota-item.dota-pic-sm {
+  width: 28px;
+  height: 20px;
+}
+
+.item-slot {
+  width: 28px;
+  height: 20px;
+  border-radius: var(--r-sm);
+  background: var(--surface-2);
+  opacity: 0.5;
+}
+
+/* «12 часов назад» may take two lines: the items fit at the window's
+   default 1280 px without a sideways scroll. */
+.table td.when-col {
+  white-space: normal;
+}
+
+/* The default 1280 px window: a size smaller, so the row fits. */
+@media (max-width: 1399px) {
+  .items-cell {
+    grid-template-columns: repeat(6, 24px);
+    gap: 2px;
+  }
+
+  .items-cell .dota-item.dota-pic-sm,
+  .item-slot {
+    width: 24px;
+    height: 17px;
+  }
+}
+
+/* Under 1240 px the table keeps its numbers; the items are in the review. */
+@media (max-width: 1239px) {
+  .items-col {
+    display: none;
+  }
+}
+
 .table td.is-empty {
   color: var(--text-3);
 }

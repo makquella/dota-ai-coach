@@ -65,7 +65,7 @@ from app.finding_history import finding_history
 from app.focus_goal import can_focus, focus_summary, match_result, new_focus, played_after
 from app.friend_compare import compare
 from app.game_plan import build_game_plan, key_item
-from app.hero_meta import start_items
+from app.hero_meta import item_key, start_items
 from app.hero_profiles import get_hero_position
 from app.history_backup import export_backup, import_backup
 from app.home_summary import home_summary
@@ -116,6 +116,8 @@ PARSE_POLL_SECONDS = 90
 PARSE_POLL_ATTEMPTS = 12
 # OpenDota meta data cache (player_store cache table).
 ITEM_CONSTANTS_KEY = "opendota:items"
+# Stored reviews whose final items are read into the table per request (0.50).
+BACKFILL_ITEMS_PER_CALL = 10
 POPULARITY_KEY = "opendota:item_popularity"
 TIMINGS_KEY = "opendota:item_timings"
 SKILLS_KEY = "opendota:pro_skills"
@@ -959,17 +961,19 @@ class PlayerService:
         primary = self.store.primary_account_id()
         if primary is None:
             return {"linked": False, "items": [], "total": 0}
+        rows = self.store.list_matches(
+            primary,
+            limit=limit,
+            offset=offset,
+            hero_id=hero_id,
+            win=win,
+            sort=sort,
+            ascending=ascending,
+        )
+        self._backfill_items(primary, rows)
         return {
             "linked": True,
-            "items": self.store.list_matches(
-                primary,
-                limit=limit,
-                offset=offset,
-                hero_id=hero_id,
-                win=win,
-                sort=sort,
-                ascending=ascending,
-            ),
+            "items": rows,
             "total": self.store.count_matches(primary, hero_id=hero_id, win=win),
             "stats": self.store.match_stats(primary, hero_id=hero_id, win=win),
             "heroes": self.store.hero_counts(primary),
@@ -1923,6 +1927,7 @@ class PlayerService:
             draft=self._draft_meta(account_id, facts.get("hero_id")),
         )
         lh_t = facts.get("lh_t") or []
+        items = self._inventory_keys(facts)
         self.store.upsert_match(
             account_id,
             match_id,
@@ -1930,10 +1935,52 @@ class PlayerService:
             fields={
                 "score": analysis["headline"]["score"],
                 "lh_10": lh_t[10] if len(lh_t) > 10 else None,
+                "items": None if items is None else json.dumps(items),
             },
             analysis=analysis,
         )
         return analysis
+
+    def _inventory_keys(self, facts: dict[str, Any]) -> list[str] | None:
+        """The final inventory as item keys for the match table's icons: GSI
+        names directly, OpenDota ids through the cached item constants. None
+        when it cannot be read yet (ids without constants), [] when empty."""
+        raw = facts.get("inventory") or []
+        if not raw:
+            return [] if facts.get("sources") else None
+        by_id = (self.store.cache_get(ITEM_CONSTANTS_KEY) or {}).get("by_id") or {}
+        keys = []
+        for value in raw:
+            if isinstance(value, bool):
+                continue
+            if isinstance(value, int) or str(value).isdigit():
+                key = by_id.get(str(value))
+                if key is None:
+                    return None  # constants missing or stale: try again later
+            else:
+                key = item_key(value)
+            if key:
+                keys.append(key)
+        return keys[:6]
+
+    def _backfill_items(self, account_id: int, rows: list[dict[str, Any]]) -> None:
+        """Reviews stored before 0.50 have no items column: read it from their
+        stored match, a few rows per call (the table asks every 15 s)."""
+        missing = [row for row in rows if row.get("has_analysis") and row.get("items") is None]
+        for row in missing[:BACKFILL_ITEMS_PER_CALL]:
+            record = self.store.get_match(account_id, row["match_id"])
+            if record is None:
+                continue
+            od = facts_from_opendota(record["opendota"]) if record.get("opendota") else None
+            gsi = facts_from_timeline(record["timeline"]) if record.get("timeline") else None
+            facts = merge_facts(od, gsi)
+            items = self._inventory_keys(facts) if facts else None
+            if items is None:
+                continue
+            self.store.upsert_match(
+                account_id, row["match_id"], source=None, fields={"items": json.dumps(items)}
+            )
+            row["items"] = items
 
     # --- OpenDota meta data (cached; fetched on the job thread only) -----------
 

@@ -186,6 +186,7 @@
       colLh10: "Last hits by 10:00",
       colDuration: "Time",
       colScore: "Score",
+      colItems: "Items",
       colWhen: "Played",
       win: "Win",
       loss: "Loss",
@@ -843,6 +844,7 @@
       colLh10: "Добив. к 10",
       colDuration: "Время",
       colScore: "Оценка",
+      colItems: "Предметы",
       colWhen: "Когда",
       win: "Победа",
       loss: "Поражение",
@@ -2023,6 +2025,7 @@
         sortHeader("lh_10", t("colLh10"), "num-col hide-narrow"),
         sortHeader("duration", t("colDuration"), "num-col"),
         sortHeader("score", t("colScore")),
+        h("th", { class: "items-col", text: t("colItems") }),
         sortHeader("date", t("colWhen"), "hide-narrow")
       )
     );
@@ -2053,11 +2056,30 @@
           h("td", { class: "num-col num hide-narrow", text: number(row.lh_10) }),
           h("td", { class: "num-col num", text: clock(row.duration) }),
           h("td", {}, h("span", { class: "score-cell" }, scoreRing(row.score, "sm"), row.score == null ? null : gradeLetter(row.score))),
-          h("td", { class: "muted hide-narrow", text: relativeTime(row.start_time) })
+          itemsCell(row.items),
+          h("td", { class: "muted hide-narrow when-col", text: relativeTime(row.start_time) })
         )
       );
     }
     return h("table", { class: "table" }, head, body);
+  }
+
+  // The final inventory as six small icons (an empty slot keeps its place, so
+  // the rows line up); a match never fetched in full has none: a dash.
+  function itemsCell(items) {
+    if (!Array.isArray(items) || !items.length || !window.DotaIcons) {
+      return h("td", { class: "items-col", text: "—" });
+    }
+    const slots = [...items.slice(0, 6), ...Array(Math.max(0, 6 - items.length)).fill(null)];
+    return h(
+      "td",
+      { class: "items-col" },
+      h(
+        "span",
+        { class: "items-cell" },
+        slots.map((key) => (key ? window.DotaIcons.itemPicture(document, key, "sm") : h("span", { class: "item-slot", "aria-hidden": "true" })))
+      )
+    );
   }
 
   // --- match review -------------------------------------------------------------

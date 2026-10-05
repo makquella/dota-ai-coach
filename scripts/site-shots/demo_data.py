@@ -107,6 +107,48 @@ class DemoLLM:
 
 # Mostly Juggernaut (the "same hero" numbers need games), some other carries.
 POOL = [8, 8, 8, 8, 44, 8, 109, 8, 67, 8, 41, 8, 94, 8, 18, 8, 12, 8, 44, 8]
+# The final inventory of a won / a lost game per hero (the match table's icons).
+INVENTORIES = {
+    8: (
+        ["phase_boots", "bfury", "manta", "black_king_bar", "abyssal_blade", "butterfly"],
+        ["phase_boots", "maelstrom", "wraith_band", "magic_wand", "yasha"],
+    ),
+    44: (
+        ["phase_boots", "bfury", "desolator", "black_king_bar", "satanic", "abyssal_blade"],
+        ["power_treads", "bfury", "magic_wand", "wraith_band"],
+    ),
+    109: (
+        ["power_treads", "manta", "skadi", "black_king_bar", "butterfly", "satanic"],
+        ["power_treads", "dragon_lance", "yasha", "wraith_band", "magic_wand"],
+    ),
+    67: (
+        ["power_treads", "radiance", "manta", "diffusal_blade", "skadi", "heart"],
+        ["power_treads", "radiance", "magic_wand", "wraith_band"],
+    ),
+    41: (
+        ["power_treads", "maelstrom", "black_king_bar", "butterfly", "satanic", "mjollnir"],
+        ["power_treads", "maelstrom", "magic_wand", "wraith_band"],
+    ),
+    94: (
+        ["power_treads", "manta", "skadi", "butterfly", "greater_crit", "black_king_bar"],
+        ["power_treads", "dragon_lance", "manta", "magic_wand"],
+    ),
+    18: (
+        ["power_treads", "echo_sabre", "black_king_bar", "greater_crit", "satanic", "assault"],
+        ["power_treads", "echo_sabre", "magic_wand", "bracer"],
+    ),
+    12: (
+        ["power_treads", "diffusal_blade", "manta", "heart", "butterfly", "skadi"],
+        ["power_treads", "diffusal_blade", "magic_wand", "wraith_band"],
+    ),
+}
+
+
+def _inventory(me: dict[str, Any], hero: int, good: bool) -> None:
+    """item_0 … item_5 of the hero's usual game (strings: the fixtures' items)."""
+    won, lost = INVENTORIES.get(hero, INVENTORIES[8])
+    for slot, key in enumerate(won if good else lost):
+        me[f"item_{slot}"] = key
 TOTALS = ("last_hits", "net_worth", "hero_damage", "tower_damage")
 
 
@@ -198,6 +240,7 @@ def vary(recent: list[dict[str, Any]]) -> dict[int, dict[str, Any]]:
                 for x in range(150, 176, 2)
             }
             match["start_time"] = row["start_time"]
+            _inventory(me, 8, good)
             matches[row["match_id"]] = match
             row.update(hero_id=8)
             continue
@@ -220,6 +263,7 @@ def vary(recent: list[dict[str, Any]]) -> dict[int, dict[str, Any]]:
             if key in me:
                 me[key] = [int(v * factor) for v in me[key]]
         match["start_time"] = row["start_time"]
+        _inventory(me, hero, good)
         matches[row["match_id"]] = match
         row.update(
             hero_id=hero,
