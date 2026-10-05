@@ -5170,6 +5170,7 @@
     const items = (career.series || []).map((match) => ({
       label: String(match.match_id),
       value: match.score,
+      color: TONE_COLORS[scoreTone(match.score)],
       title: `${match.hero || "—"} · ${match.win === true ? t("win") : match.win === false ? t("loss") : "—"}`,
       detail: relativeTime(match.start_time),
       key: match.win === true ? "win" : match.win === false ? "loss" : null,
@@ -5396,9 +5397,23 @@
   }
 
   // The review score as a small ring (0–100) in the grade's tone; "—" without one.
+  // The score's tone, the same for its ring and its column on the charts.
+  function scoreTone(score) {
+    return !Number.isFinite(score) ? "idle" : score >= 65 ? "good" : score >= 50 ? "warn" : "bad";
+  }
+
+  // A little of the card's colour mixed in: whole columns in the pure status
+  // colours were louder than the rings they match.
+  const TONE_COLORS = {
+    good: "color-mix(in srgb, var(--ok) 78%, var(--surface-1))",
+    warn: "color-mix(in srgb, var(--warn) 78%, var(--surface-1))",
+    bad: "color-mix(in srgb, var(--error) 78%, var(--surface-1))",
+    idle: "var(--viz-muted)"
+  };
+
   function scoreRing(score, size = "md") {
     const known = Number.isFinite(score);
-    const tone = !known ? "idle" : score >= 65 ? "good" : score >= 50 ? "warn" : "bad";
+    const tone = scoreTone(score);
     const radius = 15.5;
     const length = 2 * Math.PI * radius;
     const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
@@ -5630,6 +5645,7 @@
         items: scored.map((match) => ({
           label: String(match.match_id),
           value: match.score,
+          color: TONE_COLORS[scoreTone(match.score)],
           title: `${match.hero || "—"} · ${match.win === true ? t("win") : match.win === false ? t("loss") : "—"}`,
           detail: relativeTime(match.start_time),
           key: match.win === true ? "win" : match.win === false ? "loss" : null,
