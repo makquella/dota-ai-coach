@@ -349,6 +349,10 @@ const I18N = {
     tourHint: "A short tour of the app, one minute",
     tourStart: "Show",
     whatsNew: {
+      "0.44.1": [
+        "When the coach is starting or stopped, Matches, Progress and Profile say so (with a button to start it) instead of loading forever or asking to link your account again.",
+        "A narrow window uses its whole width; reviews write numbers the way your language does."
+      ],
       "0.44.0": [
         "Reviews in a row: “‹ Newer · Older ›” next to “Matches”, or the ← and → keys. Every review also links the match on OpenDota, Dotabuff and STRATZ.",
         "Hotkeys: Ctrl+1…5 open the tabs, Esc goes back to the match list; the whole list is in Settings → “Hotkeys”. The tray menu opens your latest review.",
@@ -1086,6 +1090,10 @@ const I18N = {
     tourHint: "Короткая экскурсия по приложению, на минуту",
     tourStart: "Показать",
     whatsNew: {
+      "0.44.1": [
+        "Когда тренер запускается или остановлен, «Матчи», «Прогресс» и «Профиль» так и говорят (с кнопкой запуска), а не грузятся бесконечно и не просят заново привязать аккаунт.",
+        "Узкое окно использует всю ширину; в разборах дробные числа записаны через запятую."
+      ],
       "0.44.0": [
         "Разборы подряд: «‹ Новее · Старее ›» рядом с «Матчи» или клавиши ← и →. В каждом разборе есть ссылки на этот матч на OpenDota, Dotabuff и STRATZ.",
         "Горячие клавиши: Ctrl+1…5 открывают вкладки, Esc возвращает к списку матчей; весь список — в «Настройки → Горячие клавиши». В меню в трее — разбор последнего матча.",
