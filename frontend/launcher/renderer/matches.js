@@ -1425,6 +1425,12 @@
 
   function hydrate(root) {
     window.LucideIcons?.hydrate(root);
+    // A table cell with nothing to show («—») steps back from the numbers.
+    root?.querySelectorAll?.("td").forEach((cell) => {
+      if (cell.childElementCount === 0 && cell.textContent.trim() === "—") {
+        cell.classList.add("is-empty");
+      }
+    });
   }
 
   // A hero portrait / item icon next to its name (dota-icons.js); plain text

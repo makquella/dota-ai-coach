@@ -1603,6 +1603,10 @@ span.setup-mark {
   white-space: nowrap;
 }
 
+.table td.is-empty {
+  color: var(--text-3);
+}
+
 .table tr:last-child td {
   border-bottom: 0;
 }
