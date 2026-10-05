@@ -2703,6 +2703,12 @@ span.setup-mark {
   margin-bottom: calc(-1 * var(--sp-5));
 }
 
+/* Something under the table (a «What does this mean?»): the table stops at
+   its last row instead of running into the card's edge over it. */
+.table-wrap-tight:has(+ *) {
+  margin-bottom: 0;
+}
+
 /* --- AI coach --------------------------------------------------------------- */
 
 .coach-head {
