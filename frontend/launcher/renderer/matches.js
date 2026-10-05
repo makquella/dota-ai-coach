@@ -1487,7 +1487,7 @@
 
   function resultBadge(win) {
     const tone = win === true ? "good" : win === false ? "bad" : "idle";
-    return h("span", { class: "result" }, h("span", { class: "dot", "data-tone": tone }), h("span", { text: win === true ? t("win") : win === false ? t("loss") : t("unknownResult") }));
+    return h("span", { class: "result", dataset: { tone } }, h("span", { class: "dot", "data-tone": tone }), h("span", { text: win === true ? t("win") : win === false ? t("loss") : t("unknownResult") }));
   }
 
   // «What does this mean?» under a card whose numbers are not obvious: a
@@ -2353,13 +2353,25 @@
     if (headline.hero_damage) {
       stats.push([t("stats.dmg"), number(headline.hero_damage)]);
     }
+    const heroValue = summary.hero_id || headline.hero_id || headline.hero || summary.hero;
+    const art = window.DotaIcons?.heroArt ? window.DotaIcons.heroArt(document, heroValue) : null;
+    if (art) {
+      art.classList.add("no-print");
+    }
+    const scoreBlock =
+      score !== null && score !== undefined
+        ? h("div", { class: "score-block", title: `${score} ${t("scoreOf")}` }, scoreRing(score, "lg"), gradeLetter(score))
+        : null;
     return h(
       "section",
-      { class: "review-head card" },
+      { class: "review-head card art-card", dataset: { result: win === true ? "win" : win === false ? "loss" : "" } },
+      art,
       h(
         "div",
         { class: "card-body review-head-body" },
-        window.DotaIcons ? h("div", { class: "review-portrait" }, window.DotaIcons.heroPicture(document, summary.hero_id || headline.hero_id || headline.hero || summary.hero, "lg")) : null,
+        // Without the hero art (offline, unknown hero, print) the small portrait stays.
+        window.DotaIcons ? h("div", { class: art ? "review-portrait print-only-flex" : "review-portrait" }, window.DotaIcons.heroPicture(document, heroValue, "lg")) : null,
+        scoreBlock,
         h(
           "div",
           { class: "review-title" },
@@ -2377,15 +2389,7 @@
               )
             : null,
           requestButton ? h("div", { class: "row" }, requestButton, requestNote) : null
-        ),
-        score !== null && score !== undefined
-          ? h(
-              "div",
-              { class: "score-block", title: `${score} ${t("scoreOf")}` },
-              scoreRing(score, "lg"),
-              gradeLetter(score)
-            )
-          : null
+        )
       ),
       h(
         "dl",

@@ -34,7 +34,7 @@ def test_the_card_says_how_it_happened_and_what_to_do():
     ]
     english = _screen(lang="en")
     assert english["lines"][2] == (
-        "Death number 3 in the mid lane by the river in 6 min: after respawn, go somewhere else."
+        "3 deaths in the mid lane by the river in 6 min: after respawn, go somewhere else."
     )
 
 

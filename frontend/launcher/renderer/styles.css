@@ -91,9 +91,17 @@ dd {
   flex: none;
 }
 
+/* Only the side navigation of a wide window has room for the player card. */
+@media not screen and (min-width: 960px) {
+  .side-player {
+    display: none;
+  }
+}
+
 h1 {
+  font-family: var(--display);
   font-size: var(--fs-16);
-  font-weight: var(--fw-semibold);
+  font-weight: 700;
   letter-spacing: -0.01em;
 }
 
@@ -165,8 +173,9 @@ h1 {
 }
 
 .status-title {
+  font-family: var(--display);
   font-size: var(--fs-20);
-  font-weight: var(--fw-semibold);
+  font-weight: 700;
   letter-spacing: -0.015em;
   line-height: 1.4;
   font-variant-numeric: tabular-nums;
@@ -194,29 +203,33 @@ h1 {
   gap: var(--sp-3);
 }
 
+/* A card is a raised surface: a light top edge and a soft drop instead of a
+   heavy outline; its title sits on the card without a rule under it. */
 .card {
   border: 1px solid var(--border);
   border-radius: var(--r-lg);
   background: var(--surface-1);
+  box-shadow: var(--edge), var(--shadow);
 }
 
 .card-head {
   display: flex;
   align-items: center;
   gap: var(--sp-2);
-  padding: var(--sp-3) var(--sp-4);
-  border-bottom: 1px solid var(--border);
+  min-height: 48px;
+  padding: var(--sp-3) var(--sp-5) 0;
   color: var(--text-3);
 }
 
 .card-head h2 {
-  color: var(--text-2);
-  font-size: var(--fs-13);
-  font-weight: var(--fw-medium);
+  color: var(--text);
+  font-size: var(--fs-14);
+  font-weight: var(--fw-semibold);
+  letter-spacing: -0.005em;
 }
 
 .card-body {
-  padding: var(--sp-4);
+  padding: var(--sp-3) var(--sp-5) var(--sp-5);
 }
 
 /* Match stats */
@@ -658,7 +671,7 @@ label.setting {
 
 .btn-primary {
   border-color: transparent;
-  background: var(--accent);
+  background: var(--accent-fill);
   color: var(--accent-text);
   font-weight: var(--fw-semibold);
 }
@@ -734,8 +747,8 @@ label.setting {
 }
 
 .switch:checked {
-  border-color: var(--accent);
-  background: var(--accent);
+  border-color: var(--accent-fill);
+  background: var(--accent-fill);
 }
 
 .switch:checked::after {
@@ -782,7 +795,7 @@ label.setting:has(.switch:disabled) {
 }
 
 .segmented button[aria-checked="true"] {
-  background: var(--surface-2);
+  background: var(--surface-3);
   box-shadow: inset 0 0 0 1px var(--border-strong);
   color: var(--text);
 }
@@ -1490,8 +1503,10 @@ label.setting:has(.switch:disabled) {
 }
 
 /* Tables */
+/* Edge to edge in the card (its body is padded --sp-5 on the sides); the
+   cells keep the text on the card's line. */
 .table-wrap {
-  margin: calc(-1 * var(--sp-2)) calc(-1 * var(--sp-4));
+  margin: calc(-1 * var(--sp-2)) calc(-1 * var(--sp-5));
   overflow-x: auto;
 }
 
@@ -1522,11 +1537,11 @@ label.setting:has(.switch:disabled) {
 }
 
 .table :is(th, td):first-child {
-  padding-left: var(--sp-4);
+  padding-left: var(--sp-5);
 }
 
 .table :is(th, td):last-child {
-  padding-right: var(--sp-4);
+  padding-right: var(--sp-5);
 }
 
 .table .num-col {
@@ -1580,14 +1595,44 @@ label.setting:has(.switch:disabled) {
   color: var(--text-3);
 }
 
+/* Win / loss as a small tinted pill (the table, the review header). */
+.result[data-tone] {
+  gap: 6px;
+  padding: 2px var(--sp-2);
+  border-radius: 999px;
+  font-size: var(--fs-12);
+  line-height: 1.5;
+}
+
+.result[data-tone="good"] {
+  background: color-mix(in srgb, var(--ok) 13%, transparent);
+  color: var(--ok);
+}
+
+.result[data-tone="bad"] {
+  background: color-mix(in srgb, var(--error) 13%, transparent);
+  color: var(--error);
+}
+
+.result[data-tone] .dot {
+  width: 5px;
+  height: 5px;
+}
+
 .table-compact td,
 .table-compact th {
   padding-top: 6px;
   padding-bottom: 6px;
 }
 
+/* The player's own row: a raised row with the brand bar, not a red tint
+   (red reads as a loss). */
 .table tr.is-me td {
-  background: var(--accent-soft);
+  background: var(--surface-2);
+}
+
+.table tr.is-me td:first-child {
+  box-shadow: inset 3px 0 0 var(--accent);
 }
 
 /* Match review */
@@ -1741,11 +1786,14 @@ label.setting:has(.switch:disabled) {
 }
 
 .review-stats {
+  position: relative;
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(96px, 1fr));
   gap: var(--sp-3);
-  padding: var(--sp-3) var(--sp-4);
+  padding: var(--sp-4) var(--sp-5);
   border-top: 1px solid var(--border);
+  border-radius: 0 0 var(--r-lg) var(--r-lg);
+  background: var(--surface-1);
 }
 
 .review-stats dt {
@@ -1755,8 +1803,95 @@ label.setting:has(.switch:disabled) {
 
 .review-stats dd {
   margin-top: 2px;
-  font-size: var(--fs-14);
-  font-weight: var(--fw-medium);
+  font-family: var(--display);
+  font-size: var(--fs-16);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+/* A card with the hero's art (the review header, the current match): the art
+   on the right, fading into the card, over a faint tint of the result (green
+   for a win, red for a loss; none while the match goes on). */
+.art-card {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+}
+
+.art-card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: radial-gradient(120% 140% at 100% 0%, color-mix(in srgb, var(--result, var(--cream)) 14%, transparent), transparent 60%);
+  pointer-events: none;
+}
+
+.art-card[data-result="win"] {
+  --result: var(--ok);
+}
+
+.art-card[data-result="loss"] {
+  --result: var(--error);
+}
+
+.art-card > .dota-hero-art {
+  position: absolute;
+  top: 0;
+  right: 0;
+  z-index: -1;
+  width: min(46%, 420px);
+  height: 230px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--dur-slow) var(--ease);
+  -webkit-mask-image: linear-gradient(to right, transparent 0%, #000 40%);
+  mask-image: linear-gradient(to right, transparent 0%, #000 40%);
+}
+
+.art-card > .dota-hero-art.dota-pic-loaded {
+  opacity: 0.9;
+}
+
+.art-card > .dota-hero-art img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: 70% 15%;
+}
+
+.review-head .review-head-body {
+  align-items: center;
+  gap: var(--sp-5);
+  min-height: 150px;
+  padding: var(--sp-5) var(--sp-6);
+}
+
+.review-head .review-title {
+  max-width: 62%;
+}
+
+.review-head .review-hero {
+  font-family: var(--display);
+  font-size: var(--fs-28);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  text-shadow: 0 1px 12px rgba(0, 0, 0, 0.5);
+}
+
+.print-only-flex {
+  display: none;
+}
+
+@media (max-width: 720px) {
+  .review-head .review-title {
+    max-width: none;
+  }
+
+  .art-card > .dota-hero-art {
+    opacity: 0.25 !important;
+  }
 }
 
 .findings {
@@ -1989,8 +2124,8 @@ label.setting:has(.switch:disabled) {
 }
 
 .team .table {
-  margin: 0 calc(-1 * var(--sp-4));
-  width: calc(100% + 2 * var(--sp-4));
+  margin: 0 calc(-1 * var(--sp-5));
+  width: calc(100% + 2 * var(--sp-5));
 }
 
 /* Progress */
@@ -2012,21 +2147,34 @@ label.setting:has(.switch:disabled) {
 }
 
 .tile {
-  padding: var(--sp-3) var(--sp-4);
+  padding: var(--sp-4) var(--sp-5);
   border: 1px solid var(--border);
   border-radius: var(--r-lg);
   background: var(--surface-1);
+  box-shadow: var(--edge), var(--shadow);
+}
+
+/* Tiles inside a card: a filled cell, not a second outlined box. */
+.card .tile {
+  border-color: transparent;
+  background: var(--surface-2);
+  box-shadow: none;
 }
 
 .tile-label {
   color: var(--text-3);
   font-size: var(--fs-12);
+  font-weight: var(--fw-medium);
 }
 
 .tile-value {
   margin-top: var(--sp-1);
-  font-size: var(--fs-20);
-  font-weight: var(--fw-semibold);
+  font-family: var(--display);
+  font-size: var(--fs-28);
+  font-weight: 700;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
 }
 
 .tile-sub {
@@ -2376,7 +2524,7 @@ label.setting:has(.switch:disabled) {
 
 .table-wrap-tight {
   margin-top: var(--sp-2);
-  margin-bottom: calc(-1 * var(--sp-4));
+  margin-bottom: calc(-1 * var(--sp-5));
 }
 
 /* --- AI coach --------------------------------------------------------------- */
@@ -3117,6 +3265,7 @@ label.setting:has(.switch:disabled) {
   .service,
   .tabs,
   .no-print,
+  .art-card::before,
   button,
   input,
   select,
@@ -3316,11 +3465,12 @@ kbd {
   overflow: hidden;
 }
 
+/* A run under way in cream (red would read as failing), green once met. */
 .streak-bar > span {
   display: block;
   height: 100%;
   border-radius: inherit;
-  background: var(--accent);
+  background: var(--cream);
 }
 
 .streak[data-met="true"] .streak-bar > span {
@@ -3653,18 +3803,19 @@ kbd {
 }
 
 .dota-hero.dota-pic-sm {
-  width: 34px;
-  height: 19px;
+  width: 40px;
+  height: 23px;
 }
 
 .dota-hero.dota-pic-md {
-  width: 48px;
-  height: 27px;
+  width: 64px;
+  height: 36px;
+  border-radius: var(--r-md);
 }
 
 .dota-hero.dota-pic-lg {
-  width: 112px;
-  height: 63px;
+  width: 128px;
+  height: 72px;
   border-radius: var(--r-md);
   font-size: var(--fs-16);
 }
@@ -3843,10 +3994,14 @@ kbd {
   color: var(--text-3);
   font-size: var(--fs-12);
 }
+/* The result tag goes under a long name in a narrow column instead of over
+   the score ring. */
 .summary-hero {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: var(--sp-2);
+  gap: 2px var(--sp-2);
+  min-width: 0;
   font-size: var(--fs-16);
   font-weight: var(--fw-semibold);
 }
@@ -4042,7 +4197,7 @@ kbd {
     inset: 0 auto 0 0;
     width: var(--sidebar-w);
     border-right: 1px solid var(--border);
-    background: var(--surface-1);
+    background: var(--sidebar);
   }
 
   .top {
@@ -4055,6 +4210,15 @@ kbd {
     padding: var(--sp-6) var(--sp-5) var(--sp-4);
   }
 
+  .top .brand h1 {
+    font-size: var(--fs-20);
+  }
+
+  .top .brand-mark {
+    width: 28px;
+    height: 28px;
+  }
+
   .top .service {
     position: fixed;
     bottom: var(--sp-5);
@@ -4062,9 +4226,65 @@ kbd {
     max-width: calc(var(--sidebar-w) - 2 * var(--sp-5));
   }
 
+  /* The linked player above the service line; opens Profile. */
+  .side-player {
+    position: fixed;
+    bottom: 48px;
+    left: var(--sp-3);
+    display: flex;
+    align-items: center;
+    gap: var(--sp-3);
+    width: calc(var(--sidebar-w) - 2 * var(--sp-3));
+    padding: var(--sp-2) var(--sp-3);
+    border: 1px solid var(--border);
+    border-radius: var(--r-lg);
+    background: var(--surface-1);
+    color: var(--text);
+    font: var(--fw-semibold) var(--fs-14) / 1.2 var(--font);
+    text-align: left;
+    cursor: pointer;
+    transition: background-color var(--dur-fast) var(--ease), border-color var(--dur-fast) var(--ease);
+  }
+
+  .side-player:hover {
+    border-color: var(--border-strong);
+    background: var(--surface-2);
+  }
+
+  .side-player:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+
+  .side-avatar {
+    display: grid;
+    flex: none;
+    place-items: center;
+    width: 32px;
+    height: 32px;
+    overflow: hidden;
+    border-radius: 50%;
+    background: var(--surface-3);
+    box-shadow: 0 0 0 2px var(--accent-soft);
+    color: var(--cream);
+    font: 700 var(--fs-14) / 1 var(--display);
+  }
+
+  .side-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .side-player-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
   .tabs {
     position: fixed;
-    top: 76px;
+    top: 84px;
     left: 0;
     z-index: 2;
     flex-direction: column;
@@ -4077,14 +4297,30 @@ kbd {
 
   .tabs button {
     flex: none;
+    position: relative;
     justify-content: flex-start;
-    height: 38px;
+    gap: var(--sp-3);
+    height: 40px;
     padding: 0 var(--sp-3);
+    border-radius: var(--r-md);
     font-size: var(--fs-14);
   }
 
   .tabs button[aria-selected="true"] {
-    box-shadow: none;
+    background: var(--surface-2);
+    box-shadow: var(--edge);
+  }
+
+  /* The active section: a short red bar at the left edge of the sidebar. */
+  .tabs button[aria-selected="true"]::before {
+    content: "";
+    position: absolute;
+    top: 10px;
+    bottom: 10px;
+    left: calc(-1 * var(--sp-3));
+    width: 3px;
+    border-radius: 0 3px 3px 0;
+    background: var(--accent);
   }
 
   .view {
@@ -4117,6 +4353,12 @@ kbd {
 
 .col > .summary-card {
   margin: 0;
+}
+
+/* A zone heading after a lone card (Home: «Now» under the summary) needs the
+   room a zone gets after another zone, not the gap between two cards. */
+.col > .card:not(.hidden) + .zone {
+  margin-top: var(--sp-5);
 }
 
 @media screen and (min-width: 1240px) {
@@ -4212,7 +4454,7 @@ tr.row-link[data-result="loss"] > td:first-child {
   padding: var(--sp-2) var(--sp-3) var(--sp-2) var(--sp-2);
   border: 0;
   border-left: 3px solid var(--idle);
-  border-radius: var(--r-sm);
+  border-radius: var(--r-md);
   background: transparent;
   color: var(--text);
   font: inherit;
@@ -4246,7 +4488,7 @@ tr.row-link[data-result="loss"] > td:first-child {
 
 .recent-hero {
   overflow: hidden;
-  font-weight: var(--fw-medium);
+  font-weight: var(--fw-semibold);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -4338,9 +4580,11 @@ tr.row-link[data-result="loss"] > td:first-child {
 }
 
 .page-title {
-  font-size: var(--fs-28);
-  font-weight: var(--fw-semibold);
-  line-height: 1.2;
+  font-family: var(--display);
+  font-size: var(--fs-36);
+  font-weight: 700;
+  line-height: 1.15;
+  letter-spacing: -0.025em;
 }
 
 .page-sub {
@@ -4375,14 +4619,15 @@ tr.row-link[data-result="loss"] > td:first-child {
   flex-wrap: wrap;
   align-items: baseline;
   gap: var(--sp-1) var(--sp-3);
-  padding: 0 var(--sp-1) var(--sp-2);
-  border-bottom: 1px solid var(--border);
+  padding: 0 var(--sp-1);
 }
 
 .zone-title {
   color: var(--text);
-  font-size: var(--fs-16);
-  font-weight: var(--fw-semibold);
+  font-family: var(--display);
+  font-size: var(--fs-20);
+  font-weight: 700;
+  letter-spacing: -0.015em;
 }
 
 .zone-hint {
@@ -4593,8 +4838,10 @@ tr.row-link[data-result="loss"] > td:first-child {
 }
 
 .pf-name {
+  font-family: var(--display);
   font-size: var(--fs-28);
-  font-weight: var(--fw-semibold);
+  font-weight: 700;
+  letter-spacing: -0.02em;
   line-height: 1.1;
   overflow-wrap: anywhere;
 }
@@ -4660,8 +4907,9 @@ tr.row-link[data-result="loss"] > td:first-child {
 }
 
 .pf-sparks-value {
+  font-family: var(--display);
   font-size: var(--fs-20);
-  font-weight: var(--fw-semibold);
+  font-weight: 700;
   font-variant-numeric: tabular-nums;
 }
 
@@ -4683,8 +4931,10 @@ tr.row-link[data-result="loss"] > td:first-child {
 }
 
 .pf-rating-value {
-  font-size: var(--fs-28);
-  font-weight: var(--fw-semibold);
+  font-family: var(--display);
+  font-size: var(--fs-36);
+  font-weight: 700;
+  letter-spacing: -0.02em;
   font-variant-numeric: tabular-nums;
 }
 
@@ -4713,12 +4963,13 @@ tr.row-link[data-result="loss"] > td:first-child {
   margin: var(--sp-3) 0;
 }
 
+/* The rating is data, not the brand: the charts' blue (red would read as a loss). */
 .rating-line {
-  stroke: var(--accent);
+  stroke: var(--viz-1);
 }
 
 .rating-area {
-  fill: var(--accent);
+  fill: var(--viz-1);
   fill-opacity: 0.08;
 }
 
@@ -4732,7 +4983,7 @@ tr.row-link[data-result="loss"] > td:first-child {
 
 .rating-dot-anchor {
   fill: var(--surface-1);
-  stroke: var(--accent);
+  stroke: var(--viz-1);
   stroke-width: 2;
 }
 
@@ -4800,7 +5051,7 @@ tr.row-link[data-result="loss"] > td:first-child {
 .pf-badge.tier-3 .pf-badge-medal { --medal: #e3b341; }
 .pf-badge.tier-4 .pf-badge-medal { --medal: #6fc7c2; }
 .pf-badge.tier-5 .pf-badge-medal { --medal: #7aa7ff; }
-.pf-badge.tier-6 .pf-badge-medal { --medal: var(--accent); }
+.pf-badge.tier-6 .pf-badge-medal { --medal: #b48cff; }
 
 .pf-badge.tier-0 {
   opacity: 0.75;
@@ -5178,4 +5429,54 @@ tr.row-link[data-result="loss"] > td:first-child {
 
 .pf-hide {
   justify-self: start;
+}
+
+@media print {
+  .print-only-flex {
+    display: block;
+  }
+
+  .review-head .review-hero {
+    text-shadow: none;
+  }
+}
+
+/* The current match on Home: the hero's art behind the hero, clock and stage. */
+#match-card.art-card > .dota-hero-art {
+  width: 300px;
+  height: 100%;
+  -webkit-mask-image: linear-gradient(to right, transparent 0%, #000 50%);
+  mask-image: linear-gradient(to right, transparent 0%, #000 50%);
+}
+
+/* The facts keep clear of the art. */
+#match-card.art-card #match-body {
+  padding-right: 230px;
+}
+
+#match-card.art-card .stat dd {
+  white-space: normal;
+}
+
+#match-card.art-card .stats {
+  grid-template-columns: repeat(2, minmax(0, max-content));
+  column-gap: var(--sp-10);
+  row-gap: var(--sp-4);
+}
+
+@media (max-width: 720px) {
+  #match-card.art-card #match-body {
+    padding-right: var(--sp-5);
+  }
+}
+
+#match-card.art-card #stat-clock {
+  font-family: var(--display);
+  font-size: var(--fs-28);
+  font-weight: 700;
+}
+
+.summary-last .summary-hero {
+  font-family: var(--display);
+  font-weight: 700;
 }

@@ -48,7 +48,7 @@ LANGUAGE_RULES = {
         "players use: фарм, линия, добивания, крипы, лес, тайминг, ценность for net worth; GPM "
         "and XPM stay). Times as «к 26:00»."
     ),
-    "en": "Write in English. Address the player as «you».",
+    "en": "Write in English. Address the player as “you”.",
 }
 
 COMMON_RULES = """Rules:

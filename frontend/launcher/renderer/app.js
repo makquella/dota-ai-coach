@@ -153,7 +153,7 @@ const I18N = {
       hero: "usual for this hero"
     },
     roleNote: (role, source) => `Role: ${role}, ${source}.`,
-    roleMismatch: (setting, seen) => `“Your role” is set to ${setting}, but you play like a ${seen}: some tips miss.`,
+    roleMismatch: (setting, seen) => `“Your role” is set to ${setting}, but you play as ${seen}: some tips miss.`,
     roleSetAuto: "Set to Auto",
     mapHintsTitle: "Map timers",
     mapHintsHint: "A reminder on the card 20 s before runes, shrines, Tormentor, stacks and wards — only the ones your role needs. Off also hides the timer strip",
@@ -349,6 +349,12 @@ const I18N = {
     tourHint: "A short tour of the app, one minute",
     tourStart: "Show",
     whatsNew: {
+      "0.45.0": [
+        "A new look: Wardly's red, warmer colours and bolder headings, the same as on the site.",
+        "The review header and the current match show your hero large; win and loss are coloured tags.",
+        "Your Steam name and picture at the bottom of the side menu open your profile.",
+        "Clearer English texts in the in-game tips and the reviews."
+      ],
       "0.44.2": [
         "A review saved as a PDF keeps every hero and item picture, charts at their real size and no cards over each other.",
         "Clearer in-game and review texts in Russian."
@@ -1094,6 +1100,12 @@ const I18N = {
     tourHint: "Короткая экскурсия по приложению, на минуту",
     tourStart: "Показать",
     whatsNew: {
+      "0.45.0": [
+        "Новый облик: фирменный красный Wardly, тёплые цвета и выразительные заголовки — как на сайте.",
+        "В шапке разбора и в текущем матче — ваш герой крупным планом, победа и поражение — цветные метки.",
+        "Ваш ник и аватар Steam внизу бокового меню открывают профиль.",
+        "Понятнее английские тексты подсказок и разборов."
+      ],
       "0.44.2": [
         "Разбор в PDF: на месте все портреты героев и иконки предметов, графики нормального размера, карточки не наезжают друг на друга.",
         "Понятнее тексты подсказок в игре и разборов: «Смерть от Axe», «Денаев к 4:00», «Пулл в 2:15» и другие мелочи."
@@ -1501,6 +1513,9 @@ const $ = (selector) => document.querySelector(selector);
 const els = {
   service: $("#service"),
   serviceText: $("#service-text"),
+  sidePlayer: $("#side-player"),
+  sideAvatar: $("#side-avatar"),
+  sidePlayerName: $("#side-player-name"),
   status: $("#status"),
   statusTitle: $("#status-title"),
   statusHint: $("#status-hint"),
@@ -1767,6 +1782,7 @@ async function init() {
   bind("#stop-recording", stopLiveRecording);
   bind("#open-records", () => window.launcherApi.openSessionRecords());
 
+  els.sidePlayer.addEventListener("click", () => document.getElementById("tab-profile").click());
   els.statusAction.addEventListener("click", async () => {
     if (!statusAction) {
       return;
@@ -2570,6 +2586,42 @@ function renderService(status) {
   // The port is a developer's detail (also under «Для разработчика»): a tooltip here.
   els.serviceText.textContent = `${tr("service")} ${tr(`serviceStates.${state}`)}`;
   els.service.title = status.backendPort && state === "running" ? `127.0.0.1:${status.backendPort}` : "";
+  renderSidePlayer(status.player);
+}
+
+// The linked player at the foot of the side navigation: the Steam avatar (the
+// first letter while there is none) and the name; a click opens Profile.
+function renderSidePlayer(player) {
+  const name = player && player.linked ? player.name : null;
+  els.sidePlayer.classList.toggle("hidden", !name);
+  if (!name || (els.sidePlayer.dataset.name === name && els.sidePlayer.dataset.avatar === (player.avatar || ""))) {
+    return;
+  }
+  els.sidePlayer.dataset.name = name;
+  els.sidePlayer.dataset.avatar = player.avatar || "";
+  els.sidePlayerName.textContent = name;
+  els.sidePlayer.title = name;
+  const letter = document.createTextNode(Array.from(name.trim())[0]?.toUpperCase() || "?");
+  if (player.avatar) {
+    const img = document.createElement("img");
+    img.alt = "";
+    img.referrerPolicy = "no-referrer";
+    img.addEventListener("error", () => img.replaceWith(letter));
+    img.src = player.avatar;
+    els.sideAvatar.replaceChildren(img);
+  } else {
+    els.sideAvatar.replaceChildren(letter);
+  }
+}
+
+// The hero's art behind the current match card (styles.css .art-card).
+function setMatchArt(art) {
+  const card = document.getElementById("match-card");
+  card.querySelector(":scope > .dota-hero-art")?.remove();
+  card.classList.toggle("art-card", Boolean(art));
+  if (art) {
+    card.prepend(art);
+  }
 }
 
 function formatClock(seconds) {
@@ -2728,10 +2780,12 @@ function renderMatch(status) {
       label.className = "with-pic";
       label.append(window.DotaIcons.heroPicture(document, live.hero, "sm"), name);
       els.statHero.replaceChildren(label);
+      setMatchArt(window.DotaIcons.heroArt?.(document, live.hero) || null);
     }
   } else {
     delete els.statHero.dataset.hero;
     els.statHero.textContent = live.hero || "—";
+    setMatchArt(null);
   }
   els.statClock.textContent = formatClock(live.clockTime) || "—";
   els.statStage.textContent = live.stage && live.stage !== "unknown" ? stageLabel(live.stage) : "—";

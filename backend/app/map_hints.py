@@ -501,7 +501,7 @@ TIPS = {
     "role_mismatch": {
         "en": (
             "Role in the settings: {setting}",
-            "You play like a {seen}, so some tips miss. Set «Your role» to Auto in Wardly.",
+            "You play as {seen}, so some tips miss. Set “Your role” to Auto in Wardly.",
         ),
         "ru": (
             "Роль в настройках: {setting}",

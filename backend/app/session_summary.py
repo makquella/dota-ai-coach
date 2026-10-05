@@ -122,7 +122,7 @@ def share_text(summary: dict[str, Any], lang: str) -> str:
         if ru:
             lines.append(f"Фокус «{focus['title']}»: {focus['met']} из {focus['total']}")
         else:
-            lines.append(f"Focus «{focus['title']}»: {focus['met']} of {focus['total']}")
+            lines.append(f"Focus “{focus['title']}”: {focus['met']} of {focus['total']}")
     lines.append(f"{SITE}{'' if ru else 'en/'}?ref=session")
     return "\n".join(lines)
 

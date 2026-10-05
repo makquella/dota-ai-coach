@@ -110,6 +110,28 @@
     });
   }
 
+  // The hero to the waist on a transparent background (400×250), drawn large
+  // behind a header; no initials fallback (it is decoration: the name is
+  // written next to it), so a missing picture leaves the header plain.
+  function heroArt(doc, value) {
+    const found = hero(value);
+    if (!found) {
+      return null;
+    }
+    const box = doc.createElement("span");
+    box.className = "dota-hero-art";
+    box.setAttribute("aria-hidden", "true");
+    const img = doc.createElement("img");
+    img.alt = "";
+    img.decoding = "async";
+    img.draggable = false;
+    img.addEventListener("load", () => box.classList.add("dota-pic-loaded"));
+    img.addEventListener("error", () => box.remove());
+    img.src = `dota-asset://hero-crop/${found.key}`;
+    box.append(img);
+    return box;
+  }
+
   function itemPicture(doc, value, size = "sm", label = null) {
     const key = itemKey(value);
     return picture(doc, {
@@ -120,5 +142,5 @@
     });
   }
 
-  return { hero, itemKey, initials, heroPicture, itemPicture };
+  return { hero, itemKey, initials, heroPicture, heroArt, itemPicture };
 });
