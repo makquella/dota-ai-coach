@@ -2323,6 +2323,11 @@ span.setup-mark {
   overflow: visible;
 }
 
+.spark-area {
+  fill: color-mix(in srgb, var(--viz-1) 14%, transparent);
+  stroke: none;
+}
+
 .spark-line {
   fill: none;
   stroke: var(--viz-1);
@@ -4553,6 +4558,17 @@ kbd {
   margin-top: var(--sp-5);
 }
 
+/* «Now» follows the summary in the markup but is drawn first: no room above
+   it, so its heading lines up with «Last matches» — unless the checklist is
+   drawn above it. */
+.col-main > #now-zone {
+  margin-top: 0;
+}
+
+.col-main:has(> #setup-card:not(.hidden)) > #now-zone {
+  margin-top: var(--sp-5);
+}
+
 @media screen and (min-width: 1240px) {
   .home-grid,
   .layout-2 {
@@ -4568,6 +4584,15 @@ kbd {
   .col-side .table td {
     padding-right: var(--sp-2);
     padding-left: var(--sp-2);
+  }
+
+  /* …but the outer cells stay on the card's text line. */
+  .col-side .table :is(th, td):first-child {
+    padding-left: var(--sp-5);
+  }
+
+  .col-side .table :is(th, td):last-child {
+    padding-right: var(--sp-5);
   }
 
   .col-side .table-wrapping th {
@@ -5204,6 +5229,21 @@ tr.row-link[data-result="loss"] > td:first-child {
 
 .pf-mmr-error:empty {
   display: none;
+}
+
+.pf-next {
+  margin-top: var(--sp-5);
+}
+
+.pf-next-label {
+  margin: 0 0 var(--sp-2);
+  color: var(--text-3);
+  font-size: var(--fs-12);
+  font-weight: var(--fw-medium);
+}
+
+.pf-badges.pf-badges-one {
+  grid-template-columns: 1fr;
 }
 
 .pf-badges {

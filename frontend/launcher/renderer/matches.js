@@ -17,6 +17,7 @@
       pfSparksHint: "Earned by playing with the coach: 10 a match, 5 more for a win, more for every achievement tier. Spend them on profile looks.",
       pfGames: "Matches with Wardly",
       pfWithApp: "With the coach",
+      pfNextBadge: "Closest award",
       pfWinrate: "Win rate",
       pfHours: "Hours with the coach",
       pfNoName: "Player",
@@ -655,6 +656,7 @@
       pfSparksHint: "Даются за игру с тренером: 10 за матч, ещё 5 за победу и больше за каждую ступень награды. Тратятся на оформление профиля.",
       pfGames: "Матчей с Wardly",
       pfWithApp: "С тренером",
+      pfNextBadge: "Ближайшая награда",
       pfWinrate: "Процент побед",
       pfHours: "Часов с тренером",
       pfNoName: "Игрок",
@@ -4514,14 +4516,29 @@
     return card(
       t("pfWithApp"),
       "trophy",
-      h(
-        "div",
-        { class: "tiles tiles-compact" },
-        tile(t("pfGames"), String(stats.app_games ?? 0)),
-        tile(t("pfWinrate"), stats.app_winrate === null || stats.app_winrate === undefined ? "—" : `${stats.app_winrate}%`),
-        tile(t("pfHours"), hoursText(stats.app_hours))
-      )
+      [
+        h(
+          "div",
+          { class: "tiles tiles-compact" },
+          tile(t("pfGames"), String(stats.app_games ?? 0)),
+          tile(t("pfWinrate"), stats.app_winrate === null || stats.app_winrate === undefined ? "—" : `${stats.app_winrate}%`),
+          tile(t("pfHours"), hoursText(stats.app_hours))
+        ),
+        nextBadge(profile.achievements || [])
+      ]
     );
+  }
+
+  // The unfinished award closest to its next tier, so the side column says
+  // what to play for next.
+  function nextBadge(list) {
+    const open = list.filter((badge) => !badge.done && badge.target > 0);
+    if (!open.length) {
+      return null;
+    }
+    const share = (badge) => badge.value / badge.target;
+    const next = open.reduce((best, badge) => (share(badge) > share(best) ? badge : best));
+    return h("div", { class: "pf-next" }, h("p", { class: "pf-next-label", text: t("pfNextBadge") }), h("ul", { class: "pf-badges pf-badges-one" }, badgeItem(next)));
   }
 
   // 0 → «0», 2.5 → «2,5», 37.4 → «37».
@@ -4799,32 +4816,34 @@
       h("div", { class: "card-body" }, h(
         "ul",
         { class: "pf-badges" },
-        list.map((badge) => {
-          const percent = badge.done ? 100 : Math.max(0, Math.min(100, Math.round((100 * badge.value) / Math.max(1, badge.target))));
-          return h(
-            "li",
-            { class: `pf-badge tier-${badge.tier}${badge.done ? " done" : ""}` },
-            // No tier yet: an empty medal slot with a dim cup, not a stray dot.
-            h("div", { class: "pf-badge-medal", "aria-hidden": "true" }, badge.tier ? h("span", { text: String(badge.tier) }) : icon("trophy")),
-            h(
-              "div",
-              { class: "pf-badge-body" },
-              h("p", { class: "pf-badge-title", text: badge.title }),
-              h("p", { class: "pf-badge-tier muted", text: badge.tier ? t("pfTier", badge.tier_name, badge.tier, badge.tiers) : t("pfTierNone") }),
-              h("p", { class: "pf-badge-text", text: badge.done ? t("pfDone") : badge.text }),
-              badge.done
-                ? null
-                : h(
-                    "div",
-                    { class: "pf-badge-progress" },
-                    h("div", { class: "pf-xp-bar" }, h("span", { style: `width: ${percent}%` })),
-                    h("span", { class: "muted", text: t("pfProgress", badge.value, badge.target) }),
-                    badge.reward ? h("span", { class: "pf-badge-reward", text: t("pfReward", badge.reward) }) : null
-                  )
-            )
-          );
-        })
+        list.map(badgeItem)
       )
+      )
+    );
+  }
+
+  function badgeItem(badge) {
+    const percent = badge.done ? 100 : Math.max(0, Math.min(100, Math.round((100 * badge.value) / Math.max(1, badge.target))));
+    return h(
+      "li",
+      { class: `pf-badge tier-${badge.tier}${badge.done ? " done" : ""}` },
+      // No tier yet: an empty medal slot with a dim cup, not a stray dot.
+      h("div", { class: "pf-badge-medal", "aria-hidden": "true" }, badge.tier ? h("span", { text: String(badge.tier) }) : icon("trophy")),
+      h(
+        "div",
+        { class: "pf-badge-body" },
+        h("p", { class: "pf-badge-title", text: badge.title }),
+        h("p", { class: "pf-badge-tier muted", text: badge.tier ? t("pfTier", badge.tier_name, badge.tier, badge.tiers) : t("pfTierNone") }),
+        h("p", { class: "pf-badge-text", text: badge.done ? t("pfDone") : badge.text }),
+        badge.done
+          ? null
+          : h(
+              "div",
+              { class: "pf-badge-progress" },
+              h("div", { class: "pf-xp-bar" }, h("span", { style: `width: ${percent}%` })),
+              h("span", { class: "muted", text: t("pfProgress", badge.value, badge.target) }),
+              badge.reward ? h("span", { class: "pf-badge-reward", text: t("pfReward", badge.reward) }) : null
+            )
       )
     );
   }
@@ -4910,12 +4929,17 @@
     const low = Math.min(...points.map(([, v]) => v));
     const high = Math.max(...points.map(([, v]) => v));
     const span = high - low || 1;
-    const last = values.length - 1 || 1;
-    const xy = points.map(([i, v]) => [(i / last) * 100, 21 - ((v - low) / span) * 18]);
+    // Spread over the whole tile: games without the number are skipped, so
+    // every tile's line has the same width.
+    const xy = points.map(([, v], k) => [(k / (points.length - 1)) * 100, 21 - ((v - low) / span) * 18]);
+    const coords = xy.map(([x, y]) => `${x.toFixed(1)},${y.toFixed(1)}`).join(" ");
+    const area = document.createElementNS(NS, "polygon");
+    area.setAttribute("points", `${xy[0][0].toFixed(1)},24 ${coords} ${xy[xy.length - 1][0].toFixed(1)},24`);
+    area.setAttribute("class", "spark-area");
     const line = document.createElementNS(NS, "polyline");
-    line.setAttribute("points", xy.map(([x, y]) => `${x.toFixed(1)},${y.toFixed(1)}`).join(" "));
+    line.setAttribute("points", coords);
     line.setAttribute("class", "spark-line");
-    svg.append(line);
+    svg.append(area, line);
     return h("div", { class: "spark-wrap" }, svg);
   }
 
