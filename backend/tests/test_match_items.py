@@ -103,3 +103,12 @@ def test_an_old_database_gets_the_column(tmp_path):
     assert store.get_match(ME, 7)["items"] == ["bfury"]
     store.close()
     PlayerStore(path).close()  # opening it again changes nothing
+
+
+def test_the_scoreboard_names_every_players_items(client, tmp_path):
+    rows = _synced(client, tmp_path, ids=True)
+    reviewed = next(row["match_id"] for row in rows if row["has_analysis"])
+    board = client.get(f"/player/matches/{reviewed}?lang=en").json()["scoreboard"]
+    mine = next(row for row in board if row["me"])
+    assert mine["items"] == ["bfury", "tango"]
+    assert all(isinstance(row["items"], list) for row in board)

@@ -4166,7 +4166,16 @@
               h(
                 "tr",
                 { class: row.me ? "is-me" : "" },
-                h("td", {}, heroLabel(row.hero_id || row.hero, row.hero || "—"), row.name ? h("span", { class: "muted small player-sub", text: row.name }) : null),
+                h(
+                  "td",
+                  {},
+                  heroLabel(row.hero_id || row.hero, row.hero || "—"),
+                  row.name ? h("span", { class: "muted small player-sub", text: row.name }) : null,
+                  // Each player's items at the end, small, under the name.
+                  Array.isArray(row.items) && row.items.length && window.DotaIcons
+                    ? h("span", { class: "player-items", "aria-label": t("stats.items") }, row.items.slice(0, 6).map((key) => window.DotaIcons.itemPicture(document, key, "sm")))
+                    : null
+                ),
                 h("td", { class: "num-col num", text: `${row.kills ?? "—"} / ${row.deaths ?? "—"} / ${row.assists ?? "—"}` }),
                 h("td", { class: "num-col num", text: number(row.net_worth) }),
                 h("td", { class: "num-col num hide-narrow", text: number(row.gpm) }),

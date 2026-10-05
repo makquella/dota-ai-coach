@@ -144,11 +144,31 @@ INVENTORIES = {
 }
 
 
+# The other nine players of the fixture's lineup (the scoreboard's icons).
+LINEUP_ITEMS = {
+    74: ["hand_of_midas", "travel_boots", "ultimate_scepter", "octarine_core", "black_king_bar", "blink"],
+    129: ["phase_boots", "blink", "black_king_bar", "desolator", "assault", "magic_wand"],
+    26: ["tranquil_boots", "blink", "aether_lens", "force_staff", "ghost", "magic_wand"],
+    5: ["tranquil_boots", "glimmer_cape", "force_staff", "blink", "ward_observer", "magic_wand"],
+    1: ["power_treads", "bfury", "manta", "abyssal_blade", "butterfly", "skadi"],
+    11: ["power_treads", "black_king_bar", "desolator", "satanic", "blink", "ultimate_scepter"],
+    2: ["phase_boots", "blink", "blade_mail", "black_king_bar", "heart", "magic_wand"],
+    86: ["arcane_boots", "blink", "aether_lens", "force_staff", "glimmer_cape", "magic_wand"],
+    30: ["arcane_boots", "glimmer_cape", "ultimate_scepter", "force_staff", "magic_wand", "ward_observer"],
+}
+
+
 def _inventory(me: dict[str, Any], hero: int, good: bool) -> None:
     """item_0 … item_5 of the hero's usual game (strings: the fixtures' items)."""
     won, lost = INVENTORIES.get(hero, INVENTORIES[8])
     for slot, key in enumerate(won if good else lost):
         me[f"item_{slot}"] = key
+
+
+def _lineup_items(match: dict[str, Any]) -> None:
+    for player in match["players"][1:]:
+        for slot, key in enumerate(LINEUP_ITEMS.get(player.get("hero_id"), [])):
+            player[f"item_{slot}"] = key
 TOTALS = ("last_hits", "net_worth", "hero_damage", "tower_damage")
 
 
@@ -241,6 +261,7 @@ def vary(recent: list[dict[str, Any]]) -> dict[int, dict[str, Any]]:
             }
             match["start_time"] = row["start_time"]
             _inventory(me, 8, good)
+            _lineup_items(match)
             matches[row["match_id"]] = match
             row.update(hero_id=8)
             continue
@@ -264,6 +285,7 @@ def vary(recent: list[dict[str, Any]]) -> dict[int, dict[str, Any]]:
                 me[key] = [int(v * factor) for v in me[key]]
         match["start_time"] = row["start_time"]
         _inventory(me, hero, good)
+        _lineup_items(match)
         matches[row["match_id"]] = match
         row.update(
             hero_id=hero,

@@ -1011,7 +1011,10 @@ class PlayerService:
             "sources": record.get("sources"),
             "parse_status": record.get("parse_status") or "",
             "analysis": render_analysis(analysis, lang) if analysis else None,
-            "scoreboard": _scoreboard(record.get("opendota")),
+            "scoreboard": _scoreboard(
+                record.get("opendota"),
+                (self.store.cache_get(ITEM_CONSTANTS_KEY) or {}).get("by_id") or {},
+            ),
             "loading": analysis is None and self.client is not None,
         }
         # Before the coach: the AI review mentions the player's focus when there is one,
@@ -2192,11 +2195,23 @@ def _coach_public(cached: dict[str, Any] | None, *, stale: bool) -> dict[str, An
     }
 
 
-def _scoreboard(trimmed: dict[str, Any] | None) -> list[dict[str, Any]] | None:
+def _scoreboard(
+    trimmed: dict[str, Any] | None, by_id: dict[str, str] | None = None
+) -> list[dict[str, Any]] | None:
+    """Both teams of an OpenDota match; `by_id` (the cached item constants)
+    names the items of every player's inventory (ids without it are left out)."""
     if not trimmed:
         return None
     rows = []
     for player in trimmed.get("players") or []:
+        items = []
+        for slot in range(6):
+            raw = player.get(f"item_{slot}")
+            if not raw or isinstance(raw, bool):
+                continue
+            key = (by_id or {}).get(str(raw)) if str(raw).isdigit() else item_key(raw)
+            if key:
+                items.append(key)
         rows.append(
             {
                 "me": bool(player.get("me")),
@@ -2212,6 +2227,7 @@ def _scoreboard(trimmed: dict[str, Any] | None) -> list[dict[str, Any]] | None:
                 "xpm": player.get("xp_per_min"),
                 "last_hits": player.get("last_hits"),
                 "hero_damage": player.get("hero_damage"),
+                "items": items,
             }
         )
     return rows
