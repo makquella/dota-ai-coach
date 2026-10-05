@@ -1,30 +1,41 @@
 /*
  * Design tokens shared by the control panel and the overlay.
- * Calm dark UI: flat surfaces, hairline borders, one restrained accent.
- * Status colours are for small dots only; the accent is for the primary
- * action and the active state only.
+ * Wardly's look (0.45): the site's warm dark surfaces and the logo's red.
+ * Flat surfaces with a little depth, hairline borders, one accent: the red
+ * marks the primary action, the active state and the brand; status colours
+ * stay small (dots, bars, the win/loss mark).
  */
 :root {
   color-scheme: dark;
 
-  /* Surfaces */
-  --bg: #0b0b0c;
-  --surface-1: #141416;
-  --surface-2: #1b1b1e;
-  --surface-hover: #202024;
-  --border: rgba(255, 255, 255, 0.06);
-  --border-strong: rgba(255, 255, 255, 0.1);
+  /* Surfaces: page < card < raised element inside a card */
+  --bg: #0c0d10;
+  --surface-1: #15161a;
+  --surface-2: #1c1d22;
+  --surface-3: #24252b;
+  --surface-hover: #202127;
+  /* The side navigation: a step darker than the cards, a step lighter than the page. */
+  --sidebar: #111216;
+  --border: rgba(255, 255, 255, 0.065);
+  --border-strong: rgba(255, 255, 255, 0.11);
+  /* A card's light top edge and soft drop: depth without heavy outlines. */
+  --edge: inset 0 1px 0 rgba(255, 255, 255, 0.035);
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.22);
 
   /* Text */
-  --text: #ededef;
-  --text-2: #a1a1aa;
-  --text-3: #71717a;
+  --text: #f2f2f4;
+  --text-2: #a3a5ad;
+  --text-3: #70737c;
 
-  /* Accent (primary action + active state only) */
-  --accent: #7c8cff;
-  --accent-hover: #8d9bff;
-  --accent-soft: rgba(124, 140, 255, 0.14);
-  --accent-text: #0b0b0c;
+  /* Accent = the logo's red. --accent for text, icons and outlines on the
+     dark page (4.9:1); --accent-fill under white text (4.9:1). */
+  --accent: #f05560;
+  --accent-fill: #d23a46;
+  --accent-hover: #e0434f;
+  --accent-soft: rgba(240, 85, 96, 0.12);
+  --accent-text: #ffffff;
+  /* The logo eye's cream: small brand details (the level, sparks). */
+  --cream: #efe5d4;
 
   /* Status (small dots) */
   --ok: #4cc38a;
@@ -40,8 +51,10 @@
   --viz-axis: #36363c;
   --viz-muted: #3a3a42;
 
-  /* Type: sizes 12/13/14/16/20/28, weights 400/500/600 */
+  /* Type: sizes 12/13/14/16/20/28, weights 400/500/600; Montserrat (the
+     site's face) for page titles, hero names and big numbers. */
   --font: "Inter", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --display: "Montserrat", "Inter", "Segoe UI", system-ui, sans-serif;
   --mono: "JetBrains Mono", Consolas, "Cascadia Mono", "DejaVu Sans Mono", monospace;
   --fs-12: 12px;
   --fs-13: 13px;
@@ -50,6 +63,7 @@
   --fs-16: 16px;
   --fs-20: 20px;
   --fs-28: 28px;
+  --fs-36: 36px;
   --fw-regular: 400;
   --fw-medium: 500;
   --fw-semibold: 600;
@@ -71,7 +85,8 @@
   /* Radii */
   --r-sm: 6px;
   --r-md: 8px;
-  --r-lg: 10px;
+  --r-lg: 12px;
+  --r-xl: 16px;
 
   /* Motion: opacity and small offsets only */
   --dur-fast: 120ms;
@@ -97,7 +112,12 @@
     --text: #18181b;
     --text-2: #3f3f46;
     --text-3: #71717a;
-    --accent-soft: rgba(79, 92, 230, 0.1);
+    --surface-3: #ececef;
+    --edge: none;
+    --shadow: none;
+    --accent: #c22f3b;
+    --accent-fill: #c22f3b;
+    --accent-soft: rgba(194, 47, 59, 0.08);
     --viz-grid: #ececef;
     --viz-axis: #d4d4d8;
     --viz-muted: #d4d4d8;

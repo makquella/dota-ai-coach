@@ -1501,6 +1501,9 @@ const $ = (selector) => document.querySelector(selector);
 const els = {
   service: $("#service"),
   serviceText: $("#service-text"),
+  sidePlayer: $("#side-player"),
+  sideAvatar: $("#side-avatar"),
+  sidePlayerName: $("#side-player-name"),
   status: $("#status"),
   statusTitle: $("#status-title"),
   statusHint: $("#status-hint"),
@@ -1767,6 +1770,7 @@ async function init() {
   bind("#stop-recording", stopLiveRecording);
   bind("#open-records", () => window.launcherApi.openSessionRecords());
 
+  els.sidePlayer.addEventListener("click", () => document.getElementById("tab-profile").click());
   els.statusAction.addEventListener("click", async () => {
     if (!statusAction) {
       return;
@@ -2570,6 +2574,42 @@ function renderService(status) {
   // The port is a developer's detail (also under «Для разработчика»): a tooltip here.
   els.serviceText.textContent = `${tr("service")} ${tr(`serviceStates.${state}`)}`;
   els.service.title = status.backendPort && state === "running" ? `127.0.0.1:${status.backendPort}` : "";
+  renderSidePlayer(status.player);
+}
+
+// The linked player at the foot of the side navigation: the Steam avatar (the
+// first letter while there is none) and the name; a click opens Profile.
+function renderSidePlayer(player) {
+  const name = player && player.linked ? player.name : null;
+  els.sidePlayer.classList.toggle("hidden", !name);
+  if (!name || (els.sidePlayer.dataset.name === name && els.sidePlayer.dataset.avatar === (player.avatar || ""))) {
+    return;
+  }
+  els.sidePlayer.dataset.name = name;
+  els.sidePlayer.dataset.avatar = player.avatar || "";
+  els.sidePlayerName.textContent = name;
+  els.sidePlayer.title = name;
+  const letter = document.createTextNode(Array.from(name.trim())[0]?.toUpperCase() || "?");
+  if (player.avatar) {
+    const img = document.createElement("img");
+    img.alt = "";
+    img.referrerPolicy = "no-referrer";
+    img.addEventListener("error", () => img.replaceWith(letter));
+    img.src = player.avatar;
+    els.sideAvatar.replaceChildren(img);
+  } else {
+    els.sideAvatar.replaceChildren(letter);
+  }
+}
+
+// The hero's art behind the current match card (styles.css .art-card).
+function setMatchArt(art) {
+  const card = document.getElementById("match-card");
+  card.querySelector(":scope > .dota-hero-art")?.remove();
+  card.classList.toggle("art-card", Boolean(art));
+  if (art) {
+    card.prepend(art);
+  }
 }
 
 function formatClock(seconds) {
@@ -2728,10 +2768,12 @@ function renderMatch(status) {
       label.className = "with-pic";
       label.append(window.DotaIcons.heroPicture(document, live.hero, "sm"), name);
       els.statHero.replaceChildren(label);
+      setMatchArt(window.DotaIcons.heroArt?.(document, live.hero) || null);
     }
   } else {
     delete els.statHero.dataset.hero;
     els.statHero.textContent = live.hero || "—";
+    setMatchArt(null);
   }
   els.statClock.textContent = formatClock(live.clockTime) || "—";
   els.statStage.textContent = live.stage && live.stage !== "unknown" ? stageLabel(live.stage) : "—";

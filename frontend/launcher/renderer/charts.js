@@ -648,7 +648,7 @@
       cross.setAttribute("x2", coords[i][0]);
       cross.classList.remove("hidden");
       const p = points[i];
-      const rows = [{ label: p.detail || "", value: formatNumber(p.mmr), color: "var(--accent)" }];
+      const rows = [{ label: p.detail || "", value: formatNumber(p.mmr), color: "var(--viz-1)" }];
       const box = svg.getBoundingClientRect();
       showTip(host, tip, (coords[i][0] / width) * box.width, pad.top, p.title || "", rows);
     };

@@ -1866,6 +1866,7 @@ async function pollPlayerStatus() {
   live.player = {
     linked: Boolean(status.linked),
     name: status.player ? status.player.persona_name || null : null,
+    avatar: status.player ? status.player.avatar_url || null : null,
     accountId: status.account_id || null,
     lastReview: review,
     reviewKey,

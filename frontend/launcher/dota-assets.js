@@ -2,7 +2,9 @@ const fs = require("node:fs");
 const path = require("node:path");
 
 // Hero portraits and item icons for the panel and the overlay:
-// dota-asset://hero/juggernaut, dota-asset://hero-icon/juggernaut, dota-asset://item/bfury.
+// dota-asset://hero/juggernaut, dota-asset://hero-icon/juggernaut, dota-asset://item/bfury,
+// dota-asset://hero-crop/juggernaut (the hero to the waist on a transparent
+// background, 400×250: the art of the review header and the current match).
 // Each picture is downloaded once from Valve's CDN (the same files dota2.com
 // and OpenDota use) and kept on disk, so it works offline afterwards. Without
 // a picture the page shows its text fallback. No Electron imports, so it can
@@ -13,6 +15,7 @@ const CDN = "https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react
 const KINDS = {
   hero: "heroes",
   "hero-icon": "heroes/icons",
+  "hero-crop": "heroes/crops",
   item: "items",
   // The game's minimap art for the match review's map (dota-asset://map/detailed_740):
   // Valve's picture as OpenDota publishes it (github.com/odota/web, public/assets).

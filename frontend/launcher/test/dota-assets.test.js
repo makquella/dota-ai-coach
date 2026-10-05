@@ -34,6 +34,7 @@ test("only known kinds and plain names are accepted", () => {
   assert.equal(parseAssetUrl("https://example.com/hero/x"), null);
   assert.equal(parseAssetUrl("not a url"), null);
   assert.equal(cdnUrl("hero-icon", "kez"), "https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/heroes/icons/kez.png");
+  assert.equal(cdnUrl("hero-crop", "kez"), "https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/heroes/crops/kez.png");
 });
 
 test("a picture is downloaded once, then served from disk", async () => {

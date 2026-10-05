@@ -114,8 +114,9 @@ body.compact .status-row {
   color: var(--text);
 }
 
+/* Cream, not the red accent: on the overlay red means urgent advice only. */
 .timer-chip[data-soon="true"] .timer-time {
-  color: var(--accent);
+  color: var(--cream);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -129,7 +130,8 @@ body.compact .status-row {
 /* Unlocked (Ctrl+Alt+L / "Move"): make it obvious the card can be dragged. */
 body:not(.locked) .overlay-shell {
   -webkit-app-region: drag;
-  border-color: var(--accent);
+  border-style: dashed;
+  border-color: var(--cream);
   cursor: move;
 }
 
@@ -169,7 +171,7 @@ body:not(.locked) .overlay-shell {
 }
 
 /* Urgent advice reads as urgent from the corner of the eye: the label and the
-   frame turn red (a moved card keeps its accent frame, rule above). */
+   frame turn red (a moved card keeps its dashed cream frame, rule above). */
 .overlay-shell.urgent {
   border-color: color-mix(in srgb, var(--error) 55%, transparent);
 }
