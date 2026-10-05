@@ -1,6 +1,7 @@
 /*
  * In-game advice card: one hint at a time, small, quiet and readable.
- * Flat #0B0B0C at ~85% opacity, no glow, no blur, no decorative frames.
+ * The app's page colour at ~88% opacity, no glow, no blur; a short stripe on
+ * the left says what kind of card it is from the corner of the eye.
  * Tokens come from ../assets/ui/tokens.css.
  */
 * {
@@ -36,9 +37,32 @@ body {
   overflow: hidden;
   border: 1px solid var(--border);
   border-radius: var(--r-lg);
-  background: rgba(11, 11, 12, 0.85);
+  background: rgba(12, 13, 16, 0.88);
+  box-shadow: inset 3px 0 0 var(--stripe, transparent);
   color: var(--text);
   transition: opacity var(--dur) var(--ease), transform var(--dur) var(--ease);
+}
+
+/* The stripe: red urgent, amber a tip, green a calm note, cream the map line
+   and the plan; an inset shadow, so nothing moves when it changes. */
+.overlay-shell.urgent,
+.overlay-shell.priority-high,
+.overlay-shell.death-screen {
+  --stripe: var(--error);
+}
+
+.overlay-shell.priority-medium {
+  --stripe: var(--warn);
+}
+
+.overlay-shell.priority-low,
+.overlay-shell.priority-safe {
+  --stripe: var(--ok);
+}
+
+.overlay-shell.hint,
+.overlay-shell.plan:not(.death-screen):not(.post-game) {
+  --stripe: var(--cream);
 }
 
 .overlay-shell.hidden {
@@ -97,7 +121,7 @@ body.compact .status-row {
   padding: 3px var(--sp-2);
   border: 1px solid var(--border);
   border-radius: var(--r-sm);
-  background: rgba(11, 11, 12, 0.8);
+  background: rgba(12, 13, 16, 0.84);
   color: var(--text-2);
   font-size: var(--fs-12);
   white-space: nowrap;

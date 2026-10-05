@@ -213,6 +213,7 @@ const I18N = {
       rejected: (error) => `Discord did not accept the status: ${error}`
     },
     settingsMore: "More settings",
+    settingsMoreHint: "Match recordings, statistics, the OpenDota key, your week in Discord",
     settingsPageTitle: "Settings",
     settingsPageSub: "Everything already works. Change only what you want to.",
     zoneNow: "Now",
@@ -349,6 +350,11 @@ const I18N = {
     tourHint: "A short tour of the app, one minute",
     tourStart: "Show",
     whatsNew: {
+      "0.47.0": [
+        "The in-game card has a coloured stripe on its left: red urgent, yellow a tip, green a calm note, cream the map and the plan.",
+        "While Dota runs, Home shows the current match first.",
+        "Calmer details: achievement progress and sparks in cream, a dash instead of an empty ring for matches without a review, “More settings” as a folded row."
+      ],
       "0.46.0": [
         "Scroll down a review and its top bar stays with you: the hero, the result, the score and ‹ Newer · Older ›.",
         "Progress tiles show your last 20 matches: wins and losses, and how gold, last hits and the score went.",
@@ -971,6 +977,7 @@ const I18N = {
       rejected: (error) => `Discord не принял статус: ${error}`
     },
     settingsMore: "Ещё настройки",
+    settingsMoreHint: "Записи матчей, статистика, ключ OpenDota, неделя в Discord",
     settingsPageTitle: "Настройки",
     settingsPageSub: "Всё уже работает. Меняйте только то, что хочется.",
     zoneNow: "Сейчас",
@@ -1107,6 +1114,11 @@ const I18N = {
     tourHint: "Короткая экскурсия по приложению, на минуту",
     tourStart: "Показать",
     whatsNew: {
+      "0.47.0": [
+        "У карточки в игре цветная полоска слева: красная — срочно, жёлтая — совет, зелёная — спокойная подсказка, кремовая — карта и план.",
+        "Пока Дота запущена, «Главная» показывает текущий матч первым.",
+        "Спокойнее мелочи: прогресс наград и искры кремовые, у матча без разбора — прочерк вместо пустого кольца, «Ещё настройки» — раскрывающаяся строка."
+      ],
       "0.46.0": [
         "При прокрутке разбора верхняя полоса остаётся на месте: герой, итог, оценка и «‹ Новее · Старее ›».",
         "Плитки «Прогресса» показывают последние 20 матчей: победы и поражения, как менялись золото, добивания и оценка.",
