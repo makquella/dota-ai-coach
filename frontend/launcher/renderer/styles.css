@@ -269,6 +269,11 @@ h1 {
   margin-bottom: var(--sp-1);
 }
 
+/* An action under the hint, not glued to it. */
+.empty > .btn {
+  margin-top: var(--sp-3);
+}
+
 .empty-title {
   color: var(--text-2);
   font-size: var(--fs-14);
@@ -279,6 +284,10 @@ h1 {
   max-width: 380px;
   color: var(--text-3);
   font-size: var(--fs-13);
+}
+
+.empty-hint:empty {
+  display: none;
 }
 
 /* Recent advice */

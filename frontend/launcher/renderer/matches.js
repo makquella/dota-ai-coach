@@ -81,6 +81,11 @@
       linkPlaceholder: "Friend ID, Steam ID or profile link",
       linkButton: "Link",
       linkSoon: "Once your account is linked, here you get:",
+      offlineStarting: "The coach is starting",
+      offlineStartingHint: "A few seconds: this page opens by itself.",
+      offlineTitle: "The coach is not answering",
+      offlineHint: "Your matches and reviews are safe: they show again once the coach runs.",
+      offlineStart: "Start the coach",
       newerMatch: "Newer",
       olderMatch: "Older",
       newerMatchHint: (hero) => `The newer match${hero ? ` (${hero})` : ""} · ←`,
@@ -187,6 +192,12 @@
       reviewLoading: "Loading the match…",
       reviewPending: "The review appears once the match data is loaded.",
       reviewError: "Could not open the match",
+      reviewRetry: "Try again",
+      matchErrors: {
+        backend_down: "The coach is not running: the review opens once it runs again.",
+        request_failed: "The coach did not answer in time. Try again in a few seconds.",
+        match_not_found: "This match is no longer in your history."
+      },
       reviewRenderFailed: "This is a bug in the app. Please report it (Settings → Help → Report a problem) so it can be fixed.",
       scoreOf: "of 100",
       sourcesParsed: "Full replay parsed by OpenDota",
@@ -708,6 +719,11 @@
       linkPlaceholder: "Friend ID, Steam ID или ссылка на профиль",
       linkButton: "Привязать",
       linkSoon: "Когда аккаунт привязан, здесь будут:",
+      offlineStarting: "Тренер запускается",
+      offlineStartingHint: "Пара секунд — страница откроется сама.",
+      offlineTitle: "Тренер не отвечает",
+      offlineHint: "Ваши матчи и разборы на месте: они появятся, когда тренер снова заработает.",
+      offlineStart: "Запустить тренера",
       newerMatch: "Новее",
       olderMatch: "Старее",
       newerMatchHint: (hero) => `Более новый матч${hero ? ` (${hero})` : ""} · ←`,
@@ -814,6 +830,12 @@
       reviewLoading: "Загружаем матч…",
       reviewPending: "Разбор появится, когда загрузятся данные матча.",
       reviewError: "Не удалось открыть матч",
+      reviewRetry: "Попробовать ещё раз",
+      matchErrors: {
+        backend_down: "Тренер сейчас не запущен: разбор откроется, когда он снова заработает.",
+        request_failed: "Тренер не успел ответить. Попробуйте ещё раз через пару секунд.",
+        match_not_found: "Этого матча больше нет в истории."
+      },
       reviewRenderFailed: "Это ошибка приложения. Сообщите о ней («Настройки → Помощь → Сообщить о проблеме»), чтобы её исправили.",
       scoreOf: "из 100",
       sourcesParsed: "Полный разбор реплея (OpenDota)",
@@ -1532,6 +1554,34 @@
 
   // --- account ----------------------------------------------------------------
 
+  // No answer from the coach process (stopped, crashed or still starting): say
+  // so instead of a skeleton forever or a «link your account» form for an
+  // account that is linked. onStatus reloads the tab once it runs.
+  function offlinePage(view) {
+    const titles = { matches: ["matchesTitle", "matchesSub"], progress: ["progressTitle", "progressSub"], profile: ["pfTitle", "pfSub"] };
+    const [title, sub] = titles[view] || titles.matches;
+    const starting = ["starting", "running"].includes(state.status?.backend);
+    const button = starting
+      ? null
+      : h(
+          "button",
+          {
+            class: "btn btn-primary btn-sm",
+            type: "button",
+            onclick: async (event) => {
+              event.currentTarget.disabled = true;
+              await api.startBackend?.();
+            }
+          },
+          icon("play"),
+          h("span", { text: t("offlineStart") })
+        );
+    const body = starting
+      ? emptyState("hourglass", t("offlineStarting"), t("offlineStartingHint"))
+      : emptyState("power", t("offlineTitle"), t("offlineHint"), button);
+    return [pageHead(t(title), t(sub)), h("section", { class: "card" }, h("div", { class: "card-body" }, body))];
+  }
+
   // The tab's title and the link form, with what the tab will show once linked.
   function linkPage(view) {
     const titles = { matches: ["matchesTitle", "matchesSub"], progress: ["progressTitle", "progressSub"], profile: ["pfTitle", "pfSub"] };
@@ -1751,6 +1801,8 @@
   function renderMatches() {
     const root = document.getElementById("matches-root");
     if (!state.player) {
+      root.replaceChildren(...offlinePage("matches"));
+      hydrate(root);
       return;
     }
     if (!state.player.linked) {
@@ -2138,7 +2190,10 @@
       return;
     }
     if (detail.error) {
-      root.replaceChildren(back, card(t("reviewError"), "circle-alert", emptyState("circle-alert", t("reviewPending"), detail.error)));
+      // A readable reason and a retry, never the bare code («request_failed»).
+      const reason = tOptional(`matchErrors.${detail.error}`) || t("matchErrors.request_failed");
+      const retry = detail.error === "match_not_found" ? null : h("button", { class: "btn btn-sm", type: "button", onclick: () => openMatch(state.matchId) }, icon("refresh-cw"), h("span", { text: t("reviewRetry") }));
+      root.replaceChildren(back, card(t("reviewError"), "circle-alert", emptyState("circle-alert", reason, "", retry)));
       hydrate(root);
       return;
     }
@@ -4276,7 +4331,12 @@
     if (!state.player) {
       await refreshPlayer();
     }
-    if (!state.player?.linked) {
+    if (!state.player) {
+      root.replaceChildren(...offlinePage("profile"));
+      hydrate(root);
+      return;
+    }
+    if (!state.player.linked) {
       root.replaceChildren(...linkPage("profile"));
       hydrate(root);
       return;
@@ -4713,7 +4773,12 @@
     if (!state.player) {
       await refreshPlayer();
     }
-    if (!state.player?.linked) {
+    if (!state.player) {
+      root.replaceChildren(...offlinePage("progress"));
+      hydrate(root);
+      return;
+    }
+    if (!state.player.linked) {
       root.replaceChildren(...linkPage("progress"));
       hydrate(root);
       return;
@@ -5556,8 +5621,23 @@
 
   function onStatus(status) {
     const localeChanged = state.locale !== (status.locale === "ru" ? "ru" : "en");
+    const cameUp = status.backend === "running" && state.status?.backend !== "running";
+    const backendChanged = status.backend !== state.status?.backend;
     state.locale = status.locale === "ru" ? "ru" : "en";
     state.status = status;
+    // A tab waiting for the coach (offlinePage) opens once it runs, and says
+    // «starting» / «not answering» as that changes.
+    if (backendChanged && !state.player && ["matches", "progress", "profile"].includes(state.view)) {
+      if (cameUp) {
+        setView(state.view, { remember: false });
+      } else {
+        const root = document.getElementById(`${state.view}-root`);
+        if (root) {
+          root.replaceChildren(...offlinePage(state.view));
+          hydrate(root);
+        }
+      }
+    }
     if (status.backend === "running" && status.player && status.player.linked) {
       refreshSummary(status).catch(() => {});
       refreshWeek(status).catch(() => {});
