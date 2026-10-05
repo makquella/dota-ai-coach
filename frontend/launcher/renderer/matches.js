@@ -5481,6 +5481,11 @@
   function scoreRing(score, size = "md") {
     const known = Number.isFinite(score);
     const tone = scoreTone(score);
+    // No review yet: a quiet dash in the ring's place (an empty ring read as a
+    // «minus» button).
+    if (!known) {
+      return h("span", { class: `score-ring score-ring-${size} score-ring-none`, dataset: { tone } }, h("span", { class: "score-ring-value num", text: "—" }));
+    }
     const radius = 15.5;
     const length = 2 * Math.PI * radius;
     const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");

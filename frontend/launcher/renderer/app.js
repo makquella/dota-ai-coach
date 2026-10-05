@@ -213,6 +213,7 @@ const I18N = {
       rejected: (error) => `Discord did not accept the status: ${error}`
     },
     settingsMore: "More settings",
+    settingsMoreHint: "Match recordings, statistics, the OpenDota key, your week in Discord",
     settingsPageTitle: "Settings",
     settingsPageSub: "Everything already works. Change only what you want to.",
     zoneNow: "Now",
@@ -971,6 +972,7 @@ const I18N = {
       rejected: (error) => `Discord не принял статус: ${error}`
     },
     settingsMore: "Ещё настройки",
+    settingsMoreHint: "Записи матчей, статистика, ключ OpenDota, неделя в Discord",
     settingsPageTitle: "Настройки",
     settingsPageSub: "Всё уже работает. Меняйте только то, что хочется.",
     zoneNow: "Сейчас",

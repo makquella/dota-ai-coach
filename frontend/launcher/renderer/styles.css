@@ -548,17 +548,40 @@ label.setting {
   margin-top: var(--sp-3);
 }
 
+/* A folded row like «For developers»: chevron, title, what is inside. */
 .settings-more > summary {
-  width: fit-content;
-  padding: var(--sp-2) 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sp-2);
+  padding: var(--sp-3) var(--sp-4);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
   color: var(--text-2);
   font-size: var(--fs-14);
   font-weight: var(--fw-medium);
+  list-style: none;
   cursor: pointer;
+  user-select: none;
+  transition: color var(--dur-fast) var(--ease), background-color var(--dur-fast) var(--ease);
+}
+
+.settings-more > summary::-webkit-details-marker {
+  display: none;
 }
 
 .settings-more > summary:hover {
+  background: var(--surface-1);
   color: var(--text);
+}
+
+.settings-more .chevron {
+  color: var(--text-3);
+  transition: transform var(--dur) var(--ease);
+}
+
+.settings-more[open] .chevron {
+  transform: rotate(90deg);
 }
 
 .settings-more > summary:focus-visible {
@@ -1739,6 +1762,12 @@ span.setup-mark {
 
 .toolbar-match .score-ring-value {
   font-size: 11px;
+}
+
+/* No review yet: a quiet dash where the ring would be. */
+.score-ring.score-ring-none .score-ring-value {
+  color: var(--text-3);
+  font-weight: var(--fw-regular);
 }
 
 /* «‹ Back» and «‹ Newer · Older ›» on the left of a review's toolbar. */
