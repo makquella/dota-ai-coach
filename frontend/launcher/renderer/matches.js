@@ -19,6 +19,7 @@
       pfWithApp: "With the coach",
       pfWinrate: "Win rate",
       pfHours: "Hours with the coach",
+      pfNoName: "Player",
       pfRating: "Rating",
       pfRatingNone: "Enter your MMR from Dota to start the graph: every ranked game then moves it.",
       pfRatingMedal: "Estimated from your medal. Enter your MMR from Dota for your own line.",
@@ -69,6 +70,8 @@
       pfWear: "Wear",
       pfWorn: "Worn",
       pfFree: "Free",
+      pfNeedSparks: (n) => `${n} more ${n === 1 ? "spark" : "sparks"}`,
+      pfLockedHint: "Not open yet: see the line above",
       pfNeedLevel: (n) => `From level ${n}`,
       pfNeedAchievement: (name, tier) => `For «${name}», tier ${tier}`,
       pfShopErrors: { not_enough: "Not enough sparks yet.", locked_level: "Your level is too low for it.", locked_achievement: "It comes with an achievement.", owned: "You already have it." },
@@ -77,6 +80,31 @@
         "The coach reads your account from Dota automatically when you play. You can also paste your Friend ID (Dota profile), a steamcommunity.com/profiles/… link or an OpenDota/Dotabuff link.",
       linkPlaceholder: "Friend ID, Steam ID or profile link",
       linkButton: "Link",
+      linkSoon: "Once your account is linked, here you get:",
+      newerMatch: "Newer",
+      olderMatch: "Older",
+      newerMatchHint: (hero) => `The newer match${hero ? ` (${hero})` : ""} · ←`,
+      olderMatchHint: (hero) => `The older match${hero ? ` (${hero})` : ""} · →`,
+      openOnSite: (name) => `Open this match on ${name}`,
+      progressSoon: "Once a few matches are reviewed, here you get:",
+      linkPerks: {
+        matches: [
+          ["target", "every game with its score and what to fix first"],
+          ["skull", "each death: the minute, the place and what was ready to press"],
+          ["swords", "your build next to the pros and players of your rank"]
+        ],
+        progress: [
+          ["trending-up", "your last 10 games against the 10 before"],
+          ["repeat", "the mistakes that repeat, and one focus for the next game"],
+          ["map", "your heroes, your lanes and where you die most"]
+        ],
+        profile: [
+          ["chart-line", "your rating graph and your level"],
+          ["trophy", "achievements and looks for your card"],
+          ["users", "friends by code and a leaderboard"]
+        ]
+      },
+      progressSub: "How your game changes from match to match",
       linkErrors: {
         empty: "Enter a Friend ID, Steam ID or profile link.",
         vanity_url: "Custom links (steamcommunity.com/id/…) can't be resolved. Use your Friend ID from the Dota profile.",
@@ -255,7 +283,7 @@
         spot: "Where deaths repeat"
       },
       mapSpotTitle: (count, place) => `${count} deaths · ${place}`,
-      mapSpotLine: (place, count) => `Most often: ${place} — ${count}`,
+      mapSpotLine: (place, count) => `Most often: ${place} (${count} ${count === 1 ? "death" : "deaths"})`,
       watchMoment: "Watch",
       watchMomentHint: "Copies a Dota console command. Open this match's replay in Dota, press \\ for the console and paste it: the replay jumps to about 10 s before this moment.",
       watchCopied: "Copied: paste in the replay console",
@@ -618,6 +646,7 @@
       pfWithApp: "С тренером",
       pfWinrate: "Процент побед",
       pfHours: "Часов с тренером",
+      pfNoName: "Игрок",
       pfRating: "Рейтинг",
       pfRatingNone: "Введите свой MMR из Доты, чтобы начать график: дальше его двигает каждая рейтинговая игра.",
       pfRatingMedal: "Оценка по медали. Введите свой MMR из Доты — график станет вашим.",
@@ -668,6 +697,8 @@
       pfWear: "Надеть",
       pfWorn: "Надето",
       pfFree: "Бесплатно",
+      pfNeedSparks: (n) => `Ещё ${n} ${plural(n, "искра", "искры", "искр")}`,
+      pfLockedHint: "Пока закрыто: условие написано выше",
       pfNeedLevel: (n) => `С ${n}-го уровня`,
       pfNeedAchievement: (name, tier) => `За награду «${name}», ступень ${tier}`,
       pfShopErrors: { not_enough: "Пока не хватает искр.", locked_level: "Нужен уровень выше.", locked_achievement: "Даётся за награду.", owned: "Уже есть." },
@@ -676,6 +707,31 @@
         "Тренер сам узнаёт ваш аккаунт из Доты, когда вы играете. Можно и вручную: Friend ID из профиля в Доте, ссылка steamcommunity.com/profiles/… или ссылка на OpenDota/Dotabuff.",
       linkPlaceholder: "Friend ID, Steam ID или ссылка на профиль",
       linkButton: "Привязать",
+      linkSoon: "Когда аккаунт привязан, здесь будут:",
+      newerMatch: "Новее",
+      olderMatch: "Старее",
+      newerMatchHint: (hero) => `Более новый матч${hero ? ` (${hero})` : ""} · ←`,
+      olderMatchHint: (hero) => `Более старый матч${hero ? ` (${hero})` : ""} · →`,
+      openOnSite: (name) => `Открыть этот матч на ${name}`,
+      progressSoon: "Когда разобранных матчей станет больше, здесь будут:",
+      linkPerks: {
+        matches: [
+          ["target", "все ваши игры с оценкой и тем, что исправить в первую очередь"],
+          ["skull", "каждая смерть: минута, место и что было готово к нажатию"],
+          ["swords", "ваш билд рядом с про-игроками и игроками вашего ранга"]
+        ],
+        progress: [
+          ["trending-up", "последние 10 игр против 10 игр до них"],
+          ["repeat", "ошибки, которые повторяются, и один фокус на следующую игру"],
+          ["map", "ваши герои, ваши линии и где вы умираете чаще всего"]
+        ],
+        profile: [
+          ["chart-line", "график рейтинга и ваш уровень"],
+          ["trophy", "награды и оформление вашей карточки"],
+          ["users", "друзья по коду и таблица лидеров"]
+        ]
+      },
+      progressSub: "Как меняется ваша игра от матча к матчу",
       linkErrors: {
         empty: "Введите Friend ID, Steam ID или ссылку на профиль.",
         vanity_url: "Короткие ссылки (steamcommunity.com/id/…) не распознать. Возьмите Friend ID из профиля в Доте.",
@@ -854,7 +910,7 @@
         spot: "Место, где умираете снова"
       },
       mapSpotTitle: (count, place) => `${count} ${plural(count, "смерть", "смерти", "смертей")} · ${place}`,
-      mapSpotLine: (place, count) => `Чаще всего: ${place} — ${count}`,
+      mapSpotLine: (place, count) => `Чаще всего: ${place} (${count} ${plural(count, "смерть", "смерти", "смертей")})`,
       watchMoment: "Смотреть",
       watchMomentHint: "Копирует команду консоли Доты. Откройте запись этого матча в Доте, нажмите \\ (консоль) и вставьте: запись перемотается примерно за 10 с до этого момента.",
       watchCopied: "Скопировано: вставьте в консоль записи",
@@ -1306,6 +1362,14 @@
     return value === null || value === undefined ? "—" : Math.round(value).toLocaleString(state.locale);
   }
 
+  // A fraction the way the player reads it: «7,5» in Russian, «7.5» in English.
+  function decimal(value, digits = 1) {
+    if (value === null || value === undefined || !Number.isFinite(Number(value))) {
+      return "—";
+    }
+    return Number(value).toLocaleString(state.locale, { minimumFractionDigits: digits, maximumFractionDigits: digits });
+  }
+
   function h(tag, attrs = {}, ...children) {
     const node = document.createElement(tag);
     for (const [key, value] of Object.entries(attrs || {})) {
@@ -1410,10 +1474,11 @@
     return h("details", { class: "explain no-print" }, h("summary", {}, icon("circle-help"), h("span", { text: t("explainTitle") })), h("p", { text: t(key) }));
   }
 
+  // The letter next to the score ring: the ring already carries the colour, so
+  // no third signal (a coloured dot) for the same value.
   function gradeLetter(score) {
     const letter = score >= 80 ? "A" : score >= 65 ? "B" : score >= 50 ? "C" : "D";
-    const tone = score >= 65 ? "good" : score >= 50 ? "warn" : "bad";
-    return h("span", { class: "grade" }, h("span", { class: "dot", "data-tone": tone }), h("span", { text: letter }));
+    return h("span", { class: "grade", text: letter });
   }
 
   // --- navigation -------------------------------------------------------------
@@ -1467,7 +1532,14 @@
 
   // --- account ----------------------------------------------------------------
 
-  function linkPanel() {
+  // The tab's title and the link form, with what the tab will show once linked.
+  function linkPage(view) {
+    const titles = { matches: ["matchesTitle", "matchesSub"], progress: ["progressTitle", "progressSub"], profile: ["pfTitle", "pfSub"] };
+    const [title, sub] = titles[view] || titles.matches;
+    return [pageHead(t(title), t(sub)), linkPanel(view)];
+  }
+
+  function linkPanel(view) {
     const input = h("input", { class: "input input-lg", type: "text", placeholder: t("linkPlaceholder"), "aria-label": t("linkPlaceholder"), autocomplete: "off", spellcheck: "false" });
     const error = h("p", { class: "form-error", role: "alert", text: state.linkError });
     const button = h("button", { class: "btn btn-primary", type: "submit" }, icon("link"), h("span", { text: t("linkButton") }));
@@ -1511,8 +1583,22 @@
             )
           : null,
         form,
-        error
+        error,
+        linkPerks(view)
       )
+    );
+  }
+
+  function linkPerks(view, heading = "linkSoon") {
+    const perks = t(`linkPerks.${view}`);
+    if (!Array.isArray(perks)) {
+      return null;
+    }
+    return h(
+      "div",
+      { class: "link-perks" },
+      h("p", { class: "link-perks-title", text: t(heading) }),
+      h("ul", {}, perks.map(([name, text]) => h("li", {}, icon(name), h("span", { text }))))
     );
   }
 
@@ -1668,7 +1754,7 @@
       return;
     }
     if (!state.player.linked) {
-      root.replaceChildren(linkPanel());
+      root.replaceChildren(...linkPage("matches"));
       hydrate(root);
       return;
     }
@@ -1996,6 +2082,43 @@
     }
   }
 
+  // The match next to the open one in the list the player came from (newest
+  // first): step -1 = newer, +1 = older. Null when the review was opened from
+  // elsewhere and the match is not in the loaded list, or at its end.
+  function neighbourMatch(step) {
+    const index = state.matches.findIndex((row) => String(row.match_id) === state.matchId);
+    return index < 0 ? null : state.matches[index + step] || null;
+  }
+
+  // «‹ Newer · Older ›» next to «Back»: several reviews in a row without the list.
+  function neighbourButtons() {
+    if (!state.matches.some((row) => String(row.match_id) === state.matchId)) {
+      return null;
+    }
+    const button = (step, iconName, label, hint) => {
+      const row = neighbourMatch(step);
+      const parts = [h("span", { text: label })];
+      parts[step < 0 ? "unshift" : "push"](icon(iconName));
+      return h(
+        "button",
+        {
+          class: "btn btn-ghost btn-sm",
+          type: "button",
+          disabled: !row,
+          title: row ? hint(row.hero || "") : "",
+          onclick: () => row && openMatch(row.match_id)
+        },
+        parts
+      );
+    };
+    return h(
+      "span",
+      { class: "neighbour-nav" },
+      button(-1, "chevron-left", t("newerMatch"), (hero) => t("newerMatchHint", hero)),
+      button(1, "chevron-right", t("olderMatch"), (hero) => t("olderMatchHint", hero))
+    );
+  }
+
   function drawMatch() {
     const root = document.getElementById("match-root");
     const backButton = h("button", { class: "btn btn-ghost btn-sm back", type: "button", onclick: () => setView("matches") }, icon("chevron-left"), h("span", { text: t("back") }));
@@ -2004,7 +2127,7 @@
     const back = h(
       "div",
       { class: "review-toolbar no-print" },
-      backButton,
+      h("span", { class: "review-nav" }, backButton, neighbourButtons()),
       detail && detail.analysis
         ? h("span", { class: "toolbar-actions" }, shareButton(sharePanel, detail), pdfButton("match"))
         : null
@@ -2099,6 +2222,21 @@
     root.querySelectorAll("[data-chart='map-empty']").forEach((host) => drawMap(host, {}));
   }
 
+  // «OpenDota · Dotabuff · STRATZ»: the same match on the sites players use.
+  function matchSiteLinks(matchId) {
+    if (!/^\d{1,20}$/.test(String(matchId ?? "")) || typeof api.openMatchSite !== "function") {
+      return null;
+    }
+    const sites = [["opendota", "OpenDota"], ["dotabuff", "Dotabuff"], ["stratz", "STRATZ"]];
+    return h(
+      "span",
+      { class: "site-links no-print" },
+      sites.map(([site, name]) =>
+        h("button", { class: "site-link", type: "button", title: t("openOnSite", name), onclick: () => api.openMatchSite(site, String(matchId)) }, h("span", { text: name }), icon("external-link"))
+      )
+    );
+  }
+
   function reviewHeader(detail, analysis, summary) {
     const headline = (analysis && analysis.headline) || {};
     const win = headline.win ?? summary.win;
@@ -2152,7 +2290,7 @@
           "div",
           { class: "review-title" },
           h("h2", { class: "review-hero", text: headline.hero || summary.hero || "—" }),
-          h("p", { class: "review-meta" }, resultBadge(win), h("span", { class: "muted", text: `· ${relativeTime(summary.start_time)} · #${detail.match_id}` })),
+          h("p", { class: "review-meta" }, resultBadge(win), h("span", { class: "muted", text: `· ${relativeTime(summary.start_time)} · #${detail.match_id}` }), matchSiteLinks(detail.match_id)),
           h("p", { class: "review-source" }, icon(analysis && analysis.parsed ? "circle-check" : "info"), h("span", { text: sourceText })),
           statusText ? h("p", { class: "muted small", text: statusText }) : null,
           baselineLine(detail.baseline),
@@ -2662,10 +2800,10 @@
       return "—";
     }
     if (key === "kda" || key === "lh_per_min") {
-      return Number(value).toFixed(1);
+      return decimal(value);
     }
     if (key === "deaths") {
-      return Number(value).toFixed(Number.isInteger(value) ? 0 : 1);
+      return Number.isInteger(value) ? number(value) : decimal(value);
     }
     return number(value);
   }
@@ -2683,8 +2821,7 @@
   }
 
   function percent1(value) {
-    const text = `${Number(value).toFixed(1)}%`;
-    return state.locale === "ru" ? text.replace(".", ",") : text;
+    return `${decimal(value)}%`;
   }
 
   function signedPercent(value) {
@@ -2780,10 +2917,25 @@
     return h(
       "span",
       { class: "toolbar-actions no-print" },
+      // Icon buttons with their names as tooltips: two worded buttons squeezed
+      // the card's title («Сравнение с другом») onto two lines.
       data.state !== "loading"
-        ? h("button", { class: "btn btn-ghost btn-sm", type: "button", disabled: busy, onclick: () => loadFriend("friendRefresh") }, icon("refresh-cw"), h("span", { text: busy ? t("friendUpdating") : t("friendRefresh") }))
+        ? h("button", {
+            class: "btn btn-ghost btn-sm btn-icon",
+            type: "button",
+            disabled: busy,
+            title: busy ? t("friendUpdating") : t("friendRefresh"),
+            "aria-label": busy ? t("friendUpdating") : t("friendRefresh"),
+            onclick: () => loadFriend("friendRefresh")
+          }, icon("refresh-cw"))
         : null,
-      h("button", { class: "btn btn-ghost btn-sm", type: "button", onclick: () => loadFriend("friendRemove").then(() => loadFriend()) }, icon("x"), h("span", { text: t("friendChange") }))
+      h("button", {
+        class: "btn btn-ghost btn-sm btn-icon",
+        type: "button",
+        title: t("friendChange"),
+        "aria-label": t("friendChange"),
+        onclick: () => loadFriend("friendRemove").then(() => loadFriend())
+      }, icon("x"))
     );
   }
 
@@ -2794,7 +2946,7 @@
     if (key === "win_rate") {
       return `${value}%`;
     }
-    return ["kills", "deaths", "assists", "lh_per_min"].includes(key) ? Number(value).toFixed(1) : number(value);
+    return ["kills", "deaths", "assists", "lh_per_min"].includes(key) ? decimal(value) : number(value);
   }
 
   function renderFriend() {
@@ -4125,7 +4277,7 @@
       await refreshPlayer();
     }
     if (!state.player?.linked) {
-      root.replaceChildren(linkPanel());
+      root.replaceChildren(...linkPage("profile"));
       hydrate(root);
       return;
     }
@@ -4182,11 +4334,13 @@
   function profileHeader(profile) {
     const player = profile.player || {};
     const level = profile.level || { level: 1, into: 0, need: 300 };
-    const name = player.name || "Wardly";
-    const initials = name.trim().slice(0, 2).toUpperCase();
+    // No Steam name yet (the account was linked by hand and OpenDota has not
+    // answered): a plain «Player» and the person icon, never the app's name.
+    const name = player.name || t("pfNoName");
+    const initials = player.name ? h("span", { class: "pf-initials", text: name.trim().slice(0, 2).toUpperCase() }) : h("span", { class: "pf-initials" }, h("i", { "data-icon": "user", "data-size": "28", "aria-hidden": "true" }));
     const worn = profile.equipped || {};
     const shopItem = (id) => (profile.shop || []).find((item) => item.id === id);
-    const avatar = h("div", { class: "pf-avatar" }, h("span", { class: "pf-initials", text: initials }));
+    const avatar = h("div", { class: "pf-avatar" }, initials);
     if (player.avatar_url && /^https:\/\//.test(player.avatar_url)) {
       const img = h("img", { src: player.avatar_url, alt: "", referrerpolicy: "no-referrer" });
       img.addEventListener("error", () => img.remove());
@@ -4238,12 +4392,21 @@
       "trophy",
       h(
         "div",
-        { class: "tiles" },
+        { class: "tiles tiles-compact" },
         tile(t("pfGames"), String(stats.app_games ?? 0)),
         tile(t("pfWinrate"), stats.app_winrate === null || stats.app_winrate === undefined ? "—" : `${stats.app_winrate}%`),
-        tile(t("pfHours"), String(stats.app_hours ?? 0))
+        tile(t("pfHours"), hoursText(stats.app_hours))
       )
     );
+  }
+
+  // 0 → «0», 2.5 → «2,5», 37.4 → «37».
+  function hoursText(value) {
+    const hours = Number(value) || 0;
+    if (hours <= 0) {
+      return "0";
+    }
+    return hours >= 10 ? number(Math.round(hours)) : decimal(hours);
   }
 
   function ratingCard(rating) {
@@ -4332,7 +4495,7 @@
     } else if (!data.enabled) {
       parts.push(
         h("p", { class: "muted", text: t("pfFriendsOff") }),
-        h("button", { class: "btn btn-primary", type: "button", text: t("pfFriendsShow"), onclick: () => loadFriends({ op: "enable" }) })
+        h("button", { class: "btn btn-primary", type: "button", onclick: () => loadFriends({ op: "enable" }) }, icon("users"), h("span", { text: t("pfFriendsShow") }))
       );
     } else {
       const copied = (what) => async () => {
@@ -4455,11 +4618,22 @@
               button = h("button", { class: "btn btn-sm", type: "button", disabled: true, text: t("pfWorn") });
             } else if (item.owned) {
               button = h("button", { class: "btn btn-sm", type: "button", text: t("pfWear"), onclick: () => act("shopEquip", item.id) });
+            } else if (item.locked) {
+              // Closed by a level or an achievement: a lock with the price, not a «Buy» that does nothing.
+              button = h(
+                "button",
+                { class: "btn btn-sm pf-shop-closed", type: "button", disabled: true, title: t("pfLockedHint") },
+                icon("lock"),
+                h("span", { text: item.price ? String(item.price) : t("pfFree") })
+              );
+            } else if (!item.affordable) {
+              // How many sparks are missing, instead of a dimmed «Buy».
+              const missing = Math.max(1, (item.price || 0) - (profile.sparks?.balance ?? 0));
+              button = h("button", { class: "btn btn-sm pf-shop-closed", type: "button", disabled: true, text: t("pfNeedSparks", missing) });
             } else {
               button = h("button", {
                 class: "btn btn-sm btn-primary",
                 type: "button",
-                disabled: !item.affordable || Boolean(item.locked),
                 text: item.price ? t("pfBuy", item.price) : t("pfFree"),
                 onclick: () => act("shopBuy", item.id)
               });
@@ -4488,7 +4662,7 @@
       return h("div", { class: `pf-preview pf-banner mini ${cls}` });
     }
     if (item.kind === "name") {
-      return h("div", { class: "pf-preview" }, h("span", { class: `pf-name mini ${cls}`, text: profile.player?.name || "Wardly" }));
+      return h("div", { class: "pf-preview" }, h("span", { class: `pf-name mini ${cls}`, text: profile.player?.name || t("pfNoName") }));
     }
     return h("div", { class: "pf-preview" }, h("span", { class: `pf-title ${cls}`, text: item.id === "title_none" ? "—" : item.name }));
   }
@@ -4506,7 +4680,8 @@
           return h(
             "li",
             { class: `pf-badge tier-${badge.tier}${badge.done ? " done" : ""}` },
-            h("div", { class: "pf-badge-medal", "aria-hidden": "true" }, h("span", { text: badge.tier ? String(badge.tier) : "·" })),
+            // No tier yet: an empty medal slot with a dim cup, not a stray dot.
+            h("div", { class: "pf-badge-medal", "aria-hidden": "true" }, badge.tier ? h("span", { text: String(badge.tier) }) : icon("trophy")),
             h(
               "div",
               { class: "pf-badge-body" },
@@ -4539,7 +4714,7 @@
       await refreshPlayer();
     }
     if (!state.player?.linked) {
-      root.replaceChildren(linkPanel());
+      root.replaceChildren(...linkPage("progress"));
       hydrate(root);
       return;
     }
@@ -4719,7 +4894,8 @@
     const career = state.career;
     if (!career || !career.matches) {
       root.replaceChildren(
-        card(t("tiles.winrate"), "chart-line", emptyState("chart-line", t("progressEmptyTitle"), t("progressEmptyHint"))),
+        pageHead(t("progressTitle"), t("progressSub")),
+        h("section", { class: "card" }, h("div", { class: "card-body" }, emptyState("chart-line", t("progressEmptyTitle"), t("progressEmptyHint")), linkPerks("progress", "progressSoon"))),
         (career && coachCard(career.coach, "career")) || ""
       );
       hydrate(root);
@@ -4733,7 +4909,7 @@
       "div",
       { class: "tiles" },
       tile(t("tiles.winrate"), career.winrate == null ? "—" : `${career.winrate}%`, trendDelta(trend, "winrate", (v) => `${Math.round(v)}%`), streakText || t("recordLine", career.wins, career.losses, career.matches)),
-      tile(t("tiles.kda"), avg.kda == null ? "—" : avg.kda.toFixed(1), trendDelta(trend, "kda", (v) => v.toFixed(1))),
+      tile(t("tiles.kda"), decimal(avg.kda), trendDelta(trend, "kda", (v) => decimal(v))),
       tile(t("tiles.gpm"), number(avg.gpm), trendDelta(trend, "gpm", (v) => Math.round(v))),
       tile(t("tiles.lh10"), number(avg.lh_10), trendDelta(trend, "lh_10", (v) => Math.round(v))),
       tile(t("tiles.score"), avg.score == null ? "—" : String(Math.round(avg.score)), trendDelta(trend, "score", (v) => Math.round(v)))
@@ -4827,7 +5003,8 @@
             { class: "table-wrap" },
             h(
               "table",
-              { class: "table" },
+              // Headers wrap («На вашем / ранге»): seven columns fit the main column without a sideways scroll.
+              { class: "table table-wrapping" },
               h("thead", {}, h("tr", {}, h("th", { text: t("colHero") }), h("th", { class: "num-col", text: t("colMatches") }), h("th", { class: "num-col", text: t("colWinrate") }), h("th", { class: "num-col", text: t("colBracket"), title: career.rank_bracket_label ? t("bracketHint", career.rank_bracket_label) : "" }), h("th", { class: "num-col hide-narrow", text: "KDA" }), h("th", { class: "num-col hide-narrow", text: t("colGpm") }), h("th", { class: "num-col", text: t("colScore") }))),
               h(
                 "tbody",
@@ -4839,8 +5016,8 @@
                     h("td", {}, heroLabel(hero.hero_id || hero.hero, hero.hero)),
                     h("td", { class: "num-col num", text: String(hero.matches) }),
                     h("td", { class: "num-col num", text: hero.winrate == null ? "—" : `${hero.winrate}%` }),
-                    h("td", { class: "num-col num muted", text: hero.bracket_winrate == null ? "—" : `${hero.bracket_winrate}%` }),
-                    h("td", { class: "num-col num hide-narrow", text: hero.kda == null ? "—" : hero.kda.toFixed(1) }),
+                    h("td", { class: "num-col num muted", text: hero.bracket_winrate == null ? "—" : percent1(hero.bracket_winrate) }),
+                    h("td", { class: "num-col num hide-narrow", text: decimal(hero.kda) }),
                     h("td", { class: "num-col num hide-narrow", text: number(hero.gpm) }),
                     h("td", { class: "num-col num", text: hero.score == null ? "—" : String(Math.round(hero.score)) })
                   )
@@ -5421,6 +5598,38 @@
       const next = tabs[(index + (event.key === "ArrowRight" ? 1 : tabs.length - 1)) % tabs.length];
       next.focus();
       setView(next.dataset.view);
+    });
+    // Keyboard: Ctrl+1…5 opens a tab, Esc leaves a match review for the list,
+    // ←/→ in a review open the newer / older match of the list.
+    // Never while typing, and never under the first-run tour (it owns Esc).
+    document.addEventListener("keydown", (event) => {
+      if (event.defaultPrevented || event.altKey || event.metaKey || document.querySelector(".tour")) {
+        return;
+      }
+      if (event.target?.closest?.("input, textarea, select, [contenteditable='true']")) {
+        return;
+      }
+      if (event.ctrlKey && !event.shiftKey && /^[1-5]$/.test(event.key)) {
+        const tab = document.querySelectorAll(".tabs [data-view]")[Number(event.key) - 1];
+        if (tab) {
+          event.preventDefault();
+          tab.focus();
+          setView(tab.dataset.view);
+        }
+      } else if (event.key === "Escape" && !event.ctrlKey && state.view === "match") {
+        event.preventDefault();
+        setView("matches");
+      } else if ((event.key === "ArrowLeft" || event.key === "ArrowRight") && !event.ctrlKey && !event.shiftKey && state.view === "match") {
+        // ← newer, → older; the tabs and the charts keep their own arrows.
+        if (event.target?.closest?.(".tabs")) {
+          return;
+        }
+        const row = neighbourMatch(event.key === "ArrowLeft" ? -1 : 1);
+        if (row) {
+          event.preventDefault();
+          openMatch(row.match_id);
+        }
+      }
     });
     api.onPlayerEvent?.((event) => {
       if (event.type === "open-match" && event.matchId) {

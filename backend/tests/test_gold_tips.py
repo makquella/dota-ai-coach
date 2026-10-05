@@ -255,3 +255,16 @@ def test_the_spawn_tick_of_the_pre_game_is_not_a_death(client):
     from app.gsi_state import get_current_state
 
     assert get_current_state()["state"]["extra_context"]["alive"] is False
+
+
+def test_a_start_item_bought_twice_carries_its_count_for_the_icon():
+    tips = _tips(-80, lambda clock: [], -60)
+    start = [
+        {"key": "branches", "name": "Iron Branch ×2", "count": 2},
+        {"key": "tango", "name": "Tango", "count": 1},
+    ]
+    hint = tips.tip(-60, "en", gold=600, alive=True, role="mid", start_items=start)
+    assert hint["items"] == [
+        {"key": "branches", "name": "Iron Branch ×2", "count": 2},
+        {"key": "tango", "name": "Tango"},
+    ]

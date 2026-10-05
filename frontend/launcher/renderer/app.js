@@ -72,6 +72,7 @@ const I18N = {
     statStage: "Phase",
     statData: "Link to the game",
     dataFresh: (s) => `updated ${s} s ago`,
+    dataFreshNow: "updated just now",
     matchEmptyTitle: "No match right now",
     matchEmptyHint: "Hero and time show up here when a match starts.",
     offlineTitle: "The coach is not running",
@@ -106,13 +107,24 @@ const I18N = {
     skillArrowsTitle: "Arrows over your abilities",
     skillArrowsCalibrate: "Fine-tune",
     skillArrowsHint: {
-      on: "When a skill point is due, an arrow points at the ability right on Dota's bar. It finds the icons by itself (Full HD, 2K, 4K); «Fine-tune» only if it misses.",
+      on: "With a skill point to spend, an arrow points at the ability right on Dota's bar and finds the icons by itself. «Fine-tune» if it misses.",
       manual: "On, with your own frame. «Fine-tune» → «Automatic» goes back to finding the icons by itself.",
       off: "Off. The card still names the ability to level."
     },
     overlayTimersHint: "Always under the card: how long until the next runes, stacks, Roshan and Aegis for your role",
     overlayCompact: "Short advice",
     overlayCompactHint: "Only what to do, without the reason: less to read during a fight",
+    hotkeysTitle: "Hotkeys",
+    hotkeysGame: "In the game",
+    hotkeysApp: "In this window",
+    hotkeyTabs: "Home, Matches, Progress, Profile, Settings",
+    hotkeyBack: "From a match review back to the list",
+    hotkeyNeighbour: "In a match review: the newer / the older match",
+    hotkeyToggle: "Turn the advice card on or off",
+    hotkeyRepeat: "Show (and say) the last advice again",
+    hotkeyMute: "No advice for 5 minutes",
+    hotkeyMove: "Unlock the card to drag it, press again to lock",
+    hotkeyPlace: "The card on the left / on the right / at the bottom",
     sizeSmall: "Small",
     sizeNormal: "Normal",
     sizeLarge: "Large",
@@ -337,6 +349,12 @@ const I18N = {
     tourHint: "A short tour of the app, one minute",
     tourStart: "Show",
     whatsNew: {
+      "0.44.0": [
+        "Reviews in a row: «‹ Newer · Older ›» next to «Matches», or the ← and → keys. Every review also links the match on OpenDota, Dotabuff and STRATZ.",
+        "Hotkeys: Ctrl+1…5 open the tabs, Esc goes back to the match list; the whole list is in Settings → «Hotkeys». The tray menu opens your latest review.",
+        "Urgent advice on the card is red now, and while you move the card it shows a sample advice of the real size.",
+        "Numbers as you read them, chart tooltips that close, a tidier Progress and Profile, and tabs that say what they will show before your account is linked."
+      ],
       "0.43.2": [
         "Skill arrows find the ability icons by themselves (Full HD, 2K, 4K) and point at the «+» button to press; a hero with more abilities, or a new one from Aghanim's or the Shard, needs nothing. «Fine-tune» stays for another HUD.",
         "No more «plan a safer route» card before the horn: the moment the hero appears on the map is no death."
@@ -791,6 +809,7 @@ const I18N = {
     statStage: "Этап",
     statData: "Связь с игрой",
     dataFresh: (s) => `обновлено ${s} с назад`,
+    dataFreshNow: "обновлено только что",
     matchEmptyTitle: "Матч не идёт",
     matchEmptyHint: "Герой и время появятся здесь, когда начнётся матч.",
     offlineTitle: "Тренер не запущен",
@@ -825,13 +844,24 @@ const I18N = {
     skillArrowsTitle: "Стрелки над навыками",
     skillArrowsCalibrate: "Подправить",
     skillArrowsHint: {
-      on: "Когда есть очко навыка, стрелка показывает на способность прямо на панели Доты. Иконки она находит сама (Full HD, 2K, 4K); «Подправить» — только если промахивается.",
+      on: "Когда есть очко навыка, стрелка показывает на способность прямо на панели Доты и сама находит иконки. «Подправить» — если промахивается.",
       manual: "Включено, со своей рамкой. «Подправить» → «Автоматически» вернёт поиск иконок самой стрелкой.",
       off: "Выключено. Карточка всё равно называет способность."
     },
     overlayTimersHint: "Всегда под карточкой: сколько осталось до ближайших рун, стаков, Рошана и Аегиса для вашей роли",
     overlayCompact: "Короткие подсказки",
     overlayCompactHint: "Только что делать, без объяснения: меньше читать во время драки",
+    hotkeysTitle: "Горячие клавиши",
+    hotkeysGame: "В игре",
+    hotkeysApp: "В этом окне",
+    hotkeyTabs: "Главная, Матчи, Прогресс, Профиль, Настройки",
+    hotkeyBack: "Из разбора матча обратно к списку",
+    hotkeyNeighbour: "В разборе матча: более новый / более старый матч",
+    hotkeyToggle: "Включить или выключить карточку с подсказками",
+    hotkeyRepeat: "Показать (и озвучить) последний совет ещё раз",
+    hotkeyMute: "Без подсказок на 5 минут",
+    hotkeyMove: "Открепить карточку, чтобы перетащить; ещё раз — закрепить",
+    hotkeyPlace: "Карточка слева / справа / снизу",
     sizeSmall: "Мелкий",
     sizeNormal: "Обычный",
     sizeLarge: "Крупный",
@@ -1056,6 +1086,12 @@ const I18N = {
     tourHint: "Короткая экскурсия по приложению, на минуту",
     tourStart: "Показать",
     whatsNew: {
+      "0.44.0": [
+        "Разборы подряд: «‹ Новее · Старее ›» рядом с «Матчи» или клавиши ← и →. В каждом разборе есть ссылки на этот матч на OpenDota, Dotabuff и STRATZ.",
+        "Горячие клавиши: Ctrl+1…5 открывают вкладки, Esc возвращает к списку матчей; весь список — в «Настройки → Горячие клавиши». В меню в трее — разбор последнего матча.",
+        "Срочный совет на карточке теперь красный, а пока вы перемещаете карточку, на ней виден пример совета настоящего размера.",
+        "Числа записаны как принято (7,5), подсказки на графиках закрываются, «Прогресс» и «Профиль» аккуратнее, а вкладки до привязки аккаунта рассказывают, что на них будет."
+      ],
       "0.43.2": [
         "Стрелки над навыками сами находят иконки способностей (Full HD, 2K, 4K) и показывают на кнопку «+», которую нужно нажать. У героя с другим числом способностей и после новой способности от аганима или шарда ничего настраивать не нужно. «Подправить» осталось на случай другого интерфейса.",
         "Больше нет карточки «спланируйте безопасный маршрут» до горна: появление героя на карте — не смерть."
@@ -2515,8 +2551,9 @@ function isOffline(status) {
 function renderService(status) {
   const state = status.backend || "stopped";
   els.service.dataset.state = state;
-  const port = status.backendPort && state === "running" ? ` · :${status.backendPort}` : "";
-  els.serviceText.textContent = `${tr("service")} ${tr(`serviceStates.${state}`)}${port}`;
+  // The port is a developer's detail (also under «Для разработчика»): a tooltip here.
+  els.serviceText.textContent = `${tr("service")} ${tr(`serviceStates.${state}`)}`;
+  els.service.title = status.backendPort && state === "running" ? `127.0.0.1:${status.backendPort}` : "";
 }
 
 function formatClock(seconds) {
@@ -2682,13 +2719,14 @@ function renderMatch(status) {
   }
   els.statClock.textContent = formatClock(live.clockTime) || "—";
   els.statStage.textContent = live.stage && live.stage !== "unknown" ? stageLabel(live.stage) : "—";
-  const seconds = Number.isFinite(live.secondsSinceLastGsi) ? live.secondsSinceLastGsi.toFixed(1) : null;
+  // Whole seconds: Dota sends data several times a second, «0.4 s» says nothing more.
+  const seconds = Number.isFinite(live.secondsSinceLastGsi) ? Math.round(live.secondsSinceLastGsi) : null;
   const dot = document.createElement("span");
   dot.className = "dot";
   dot.dataset.tone = live.connected ? "ok" : "warn";
   const text = document.createElement("span");
   text.className = "num";
-  text.textContent = seconds === null ? "—" : tr("dataFresh", seconds);
+  text.textContent = seconds === null ? "—" : seconds < 2 ? tr("dataFreshNow") : tr("dataFresh", seconds);
   els.statData.replaceChildren(dot, text);
 }
 

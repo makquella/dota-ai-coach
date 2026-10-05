@@ -47,5 +47,5 @@ backend/.venv/bin/python scripts/site-shots/game_frames.py /tmp/site-shots/raw
   overlay sits, at the large card size) and the 21 carry portraits.
 
 After a reshoot bump `SHOTS_VERSION` in `site/app.js` and the matching `?v=` of the
-`assets/{app,overlay,shots}/` pictures in `site/index.html`: the site sends pictures
+`assets/{app,overlay,shots}/` pictures and the in-game view in `site/index.html`: the site sends pictures
 with a 4-hour cache, so returning visitors would see the old ones otherwise.

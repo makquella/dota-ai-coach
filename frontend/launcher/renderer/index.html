@@ -260,6 +260,23 @@
               </span>
               <input id="overlay-compact" type="checkbox" class="switch" role="switch" />
             </label>
+            <details class="explain hotkeys">
+              <summary><i data-icon="circle-help"></i><span data-i18n="hotkeysTitle">Hotkeys</span></summary>
+              <p class="hotkeys-group" data-i18n="hotkeysGame">In the game</p>
+              <dl class="hotkeys-list">
+                <div><dt><kbd>Ctrl+Alt+O</kbd></dt><dd data-i18n="hotkeyToggle">Turn the advice card on or off</dd></div>
+                <div><dt><kbd>Ctrl+Alt+R</kbd></dt><dd data-i18n="hotkeyRepeat">Show (and say) the last advice again</dd></div>
+                <div><dt><kbd>Ctrl+Alt+M</kbd></dt><dd data-i18n="hotkeyMute">No advice for 5 minutes</dd></div>
+                <div><dt><kbd>Ctrl+Alt+L</kbd></dt><dd data-i18n="hotkeyMove">Unlock the card to drag it, press again to lock</dd></div>
+                <div><dt><kbd>Ctrl+Alt+1 / 2 / 3</kbd></dt><dd data-i18n="hotkeyPlace">The card on the left / on the right / at the bottom</dd></div>
+              </dl>
+              <p class="hotkeys-group" data-i18n="hotkeysApp">In this window</p>
+              <dl class="hotkeys-list">
+                <div><dt><kbd>Ctrl+1 … 5</kbd></dt><dd data-i18n="hotkeyTabs">Home, Matches, Progress, Profile, Settings</dd></div>
+                <div><dt><kbd>Esc</kbd></dt><dd data-i18n="hotkeyBack">From a match review back to the list</dd></div>
+                <div><dt><kbd>← / →</kbd></dt><dd data-i18n="hotkeyNeighbour">In a match review: the newer / the older match</dd></div>
+              </dl>
+            </details>
           </div>
         </section>
         <section class="card" id="advice-settings-card" aria-labelledby="advice-settings-card-heading">
@@ -320,13 +337,13 @@
               </span>
               <input id="overlay-timers" type="checkbox" class="switch" role="switch" />
             </label>
-            <div class="setting setting-wrap">
+            <div class="setting">
               <span class="setting-text">
                 <span class="setting-title" id="skill-arrows-title" data-i18n="skillArrowsTitle">Arrows over your abilities</span>
                 <span class="setting-hint" id="skill-arrows-hint"></span>
               </span>
               <div class="setting-controls">
-                <button id="skill-arrows-calibrate" class="btn" type="button"><i data-icon="target"></i><span data-i18n="skillArrowsCalibrate">Fine-tune</span></button>
+                <button id="skill-arrows-calibrate" class="btn btn-ghost btn-sm" type="button"><i data-icon="target"></i><span data-i18n="skillArrowsCalibrate">Fine-tune</span></button>
                 <input id="skill-arrows" type="checkbox" class="switch" role="switch" aria-labelledby="skill-arrows-title" />
               </div>
             </div>
