@@ -2917,16 +2917,33 @@
           "div",
           { class: "chips" },
           skills.order.map((name, index) =>
-            h("span", { class: `chip ${name === skills.yours ? "chip-on" : ""}` }, h("span", { class: "num", text: `${index + 1}` }), h("span", { text: name }))
+            h(
+              "span",
+              { class: `chip chip-skill ${name === skills.yours ? "chip-on" : ""}` },
+              h("span", { class: "num", text: `${index + 1}` }),
+              abilityIcon((skills.keys || [])[index], name),
+              h("span", { text: name })
+            )
           )
         ),
         // The player's first skill when the pros rarely max it: shown apart, marked.
         skills.in_order === false || !skills.order.includes(skills.yours)
-          ? h("div", { class: "chips" }, h("span", { class: "muted small", text: t("skillsYours") }), h("span", { class: "chip chip-on" }, h("span", { text: skills.yours })))
+          ? h(
+              "div",
+              { class: "chips" },
+              h("span", { class: "muted small", text: t("skillsYours") }),
+              h("span", { class: "chip chip-skill chip-on" }, abilityIcon(skills.yours_key, skills.yours), h("span", { text: skills.yours }))
+            )
           : null,
         h("p", { class: "muted small", text: t("skillsNote", skills.agree, skills.games) })
       )
     );
+  }
+
+  // An ability's icon in a chip; nothing when the review has no game name for
+  // it (stored before 0.49) or the icons are not loaded.
+  function abilityIcon(key, name) {
+    return key && window.DotaIcons?.abilityPicture ? window.DotaIcons.abilityPicture(document, key, "xs", name) : null;
   }
 
   function timingLine(timing) {

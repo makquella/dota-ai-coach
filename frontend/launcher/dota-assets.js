@@ -4,7 +4,8 @@ const path = require("node:path");
 // Hero portraits and item icons for the panel and the overlay:
 // dota-asset://hero/juggernaut, dota-asset://hero-icon/juggernaut, dota-asset://item/bfury,
 // dota-asset://hero-crop/juggernaut (the hero to the waist on a transparent
-// background, 400×250: the art of the review header and the current match).
+// background, 400×250: the art of the review header and the current match),
+// dota-asset://ability/juggernaut_blade_fury (the skill tips and the review's skill order).
 // Each picture is downloaded once from Valve's CDN (the same files dota2.com
 // and OpenDota use) and kept on disk, so it works offline afterwards. Without
 // a picture the page shows its text fallback. No Electron imports, so it can
@@ -17,6 +18,8 @@ const KINDS = {
   "hero-icon": "heroes/icons",
   "hero-crop": "heroes/crops",
   item: "items",
+  // An ability's square icon (128×128), by its game name: dota-asset://ability/nevermore_shadowraze1.
+  ability: "abilities",
   // The game's minimap art for the match review's map (dota-asset://map/detailed_740):
   // Valve's picture as OpenDota publishes it (github.com/odota/web, public/assets).
   map: "map"

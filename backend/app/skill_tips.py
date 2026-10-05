@@ -299,14 +299,20 @@ class SkillTips:
         if build and name:
             names = build.get("names") or {}
             key = skills.get("hero_key")
-            order = " → ".join(str(names.get(n) or label(n, key)) for n in build["order"])
+            steps = [{"key": n, "name": str(names.get(n) or label(n, key))} for n in build["order"]]
+            order = " → ".join(step["name"] for step in steps)
             shown = names.get(name) or label(name, key)
             hint = _hint("skill", f"skill-point@{level}", lang, name=shown, order=order)
+            # The order as icons on the card (the text says it in words too).
+            hint["order"] = steps
             return self._arrow(hint, name, shown)
         return _hint("point", f"skill-point@{level}", lang)
 
     def _arrow(self, hint: dict[str, Any], raw_name: str, name: str) -> dict[str, Any]:
-        """The ability's place on the HUD bar: the launcher draws an arrow over it."""
+        """The ability's place on the HUD bar: the launcher draws an arrow over it.
+        `icon` (the ability's game name, Valve's icon file) is there even when
+        the bar slot is not known: the card shows the icon next to the name."""
+        hint["icon"] = raw_name
         slot = ability_slot(self._skills, raw_name)
         if slot is not None:
             hint["ability"] = {"key": raw_name, "name": name, **slot}

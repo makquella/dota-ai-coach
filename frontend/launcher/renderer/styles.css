@@ -4094,6 +4094,23 @@ kbd {
   gap: var(--sp-1) var(--sp-3);
 }
 
+/* Ability icons (dota-icons.js abilityPicture): square, as Dota draws them. */
+.dota-ability.dota-pic-xs {
+  width: 18px;
+  height: 18px;
+  border-radius: 3px;
+}
+
+.dota-ability.dota-pic-sm {
+  width: 24px;
+  height: 24px;
+}
+
+.dota-ability.dota-pic-md {
+  width: 32px;
+  height: 32px;
+}
+
 .chip .dota-item {
   margin-left: -2px;
   border-radius: 3px;

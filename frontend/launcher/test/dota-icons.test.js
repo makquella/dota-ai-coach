@@ -59,3 +59,15 @@ test("pictures point to dota-asset:// and fall back to initials", () => {
   assert.equal(unknown.dataset.fallback, "MH");
   assert.equal(icons.initials("Anti-Mage"), "AM");
 });
+
+test("ability icons point to dota-asset://ability by the game name", () => {
+  const doc = fakeDocument();
+  const box = icons.abilityPicture(doc, "juggernaut_blade_fury", "md", "Blade Fury");
+  assert.equal(box.className, "dota-pic dota-ability dota-pic-md");
+  assert.equal(box.children[0].src, "dota-asset://ability/juggernaut_blade_fury");
+  assert.equal(box.dataset.fallback, "BF");
+  assert.equal(box.title, "Blade Fury");
+  // A name that is no plain game name never reaches the asset handler.
+  const odd = icons.abilityPicture(doc, "../etc/passwd");
+  assert.equal(odd.children.length, 0);
+});
