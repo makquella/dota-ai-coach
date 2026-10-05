@@ -5044,10 +5044,11 @@ tr.row-link[data-result="loss"] > td:first-child {
   background: var(--surface-2);
 }
 
+/* Sparks are the currency: the eye's cream, not the red of the brand bar. */
 .pf-sparks [data-icon],
 .pf-sparks svg {
   grid-row: span 2;
-  color: var(--accent);
+  color: var(--cream);
 }
 
 .pf-sparks-value {
@@ -5237,8 +5238,14 @@ tr.row-link[data-result="loss"] > td:first-child {
   grid-column: 1 / -1;
 }
 
+/* A tier under way in cream (a red bar would read as failing), its spark
+   reward too. */
+.pf-badge-progress .pf-xp-bar > span {
+  background: var(--cream);
+}
+
 .pf-badge-reward {
-  color: var(--accent);
+  color: var(--cream);
 }
 
 
