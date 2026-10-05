@@ -4884,8 +4884,42 @@
     return h("span", { class: `delta delta-${tone}` }, icon(iconName), h("span", { class: "num", text: `${sign}${format(item.delta)}` }), h("span", { class: "muted", text: ` ${t("vsPrevious", trend.window)}` }));
   }
 
-  function tile(label, value, delta, sub) {
-    return h("div", { class: "tile" }, h("p", { class: "tile-label", text: label }), h("p", { class: "tile-value", text: value }), delta || null, sub ? h("p", { class: "tile-sub muted", text: sub }) : null);
+  function tile(label, value, delta, sub, extra) {
+    return h("div", { class: "tile" }, h("p", { class: "tile-label", text: label }), h("p", { class: "tile-value", text: value }), delta || null, sub ? h("p", { class: "tile-sub muted", text: sub }) : null, extra || null);
+  }
+
+  // A tile's last matches at a glance (oldest left): a thin line of the values
+  // the series has, the newest as a dot; decoration, the numbers stay above.
+  function sparkline(values) {
+    const points = values.map((value, index) => [index, value]).filter(([, value]) => Number.isFinite(value));
+    if (points.length < 3) {
+      return null;
+    }
+    const NS = "http://www.w3.org/2000/svg";
+    const svg = document.createElementNS(NS, "svg");
+    svg.setAttribute("class", "spark");
+    svg.setAttribute("viewBox", "0 0 100 24");
+    svg.setAttribute("preserveAspectRatio", "none");
+    svg.setAttribute("aria-hidden", "true");
+    const low = Math.min(...points.map(([, v]) => v));
+    const high = Math.max(...points.map(([, v]) => v));
+    const span = high - low || 1;
+    const last = values.length - 1 || 1;
+    const xy = points.map(([i, v]) => [(i / last) * 100, 21 - ((v - low) / span) * 18]);
+    const line = document.createElementNS(NS, "polyline");
+    line.setAttribute("points", xy.map(([x, y]) => `${x.toFixed(1)},${y.toFixed(1)}`).join(" "));
+    line.setAttribute("class", "spark-line");
+    svg.append(line);
+    return h("div", { class: "spark-wrap" }, svg);
+  }
+
+  // Wins and losses of the last matches as small marks, oldest left.
+  function resultStrip(series) {
+    const known = series.filter((match) => match.win === true || match.win === false);
+    if (known.length < 3) {
+      return null;
+    }
+    return h("div", { class: "result-strip", "aria-hidden": "true" }, known.map((match) => h("span", { dataset: { win: String(match.win) } })));
   }
 
   function careerArgs() {
@@ -5026,16 +5060,17 @@
     }
     const avg = career.averages || {};
     const trend = career.trend || {};
+    const series = career.series || [];
     const streak = career.streak;
     const streakText = streak && streak.length >= 2 ? (streak.win ? t("streakWin", streak.length) : t("streakLoss", streak.length)) : null;
     const tiles = h(
       "div",
       { class: "tiles" },
-      tile(t("tiles.winrate"), career.winrate == null ? "—" : `${career.winrate}%`, trendDelta(trend, "winrate", (v) => `${Math.round(v)}%`), streakText || t("recordLine", career.wins, career.losses, career.matches)),
+      tile(t("tiles.winrate"), career.winrate == null ? "—" : `${career.winrate}%`, trendDelta(trend, "winrate", (v) => `${Math.round(v)}%`), streakText || t("recordLine", career.wins, career.losses, career.matches), resultStrip(series)),
       tile(t("tiles.kda"), decimal(avg.kda), trendDelta(trend, "kda", (v) => decimal(v))),
-      tile(t("tiles.gpm"), number(avg.gpm), trendDelta(trend, "gpm", (v) => Math.round(v))),
-      tile(t("tiles.lh10"), number(avg.lh_10), trendDelta(trend, "lh_10", (v) => Math.round(v))),
-      tile(t("tiles.score"), avg.score == null ? "—" : String(Math.round(avg.score)), trendDelta(trend, "score", (v) => Math.round(v)))
+      tile(t("tiles.gpm"), number(avg.gpm), trendDelta(trend, "gpm", (v) => Math.round(v)), null, sparkline(series.map((match) => match.gpm))),
+      tile(t("tiles.lh10"), number(avg.lh_10), trendDelta(trend, "lh_10", (v) => Math.round(v)), null, sparkline(series.map((match) => match.lh_10))),
+      tile(t("tiles.score"), avg.score == null ? "—" : String(Math.round(avg.score)), trendDelta(trend, "score", (v) => Math.round(v)), null, sparkline(series.map((match) => match.score)))
     );
 
     const chartHost = h("div", { class: "chart-host", dataset: { chart: "career" } });
