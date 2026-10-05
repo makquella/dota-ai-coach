@@ -166,6 +166,19 @@
       zoneCompareHint: "Players of your rank, enemy heroes, a friend",
       zoneHero: "Your main hero",
       zoneHeroHint: "Your best games against your worst, your build",
+      sectionNav: "Page sections",
+      dialogClose: "Close",
+      navFix: "Fix",
+      navStory: "The match",
+      navScores: "Scores",
+      navMap: "Map and items",
+      navTeams: "Teams",
+      navSummary: "Summary",
+      navGoals: "Goals",
+      navCoach: "Coach",
+      navGames: "Games",
+      navCompare: "Comparison",
+      navHero: "Main hero",
       colResult: "Result",
       colHero: "Hero",
       colKda: "K / D / A",
@@ -810,6 +823,19 @@
       zoneCompareHint: "Игроки вашего ранга, вражеские герои, друг",
       zoneHero: "Ваш основной герой",
       zoneHeroHint: "Лучшие игры против худших, ваш билд",
+      sectionNav: "Разделы страницы",
+      dialogClose: "Закрыть",
+      navFix: "Исправить",
+      navStory: "Ход матча",
+      navScores: "Оценки",
+      navMap: "Карта и предметы",
+      navTeams: "Составы",
+      navSummary: "Итоги",
+      navGoals: "Цели",
+      navCoach: "Тренер",
+      navGames: "Матчи",
+      navCompare: "Сравнение",
+      navHero: "Герой",
       colResult: "Итог",
       colHero: "Герой",
       colKda: "У / С / П",
@@ -1304,12 +1330,16 @@
   const VIZ_1 = cssVar("--viz-1", "#3987e5");
   const VIZ_2 = cssVar("--viz-2", "#e5963a");
   const TAB_KEY = "dota-ai-coach.tab";
+  const SORT_KEY = "dota-ai-coach.matches-sort";
+  const SORT_KEYS = ["date", "score", "gpm", "lh_10", "duration", "kda"];
   const api = window.launcherApi;
 
   const state = {
     filter: { heroId: null, result: "all" },
-    // The match table's order: newest first until a column header is clicked.
-    sort: { key: "date", asc: false },
+    // The match table's order: newest first until a column header is clicked
+    // (remembered across restarts, SORT_KEY; the filters are not: a filter left
+    // on would look like missing matches next time).
+    sort: savedSort(),
     careerHero: null,
     heroes: [],
     matchesStats: null,
@@ -1887,6 +1917,18 @@
     };
   }
 
+  function savedSort() {
+    try {
+      const saved = JSON.parse(localStorage.getItem(SORT_KEY) || "null");
+      if (saved && SORT_KEYS.includes(saved.key)) {
+        return { key: saved.key, asc: saved.asc === true };
+      }
+    } catch {
+      // Storage unavailable or garbled: newest first.
+    }
+    return { key: "date", asc: false };
+  }
+
   function sortedByDate() {
     return state.sort.key === "date" && !state.sort.asc;
   }
@@ -1895,6 +1937,11 @@
   // the biggest (the newest for «Played»).
   function setSort(key) {
     state.sort = state.sort.key === key ? { key, asc: !state.sort.asc } : { key, asc: false };
+    try {
+      localStorage.setItem(SORT_KEY, JSON.stringify(state.sort));
+    } catch {
+      // A convenience only.
+    }
     state.matches = [];
     loadMatches();
   }
@@ -2071,7 +2118,8 @@
   // «Поделиться разбором»: a link to the public part of the review (main.js createShare).
   // `kind` "progress": the same panel for the Progress page (main.js keys it "progress").
   function shareButton(panel, detail, kind = "match") {
-    const button = h("button", { class: "btn btn-ghost btn-sm", type: "button", "aria-expanded": "false" }, icon("share-2"), h("span", { text: t("shareButton") }));
+    // The title names it when the sticky bar shows the icon alone.
+    const button = h("button", { class: "btn btn-ghost btn-sm", type: "button", "aria-expanded": "false", title: t("shareButton") }, icon("share-2"), h("span", { text: t("shareButton") }));
     button.addEventListener("click", async () => {
       const open = panel.hidden;
       panel.hidden = !open;
@@ -2168,6 +2216,7 @@
       {
         class: "btn btn-ghost btn-sm",
         type: "button",
+        title: t("pdfSave"),
         onclick: async () => {
           button.disabled = true;
           note.textContent = "";
@@ -2303,23 +2352,29 @@
         // was a wall of lists.
         rest.length ? findingsCard(t("improveTitle"), "target", rest, "", true, detail.repeats, 1) : null,
         askCard(detail)
-      ]));
-      add(main, zone(t("zoneStory"), t("zoneStoryHint"), [chartCard(analysis), laneCard(analysis), deathsCard(analysis), adviceLogCard(analysis)]));
+      ], { id: "fix", label: t("navFix") }));
+      add(main, zone(t("zoneStory"), t("zoneStoryHint"), [chartCard(analysis), laneCard(analysis), deathsCard(analysis), adviceLogCard(analysis)], { id: "story", label: t("navStory") }));
       add(side, zone(t("zoneScores"), t("zoneScoresHint"), [
         sectionsCard(analysis),
         findingsCard(t("strengthsTitle"), "sparkles", analysis.strengths, t("nothingStrong"), false),
         rankCard(analysis),
         draftCard(analysis)
-      ]));
-      add(side, zone(t("zoneMapItems"), t("zoneMapItemsHint"), [mapCard(analysis), buildCard(analysis), skillsCard(analysis), momentsCard(analysis)]));
+      ], { id: "scores", label: t("navScores") }));
+      add(side, zone(t("zoneMapItems"), t("zoneMapItemsHint"), [mapCard(analysis), buildCard(analysis), skillsCard(analysis), momentsCard(analysis)], { id: "map", label: t("navMap") }));
       parts.push(twoColumns(main, side));
     }
     if (detail.scoreboard) {
-      parts.push(zone(t("zoneTeams"), "", [scoreboardCard(detail.scoreboard)]));
+      parts.push(zone(t("zoneTeams"), "", [scoreboardCard(detail.scoreboard)], { id: "teams", label: t("navTeams") }));
     }
     root.replaceChildren(...parts);
+    // The zone links sit in the sticky bar, before «Share · Save PDF».
+    const nav = sectionNav(root);
+    if (nav) {
+      back.insertBefore(nav, back.querySelector(".toolbar-actions"));
+    }
     hydrate(root);
     stickToolbar(back, header);
+    watchSections(nav);
     // Charts measure their container, so draw after insertion.
     drawMatchCharts(root, analysis);
   }
@@ -2363,13 +2418,132 @@
     );
   }
 
+  // A zone counts as being read once its top passes this line (px from the top
+  // of the window: under the sticky bar of the review and of Progress).
+  const SECTION_LINE = 120;
+
   // Cards grouped under a small heading (styles.css .zone); null without cards.
-  function zone(title, hint, cards) {
+  // `nav` ({id, label}) lists the zone in the page's section links (sectionNav).
+  function zone(title, hint, cards, nav) {
     const items = cards.filter(Boolean);
     if (!items.length) {
       return null;
     }
-    return h("section", { class: "zone" }, h("header", { class: "zone-head" }, h("h2", { class: "zone-title", text: title }), hint ? h("p", { class: "zone-hint", text: hint }) : null), items);
+    return h(
+      "section",
+      { class: "zone", id: nav ? `zone-${nav.id}` : null, dataset: nav ? { nav: nav.label } : null },
+      h("header", { class: "zone-head" }, h("h2", { class: "zone-title", text: title }), hint ? h("p", { class: "zone-hint", text: hint }) : null),
+      items
+    );
+  }
+
+  // «Fix · The match · Scores · Map · Teams»: one link per zone of a long page
+  // (the zones made with a `nav`), in the page's order; three zones or more.
+  function sectionNav(root) {
+    const zones = Array.from(root.querySelectorAll("section.zone[data-nav]"));
+    if (zones.length < 3) {
+      return null;
+    }
+    const nav = h("nav", { class: "section-nav no-print", "aria-label": t("sectionNav") });
+    nav.append(
+      ...zones.map((zoneEl) =>
+        h("button", {
+          type: "button",
+          class: "section-link",
+          dataset: { target: zoneEl.id },
+          text: zoneEl.dataset.nav,
+          onclick: () => {
+            // Two columns start zones side by side: the one clicked wins the tie.
+            nav.dataset.picked = zoneEl.id;
+            goToZone(zoneEl);
+          }
+        })
+      )
+    );
+    return nav;
+  }
+
+  function goToZone(zoneEl) {
+    const calm = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+    zoneEl.scrollIntoView({ behavior: calm ? "auto" : "smooth", block: "start" });
+    // Keyboard users go on from the zone, not from the top of the page.
+    const heading = zoneEl.querySelector(".zone-title");
+    if (heading) {
+      heading.tabIndex = -1;
+      heading.focus({ preventScroll: true });
+    }
+  }
+
+  // The zone being read is marked in the links: the last one whose top has
+  // passed under the sticky bar (at the very bottom, the last zone).
+  function watchSections(nav) {
+    if (state.sectionSpy) {
+      window.removeEventListener("scroll", state.sectionSpy, true);
+      state.sectionSpy = null;
+    }
+    if (!nav) {
+      return;
+    }
+    const links = Array.from(nav.querySelectorAll(".section-link"));
+    let frame = 0;
+    let shown = null;
+    const update = () => {
+      frame = 0;
+      if (!nav.isConnected) {
+        window.removeEventListener("scroll", spy, true);
+        return;
+      }
+      const scroller = document.scrollingElement || document.documentElement;
+      const atBottom = scroller.scrollTop > 0 && scroller.scrollTop + window.innerHeight >= scroller.scrollHeight - 4;
+      let current = atBottom ? links[links.length - 1] : null;
+      let best = -Infinity;
+      if (!current) {
+        for (const link of links) {
+          const top = document.getElementById(link.dataset.target)?.getBoundingClientRect().top;
+          if (top === undefined || top > SECTION_LINE) {
+            continue;
+          }
+          const tie = Math.abs(top - best) <= 2;
+          if ((!tie && top > best) || (tie && link.dataset.target === nav.dataset.picked)) {
+            best = top;
+            current = link;
+          }
+        }
+      }
+      links.forEach((link) => {
+        link.classList.toggle("is-current", link === current);
+        if (link === current) {
+          link.setAttribute("aria-current", "true");
+        } else {
+          link.removeAttribute("aria-current");
+        }
+      });
+      // In a narrow window the links scroll sideways: keep the current one in
+      // view, and back at the top of the page start from the first link.
+      if (!current && shown) {
+        shown = null;
+        nav.scrollLeft = 0;
+      }
+      if (current && current !== shown) {
+        shown = current;
+        const box = current.getBoundingClientRect();
+        const area = nav.getBoundingClientRect();
+        if (box.left < area.left || box.right > area.right) {
+          nav.scrollLeft += box.left - area.left - (area.width - box.width) / 2;
+        }
+      }
+      const hidden = nav.scrollWidth - nav.clientWidth;
+      nav.classList.toggle("fade-start", hidden > 1 && nav.scrollLeft > 1);
+      nav.classList.toggle("fade-end", hidden > 1 && nav.scrollLeft < hidden - 1);
+    };
+    const spy = () => {
+      if (!frame) {
+        frame = requestAnimationFrame(update);
+      }
+    };
+    window.addEventListener("scroll", spy, { capture: true, passive: true });
+    state.sectionSpy = spy;
+    update();
   }
 
   // Main and side cards as two columns (styles.css .layout-2).
@@ -2917,16 +3091,33 @@
           "div",
           { class: "chips" },
           skills.order.map((name, index) =>
-            h("span", { class: `chip ${name === skills.yours ? "chip-on" : ""}` }, h("span", { class: "num", text: `${index + 1}` }), h("span", { text: name }))
+            h(
+              "span",
+              { class: `chip chip-skill ${name === skills.yours ? "chip-on" : ""}` },
+              h("span", { class: "num", text: `${index + 1}` }),
+              abilityIcon((skills.keys || [])[index], name),
+              h("span", { text: name })
+            )
           )
         ),
         // The player's first skill when the pros rarely max it: shown apart, marked.
         skills.in_order === false || !skills.order.includes(skills.yours)
-          ? h("div", { class: "chips" }, h("span", { class: "muted small", text: t("skillsYours") }), h("span", { class: "chip chip-on" }, h("span", { text: skills.yours })))
+          ? h(
+              "div",
+              { class: "chips" },
+              h("span", { class: "muted small", text: t("skillsYours") }),
+              h("span", { class: "chip chip-skill chip-on" }, abilityIcon(skills.yours_key, skills.yours), h("span", { text: skills.yours }))
+            )
           : null,
         h("p", { class: "muted small", text: t("skillsNote", skills.agree, skills.games) })
       )
     );
+  }
+
+  // An ability's icon in a chip; nothing when the review has no game name for
+  // it (stored before 0.49) or the icons are not loaded.
+  function abilityIcon(key, name) {
+    return key && window.DotaIcons?.abilityPicture ? window.DotaIcons.abilityPicture(document, key, "xs", name) : null;
   }
 
   function timingLine(timing) {
@@ -5280,16 +5471,17 @@
       : null;
 
     const sharePanel = h("section", { class: "card share-panel no-print", hidden: true });
+    const head = pageHead(t("progressTitle"), t("analyzed", career.analyzed, career.matches), [
+      careerHeroSelect(career),
+      // Progress over all heroes only: that is what the page shows.
+      state.careerHero === null && career.analyzed ? shareButton(sharePanel, career, "progress") : null,
+      pdfButton("career")
+    ].filter(Boolean));
     root.replaceChildren(
-      pageHead(t("progressTitle"), t("analyzed", career.analyzed, career.matches), [
-        careerHeroSelect(career),
-        // Progress over all heroes only: that is what the page shows.
-        state.careerHero === null && career.analyzed ? shareButton(sharePanel, career, "progress") : null,
-        pdfButton("career")
-      ].filter(Boolean)),
+      head,
       sharePanel,
-      zone(t("zoneSummary"), t("zoneSummaryHint"), [tiles]),
-      zone(t("zoneGoals"), t("zoneGoalsHint"), [goalsCard(career)]),
+      zone(t("zoneSummary"), t("zoneSummaryHint"), [tiles], { id: "summary", label: t("navSummary") }),
+      zone(t("zoneGoals"), t("zoneGoalsHint"), [goalsCard(career)], { id: "goals", label: t("navGoals") }),
       twoColumns(
         [
           zone(t("zoneCoach"), t("zoneCoachHint"), [
@@ -5297,7 +5489,7 @@
             planCard,
             // Asking needs at least one review (the backend answers not_enough without one).
             state.careerHero === null && career.analyzed ? askCard(career, true) : null
-          ]),
+          ], { id: "coach", label: t("navCoach") }),
           zone(t("zoneGames"), t("zoneGamesHint"), [
             scoreCard,
             deathMapCard(career.death_map),
@@ -5305,7 +5497,7 @@
             heroesCard,
             state.careerHero === null ? heroPoolCard(career.hero_pool) : null,
             strengthsCard
-          ])
+          ], { id: "games", label: t("navGames") })
         ].filter(Boolean),
         [
           zone(t("zoneCompare"), t("zoneCompareHint"), [
@@ -5313,11 +5505,20 @@
             state.careerHero === null ? rankHistoryCard(career.rank_history) : null,
             opponentsCard(career.opponents),
             state.careerHero === null ? friendCard() : null
-          ]),
-          zone(t("zoneHero"), t("zoneHeroHint"), [selfCompareCard(career.self_compare), heroBuildCard(career.hero_build)])
+          ], { id: "compare", label: t("navCompare") }),
+          zone(t("zoneHero"), t("zoneHeroHint"), [selfCompareCard(career.self_compare), heroBuildCard(career.hero_build)], { id: "hero", label: t("navHero") })
         ].filter(Boolean)
       )
     );
+    // A sticky bar with the zone links under the title; once the title has
+    // scrolled away it names the page.
+    const nav = sectionNav(root);
+    if (nav) {
+      const bar = h("div", { class: "page-toolbar no-print" }, h("span", { class: "page-toolbar-title", text: t("progressTitle") }), nav);
+      head.after(bar);
+      stickToolbar(bar, head);
+    }
+    watchSections(nav);
     hydrate(root);
     const careerMap = root.querySelector('[data-chart="career-map"]');
     if (careerMap) {
@@ -5871,6 +6072,35 @@
     }
   }
 
+  // «?»: the keys of Settings → «Hotkeys» in a dialog over any tab (the same
+  // list, already in the UI language). Esc, the button or a click outside closes it.
+  function showHotkeys() {
+    const source = document.querySelector("details.hotkeys");
+    if (!source || document.querySelector("dialog.hotkeys-dialog")) {
+      return;
+    }
+    const title = source.querySelector("summary span")?.textContent || "";
+    const close = h("button", { class: "btn btn-ghost btn-sm btn-icon", type: "button", "aria-label": t("dialogClose"), title: t("dialogClose") }, icon("x"));
+    const dialog = h(
+      "dialog",
+      { class: "hotkeys-dialog", "aria-labelledby": "hotkeys-dialog-title" },
+      h("header", { class: "hotkeys-dialog-head" }, h("h2", { id: "hotkeys-dialog-title", text: title }), close),
+      Array.from(source.querySelectorAll(".hotkeys-group, .hotkeys-list")).map((node) => node.cloneNode(true))
+    );
+    close.addEventListener("click", () => dialog.close());
+    // A click on the dimmed backdrop lands on the dialog element itself.
+    dialog.addEventListener("click", (event) => {
+      if (event.target === dialog) {
+        dialog.close();
+      }
+    });
+    dialog.addEventListener("close", () => dialog.remove());
+    document.body.append(dialog);
+    hydrate(dialog);
+    dialog.showModal();
+    close.focus();
+  }
+
   function init() {
     document.getElementById("zone-all-matches")?.addEventListener("click", () => setView("matches"));
     for (const tab of document.querySelectorAll(".tabs [data-view]")) {
@@ -5890,13 +6120,17 @@
     // ←/→ in a review open the newer / older match of the list.
     // Never while typing, and never under the first-run tour (it owns Esc).
     document.addEventListener("keydown", (event) => {
-      if (event.defaultPrevented || event.altKey || event.metaKey || document.querySelector(".tour")) {
+      // A dialog open (the keys list) owns its keys: Esc closes it, not the review.
+      if (event.defaultPrevented || event.altKey || event.metaKey || document.querySelector(".tour, dialog[open]")) {
         return;
       }
       if (event.target?.closest?.("input, textarea, select, [contenteditable='true']")) {
         return;
       }
-      if (event.ctrlKey && !event.shiftKey && /^[1-5]$/.test(event.key)) {
+      if (event.key === "?" && !event.ctrlKey) {
+        event.preventDefault();
+        showHotkeys();
+      } else if (event.ctrlKey && !event.shiftKey && /^[1-5]$/.test(event.key)) {
         const tab = document.querySelectorAll(".tabs [data-view]")[Number(event.key) - 1];
         if (tab) {
           event.preventDefault();

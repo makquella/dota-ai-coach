@@ -495,11 +495,45 @@ function showHint(hint, data) {
   labelEl.textContent = hint.label || tr("map");
   priorityEl.textContent = Number.isFinite(hint.in_seconds) ? tr("hintIn", Math.max(0, hint.in_seconds)) : "";
   actionEl.textContent = hint.title;
+  // A skill tip: the ability's own icon before its name, as Dota draws it.
+  if (hint.icon && window.DotaIcons) {
+    const icon = window.DotaIcons.abilityPicture(document, hint.icon, "sm", hint.ability?.name || "");
+    icon.classList.add("action-icon");
+    actionEl.prepend(icon);
+  }
   reasonEl.textContent = hint.hint || "";
-  renderItems(hint.items);
+  if (Array.isArray(hint.order) && hint.order.length) {
+    renderOrder(hint.order, hint.icon);
+  } else {
+    renderItems(hint.items);
+  }
   renderStatusRow(data);
   reveal();
   markCard(`hint|${hint.id || hint.title}`);
+}
+
+// The pros' skill order as icons with arrows between them; the one to level
+// now is outlined. The reason under it says the same in words.
+function renderOrder(order, next) {
+  const steps = order.filter((step) => step && step.key).slice(0, 4);
+  itemsEl.classList.toggle("hidden", !steps.length || !window.DotaIcons);
+  if (!steps.length || !window.DotaIcons) {
+    itemsEl.replaceChildren();
+    return;
+  }
+  const cells = [];
+  steps.forEach((step, index) => {
+    if (index) {
+      const arrow = document.createElement("span");
+      arrow.className = "order-arrow";
+      arrow.textContent = "→";
+      cells.push(arrow);
+    }
+    const icon = window.DotaIcons.abilityPicture(document, step.key, "sm", step.name);
+    icon.classList.toggle("is-next", step.key === next);
+    cells.push(icon);
+  });
+  itemsEl.replaceChildren(...cells);
 }
 
 // Timers marked "speak" (Tormentor, wisdom shrine) are read once when the voice

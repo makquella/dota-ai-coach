@@ -238,6 +238,10 @@ def review_skills(upgrades: list[int] | None, data: dict[str, Any] | None) -> di
         # the review card then shows it apart from the pro chips.
         "in_order": yours in build["order"],
         "order": [labels.get(name) or label(name) for name in build["order"]],
+        # The game names behind `yours` and `order`: the card's ability icons
+        # (reviews stored before 0.49 lack them and show plain chips).
+        "yours_key": yours,
+        "keys": list(build["order"]),
         "agree": build["first_agree"],
         "games": build["games"],
     }

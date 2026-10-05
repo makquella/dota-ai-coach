@@ -252,6 +252,33 @@ body:not(.locked) .overlay-shell {
   height: 24px;
 }
 
+/* A skill tip: the ability's icon before its name, and the pros' order as
+   icons (the ability to level now outlined in cream: red stays for urgent). */
+.action .action-icon {
+  width: 22px;
+  height: 22px;
+  margin-right: 7px;
+  border-radius: 4px;
+  vertical-align: -5px;
+}
+
+.items-row .dota-ability.dota-pic-sm {
+  width: 24px;
+  height: 24px;
+  border-radius: 4px;
+}
+
+.items-row .dota-ability.is-next {
+  box-shadow: 0 0 0 1.5px var(--cream);
+}
+
+.order-arrow {
+  align-self: center;
+  color: var(--text-3);
+  font-size: 12px;
+  line-height: 1;
+}
+
 /* The usual minute of a plan item, in the icon's corner like Dota's charges. */
 .item-cell {
   position: relative;

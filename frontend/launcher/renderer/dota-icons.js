@@ -142,5 +142,17 @@
     });
   }
 
-  return { hero, itemKey, initials, heroPicture, heroArt, itemPicture };
+  // An ability's square icon by its game name ("juggernaut_blade_fury"); the
+  // in-game name is the label and the initials fallback.
+  function abilityPicture(doc, key, size = "sm", label = null) {
+    const name = String(key ?? "").trim().toLowerCase();
+    return picture(doc, {
+      src: /^[a-z0-9_]{1,64}$/.test(name) ? `dota-asset://ability/${name}` : null,
+      label: label || name.replace(/_/g, " "),
+      className: "dota-ability",
+      size
+    });
+  }
+
+  return { hero, itemKey, initials, heroPicture, heroArt, itemPicture, abilityPicture };
 });

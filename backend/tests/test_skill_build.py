@@ -95,6 +95,10 @@ def test_the_skill_tip_names_the_ability():
     assert hint["hint"] == (
         "Порядок прокачки у про-игроков на этом герое: Blade Fury → Blade Dance → Healing Ward."
     )
+    # 0.49: the card draws the ability's icon and the order as icons.
+    assert hint["icon"] == FURY
+    assert [step["key"] for step in hint["order"]] == [FURY, DANCE, WARD]
+    assert [step["name"] for step in hint["order"]] == ["Blade Fury", "Blade Dance", "Healing Ward"]
     # Without the pro order: the plain line.
     assert tips.tip(110 + UNSPENT_WAIT, "en", alive=True)["title"] == "Unspent skill point"
 
@@ -106,6 +110,7 @@ def test_the_ultimate_takes_its_in_game_name_from_the_build():
     tips.observe(320, read_skills(_payload(6, 3, 1, 1)))
     hint = tips.tip(320 + UNSPENT_WAIT, "en", alive=True, build=build)
     assert hint["title"] == "Learn your ultimate" and "Omnislash" in hint["hint"]
+    assert hint["icon"] == OMNI and "order" not in hint
 
 
 def test_the_game_plan_names_the_pro_order():
@@ -200,6 +205,9 @@ def test_the_review_compares_the_first_skill_maxed():
     block = review_skills(mine, REVIEW_DATA)
     assert block["yours"] == "Healing Ward" and block["pro"] == "Blade Fury"
     assert block["same"] is False and block["agree"] == 3 and block["games"] == 3
+    # 0.49: the game names for the card's icons, in the order's order.
+    assert block["yours_key"] == WARD and block["keys"][0] == FURY
+    assert len(block["keys"]) == len(block["order"])
     same = review_skills([1, 2, 1, 2, 1, 4, 1, 2, 2], REVIEW_DATA)
     assert same["same"] is True
     assert block["in_order"] is True and same["in_order"] is True
@@ -375,6 +383,7 @@ def test_the_first_point_names_the_pros_opening_skill():
     hint = tips.tip(-80 + UNSPENT_WAIT, "ru", alive=True, build=build)
     assert hint["title"] == "Первое очко: Blade Fury"
     assert hint["hint"] == "Про-игроки на этом герое начинают с Blade Fury (3 из 3 игр)."
+    assert hint["icon"] == FURY
     # Without pro data: the plain unspent-point line.
     assert tips.tip(-80 + UNSPENT_WAIT, "en", alive=True)["title"] == "Unspent skill point"
 

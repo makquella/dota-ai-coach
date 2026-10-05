@@ -30,11 +30,13 @@ test("only known kinds and plain names are accepted", () => {
   assert.deepEqual(parseAssetUrl("dota-asset://hero-icon/kez"), { kind: "hero-icon", name: "kez" });
   assert.equal(parseAssetUrl("dota-asset://hero/../../etc/passwd"), null);
   assert.equal(parseAssetUrl("dota-asset://hero/Juggernaut"), null);
-  assert.equal(parseAssetUrl("dota-asset://ability/x"), null);
+  assert.deepEqual(parseAssetUrl("dota-asset://ability/nevermore_shadowraze1"), { kind: "ability", name: "nevermore_shadowraze1" });
+  assert.equal(parseAssetUrl("dota-asset://spell/x"), null);
   assert.equal(parseAssetUrl("https://example.com/hero/x"), null);
   assert.equal(parseAssetUrl("not a url"), null);
   assert.equal(cdnUrl("hero-icon", "kez"), "https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/heroes/icons/kez.png");
   assert.equal(cdnUrl("hero-crop", "kez"), "https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/heroes/crops/kez.png");
+  assert.equal(cdnUrl("ability", "juggernaut_blade_fury"), "https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/abilities/juggernaut_blade_fury.png");
 });
 
 test("a picture is downloaded once, then served from disk", async () => {
