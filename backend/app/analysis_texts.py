@@ -457,7 +457,7 @@ FINDINGS: dict[str, dict[str, dict[str, str]]] = {
         },
         "en": {
             "title": "The enemy mid took the runes",
-            "text": "{runes} runes for you against {enemy_runes} for {hero}. Each of his runes is a rotation onto your lanes.",
+            "text": "{runes} runes for you against {enemy_runes} for {hero}. Each of their runes is a rotation onto your lanes.",
             "drill": "When you cannot take a rune, contest it: a river ward and control 15 seconds before it spawns.",
         },
     },
