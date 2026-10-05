@@ -3754,6 +3754,12 @@ kbd {
   font-size: var(--fs-12);
 }
 
+/* The intro on its own line, the chips in one row under it (they used to
+   break mid-row after the intro). */
+.review-baseline > .muted:first-child {
+  flex-basis: 100%;
+}
+
 .baseline-chip {
   display: inline-flex;
   align-items: center;
