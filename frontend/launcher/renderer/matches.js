@@ -5794,7 +5794,11 @@
               "span",
               { class: "recent-text" },
               h("span", { class: "recent-hero", text: row.hero || "—" }),
-              h("span", { class: "recent-facts muted num", text: facts })
+              h("span", { class: "recent-facts muted num", text: facts }),
+              // The items it ended with, small (0.50; reviewed matches only).
+              Array.isArray(row.items) && row.items.length && window.DotaIcons
+                ? h("span", { class: "recent-items", "aria-hidden": "true" }, row.items.slice(0, 6).map((key) => window.DotaIcons.itemPicture(document, key, "sm")))
+                : null
             ),
             scoreRing(row.score, "sm")
           )
