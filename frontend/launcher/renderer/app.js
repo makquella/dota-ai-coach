@@ -349,6 +349,10 @@ const I18N = {
     tourHint: "A short tour of the app, one minute",
     tourStart: "Show",
     whatsNew: {
+      "0.44.2": [
+        "A review saved as a PDF keeps every hero and item picture, charts at their real size and no cards over each other.",
+        "Clearer in-game and review texts in Russian."
+      ],
       "0.44.1": [
         "When the coach is starting or stopped, Matches, Progress and Profile say so (with a button to start it) instead of loading forever or asking to link your account again.",
         "A narrow window uses its whole width; reviews write numbers the way your language does."
@@ -1090,6 +1094,10 @@ const I18N = {
     tourHint: "Короткая экскурсия по приложению, на минуту",
     tourStart: "Показать",
     whatsNew: {
+      "0.44.2": [
+        "Разбор в PDF: на месте все портреты героев и иконки предметов, графики нормального размера, карточки не наезжают друг на друга.",
+        "Понятнее тексты подсказок в игре и разборов: «Смерть от Axe», «Денаев к 4:00», «Пулл в 2:15» и другие мелочи."
+      ],
       "0.44.1": [
         "Когда тренер запускается или остановлен, «Матчи», «Прогресс» и «Профиль» так и говорят (с кнопкой запуска), а не грузятся бесконечно и не просят заново привязать аккаунт.",
         "Узкое окно использует всю ширину; в разборах дробные числа записаны через запятую."

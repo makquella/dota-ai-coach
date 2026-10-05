@@ -941,7 +941,7 @@
       bestOnHeroNote: (score, when) => `Пунктир — ваш лучший матч на этом герое, оценка ${score} (${when}).`,
       bestOnHeroSelf: (of) => `Это ваш лучший матч на этом герое из ${of}.`,
       mapDeaths: "Смерти",
-      killedBy: (hero) => `Убил: ${hero}`,
+      killedBy: (hero) => `Смерть от ${hero}`,
       mapSide: { own: "на своей половине", river: "у реки", enemy: "на половине противника" },
       mapWards: "Поставлено вардов",
       mapWardsLine: (obs, sen) => `${obs} обзорных · ${sen} сентри`,
@@ -2088,6 +2088,24 @@
     hydrate(panel);
   }
 
+  // Portraits and item icons load lazily, so the ones never scrolled to would
+  // print as initials: load them all first (each waits at most 3 s).
+  function loadAllPictures() {
+    const pending = Array.from(document.querySelectorAll('img[loading="lazy"]')).map((img) => {
+      img.loading = "eager";
+      if (img.complete) {
+        return null;
+      }
+      return new Promise((resolve) => {
+        const done = () => resolve();
+        img.addEventListener("load", done, { once: true });
+        img.addEventListener("error", done, { once: true });
+        setTimeout(done, 3000);
+      });
+    });
+    return Promise.all(pending);
+  }
+
   function pdfButton(kind) {
     const note = h("span", { class: "muted small pdf-note" });
     const button = h(
@@ -2103,6 +2121,7 @@
             printDate.textContent = new Date().toLocaleDateString(state.locale === "ru" ? "ru-RU" : "en-GB");
           }
           try {
+            await loadAllPictures();
             const result = await api.exportPdf(kind, kind === "match" ? String(state.matchId) : "");
             if (result && result.ok) {
               note.textContent = t("pdfSaved", result.path.split(/[\\/]/).pop());
@@ -3947,7 +3966,7 @@
       input,
       button
     );
-    return card(t("askTitle"), "message-circle", [
+    const section = card(t("askTitle"), "message-circle", [
       h("p", { class: "muted small no-print", text: t(career ? "askCareerHint" : "askHint") }),
       form,
       h("div", { class: "no-print" }, chips),
@@ -3955,6 +3974,9 @@
       note,
       history
     ]);
+    // A PDF has no form: without questions asked the card would print empty.
+    section.classList.add("ask-card");
+    return section;
   }
 
   function coachStatusLine(coach, kind) {

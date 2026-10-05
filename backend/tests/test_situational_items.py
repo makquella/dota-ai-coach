@@ -115,7 +115,7 @@ def test_the_farm_advice_says_why_this_item():
         "2 deaths, each from high health in 3 seconds or less, and Aeon Disk gives you time against that."
     )
     assert translate_ru(unpriced.reason) == (
-        "2 раза вас убили с высокого здоровья быстрее чем за 3 секунды — Aeon Disk даст время это пережить."
+        "2 раза вас убили с высокого здоровья быстрее, чем за 3 секунды — Aeon Disk даст время это пережить."
     )
 
 

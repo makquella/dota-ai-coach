@@ -27,8 +27,8 @@ def test_the_card_says_how_it_happened_and_what_to_do():
     card = _screen()
     assert card["title"] == "Возрождение через 23 с"
     assert card["lines"] == [
-        "Убили за 2 с с высокого HP: поймали, когда вы были одни или на виду.",
-        "Black King Bar был готов и не нажат — в следующий раз жмите при первом ударе.",
+        "Убили за 2 с при высоком HP: поймали, когда вы были одни или на виду.",
+        "Готово, но не нажато: Black King Bar — в следующий раз жмите при первом ударе.",
         "3-я смерть на центральной линии у реки за 6 мин — после возрождения идите в другое место.",
         "Купите Manta Style сейчас: золота хватает, курьер принесёт.",
     ]
@@ -63,7 +63,7 @@ def test_the_live_card_while_dead(client):
     body = client.get("/overlay/recommendation?lang=ru").json()
     card = body["death_screen"]
     assert card["title"] == "Возрождение через 20 с"
-    assert "Black King Bar был готов и не нажат" in card["lines"][0]
+    assert "Готово, но не нажато: Black King Bar" in card["lines"][0]
 
 
 def _dead_client(client):

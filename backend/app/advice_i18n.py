@@ -471,7 +471,7 @@ _RU_PATTERNS: tuple[tuple[re.Pattern[str], str], ...] = (
             r"^Keep farming: (?P<gpm>\d+) gold per minute, (?P<lh>\d+) last hits at minute "
             r"(?P<m>\d+)\.$"
         ),
-        "Фармите дальше: {gpm} золота в минуту, добиваний к {m}-й минуте: {lh}.",
+        "Фармите дальше: {gpm} золота в минуту, добиваний к {m}-й минуте — {lh}.",
     ),
     (
         re.compile(
@@ -837,7 +837,7 @@ def _situational_reason(groups: dict[str, str]) -> str:
     else:
         times = "раза" if 2 <= count % 10 <= 4 and not 12 <= count % 100 <= 14 else "раз"
         head = (
-            f"{count} {times} вас убили с высокого здоровья быстрее чем за 3 секунды — "
+            f"{count} {times} вас убили с высокого здоровья быстрее, чем за 3 секунды — "
             f"{groups['name']} даст время это пережить"
         )
     for pattern, tail in _SITUATIONAL_TAILS:

@@ -188,5 +188,5 @@ def test_the_review_names_an_ability_or_a_rune_left_unpressed():
             "id": "died_with_saver_ready",
             "params": {"count": 2, "item": item, "times": [720, 1080]},
         }
-        assert f"когда {ru} был готов" in render_finding(finding, "ru")["text"]
+        assert f"успевали нажать {ru} (" in render_finding(finding, "ru")["text"]
         assert f"died with {en} ready" in render_finding(finding, "en")["text"]

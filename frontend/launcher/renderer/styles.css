@@ -1925,7 +1925,8 @@ label.setting:has(.switch:disabled) {
 
 .moment {
   display: grid;
-  grid-template-columns: 44px 20px minmax(0, 1fr);
+  /* time · icon · text · «Смотреть» (the last column is empty without a replay) */
+  grid-template-columns: 44px 20px minmax(0, 1fr) auto;
   align-items: center;
   gap: var(--sp-2);
 }
@@ -3123,7 +3124,9 @@ label.setting:has(.switch:disabled) {
   .coach-status,
   .ai-panel,
   .ai-form,
-  .chart-tip {
+  .chart-tip,
+  .segmented,
+  .ask-card:not(:has(.ask-item)) {
     display: none !important;
   }
 
@@ -3131,6 +3134,7 @@ label.setting:has(.switch:disabled) {
   .tile,
   .finding,
   .chart-host,
+  .map-layout,
   .review-head,
   tr,
   .coach-moments li,
@@ -3139,13 +3143,33 @@ label.setting:has(.switch:disabled) {
   }
 
   .card-head,
-  .coach-section-title {
+  .coach-section-title,
+  .zone-head {
     break-after: avoid;
   }
 
   svg {
     max-width: 100%;
     height: auto;
+  }
+
+  /* Chromium splits nested grids badly across pages (a card pushed to the
+     next page overlapped the one after it): plain blocks on paper. */
+  .home-grid,
+  .layout-2,
+  .col,
+  .zone {
+    display: block;
+  }
+
+  :is(.home-grid, .layout-2, .col, .zone) > * + * {
+    margin-top: var(--sp-3);
+  }
+
+  /* A chart is drawn for the width of its column on screen (a side column
+     from 1240 px): the page keeps that size, else its text grows ×2. */
+  .chart-host svg {
+    width: auto;
   }
 
   .skeleton {
@@ -4455,10 +4479,9 @@ tr.row-link[data-result="loss"] > td:first-child {
   }
 }
 
-/* «Смотреть» next to a death or a key moment: copies the replay jump command. */
+/* «Смотреть» at the end of a death or a key moment: copies the replay jump command. */
 .moment .watch-moment {
-  margin-left: auto;
-  align-self: flex-start;
+  align-self: start;
   opacity: 0.75;
 }
 

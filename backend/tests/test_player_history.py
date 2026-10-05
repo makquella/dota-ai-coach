@@ -895,7 +895,7 @@ def test_a_targeted_disable_that_keeps_killing_asks_for_linkens():
     missing = next(f for f in findings if f["id"] == "counter_item_missing")
     assert missing["params"]["items"] == "Linken's Sphere"
     ru = render_finding(missing, "ru")
-    assert "Beastmaster (Primal Roar убивал вас)" in ru["text"]
+    assert "Beastmaster (вы погибали под Primal Roar)" in ru["text"]
     # One kill: the lineup alone asks for no Linken's.
     facts["deaths_log"] = facts["deaths_log"][:1]
     block, _ = analyze_draft(facts, trimmed, _draft_meta(), "core")

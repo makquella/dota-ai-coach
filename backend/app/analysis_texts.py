@@ -214,7 +214,7 @@ FINDINGS: dict[str, dict[str, dict[str, str]]] = {
     "died_with_saver_ready": {
         "ru": {
             "title": "Спасающий предмет не нажат",
-            "text": "{count} {count_times} вы погибли, когда {item_label} был готов, а у героя было время его нажать ({times}).",
+            "text": "{count} {count_times} вы погибли, хотя успевали нажать {item_label} ({times}).",
             "drill": "Держите {item_label} на удобной клавише и решайте заранее: ниже половины здоровья в драке — нажимаю сразу, не жду.",
         },
         "en": {
@@ -238,7 +238,7 @@ FINDINGS: dict[str, dict[str, dict[str, str]]] = {
     "burst_deaths": {
         "ru": {
             "title": "Быстрые смерти",
-            "text": "{count} из {of} смертей случились меньше чем за 3 с с 70% здоровья и выше: вас ловили раньше, чем можно было ответить.",
+            "text": "{count} из {of} смертей — меньше чем за 3 секунды при 70% здоровья и выше: вас ловили раньше, чем можно было ответить.",
             "drill": "Такие смерти решаются до драки: не стойте один там, где врагов не видно на карте, держитесь ближе к союзникам и вардам.",
         },
         "en": {
@@ -274,7 +274,7 @@ FINDINGS: dict[str, dict[str, dict[str, str]]] = {
     "killed_by_one": {
         "ru": {
             "title": "Главная угроза: {hero}",
-            "text": "{hero} убил вас {count} раз из {deaths}.",
+            "text": "{count} из {deaths} смертей — от {hero}.",
             "drill": "Следите, где {hero}, прежде чем выходить вперёд, и заранее продумайте защиту от него: предмет, позицию или способность для побега.",
         },
         "en": {
@@ -572,7 +572,7 @@ FINDINGS.update(
         "counter_item_missing": {
             "ru": {
                 "title": "Нет предмета против {enemy}",
-                "text": "У врагов был {enemy} ({reason_label}). Против этого обычно покупают {items}, а в этом матче ни одного из них не было.",
+                "text": "В составе врага — {enemy} ({reason_label}). Против этого обычно покупают {items}, а в этом матче ни одного из них не было.",
                 "drill": "Когда видите в драфте {enemy}, заранее включите в сборку один из предметов: {items}.",
             },
             "en": {
@@ -766,7 +766,7 @@ COUNTER_REASONS = {
     "illusions": {"ru": "иллюзии", "en": "illusions"},
     "invisibility": {"ru": "невидимость", "en": "invisibility"},
     "healing": {"ru": "лечение", "en": "healing"},
-    "targeted": {"ru": "{spell} убивал вас", "en": "{spell} killed you"},
+    "targeted": {"ru": "вы погибали под {spell}", "en": "{spell} killed you"},
 }
 
 ROLES = {
