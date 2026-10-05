@@ -1002,6 +1002,9 @@ class PlayerService:
             # Stored before trim_match kept what the review now reads (the skill
             # order): shown as it is now, fetched again and rebuilt in the background.
             self.fetch_match(match_id, request_parse=False)
+        if record.get("items") is None and analysis is not None:
+            # A review stored before 0.50: its final items for the header.
+            record["items"] = self._record_items(primary, record)
         detail = {
             "match_id": match_id,
             "summary": {key: record.get(key) for key in _SUMMARY_KEYS},
@@ -1969,18 +1972,20 @@ class PlayerService:
         missing = [row for row in rows if row.get("has_analysis") and row.get("items") is None]
         for row in missing[:BACKFILL_ITEMS_PER_CALL]:
             record = self.store.get_match(account_id, row["match_id"])
-            if record is None:
-                continue
-            od = facts_from_opendota(record["opendota"]) if record.get("opendota") else None
-            gsi = facts_from_timeline(record["timeline"]) if record.get("timeline") else None
-            facts = merge_facts(od, gsi)
-            items = self._inventory_keys(facts) if facts else None
-            if items is None:
-                continue
+            if record is not None:
+                row["items"] = self._record_items(account_id, record)
+
+    def _record_items(self, account_id: int, record: dict[str, Any]) -> list[str] | None:
+        """The final items of a stored match, kept in its items column once read."""
+        od = facts_from_opendota(record["opendota"]) if record.get("opendota") else None
+        gsi = facts_from_timeline(record["timeline"]) if record.get("timeline") else None
+        facts = merge_facts(od, gsi)
+        items = self._inventory_keys(facts) if facts else None
+        if items is not None:
             self.store.upsert_match(
-                account_id, row["match_id"], source=None, fields={"items": json.dumps(items)}
+                account_id, record["match_id"], source=None, fields={"items": json.dumps(items)}
             )
-            row["items"] = items
+        return items
 
     # --- OpenDota meta data (cached; fetched on the job thread only) -----------
 
@@ -2157,6 +2162,7 @@ _SUMMARY_KEYS = (
     "lobby_type",
     "parsed",
     "score",
+    "items",
 )
 
 

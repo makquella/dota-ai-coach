@@ -77,6 +77,12 @@ def test_stored_reviews_get_their_items_when_the_table_is_read(client, tmp_path)
     assert [row["items"] for row in rows if row["match_id"] in reviewed] == [["bfury"]] * len(
         reviewed
     )
+    # The review's header reads them too, also for a row the table has not filled.
+    with store._lock:
+        store._conn.execute("UPDATE matches SET items = NULL")
+        store._conn.commit()
+    detail = client.get(f"/player/matches/{reviewed[0]}?lang=ru").json()
+    assert detail["summary"]["items"] == ["bfury"]
 
 
 def test_an_old_database_gets_the_column(tmp_path):

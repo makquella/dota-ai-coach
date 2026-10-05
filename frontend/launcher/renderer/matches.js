@@ -366,7 +366,8 @@
         lh: "Last hits / denies",
         nw: "Net worth",
         dmg: "Hero damage",
-        duration: "Duration"
+        duration: "Duration",
+        items: "Items at the end"
       },
       sectionFacts: {
         laning: (s) => [s.lh10 != null && `${s.lh10} last hits by 10:00`, s.lane_efficiency != null && `lane efficiency ${Math.round(s.lane_efficiency)}%`, s.lane_deaths ? `${s.lane_deaths} deaths in lane` : null, s.runes != null && `${s.runes} runes${s.enemy_runes != null ? ` (enemy mid ${s.enemy_runes})` : ""}`],
@@ -1024,7 +1025,8 @@
         lh: "Добивания / денаи",
         nw: "Стоимость героя",
         dmg: "Урон по героям",
-        duration: "Длительность"
+        duration: "Длительность",
+        items: "Предметы в конце"
       },
       sectionFacts: {
         laning: (s) => [s.lh10 != null && `${s.lh10} добиваний к 10:00`, s.lane_efficiency != null && `эффективность ${Math.round(s.lane_efficiency)}%`, s.lane_deaths ? `смертей на линии: ${s.lane_deaths}` : null, s.runes != null && `рун: ${s.runes}${s.enemy_runes != null ? ` (у вражеского мида ${s.enemy_runes})` : ""}`],
@@ -2682,7 +2684,20 @@
       h(
         "dl",
         { class: "review-stats" },
-        stats.map(([label, value]) => h("div", {}, h("dt", { text: label }), h("dd", { class: "num", text: value })))
+        stats.map(([label, value]) => h("div", {}, h("dt", { text: label }), h("dd", { class: "num", text: value }))),
+        // The final inventory (0.50), as the match table shows it.
+        Array.isArray(summary.items) && summary.items.length && window.DotaIcons
+          ? h(
+              "div",
+              { class: "review-items" },
+              h("dt", { text: t("stats.items") }),
+              h(
+                "dd",
+                { class: "items-cell" },
+                summary.items.slice(0, 6).map((key) => window.DotaIcons.itemPicture(document, key, "sm"))
+              )
+            )
+          : null
       )
     );
   }
