@@ -167,6 +167,7 @@
       zoneHero: "Your main hero",
       zoneHeroHint: "Your best games against your worst, your build",
       sectionNav: "Page sections",
+      dialogClose: "Close",
       navFix: "Fix",
       navStory: "The match",
       navScores: "Scores",
@@ -823,6 +824,7 @@
       zoneHero: "Ваш основной герой",
       zoneHeroHint: "Лучшие игры против худших, ваш билд",
       sectionNav: "Разделы страницы",
+      dialogClose: "Закрыть",
       navFix: "Исправить",
       navStory: "Ход матча",
       navScores: "Оценки",
@@ -1328,12 +1330,16 @@
   const VIZ_1 = cssVar("--viz-1", "#3987e5");
   const VIZ_2 = cssVar("--viz-2", "#e5963a");
   const TAB_KEY = "dota-ai-coach.tab";
+  const SORT_KEY = "dota-ai-coach.matches-sort";
+  const SORT_KEYS = ["date", "score", "gpm", "lh_10", "duration", "kda"];
   const api = window.launcherApi;
 
   const state = {
     filter: { heroId: null, result: "all" },
-    // The match table's order: newest first until a column header is clicked.
-    sort: { key: "date", asc: false },
+    // The match table's order: newest first until a column header is clicked
+    // (remembered across restarts, SORT_KEY; the filters are not: a filter left
+    // on would look like missing matches next time).
+    sort: savedSort(),
     careerHero: null,
     heroes: [],
     matchesStats: null,
@@ -1911,6 +1917,18 @@
     };
   }
 
+  function savedSort() {
+    try {
+      const saved = JSON.parse(localStorage.getItem(SORT_KEY) || "null");
+      if (saved && SORT_KEYS.includes(saved.key)) {
+        return { key: saved.key, asc: saved.asc === true };
+      }
+    } catch {
+      // Storage unavailable or garbled: newest first.
+    }
+    return { key: "date", asc: false };
+  }
+
   function sortedByDate() {
     return state.sort.key === "date" && !state.sort.asc;
   }
@@ -1919,6 +1937,11 @@
   // the biggest (the newest for «Played»).
   function setSort(key) {
     state.sort = state.sort.key === key ? { key, asc: !state.sort.asc } : { key, asc: false };
+    try {
+      localStorage.setItem(SORT_KEY, JSON.stringify(state.sort));
+    } catch {
+      // A convenience only.
+    }
     state.matches = [];
     loadMatches();
   }
@@ -6049,6 +6072,35 @@
     }
   }
 
+  // «?»: the keys of Settings → «Hotkeys» in a dialog over any tab (the same
+  // list, already in the UI language). Esc, the button or a click outside closes it.
+  function showHotkeys() {
+    const source = document.querySelector("details.hotkeys");
+    if (!source || document.querySelector("dialog.hotkeys-dialog")) {
+      return;
+    }
+    const title = source.querySelector("summary span")?.textContent || "";
+    const close = h("button", { class: "btn btn-ghost btn-sm btn-icon", type: "button", "aria-label": t("dialogClose"), title: t("dialogClose") }, icon("x"));
+    const dialog = h(
+      "dialog",
+      { class: "hotkeys-dialog", "aria-labelledby": "hotkeys-dialog-title" },
+      h("header", { class: "hotkeys-dialog-head" }, h("h2", { id: "hotkeys-dialog-title", text: title }), close),
+      Array.from(source.querySelectorAll(".hotkeys-group, .hotkeys-list")).map((node) => node.cloneNode(true))
+    );
+    close.addEventListener("click", () => dialog.close());
+    // A click on the dimmed backdrop lands on the dialog element itself.
+    dialog.addEventListener("click", (event) => {
+      if (event.target === dialog) {
+        dialog.close();
+      }
+    });
+    dialog.addEventListener("close", () => dialog.remove());
+    document.body.append(dialog);
+    hydrate(dialog);
+    dialog.showModal();
+    close.focus();
+  }
+
   function init() {
     document.getElementById("zone-all-matches")?.addEventListener("click", () => setView("matches"));
     for (const tab of document.querySelectorAll(".tabs [data-view]")) {
@@ -6068,13 +6120,17 @@
     // ←/→ in a review open the newer / older match of the list.
     // Never while typing, and never under the first-run tour (it owns Esc).
     document.addEventListener("keydown", (event) => {
-      if (event.defaultPrevented || event.altKey || event.metaKey || document.querySelector(".tour")) {
+      // A dialog open (the keys list) owns its keys: Esc closes it, not the review.
+      if (event.defaultPrevented || event.altKey || event.metaKey || document.querySelector(".tour, dialog[open]")) {
         return;
       }
       if (event.target?.closest?.("input, textarea, select, [contenteditable='true']")) {
         return;
       }
-      if (event.ctrlKey && !event.shiftKey && /^[1-5]$/.test(event.key)) {
+      if (event.key === "?" && !event.ctrlKey) {
+        event.preventDefault();
+        showHotkeys();
+      } else if (event.ctrlKey && !event.shiftKey && /^[1-5]$/.test(event.key)) {
         const tab = document.querySelectorAll(".tabs [data-view]")[Number(event.key) - 1];
         if (tab) {
           event.preventDefault();

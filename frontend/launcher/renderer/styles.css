@@ -3750,6 +3750,52 @@ span.setup-mark {
   line-height: 1.45;
 }
 
+/* «?»: the same keys in a dialog over any tab. */
+.hotkeys-dialog {
+  width: min(560px, calc(100vw - 32px));
+  max-height: calc(100vh - 64px);
+  padding: var(--sp-5);
+  border: 1px solid var(--border);
+  border-radius: var(--r-xl);
+  background: var(--surface-1);
+  color: var(--text-2);
+  font-size: var(--fs-13);
+  box-shadow: var(--edge), 0 24px 64px rgb(0 0 0 / 55%);
+}
+
+.hotkeys-dialog[open] {
+  animation: rise var(--dur) var(--ease);
+}
+
+.hotkeys-dialog::backdrop {
+  background: rgb(0 0 0 / 55%);
+}
+
+.hotkeys-dialog-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-3);
+}
+
+.hotkeys-dialog-head h2 {
+  margin: 0;
+  color: var(--text);
+  font-family: var(--display);
+  font-size: var(--fs-20);
+  font-weight: 700;
+}
+
+.hotkeys-dialog .hotkeys-group:first-of-type {
+  margin-top: var(--sp-2);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hotkeys-dialog[open] {
+    animation: none;
+  }
+}
+
 kbd {
   padding: 1px var(--sp-1);
   border: 1px solid var(--border);
