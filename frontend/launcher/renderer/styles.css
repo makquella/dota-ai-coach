@@ -4528,6 +4528,21 @@ kbd {
   margin: 0;
 }
 
+/* Home while Dota runs: the current match first (after the first-run
+   checklist), the last match's summary under it. */
+#setup-card {
+  order: -2;
+}
+
+#now-zone {
+  order: -1;
+}
+
+/* Under «Now» the summary is the past: the room between zones, not cards. */
+.col-main:has(> #now-zone:not(.hidden)) > .summary-card {
+  margin-top: var(--sp-5);
+}
+
 /* A zone heading after a lone card (Home: «Now» under the summary) needs the
    room a zone gets after another zone, not the gap between two cards. */
 .col > .card:not(.hidden) + .zone {
