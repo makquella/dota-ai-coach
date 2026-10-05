@@ -352,6 +352,8 @@ class PlayerService:
         self._detected: dict[str, Any] | None = None
         # Friend fetches that failed (code), by friend account id; cleared on retry.
         self._friend_errors: dict[int, str] = {}
+        # Matches asked for by number (add_match): pending, ready or an error code.
+        self._adding: dict[int, str] = {}
         self._plans: dict[tuple[Any, ...], tuple[float, dict[str, Any] | None]] = {}
         self._sync: dict[str, Any] = {
             "state": "idle",
@@ -1814,6 +1816,23 @@ class PlayerService:
                 # The "review ready" banner must not open a deleted match.
                 self.store.set_meta(f"last_review:{account_id}", None)
             return
+        self._store_fetched(
+            account_id, match_id, trimmed, request_parse=request_parse, attempt=attempt
+        )
+
+    def _store_fetched(
+        self,
+        account_id: int,
+        match_id: int,
+        trimmed: dict[str, Any],
+        *,
+        request_parse: bool,
+        attempt: int,
+    ) -> None:
+        """A fetched match of the player: stored, reviewed, its replay asked for."""
+        client = self.client
+        if client is None:
+            return
         parsed = bool(trimmed.get("parsed"))
         status = "parsed" if parsed else "basic"
         if not parsed and request_parse:
@@ -1835,6 +1854,51 @@ class PlayerService:
         self._rebuild_analysis(account_id, match_id)
         if status == "parsing":
             self._retry(account_id, match_id, request_parse, attempt)
+
+    # --- a match by its number (older than the synced history) -----------------
+
+    def add_match(self, match_id: int) -> dict[str, Any]:
+        """Fetch a match the table does not hold (older than the last 50) and
+        review it, on the job thread. Never stores a match without the player."""
+        primary = self.store.primary_account_id()
+        if primary is None:
+            return {"state": "unlinked"}
+        if self.store.get_match(primary, match_id) is not None:
+            return {"state": "ready"}
+        if self.client is None:
+            return {"state": "offline"}
+        if self._adding.get(match_id) != "pending":
+            self._adding[match_id] = "pending"
+            self.jobs.submit(f"add:{match_id}", lambda: self._job_add_match(primary, match_id))
+        return {"state": "pending"}
+
+    def add_status(self, match_id: int) -> dict[str, Any]:
+        primary = self.store.primary_account_id()
+        if primary is None:
+            return {"state": "unlinked"}
+        if self.store.get_match(primary, match_id) is not None:
+            return {"state": "ready"}
+        return {"state": self._adding.get(match_id, "none")}
+
+    def _job_add_match(self, account_id: int, match_id: int) -> None:
+        client = self.client
+        if client is None:
+            self._adding[match_id] = "offline"
+            return
+        try:
+            match = client.match(match_id)
+        except OpenDotaError as error:
+            self._adding[match_id] = error.code or "error"
+            return
+        trimmed = trim_match(match, account_id)
+        if not trimmed.get("found_player"):
+            self._adding[match_id] = "not_player"
+            return
+        if not is_reviewable_match(trimmed):
+            self._adding[match_id] = "mode"
+            return
+        self._store_fetched(account_id, match_id, trimmed, request_parse=True, attempt=0)
+        self._adding[match_id] = "ready"
 
     def _rebuild_recent(self, account_id: int) -> None:
         for row in self.store.list_matches(account_id, limit=REVIEW_RECENT_MATCHES):

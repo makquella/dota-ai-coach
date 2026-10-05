@@ -2713,6 +2713,17 @@ span.setup-mark {
   font-variant-numeric: tabular-nums;
 }
 
+.chart-item {
+  clip-path: inset(0 round 3px);
+}
+
+.chart-key-item {
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  background: var(--text-3);
+}
+
 .chart-marker {
   fill: var(--error);
   stroke: var(--surface-1);
@@ -3470,6 +3481,35 @@ span.setup-mark {
   flex-wrap: wrap;
   align-items: center;
   gap: var(--sp-2);
+}
+
+/* «Open a match by its number» at the end of the filter row. */
+.open-number {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--sp-2);
+  margin-left: auto;
+}
+
+.open-number-input {
+  flex: 0 0 220px;
+  height: 30px;
+}
+
+.open-number .btn {
+  height: 30px;
+}
+
+.open-number-note {
+  flex-basis: 100%;
+  max-width: 360px;
+  text-align: right;
+}
+
+.open-number-note:empty {
+  display: none;
 }
 
 .select {

@@ -351,6 +351,11 @@ const I18N = {
     tourHint: "A short tour of the app, one minute",
     tourStart: "Show",
     whatsNew: {
+      "0.51.0": [
+        "Open any match by its number: paste it, or an OpenDota, Dotabuff or STRATZ link, next to the match filters — older games than your synced history get a full review too.",
+        "The review's chart shows your items under the minutes: when each finished item came.",
+        "While you wait to respawn, the overlay's card shows the icon of the item to buy."
+      ],
       "0.50.0": [
         "Items everywhere: the match table shows what you ended each game with, the review's header too, and the scoreboard shows every player's items.",
         "Home's last matches carry their items as well; hover an item for its name."
@@ -1130,6 +1135,11 @@ const I18N = {
     tourHint: "Короткая экскурсия по приложению, на минуту",
     tourStart: "Показать",
     whatsNew: {
+      "0.51.0": [
+        "Любой матч по номеру: вставьте номер или ссылку OpenDota, Dotabuff или STRATZ рядом с фильтрами матчей — полный разбор получат и игры старше вашей истории.",
+        "На графике разбора под минутами — ваши предметы: когда пришёл каждый собранный предмет.",
+        "Пока вы ждёте возрождения, карточка оверлея показывает иконку предмета, который стоит купить."
+      ],
       "0.50.0": [
         "Предметы везде: в таблице матчей видно, с чем вы закончили каждую игру, то же — в шапке разбора, а в «Итогах матча» — предметы всех десяти игроков.",
         "У «Последних матчей» на Главной тоже есть предметы; наведите на иконку — появится название."

@@ -1728,6 +1728,8 @@ const PLAYER_OPS = {
   // Reviews may be rebuilt on read after an update (new analysis version): allow time.
   match: (args) => ["GET", `/player/matches/${matchIdArg(args)}?lang=${uiLocale()}`, undefined, 15000],
   refreshMatch: (args) => ["POST", `/player/matches/${matchIdArg(args)}/refresh`],
+  addMatch: (args) => ["POST", `/player/matches/${matchIdArg(args)}/add`],
+  addMatchStatus: (args) => ["GET", `/player/matches/${matchIdArg(args)}/add`],
   week: () => ["GET", `/player/week?lang=${uiLocale()}`],
   profile: () => ["GET", `/player/profile?lang=${uiLocale()}`],
   profileMmr: (args) => ["POST", `/player/profile/mmr?lang=${uiLocale()}`, { mmr: clampInt(args.mmr, 0, 15000, 0) }],

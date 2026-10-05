@@ -112,3 +112,36 @@ def test_the_scoreboard_names_every_players_items(client, tmp_path):
     mine = next(row for row in board if row["me"])
     assert mine["items"] == ["bfury", "tango"]
     assert all(isinstance(row["items"], list) for row in board)
+
+
+def test_the_chart_marks_finished_items_only():
+    from app.post_match_analysis import _item_marks
+
+    constants = {
+        "items": {
+            "bfury": {"cost": 4100, "assembled": True},
+            "quelling_blade": {"cost": 100, "assembled": False},
+            "magic_wand": {"cost": 450, "assembled": True},
+            "power_treads": {"cost": 1400, "assembled": True},
+            "blink": {"cost": 2250, "assembled": False},
+            "demon_edge": {"cost": 2200, "assembled": False},
+        }
+    }
+    facts = {
+        "items_log": [
+            {"t": 720, "item": "bfury"},
+            {"t": 60, "item": "quelling_blade"},
+            {"t": 300, "item": "item_power_treads"},  # a GSI name
+            {"t": 400, "item": "magic_wand"},
+            {"t": 900, "item": "demon_edge"},  # a part, however dear
+            {"t": 1000, "item": "blink"},
+            {"t": 1300, "item": "bfury"},  # bought again: one mark
+            {"t": None, "item": "bfury"},
+        ]
+    }
+    assert _item_marks(facts, {"constants": constants}) == [
+        {"t": 300, "key": "power_treads"},
+        {"t": 720, "key": "bfury"},
+        {"t": 1000, "key": "blink"},
+    ]
+    assert _item_marks(facts, None) == []  # no constants: a part cannot be told apart

@@ -416,6 +416,8 @@ function showDeathScreen(data) {
   priorityEl.textContent = "";
   actionEl.textContent = first;
   reasonEl.textContent = rest.join("\n");
+  // The item to buy, as its icon (0.51).
+  renderItems(card.items);
   renderStatusRow(data);
   reveal();
   markCard(`death|${card.id || first}`);

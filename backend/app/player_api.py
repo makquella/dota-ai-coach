@@ -9,6 +9,8 @@ POST   /player/sync              pull profile + recent matches from OpenDota
 GET    /player/matches           match table (newest first; ?hero_id=&result=win|loss&sort=&order=)
 GET    /player/matches/{id}      one match: summary, scoreboard, post-match review
 POST   /player/matches/{id}/refresh   fetch again / ask OpenDota to parse the replay
+POST   /player/matches/{id}/add       fetch a match by its number (older than the history)
+GET    /player/matches/{id}/add       where that stands (pending / ready / an error code)
 GET    /player/career            statistics and advice over the recent matches
 POST   /player/matches/{id}/coach     (re)generate the AI coach review of a match
 POST   /player/career/coach           (re)generate the AI coach review of recent matches
@@ -134,6 +136,18 @@ def player_matches(
         sort=key if key in MATCH_SORTS else "date",
         ascending=str(order or "").lower() == "asc",
     )
+
+
+@router.post("/matches/{match_id}/add", summary="Fetch an older match by its number and review it")
+def add_match(match_id: MatchId):
+    """pending → poll GET; ready (stored); unlinked; offline. Errors come back
+    from the poll: not_player, mode (Turbo and the like), not_found, …"""
+    return PLAYER_SERVICE.add_match(match_id)
+
+
+@router.get("/matches/{match_id}/add", summary="Where fetching a match by its number stands")
+def add_match_status(match_id: MatchId):
+    return PLAYER_SERVICE.add_status(match_id)
 
 
 @router.get("/matches/{match_id}", summary="Post-match review")

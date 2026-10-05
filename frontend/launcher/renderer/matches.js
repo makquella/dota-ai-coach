@@ -167,6 +167,20 @@
       zoneHero: "Your main hero",
       zoneHeroHint: "Your best games against your worst, your build",
       sectionNav: "Page sections",
+      openPlaceholder: "Match number or link",
+      openButton: "Open",
+      openBad: "No match number there: paste the number or an OpenDota, Dotabuff or STRATZ link.",
+      openLoading: "Fetching the match from OpenDota…",
+      openErrors: {
+        not_player: "You did not play in this match (or your OpenDota profile hides it).",
+        mode: "Turbo, bot games and the like are not reviewed.",
+        not_found: "OpenDota does not know this match yet: check the number, or try again in a few minutes.",
+        offline: "No connection to OpenDota: try again a little later.",
+        rate_limited: "OpenDota is busy: try again in a minute.",
+        unlinked: "Link your Steam account first.",
+        pending: "OpenDota is still answering: try again in a minute.",
+        error: "The match could not be fetched: try again a little later."
+      },
       dialogClose: "Close",
       navFix: "Fix",
       navStory: "The match",
@@ -826,6 +840,20 @@
       zoneHero: "Ваш основной герой",
       zoneHeroHint: "Лучшие игры против худших, ваш билд",
       sectionNav: "Разделы страницы",
+      openPlaceholder: "Номер или ссылка на матч",
+      openButton: "Открыть",
+      openBad: "Не вижу номера матча: вставьте номер или ссылку OpenDota, Dotabuff или STRATZ.",
+      openLoading: "Загружаю матч из OpenDota…",
+      openErrors: {
+        not_player: "Вас нет в этом матче (или ваш профиль OpenDota скрыт).",
+        mode: "Турбо, игры с ботами и похожие режимы не разбираются.",
+        not_found: "OpenDota пока не знает этот матч: проверьте номер или попробуйте через несколько минут.",
+        offline: "Нет связи с OpenDota: попробуйте чуть позже.",
+        rate_limited: "OpenDota перегружен: попробуйте через минуту.",
+        unlinked: "Сначала привяжите аккаунт Steam.",
+        pending: "OpenDota ещё отвечает: попробуйте через минуту.",
+        error: "Не получилось загрузить матч: попробуйте чуть позже."
+      },
       dialogClose: "Закрыть",
       navFix: "Исправить",
       navStory: "Ход матча",
@@ -1340,6 +1368,8 @@
 
   const state = {
     filter: { heroId: null, result: "all" },
+    // «Open a match by its number»: the typed text, the line under it, a fetch going on.
+    openNumber: { value: "", note: "", busy: false },
     // The match table's order: newest first until a column header is clicked
     // (remembered across restarts, SORT_KEY; the filters are not: a filter left
     // on would look like missing matches next time).
@@ -1994,7 +2024,74 @@
     const summary = stats && stats.games
       ? h("p", { class: "muted small filter-summary num", text: t("filterSummary", stats.games, stats.winrate, stats.avg_score) })
       : null;
-    return h("div", { class: "filter-bar" }, h("div", { class: "filter-controls" }, results, select), summary);
+    return h("div", { class: "filter-bar" }, h("div", { class: "filter-controls" }, results, select, openByNumberForm()), summary);
+  }
+
+  // «Open a match by its number»: an older game than the synced history, or a
+  // link from OpenDota, Dotabuff or STRATZ (0.51). The state lives in `state`,
+  // since the table redraws every 15 s while a fetch may take a minute.
+  function openByNumberForm() {
+    const input = h("input", {
+      class: "input open-number-input",
+      type: "text",
+      inputmode: "numeric",
+      placeholder: t("openPlaceholder"),
+      "aria-label": t("openPlaceholder"),
+      value: state.openNumber.value || ""
+    });
+    input.addEventListener("input", () => {
+      state.openNumber.value = input.value;
+    });
+    const button = h("button", { class: "btn btn-sm", type: "submit", disabled: state.openNumber.busy }, icon("search"), h("span", { text: t("openButton") }));
+    const form = h("form", { class: "open-number no-print" }, input, button, h("span", { class: "muted small open-number-note", role: "status", "aria-live": "polite", text: state.openNumber.note || "" }));
+    form.addEventListener("submit", (event) => {
+      event.preventDefault();
+      openByNumber(input.value);
+    });
+    return form;
+  }
+
+  function matchIdFrom(text) {
+    const found = String(text || "").match(/(\d{6,19})/);
+    return found ? found[1] : null;
+  }
+
+  function setOpenNote(note, busy = false) {
+    state.openNumber = { ...state.openNumber, note, busy };
+    for (const el of document.querySelectorAll(".open-number-note")) {
+      el.textContent = note;
+    }
+    for (const el of document.querySelectorAll(".open-number button")) {
+      el.disabled = busy;
+    }
+  }
+
+  async function openByNumber(text) {
+    const id = matchIdFrom(text);
+    if (!id) {
+      setOpenNote(t("openBad"));
+      return;
+    }
+    if (state.matches.some((row) => String(row.match_id) === id)) {
+      setOpenNote("");
+      openMatch(id);
+      return;
+    }
+    setOpenNote(t("openLoading"), true);
+    let result = await call("addMatch", { matchId: id });
+    // OpenDota answers a match in seconds, rarely in a minute.
+    for (let tries = 0; tries < 45 && result.ok && result.data.state === "pending"; tries += 1) {
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+      result = await call("addMatchStatus", { matchId: id });
+    }
+    const outcome = result.ok ? result.data.state : "error";
+    if (outcome === "ready") {
+      state.openNumber.value = "";
+      setOpenNote("");
+      openMatch(id);
+      return;
+    }
+    setOpenNote(tOptional(`openErrors.${outcome}`) || t("openErrors.error"));
   }
 
   // A column header that orders the table by its column.
@@ -2976,6 +3073,11 @@
       })(),
       markers,
       markerLabel: t("deathsMarker"),
+      // Each finished item at the minute it came (0.50, series.items).
+      icons: (series.items || []).map((item) => {
+        const name = window.DotaIcons?.itemName(item.key) || item.key;
+        return { x: item.t / 60, src: `dota-asset://item/${item.key}`, label: `${name} · ${clock(item.t)}` };
+      }),
       xLabel: (i) => t("minuteLabel", i),
       ariaLabel: label,
       height: 210
