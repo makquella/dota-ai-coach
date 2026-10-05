@@ -1503,8 +1503,10 @@ label.setting:has(.switch:disabled) {
 }
 
 /* Tables */
+/* Edge to edge in the card (its body is padded --sp-5 on the sides); the
+   cells keep the text on the card's line. */
 .table-wrap {
-  margin: calc(-1 * var(--sp-2)) calc(-1 * var(--sp-4));
+  margin: calc(-1 * var(--sp-2)) calc(-1 * var(--sp-5));
   overflow-x: auto;
 }
 
@@ -1623,8 +1625,14 @@ label.setting:has(.switch:disabled) {
   padding-bottom: 6px;
 }
 
+/* The player's own row: a raised row with the brand bar, not a red tint
+   (red reads as a loss). */
 .table tr.is-me td {
-  background: var(--accent-soft);
+  background: var(--surface-2);
+}
+
+.table tr.is-me td:first-child {
+  box-shadow: inset 3px 0 0 var(--accent);
 }
 
 /* Match review */
@@ -2116,8 +2124,8 @@ label.setting:has(.switch:disabled) {
 }
 
 .team .table {
-  margin: 0 calc(-1 * var(--sp-4));
-  width: calc(100% + 2 * var(--sp-4));
+  margin: 0 calc(-1 * var(--sp-5));
+  width: calc(100% + 2 * var(--sp-5));
 }
 
 /* Progress */
@@ -2516,7 +2524,7 @@ label.setting:has(.switch:disabled) {
 
 .table-wrap-tight {
   margin-top: var(--sp-2);
-  margin-bottom: calc(-1 * var(--sp-4));
+  margin-bottom: calc(-1 * var(--sp-5));
 }
 
 /* --- AI coach --------------------------------------------------------------- */
