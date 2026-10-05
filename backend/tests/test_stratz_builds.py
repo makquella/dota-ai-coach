@@ -147,3 +147,34 @@ def test_no_file_or_a_broken_one_means_nothing(tmp_path, monkeypatch):
         assert stratz_builds.build(11, "Shadow Fiend", "mid") == []
     finally:
         stratz_builds._data.cache_clear()
+
+
+def test_the_bundled_file_is_sound():
+    """The file the weekly workflow writes and the app ships. The workflow runs
+    this before it opens its pull request: a PR opened with the workflow token
+    starts no CI, so a broken export would otherwise reach main unchecked."""
+    from app.stratz_builds import PATH
+
+    data = json.loads(PATH.read_text(encoding="utf-8"))
+    assert data["source"] == "STRATZ" and data["bracket"] == builder.BRACKET
+    names = data["names"]
+    assert all(isinstance(key, str) and isinstance(name, str) for key, name in names.items())
+    heroes = data["heroes"]
+    assert len(heroes) >= 100
+    positions = {f"pos{n}" for n in range(1, 6)}
+    for hero_id, entries in heroes.items():
+        assert hero_id.isdigit() and set(entries) <= positions, hero_id
+        for position, entry in entries.items():
+            where = f"{hero_id} {position}"
+            assert entry["games"] >= builder.MIN_GAMES and 0 <= entry["win"] <= 100, where
+            for key, copies in entry["start"]:
+                assert key in names and isinstance(copies, int) and copies >= 1, where
+            minutes = [row[1] for row in entry["build"]]
+            assert minutes == sorted(minutes), where
+            assert len(entry["build"]) <= builder.BUILD_LIMIT, where
+            for key, minute, share, win in entry["build"]:
+                assert key in names, where
+                assert 0 < minute <= 90 and 0 < share <= 100 and 0 <= win <= 100, where
+    # A hero everyone plays is there with a start and a build.
+    juggernaut = heroes["8"]["pos1"]
+    assert juggernaut["start"] and juggernaut["build"]

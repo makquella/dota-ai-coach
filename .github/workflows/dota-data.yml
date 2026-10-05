@@ -32,6 +32,11 @@ jobs:
       - name: Rebuild dota-data.js
         working-directory: backend
         run: python scripts/build_dota_data.py
+      # The workflow token's pull request starts no CI: the launcher's tests that
+      # read dota-data.js run here first.
+      - name: Check the new file
+        working-directory: frontend/launcher
+        run: node --check renderer/dota-data.js && node --test test/dota-icons.test.js
       - name: Open a pull request when it changed
         uses: peter-evans/create-pull-request@v7
         with:
