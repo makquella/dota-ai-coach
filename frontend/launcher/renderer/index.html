@@ -64,6 +64,7 @@
                 <button id="setup-dismiss" class="btn btn-ghost btn-sm btn-icon" type="button" data-i18n-title="setupHide" title="Hide"><i data-icon="x"></i></button>
               </span>
             </header>
+            <div class="setup-progress" aria-hidden="true"><span id="setup-bar"></span></div>
             <ol class="setup-steps" id="setup-steps"></ol>
           </section>
           <!-- One summary: the last match with its main tip, the day, the goals, the focus. -->
@@ -148,6 +149,17 @@
           </section>
         </div>
         <div class="col col-side">
+          <!-- First run: what the player gets, a real advice card (the tour's picture). -->
+          <section class="card setup-preview hidden" id="setup-preview" aria-labelledby="setup-preview-heading">
+            <header class="card-head">
+              <i data-icon="monitor"></i>
+              <h2 id="setup-preview-heading" data-i18n="setupPreviewTitle">What you will see in game</h2>
+            </header>
+            <div class="card-body">
+              <img class="setup-preview-img" id="setup-preview-img" alt="" />
+              <p class="muted small" data-i18n="setupPreviewText">Advice appears over the game when it matters, and after the match the coach writes a review with a score and one thing to fix.</p>
+            </div>
+          </section>
           <!-- «Итог вечера»: the latest sitting of 2+ games, shown once Dota is closed. -->
           <section class="card session-card hidden" id="session-card" aria-labelledby="session-heading">
             <header class="card-head">

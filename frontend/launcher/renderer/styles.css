@@ -1206,7 +1206,7 @@ label.setting:has(.switch:disabled) {
 .setup-steps {
   display: grid;
   margin: 0;
-  padding: var(--sp-1) var(--sp-4);
+  padding: var(--sp-2) var(--sp-5) var(--sp-2);
   list-style: none;
 }
 
@@ -1223,10 +1223,58 @@ label.setting:has(.switch:disabled) {
   border-top: 0;
 }
 
+/* How far the setup is: a thin bar under the card's title. */
+.setup-progress {
+  height: 4px;
+  margin: var(--sp-3) var(--sp-5) 0;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--surface-3);
+}
+
+.setup-progress > span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--accent-fill);
+  transition: width var(--dur-slow) var(--ease);
+}
+
 .setup-mark {
   display: inline-flex;
   flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
   color: var(--text-3);
+}
+
+span.setup-mark {
+  width: 22px;
+  height: 22px;
+  border: 1px solid var(--border-strong);
+  border-radius: 50%;
+  font-size: var(--fs-12);
+  font-weight: var(--fw-semibold);
+  font-variant-numeric: tabular-nums;
+}
+
+.setup-step[data-current="true"] span.setup-mark {
+  border-color: var(--accent-fill);
+  background: var(--accent-fill);
+  color: var(--accent-text);
+}
+
+.setup-step[data-current="true"] .setup-step-title {
+  font-weight: var(--fw-semibold);
+}
+
+.setup-preview-img {
+  display: block;
+  width: 100%;
+  height: auto;
+  margin-bottom: var(--sp-3);
+  border-radius: var(--r-md);
 }
 
 .setup-step[data-done="true"] .setup-mark {

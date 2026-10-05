@@ -620,6 +620,8 @@ const I18N = {
       ]
     },
     setupTitle: "Getting started",
+    setupPreviewTitle: "What you will see in game",
+    setupPreviewText: "Advice appears over the game when it matters, and after the match the coach writes a review with a score and one thing to fix.",
     setupHide: "Hide",
     setupCount: (done, total) => `${done} of ${total}`,
     setup: {
@@ -1371,6 +1373,8 @@ const I18N = {
       ]
     },
     setupTitle: "Первый запуск",
+    setupPreviewTitle: "Так это выглядит в игре",
+    setupPreviewText: "Подсказка появляется поверх игры, когда она нужна, а после матча тренер пишет разбор с оценкой и одним главным, что исправить.",
     setupHide: "Скрыть",
     setupCount: (done, total) => `${done} из ${total}`,
     setup: {
@@ -1581,6 +1585,9 @@ const els = {
   setupCard: $("#setup-card"),
   setupSteps: $("#setup-steps"),
   setupCount: $("#setup-count"),
+  setupBar: $("#setup-bar"),
+  setupPreview: $("#setup-preview"),
+  setupPreviewImg: $("#setup-preview-img"),
   setupDismiss: $("#setup-dismiss"),
   odHint: $("#od-hint"),
   odForm: $("#od-form"),
@@ -2520,10 +2527,16 @@ function renderSetup(status) {
   const doneCount = required.filter((step) => step.done).length;
   const hide = isLoading(status) || status.setup?.dismissed || doneCount === required.length;
   els.setupCard.classList.toggle("hidden", Boolean(hide));
+  els.setupPreview.classList.toggle("hidden", Boolean(hide));
   if (hide) {
     return;
   }
   els.setupCount.textContent = tr("setupCount", doneCount, required.length);
+  els.setupBar.style.width = `${Math.round((doneCount / Math.max(1, required.length)) * 100)}%`;
+  const preview = `../assets/tour/${locale === "ru" ? "ru" : "en"}/lowhp.webp`;
+  if (!els.setupPreviewImg.src.endsWith(preview.slice(2))) {
+    els.setupPreviewImg.src = preview;
+  }
   // The first open step gets the action; later ones wait for it.
   const next = steps.find((step) => !step.done);
   const signature = JSON.stringify([locale, steps.map((step) => step.done), next?.id]);
@@ -2532,14 +2545,22 @@ function renderSetup(status) {
   }
   els.setupSteps.dataset.signature = signature;
   els.setupSteps.replaceChildren(
-    ...steps.map((step) => {
+    ...steps.map((step, index) => {
       const [title, hint] = tr(`setup.${step.id}`);
       const item = document.createElement("li");
       item.className = "setup-step";
       item.dataset.done = String(step.done);
-      const mark = document.createElement("i");
+      item.dataset.current = String(step === next);
+      // A done step is a check; an open required one shows its number (the next
+      // one in red); the optional one is not counted in «3 of 6», so no number.
+      const numbered = !step.done && !step.optional;
+      const mark = document.createElement(numbered ? "span" : "i");
       mark.className = "setup-mark";
-      mark.dataset.icon = step.done ? "circle-check" : "circle";
+      if (numbered) {
+        mark.textContent = String(index + 1);
+      } else {
+        mark.dataset.icon = step.done ? "circle-check" : "sparkles";
+      }
       const text = document.createElement("span");
       text.className = "setup-text";
       const titleEl = document.createElement("span");
