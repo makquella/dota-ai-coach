@@ -1922,6 +1922,13 @@ span.setup-mark {
   background: var(--surface-1);
 }
 
+/* A label that wraps (a narrow window) keeps the values on one line. */
+.review-stats > div {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
 .review-stats dt {
   color: var(--text-3);
   font-size: var(--fs-12);
