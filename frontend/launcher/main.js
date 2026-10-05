@@ -1721,7 +1721,9 @@ const PLAYER_OPS = {
     "GET",
     `/player/matches?limit=${clampInt(args.limit, 1, 200, 30)}&offset=${clampInt(args.offset, 0, 100000, 0)}` +
       (/^\d{1,4}$/.test(String(args.heroId ?? "")) ? `&hero_id=${args.heroId}` : "") +
-      (["win", "loss"].includes(args.result) ? `&result=${args.result}` : "")
+      (["win", "loss"].includes(args.result) ? `&result=${args.result}` : "") +
+      (["score", "gpm", "lh_10", "duration", "kda"].includes(args.sort) ? `&sort=${args.sort}` : "") +
+      (args.order === "asc" ? "&order=asc" : "")
   ],
   // Reviews may be rebuilt on read after an update (new analysis version): allow time.
   match: (args) => ["GET", `/player/matches/${matchIdArg(args)}?lang=${uiLocale()}`, undefined, 15000],

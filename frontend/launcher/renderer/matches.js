@@ -17,6 +17,7 @@
       pfSparksHint: "Earned by playing with the coach: 10 a match, 5 more for a win, more for every achievement tier. Spend them on profile looks.",
       pfGames: "Matches with Wardly",
       pfWithApp: "With the coach",
+      pfNextBadge: "Closest award",
       pfWinrate: "Win rate",
       pfHours: "Hours with the coach",
       pfNoName: "Player",
@@ -90,6 +91,11 @@
       olderMatch: "Older",
       newerMatchHint: (hero) => `The newer match${hero ? ` (${hero})` : ""} · ←`,
       olderMatchHint: (hero) => `The older match${hero ? ` (${hero})` : ""} · →`,
+      prevRowMatch: "Previous",
+      nextRowMatch: "Next",
+      prevRowMatchHint: (hero) => `The row above in the list${hero ? ` (${hero})` : ""} · ←`,
+      nextRowMatchHint: (hero) => `The row below in the list${hero ? ` (${hero})` : ""} · →`,
+      sortBy: (label) => `Sort by “${label}”: click again to flip the order`,
       openOnSite: (name) => `Open this match on ${name}`,
       progressSoon: "Once a few matches are reviewed, here you get:",
       linkPerks: {
@@ -655,6 +661,7 @@
       pfSparksHint: "Даются за игру с тренером: 10 за матч, ещё 5 за победу и больше за каждую ступень награды. Тратятся на оформление профиля.",
       pfGames: "Матчей с Wardly",
       pfWithApp: "С тренером",
+      pfNextBadge: "Ближайшая награда",
       pfWinrate: "Процент побед",
       pfHours: "Часов с тренером",
       pfNoName: "Игрок",
@@ -728,6 +735,11 @@
       olderMatch: "Старее",
       newerMatchHint: (hero) => `Более новый матч${hero ? ` (${hero})` : ""} · ←`,
       olderMatchHint: (hero) => `Более старый матч${hero ? ` (${hero})` : ""} · →`,
+      prevRowMatch: "Предыдущий",
+      nextRowMatch: "Следующий",
+      prevRowMatchHint: (hero) => `Строка выше в списке${hero ? ` (${hero})` : ""} · ←`,
+      nextRowMatchHint: (hero) => `Строка ниже в списке${hero ? ` (${hero})` : ""} · →`,
+      sortBy: (label) => `Сортировать по «${label}»: нажмите ещё раз, чтобы перевернуть`,
       openOnSite: (name) => `Открыть этот матч на ${name}`,
       progressSoon: "Когда разобранных матчей станет больше, здесь будут:",
       linkPerks: {
@@ -1296,6 +1308,8 @@
 
   const state = {
     filter: { heroId: null, result: "all" },
+    // The match table's order: newest first until a column header is clicked.
+    sort: { key: "date", asc: false },
     careerHero: null,
     heroes: [],
     matchesStats: null,
@@ -1425,6 +1439,12 @@
 
   function hydrate(root) {
     window.LucideIcons?.hydrate(root);
+    // A table cell with nothing to show («—») steps back from the numbers.
+    root?.querySelectorAll?.("td").forEach((cell) => {
+      if (cell.childElementCount === 0 && cell.textContent.trim() === "—") {
+        cell.classList.add("is-empty");
+      }
+    });
   }
 
   // A hero portrait / item icon next to its name (dota-icons.js); plain text
@@ -1861,8 +1881,22 @@
   function filterArgs() {
     return {
       heroId: state.filter.heroId === null ? undefined : state.filter.heroId,
-      result: state.filter.result === "all" ? undefined : state.filter.result
+      result: state.filter.result === "all" ? undefined : state.filter.result,
+      sort: state.sort.key === "date" ? undefined : state.sort.key,
+      order: state.sort.asc ? "asc" : undefined
     };
+  }
+
+  function sortedByDate() {
+    return state.sort.key === "date" && !state.sort.asc;
+  }
+
+  // A header click: the same column flips the order, another one starts from
+  // the biggest (the newest for «Played»).
+  function setSort(key) {
+    state.sort = state.sort.key === key ? { key, asc: !state.sort.asc } : { key, asc: false };
+    state.matches = [];
+    loadMatches();
   }
 
   function setFilter(patch) {
@@ -1907,6 +1941,27 @@
     return h("div", { class: "filter-bar" }, h("div", { class: "filter-controls" }, results, select), summary);
   }
 
+  // A column header that orders the table by its column.
+  function sortHeader(key, label, className = "") {
+    const active = state.sort.key === key;
+    const direction = active ? (state.sort.asc ? "ascending" : "descending") : "none";
+    return h(
+      "th",
+      { class: className, "aria-sort": direction },
+      h(
+        "button",
+        {
+          type: "button",
+          class: `sort-btn${active ? " is-active" : ""}`,
+          title: t("sortBy", label),
+          onclick: () => setSort(key)
+        },
+        h("span", { text: label }),
+        icon(active && state.sort.asc ? "chevron-up" : "chevron-down")
+      )
+    );
+  }
+
   function matchesTable(rows) {
     const head = h(
       "thead",
@@ -1916,12 +1971,12 @@
         {},
         h("th", { text: t("colResult") }),
         h("th", { text: t("colHero") }),
-        h("th", { class: "num-col", text: t("colKda") }),
-        h("th", { class: "num-col", text: t("colGpm") }),
-        h("th", { class: "num-col hide-narrow", text: t("colLh10") }),
-        h("th", { class: "num-col", text: t("colDuration") }),
-        h("th", { text: t("colScore") }),
-        h("th", { class: "hide-narrow", text: t("colWhen") })
+        sortHeader("kda", t("colKda"), "num-col"),
+        sortHeader("gpm", t("colGpm"), "num-col"),
+        sortHeader("lh_10", t("colLh10"), "num-col hide-narrow"),
+        sortHeader("duration", t("colDuration"), "num-col"),
+        sortHeader("score", t("colScore")),
+        sortHeader("date", t("colWhen"), "hide-narrow")
       )
     );
     const body = h("tbody", {});
@@ -2185,8 +2240,13 @@
     return h(
       "span",
       { class: "neighbour-nav" },
-      button(-1, "chevron-left", t("newerMatch"), (hero) => t("newerMatchHint", hero)),
-      button(1, "chevron-right", t("olderMatch"), (hero) => t("olderMatchHint", hero))
+      // Ordered by a column, the neighbours are the rows above and below.
+      sortedByDate()
+        ? button(-1, "chevron-left", t("newerMatch"), (hero) => t("newerMatchHint", hero))
+        : button(-1, "chevron-left", t("prevRowMatch"), (hero) => t("prevRowMatchHint", hero)),
+      sortedByDate()
+        ? button(1, "chevron-right", t("olderMatch"), (hero) => t("olderMatchHint", hero))
+        : button(1, "chevron-right", t("nextRowMatch"), (hero) => t("nextRowMatchHint", hero))
     );
   }
 
@@ -3712,15 +3772,26 @@
     const H = 32;
     const x = (s) => ((20 + Math.max(-20, Math.min(0, s))) / 20) * W;
     const y = (hp) => H - 2 - (Math.max(0, Math.min(100, hp)) / 100) * (H - 4);
-    const points = [...last.hp, [0, 0]].map(([s, hp]) => `${x(s).toFixed(1)},${y(hp).toFixed(1)}`).join(" ");
-    const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    const curve = [...last.hp, [0, 0]];
+    const points = curve.map(([s, hp]) => `${x(s).toFixed(1)},${y(hp).toFixed(1)}`).join(" ");
+    const NS = "http://www.w3.org/2000/svg";
+    const svg = document.createElementNS(NS, "svg");
     svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
     svg.setAttribute("class", "death-hp");
     svg.setAttribute("role", "img");
     svg.setAttribute("aria-label", `${t("deathLastTitle")}: ${last.hp.map(([, hp]) => `${hp}%`).join(", ")}`);
-    const line = document.createElementNS("http://www.w3.org/2000/svg", "polyline");
+    // Half HP as a faint guide, the HP as a filled line, the death as a cross.
+    const half = document.createElementNS(NS, "line");
+    Object.entries({ x1: 0, x2: W, y1: y(50), y2: y(50), class: "death-hp-half" }).forEach(([key, value]) => half.setAttribute(key, value));
+    const area = document.createElementNS(NS, "polygon");
+    area.setAttribute("points", `${x(curve[0][0]).toFixed(1)},${H} ${points} ${W},${H}`);
+    area.setAttribute("class", "death-hp-area");
+    const line = document.createElementNS(NS, "polyline");
     line.setAttribute("points", points);
-    svg.append(line);
+    const cross = document.createElementNS(NS, "path");
+    cross.setAttribute("d", `M${W - 7},${H - 9} l5,5 m0,-5 l-5,5`);
+    cross.setAttribute("class", "death-hp-end");
+    svg.append(half, area, line, cross);
     // What the line is, in words: a bare falling line meant nothing to a new player.
     const lines = [h("span", { class: "muted small", text: t("deathLastTitle") })];
     if (last.burst_s) {
@@ -4508,14 +4579,29 @@
     return card(
       t("pfWithApp"),
       "trophy",
-      h(
-        "div",
-        { class: "tiles tiles-compact" },
-        tile(t("pfGames"), String(stats.app_games ?? 0)),
-        tile(t("pfWinrate"), stats.app_winrate === null || stats.app_winrate === undefined ? "—" : `${stats.app_winrate}%`),
-        tile(t("pfHours"), hoursText(stats.app_hours))
-      )
+      [
+        h(
+          "div",
+          { class: "tiles tiles-compact" },
+          tile(t("pfGames"), String(stats.app_games ?? 0)),
+          tile(t("pfWinrate"), stats.app_winrate === null || stats.app_winrate === undefined ? "—" : `${stats.app_winrate}%`),
+          tile(t("pfHours"), hoursText(stats.app_hours))
+        ),
+        nextBadge(profile.achievements || [])
+      ]
     );
+  }
+
+  // The unfinished award closest to its next tier, so the side column says
+  // what to play for next.
+  function nextBadge(list) {
+    const open = list.filter((badge) => !badge.done && badge.target > 0);
+    if (!open.length) {
+      return null;
+    }
+    const share = (badge) => badge.value / badge.target;
+    const next = open.reduce((best, badge) => (share(badge) > share(best) ? badge : best));
+    return h("div", { class: "pf-next" }, h("p", { class: "pf-next-label", text: t("pfNextBadge") }), h("ul", { class: "pf-badges pf-badges-one" }, badgeItem(next)));
   }
 
   // 0 → «0», 2.5 → «2,5», 37.4 → «37».
@@ -4793,32 +4879,34 @@
       h("div", { class: "card-body" }, h(
         "ul",
         { class: "pf-badges" },
-        list.map((badge) => {
-          const percent = badge.done ? 100 : Math.max(0, Math.min(100, Math.round((100 * badge.value) / Math.max(1, badge.target))));
-          return h(
-            "li",
-            { class: `pf-badge tier-${badge.tier}${badge.done ? " done" : ""}` },
-            // No tier yet: an empty medal slot with a dim cup, not a stray dot.
-            h("div", { class: "pf-badge-medal", "aria-hidden": "true" }, badge.tier ? h("span", { text: String(badge.tier) }) : icon("trophy")),
-            h(
-              "div",
-              { class: "pf-badge-body" },
-              h("p", { class: "pf-badge-title", text: badge.title }),
-              h("p", { class: "pf-badge-tier muted", text: badge.tier ? t("pfTier", badge.tier_name, badge.tier, badge.tiers) : t("pfTierNone") }),
-              h("p", { class: "pf-badge-text", text: badge.done ? t("pfDone") : badge.text }),
-              badge.done
-                ? null
-                : h(
-                    "div",
-                    { class: "pf-badge-progress" },
-                    h("div", { class: "pf-xp-bar" }, h("span", { style: `width: ${percent}%` })),
-                    h("span", { class: "muted", text: t("pfProgress", badge.value, badge.target) }),
-                    badge.reward ? h("span", { class: "pf-badge-reward", text: t("pfReward", badge.reward) }) : null
-                  )
-            )
-          );
-        })
+        list.map(badgeItem)
       )
+      )
+    );
+  }
+
+  function badgeItem(badge) {
+    const percent = badge.done ? 100 : Math.max(0, Math.min(100, Math.round((100 * badge.value) / Math.max(1, badge.target))));
+    return h(
+      "li",
+      { class: `pf-badge tier-${badge.tier}${badge.done ? " done" : ""}` },
+      // No tier yet: an empty medal slot with a dim cup, not a stray dot.
+      h("div", { class: "pf-badge-medal", "aria-hidden": "true" }, badge.tier ? h("span", { text: String(badge.tier) }) : icon("trophy")),
+      h(
+        "div",
+        { class: "pf-badge-body" },
+        h("p", { class: "pf-badge-title", text: badge.title }),
+        h("p", { class: "pf-badge-tier muted", text: badge.tier ? t("pfTier", badge.tier_name, badge.tier, badge.tiers) : t("pfTierNone") }),
+        h("p", { class: "pf-badge-text", text: badge.done ? t("pfDone") : badge.text }),
+        badge.done
+          ? null
+          : h(
+              "div",
+              { class: "pf-badge-progress" },
+              h("div", { class: "pf-xp-bar" }, h("span", { style: `width: ${percent}%` })),
+              h("span", { class: "muted", text: t("pfProgress", badge.value, badge.target) }),
+              badge.reward ? h("span", { class: "pf-badge-reward", text: t("pfReward", badge.reward) }) : null
+            )
       )
     );
   }
@@ -4904,12 +4992,17 @@
     const low = Math.min(...points.map(([, v]) => v));
     const high = Math.max(...points.map(([, v]) => v));
     const span = high - low || 1;
-    const last = values.length - 1 || 1;
-    const xy = points.map(([i, v]) => [(i / last) * 100, 21 - ((v - low) / span) * 18]);
+    // Spread over the whole tile: games without the number are skipped, so
+    // every tile's line has the same width.
+    const xy = points.map(([, v], k) => [(k / (points.length - 1)) * 100, 21 - ((v - low) / span) * 18]);
+    const coords = xy.map(([x, y]) => `${x.toFixed(1)},${y.toFixed(1)}`).join(" ");
+    const area = document.createElementNS(NS, "polygon");
+    area.setAttribute("points", `${xy[0][0].toFixed(1)},24 ${coords} ${xy[xy.length - 1][0].toFixed(1)},24`);
+    area.setAttribute("class", "spark-area");
     const line = document.createElementNS(NS, "polyline");
-    line.setAttribute("points", xy.map(([x, y]) => `${x.toFixed(1)},${y.toFixed(1)}`).join(" "));
+    line.setAttribute("points", coords);
     line.setAttribute("class", "spark-line");
-    svg.append(line);
+    svg.append(area, line);
     return h("div", { class: "spark-wrap" }, svg);
   }
 

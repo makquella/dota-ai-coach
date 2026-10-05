@@ -119,7 +119,7 @@ const I18N = {
     hotkeysApp: "In this window",
     hotkeyTabs: "Home, Matches, Progress, Profile, Settings",
     hotkeyBack: "From a match review back to the list",
-    hotkeyNeighbour: "In a match review: the newer / the older match",
+    hotkeyNeighbour: "In a match review: the match above / below in the list (newer / older unless the list is sorted)",
     hotkeyToggle: "Turn the advice card on or off",
     hotkeyRepeat: "Show (and say) the last advice again",
     hotkeyMute: "No advice for 5 minutes",
@@ -350,6 +350,11 @@ const I18N = {
     tourHint: "A short tour of the app, one minute",
     tourStart: "Show",
     whatsNew: {
+      "0.48.0": [
+        "Sort your matches: click a column in the table (score, gold, last hits, duration, KDA, date); click again to flip the order.",
+        "Profile shows the award you are closest to next, and the deaths list draws the last 20 seconds of HP more clearly.",
+        "Small fixes: tables in the side column line up with the card text, «What does this mean?» no longer covers a table row, the review header reads more calmly."
+      ],
       "0.47.0": [
         "The in-game card has a coloured stripe on its left: red urgent, yellow a tip, green a calm note, cream the map and the plan.",
         "While Dota runs, Home shows the current match first.",
@@ -883,7 +888,7 @@ const I18N = {
     hotkeysApp: "В этом окне",
     hotkeyTabs: "Главная, Матчи, Прогресс, Профиль, Настройки",
     hotkeyBack: "Из разбора матча обратно к списку",
-    hotkeyNeighbour: "В разборе матча: более новый / более старый матч",
+    hotkeyNeighbour: "В разборе матча: матч выше / ниже в списке (новее / старее, если список не отсортирован)",
     hotkeyToggle: "Включить или выключить карточку с подсказками",
     hotkeyRepeat: "Показать (и озвучить) последний совет ещё раз",
     hotkeyMute: "Без подсказок на 5 минут",
@@ -1114,6 +1119,11 @@ const I18N = {
     tourHint: "Короткая экскурсия по приложению, на минуту",
     tourStart: "Показать",
     whatsNew: {
+      "0.48.0": [
+        "Матчи можно сортировать: нажмите на столбец таблицы (оценка, золото, добивания, длительность, У/С/П, дата), ещё раз — в обратную сторону.",
+        "В профиле видно ближайшую награду, а в списке смертей понятнее график здоровья за последние 20 секунд.",
+        "Мелочи: таблицы в узкой колонке ровно по краю текста, «Что это значит?» больше не наезжает на строку таблицы, шапка разбора спокойнее."
+      ],
       "0.47.0": [
         "У карточки в игре цветная полоска слева: красная — срочно, жёлтая — совет, зелёная — спокойная подсказка, кремовая — карта и план.",
         "Пока Дота запущена, «Главная» показывает текущий матч первым.",

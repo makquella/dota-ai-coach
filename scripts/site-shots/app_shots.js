@@ -108,7 +108,7 @@ function playerRequest(lang, op, args = {}) {
     case "status":
       return "/player";
     case "matches":
-      return `/player/matches?limit=${args.limit || 30}&offset=${args.offset || 0}${hero}${args.result ? `&result=${args.result}` : ""}`;
+      return `/player/matches?limit=${args.limit || 30}&offset=${args.offset || 0}${hero}${args.result ? `&result=${args.result}` : ""}${args.sort ? `&sort=${args.sort}` : ""}${args.order ? `&order=${args.order}` : ""}`;
     case "match":
       return `/player/matches/${args.matchId || args.id}?lang=${lang}`;
     case "career":

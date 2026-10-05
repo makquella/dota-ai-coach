@@ -6,7 +6,7 @@ POST   /player/link              {"steam": "<Steam ID / Friend ID / profile link
 POST   /player/link-detected     link the account currently seen in GSI
 DELETE /player                   forget the linked account (matches stay stored)
 POST   /player/sync              pull profile + recent matches from OpenDota
-GET    /player/matches           match table (newest first; ?hero_id=&result=win|loss)
+GET    /player/matches           match table (newest first; ?hero_id=&result=win|loss&sort=&order=)
 GET    /player/matches/{id}      one match: summary, scoreboard, post-match review
 POST   /player/matches/{id}/refresh   fetch again / ask OpenDota to parse the replay
 GET    /player/career            statistics and advice over the recent matches
@@ -38,6 +38,7 @@ from app.history_backup import BackupError
 from app.opendota import OpenDotaClient
 from app.player_profile import public_card
 from app.player_service import PlayerService
+from app.player_store import MATCH_SORTS
 from app.steam_ids import SteamIdError
 
 PLAYER_SERVICE = PlayerService(
@@ -113,13 +114,25 @@ def sync_player():
 
 @router.get("/matches", summary="Match table of the linked player")
 def player_matches(
-    limit: int = 50, offset: Offset = 0, hero_id: HeroId = None, result: str | None = None
+    limit: int = 50,
+    offset: Offset = 0,
+    hero_id: HeroId = None,
+    result: str | None = None,
+    sort: str | None = None,
+    order: str | None = None,
 ):
-    """`hero_id` and `result` (win | loss) filter the table."""
+    """`hero_id` and `result` (win | loss) filter the table; `sort` (date | score |
+    gpm | lh_10 | duration | kda) and `order` (asc | desc) order it."""
     limit = max(1, min(int(limit), 200))
     win = {"win": True, "loss": False}.get(str(result or "").lower())
+    key = str(sort or "date").lower()
     return PLAYER_SERVICE.list_matches(
-        limit=limit, offset=max(0, int(offset)), hero_id=hero_id, win=win
+        limit=limit,
+        offset=max(0, int(offset)),
+        hero_id=hero_id,
+        win=win,
+        sort=key if key in MATCH_SORTS else "date",
+        ascending=str(order or "").lower() == "asc",
     )
 
 
