@@ -91,6 +91,11 @@
       olderMatch: "Older",
       newerMatchHint: (hero) => `The newer match${hero ? ` (${hero})` : ""} · ←`,
       olderMatchHint: (hero) => `The older match${hero ? ` (${hero})` : ""} · →`,
+      prevRowMatch: "Previous",
+      nextRowMatch: "Next",
+      prevRowMatchHint: (hero) => `The row above in the list${hero ? ` (${hero})` : ""} · ←`,
+      nextRowMatchHint: (hero) => `The row below in the list${hero ? ` (${hero})` : ""} · →`,
+      sortBy: (label) => `Sort by “${label}”: click again to flip the order`,
       openOnSite: (name) => `Open this match on ${name}`,
       progressSoon: "Once a few matches are reviewed, here you get:",
       linkPerks: {
@@ -730,6 +735,11 @@
       olderMatch: "Старее",
       newerMatchHint: (hero) => `Более новый матч${hero ? ` (${hero})` : ""} · ←`,
       olderMatchHint: (hero) => `Более старый матч${hero ? ` (${hero})` : ""} · →`,
+      prevRowMatch: "Предыдущий",
+      nextRowMatch: "Следующий",
+      prevRowMatchHint: (hero) => `Строка выше в списке${hero ? ` (${hero})` : ""} · ←`,
+      nextRowMatchHint: (hero) => `Строка ниже в списке${hero ? ` (${hero})` : ""} · →`,
+      sortBy: (label) => `Сортировать по «${label}»: нажмите ещё раз, чтобы перевернуть`,
       openOnSite: (name) => `Открыть этот матч на ${name}`,
       progressSoon: "Когда разобранных матчей станет больше, здесь будут:",
       linkPerks: {
@@ -1298,6 +1308,8 @@
 
   const state = {
     filter: { heroId: null, result: "all" },
+    // The match table's order: newest first until a column header is clicked.
+    sort: { key: "date", asc: false },
     careerHero: null,
     heroes: [],
     matchesStats: null,
@@ -1869,8 +1881,22 @@
   function filterArgs() {
     return {
       heroId: state.filter.heroId === null ? undefined : state.filter.heroId,
-      result: state.filter.result === "all" ? undefined : state.filter.result
+      result: state.filter.result === "all" ? undefined : state.filter.result,
+      sort: state.sort.key === "date" ? undefined : state.sort.key,
+      order: state.sort.asc ? "asc" : undefined
     };
+  }
+
+  function sortedByDate() {
+    return state.sort.key === "date" && !state.sort.asc;
+  }
+
+  // A header click: the same column flips the order, another one starts from
+  // the biggest (the newest for «Played»).
+  function setSort(key) {
+    state.sort = state.sort.key === key ? { key, asc: !state.sort.asc } : { key, asc: false };
+    state.matches = [];
+    loadMatches();
   }
 
   function setFilter(patch) {
@@ -1915,6 +1941,27 @@
     return h("div", { class: "filter-bar" }, h("div", { class: "filter-controls" }, results, select), summary);
   }
 
+  // A column header that orders the table by its column.
+  function sortHeader(key, label, className = "") {
+    const active = state.sort.key === key;
+    const direction = active ? (state.sort.asc ? "ascending" : "descending") : "none";
+    return h(
+      "th",
+      { class: className, "aria-sort": direction },
+      h(
+        "button",
+        {
+          type: "button",
+          class: `sort-btn${active ? " is-active" : ""}`,
+          title: t("sortBy", label),
+          onclick: () => setSort(key)
+        },
+        h("span", { text: label }),
+        icon(active && state.sort.asc ? "chevron-up" : "chevron-down")
+      )
+    );
+  }
+
   function matchesTable(rows) {
     const head = h(
       "thead",
@@ -1924,12 +1971,12 @@
         {},
         h("th", { text: t("colResult") }),
         h("th", { text: t("colHero") }),
-        h("th", { class: "num-col", text: t("colKda") }),
-        h("th", { class: "num-col", text: t("colGpm") }),
-        h("th", { class: "num-col hide-narrow", text: t("colLh10") }),
-        h("th", { class: "num-col", text: t("colDuration") }),
-        h("th", { text: t("colScore") }),
-        h("th", { class: "hide-narrow", text: t("colWhen") })
+        sortHeader("kda", t("colKda"), "num-col"),
+        sortHeader("gpm", t("colGpm"), "num-col"),
+        sortHeader("lh_10", t("colLh10"), "num-col hide-narrow"),
+        sortHeader("duration", t("colDuration"), "num-col"),
+        sortHeader("score", t("colScore")),
+        sortHeader("date", t("colWhen"), "hide-narrow")
       )
     );
     const body = h("tbody", {});
@@ -2193,8 +2240,13 @@
     return h(
       "span",
       { class: "neighbour-nav" },
-      button(-1, "chevron-left", t("newerMatch"), (hero) => t("newerMatchHint", hero)),
-      button(1, "chevron-right", t("olderMatch"), (hero) => t("olderMatchHint", hero))
+      // Ordered by a column, the neighbours are the rows above and below.
+      sortedByDate()
+        ? button(-1, "chevron-left", t("newerMatch"), (hero) => t("newerMatchHint", hero))
+        : button(-1, "chevron-left", t("prevRowMatch"), (hero) => t("prevRowMatchHint", hero)),
+      sortedByDate()
+        ? button(1, "chevron-right", t("olderMatch"), (hero) => t("olderMatchHint", hero))
+        : button(1, "chevron-right", t("nextRowMatch"), (hero) => t("nextRowMatchHint", hero))
     );
   }
 

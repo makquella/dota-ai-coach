@@ -27,7 +27,12 @@ def test_filters_by_hero_and_result(client, tmp_path):
     by_hero = client.get(f"/player/matches?limit=200&hero_id={hero['hero_id']}").json()
     assert by_hero["total"] == hero["games"] == len(by_hero["items"])
     assert {row["hero_id"] for row in by_hero["items"]} == {hero["hero_id"]}
-    assert by_hero["filters"] == {"hero_id": hero["hero_id"], "win": None}
+    assert by_hero["filters"] == {
+        "hero_id": hero["hero_id"],
+        "win": None,
+        "sort": "date",
+        "ascending": False,
+    }
 
     wins = client.get("/player/matches?limit=200&result=win").json()
     losses = client.get("/player/matches?limit=200&result=loss").json()
@@ -37,6 +42,48 @@ def test_filters_by_hero_and_result(client, tmp_path):
     assert wins["stats"]["winrate"] == 100 and losses["stats"]["winrate"] == 0
     expected = round(100 * wins["total"] / len(recent))
     assert everything["stats"]["winrate"] == expected
+
+
+def test_sorts_the_table(client, tmp_path):
+    recent = _synced(client, tmp_path)
+    newest = client.get("/player/matches?limit=200").json()["items"]
+    starts = [row["start_time"] for row in newest]
+    assert starts == sorted(starts, reverse=True)
+
+    for key in ("gpm", "duration", "lh_10", "kda", "score"):
+        down = client.get(f"/player/matches?limit=200&sort={key}").json()
+        up = client.get(f"/player/matches?limit=200&sort={key}&order=asc").json()
+        assert down["total"] == up["total"] == len(recent)
+        assert down["filters"]["sort"] == key and up["filters"]["ascending"] is True
+
+        def value(row, key=key):
+            if key == "kda":
+                return (
+                    None
+                    if row["kills"] is None
+                    else ((row["kills"] + (row["assists"] or 0)) / max(1, row["deaths"] or 0))
+                )
+            return row[key]
+
+        for rows, reverse in ((down["items"], True), (up["items"], False)):
+            known = [value(row) for row in rows if value(row) is not None]
+            assert known == sorted(known, reverse=reverse)
+            # Rows without the number come last in both directions.
+            missing = [value(row) is None for row in rows]
+            assert missing == sorted(missing)
+
+    # Paging keeps the order: the second page continues the first.
+    first = client.get("/player/matches?limit=10&sort=gpm").json()["items"]
+    second = client.get("/player/matches?limit=10&offset=10&sort=gpm").json()["items"]
+    both = [row["gpm"] for row in first + second]
+    assert both == sorted(both, reverse=True)
+
+    oldest = client.get("/player/matches?limit=200&order=asc").json()["items"]
+    assert [row["match_id"] for row in oldest] == [row["match_id"] for row in reversed(newest)]
+    # An unknown key never reaches SQL: the table stays newest first.
+    odd = client.get("/player/matches?limit=200&sort=score;DROP TABLE matches").json()
+    assert odd["filters"]["sort"] == "date"
+    assert [row["match_id"] for row in odd["items"]] == [row["match_id"] for row in newest]
 
 
 def test_unknown_result_means_no_filter(client, tmp_path):

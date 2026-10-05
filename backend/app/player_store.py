@@ -50,6 +50,17 @@ MATCH_COLUMNS = (
     "score",
 )
 
+# The match table's sortable columns (a fixed list: the key never reaches SQL).
+SORT_COLUMNS = {
+    "score": "score",
+    "gpm": "gpm",
+    "lh_10": "lh_10",
+    "duration": "duration",
+    "kda": "CASE WHEN kills IS NULL THEN NULL "
+    "ELSE (kills + COALESCE(assists, 0)) * 1.0 / MAX(1, COALESCE(deaths, 0)) END",
+}
+MATCH_SORTS = ("date", *SORT_COLUMNS)
+
 _SCHEMA = """
 CREATE TABLE IF NOT EXISTS meta (
     key TEXT PRIMARY KEY,
@@ -368,14 +379,24 @@ class PlayerStore:
         offset: int = 0,
         hero_id: int | None = None,
         win: bool | None = None,
+        sort: str = "date",
+        ascending: bool = False,
     ) -> list[dict[str, Any]]:
         columns = ", ".join(("match_id", *MATCH_COLUMNS, "sources", "parse_status"))
         where, params = self._filter(account_id, hero_id, win)
+        order = "COALESCE(start_time, 0) DESC, match_id DESC"
+        expression = SORT_COLUMNS.get(sort)
+        if expression is not None:
+            # Rows without the number last either way; the newest first among equals.
+            direction = "ASC" if ascending else "DESC"
+            order = f"({expression}) IS NULL, ({expression}) {direction}, {order}"
+        elif sort == "date" and ascending:
+            order = "COALESCE(start_time, 0) ASC, match_id ASC"
         with self._lock:
             rows = self._conn.execute(
                 f"SELECT {columns}, analysis_json IS NOT NULL AS has_analysis, "
                 f"timeline_json IS NOT NULL AS has_timeline FROM matches WHERE {where} "
-                "ORDER BY COALESCE(start_time, 0) DESC, match_id DESC LIMIT ? OFFSET ?",
+                f"ORDER BY {order} LIMIT ? OFFSET ?",
                 (*params, int(limit), int(offset)),
             ).fetchall()
         return [_summary_row(row) for row in rows]

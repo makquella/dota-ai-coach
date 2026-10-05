@@ -951,20 +951,29 @@ class PlayerService:
         offset: int = 0,
         hero_id: int | None = None,
         win: bool | None = None,
+        sort: str = "date",
+        ascending: bool = False,
     ) -> dict[str, Any]:
-        """The match table; hero_id / win filter it (totals and stats follow the filter)."""
+        """The match table; hero_id / win filter it (totals and stats follow the
+        filter), sort / ascending order it (newest first by default)."""
         primary = self.store.primary_account_id()
         if primary is None:
             return {"linked": False, "items": [], "total": 0}
         return {
             "linked": True,
             "items": self.store.list_matches(
-                primary, limit=limit, offset=offset, hero_id=hero_id, win=win
+                primary,
+                limit=limit,
+                offset=offset,
+                hero_id=hero_id,
+                win=win,
+                sort=sort,
+                ascending=ascending,
             ),
             "total": self.store.count_matches(primary, hero_id=hero_id, win=win),
             "stats": self.store.match_stats(primary, hero_id=hero_id, win=win),
             "heroes": self.store.hero_counts(primary),
-            "filters": {"hero_id": hero_id, "win": win},
+            "filters": {"hero_id": hero_id, "win": win, "sort": sort, "ascending": ascending},
             "sync": dict(self._sync),
             "skipped": self.skipped_modes(primary),
         }

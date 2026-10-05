@@ -1603,6 +1603,51 @@ span.setup-mark {
   white-space: nowrap;
 }
 
+/* A header that sorts the table: plain text until hovered or chosen; the
+   chosen column shows its direction. */
+.sort-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  transition: color var(--dur-fast) var(--ease);
+}
+
+.sort-btn .icon {
+  width: 12px;
+  height: 12px;
+  opacity: 0;
+  transition: opacity var(--dur-fast) var(--ease);
+}
+
+/* Number columns: the arrow before the label, so the label ends on the
+   numbers' edge. */
+.num-col .sort-btn {
+  flex-direction: row-reverse;
+}
+
+.sort-btn:hover,
+.sort-btn.is-active {
+  color: var(--text);
+}
+
+.sort-btn:hover .icon,
+.sort-btn:focus-visible .icon,
+.sort-btn.is-active .icon {
+  opacity: 1;
+}
+
+.sort-btn:focus-visible {
+  border-radius: var(--r-sm);
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
 .table td.is-empty {
   color: var(--text-3);
 }
