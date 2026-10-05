@@ -351,6 +351,11 @@ const I18N = {
     tourHint: "A short tour of the app, one minute",
     tourStart: "Show",
     whatsNew: {
+      "0.49.0": [
+        "Skill tips show the ability's own icon, and the pros' skill order as icons with the one to level now outlined; the review's skill card has the icons too.",
+        "Long pages have section links: the review's top bar and Progress list their parts, jump to one with a click and mark the part you are reading.",
+        "Press ? on any tab for the list of hotkeys; the match table remembers how you sorted it."
+      ],
       "0.48.0": [
         "Sort your matches: click a column in the table (score, gold, last hits, duration, KDA, date); click again to flip the order.",
         "Profile shows the award you are closest to next, and the deaths list draws the last 20 seconds of HP more clearly.",
@@ -1121,6 +1126,11 @@ const I18N = {
     tourHint: "Короткая экскурсия по приложению, на минуту",
     tourStart: "Показать",
     whatsNew: {
+      "0.49.0": [
+        "Подсказки по прокачке показывают иконку способности, а порядок прокачки у про — иконками, нужная сейчас обведена; в карточке «Прокачка» разбора тоже иконки.",
+        "У длинных страниц есть разделы: в верхней полосе разбора и в «Прогрессе» — ссылки на части страницы, переход в один клик, текущая часть подсвечена.",
+        "Клавиша ? на любой вкладке показывает горячие клавиши; таблица матчей помнит, как вы её отсортировали."
+      ],
       "0.48.0": [
         "Матчи можно сортировать: нажмите на столбец таблицы (оценка, золото, добивания, длительность, У/С/П, дата), ещё раз — в обратную сторону.",
         "В профиле видно ближайшую награду, а в списке смертей понятнее график здоровья за последние 20 секунд.",
