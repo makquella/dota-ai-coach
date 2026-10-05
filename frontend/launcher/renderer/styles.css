@@ -3897,6 +3897,12 @@ kbd {
 }
 .whats-new {
   margin-bottom: var(--sp-3);
+  border-color: color-mix(in srgb, var(--accent) 28%, var(--border));
+}
+
+.whats-new .card-head .icon,
+.whats-new-list li::marker {
+  color: var(--accent);
 }
 
 .whats-new-list {
