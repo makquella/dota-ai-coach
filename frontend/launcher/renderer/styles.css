@@ -4309,6 +4309,15 @@ kbd {
   line-height: 1.45;
 }
 
+/* «Также в 0.50.0»: the versions an update skipped, under the new one. */
+.whats-new-list .whats-new-version {
+  margin: var(--sp-2) 0 0 calc(-1 * var(--sp-5));
+  list-style: none;
+  color: var(--text-3);
+  font-size: var(--fs-12);
+  font-weight: 600;
+}
+
 /* Hero portraits (16:9) and item icons from dota-asset:// (dota-icons.js); the
    initials show until the picture loads or when it cannot be loaded. */
 .dota-pic {

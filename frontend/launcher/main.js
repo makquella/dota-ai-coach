@@ -115,6 +115,9 @@ const settings = createSettingsStore(path.join(USER_DATA_DIR, "settings.json"), 
   setupDismissed: false,
   // Version whose "What's new" card is still to be shown (set by an update).
   whatsNewPending: "",
+  // The version the last update came from: the card lists what every
+  // skipped version brought too.
+  whatsNewFrom: "",
   // Matches played with the app and reviewed (the invite card on Home shows from
   // the third), and whether the card was answered (copied or «not now»).
   liveReviews: 0,
@@ -567,6 +570,7 @@ function publicStatus() {
     setup: { gsiSeen: Boolean(settings.get("gsiSeenAt")), dismissed: Boolean(settings.get("setupDismissed")) },
     report: { last: settings.get("lastReport") || null, queued: outboxCount },
     whatsNew: settings.get("whatsNewPending") === app.getVersion() ? app.getVersion() : "",
+    whatsNewFrom: settings.get("whatsNewFrom") || "",
     invite: inviteDue() ? inviteUrl() : "",
     tour: tourDue(),
     sessionSeen: settings.get("sessionSeen") || "",
@@ -3434,6 +3438,7 @@ function registerIpc() {
   });
   ipcMain.handle("launcher:dismiss-whats-new", () => {
     settings.set("whatsNewPending", "");
+    settings.set("whatsNewFrom", "");
     return publicStatus();
   });
   ipcMain.handle("launcher:dismiss-setup", () => {
@@ -3750,6 +3755,7 @@ function bootstrap() {
     }
     if (justUpdated) {
       settings.set("whatsNewPending", app.getVersion());
+      settings.set("whatsNewFrom", updatedFrom);
       appendLog("update", `Updated from ${updatedFrom} to ${app.getVersion()}.`, { force: true });
       showTrayBalloon(t("updated", app.getVersion()));
     }

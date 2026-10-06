@@ -269,6 +269,7 @@ const I18N = {
       error: (v) => `Version ${v} · could not check for updates`
     },
     whatsNewTitle: (version) => `What's new in ${version}`,
+    whatsNewAlso: (version) => `Also in ${version}`,
     whatsNewOk: "Got it",
     inviteTitle: "Like Wardly?",
     inviteText: "Send the link to a friend: the app is free, and playing together it is easier to follow the advice.",
@@ -1053,6 +1054,7 @@ const I18N = {
       error: (v) => `Версия ${v} · не удалось проверить обновления`
     },
     whatsNewTitle: (version) => `Что нового в ${version}`,
+    whatsNewAlso: (version) => `Также в ${version}`,
     whatsNewOk: "Понятно",
     inviteTitle: "Нравится Wardly?",
     inviteText: "Скинь ссылку другу: приложение бесплатное, а играя вместе, проще следовать подсказкам.",
@@ -2563,24 +2565,55 @@ function setupSteps(status) {
   ];
 }
 
+// "0.51.0" > "0.50.2": the parts as numbers.
+function newerVersion(a, b) {
+  const x = String(a).split(".").map((part) => Number.parseInt(part, 10) || 0);
+  const y = String(b).split(".").map((part) => Number.parseInt(part, 10) || 0);
+  for (let i = 0; i < Math.max(x.length, y.length); i += 1) {
+    if ((x[i] || 0) !== (y[i] || 0)) {
+      return (x[i] || 0) > (y[i] || 0);
+    }
+  }
+  return false;
+}
+
+// The new version's bullets, then those of the versions an update skipped
+// (0.49 → 0.51 also lists 0.50), newest first, four versions at most.
+function whatsNewVersions(table, current, from) {
+  return Object.keys(table)
+    .filter((version) => Array.isArray(table[version]) && table[version].length)
+    .filter((version) => version === current || (from && newerVersion(version, from) && newerVersion(current, version)))
+    .sort((a, b) => (newerVersion(a, b) ? -1 : newerVersion(b, a) ? 1 : 0))
+    .slice(0, 4);
+}
+
 function renderWhatsNew(status) {
   const version = String(status.whatsNew || "");
   const table = (I18N[locale] || I18N.en).whatsNew || {};
-  const items = table[version];
-  const show = Boolean(version && Array.isArray(items) && items.length);
+  const versions = version ? whatsNewVersions(table, version, String(status.whatsNewFrom || "")) : [];
+  const show = versions.includes(version);
   els.whatsNewCard.classList.toggle("hidden", !show);
-  if (!show || els.whatsNewList.dataset.signature === `${locale}|${version}`) {
+  const signature = `${locale}|${versions.join(",")}`;
+  if (!show || els.whatsNewList.dataset.signature === signature) {
     return;
   }
-  els.whatsNewList.dataset.signature = `${locale}|${version}`;
+  els.whatsNewList.dataset.signature = signature;
   els.whatsNewHeading.textContent = tr("whatsNewTitle", version);
-  els.whatsNewList.replaceChildren(
-    ...items.map((text) => {
+  const items = [];
+  for (const each of versions) {
+    if (each !== version) {
+      const label = document.createElement("li");
+      label.className = "whats-new-version";
+      label.textContent = tr("whatsNewAlso", each);
+      items.push(label);
+    }
+    for (const text of table[each]) {
       const item = document.createElement("li");
       item.textContent = text;
-      return item;
-    })
-  );
+      items.push(item);
+    }
+  }
+  els.whatsNewList.replaceChildren(...items);
 }
 
 function renderSetup(status) {
