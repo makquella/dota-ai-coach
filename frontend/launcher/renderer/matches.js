@@ -1626,8 +1626,15 @@
     return Boolean(a && b) && a.view === b.view && String(a.matchId || "") === String(b.matchId || "");
   }
 
+  // Where each tab was scrolled when the player left it: back there (the
+  // review's «‹», Esc, the mouse's back button) the list is where it was.
+  const scrollMemory = {};
+
   function notePlace(next) {
     const here = currentPlace();
+    if (here.view !== "match" && !samePlace(here, next)) {
+      scrollMemory[here.view] = window.scrollY;
+    }
     if (next.view === "match" && here.view !== "match") {
       state.reviewFrom = here.view;
     }
@@ -1647,7 +1654,7 @@
       if (place.view === "match") {
         openMatch(place.matchId);
       } else {
-        setView(place.view);
+        setView(place.view, { restore: true });
       }
     } finally {
       nav.moving = false;
@@ -1676,7 +1683,10 @@
 
   // «‹ Матчи» / «‹ Главная»: a review goes back to the tab it came from.
   function leaveReview() {
-    setView(state.reviewFrom && state.reviewFrom !== "match" ? state.reviewFrom : "matches");
+    const seen = state.matchId;
+    setView(state.reviewFrom && state.reviewFrom !== "match" ? state.reviewFrom : "matches", { restore: true });
+    // The row of the match just read keeps the keyboard focus (↑/↓ go on from it).
+    document.querySelector(`#matches-root tr.row-link[data-match-id="${CSS.escape(String(seen || ""))}"]`)?.focus({ preventScroll: true });
   }
 
   function reviewBackButton() {
@@ -1684,7 +1694,7 @@
     return h("button", { class: "btn btn-ghost btn-sm back", type: "button", onclick: leaveReview }, icon("chevron-left"), h("span", { text: t(`backTo.${from}`) }));
   }
 
-  function setView(view, { remember = true } = {}) {
+  function setView(view, { remember = true, restore = false } = {}) {
     if (view !== "match") {
       notePlace({ view });
     }
@@ -1714,7 +1724,8 @@
     } else if (view === "settings") {
       renderAiSettings({ load: true });
     }
-    window.scrollTo({ top: 0 });
+    // The tab keeps its last drawing while hidden, so its old place is there.
+    window.scrollTo({ top: restore ? scrollMemory[view] || 0 : 0 });
   }
 
   async function call(op, args) {
@@ -2236,7 +2247,7 @@
             class: "row-link",
             tabindex: 0,
             role: "button",
-            dataset: { result: row.win === true ? "win" : row.win === false ? "loss" : "unknown" },
+            dataset: { result: row.win === true ? "win" : row.win === false ? "loss" : "unknown", matchId: String(row.match_id) },
             "aria-label": `${row.hero || ""} ${row.win === true ? t("win") : row.win === false ? t("loss") : ""}`,
             onclick: open,
             onkeydown: (event) => {
