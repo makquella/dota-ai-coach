@@ -500,6 +500,61 @@ function uiLocale() {
   }
 }
 
+// «Размер интерфейса»: the control panel's zoom, kept in settings.uiScale.
+// Ctrl + plus / minus / 0 and Ctrl + the mouse wheel step through the same
+// sizes (the default menu's zoom keys would change the page and forget it).
+const UI_SCALES = [0.9, 1, 1.1, 1.25];
+
+function uiScale() {
+  const value = Number(settings.get("uiScale"));
+  return UI_SCALES.includes(value) ? value : 1;
+}
+
+function applyUiScale() {
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.webContents.setZoomFactor(uiScale());
+  }
+}
+
+function setUiScale(value) {
+  const scale = Number(value);
+  settings.set("uiScale", UI_SCALES.includes(scale) ? scale : 1);
+  applyUiScale();
+  updateStatus();
+  return publicStatus();
+}
+
+// direction: 1 bigger, -1 smaller, 0 back to 100 %. The panel names the new
+// size for a moment (its toast), since nothing else on the page says it.
+function stepUiScale(direction) {
+  const index = UI_SCALES.indexOf(uiScale());
+  const next = direction === 0 ? 1 : UI_SCALES[Math.max(0, Math.min(UI_SCALES.length - 1, index + direction))];
+  if (next !== uiScale()) {
+    setUiScale(next);
+  }
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.webContents.send("launcher:ui-scale", next);
+  }
+}
+
+// The zoom keys of the panel: Ctrl/Cmd with plus, minus or 0 (main keyboard or
+// numpad); null for any other key.
+function uiScaleKey(input) {
+  if (input.type !== "keyDown" || !(input.control || input.meta) || input.alt) {
+    return null;
+  }
+  if (input.key === "+" || input.key === "=" || input.code === "NumpadAdd") {
+    return 1;
+  }
+  if (input.key === "-" || input.key === "_" || input.code === "NumpadSubtract") {
+    return -1;
+  }
+  if (input.key === "0" || input.code === "Numpad0") {
+    return 0;
+  }
+  return null;
+}
+
 function setLanguage(value) {
   settings.set("language", ["ru", "en"].includes(value) ? value : "auto");
   overlay.notifyBackendChanged(); // re-sends the overlay config with the new locale
@@ -544,6 +599,7 @@ function publicStatus() {
   return {
     locale: uiLocale(),
     language: settings.get("language") || "auto",
+    uiScale: uiScale(),
     live: { ...live.details },
     recentAdvice: live.recentAdvice,
     overlayPosition: overlay.position(),
@@ -1733,6 +1789,8 @@ const PLAYER_OPS = {
   match: (args) => ["GET", `/player/matches/${matchIdArg(args)}?lang=${uiLocale()}`, undefined, 15000],
   refreshMatch: (args) => ["POST", `/player/matches/${matchIdArg(args)}/refresh`],
   addMatch: (args) => ["POST", `/player/matches/${matchIdArg(args)}/add`],
+  // «Заметка»: the player's own line on a match (200 characters at most).
+  setNote: (args) => ["POST", `/player/matches/${matchIdArg(args)}/note`, { note: String(args.note || "").slice(0, 200) }],
   addMatchStatus: (args) => ["GET", `/player/matches/${matchIdArg(args)}/add`],
   week: () => ["GET", `/player/week?lang=${uiLocale()}`],
   profile: () => ["GET", `/player/profile?lang=${uiLocale()}`],
@@ -3018,6 +3076,15 @@ function createMainWindow({ show = true } = {}) {
     mainWindow.on(eventName, rememberSoon);
   }
   mainWindow.loadFile(path.join(__dirname, "renderer", "index.html"));
+  mainWindow.webContents.on("did-finish-load", applyUiScale);
+  mainWindow.webContents.on("before-input-event", (event, input) => {
+    const direction = uiScaleKey(input);
+    if (direction !== null) {
+      event.preventDefault();
+      stepUiScale(direction);
+    }
+  });
+  mainWindow.webContents.on("zoom-changed", (_event, direction) => stepUiScale(direction === "in" ? 1 : -1));
 
   // Closing the window only hides it; the coach keeps running in the tray.
   mainWindow.on("close", (event) => {
@@ -3359,6 +3426,7 @@ function registerIpc() {
     return publicStatus();
   });
   ipcMain.handle("launcher:set-language", (_event, value) => setLanguage(String(value || "")));
+  ipcMain.handle("launcher:set-ui-scale", (_event, value) => setUiScale(value));
   ipcMain.handle("launcher:set-advice-frequency", (_event, value) => setAdviceFrequency(String(value || "")));
   ipcMain.handle("launcher:set-discord-presence", (_event, enabled) => setDiscordPresence(Boolean(enabled)));
   ipcMain.handle("launcher:set-share-stats", (_event, enabled) => setShareStats(Boolean(enabled)));

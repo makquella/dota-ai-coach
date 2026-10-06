@@ -210,6 +210,15 @@
       more: "Show more",
       liveMatch: (hero) => `Recording the current match${hero ? ` (${hero})` : ""} — the review appears right after it ends.`,
       back: "Matches",
+      noteAdd: "Add a note",
+      noteAddHint: "Your own line on this match: lag, a new build, who you played with. Kept on this computer only.",
+      noteEdit: "Edit the note",
+      noteLabel: "Your note",
+      notePlaceholder: "For example: lag, tried a new build",
+      noteSave: "Save",
+      noteCancel: "Cancel",
+      noteFailed: "Could not save the note. Try again.",
+      backTo: { home: "Home", matches: "Matches", progress: "Progress", profile: "Profile", settings: "Settings" },
       filterResult: "Result",
       filterResults: { all: "All", win: "Wins", loss: "Losses" },
       filterHero: "Hero",
@@ -883,6 +892,15 @@
       more: "Показать ещё",
       liveMatch: (hero) => `Записываем текущий матч${hero ? ` (${hero})` : ""} — разбор появится сразу после него.`,
       back: "Матчи",
+      noteAdd: "Заметка",
+      noteAddHint: "Ваша строчка к этому матчу: лагало, новый билд, с кем играли. Хранится только на этом компьютере.",
+      noteEdit: "Изменить заметку",
+      noteLabel: "Ваша заметка",
+      notePlaceholder: "Например: лагало, пробовал новый билд",
+      noteSave: "Сохранить",
+      noteCancel: "Отмена",
+      noteFailed: "Не удалось сохранить заметку. Попробуйте ещё раз.",
+      backTo: { home: "Главная", matches: "Матчи", progress: "Прогресс", profile: "Профиль", settings: "Настройки" },
       filterResult: "Результат",
       filterResults: { all: "Все", win: "Победы", loss: "Поражения" },
       filterHero: "Герой",
@@ -1594,7 +1612,92 @@
 
   // --- navigation -------------------------------------------------------------
 
-  function setView(view, { remember = true } = {}) {
+  // Back / forward like a browser (the mouse's side buttons, Alt+←/→): the
+  // places the player went through — a tab or a match review — newest last.
+  // A review also keeps the tab it was opened from, which its «‹» returns to.
+  const NAV_LIMIT = 30;
+  const nav = { back: [], forward: [], moving: false };
+
+  function currentPlace() {
+    return state.view === "match" && state.matchId ? { view: "match", matchId: state.matchId } : { view: state.view || "home" };
+  }
+
+  function samePlace(a, b) {
+    return Boolean(a && b) && a.view === b.view && String(a.matchId || "") === String(b.matchId || "");
+  }
+
+  // Where each tab was scrolled when the player left it: back there (the
+  // review's «‹», Esc, the mouse's back button) the list is where it was.
+  const scrollMemory = {};
+
+  function notePlace(next) {
+    const here = currentPlace();
+    if (here.view !== "match" && !samePlace(here, next)) {
+      scrollMemory[here.view] = window.scrollY;
+    }
+    if (next.view === "match" && here.view !== "match") {
+      state.reviewFrom = here.view;
+    }
+    if (nav.moving || !state.view || samePlace(here, next)) {
+      return;
+    }
+    nav.back.push(here);
+    if (nav.back.length > NAV_LIMIT) {
+      nav.back.shift();
+    }
+    nav.forward = [];
+  }
+
+  function goTo(place) {
+    nav.moving = true;
+    try {
+      if (place.view === "match") {
+        openMatch(place.matchId);
+      } else {
+        setView(place.view, { restore: true });
+      }
+    } finally {
+      nav.moving = false;
+    }
+  }
+
+  function goBack() {
+    const place = nav.back.pop();
+    if (!place) {
+      return false;
+    }
+    nav.forward.push(currentPlace());
+    goTo(place);
+    return true;
+  }
+
+  function goForward() {
+    const place = nav.forward.pop();
+    if (!place) {
+      return false;
+    }
+    nav.back.push(currentPlace());
+    goTo(place);
+    return true;
+  }
+
+  // «‹ Матчи» / «‹ Главная»: a review goes back to the tab it came from.
+  function leaveReview() {
+    const seen = state.matchId;
+    setView(state.reviewFrom && state.reviewFrom !== "match" ? state.reviewFrom : "matches", { restore: true });
+    // The row of the match just read keeps the keyboard focus (↑/↓ go on from it).
+    document.querySelector(`#matches-root tr.row-link[data-match-id="${CSS.escape(String(seen || ""))}"]`)?.focus({ preventScroll: true });
+  }
+
+  function reviewBackButton() {
+    const from = state.reviewFrom && state.reviewFrom !== "match" ? state.reviewFrom : "matches";
+    return h("button", { class: "btn btn-ghost btn-sm back", type: "button", onclick: leaveReview }, icon("chevron-left"), h("span", { text: t(`backTo.${from}`) }));
+  }
+
+  function setView(view, { remember = true, restore = false } = {}) {
+    if (view !== "match") {
+      notePlace({ view });
+    }
     state.view = view;
     state.aiPanel = null;
     state.aiMessage = null;
@@ -1621,7 +1724,8 @@
     } else if (view === "settings") {
       renderAiSettings({ load: true });
     }
-    window.scrollTo({ top: 0 });
+    // The tab keeps its last drawing while hidden, so its old place is there.
+    window.scrollTo({ top: restore ? scrollMemory[view] || 0 : 0 });
   }
 
   async function call(op, args) {
@@ -2143,18 +2247,35 @@
             class: "row-link",
             tabindex: 0,
             role: "button",
-            dataset: { result: row.win === true ? "win" : row.win === false ? "loss" : "unknown" },
+            dataset: { result: row.win === true ? "win" : row.win === false ? "loss" : "unknown", matchId: String(row.match_id) },
             "aria-label": `${row.hero || ""} ${row.win === true ? t("win") : row.win === false ? t("loss") : ""}`,
             onclick: open,
             onkeydown: (event) => {
               if (event.key === "Enter" || event.key === " ") {
                 event.preventDefault();
                 open();
+              } else if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+                // ↑/↓ walk the rows, Enter opens one.
+                const next = event.key === "ArrowDown" ? event.currentTarget.nextElementSibling : event.currentTarget.previousElementSibling;
+                if (next) {
+                  event.preventDefault();
+                  next.focus();
+                }
               }
             }
           },
           h("td", {}, resultBadge(row.win)),
-          h("td", {}, heroLabel(row.hero_id || row.hero, row.hero || "—")),
+          h(
+            "td",
+            {},
+            h(
+              "span",
+              { class: "hero-note-cell" },
+              heroLabel(row.hero_id || row.hero, row.hero || "—"),
+              // «Заметка»: the player's own line, read on hover.
+              row.note ? h("span", { class: "row-note", title: row.note, "aria-label": `${t("noteLabel")}: ${row.note}` }, icon("sticky-note")) : null
+            )
+          ),
           h("td", { class: "num-col num", text: row.kills == null ? "—" : `${row.kills} / ${row.deaths} / ${row.assists}` }),
           h("td", { class: "num-col num", text: number(row.gpm) }),
           h("td", { class: "num-col num hide-narrow", text: number(row.lh_10) }),
@@ -2190,6 +2311,7 @@
 
   async function openMatch(matchId) {
     state.adviceLogOpen = false;
+    notePlace({ view: "match", matchId: String(matchId) });
     state.matchId = String(matchId);
     state.match = null;
     setView("match", { remember: false });
@@ -2232,7 +2354,7 @@
       const changed = JSON.stringify(result.data) !== JSON.stringify(state.match);
       state.match = result.data;
       // Don't wipe a key or a question the player is typing, or a question on its way.
-      const asking = state.askBusy || Boolean(document.querySelector(".ask-input")?.value.trim());
+      const asking = state.askBusy || Boolean(document.querySelector(".ask-input")?.value.trim()) || Boolean(document.querySelector(".review-note-input"));
       if (changed && state.aiPanel !== "form" && !asking) {
         renderMatch();
       }
@@ -2377,7 +2499,7 @@
     } catch (error) {
       console.error("review render failed", error);
       const root = document.getElementById("match-root");
-      const back = h("div", { class: "review-toolbar no-print" }, h("button", { class: "btn btn-ghost btn-sm back", type: "button", onclick: () => setView("matches") }, icon("chevron-left"), h("span", { text: t("back") })));
+      const back = h("div", { class: "review-toolbar no-print" }, reviewBackButton());
       root.replaceChildren(back, card(t("reviewError"), "circle-alert", emptyState("circle-alert", t("reviewRenderFailed"), String(error && error.message ? error.message : error))));
       hydrate(root);
     }
@@ -2427,7 +2549,7 @@
 
   function drawMatch() {
     const root = document.getElementById("match-root");
-    const backButton = h("button", { class: "btn btn-ghost btn-sm back", type: "button", onclick: () => setView("matches") }, icon("chevron-left"), h("span", { text: t("back") }));
+    const backButton = reviewBackButton();
     const detail = state.match;
     const sharePanel = h("section", { class: "card share-panel no-print", hidden: true });
     const back = h(
@@ -2780,7 +2902,8 @@
                 h("span", { text: t("goalMatch", detail.focus.title, detail.focus.met) })
               )
             : null,
-          requestButton ? h("div", { class: "row" }, requestButton, requestNote) : null
+          requestButton ? h("div", { class: "row" }, requestButton, requestNote) : null,
+          noteLine(detail, summary)
         )
       ),
       h(
@@ -2802,6 +2925,73 @@
           : null
       )
     );
+  }
+
+  // «Заметка» (0.52): the player's own line on the match (lag, a new build,
+  // played with a friend…), also marked in the match table. Kept on this
+  // computer only: never sent to the AI coach or in a shared review.
+  function noteLine(detail, summary) {
+    const wrap = h("div", { class: "review-note" });
+    const show = () => {
+      const note = summary.note || "";
+      // replaceChildren would print a null as the text «null».
+      wrap.replaceChildren(
+        ...(note ? [h("p", { class: "review-note-text" }, icon("sticky-note"), h("span", { text: note }))] : []),
+        h(
+          "button",
+          { class: "btn btn-ghost btn-sm no-print review-note-edit", type: "button", title: note ? t("noteEdit") : t("noteAddHint"), onclick: edit },
+          icon(note ? "pencil" : "sticky-note"),
+          h("span", { text: note ? t("noteEdit") : t("noteAdd") })
+        )
+      );
+      hydrate(wrap);
+    };
+    const edit = () => {
+      const input = h("input", { class: "input review-note-input", type: "text", maxlength: 200, placeholder: t("notePlaceholder"), "aria-label": t("noteLabel") });
+      input.value = summary.note || "";
+      const status = h("span", { class: "muted small", role: "status" });
+      const save = async () => {
+        input.disabled = true;
+        const result = await call("setNote", { matchId: detail.match_id, note: input.value });
+        if (result.ok) {
+          summary.note = result.data.note || null;
+          const row = state.matches.find((item) => String(item.match_id) === String(detail.match_id));
+          if (row) {
+            row.note = summary.note;
+          }
+          show();
+        } else {
+          input.disabled = false;
+          status.textContent = t("noteFailed");
+        }
+      };
+      input.addEventListener("keydown", (event) => {
+        if (event.key === "Escape") {
+          event.preventDefault();
+          event.stopPropagation();
+          show();
+        }
+      });
+      wrap.replaceChildren(
+        h(
+          "form",
+          {
+            class: "review-note-form no-print",
+            onsubmit: (event) => {
+              event.preventDefault();
+              save();
+            }
+          },
+          input,
+          h("button", { class: "btn btn-sm", type: "submit" }, h("span", { text: t("noteSave") })),
+          h("button", { class: "btn btn-ghost btn-sm", type: "button", onclick: show }, h("span", { text: t("noteCancel") })),
+          status
+        )
+      );
+      input.focus();
+    };
+    show();
+    return wrap;
   }
 
   // "Against your 8 other matches on Juggernaut: score +17 · GPM +94 · deaths −2".
@@ -4615,7 +4805,10 @@
         h("button", { class: "btn btn-primary btn-sm", type: "button", onclick: () => toggleAiPanel("settings", "form") }, h("span", { text: t("aiTurnOn") }))
       );
     }
-    root.replaceChildren(card(t("aiSettingsTitle"), "graduation-cap", body));
+    const aiCard = card(t("aiSettingsTitle"), "graduation-cap", body);
+    // Words the settings search finds it by (settings-search.js).
+    aiCard.dataset.search = "ии ai тренер разбор ключ gemini groq openrouter key coach review";
+    root.replaceChildren(aiCard);
     hydrate(root);
   }
 
@@ -5763,7 +5956,7 @@
     const facts = [
       last.kills == null ? null : `${last.kills}/${last.deaths}/${last.assists}`,
       last.duration ? clock(last.duration) : null,
-      relativeTime(last.start_time)
+      relativeTime(last.start_time, "short")
     ].filter(Boolean).join(" · ");
     const tip = last.tip || last.strength;
     const lastBlock = h(
@@ -6276,6 +6469,30 @@
     // Keyboard: Ctrl+1…5 opens a tab, Esc leaves a match review for the list,
     // ←/→ in a review open the newer / older match of the list.
     // Never while typing, and never under the first-run tour (it owns Esc).
+    // Alt+←/→ and the mouse's back / forward buttons walk the places visited.
+    const historyBlocked = () => Boolean(document.querySelector(".tour, dialog[open]"));
+    document.addEventListener("keydown", (event) => {
+      if (!event.altKey || event.ctrlKey || event.metaKey || event.shiftKey || (event.key !== "ArrowLeft" && event.key !== "ArrowRight")) {
+        return;
+      }
+      if (historyBlocked() || event.target?.closest?.("textarea, [contenteditable='true']")) {
+        return;
+      }
+      if (event.key === "ArrowLeft" ? goBack() : goForward()) {
+        event.preventDefault();
+      }
+    });
+    document.addEventListener("mouseup", (event) => {
+      if ((event.button !== 3 && event.button !== 4) || historyBlocked()) {
+        return;
+      }
+      event.preventDefault();
+      if (event.button === 3) {
+        goBack();
+      } else {
+        goForward();
+      }
+    });
     document.addEventListener("keydown", (event) => {
       // A dialog open (the keys list) owns its keys: Esc closes it, not the review.
       if (event.defaultPrevented || event.altKey || event.metaKey || document.querySelector(".tour, dialog[open]")) {
@@ -6296,7 +6513,7 @@
         }
       } else if (event.key === "Escape" && !event.ctrlKey && state.view === "match") {
         event.preventDefault();
-        setView("matches");
+        leaveReview();
       } else if ((event.key === "ArrowLeft" || event.key === "ArrowRight") && !event.ctrlKey && !event.shiftKey && state.view === "match") {
         // ← newer, → older; the tabs and the charts keep their own arrows.
         if (event.target?.closest?.(".tabs")) {

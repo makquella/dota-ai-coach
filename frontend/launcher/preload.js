@@ -26,6 +26,11 @@ contextBridge.exposeInMainWorld("launcherApi", {
   chooseDotaFolder: () => ipcRenderer.invoke("launcher:choose-dota-folder"),
   setOverlayPosition: (preset) => ipcRenderer.invoke("launcher:set-overlay-position", preset),
   setLanguage: (value) => ipcRenderer.invoke("launcher:set-language", value),
+  setUiScale: (value) => ipcRenderer.invoke("launcher:set-ui-scale", Number(value)),
+  // The new size after Ctrl + plus / minus / 0 or Ctrl + the wheel (a toast names it).
+  onUiScale: (callback) => {
+    ipcRenderer.on("launcher:ui-scale", (_event, value) => callback(value));
+  },
   setAdviceFrequency: (value) => ipcRenderer.invoke("launcher:set-advice-frequency", value),
   setDiscordPresence: (enabled) => ipcRenderer.invoke("launcher:set-discord-presence", Boolean(enabled)),
   setShareStats: (enabled) => ipcRenderer.invoke("launcher:set-share-stats", Boolean(enabled)),

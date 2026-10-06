@@ -218,7 +218,18 @@
           <h1 class="page-title" data-i18n="settingsPageTitle">Settings</h1>
           <p class="page-sub" data-i18n="settingsPageSub">Everything works as it is. Change only what you want to.</p>
         </div>
+        <!-- «Найти настройку» (settings-search.js): hides the rows without the words. -->
+        <div class="page-actions no-print">
+          <label class="search-field">
+            <i data-icon="search"></i>
+            <input id="settings-search" class="input" type="search" autocomplete="off" spellcheck="false" maxlength="60" data-i18n-placeholder="settingsSearch" data-i18n-aria="settingsSearch" placeholder="Find a setting" aria-label="Find a setting" aria-keyshortcuts="Control+F" />
+          </label>
+        </div>
       </header>
+      <p class="search-empty" id="settings-search-empty" role="status" hidden>
+        <span data-i18n="settingsSearchEmpty">Nothing found. Try another word, for example “voice”, “size” or “key”.</span>
+        <button id="settings-search-clear" class="report-link" type="button" data-i18n="settingsSearchClear">Show all settings</button>
+      </p>
       <!-- Fixed columns (not CSS columns): opening «More» must not move cards
            from one column to the other. -->
       <div class="settings-grid">
@@ -234,14 +245,14 @@
             <h2 id="overlay-card-heading" data-i18n="overlayTitle">Advice card</h2>
           </header>
           <div class="card-body settings">
-            <label class="setting">
+            <label class="setting" data-search="оверлей карточка подсказки показать скрыть выключить overlay card advice show hide">
               <span class="setting-text">
                 <span class="setting-title" data-i18n="overlayShow">Show advice over the game</span>
                 <span class="setting-hint" id="overlay-hint"></span>
               </span>
               <input id="overlay-toggle" type="checkbox" class="switch" role="switch" />
             </label>
-            <div class="setting">
+            <div class="setting" data-search="позиция место экран угол слева справа снизу position screen corner left right bottom">
               <span class="setting-text">
                 <span class="setting-title" id="position-title" data-i18n="overlayPosition">Where on the screen</span>
                 <span class="setting-hint" id="position-hint" data-i18n="positionHint">Away from the minimap and the hero panel</span>
@@ -252,14 +263,14 @@
                 <button type="button" role="radio" data-position="bottom-center"><i data-icon="panel-bottom"></i><span data-i18n="posBottom">Bottom</span></button>
               </div>
             </div>
-            <div class="setting">
+            <div class="setting" data-search="перетащить сдвинуть передвинуть мышью drag move mouse">
               <span class="setting-text">
                 <span class="setting-title" data-i18n="overlayMove">Move by hand</span>
                 <span class="setting-hint" id="move-hint" data-i18n="moveHint">Shows the card so you can drag it anywhere</span>
               </span>
               <button id="move-toggle" class="btn" type="button"><i data-icon="move"></i><span id="move-label" data-i18n="moveStart">Move</span></button>
             </div>
-            <div class="setting">
+            <div class="setting" data-search="размер карточки крупнее мельче card size bigger smaller">
               <span class="setting-text">
                 <span class="setting-title" id="size-title" data-i18n="overlaySize">Card size</span>
                 <span class="setting-hint" data-i18n="overlaySizeHint">Larger on big and high-resolution screens</span>
@@ -270,14 +281,14 @@
                 <button type="button" role="radio" data-size="large"><span data-i18n="sizeLarge">Large</span></button>
               </div>
             </div>
-            <label class="setting">
+            <label class="setting" data-search="коротко короткие компактная compact short brief">
               <span class="setting-text">
                 <span class="setting-title" data-i18n="overlayCompact">Short advice</span>
                 <span class="setting-hint" data-i18n="overlayCompactHint">Only what to do, without the reason: less to read during a fight</span>
               </span>
               <input id="overlay-compact" type="checkbox" class="switch" role="switch" />
             </label>
-            <details class="explain hotkeys">
+            <details class="explain hotkeys" data-search="горячие клавиши сочетания клавиатура hotkeys shortcuts keyboard keys">
               <summary><i data-icon="circle-help"></i><span data-i18n="hotkeysTitle">Hotkeys</span></summary>
               <p class="hotkeys-group" data-i18n="hotkeysGame">In the game</p>
               <dl class="hotkeys-list">
@@ -290,9 +301,12 @@
               <p class="hotkeys-group" data-i18n="hotkeysApp">In this window</p>
               <dl class="hotkeys-list">
                 <div><dt><kbd>Ctrl+1 … 5</kbd></dt><dd data-i18n="hotkeyTabs">Home, Matches, Progress, Profile, Settings</dd></div>
-                <div><dt><kbd>Esc</kbd></dt><dd data-i18n="hotkeyBack">From a match review back to the list</dd></div>
+                <div><dt><kbd>Esc</kbd></dt><dd data-i18n="hotkeyBack">From a match review back to where you opened it</dd></div>
                 <div><dt><kbd>?</kbd></dt><dd data-i18n="hotkeyHelp">This list of keys, from any tab</dd></div>
                 <div><dt><kbd>← / →</kbd></dt><dd data-i18n="hotkeyNeighbour">In a match review: the match above / below in the list (newer / older unless the list is sorted)</dd></div>
+                <div><dt><kbd>Alt+← / →</kbd></dt><dd data-i18n="hotkeyHistory">Back / forward through the pages you opened (the mouse's side buttons too)</dd></div>
+                <div><dt><kbd>Ctrl+F</kbd></dt><dd data-i18n="hotkeyFind">On Settings: find a setting</dd></div>
+                <div><dt><kbd>Ctrl++ / Ctrl+−</kbd></dt><dd data-i18n="hotkeyZoom">Interface size bigger / smaller, Ctrl+0 back to 100%</dd></div>
               </dl>
             </details>
           </div>
@@ -303,7 +317,7 @@
             <h2 id="advice-settings-card-heading" data-i18n="adviceSettingsTitle">Advice</h2>
           </header>
           <div class="card-body settings">
-            <div class="setting">
+            <div class="setting" data-search="частота советов реже чаще спам много мало frequency often less more spam">
               <span class="setting-text">
                 <span class="setting-title" id="frequency-title" data-i18n="frequencyTitle">How often</span>
                 <span class="setting-hint" id="frequency-hint"></span>
@@ -314,7 +328,7 @@
                 <button type="button" role="radio" data-frequency="active"><span data-i18n="frequencyActive">More</span></button>
               </div>
             </div>
-            <div class="setting">
+            <div class="setting" data-search="голос звук озвучка громкость речь tts voice sound volume speech speak">
               <span class="setting-text">
                 <span class="setting-title" id="voice-title" data-i18n="voiceTitle">Voice</span>
                 <span class="setting-hint" id="voice-hint"></span>
@@ -328,7 +342,7 @@
                 <button id="voice-test" class="btn btn-icon" type="button" data-i18n-title="voiceTest" title="Listen"><i data-icon="volume-2"></i></button>
               </div>
             </div>
-            <div class="setting setting-wrap">
+            <div class="setting setting-wrap" data-search="роль позиция керри мид хардлайн оффлейн саппорт авто role position carry mid offlane support auto">
               <span class="setting-text">
                 <span class="setting-title" id="role-title" data-i18n="roleTitle">Your role</span>
                 <span class="setting-hint" id="role-hint"></span>
@@ -341,21 +355,21 @@
                 <button type="button" role="radio" data-role="support"><span data-i18n="roleSupport">Support</span></button>
               </div>
             </div>
-            <label class="setting">
+            <label class="setting" data-search="таймеры карты руны святилища торментор стаки варды map timers runes shrines tormentor stacks wards">
               <span class="setting-text">
                 <span class="setting-title" data-i18n="mapHintsTitle">Map timers</span>
                 <span class="setting-hint" data-i18n="mapHintsHint">Runes, shrines, Tormentor, stacks and wards 20 s ahead, on the card</span>
               </span>
               <input id="map-hints" type="checkbox" class="switch" role="switch" />
             </label>
-            <label class="setting">
+            <label class="setting" data-search="полоса таймеров рошан аегис руны timer strip roshan aegis runes">
               <span class="setting-text">
                 <span class="setting-title" data-i18n="overlayTimers">Timer strip</span>
                 <span class="setting-hint" data-i18n="overlayTimersHint">Under the card: the next runes, stacks, Roshan and the Aegis for your role</span>
               </span>
               <input id="overlay-timers" type="checkbox" class="switch" role="switch" />
             </label>
-            <div class="setting">
+            <div class="setting" data-search="стрелки навыки прокачка способности очко таланты arrows skills abilities level talents">
               <span class="setting-text">
                 <span class="setting-title" id="skill-arrows-title" data-i18n="skillArrowsTitle">Arrows over your abilities</span>
                 <span class="setting-hint" id="skill-arrows-hint"></span>
@@ -388,7 +402,7 @@
             <h2 id="app-card-heading" data-i18n="appTitle">Main</h2>
           </header>
           <div class="card-body settings">
-            <div class="setting setting-wrap">
+            <div class="setting setting-wrap" data-search="язык русский английский перевод language english russian translation">
               <span class="setting-text">
                 <span class="setting-title" id="language-title" data-i18n="languageTitle">Language</span>
                 <span class="setting-hint" data-i18n="languageHint">Advice, reviews and the whole app</span>
@@ -399,21 +413,34 @@
                 <button type="button" role="radio" data-language="en"><span>English</span></button>
               </div>
             </div>
-            <label class="setting">
+            <!-- The panel's zoom (main.js uiScale); Ctrl + plus / minus / 0 too. -->
+            <div class="setting setting-wrap" data-search="масштаб размер интерфейса текста шрифт крупнее мельче увеличить zoom scale interface text font size bigger smaller">
+              <span class="setting-text">
+                <span class="setting-title" id="ui-scale-title" data-i18n="uiScaleTitle">Interface size</span>
+                <span class="setting-hint" data-i18n="uiScaleHint">Bigger text and buttons for a large or high-resolution screen. Ctrl + plus and Ctrl + minus work too.</span>
+              </span>
+              <div class="segmented" role="radiogroup" id="ui-scale-group" aria-labelledby="ui-scale-title">
+                <button type="button" role="radio" data-scale="0.9"><span class="num">90%</span></button>
+                <button type="button" role="radio" data-scale="1"><span class="num">100%</span></button>
+                <button type="button" role="radio" data-scale="1.1"><span class="num">110%</span></button>
+                <button type="button" role="radio" data-scale="1.25"><span class="num">125%</span></button>
+              </div>
+            </div>
+            <label class="setting" data-search="автозапуск автозагрузка запуск windows при включении autostart startup boot">
               <span class="setting-text">
                 <span class="setting-title" data-i18n="autostart">Start with Windows</span>
                 <span class="setting-hint" id="autostart-hint"></span>
               </span>
               <input id="autostart" type="checkbox" class="switch" role="switch" />
             </label>
-            <div class="setting">
+            <div class="setting" data-search="обновления обновить версия update version upgrade">
               <span class="setting-text">
                 <span class="setting-title" data-i18n="updates">Updates</span>
                 <span class="setting-hint num" id="update-hint"></span>
               </span>
               <button id="update-action" class="btn" type="button" data-mode="check"><i data-icon="rotate-cw"></i><span id="update-label" data-i18n="updateCheck">Check</span></button>
             </div>
-            <label class="setting">
+            <label class="setting" data-search="дискорд статус активность друзья discord status presence activity friends">
               <span class="setting-text">
                 <span class="setting-title" data-i18n="discordTitle">Status in Discord</span>
                 <span class="setting-hint" data-i18n="discordHint">Your Discord friends see “Playing Juggernaut · with the Wardly coach” while Dota runs</span>
@@ -435,7 +462,7 @@
             <h2 id="data-card-heading" data-i18n="dataTitle">Match history</h2>
           </header>
           <div class="card-body settings">
-            <div class="setting setting-wrap transfer-row">
+            <div class="setting setting-wrap transfer-row" data-search="перенос другой компьютер код новый пк transfer move another computer code new pc">
               <span class="setting-text">
                 <span class="setting-title" data-i18n="transferTitle">Move to another computer</span>
                 <span class="setting-hint" data-i18n="transferIntro">Installed Wardly on a new computer? Move your matches and reviews there in a minute.</span>
@@ -455,7 +482,7 @@
                 </form>
               </div>
             </div>
-            <div class="setting setting-wrap backup-row">
+            <div class="setting setting-wrap backup-row" data-search="резервная копия бэкап файл сохранить восстановить backup copy file save restore export import">
               <span class="setting-text">
                 <span class="setting-title" data-i18n="backupTitle">Spare copy in a file</span>
                 <span class="setting-hint" id="backup-hint" aria-live="polite"></span>
@@ -475,7 +502,7 @@
         </header>
         <section class="card" id="help-card" aria-labelledby="zone-help">
           <div class="card-body settings">
-            <div class="setting">
+            <div class="setting" data-search="обучение экскурсия тур как пользоваться помощь tour guide help how to">
               <span class="setting-text">
                 <span class="setting-title" data-i18n="tourTitle">How to use Wardly</span>
                 <span class="setting-hint" data-i18n="tourHint">A short tour of the app, one minute</span>
@@ -484,7 +511,7 @@
                 <button id="tour-start" class="btn" type="button"><i data-icon="compass"></i><span data-i18n="tourStart">Show</span></button>
               </div>
             </div>
-            <div class="setting setting-wrap report-row">
+            <div class="setting setting-wrap report-row" data-search="проблема ошибка баг отчёт не работает разработчик report bug problem error broken developer">
               <span class="setting-text">
                 <span class="setting-title" data-i18n="reportTitle">Report a problem</span>
                 <span class="setting-hint" id="report-hint" aria-live="polite"></span>
@@ -523,7 +550,7 @@
             <h2 class="visually-hidden" id="more-card-heading" data-i18n="settingsMore">More settings</h2>
             <div class="card-body settings">
               <!-- A week of match recordings on this computer (backend match_records.py). -->
-              <div class="setting setting-wrap records-row">
+              <div class="setting setting-wrap records-row" data-search="записи матчей запись файл recordings record match file">
                 <span class="setting-text">
                   <label class="setting-title" for="match-records" data-i18n="recordsTitle">Keep match recordings for a week</label>
                   <span class="setting-hint" data-i18n="recordsHint">Everything the game sent during each match and every advice shown, kept on this computer for 7 days. Save any match as a file and send it to the developer, the next day too. No nicknames, Steam IDs or chat.</span>
@@ -533,7 +560,7 @@
                 <ul class="records-list" id="records-list" hidden></ul>
               </div>
               <!-- Opt-in anonymous statistics (advice-stats.js): off by default. -->
-              <div class="setting setting-wrap stats-row">
+              <div class="setting setting-wrap stats-row" data-search="статистика анонимная помочь удалить данные statistics anonymous help delete data">
                 <span class="setting-text">
                   <label class="setting-title" for="share-stats" data-i18n="statsTitle">Help improve the advice</label>
                   <span class="setting-hint" data-i18n="statsHint">Once a day: which advice the coach showed and which warnings came before a death. No heroes, matches, nickname or keys.</span>
@@ -552,7 +579,7 @@
                   </div>
                 </details>
               </div>
-              <div class="setting setting-wrap">
+              <div class="setting setting-wrap" data-search="opendota опендота ключ история быстрее key history faster">
                 <span class="setting-text">
                   <span class="setting-title" data-i18n="odTitle">Faster match history</span>
                   <span class="setting-hint" id="od-hint"></span>
@@ -564,7 +591,7 @@
                 </div>
                 <button id="od-clear" class="btn btn-ghost hidden" type="button"><i data-icon="trash-2"></i><span data-i18n="odClear">Remove key</span></button>
               </div>
-              <div class="setting setting-wrap weekly-row">
+              <div class="setting setting-wrap weekly-row" data-search="неделя дискорд вебхук канал итоги week discord webhook channel summary">
                 <span class="setting-text">
                   <span class="setting-title" data-i18n="weeklyTitle">The week in Discord</span>
                   <span class="setting-hint" id="weekly-hint" aria-live="polite"></span>
@@ -586,7 +613,7 @@
       </div>
 
       <!-- Everything technical, collapsed by default. -->
-      <details class="dev" id="dev-tools">
+      <details class="dev" id="dev-tools" data-search="разработчик сервис gsi логи журнал демо реплей developer service logs demo replay">
         <summary>
           <i data-icon="chevron-right" class="chevron"></i>
           <span data-i18n="devTitle">For developers</span>
@@ -703,12 +730,15 @@
         <div id="progress-root"></div>
       </div>
     </main>
+    <!-- A short note after a key press (the interface size), gone in 2 s. -->
+    <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
     <script src="../assets/icons/lucide.js"></script>
     <script src="../overlay/voice.js"></script>
     <script src="./dota-data.js"></script>
     <script src="./dota-icons.js"></script>
     <script src="./charts.js"></script>
     <script src="./tour.js"></script>
+    <script src="./settings-search.js"></script>
     <script src="./app.js"></script>
     <script src="./matches.js"></script>
   </body>

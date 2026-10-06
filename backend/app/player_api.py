@@ -11,6 +11,7 @@ GET    /player/matches/{id}      one match: summary, scoreboard, post-match revi
 POST   /player/matches/{id}/refresh   fetch again / ask OpenDota to parse the replay
 POST   /player/matches/{id}/add       fetch a match by its number (older than the history)
 GET    /player/matches/{id}/add       where that stands (pending / ready / an error code)
+POST   /player/matches/{id}/note      the player's own note on the match (empty removes it)
 GET    /player/career            statistics and advice over the recent matches
 POST   /player/matches/{id}/coach     (re)generate the AI coach review of a match
 POST   /player/career/coach           (re)generate the AI coach review of recent matches
@@ -156,6 +157,20 @@ def player_match(match_id: MatchId, lang: str = "en"):
     if detail is None:
         return JSONResponse(status_code=404, content={"status": "error", "code": "match_not_found"})
     return detail
+
+
+class NoteRequest(BaseModel):
+    note: str = ""
+
+
+@router.post("/matches/{match_id}/note", summary="The player's own note on a match")
+def set_match_note(match_id: MatchId, request: NoteRequest):
+    """Plain text, one line, 200 characters at most; empty removes it."""
+    result = PLAYER_SERVICE.set_note(match_id, request.note)
+    if result.get("status") == "error":
+        code = result.get("code")
+        return JSONResponse(status_code=404 if code == "match_not_found" else 409, content=result)
+    return result
 
 
 @router.post(

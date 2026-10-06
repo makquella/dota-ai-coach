@@ -137,7 +137,7 @@ test("control panel texts exist in both languages", () => {
 test("every data-i18n key of the control panel is defined", () => {
   const table = tableFrom("renderer/app.js", "const I18N =");
   const html = fs.readFileSync(path.join(ROOT, "renderer/index.html"), "utf8");
-  const keys = [...html.matchAll(/data-i18n(?:-title|-placeholder)?="([^"]+)"/g)].map((match) => match[1]);
+  const keys = [...html.matchAll(/data-i18n(?:-title|-placeholder|-aria)?="([^"]+)"/g)].map((match) => match[1]);
   assert.ok(keys.length > 30);
   const known = new Set(keyPaths(table.en));
   assert.deepEqual(keys.filter((key) => !known.has(key)), []);

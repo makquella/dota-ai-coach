@@ -50,6 +50,8 @@ MATCH_COLUMNS = (
     "score",
     # The final inventory as a JSON list of item keys (the match table's icons).
     "items",
+    # The player's own note on the match (0.52, «Заметка»): only set_note writes it.
+    "note",
 )
 
 # The match table's sortable columns (a fixed list: the key never reaches SQL).
@@ -64,7 +66,7 @@ SORT_COLUMNS = {
 MATCH_SORTS = ("date", *SORT_COLUMNS)
 
 # Match columns added after the first release (name, SQL type).
-ADDED_COLUMNS = (("items", "TEXT"),)
+ADDED_COLUMNS = (("items", "TEXT"), ("note", "TEXT"))
 
 _SCHEMA = """
 CREATE TABLE IF NOT EXISTS meta (
@@ -106,6 +108,7 @@ CREATE TABLE IF NOT EXISTS matches (
     parsed INTEGER DEFAULT 0,
     score INTEGER,
     items TEXT,
+    note TEXT,
     sources TEXT DEFAULT '',
     parse_status TEXT DEFAULT '',
     opendota_json TEXT,
@@ -487,6 +490,17 @@ class PlayerStore:
                 (int(account_id),),
             ).fetchall()
         return [dict(row) for row in rows]
+
+    def set_note(self, account_id: int, match_id: int, note: str | None) -> bool:
+        """The player's note on a stored match (None or "" removes it); False when
+        the match is not stored."""
+        with self._lock:
+            cursor = self._conn.execute(
+                "UPDATE matches SET note = ? WHERE account_id = ? AND match_id = ?",
+                (note or None, int(account_id), int(match_id)),
+            )
+            self._conn.commit()
+        return cursor.rowcount > 0
 
     def get_match(self, account_id: int, match_id: int) -> dict[str, Any] | None:
         with self._lock:

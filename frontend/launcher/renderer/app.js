@@ -15,6 +15,9 @@ const I18N = {
     languageTitle: "Language",
     languageHint: "Advice, reviews and the whole app",
     languageAuto: "Auto",
+    uiScaleTitle: "Interface size",
+    uiScaleHint: "Bigger text and buttons for a large or high-resolution screen. Ctrl + plus and Ctrl + minus work too.",
+    uiScaleToast: (size) => `Interface size: ${size}`,
     dataTitle: "Match history",
     odTitle: "Faster match history",
     odPlaceholder: "OpenDota key",
@@ -71,8 +74,8 @@ const I18N = {
     statClock: "Match time",
     statStage: "Phase",
     statData: "Link to the game",
-    dataFresh: (s) => `updated ${s} s ago`,
-    dataFreshNow: "updated just now",
+    dataFresh: (s) => `${s} s ago`,
+    dataFreshNow: "just now",
     matchEmptyTitle: "No match right now",
     matchEmptyHint: "Hero and time show up here when a match starts.",
     offlineTitle: "The coach is not running",
@@ -118,7 +121,10 @@ const I18N = {
     hotkeysGame: "In the game",
     hotkeysApp: "In this window",
     hotkeyTabs: "Home, Matches, Progress, Profile, Settings",
-    hotkeyBack: "From a match review back to the list",
+    hotkeyBack: "From a match review back to where you opened it",
+    hotkeyHistory: "Back / forward through the pages you opened (the mouse's side buttons too)",
+    hotkeyFind: "On Settings: find a setting",
+    hotkeyZoom: "Interface size bigger / smaller, Ctrl+0 back to 100%",
     hotkeyNeighbour: "In a match review: the match above / below in the list (newer / older unless the list is sorted)",
     hotkeyHelp: "This list of keys, from any tab",
     hotkeyToggle: "Turn the advice card on or off",
@@ -217,6 +223,9 @@ const I18N = {
     settingsMoreHint: "Match recordings, statistics, the OpenDota key, your week in Discord",
     settingsPageTitle: "Settings",
     settingsPageSub: "Everything already works. Change only what you want to.",
+    settingsSearch: "Find a setting",
+    settingsSearchEmpty: "Nothing found. Try another word, for example “voice”, “size” or “key”.",
+    settingsSearchClear: "Show all settings",
     zoneNow: "Now",
     zoneNowHint: "The current match and the advice it got",
     zoneHistory: "Last matches",
@@ -352,6 +361,12 @@ const I18N = {
     tourHint: "A short tour of the app, one minute",
     tourStart: "Show",
     whatsNew: {
+      "0.52.0": [
+        "Find a setting: a search field on top of Settings (Ctrl+F) keeps only the rows with your words.",
+        "Interface size in Settings → App (90–125 %), or Ctrl + plus / minus.",
+        "Notes on matches: your own line in the review header, marked in the match table too.",
+        "The mouse's back / forward buttons and Alt+←/→ walk the pages you opened; ↑/↓ move through the match table."
+      ],
       "0.51.0": [
         "Open any match by its number: paste it, or an OpenDota, Dotabuff or STRATZ link, next to the match filters — older games than your synced history get a full review too.",
         "The review's chart shows your items under the minutes: when each finished item came.",
@@ -800,6 +815,9 @@ const I18N = {
     languageTitle: "Язык",
     languageHint: "Советы, разборы и всё приложение",
     languageAuto: "Как в системе",
+    uiScaleTitle: "Размер интерфейса",
+    uiScaleHint: "Крупнее текст и кнопки — для большого экрана или высокого разрешения. Работают и Ctrl + плюс, Ctrl + минус.",
+    uiScaleToast: (size) => `Размер интерфейса: ${size}`,
     dataTitle: "История матчей",
     odTitle: "Быстрая загрузка истории",
     odPlaceholder: "Ключ OpenDota",
@@ -856,8 +874,8 @@ const I18N = {
     statClock: "Время матча",
     statStage: "Этап",
     statData: "Связь с игрой",
-    dataFresh: (s) => `обновлено ${s} с назад`,
-    dataFreshNow: "обновлено только что",
+    dataFresh: (s) => `${s} с назад`,
+    dataFreshNow: "только что",
     matchEmptyTitle: "Матч не идёт",
     matchEmptyHint: "Герой и время появятся здесь, когда начнётся матч.",
     offlineTitle: "Тренер не запущен",
@@ -903,7 +921,10 @@ const I18N = {
     hotkeysGame: "В игре",
     hotkeysApp: "В этом окне",
     hotkeyTabs: "Главная, Матчи, Прогресс, Профиль, Настройки",
-    hotkeyBack: "Из разбора матча обратно к списку",
+    hotkeyBack: "Из разбора матча обратно туда, откуда его открыли",
+    hotkeyHistory: "Назад / вперёд по открытым страницам (и боковые кнопки мыши)",
+    hotkeyFind: "В «Настройках»: найти настройку",
+    hotkeyZoom: "Интерфейс крупнее / мельче, Ctrl+0 — обратно 100 %",
     hotkeyNeighbour: "В разборе матча: матч выше / ниже в списке (новее / старее, если список не отсортирован)",
     hotkeyHelp: "Этот список клавиш, с любой вкладки",
     hotkeyToggle: "Включить или выключить карточку с подсказками",
@@ -1002,6 +1023,9 @@ const I18N = {
     settingsMoreHint: "Записи матчей, статистика, ключ OpenDota, неделя в Discord",
     settingsPageTitle: "Настройки",
     settingsPageSub: "Всё уже работает. Меняйте только то, что хочется.",
+    settingsSearch: "Найти настройку",
+    settingsSearchEmpty: "Ничего не нашлось. Попробуйте другое слово, например «голос», «размер» или «ключ».",
+    settingsSearchClear: "Показать все настройки",
     zoneNow: "Сейчас",
     zoneNowHint: "Текущий матч и подсказки в нём",
     zoneHistory: "Последние матчи",
@@ -1137,6 +1161,12 @@ const I18N = {
     tourHint: "Короткая экскурсия по приложению, на минуту",
     tourStart: "Показать",
     whatsNew: {
+      "0.52.0": [
+        "Поиск по настройкам: поле вверху «Настроек» (Ctrl+F) оставляет только строки с вашими словами.",
+        "Размер интерфейса в «Настройки» → «Приложение» (90–125 %) или Ctrl + плюс / минус.",
+        "Заметки к матчам: ваша строчка в шапке разбора, значком — и в таблице матчей.",
+        "Боковые кнопки мыши и Alt+←/→ ходят по открытым страницам; ↑/↓ — по строкам таблицы матчей."
+      ],
       "0.51.0": [
         "Любой матч по номеру: вставьте номер или ссылку OpenDota, Dotabuff или STRATZ рядом с фильтрами матчей — полный разбор получат и игры старше вашей истории.",
         "На графике разбора под минутами — ваши предметы: когда пришёл каждый собранный предмет.",
@@ -1609,6 +1639,7 @@ const els = {
   skillArrowsHint: $("#skill-arrows-hint"),
   overlayCompact: $("#overlay-compact"),
   languageButtons: [...document.querySelectorAll("#language-group [data-language]")],
+  uiScaleButtons: [...document.querySelectorAll("#ui-scale-group [data-scale]")],
   frequencyButtons: [...document.querySelectorAll("#frequency-group [data-frequency]")],
   roleButtons: [...document.querySelectorAll("#role-group [data-role]")],
   roleHint: $("#role-hint"),
@@ -1744,6 +1775,8 @@ let weeklyMessage = "";
 let weeklyBusy = false;
 let lastWeekly = null;
 let reportPreviewLoaded = false;
+let settingsSearching = false;
+let toastTimer = null;
 let serverDeleteArmed = false;
 let serverDeleteNote = "";
 const seenAdvice = new Set();
@@ -1815,6 +1848,10 @@ function applyStaticTexts() {
     element.title = tr(element.dataset.i18nTitle);
     element.setAttribute("aria-label", element.title);
   }
+  // A field's name for a screen reader (it has no visible label).
+  for (const element of document.querySelectorAll("[data-i18n-aria]")) {
+    element.setAttribute("aria-label", tr(element.dataset.i18nAria));
+  }
   els.backupHint.textContent = tr("backupHint");
   if (!transferBusy && els.transferCode.hidden) {
     els.transferHint.textContent = tr("transferHint");
@@ -1879,6 +1916,41 @@ async function init() {
       run(async () => renderStatus(await window.launcherApi.setLanguage(button.dataset.language)))
     );
   }
+  for (const button of els.uiScaleButtons) {
+    button.addEventListener("click", () =>
+      run(async () => renderStatus(await window.launcherApi.setUiScale(button.dataset.scale)))
+    );
+  }
+  // Ctrl + plus / minus / 0 (main.js): the new size for a moment.
+  window.launcherApi.onUiScale?.((scale) => showToast(tr("uiScaleToast", percent(scale))));
+
+  // «Найти настройку» (settings-search.js); Ctrl+F on Settings goes to it (the
+  // key, not the letter: «а» on a Russian layout), and leaving Settings clears
+  // it, so every row is back the next time.
+  const settingsView = $("#view-settings");
+  const settingsSearch = window.SettingsSearch?.attach({
+    view: settingsView,
+    input: $("#settings-search"),
+    empty: $("#settings-search-empty"),
+    onChange: (active) => {
+      settingsSearching = active;
+    }
+  });
+  $("#settings-search-clear")?.addEventListener("click", () => {
+    settingsSearch?.clear();
+    $("#settings-search")?.focus();
+  });
+  document.addEventListener("keydown", (event) => {
+    if ((event.ctrlKey || event.metaKey) && !event.altKey && event.code === "KeyF" && !settingsView.classList.contains("hidden")) {
+      event.preventDefault();
+      settingsSearch?.focus();
+    }
+  });
+  new MutationObserver(() => {
+    if (settingsView.classList.contains("hidden") && settingsSearch?.active()) {
+      settingsSearch.clear();
+    }
+  }).observe(settingsView, { attributes: true, attributeFilter: ["class"] });
   for (const button of els.sizeButtons) {
     button.addEventListener("click", () =>
       run(async () => renderStatus(await window.launcherApi.setOverlaySize(button.dataset.size)))
@@ -2239,6 +2311,10 @@ async function init() {
     // Storage unavailable: start collapsed.
   }
   els.devTools.addEventListener("toggle", () => {
+    // Opened by the settings search for a moment: not the player's choice.
+    if (settingsSearching) {
+      return;
+    }
     try {
       localStorage.setItem(DEV_OPEN_KEY, els.devTools.open ? "1" : "0");
     } catch {
@@ -2315,6 +2391,26 @@ function startTour() {
       run(async () => renderStatus(await window.launcherApi.tourDone()));
     }
   });
+}
+
+// 1.1 → «110 %» (ru) / “110%” (en).
+function percent(value) {
+  return new Intl.NumberFormat(locale === "ru" ? "ru-RU" : "en-US", { style: "percent", maximumFractionDigits: 0 }).format(value);
+}
+
+// A short note at the bottom of the window, gone in 2 s (the interface size
+// after a key press: nothing else on the page names it).
+function showToast(text) {
+  const toast = $("#toast");
+  if (!toast) {
+    return;
+  }
+  toast.textContent = text;
+  toast.hidden = false;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => {
+    toast.hidden = true;
+  }, 2000);
 }
 
 function flashLabel(element, text) {
@@ -3031,6 +3127,11 @@ function renderOverlaySettings(status) {
   const language = status.language || "auto";
   for (const button of els.languageButtons) {
     button.setAttribute("aria-checked", String(button.dataset.language === language));
+  }
+  const scale = Number(status.uiScale) || 1;
+  for (const button of els.uiScaleButtons) {
+    button.setAttribute("aria-checked", String(Number(button.dataset.scale) === scale));
+    button.firstElementChild.textContent = percent(Number(button.dataset.scale));
   }
 
   const size = status.overlaySize || "normal";

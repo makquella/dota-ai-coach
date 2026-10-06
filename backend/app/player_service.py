@@ -1872,6 +1872,19 @@ class PlayerService:
             self.jobs.submit(f"add:{match_id}", lambda: self._job_add_match(primary, match_id))
         return {"state": "pending"}
 
+    def set_note(self, match_id: int, text: Any) -> dict[str, Any]:
+        """«Заметка»: the player's own words on a match (lag, a new build, played
+        with a friend…), shown in the table and the review. Plain text, one line,
+        NOTE_MAX characters; empty removes it. Never sent anywhere (not to the AI
+        coach, not in a shared review); a history backup carries it."""
+        primary = self.store.primary_account_id()
+        if primary is None:
+            return {"status": "error", "code": "unlinked"}
+        note = " ".join(str(text or "").split())[:NOTE_MAX]
+        if not self.store.set_note(primary, int(match_id), note):
+            return {"status": "error", "code": "match_not_found"}
+        return {"status": "ok", "note": note or None}
+
     def add_status(self, match_id: int) -> dict[str, Any]:
         primary = self.store.primary_account_id()
         if primary is None:
@@ -2207,7 +2220,11 @@ class PlayerService:
         }
 
 
+# The longest note on a match (characters).
+NOTE_MAX = 200
+
 _SUMMARY_KEYS = (
+    "note",
     "start_time",
     "duration",
     "hero_id",
