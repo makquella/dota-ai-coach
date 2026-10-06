@@ -78,6 +78,7 @@ jobs:
           node --check frontend/launcher/renderer/app.js
           node --check frontend/launcher/renderer/charts.js
           node --check frontend/launcher/renderer/tour.js
+          node --check frontend/launcher/renderer/settings-search.js
           node --check frontend/launcher/renderer/matches.js
           node --check frontend/launcher/renderer/dota-icons.js
           node --check frontend/launcher/renderer/dota-data.js

@@ -5263,7 +5263,7 @@ tr.row-link[data-result="loss"] > td:first-child {
 }
 
 /* A zone whose cards are all hidden (no account linked yet) hides its heading too. */
-.zone:not(:has(> :not(.zone-head):not(.hidden):not([hidden]):not(:empty))) {
+.zone:not(:has(> :not(.zone-head):not(.hidden):not([hidden]):not(:empty):not(.search-out))) {
   display: none;
 }
 
@@ -6120,4 +6120,183 @@ tr.row-link[data-result="loss"] > td:first-child {
 .summary-last .summary-hero {
   font-family: var(--display);
   font-weight: 700;
+}
+
+/* «Найти настройку» (settings-search.js): the field in the Settings head, the
+   rows without the words hidden, the words found highlighted. */
+.search-field {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.search-field > .icon,
+.search-field > svg {
+  position: absolute;
+  left: 10px;
+  width: 16px;
+  height: 16px;
+  color: var(--text-3);
+  pointer-events: none;
+}
+
+.search-field .input {
+  width: 260px;
+  height: 34px;
+  padding-left: 34px;
+  font-size: var(--fs-13);
+}
+
+.search-field .input:focus-visible {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.search-field .input::-webkit-search-cancel-button {
+  -webkit-appearance: none;
+  width: 14px;
+  height: 14px;
+  background: var(--text-3);
+  cursor: pointer;
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.5' stroke-linecap='round'%3E%3Cpath d='M18 6 6 18M6 6l12 12'/%3E%3C/svg%3E") center / contain no-repeat;
+}
+
+.search-out {
+  display: none !important;
+}
+
+.search-empty {
+  margin: 0 0 var(--sp-6);
+  color: var(--text-2);
+  font-size: var(--fs-14);
+}
+
+.search-empty .report-link {
+  margin-left: var(--sp-2);
+}
+
+::highlight(settings-search) {
+  background-color: color-mix(in srgb, var(--cream) 30%, transparent);
+  color: var(--text);
+}
+
+@media (max-width: 720px) {
+  .search-field,
+  .search-field .input {
+    width: 100%;
+  }
+}
+
+/* A short note at the bottom (the interface size after Ctrl + plus / minus). */
+.toast {
+  position: fixed;
+  bottom: var(--sp-6);
+  left: 50%;
+  z-index: 50;
+  padding: var(--sp-2) var(--sp-4);
+  border: 1px solid var(--border-strong);
+  border-radius: 999px;
+  background: var(--surface-3);
+  box-shadow: var(--shadow);
+  color: var(--text);
+  font-size: var(--fs-13);
+  font-variant-numeric: tabular-nums;
+  transform: translateX(-50%);
+  animation: toast-in var(--dur-fast, 0.15s) var(--ease, ease-out);
+}
+
+.toast[hidden] {
+  display: none;
+}
+
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 6px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .toast {
+    animation: none;
+  }
+}
+
+@media print {
+  .toast,
+  .search-empty {
+    display: none !important;
+  }
+}
+
+/* «Заметка» (0.52): the player's line on a match — under the review title and
+   as an icon next to the hero in the match table. */
+.review-note {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sp-2);
+  margin-top: var(--sp-1);
+}
+
+.review-note-text {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-2);
+  max-width: 560px;
+  padding: 4px var(--sp-3);
+  border-left: 2px solid var(--cream);
+  border-radius: var(--r-sm, 6px);
+  background: color-mix(in srgb, var(--cream) 8%, transparent);
+  color: var(--text);
+  font-size: var(--fs-13);
+}
+
+.review-note-text .icon {
+  flex: none;
+  width: 14px;
+  height: 14px;
+  color: var(--cream);
+}
+
+.review-note-edit {
+  opacity: 0.8;
+}
+
+.review-note-form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sp-2);
+}
+
+.review-note-input {
+  flex: 1 1 220px;
+  max-width: 340px;
+  height: 30px;
+  font-size: var(--fs-13);
+}
+
+.hero-note-cell {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-2);
+}
+
+.row-note {
+  display: inline-flex;
+  color: var(--cream);
+  opacity: 0.85;
+}
+
+.row-note .icon {
+  width: 14px;
+  height: 14px;
+}
+
+@media print {
+  .review-note-text {
+    border-left-color: currentColor;
+    background: none;
+  }
 }
