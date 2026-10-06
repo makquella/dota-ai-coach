@@ -74,6 +74,19 @@ def _id(value: Any) -> int | None:
     return number if 0 < number < 2**63 else None
 
 
+def _inventory(items: dict[str, Any]) -> list[str] | None:
+    """The item names in inventory slots 0-5, in slot order; None without an
+    items block (a tick that did not send one)."""
+    if not items:
+        return None
+    names = []
+    for slot in range(6):
+        name = _dict(items.get(f"slot{slot}")).get("name")
+        if isinstance(name, str) and name.startswith("item_"):
+            names.append(name)
+    return names
+
+
 def _dict(value: Any) -> dict[str, Any]:
     return value if isinstance(value, dict) else {}
 
@@ -349,7 +362,13 @@ class MatchTracker:
             self._unsaved_samples += 1
             if self._unsaved_samples >= SAVE_EVERY_SAMPLES:
                 self._save_locked()
+        inventory = _inventory(_dict(payload.get("items")))
         current["final"] = {
+            # The six inventory slots at the last tick (item_* names; the match
+            # table's icons). An items block missing from a tick keeps the last one.
+            "inventory": inventory
+            if inventory is not None
+            else (current.get("final") or {}).get("inventory", []),
             "kills": snapshot["k"],
             "deaths": snapshot["d"],
             "assists": snapshot["a"],

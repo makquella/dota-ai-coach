@@ -246,7 +246,7 @@ def analyze_match(
         "focus": [f["id"] for f in improvements[:3]],
         # Every problem found, before the per-section cap (focus_goal.py checks it).
         "problems": sorted({f["id"] for f in findings if f["kind"] == "improve"}),
-        "series": _series(facts, targets),
+        "series": {**_series(facts, targets), "items": _item_marks(facts, meta)},
         "moments": _moments(facts, findings),
         "build": build,
         "peers": peers,
@@ -924,6 +924,35 @@ def _series(facts: dict[str, Any], targets: dict[str, float]) -> dict[str, Any]:
         "xp_target": [round(m * targets["xpm_good"]) for m in range(len(xp))],
         "deaths": [d["t"] for d in facts.get("deaths_log") or [] if d.get("t") is not None],
     }
+
+
+# A finished item that is not built from a recipe, still worth a mark.
+ITEM_MARK_SINGLES = {"blink"}
+ITEM_MARK_MIN_COST = 1200
+ITEM_MARKS_MAX = 12
+
+
+def _item_marks(facts: dict[str, Any], meta: dict[str, Any] | None) -> list[dict[str, Any]]:
+    """[{t, key}]: the minute each finished item (a recipe of 1200+ gold, or a
+    Blink Dagger) came, for the icons on the review's chart. The cached item
+    constants tell a finished item from a part; without them, nothing."""
+    items = ((meta or {}).get("constants") or {}).get("items") or {}
+    if not items:
+        return []
+    marks: list[dict[str, Any]] = []
+    seen: set[str] = set()
+    for entry in sorted(
+        (e for e in facts.get("items_log") or [] if e.get("t") is not None), key=lambda e: e["t"]
+    ):
+        raw = str(entry.get("item") or "").strip().lower()
+        key = raw[5:] if raw.startswith("item_") else raw
+        info = items.get(key) or {}
+        finished = bool(info.get("assembled")) and (info.get("cost") or 0) >= ITEM_MARK_MIN_COST
+        if key in seen or not (finished or key in ITEM_MARK_SINGLES):
+            continue
+        seen.add(key)
+        marks.append({"t": int(entry["t"]), "key": key})
+    return marks[:ITEM_MARKS_MAX]
 
 
 def _moments(facts: dict[str, Any], findings: list[dict[str, Any]]) -> list[dict[str, Any]]:

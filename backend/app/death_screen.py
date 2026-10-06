@@ -130,7 +130,11 @@ def build_death_screen(
         return None
     seconds = _int(respawn)
     title = text["title"].format(s=seconds) if seconds and seconds > 0 else text["title_plain"]
-    return {"title": title, "respawn": seconds, "lines": lines}
+    card: dict[str, Any] = {"title": title, "respawn": seconds, "lines": lines}
+    # The item the buy line names, as an icon on the card (0.51).
+    if buy and isinstance(next_item, dict) and isinstance(next_item.get("key"), str):
+        card["items"] = [{"key": next_item["key"], "name": next_item.get("name")}]
+    return card
 
 
 def _buy_line(

@@ -48,6 +48,8 @@ MATCH_COLUMNS = (
     "lobby_type",
     "parsed",
     "score",
+    # The final inventory as a JSON list of item keys (the match table's icons).
+    "items",
 )
 
 # The match table's sortable columns (a fixed list: the key never reaches SQL).
@@ -60,6 +62,9 @@ SORT_COLUMNS = {
     "ELSE (kills + COALESCE(assists, 0)) * 1.0 / MAX(1, COALESCE(deaths, 0)) END",
 }
 MATCH_SORTS = ("date", *SORT_COLUMNS)
+
+# Match columns added after the first release (name, SQL type).
+ADDED_COLUMNS = (("items", "TEXT"),)
 
 _SCHEMA = """
 CREATE TABLE IF NOT EXISTS meta (
@@ -100,6 +105,7 @@ CREATE TABLE IF NOT EXISTS matches (
     lobby_type INTEGER,
     parsed INTEGER DEFAULT 0,
     score INTEGER,
+    items TEXT,
     sources TEXT DEFAULT '',
     parse_status TEXT DEFAULT '',
     opendota_json TEXT,
@@ -136,6 +142,12 @@ class PlayerStore:
         with self._lock:
             self._conn.execute("PRAGMA journal_mode=WAL")
             self._conn.executescript(_SCHEMA)
+            # Columns added after the first release: a database made before
+            # them gets them here (CREATE TABLE IF NOT EXISTS keeps old tables).
+            present = {row[1] for row in self._conn.execute("PRAGMA table_info(matches)")}
+            for column, kind in ADDED_COLUMNS:
+                if column not in present:
+                    self._conn.execute(f"ALTER TABLE matches ADD COLUMN {column} {kind}")
             self._set_meta("schema_version", str(SCHEMA_VERSION))
             self._conn.commit()
 
@@ -493,6 +505,7 @@ class PlayerStore:
             raw = record.pop(column, None)
             record[key] = json.loads(raw) if raw else None
         record["sources"] = [item for item in (record.get("sources") or "").split(",") if item]
+        record["items"] = _item_list(record.get("items"))
         return record
 
     def matches_for_career(
@@ -532,4 +545,19 @@ def _summary_row(row: sqlite3.Row) -> dict[str, Any]:
         if flag in record and record[flag] is not None:
             record[flag] = bool(record[flag])
     record["sources"] = [item for item in (record.get("sources") or "").split(",") if item]
+    if "items" in record:
+        record["items"] = _item_list(record["items"])
     return record
+
+
+def _item_list(raw: Any) -> list[str] | None:
+    """The stored items column: a JSON list of item keys, else None (unknown)."""
+    if not isinstance(raw, str) or not raw:
+        return None
+    try:
+        value = json.loads(raw)
+    except ValueError:
+        return None
+    if not isinstance(value, list):
+        return None
+    return [str(key) for key in value if isinstance(key, str) and key][:6]

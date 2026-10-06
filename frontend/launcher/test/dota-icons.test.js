@@ -71,3 +71,12 @@ test("ability icons point to dota-asset://ability by the game name", () => {
   const odd = icons.abilityPicture(doc, "../etc/passwd");
   assert.equal(odd.children.length, 0);
 });
+
+test("an item key is named as the game names it", () => {
+  assert.equal(icons.itemName("bfury"), "Battle Fury");
+  assert.equal(icons.itemName("item_ultimate_scepter"), "Aghanim's Scepter");
+  assert.equal(icons.itemName("no_such_item"), null);
+  const box = icons.itemPicture(fakeDocument(), "black_king_bar");
+  assert.equal(box.title, "Black King Bar");
+  assert.equal(box.dataset.fallback, "BK");
+});

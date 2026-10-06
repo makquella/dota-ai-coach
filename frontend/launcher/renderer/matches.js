@@ -167,6 +167,20 @@
       zoneHero: "Your main hero",
       zoneHeroHint: "Your best games against your worst, your build",
       sectionNav: "Page sections",
+      openPlaceholder: "Match number or link",
+      openButton: "Open",
+      openBad: "No match number there: paste the number or an OpenDota, Dotabuff or STRATZ link.",
+      openLoading: "Fetching the match from OpenDota…",
+      openErrors: {
+        not_player: "You did not play in this match (or your OpenDota profile hides it).",
+        mode: "Turbo, bot games and the like are not reviewed.",
+        not_found: "OpenDota does not know this match yet: check the number, or try again in a few minutes.",
+        offline: "No connection to OpenDota: try again a little later.",
+        rate_limited: "OpenDota is busy: try again in a minute.",
+        unlinked: "Link your Steam account first.",
+        pending: "OpenDota is still answering: try again in a minute.",
+        error: "The match could not be fetched: try again a little later."
+      },
       dialogClose: "Close",
       navFix: "Fix",
       navStory: "The match",
@@ -186,6 +200,7 @@
       colLh10: "Last hits by 10:00",
       colDuration: "Time",
       colScore: "Score",
+      colItems: "Items",
       colWhen: "Played",
       win: "Win",
       loss: "Loss",
@@ -365,7 +380,8 @@
         lh: "Last hits / denies",
         nw: "Net worth",
         dmg: "Hero damage",
-        duration: "Duration"
+        duration: "Duration",
+        items: "Items at the end"
       },
       sectionFacts: {
         laning: (s) => [s.lh10 != null && `${s.lh10} last hits by 10:00`, s.lane_efficiency != null && `lane efficiency ${Math.round(s.lane_efficiency)}%`, s.lane_deaths ? `${s.lane_deaths} deaths in lane` : null, s.runes != null && `${s.runes} runes${s.enemy_runes != null ? ` (enemy mid ${s.enemy_runes})` : ""}`],
@@ -824,6 +840,20 @@
       zoneHero: "Ваш основной герой",
       zoneHeroHint: "Лучшие игры против худших, ваш билд",
       sectionNav: "Разделы страницы",
+      openPlaceholder: "Номер или ссылка на матч",
+      openButton: "Открыть",
+      openBad: "Не вижу номера матча: вставьте номер или ссылку OpenDota, Dotabuff или STRATZ.",
+      openLoading: "Загружаю матч из OpenDota…",
+      openErrors: {
+        not_player: "Вас нет в этом матче (или ваш профиль OpenDota скрыт).",
+        mode: "Турбо, игры с ботами и похожие режимы не разбираются.",
+        not_found: "OpenDota пока не знает этот матч: проверьте номер или попробуйте через несколько минут.",
+        offline: "Нет связи с OpenDota: попробуйте чуть позже.",
+        rate_limited: "OpenDota перегружен: попробуйте через минуту.",
+        unlinked: "Сначала привяжите аккаунт Steam.",
+        pending: "OpenDota ещё отвечает: попробуйте через минуту.",
+        error: "Не получилось загрузить матч: попробуйте чуть позже."
+      },
       dialogClose: "Закрыть",
       navFix: "Исправить",
       navStory: "Ход матча",
@@ -843,6 +873,7 @@
       colLh10: "Добив. к 10",
       colDuration: "Время",
       colScore: "Оценка",
+      colItems: "Предметы",
       colWhen: "Когда",
       win: "Победа",
       loss: "Поражение",
@@ -1022,7 +1053,8 @@
         lh: "Добивания / денаи",
         nw: "Стоимость героя",
         dmg: "Урон по героям",
-        duration: "Длительность"
+        duration: "Длительность",
+        items: "Предметы в конце"
       },
       sectionFacts: {
         laning: (s) => [s.lh10 != null && `${s.lh10} добиваний к 10:00`, s.lane_efficiency != null && `эффективность ${Math.round(s.lane_efficiency)}%`, s.lane_deaths ? `смертей на линии: ${s.lane_deaths}` : null, s.runes != null && `рун: ${s.runes}${s.enemy_runes != null ? ` (у вражеского мида ${s.enemy_runes})` : ""}`],
@@ -1336,6 +1368,8 @@
 
   const state = {
     filter: { heroId: null, result: "all" },
+    // «Open a match by its number»: the typed text, the line under it, a fetch going on.
+    openNumber: { value: "", note: "", busy: false },
     // The match table's order: newest first until a column header is clicked
     // (remembered across restarts, SORT_KEY; the filters are not: a filter left
     // on would look like missing matches next time).
@@ -1400,18 +1434,23 @@
     return `${sign}${Math.floor(abs / 60)}:${String(abs % 60).padStart(2, "0")}`;
   }
 
-  function relativeTime(unixSeconds) {
+  // `style` "short" («3 ч. назад») where a column is narrow (the match table).
+  function relativeTime(unixSeconds, style = "long") {
     if (!unixSeconds) {
       return "—";
     }
     const diff = Math.round(unixSeconds - Date.now() / 1000);
-    const rtf = new Intl.RelativeTimeFormat(state.locale, { numeric: "auto" });
+    const rtf = new Intl.RelativeTimeFormat(state.locale, { numeric: "auto", style });
     const abs = Math.abs(diff);
     if (abs < 3600) {
       return rtf.format(Math.round(diff / 60), "minute");
     }
     if (abs < 86400) {
       return rtf.format(Math.round(diff / 3600), "hour");
+    }
+    // Short: «вчера», then the date («2 окт.»): «3 дн. назад» broke the column.
+    if (style === "short" && abs >= 86400 * 1.5) {
+      return new Date(unixSeconds * 1000).toLocaleDateString(state.locale, { day: "numeric", month: "short" });
     }
     if (abs < 86400 * 30) {
       return rtf.format(Math.round(diff / 86400), "day");
@@ -1985,7 +2024,74 @@
     const summary = stats && stats.games
       ? h("p", { class: "muted small filter-summary num", text: t("filterSummary", stats.games, stats.winrate, stats.avg_score) })
       : null;
-    return h("div", { class: "filter-bar" }, h("div", { class: "filter-controls" }, results, select), summary);
+    return h("div", { class: "filter-bar" }, h("div", { class: "filter-controls" }, results, select, openByNumberForm()), summary);
+  }
+
+  // «Open a match by its number»: an older game than the synced history, or a
+  // link from OpenDota, Dotabuff or STRATZ (0.51). The state lives in `state`,
+  // since the table redraws every 15 s while a fetch may take a minute.
+  function openByNumberForm() {
+    const input = h("input", {
+      class: "input open-number-input",
+      type: "text",
+      inputmode: "numeric",
+      placeholder: t("openPlaceholder"),
+      "aria-label": t("openPlaceholder"),
+      value: state.openNumber.value || ""
+    });
+    input.addEventListener("input", () => {
+      state.openNumber.value = input.value;
+    });
+    const button = h("button", { class: "btn btn-sm", type: "submit", disabled: state.openNumber.busy }, icon("search"), h("span", { text: t("openButton") }));
+    const form = h("form", { class: "open-number no-print" }, input, button, h("span", { class: "muted small open-number-note", role: "status", "aria-live": "polite", text: state.openNumber.note || "" }));
+    form.addEventListener("submit", (event) => {
+      event.preventDefault();
+      openByNumber(input.value);
+    });
+    return form;
+  }
+
+  function matchIdFrom(text) {
+    const found = String(text || "").match(/(\d{6,19})/);
+    return found ? found[1] : null;
+  }
+
+  function setOpenNote(note, busy = false) {
+    state.openNumber = { ...state.openNumber, note, busy };
+    for (const el of document.querySelectorAll(".open-number-note")) {
+      el.textContent = note;
+    }
+    for (const el of document.querySelectorAll(".open-number button")) {
+      el.disabled = busy;
+    }
+  }
+
+  async function openByNumber(text) {
+    const id = matchIdFrom(text);
+    if (!id) {
+      setOpenNote(t("openBad"));
+      return;
+    }
+    if (state.matches.some((row) => String(row.match_id) === id)) {
+      setOpenNote("");
+      openMatch(id);
+      return;
+    }
+    setOpenNote(t("openLoading"), true);
+    let result = await call("addMatch", { matchId: id });
+    // OpenDota answers a match in seconds, rarely in a minute.
+    for (let tries = 0; tries < 45 && result.ok && result.data.state === "pending"; tries += 1) {
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+      result = await call("addMatchStatus", { matchId: id });
+    }
+    const outcome = result.ok ? result.data.state : "error";
+    if (outcome === "ready") {
+      state.openNumber.value = "";
+      setOpenNote("");
+      openMatch(id);
+      return;
+    }
+    setOpenNote(tOptional(`openErrors.${outcome}`) || t("openErrors.error"));
   }
 
   // A column header that orders the table by its column.
@@ -2023,6 +2129,7 @@
         sortHeader("lh_10", t("colLh10"), "num-col hide-narrow"),
         sortHeader("duration", t("colDuration"), "num-col"),
         sortHeader("score", t("colScore")),
+        h("th", { class: "items-col", text: t("colItems") }),
         sortHeader("date", t("colWhen"), "hide-narrow")
       )
     );
@@ -2053,11 +2160,30 @@
           h("td", { class: "num-col num hide-narrow", text: number(row.lh_10) }),
           h("td", { class: "num-col num", text: clock(row.duration) }),
           h("td", {}, h("span", { class: "score-cell" }, scoreRing(row.score, "sm"), row.score == null ? null : gradeLetter(row.score))),
-          h("td", { class: "muted hide-narrow", text: relativeTime(row.start_time) })
+          itemsCell(row.items),
+          h("td", { class: "muted hide-narrow when-col", text: relativeTime(row.start_time, "short") })
         )
       );
     }
     return h("table", { class: "table" }, head, body);
+  }
+
+  // The final inventory as six small icons (an empty slot keeps its place, so
+  // the rows line up); a match never fetched in full has none: a dash.
+  function itemsCell(items) {
+    if (!Array.isArray(items) || !items.length || !window.DotaIcons) {
+      return h("td", { class: "items-col", text: "—" });
+    }
+    const slots = [...items.slice(0, 6), ...Array(Math.max(0, 6 - items.length)).fill(null)];
+    return h(
+      "td",
+      { class: "items-col" },
+      h(
+        "span",
+        { class: "items-cell" },
+        slots.map((key) => (key ? window.DotaIcons.itemPicture(document, key, "sm") : h("span", { class: "item-slot", "aria-hidden": "true" })))
+      )
+    );
   }
 
   // --- match review -------------------------------------------------------------
@@ -2660,7 +2786,20 @@
       h(
         "dl",
         { class: "review-stats" },
-        stats.map(([label, value]) => h("div", {}, h("dt", { text: label }), h("dd", { class: "num", text: value })))
+        stats.map(([label, value]) => h("div", {}, h("dt", { text: label }), h("dd", { class: "num", text: value }))),
+        // The final inventory (0.50), as the match table shows it.
+        Array.isArray(summary.items) && summary.items.length && window.DotaIcons
+          ? h(
+              "div",
+              { class: "review-items" },
+              h("dt", { text: t("stats.items") }),
+              h(
+                "dd",
+                { class: "items-cell" },
+                summary.items.slice(0, 6).map((key) => window.DotaIcons.itemPicture(document, key, "sm"))
+              )
+            )
+          : null
       )
     );
   }
@@ -2934,6 +3073,11 @@
       })(),
       markers,
       markerLabel: t("deathsMarker"),
+      // Each finished item at the minute it came (0.50, series.items).
+      icons: (series.items || []).map((item) => {
+        const name = window.DotaIcons?.itemName(item.key) || item.key;
+        return { x: item.t / 60, src: `dota-asset://item/${item.key}`, label: `${name} · ${clock(item.t)}` };
+      }),
       xLabel: (i) => t("minuteLabel", i),
       ariaLabel: label,
       height: 210
@@ -4129,7 +4273,16 @@
               h(
                 "tr",
                 { class: row.me ? "is-me" : "" },
-                h("td", {}, heroLabel(row.hero_id || row.hero, row.hero || "—"), row.name ? h("span", { class: "muted small player-sub", text: row.name }) : null),
+                h(
+                  "td",
+                  {},
+                  heroLabel(row.hero_id || row.hero, row.hero || "—"),
+                  row.name ? h("span", { class: "muted small player-sub", text: row.name }) : null,
+                  // Each player's items at the end, small, under the name.
+                  Array.isArray(row.items) && row.items.length && window.DotaIcons
+                    ? h("span", { class: "player-items", "aria-label": t("stats.items") }, row.items.slice(0, 6).map((key) => window.DotaIcons.itemPicture(document, key, "sm")))
+                    : null
+                ),
                 h("td", { class: "num-col num", text: `${row.kills ?? "—"} / ${row.deaths ?? "—"} / ${row.assists ?? "—"}` }),
                 h("td", { class: "num-col num", text: number(row.net_worth) }),
                 h("td", { class: "num-col num hide-narrow", text: number(row.gpm) }),
@@ -5748,7 +5901,11 @@
               "span",
               { class: "recent-text" },
               h("span", { class: "recent-hero", text: row.hero || "—" }),
-              h("span", { class: "recent-facts muted num", text: facts })
+              h("span", { class: "recent-facts muted num", text: facts }),
+              // The items it ended with, small (0.50; reviewed matches only).
+              Array.isArray(row.items) && row.items.length && window.DotaIcons
+                ? h("span", { class: "recent-items", "aria-hidden": "true" }, row.items.slice(0, 6).map((key) => window.DotaIcons.itemPicture(document, key, "sm")))
+                : null
             ),
             scoreRing(row.score, "sm")
           )

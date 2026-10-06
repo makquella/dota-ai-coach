@@ -131,6 +131,11 @@
     const height = options.height || 200;
     const innerW = width - PAD.left - PAD.right;
     const innerH = height - PAD.top - PAD.bottom;
+    // Item icons ([{x, src, label}]) get a strip of their own under the minutes.
+    const icons = (options.icons || []).filter((icon) => icon && icon.src && icon.x >= 0);
+    const ICON_W = 22;
+    const ICON_H = 16;
+    const strip = icons.length ? ICON_H + 10 : 0;
     const all = series.flatMap((s) => s.values).concat(reference ? reference.values.slice(0, count) : []);
     // 3-5 gridline steps, each a round number (0 / 50 / 100 / 150 / 200 / 250).
     const dataMax = Math.max(...all.filter((v) => typeof v === "number"));
@@ -141,9 +146,9 @@
     const y = (v) => PAD.top + innerH - (v / yMax) * innerH;
 
     const svg = el("svg", {
-      viewBox: `0 0 ${width} ${height}`,
+      viewBox: `0 0 ${width} ${height + strip}`,
       width,
-      height,
+      height: height + strip,
       role: "img",
       "aria-label": options.ariaLabel || ""
     });
@@ -184,6 +189,20 @@
       }
       el("path", { d: `M${x(marker.x)},${y(0) - 7} l4,6 l-8,0 z`, class: "chart-marker" }, svg);
     }
+    // The items under the minutes, in time order; two close together are
+    // pushed apart so neither hides the other.
+    let lastRight = -Infinity;
+    for (const icon of [...icons].sort((a, b) => a.x - b.x)) {
+      if (icon.x > count - 1) {
+        continue;
+      }
+      const left = Math.max(x(icon.x) - ICON_W / 2, lastRight + 2);
+      lastRight = left + ICON_W;
+      const image = el("image", { x: left, y: height + 4, width: ICON_W, height: ICON_H, preserveAspectRatio: "xMidYMid slice", class: "chart-item" }, svg);
+      image.setAttribute("href", icon.src);
+      const title = el("title", {}, image);
+      title.textContent = icon.label || "";
+    }
     const cross = el("line", { x1: 0, x2: 0, y1: PAD.top, y2: PAD.top + innerH, class: "chart-cross hidden" }, svg);
     host.appendChild(svg);
 
@@ -215,6 +234,9 @@
       const events = (options.markers || []).filter((m) => Math.floor(m.x) === i);
       for (const event of events) {
         rows.push({ label: event.label, value: "", kind: "marker" });
+      }
+      for (const icon of icons.filter((item) => Math.floor(item.x) === i)) {
+        rows.push({ label: icon.label, value: "", kind: "item" });
       }
       const box = svg.getBoundingClientRect();
       showTip(host, tip, (x(i) / width) * box.width, PAD.top, options.xLabel ? options.xLabel(i) : String(i), rows);

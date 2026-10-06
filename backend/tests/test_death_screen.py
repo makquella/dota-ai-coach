@@ -36,6 +36,14 @@ def test_the_card_says_how_it_happened_and_what_to_do():
     assert english["lines"][2] == (
         "3 deaths in the mid lane by the river in 6 min: after respawn, go somewhere else."
     )
+    # The fixture's item has no key: no icon; with one, the card carries it (0.51).
+    assert "items" not in card
+    keyed = _screen(next_item={"key": "manta", "name": "Manta Style", "gold_left": 1500})
+    assert keyed["items"] == [{"key": "manta", "name": "Manta Style"}]
+    # No buy line (too little gold): no icon either.
+    assert "items" not in _screen(
+        gold=100, next_item={"key": "manta", "name": "Manta Style", "gold_left": 1500}
+    )
 
 
 def test_the_buy_line_keeps_the_buyback_gold_late():

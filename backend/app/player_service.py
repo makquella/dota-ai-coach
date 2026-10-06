@@ -65,7 +65,7 @@ from app.finding_history import finding_history
 from app.focus_goal import can_focus, focus_summary, match_result, new_focus, played_after
 from app.friend_compare import compare
 from app.game_plan import build_game_plan, key_item
-from app.hero_meta import start_items
+from app.hero_meta import item_key, start_items
 from app.hero_profiles import get_hero_position
 from app.history_backup import export_backup, import_backup
 from app.home_summary import home_summary
@@ -116,6 +116,8 @@ PARSE_POLL_SECONDS = 90
 PARSE_POLL_ATTEMPTS = 12
 # OpenDota meta data cache (player_store cache table).
 ITEM_CONSTANTS_KEY = "opendota:items"
+# Stored reviews whose final items are read into the table per request (0.50).
+BACKFILL_ITEMS_PER_CALL = 10
 POPULARITY_KEY = "opendota:item_popularity"
 TIMINGS_KEY = "opendota:item_timings"
 SKILLS_KEY = "opendota:pro_skills"
@@ -350,6 +352,8 @@ class PlayerService:
         self._detected: dict[str, Any] | None = None
         # Friend fetches that failed (code), by friend account id; cleared on retry.
         self._friend_errors: dict[int, str] = {}
+        # Matches asked for by number (add_match): pending, ready or an error code.
+        self._adding: dict[int, str] = {}
         self._plans: dict[tuple[Any, ...], tuple[float, dict[str, Any] | None]] = {}
         self._sync: dict[str, Any] = {
             "state": "idle",
@@ -959,17 +963,19 @@ class PlayerService:
         primary = self.store.primary_account_id()
         if primary is None:
             return {"linked": False, "items": [], "total": 0}
+        rows = self.store.list_matches(
+            primary,
+            limit=limit,
+            offset=offset,
+            hero_id=hero_id,
+            win=win,
+            sort=sort,
+            ascending=ascending,
+        )
+        self._backfill_items(primary, rows)
         return {
             "linked": True,
-            "items": self.store.list_matches(
-                primary,
-                limit=limit,
-                offset=offset,
-                hero_id=hero_id,
-                win=win,
-                sort=sort,
-                ascending=ascending,
-            ),
+            "items": rows,
             "total": self.store.count_matches(primary, hero_id=hero_id, win=win),
             "stats": self.store.match_stats(primary, hero_id=hero_id, win=win),
             "heroes": self.store.hero_counts(primary),
@@ -998,13 +1004,19 @@ class PlayerService:
             # Stored before trim_match kept what the review now reads (the skill
             # order): shown as it is now, fetched again and rebuilt in the background.
             self.fetch_match(match_id, request_parse=False)
+        if record.get("items") is None and analysis is not None:
+            # A review stored before 0.50: its final items for the header.
+            record["items"] = self._record_items(primary, record)
         detail = {
             "match_id": match_id,
             "summary": {key: record.get(key) for key in _SUMMARY_KEYS},
             "sources": record.get("sources"),
             "parse_status": record.get("parse_status") or "",
             "analysis": render_analysis(analysis, lang) if analysis else None,
-            "scoreboard": _scoreboard(record.get("opendota")),
+            "scoreboard": _scoreboard(
+                record.get("opendota"),
+                (self.store.cache_get(ITEM_CONSTANTS_KEY) or {}).get("by_id") or {},
+            ),
             "loading": analysis is None and self.client is not None,
         }
         # Before the coach: the AI review mentions the player's focus when there is one,
@@ -1804,6 +1816,23 @@ class PlayerService:
                 # The "review ready" banner must not open a deleted match.
                 self.store.set_meta(f"last_review:{account_id}", None)
             return
+        self._store_fetched(
+            account_id, match_id, trimmed, request_parse=request_parse, attempt=attempt
+        )
+
+    def _store_fetched(
+        self,
+        account_id: int,
+        match_id: int,
+        trimmed: dict[str, Any],
+        *,
+        request_parse: bool,
+        attempt: int,
+    ) -> None:
+        """A fetched match of the player: stored, reviewed, its replay asked for."""
+        client = self.client
+        if client is None:
+            return
         parsed = bool(trimmed.get("parsed"))
         status = "parsed" if parsed else "basic"
         if not parsed and request_parse:
@@ -1825,6 +1854,51 @@ class PlayerService:
         self._rebuild_analysis(account_id, match_id)
         if status == "parsing":
             self._retry(account_id, match_id, request_parse, attempt)
+
+    # --- a match by its number (older than the synced history) -----------------
+
+    def add_match(self, match_id: int) -> dict[str, Any]:
+        """Fetch a match the table does not hold (older than the last 50) and
+        review it, on the job thread. Never stores a match without the player."""
+        primary = self.store.primary_account_id()
+        if primary is None:
+            return {"state": "unlinked"}
+        if self.store.get_match(primary, match_id) is not None:
+            return {"state": "ready"}
+        if self.client is None:
+            return {"state": "offline"}
+        if self._adding.get(match_id) != "pending":
+            self._adding[match_id] = "pending"
+            self.jobs.submit(f"add:{match_id}", lambda: self._job_add_match(primary, match_id))
+        return {"state": "pending"}
+
+    def add_status(self, match_id: int) -> dict[str, Any]:
+        primary = self.store.primary_account_id()
+        if primary is None:
+            return {"state": "unlinked"}
+        if self.store.get_match(primary, match_id) is not None:
+            return {"state": "ready"}
+        return {"state": self._adding.get(match_id, "none")}
+
+    def _job_add_match(self, account_id: int, match_id: int) -> None:
+        client = self.client
+        if client is None:
+            self._adding[match_id] = "offline"
+            return
+        try:
+            match = client.match(match_id)
+        except OpenDotaError as error:
+            self._adding[match_id] = error.code or "error"
+            return
+        trimmed = trim_match(match, account_id)
+        if not trimmed.get("found_player"):
+            self._adding[match_id] = "not_player"
+            return
+        if not is_reviewable_match(trimmed):
+            self._adding[match_id] = "mode"
+            return
+        self._store_fetched(account_id, match_id, trimmed, request_parse=True, attempt=0)
+        self._adding[match_id] = "ready"
 
     def _rebuild_recent(self, account_id: int) -> None:
         for row in self.store.list_matches(account_id, limit=REVIEW_RECENT_MATCHES):
@@ -1923,6 +1997,7 @@ class PlayerService:
             draft=self._draft_meta(account_id, facts.get("hero_id")),
         )
         lh_t = facts.get("lh_t") or []
+        items = self._inventory_keys(facts)
         self.store.upsert_match(
             account_id,
             match_id,
@@ -1930,10 +2005,54 @@ class PlayerService:
             fields={
                 "score": analysis["headline"]["score"],
                 "lh_10": lh_t[10] if len(lh_t) > 10 else None,
+                "items": None if items is None else json.dumps(items),
             },
             analysis=analysis,
         )
         return analysis
+
+    def _inventory_keys(self, facts: dict[str, Any]) -> list[str] | None:
+        """The final inventory as item keys for the match table's icons: GSI
+        names directly, OpenDota ids through the cached item constants. None
+        when it cannot be read yet (ids without constants), [] when empty."""
+        raw = facts.get("inventory") or []
+        if not raw:
+            return [] if facts.get("sources") else None
+        by_id = (self.store.cache_get(ITEM_CONSTANTS_KEY) or {}).get("by_id") or {}
+        keys = []
+        for value in raw:
+            if isinstance(value, bool):
+                continue
+            if isinstance(value, int) or str(value).isdigit():
+                key = by_id.get(str(value))
+                if key is None:
+                    return None  # constants missing or stale: try again later
+            else:
+                key = item_key(value)
+            if key:
+                keys.append(key)
+        return keys[:6]
+
+    def _backfill_items(self, account_id: int, rows: list[dict[str, Any]]) -> None:
+        """Reviews stored before 0.50 have no items column: read it from their
+        stored match, a few rows per call (the table asks every 15 s)."""
+        missing = [row for row in rows if row.get("has_analysis") and row.get("items") is None]
+        for row in missing[:BACKFILL_ITEMS_PER_CALL]:
+            record = self.store.get_match(account_id, row["match_id"])
+            if record is not None:
+                row["items"] = self._record_items(account_id, record)
+
+    def _record_items(self, account_id: int, record: dict[str, Any]) -> list[str] | None:
+        """The final items of a stored match, kept in its items column once read."""
+        od = facts_from_opendota(record["opendota"]) if record.get("opendota") else None
+        gsi = facts_from_timeline(record["timeline"]) if record.get("timeline") else None
+        facts = merge_facts(od, gsi)
+        items = self._inventory_keys(facts) if facts else None
+        if items is not None:
+            self.store.upsert_match(
+                account_id, record["match_id"], source=None, fields={"items": json.dumps(items)}
+            )
+        return items
 
     # --- OpenDota meta data (cached; fetched on the job thread only) -----------
 
@@ -2110,6 +2229,7 @@ _SUMMARY_KEYS = (
     "lobby_type",
     "parsed",
     "score",
+    "items",
 )
 
 
@@ -2139,11 +2259,23 @@ def _coach_public(cached: dict[str, Any] | None, *, stale: bool) -> dict[str, An
     }
 
 
-def _scoreboard(trimmed: dict[str, Any] | None) -> list[dict[str, Any]] | None:
+def _scoreboard(
+    trimmed: dict[str, Any] | None, by_id: dict[str, str] | None = None
+) -> list[dict[str, Any]] | None:
+    """Both teams of an OpenDota match; `by_id` (the cached item constants)
+    names the items of every player's inventory (ids without it are left out)."""
     if not trimmed:
         return None
     rows = []
     for player in trimmed.get("players") or []:
+        items = []
+        for slot in range(6):
+            raw = player.get(f"item_{slot}")
+            if not raw or isinstance(raw, bool):
+                continue
+            key = (by_id or {}).get(str(raw)) if str(raw).isdigit() else item_key(raw)
+            if key:
+                items.append(key)
         rows.append(
             {
                 "me": bool(player.get("me")),
@@ -2159,6 +2291,7 @@ def _scoreboard(trimmed: dict[str, Any] | None) -> list[dict[str, Any]] | None:
                 "xpm": player.get("xp_per_min"),
                 "last_hits": player.get("last_hits"),
                 "hero_damage": player.get("hero_damage"),
+                "items": items,
             }
         )
     return rows
