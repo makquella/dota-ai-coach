@@ -210,6 +210,16 @@
       more: "Show more",
       liveMatch: (hero) => `Recording the current match${hero ? ` (${hero})` : ""} — the review appears right after it ends.`,
       back: "Matches",
+      palPlaceholder: "Where to go or what to do…",
+      palEmpty: "Nothing found. Try a hero, a tab or a setting.",
+      palHint: "↑↓ choose · Enter open · Esc close",
+      palGroups: { tabs: "Tab", actions: "Action", heroes: "Progress", matches: "Match", settings: "Setting" },
+      palProgressHero: (hero) => `Progress on ${hero}`,
+      palSync: "Update the match history",
+      palOpenNumber: "Open a match by its number",
+      palHotkeys: "Hotkeys",
+      palTour: "Show the tour",
+      palReport: "Report a problem",
       noteAdd: "Add a note",
       noteAddHint: "Your own line on this match: lag, a new build, who you played with. Kept on this computer only.",
       noteEdit: "Edit the note",
@@ -892,6 +902,16 @@
       more: "Показать ещё",
       liveMatch: (hero) => `Записываем текущий матч${hero ? ` (${hero})` : ""} — разбор появится сразу после него.`,
       back: "Матчи",
+      palPlaceholder: "Куда перейти или что сделать…",
+      palEmpty: "Ничего не нашлось. Попробуйте героя, вкладку или настройку.",
+      palHint: "↑↓ выбрать · Enter открыть · Esc закрыть",
+      palGroups: { tabs: "Вкладка", actions: "Действие", heroes: "Прогресс", matches: "Матч", settings: "Настройка" },
+      palProgressHero: (hero) => `Прогресс на ${hero}`,
+      palSync: "Обновить историю матчей",
+      palOpenNumber: "Открыть матч по номеру",
+      palHotkeys: "Горячие клавиши",
+      palTour: "Показать обучение",
+      palReport: "Сообщить о проблеме",
       noteAdd: "Заметка",
       noteAddHint: "Ваша строчка к этому матчу: лагало, новый билд, с кем играли. Хранится только на этом компьютере.",
       noteEdit: "Изменить заметку",
@@ -6093,7 +6113,12 @@
             h(
               "span",
               { class: "recent-text" },
-              h("span", { class: "recent-hero", text: row.hero || "—" }),
+              h(
+                "span",
+                { class: "recent-hero" },
+                h("span", { text: row.hero || "—" }),
+                row.note ? h("span", { class: "row-note", title: row.note, "aria-label": `${t("noteLabel")}: ${row.note}` }, icon("sticky-note")) : null
+              ),
               h("span", { class: "recent-facts muted num", text: facts }),
               // The items it ended with, small (0.50; reviewed matches only).
               Array.isArray(row.items) && row.items.length && window.DotaIcons
@@ -6424,6 +6449,249 @@
 
   // «?»: the keys of Settings → «Hotkeys» in a dialog over any tab (the same
   // list, already in the UI language). Esc, the button or a click outside closes it.
+  // --- Ctrl+K: the command palette --------------------------------------------
+  // One field for everything: a tab, a match (by hero, result, date or the
+  // player's note), a setting (the rows of Settings with the keywords their
+  // search uses) or an action. ↑/↓ choose, Enter runs, Esc closes. Words
+  // count from their start, like the settings search (SettingsSearch.terms).
+  const PALETTE_LIMIT = 9;
+  const PALETTE_GROUPS = ["tabs", "actions", "heroes", "matches", "settings"];
+
+  function paletteActions() {
+    const linked = Boolean(state.player?.linked);
+    const actions = [
+      linked && {
+        icon: "refresh-cw",
+        label: t("palSync"),
+        keys: "sync обновить синхронизировать история history refresh",
+        run: async () => {
+          setView("matches");
+          await call("sync");
+          loadMatches(true);
+        }
+      },
+      linked && {
+        icon: "search",
+        label: t("palOpenNumber"),
+        keys: "номер ссылка opendota dotabuff stratz number link id",
+        run: () => {
+          setView("matches");
+          setTimeout(() => document.querySelector(".open-number-input")?.focus(), 400);
+        }
+      },
+      { icon: "circle-help", label: t("palHotkeys"), keys: "горячие клавиши hotkeys keys shortcuts", run: () => showHotkeys() },
+      { icon: "compass", label: t("palTour"), keys: "обучение экскурсия тур tour guide help", run: () => document.getElementById("tour-start")?.click() },
+      {
+        icon: "send",
+        label: t("palReport"),
+        keys: "проблема ошибка баг отчёт report bug problem",
+        run: () => {
+          setView("settings");
+          const button = document.getElementById("report-open");
+          if (button && button.getAttribute("aria-expanded") !== "true") {
+            button.click();
+          }
+          button?.scrollIntoView({ block: "center" });
+        }
+      }
+    ];
+    return actions.filter(Boolean).map((item) => ({ ...item, group: "actions" }));
+  }
+
+  function paletteMatchItem(row) {
+    const result = row.win === true ? t("win") : row.win === false ? t("loss") : "";
+    const kda = row.kills == null ? null : `${row.kills}/${row.deaths}/${row.assists}`;
+    return {
+      group: "matches",
+      hero: row.hero_id || row.hero,
+      label: [row.hero || "—", result].filter(Boolean).join(" · "),
+      detail: [kda, row.score == null ? null : `${row.score}/100`, relativeTime(row.start_time, "short"), row.note ? `«${row.note}»` : null].filter(Boolean).join(" · "),
+      keys: `${row.match_id} ${row.note || ""}`,
+      run: () => openMatch(row.match_id)
+    };
+  }
+
+  function paletteSettingItems() {
+    return [...document.querySelectorAll("#view-settings .setting")]
+      .map((row) => {
+        const title = row.querySelector(".setting-title")?.textContent.trim();
+        if (!title) {
+          return null;
+        }
+        return {
+          group: "settings",
+          icon: "settings",
+          label: title,
+          detail: row.closest(".zone")?.querySelector(".zone-title")?.textContent.trim() || "",
+          keys: row.dataset.search || "",
+          run: () => {
+            setView("settings");
+            const folded = row.closest("details");
+            if (folded && !folded.open) {
+              folded.open = true;
+            }
+            row.scrollIntoView({ block: "center" });
+            row.classList.remove("flash");
+            void row.offsetWidth;
+            row.classList.add("flash");
+            row.querySelector("input, button, select")?.focus({ preventScroll: true });
+          }
+        };
+      })
+      .filter(Boolean);
+  }
+
+  function paletteItems(rows) {
+    const tabs = [
+      ["home", "house"],
+      ["matches", "history"],
+      ["progress", "chart-line"],
+      ["profile", "user"],
+      ["settings", "settings"]
+    ].map(([view, iconName]) => ({ group: "tabs", icon: iconName, label: t(`backTo.${view}`), keys: view, run: () => setView(view) }));
+    // «Прогресс на Juggernaut»: Progress filtered to a hero of the list.
+    const heroes = new Map();
+    for (const row of rows) {
+      if (row.hero_id && !heroes.has(row.hero_id)) {
+        heroes.set(row.hero_id, row.hero || "");
+      }
+    }
+    const heroItems = [...heroes].map(([heroId, name]) => ({
+      group: "heroes",
+      hero: heroId,
+      label: t("palProgressHero", name || "—"),
+      keys: "progress прогресс",
+      run: () => {
+        state.careerHero = heroId;
+        setView("progress");
+      }
+    }));
+    return [...tabs, ...paletteActions(), ...heroItems, ...rows.map(paletteMatchItem), ...paletteSettingItems()];
+  }
+
+  // Empty query: the tabs, the actions and the five newest matches. Words:
+  // every item whose text has them all, those whose title has them first.
+  function paletteFilter(items, query) {
+    const search = window.SettingsSearch;
+    const words = search ? search.terms(query) : [];
+    if (!words.length) {
+      const newest = items.filter((item) => item.group === "matches").slice(0, 5);
+      return [...items.filter((item) => item.group === "tabs" || item.group === "actions"), ...newest];
+    }
+    return items
+      .filter((item) => search.matches(`${item.label} ${item.detail || ""} ${item.keys || ""}`, words))
+      .map((item) => ({ item, title: search.matches(item.label, words) ? 0 : 1 }))
+      .sort((a, b) => a.title - b.title || PALETTE_GROUPS.indexOf(a.item.group) - PALETTE_GROUPS.indexOf(b.item.group))
+      .map(({ item }) => item)
+      .slice(0, PALETTE_LIMIT);
+  }
+
+  async function openPalette() {
+    if (document.querySelector("dialog[open]") || document.querySelector(".tour")) {
+      return;
+    }
+    let rows = state.matches;
+    const input = h("input", {
+      class: "input palette-input",
+      type: "text",
+      autocomplete: "off",
+      spellcheck: "false",
+      role: "combobox",
+      "aria-expanded": "true",
+      "aria-controls": "palette-list",
+      "aria-label": t("palPlaceholder"),
+      placeholder: t("palPlaceholder")
+    });
+    const list = h("ul", { class: "palette-list", id: "palette-list", role: "listbox", "aria-label": t("palPlaceholder") });
+    const dialog = h(
+      "dialog",
+      { class: "palette", "aria-label": t("palPlaceholder") },
+      h("div", { class: "palette-field" }, icon("search"), input),
+      list,
+      h("p", { class: "palette-hint muted small", text: t("palHint") })
+    );
+    let shown = [];
+    let active = 0;
+    const choose = (index) => {
+      active = Math.max(0, Math.min(shown.length - 1, index));
+      list.querySelectorAll("[role=option]").forEach((node, i) => {
+        node.setAttribute("aria-selected", String(i === active));
+        if (i === active) {
+          input.setAttribute("aria-activedescendant", node.id);
+          node.scrollIntoView({ block: "nearest" });
+        }
+      });
+    };
+    const run = (item) => {
+      dialog.close();
+      item?.run();
+    };
+    const draw = () => {
+      shown = paletteFilter(paletteItems(rows), input.value);
+      if (!shown.length) {
+        list.replaceChildren(h("li", { class: "palette-empty muted", text: t("palEmpty") }));
+        input.removeAttribute("aria-activedescendant");
+        return;
+      }
+      list.replaceChildren(
+        ...shown.map((item, index) =>
+          h(
+            "li",
+            {
+              id: `palette-${index}`,
+              role: "option",
+              class: "palette-item",
+              "aria-selected": "false",
+              onclick: () => run(item),
+              onmousemove: () => active !== index && choose(index)
+            },
+            item.hero && window.DotaIcons ? window.DotaIcons.heroPicture(document, item.hero, "sm") : h("span", { class: "palette-icon" }, icon(item.icon || "circle")),
+            h("span", { class: "palette-text" }, h("span", { class: "palette-label", text: item.label }), item.detail ? h("span", { class: "palette-detail muted", text: item.detail }) : null),
+            h("span", { class: "palette-group muted", text: t(`palGroups.${item.group}`) })
+          )
+        )
+      );
+      hydrate(list);
+      choose(0);
+    };
+    input.addEventListener("input", draw);
+    input.addEventListener("keydown", (event) => {
+      if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+        event.preventDefault();
+        choose(active + (event.key === "ArrowDown" ? 1 : -1));
+      } else if (event.key === "Enter") {
+        event.preventDefault();
+        run(shown[active]);
+      }
+    });
+    dialog.addEventListener("click", (event) => {
+      if (event.target === dialog) {
+        dialog.close();
+      }
+    });
+    dialog.addEventListener("close", () => dialog.remove());
+    document.body.append(dialog);
+    hydrate(dialog);
+    dialog.showModal();
+    input.focus();
+    draw();
+    // The matches of the whole table (no filter), when the list has not been
+    // loaded yet or is filtered; the player first when no tab asked yet.
+    if (!state.player) {
+      await refreshPlayer();
+      if (dialog.open) {
+        draw();
+      }
+    }
+    if (state.player?.linked && (!rows.length || state.filter.heroId || state.filter.result !== "all")) {
+      const result = await call("matches", { limit: 50 });
+      if (result.ok && dialog.open) {
+        rows = result.data.items || [];
+        draw();
+      }
+    }
+  }
+
   function showHotkeys() {
     const source = document.querySelector("details.hotkeys");
     if (!source || document.querySelector("dialog.hotkeys-dialog")) {
@@ -6469,6 +6737,14 @@
     // Keyboard: Ctrl+1…5 opens a tab, Esc leaves a match review for the list,
     // ←/→ in a review open the newer / older match of the list.
     // Never while typing, and never under the first-run tour (it owns Esc).
+    // Ctrl+K anywhere (the key, not the letter: «л» on a Russian layout).
+    document.addEventListener("keydown", (event) => {
+      if ((event.ctrlKey || event.metaKey) && !event.altKey && !event.shiftKey && event.code === "KeyK") {
+        event.preventDefault();
+        openPalette();
+      }
+    });
+    document.getElementById("side-find")?.addEventListener("click", () => openPalette());
     // Alt+←/→ and the mouse's back / forward buttons walk the places visited.
     const historyBlocked = () => Boolean(document.querySelector(".tour, dialog[open]"));
     document.addEventListener("keydown", (event) => {

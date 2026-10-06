@@ -124,6 +124,8 @@ const I18N = {
     hotkeyBack: "From a match review back to where you opened it",
     hotkeyHistory: "Back / forward through the pages you opened (the mouse's side buttons too)",
     hotkeyFind: "On Settings: find a setting",
+    hotkeyPalette: "Find a tab, a match, a setting or an action",
+    findAnything: "Find…",
     hotkeyZoom: "Interface size bigger / smaller, Ctrl+0 back to 100%",
     hotkeyNeighbour: "In a match review: the match above / below in the list (newer / older unless the list is sorted)",
     hotkeyHelp: "This list of keys, from any tab",
@@ -361,6 +363,10 @@ const I18N = {
     tourHint: "A short tour of the app, one minute",
     tourStart: "Show",
     whatsNew: {
+      "0.53.0": [
+        "Ctrl+K finds anything: a tab, a match by hero or your note, Progress on a hero, a setting or an action.",
+        "Notes show on Home's last matches too."
+      ],
       "0.52.0": [
         "Find a setting: a search field on top of Settings (Ctrl+F) keeps only the rows with your words.",
         "Interface size in Settings → App (90–125 %), or Ctrl + plus / minus.",
@@ -924,6 +930,8 @@ const I18N = {
     hotkeyBack: "Из разбора матча обратно туда, откуда его открыли",
     hotkeyHistory: "Назад / вперёд по открытым страницам (и боковые кнопки мыши)",
     hotkeyFind: "В «Настройках»: найти настройку",
+    hotkeyPalette: "Найти вкладку, матч, настройку или действие",
+    findAnything: "Найти…",
     hotkeyZoom: "Интерфейс крупнее / мельче, Ctrl+0 — обратно 100 %",
     hotkeyNeighbour: "В разборе матча: матч выше / ниже в списке (новее / старее, если список не отсортирован)",
     hotkeyHelp: "Этот список клавиш, с любой вкладки",
@@ -1161,6 +1169,10 @@ const I18N = {
     tourHint: "Короткая экскурсия по приложению, на минуту",
     tourStart: "Показать",
     whatsNew: {
+      "0.53.0": [
+        "Ctrl+K находит всё: вкладку, матч по герою или вашей заметке, «Прогресс на герое», настройку или действие.",
+        "Значок заметки теперь и в «Последних матчах» на Главной."
+      ],
       "0.52.0": [
         "Поиск по настройкам: поле вверху «Настроек» (Ctrl+F) оставляет только строки с вашими словами.",
         "Размер интерфейса в «Настройки» → «Приложение» (90–125 %) или Ctrl + плюс / минус.",
