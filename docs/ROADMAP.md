@@ -22,7 +22,7 @@
 | F14 | P2 | Locked mypy + baseline и blocking checks чистых модулей; долг не растёт | Не реализовано; текущий mypy остаётся nonblocking |
 | F15 | P2 | Reusable validation проверяет тот же SHA до release publish | Не реализовано |
 | F16 | P2 | Canonical npm syntax check, отмена superseded PR CI; затем meaningful-path Windows gating со стабильным required summary | Первая часть слита в #101; gating ещё нет |
-| F17 | P2 | Trusted IPC sender/frame, navigation/popup guards, incremental CSP; реальные UI smoke checks | Не реализовано |
+| F17 | P2 | Trusted IPC sender/frame, navigation/popup guards, incremental CSP; реальные UI smoke checks | Подготовлено в 0.53.8; границы и smoke — [DESKTOP_SECURITY.md](DESKTOP_SECURITY.md) |
 
 После finish/queue recovery: backup/auth как отдельные исправления с fault tests. Не ждать большого рефакторинга для подтверждённых потерь данных. Для поведения live-политики использовать sanitized role recordings и fixed-clock replay, для новых UI границ — настоящие DOM-сценарии.
 

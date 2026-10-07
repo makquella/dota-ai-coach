@@ -1,0 +1,106 @@
+"use strict";
+
+// Real renderer/preload/IPC checks shared by source and packaged Windows smoke.
+const { BrowserWindow } = require("electron");
+const path = require("node:path");
+const { protectWindow } = require("./renderer-security");
+
+const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+async function until(predicate, timeoutMs = 5000) {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    if (await predicate()) return true;
+    await delay(50);
+  }
+  return false;
+}
+
+async function runRendererSecuritySmoke({ mainWindow, overlayWindow, skillArrows, backendUrl, step }) {
+  const main = mainWindow.webContents;
+  const originalLanguage = (await main.executeJavaScript("window.launcherApi.getStatus()")).language;
+  try {
+    for (const [lang, label] of [["ru", "Язык"], ["en", "Language"]]) {
+      await main.executeJavaScript(`document.querySelector('#tab-settings').click(); document.querySelector('[data-language="${lang}"]').click(); true`);
+      const drawn = await until(() => main.executeJavaScript(`document.documentElement.lang === '${lang}' && document.querySelector('#language-title').textContent === '${label}' && document.querySelector('[data-language="${lang}"]').getAttribute('aria-checked') === 'true'`));
+      step(`settings UI and trusted IPC (${lang})`, drawn);
+    }
+  } finally {
+    await main.executeJavaScript(`window.launcherApi.setLanguage(${JSON.stringify(originalLanguage)})`);
+  }
+
+  for (const [name, contents] of [["panel", main], ["overlay", overlayWindow.webContents]]) {
+    const policy = await contents.executeJavaScript(`(async () => {
+      const violations = [];
+      const observe = (event) => violations.push(event.effectiveDirective);
+      document.addEventListener('securitypolicyviolation', observe);
+      window.__wardlyInjectedScript = false;
+      const script = document.createElement('script');
+      script.textContent = 'window.__wardlyInjectedScript = true';
+      document.head.append(script);
+      let blockedFetch = false;
+      try { await fetch(${JSON.stringify(`${backendUrl}/health`)}); } catch { blockedFetch = true; }
+      await new Promise((resolve) => setTimeout(resolve, 50));
+      script.remove();
+      document.removeEventListener('securitypolicyviolation', observe);
+      return !window.__wardlyInjectedScript && blockedFetch && violations.includes('script-src-elem') && violations.includes('connect-src');
+    })()`);
+    step(`${name} CSP blocks injected script and direct HTTP`, policy);
+
+    let navigated = false;
+    const before = contents.getURL();
+    const attempted = () => { navigated = true; };
+    contents.on("will-navigate", attempted);
+    contents.on("will-frame-navigate", attempted);
+    try {
+      await contents.executeJavaScript(`location.assign(${JSON.stringify(`${backendUrl}/health`)}); true`);
+      await until(() => navigated);
+      step(`${name} navigation rejected`, navigated && contents.getURL() === before);
+    } finally {
+      contents.removeListener("will-navigate", attempted);
+      contents.removeListener("will-frame-navigate", attempted);
+    }
+    let created = false;
+    const popup = (window) => { created = true; window.destroy(); };
+    contents.on("did-create-window", popup);
+    try {
+      const denied = await contents.executeJavaScript(`window.open(${JSON.stringify(`${backendUrl}/health`)}) === null`);
+      await delay(100);
+      step(`${name} popup rejected`, denied && !created);
+    } finally {
+      contents.removeListener("did-create-window", popup);
+    }
+  }
+
+  await main.executeJavaScript("window.launcherApi.skillArrows('calibrate')");
+  const calibration = skillArrows.window();
+  const drawn = calibration && await until(() => calibration.webContents.executeJavaScript("Boolean(document.querySelector('#calibrate')) && !document.querySelector('#calibrate').classList.contains('hidden') && Boolean(document.querySelector('#cal-title')?.textContent)"));
+  step("trusted calibration renderer opened", drawn);
+
+  for (const [name, file, preload, invoke] of [
+    ["panel", "renderer/index.html", "preload.js", "window.launcherApi.getStatus()"],
+    ["overlay", "overlay/index.html", "overlay-preload.js", "window.overlayApi.getConfig()"],
+    ["calibration", "skill-arrows/index.html", "skill-arrows-preload.js", "window.skillArrowApi.auto()"],
+  ]) {
+    // Another webContents with the genuine preload and exact same local URL
+    // must not gain the owning window's privileges.
+    const unowned = new BrowserWindow({ show: false, webPreferences: {
+      preload: path.join(__dirname, preload), contextIsolation: true, nodeIntegration: false, sandbox: true,
+    } });
+    protectWindow(unowned);
+    try {
+      await unowned.loadFile(path.join(__dirname, file), name === "calibration" ? { query: { mode: "calibrate" } } : {});
+      const denied = await unowned.webContents.executeJavaScript(`${invoke}.then(() => false, (error) => error.message.includes('Untrusted IPC sender'))`);
+      step(`${name} IPC rejects a different window`, denied);
+    } finally {
+      unowned.destroy();
+    }
+  }
+
+  if (drawn) {
+    await calibration.webContents.executeJavaScript("document.querySelector('#cal-cancel').click(); true");
+    step("trusted calibration IPC cancels", await until(() => !skillArrows.state().calibrating));
+  }
+}
+
+module.exports = { runRendererSecuritySmoke };

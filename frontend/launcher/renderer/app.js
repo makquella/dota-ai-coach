@@ -363,6 +363,9 @@ const I18N = {
     tourHint: "A short tour of the app, one minute",
     tourStart: "Show",
     whatsNew: {
+      "0.53.8": [
+        "Protected the app’s windows: privileged actions only accept their own local interface, and unexpected navigation or popups are blocked."
+      ],
       "0.53.7": [
         "Websites can no longer change the coach’s local settings or send game data. Dota uses a separate protected connection; restart Dota once after updating."
       ],
@@ -1191,6 +1194,9 @@ const I18N = {
     tourHint: "Короткая экскурсия по приложению, на минуту",
     tourStart: "Показать",
     whatsNew: {
+      "0.53.8": [
+        "Защищены окна приложения: действия принимаются только от своего локального интерфейса, а посторонние переходы и всплывающие окна блокируются."
+      ],
       "0.53.7": [
         "Сайты больше не могут менять локальные настройки тренера или отправлять игровые данные. Дота использует отдельное защищённое подключение; после обновления перезапустите Доту один раз."
       ],
