@@ -21,7 +21,7 @@ python -m pytest tests/test_<feature>.py tests/test_<consumer>.py
 | GSI / сигналы | `test_gsi_samples_and_advice.py`, `test_gsi_in_match.py`, `test_spectator_gsi.py`, `test_fuzz_live_gsi.py`; skill/position tests при касании |
 | Decision / policy / coaches | `test_decision_points_recommender.py`, `test_hero_safety.py`, `test_laning_post_laning_coaches.py`; hero/support cases; `test_advice_i18n.py` при изменении видимого текста |
 | Scheduler / frequency / shared state | Все `test_evaluate_*_gate.py`, `test_scheduler_spacing.py`, `test_scheduler_state_snapshot.py`, `test_advice_frequency.py`, `test_replay_demo_data.py`; широкий state refactor → весь backend |
-| Tracker / store / persistence | `test_player_history.py`, `test_history_backup.py`, `test_match_notes.py`, `test_match_advice_log.py`; новые failure/restart/thread cases; `test_packaging_runtime.py` при paths/lifecycle |
+| Tracker / store / persistence | `test_player_history.py`, `test_history_backup.py`, `test_backup_atomicity.py`, `test_cache_corruption.py`, `test_match_notes.py`, `test_match_advice_log.py`; новые failure/restart/thread cases; `test_packaging_runtime.py` при paths/lifecycle |
 | Analysis / facts | `test_player_history.py`, связанные role/lane/build/death tests, `test_personal_baseline.py`, `test_focus_goal.py`; проверить review/cache versions |
 | AI client / facts / questions | `test_coach_ai.py`, `test_diagnostics.py`; fake providers, metric swaps, total deadline/idempotency; без live AI вызовов |
 | Profile / cosmetics / friends | `test_player_profile.py`, `test_cosmetics.py`, `test_friend_compare.py`; launcher `test/friends.test.js`, Worker profile tests при public contract |

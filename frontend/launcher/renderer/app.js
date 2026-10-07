@@ -363,6 +363,9 @@ const I18N = {
     tourHint: "A short tour of the app, one minute",
     tourStart: "Show",
     whatsNew: {
+      "0.53.6": [
+        "History backups are checked before loading and restored as one operation. A damaged cache no longer interrupts opening a review."
+      ],
       "0.53.5": [
         "Repeated background requests are deduplicated while running. Shutdown cancels waiting jobs and gives active jobs limited time to finish."
       ],
@@ -711,8 +714,9 @@ const I18N = {
     backupImport: "Open a file",
     backupSaved: (count, file) => `Saved ${count} matches: ${file}`,
     backupLoaded: (added, linked) => `Loaded: ${added} new matches${linked ? ", account linked" : ""}. Nothing was overwritten.`,
-    backupNotBackup: "This file is not a Wardly history backup.",
+    backupNotBackup: "This file is not a Wardly history backup, or its data is damaged. Nothing from the file was saved.",
     backupNewer: "The backup was made by a newer version: update the app first.",
+    backupRestoreFailed: "Could not restore the history. Nothing from the file was saved; check the disk and try again.",
     backupFailed: "Could not do it: the coach is not running or the disk is not available.",
     transferTitle: "Move to another computer",
     zoneMyData: "Your matches",
@@ -1184,6 +1188,9 @@ const I18N = {
     tourHint: "Короткая экскурсия по приложению, на минуту",
     tourStart: "Показать",
     whatsNew: {
+      "0.53.6": [
+        "Файл истории проверяется до загрузки и восстанавливается целиком одной операцией. Повреждённый кеш больше не мешает открыть разбор."
+      ],
       "0.53.5": [
         "Повторные фоновые запросы не дублируют выполняющуюся задачу. При закрытии тренер отменяет ожидающие задачи и ограниченно ждёт активные."
       ],
@@ -1532,8 +1539,9 @@ const I18N = {
     backupImport: "Открыть файл",
     backupSaved: (count, file) => `Сохранено матчей: ${count}. Файл ${file}`,
     backupLoaded: (added, linked) => `Загружено новых матчей: ${added}${linked ? ", аккаунт привязан" : ""}. Ничего не перезаписано.`,
-    backupNotBackup: "Это не файл истории Wardly.",
+    backupNotBackup: "Это не файл истории Wardly или в нём повреждены данные. Данные из файла не сохранены.",
     backupNewer: "Файл сделан более новой версией: сначала обновите приложение.",
+    backupRestoreFailed: "Не удалось восстановить историю. Данные из файла не сохранены; проверьте диск и повторите попытку.",
     backupFailed: "Не получилось: тренер не запущен или диск недоступен.",
     transferTitle: "Перенос на другой компьютер",
     zoneMyData: "Ваши матчи",
@@ -2095,7 +2103,7 @@ async function init() {
           ? tr("backupSaved", result.matches, result.path.split(/[\\/]/).pop())
           : tr("backupLoaded", result.imported?.matches?.added ?? 0, result.linked);
       } else {
-        els.backupHint.textContent = tr(result?.code === "not_backup" ? "backupNotBackup" : result?.code === "newer_version" ? "backupNewer" : "backupFailed");
+        els.backupHint.textContent = tr(result?.code === "not_backup" ? "backupNotBackup" : result?.code === "newer_version" ? "backupNewer" : result?.code === "restore_failed" ? "backupRestoreFailed" : "backupFailed");
       }
     } finally {
       backupButtons().forEach((button) => (button.disabled = false));
@@ -2155,7 +2163,7 @@ async function init() {
           els.transferInput.value = "";
           els.transferHint.textContent = tr("backupLoaded", result.imported?.matches?.added ?? 0, result.linked);
         } else {
-          els.transferHint.textContent = result?.code === "newer_version" ? tr("backupNewer") : result?.code === "backend_down" ? tr("backupFailed") : transferError(result?.code);
+          els.transferHint.textContent = result?.code === "newer_version" ? tr("backupNewer") : result?.code === "restore_failed" ? tr("backupRestoreFailed") : result?.code === "backend_down" ? tr("backupFailed") : transferError(result?.code);
         }
       })
     );

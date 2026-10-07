@@ -239,7 +239,8 @@ def import_history(data: Annotated[dict, Body()]):
         return PLAYER_SERVICE.import_backup(data)
     except BackupError as error:
         return JSONResponse(
-            status_code=400, content={"status": "error", "code": error.code, "detail": str(error)}
+            status_code=503 if error.code == "restore_failed" else 400,
+            content={"status": "error", "code": error.code, "detail": str(error)},
         )
 
 

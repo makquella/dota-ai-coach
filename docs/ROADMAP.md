@@ -12,7 +12,7 @@
 | F07 | P1 | Зафиксировать Python runtime/dev/build зависимости и tools; единый путь установки в CI и packaging | Слито: [PR #103](https://github.com/makquella/dota-ai-coach/pull/103), 0.53.3; type baseline относится к F14 |
 | F01 | P1 | Durable pending finish → idempotent DB save → ack; restart и write-failure тесты сохраняют timeline | Подготовлено в 0.53.4; протокол и ограничения — [MATCH_RECOVERY.md](MATCH_RECOVERY.md) |
 | F02 | P1 | Дедупликация running jobs, stop/join с deadline, безопасный lifetime store; настоящие threads + Events | Подготовлено в 0.53.5; протокол и границы — [JOB_QUEUE_LIFECYCLE.md](JOB_QUEUE_LIFECYCLE.md) |
-| F03 | P1 | Валидация backup до записи и одна transaction с account linking; rollback на сбое, восстановление повреждённого cache | Не реализовано |
+| F03 | P1 | Валидация backup до записи и одна transaction с account linking; rollback на сбое, восстановление повреждённого cache | Подготовлено в 0.53.6; формат и гарантии — [HISTORY_BACKUP.md](HISTORY_BACKUP.md) |
 | F06 | P1 | Отдельные control/GSI tokens, Origin/Host checks и bounded body; реальный Dota config и launcher smoke совместимы | Не реализовано |
 | F04 | P1 | Связать AI числа с метрикой и источником; начать с трёх findings, запретить metric swaps | Не реализовано; разбивать на slices |
 | F10 | P2 | Согласованный runtime snapshot и ownership MatchMemory; concurrent publish/read/reset без disk/network под lock | Не реализовано |

@@ -16,12 +16,16 @@ Nothing here talks to the network; see opendota.py and player_service.py.
 from __future__ import annotations
 
 import json
+import math
 import sqlite3
 import threading
 import time
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
+
+from app.diagnostics import record_error
+from app.storage_json import cache_value_valid, load_json
 
 SCHEMA_VERSION = 1
 
@@ -224,62 +228,120 @@ class PlayerStore:
             rows = self._conn.execute(f"SELECT * FROM {table}").fetchall()
         return [dict(row) for row in rows]
 
+    def backup_snapshot(self) -> tuple[dict[str, list[dict[str, Any]]], int | None]:
+        """Read every table and account selection from one SQLite snapshot."""
+        with self._lock, self._conn:
+            self._conn.execute("BEGIN")
+            tables = {table: self.export_rows(table) for table in self.BACKUP_KEYS}
+            account = self.primary_account_id()
+        return tables, account
+
+    def merge_backup(
+        self, tables: dict[str, list[dict[str, Any]]], account: int | None
+    ) -> dict[str, Any]:
+        """Merge validated rows and link the account in one rollback-safe transaction."""
+        with self._lock, self._conn:
+            # Serialize primary-account selection with other SQLite connections too.
+            self._conn.execute("BEGIN IMMEDIATE")
+            imported = {
+                table: self._import_rows(table, tables[table]) for table in self.BACKUP_KEYS
+            }
+            linked = self.primary_account_id() is None and account is not None
+            if linked and account is not None:
+                self._touch_player(account, source="backup")
+                self._set_meta("primary_account_id", str(account))
+                self._set_meta("primary_source", "backup")
+            result = {
+                "imported": imported,
+                "linked": linked,
+                "account_id": self.primary_account_id(),
+            }
+        # The connection context commits before the caller can invalidate caches/queue sync.
+        return result
+
     def import_rows(self, table: str, rows: list[dict[str, Any]]) -> dict[str, int]:
         """Merge rows: a missing row is added; a stored one only gets the values it
         lacks (never overwritten). Unknown columns are ignored."""
+        with self._lock, self._conn:
+            return self._import_rows(table, rows)
+
+    def _import_rows(self, table: str, rows: list[dict[str, Any]]) -> dict[str, int]:
+        """Caller owns the store lock and transaction; this helper never commits."""
         keys = self.BACKUP_KEYS.get(table)
         if keys is None:
             raise ValueError(table)
         added = filled = 0
-        with self._lock:
-            columns = set(self._columns(table))
-            for raw in rows:
-                if not isinstance(raw, dict) or any(raw.get(k) is None for k in keys):
-                    continue
-                row = {k: v for k, v in raw.items() if k in columns and _plain(v)}
-                if any(row.get(k) is None for k in keys):
-                    continue  # a key that is not a plain value: not a row we can place
-                where = " AND ".join(f"{k} = ?" for k in keys)
-                params = tuple(row[k] for k in keys)
-                stored = self._conn.execute(
-                    f"SELECT * FROM {table} WHERE {where}", params
-                ).fetchone()
-                if stored is None:
-                    names = ", ".join(row)
-                    marks = ", ".join("?" for _ in row)
-                    self._conn.execute(
-                        f"INSERT INTO {table} ({names}) VALUES ({marks})", tuple(row.values())
-                    )
-                    added += 1
-                    continue
-                missing = {
-                    k: v
-                    for k, v in row.items()
-                    if k not in keys and v not in (None, "") and stored[k] in (None, "")
-                }
-                if missing:
-                    sets = ", ".join(f"{k} = ?" for k in missing)
-                    self._conn.execute(
-                        f"UPDATE {table} SET {sets} WHERE {where}",
-                        (*missing.values(), *params),
-                    )
-                    filled += 1
-            self._conn.commit()
+        columns = set(self._columns(table))
+        for raw in rows:
+            if not isinstance(raw, dict) or any(raw.get(k) is None for k in keys):
+                continue
+            row = {k: v for k, v in raw.items() if k in columns and _plain(v)}
+            if any(row.get(k) is None for k in keys):
+                continue  # a key that is not a plain value: not a row we can place
+            where = " AND ".join(f"{k} = ?" for k in keys)
+            params = tuple(row[k] for k in keys)
+            stored = self._conn.execute(f"SELECT * FROM {table} WHERE {where}", params).fetchone()
+            if stored is None:
+                names = ", ".join(row)
+                marks = ", ".join("?" for _ in row)
+                self._conn.execute(
+                    f"INSERT INTO {table} ({names}) VALUES ({marks})", tuple(row.values())
+                )
+                added += 1
+                continue
+            missing = {
+                k: v
+                for k, v in row.items()
+                if k not in keys and v not in (None, "") and stored[k] in (None, "")
+            }
+            if missing:
+                sets = ", ".join(f"{k} = ?" for k in missing)
+                self._conn.execute(
+                    f"UPDATE {table} SET {sets} WHERE {where}",
+                    (*missing.values(), *params),
+                )
+                filled += 1
         return {"added": added, "filled": filled}
 
     # --- cache (OpenDota meta data: items, hero builds, bracket win rates) -----
 
     def cache_get(self, key: str, *, max_age: float | None = None) -> Any:
-        """Cached JSON value, or None when missing or older than max_age seconds."""
+        """Cached value or a miss; discard and diagnose corrupt entries."""
         with self._lock:
             row = self._conn.execute(
                 "SELECT value, fetched_at FROM cache WHERE key = ?", (key,)
             ).fetchone()
-        if row is None:
-            return None
-        if max_age is not None and time.time() - float(row["fetched_at"] or 0) > max_age:
-            return None
-        return json.loads(row["value"])
+            if row is None:
+                return None
+            try:
+                fetched_at = float(row["fetched_at"] or 0)
+                if not math.isfinite(fetched_at) or fetched_at < 0:
+                    raise ValueError("Invalid cache timestamp")
+                value = load_json(row["value"])
+                if not cache_value_valid(key, value):
+                    raise ValueError("Invalid cache shape")
+            except (ValueError, TypeError, OverflowError, RecursionError) as error:
+                # Do not log the key, payload or exception text (they can contain private data).
+                record_error(
+                    "player-cache",
+                    f"Corrupt entry discarded: {type(error).__name__}",
+                    with_trace=False,
+                )
+                try:
+                    with self._conn:
+                        # Another connection may have refreshed the value since SELECT.
+                        self._conn.execute(
+                            "DELETE FROM cache WHERE key = ? AND value IS ? AND fetched_at IS ?",
+                            (key, row["value"], row["fetched_at"]),
+                        )
+                except sqlite3.Error as error:
+                    record_error(
+                        "player-cache", f"Discard failed: {type(error).__name__}", with_trace=False
+                    )
+                return None
+            if max_age is not None and time.time() - fetched_at > max_age:
+                return None
+            return value
 
     def cache_set(self, key: str, value: Any) -> None:
         with self._lock:
