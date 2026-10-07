@@ -1,6 +1,6 @@
 # Architecture
 
-Wardly is a local-first coursework MVP. It combines live Dota 2 GSI, deterministic advice rules, an anti-spam scheduler, and a small Electron overlay.
+Wardly is a local-first Windows Dota coach. It combines live Dota 2 GSI, deterministic advice rules, an anti-spam scheduler, an Electron launcher/overlay and optional cloud services.
 
 ## Main Components
 
@@ -47,7 +47,7 @@ Key files:
 - `backend/app/scheduler/frequency.py` - advice frequency preference (calm / normal / active) scaling the coaching gaps.
 - `backend/app/diagnostics.py` - recent errors and runtime info for the problem report, with keys redacted.
 - `backend/scripts/simulate_live_gsi.py` - raw GSI through the live endpoints on game time, printing every advice card; `backend/scripts/evaluate_system.py` - latency, replay advice, review coverage and fact-check numbers.
-- `backend/app/coach_llm.py`, `coach_review.py` - optional AI coach: explains a match or the recent matches in plain words (Google Gemini Flash by default, or Groq / OpenRouter, all on free tiers), with every number, time, hero and item checked against the rule-based facts. `backend/scripts/compare_coach_models.py` compares models on the same match.
+- `backend/app/coach_llm.py`, `coach_review.py` - optional AI coach: explains a match or recent matches using rule-based facts (Google Gemini Flash by default, or Groq / OpenRouter). The checker validates allowed numbers, times, heroes and items; it does not yet bind each number to its metric/source (audit F04). `backend/scripts/compare_coach_models.py` compares models on the same match.
 - `backend/app/advice_i18n.py` - Russian wording of the visible advice text, applied only at the API edge (`lang=ru` on `/overlay/recommendation` and `/advice/recent`); the pipeline, logs and history stay English.
 
 ## Frontend
@@ -78,7 +78,13 @@ OpenDota (history, parsed replays) ─> opendota ─────┘             
 
 The Steam account is taken from GSI (`player.steamid`) the first time the app sees a match, or linked by hand. After a live match the review is available immediately from the app's own recording; when OpenDota has parsed the replay (requested automatically) the review is rebuilt with per-minute data, benchmarks and kill logs.
 
-Build advice compares the player's item timings with the hero's win rate per purchase time in public matches (target: the typical timing, not the luckiest early one) and with the pro build. Rank comparison uses the same-role players of the player's own matches, since matchmaking puts players of similar rank together; over many matches it becomes "you vs players of your rank", and hero win rates are shown for the player's rank bracket. The meta data is cached in SQLite, so all of this also works offline once it has been fetched. All network work runs on one background thread and never touches the live advice path.
+Build advice compares the player's item timings with the hero's win rate per purchase time in public matches (target: the typical timing, not the luckiest early one) and with the pro build. Rank comparison uses the same-role players of the player's own matches, since matchmaking puts players of similar rank together; over many matches it becomes "you vs players of your rank", and hero win rates are shown for the player's rank bracket. The meta data is cached in SQLite, so all of this also works offline once it has been fetched. `player_service.py` uses separate background queues for OpenDota work (`jobs`) and post-match AI (`ai_jobs`), keeping slow review work off the live request path.
+
+## Optional Cloud Service
+
+`services/api/src/index.js` routes the Cloudflare Worker API. Modules own reports (`report.js`), usage statistics (`stats.js`), shared reviews (`share.js`), history transfer (`transfer.js`), public profiles (`profile.js`) and update channels (`channels.js`). D1 schema lives in `services/api/migrations/`; R2 stores uploaded payloads. Consent, redaction and retention requirements are described in [DATA_PLAN.md](DATA_PLAN.md) and the current [privacy page](../site/privacy.html).
+
+Local history and coaching continue without cloud services. Worker unit tests use fake D1/R2; transaction and concurrent-claim behavior still need validation with real local D1 (audit F11).
 
 ## Replay And Simulation
 
@@ -96,7 +102,7 @@ Replay-derived states are called **GSI-like replay states**. They are useful for
 
 LLM support is optional. It can improve wording during offline evaluation or controlled demos, but it does not own live safety decisions.
 
-After the match, where latency does not matter, the optional AI coach turns the rule-based review into a coach's explanation (what decided the game, turning points, main mistakes with fixes, goals for the next game; the same over the recent matches on the Progress tab). The model only receives facts the rules computed and its answer is checked against them before it is shown; without a key, or on any error, the rule-based review is shown as before.
+After the match the optional AI coach turns the rule-based review into a coach's explanation (turning points, mistakes, fixes and goals; also recent matches on the Progress tab). It has separate settings from live `USE_LLM`. The model receives computed facts, and its answer passes structural and value checks before display. These checks do not yet prove that a permitted number describes the correct metric or event. Without a key, or on an error, the deterministic review remains available.
 
 The backend keeps local authority over:
 
@@ -110,15 +116,17 @@ The backend keeps local authority over:
 
 Live GSI provides useful player-centric signals such as HP, mana, level, items, last hits, gold, position, alive/respawn, and ability cooldowns when present.
 
-Signals not available from current live GSI/replay pipeline include:
+Live GSI can also provide minimap coordinates of currently visible enemies (`enemy_heroes.py`) and observed Roshan/Aegis events (`roshan_timer.py`). These are partial observations, not complete map knowledge. `signal_capabilities.py` keeps source-specific limits; inspect actual normalized fields as well, since its generic enemy-position entry does not describe this minimap observation path.
 
-- exact enemy positions;
+Signals that must not be inferred without supporting observations include:
+
+- positions of hidden enemies;
 - nearby ally/enemy counts;
 - exact team readiness;
 - exact teamfight context;
-- exact Roshan/objective context.
+- unobserved Roshan/objective state.
 
-When required signals are missing, advice stays cautious.
+Replay GSI-like and OpenDota imports have different coverage from live GSI. When required signals are missing, advice stays cautious.
 
 ## Diagrams
 

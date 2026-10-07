@@ -6,6 +6,10 @@ on:
   # All PRs, including ones stacked on another feature branch.
   pull_request:
 
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   backend:
     name: Backend (ruff, mypy, pytest)
@@ -67,39 +71,8 @@ jobs:
           node-version: "20"
 
       - name: Syntax check desktop app (launcher + overlay window)
-        run: |
-          node --check frontend/launcher/main.js
-          node --check frontend/launcher/preload.js
-          node --check frontend/launcher/settings.js
-          node --check frontend/launcher/overlay-window.js
-          node --check frontend/launcher/overlay-placement.js
-          node --check frontend/launcher/overlay-preload.js
-          node --check frontend/launcher/overlay-visibility.js
-          node --check frontend/launcher/dota-watcher.js
-          node --check frontend/launcher/steam-locator.js
-          node --check frontend/launcher/updater.js
-          node --check frontend/launcher/problem-report.js
-          node --check frontend/launcher/dota-assets.js
-          node --check frontend/launcher/renderer/app.js
-          node --check frontend/launcher/renderer/charts.js
-          node --check frontend/launcher/renderer/tour.js
-          node --check frontend/launcher/renderer/settings-search.js
-          node --check frontend/launcher/renderer/matches.js
-          node --check frontend/launcher/renderer/dota-icons.js
-          node --check frontend/launcher/renderer/dota-data.js
-          node --check frontend/launcher/overlay/app.js
-          node --check frontend/launcher/overlay/voice.js
-          node --check frontend/launcher/splash/splash.js
-          node --check frontend/launcher/transfer-code.js
-          node --check frontend/launcher/discord-presence.js
-          node --check frontend/launcher/discord-weekly.js
-          node --check frontend/launcher/advice-stats.js
-          node --check frontend/launcher/friends.js
-          node --check frontend/launcher/skill-arrow-window.js
-          node --check frontend/launcher/skill-arrow-placement.js
-          node --check frontend/launcher/skill-arrows-preload.js
-          node --check frontend/launcher/skill-arrows/app.js
-          node --check frontend/launcher/assets/icons/lucide.js
+        working-directory: frontend/launcher
+        run: npm run check
 
       - name: Unit tests (node --test, no dependencies)
         working-directory: frontend/launcher
