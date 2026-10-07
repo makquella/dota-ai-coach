@@ -11,7 +11,7 @@
 | F08 | P1 | Проверить актуальные advisory ranges; обновить совместимые Electron/updater/build/Wrangler зависимости; clean install, unit suites, Windows build/smoke | Слито: [PR #102](https://github.com/makquella/dota-ai-coach/pull/102), 0.53.2; остаточный build-only advisory описан в DEPENDENCIES.md |
 | F07 | P1 | Зафиксировать Python runtime/dev/build зависимости и tools; единый путь установки в CI и packaging | Слито: [PR #103](https://github.com/makquella/dota-ai-coach/pull/103), 0.53.3; type baseline относится к F14 |
 | F01 | P1 | Durable pending finish → idempotent DB save → ack; restart и write-failure тесты сохраняют timeline | Подготовлено в 0.53.4; протокол и ограничения — [MATCH_RECOVERY.md](MATCH_RECOVERY.md) |
-| F02 | P1 | Дедупликация running jobs, stop/join с deadline, безопасный lifetime store; настоящие threads + Events | Не реализовано |
+| F02 | P1 | Дедупликация running jobs, stop/join с deadline, безопасный lifetime store; настоящие threads + Events | Подготовлено в 0.53.5; протокол и границы — [JOB_QUEUE_LIFECYCLE.md](JOB_QUEUE_LIFECYCLE.md) |
 | F03 | P1 | Валидация backup до записи и одна transaction с account linking; rollback на сбое, восстановление повреждённого cache | Не реализовано |
 | F06 | P1 | Отдельные control/GSI tokens, Origin/Host checks и bounded body; реальный Dota config и launcher smoke совместимы | Не реализовано |
 | F04 | P1 | Связать AI числа с метрикой и источником; начать с трёх findings, запретить metric swaps | Не реализовано; разбивать на slices |
@@ -24,7 +24,7 @@
 | F16 | P2 | Canonical npm syntax check, отмена superseded PR CI; затем meaningful-path Windows gating со стабильным required summary | Первая часть слита в #101; gating ещё нет |
 | F17 | P2 | Trusted IPC sender/frame, navigation/popup guards, incremental CSP; реальные UI smoke checks | Не реализовано |
 
-После finish recovery: queue/backup/auth как отдельные исправления с fault tests. Не ждать большого рефакторинга для подтверждённых потерь данных. Для поведения live-политики использовать sanitized role recordings и fixed-clock replay, для новых UI границ — настоящие DOM-сценарии.
+После finish/queue recovery: backup/auth как отдельные исправления с fault tests. Не ждать большого рефакторинга для подтверждённых потерь данных. Для поведения live-политики использовать sanitized role recordings и fixed-clock replay, для новых UI границ — настоящие DOM-сценарии.
 
 Следующие продуктовые улучшения после safeguards: источники/покрытие данных в разборе, preview восстановления истории, rotating local backups, сопоставимость Progress между версиями правил. Метрики и сроки проверять на фактических данных; их наличие в плане не означает, что функции уже реализованы.
 

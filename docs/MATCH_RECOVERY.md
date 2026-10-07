@@ -24,8 +24,8 @@ PlayerService retries loaded pending finishes after all its state is initialized
 GSI and `/gsi/status` retry thereafter, with a five-second delay after failures;
 shutdown and backup flush request an immediate retry. Callback delivery has a
 separate lock, outside the tracker's state lock, so concurrent status/GSI calls
-do not deliver the same pending batch simultaneously. This does not change the
-background JobQueue lifetime or deduplication rules (audit F02 remains open).
+do not deliver the same pending batch simultaneously. Background queue lifetime
+and deduplication are described separately in [JOB_QUEUE_LIFECYCLE.md](JOB_QUEUE_LIFECYCLE.md).
 
 Errors are recorded as `match-recovery` (journal I/O) or `match-finish` (receiver).
 Problem reports expose `player.pending_match_finishes` as a count, without raw

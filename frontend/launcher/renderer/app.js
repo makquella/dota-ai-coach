@@ -363,6 +363,9 @@ const I18N = {
     tourHint: "A short tour of the app, one minute",
     tourStart: "Show",
     whatsNew: {
+      "0.53.5": [
+        "Repeated background requests are deduplicated while running. Shutdown cancels waiting jobs and gives active jobs limited time to finish."
+      ],
       "0.53.4": [
         "Finished matches are kept for retry if saving fails, including after a restart. Recording continues for the next match."
       ],
@@ -1181,6 +1184,9 @@ const I18N = {
     tourHint: "Короткая экскурсия по приложению, на минуту",
     tourStart: "Показать",
     whatsNew: {
+      "0.53.5": [
+        "Повторные фоновые запросы не дублируют выполняющуюся задачу. При закрытии тренер отменяет ожидающие задачи и ограниченно ждёт активные."
+      ],
       "0.53.4": [
         "Если завершённый матч не удаётся сохранить, тренер повторит попытку, в том числе после перезапуска. Следующий матч продолжает записываться."
       ],

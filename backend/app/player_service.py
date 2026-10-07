@@ -150,10 +150,13 @@ COACH_BUSY_RETRY_SECONDS = (60, 120, 180)
 OPENDOTA_KEY_META = "opendota_api_key"
 # OpenDota keys are UUIDs; allow any similar token, never spaces or URL parts.
 OPENDOTA_KEY_RE = re.compile(r"[A-Za-z0-9-]{16,80}")
+# Combined queue join budget; launcher allows 8 seconds for backend shutdown.
+# In-flight requests keep their provider timeouts and cannot be killed safely.
+JOB_STOP_TIMEOUT_SECONDS = 3.0
 
 
 class JobQueue:
-    """Delayed, de-duplicated jobs on one daemon thread (or run by hand in tests)."""
+    """One executor, delayed jobs, and deduplication through callback completion."""
 
     def __init__(
         self,
@@ -170,21 +173,35 @@ class JobQueue:
         self._counter = itertools.count()
         self._cond = threading.Condition()
         self._thread: threading.Thread | None = None
+        self._running: str | None = None
+        self._runner_id: int | None = None
         self._stopped = False
 
-    def submit(self, key: str, fn: Callable[[], None], *, delay: float = 0.0) -> None:
+    def submit(self, key: str, fn: Callable[[], None], *, delay: float = 0.0) -> bool:
+        """Accept one job, or reject a duplicate/stopped submission.
+
+        A callback may schedule its own next attempt under the same key.
+        Other callers cannot duplicate a running key.
+        """
         with self._cond:
-            if key in self._jobs:
-                return
+            if (
+                self._stopped
+                or key in self._jobs
+                or (key == self._running and self._runner_id != threading.get_ident())
+            ):
+                return False
             self._jobs[key] = fn
             heapq.heappush(self._heap, (self._clock() + delay, next(self._counter), key))
-            self._cond.notify()
-        if self.auto_start:
-            self._ensure_thread()
+            if self.auto_start:
+                self._ensure_thread_locked()
+            self._cond.notify_all()
+            return True
 
     def pending(self) -> list[str]:
+        """Outstanding keys, including the callback currently running."""
         with self._cond:
-            return list(self._jobs)
+            keys = [self._running, *self._jobs] if self._running is not None else list(self._jobs)
+            return list(dict.fromkeys(keys))
 
     def run_pending(self, *, until: float | None = None) -> int:
         """Run every job due by `until` (default: now). Returns how many ran."""
@@ -192,13 +209,27 @@ class JobQueue:
         while True:
             with self._cond:
                 limit = self._clock() if until is None else until
-                if not self._heap or self._heap[0][0] > limit:
+                if (
+                    self._stopped
+                    or self._running is not None
+                    or not self._heap
+                    or self._heap[0][0] > limit
+                ):
                     return ran
                 _, _, key = heapq.heappop(self._heap)
                 fn = self._jobs.pop(key, None)
+                if fn is not None:
+                    self._running = key
+                    self._runner_id = threading.get_ident()
             if fn is not None:
-                fn()
-                ran += 1
+                try:
+                    fn()
+                    ran += 1
+                finally:
+                    with self._cond:
+                        self._running = None
+                        self._runner_id = None
+                        self._cond.notify_all()
 
     def run_due(self, *, until: float | None = None) -> int:
         """Like run_pending, but a failing job is recorded for the problem report
@@ -211,12 +242,38 @@ class JobQueue:
                 record_error(self.name, error)
                 ran += 1
 
-    def stop(self) -> None:
+    def request_stop(self) -> None:
+        """Reject submissions and discard queued work; let the active callback finish."""
         with self._cond:
             self._stopped = True
+            self._jobs.clear()
+            self._heap.clear()
             self._cond.notify_all()
 
-    def _ensure_thread(self) -> None:
+    def stop(self, *, timeout: float = JOB_STOP_TIMEOUT_SECONDS) -> bool:
+        """Wait outside the queue lock, within a real-time deadline.
+
+        False means a callback/worker is still alive. Calling from the active
+        callback only signals stop and returns False, without joining itself.
+        """
+        deadline = time.monotonic() + max(0.0, timeout)
+        self.request_stop()
+        with self._cond:
+            if self._runner_id == threading.get_ident():
+                return False
+            thread = self._thread
+        if thread is not None:
+            thread.join(timeout=max(0.0, deadline - time.monotonic()))
+        with self._cond:
+            while self._running is not None:
+                remaining = deadline - time.monotonic()
+                if remaining <= 0:
+                    return False
+                self._cond.wait(timeout=remaining)
+            return thread is None or not thread.is_alive()
+
+    def _ensure_thread_locked(self) -> None:
+        # submit holds the Condition across construction/start: no two workers.
         if self._thread and self._thread.is_alive():
             return
         self._thread = threading.Thread(target=self._loop, name=self.name, daemon=True)
@@ -227,6 +284,9 @@ class JobQueue:
             with self._cond:
                 if self._stopped:
                     return
+                if self._running is not None:
+                    self._cond.wait()
+                    continue
                 wait = None
                 if self._heap:
                     wait = max(0.0, self._heap[0][0] - self._clock())
@@ -306,6 +366,7 @@ class PlayerService:
         llm: Any = None,
         env_ai: AISettings | None = None,
     ) -> None:
+        self._lifecycle_lock = threading.RLock()
         self.configure(data_dir, client=client, auto_start=auto_start, llm=llm, env_ai=env_ai)
 
     def configure(
@@ -316,19 +377,32 @@ class PlayerService:
         auto_start: bool = True,
         llm: Any = None,
         env_ai: AISettings | None = None,
+        stop_timeout: float = JOB_STOP_TIMEOUT_SECONDS,
     ) -> None:
         """(Re)open the store in `data_dir`; used at startup and by tests.
 
         `llm` replaces the configured AI client (tests); `env_ai` is the key
         from .env used when the player has not entered one.
         """
-        for name in ("jobs", "ai_jobs"):
-            old_jobs = getattr(self, name, None)
-            if old_jobs is not None:
-                old_jobs.stop()
-        old_store = getattr(self, "store", None)
-        if old_store is not None:
-            old_store.close()
+        with self._lifecycle_lock:
+            if not self._stop_queues(timeout=stop_timeout):
+                raise TimeoutError("Player service jobs are still running; store remains unchanged")
+            old_store = getattr(self, "store", None)
+            if old_store is not None:
+                if not self._shutdown_complete:
+                    self.tracker.flush()
+                old_store.close()
+            self._open_store(data_dir, client=client, auto_start=auto_start, llm=llm, env_ai=env_ai)
+
+    def _open_store(
+        self,
+        data_dir: Path,
+        *,
+        client: OpenDotaClient | None,
+        auto_start: bool,
+        llm: Any,
+        env_ai: AISettings | None,
+    ) -> None:
         self.data_dir = Path(data_dir)
         self.client = client
         self.store = PlayerStore(self.data_dir / "coach.sqlite3")
@@ -343,6 +417,7 @@ class PlayerService:
         self.env_ai = env_ai
         self._coach_lock = threading.Lock()
         self._shop_lock = threading.Lock()
+        self._sync_lock = threading.Lock()
         self._coach_jobs: dict[str, dict[str, Any]] = {}
         self.tracker = MatchTracker(
             self.data_dir / "live_match.json", on_finished=self._on_match_finished
@@ -361,13 +436,46 @@ class PlayerService:
             "error": None,
             "error_code": None,
         }
+        self._shutdown_complete = False
         # Recovery callbacks need all service state initialized first.
         self.tracker.retry_pending()
 
-    def shutdown(self) -> None:
-        self.tracker.flush()
-        self.jobs.stop()
-        self.ai_jobs.stop()
+    def _stop_queues(self, *, timeout: float) -> bool:
+        queues = [
+            queue
+            for name in ("jobs", "ai_jobs")
+            if (queue := getattr(self, name, None)) is not None
+        ]
+        # Signal both before joining either, with one budget across both queues.
+        for queue in queues:
+            queue.request_stop()
+        deadline = time.monotonic() + max(0.0, timeout)
+        stopped = True
+        for queue in queues:
+            if not queue.stop(timeout=max(0.0, deadline - time.monotonic())):
+                stopped = False
+                record_error(
+                    "player-lifecycle",
+                    f"{queue.name} did not stop before the deadline",
+                    with_trace=False,
+                )
+        return stopped
+
+    def shutdown(self, *, timeout: float = JOB_STOP_TIMEOUT_SECONDS) -> bool:
+        """Bound queue joins; retain the store while any callback still uses it."""
+        with self._lifecycle_lock:
+            if self._shutdown_complete:
+                return True
+            self.jobs.request_stop()
+            self.ai_jobs.request_stop()
+            self.tracker.flush()
+            if not self._stop_queues(timeout=timeout):
+                return False
+            # Synchronous HTTP writers are outside these queues and can outlive
+            # ASGI cancellation. Keep the process-owned connection until a safe
+            # configure replaces it, or until the backend process exits.
+            self._shutdown_complete = True
+            return True
 
     # --- GSI ------------------------------------------------------------------
 
@@ -1671,9 +1779,15 @@ class PlayerService:
         primary = self.store.primary_account_id()
         if primary is None or self.client is None:
             return dict(self._sync)
-        self._sync = {**self._sync, "state": "queued"}
-        self.jobs.submit(f"sync:{primary}", lambda: self._job_sync(primary))
-        return dict(self._sync)
+        with self._sync_lock:
+            key = f"sync:{primary}"
+            if key in self.jobs.pending():
+                return dict(self._sync)
+            previous = self._sync
+            self._sync = {**previous, "state": "queued"}
+            if not self.jobs.submit(key, lambda: self._job_sync(primary)):
+                self._sync = previous
+            return dict(self._sync)
 
     def fetch_match(self, match_id: int, *, request_parse: bool = True, delay: float = 0.0) -> None:
         primary = self.store.primary_account_id()
@@ -1691,7 +1805,8 @@ class PlayerService:
         client = self.client
         if client is None:
             return
-        self._sync = {**self._sync, "state": "running", "error": None, "error_code": None}
+        with self._sync_lock:
+            self._sync = {**self._sync, "state": "running", "error": None, "error_code": None}
         try:
             self._ensure_hero_stats()
             try:
@@ -1759,29 +1874,32 @@ class PlayerService:
             # tell which role the player plays each pool hero in (the draft's
             # better pick): rebuild them once all of these jobs have run.
             self.jobs.submit(f"rebuild:{account_id}", lambda: self._rebuild_recent(account_id))
-            self._sync = {
-                "state": "done",
-                "at": _now_iso(),
-                "error": None,
-                "error_code": None,
-                "fetched": len(recent),
-            }
+            with self._sync_lock:
+                self._sync = {
+                    "state": "done",
+                    "at": _now_iso(),
+                    "error": None,
+                    "error_code": None,
+                    "fetched": len(recent),
+                }
         except OpenDotaError as error:
             record_error("sync", f"OpenDota: {error.code}", with_trace=False)
-            self._sync = {
-                "state": "error",
-                "at": _now_iso(),
-                "error": str(error),
-                "error_code": error.code,
-            }
+            with self._sync_lock:
+                self._sync = {
+                    "state": "error",
+                    "at": _now_iso(),
+                    "error": str(error),
+                    "error_code": error.code,
+                }
         except Exception as error:  # noqa: BLE001 - never leave the UI stuck on "updating"
             record_error("sync", error)
-            self._sync = {
-                "state": "error",
-                "at": _now_iso(),
-                "error": str(error),
-                "error_code": "internal",
-            }
+            with self._sync_lock:
+                self._sync = {
+                    "state": "error",
+                    "at": _now_iso(),
+                    "error": str(error),
+                    "error_code": "internal",
+                }
 
     def _job_fetch_match(
         self, account_id: int, match_id: int, *, request_parse: bool, attempt: int
