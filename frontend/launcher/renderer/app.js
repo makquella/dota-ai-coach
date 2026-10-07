@@ -363,6 +363,9 @@ const I18N = {
     tourHint: "A short tour of the app, one minute",
     tourStart: "Show",
     whatsNew: {
+      "0.53.10": [
+        "Installer releases now require the same source version to pass the shared checks before publishing."
+      ],
       "0.53.9": [
         "Improved automated update checks to detect new code errors earlier."
       ],
@@ -1197,6 +1200,9 @@ const I18N = {
     tourHint: "Короткая экскурсия по приложению, на минуту",
     tourStart: "Показать",
     whatsNew: {
+      "0.53.10": [
+        "Для выпуска установщика теперь нужны общие проверки той же версии исходного кода перед публикацией."
+      ],
       "0.53.9": [
         "Улучшены автоматические проверки обновлений, чтобы раньше находить новые ошибки в коде."
       ],

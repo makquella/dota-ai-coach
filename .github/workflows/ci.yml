@@ -5,6 +5,19 @@ on:
     branches: [main]
   # All PRs, including ones stacked on another feature branch.
   pull_request:
+  workflow_call:
+    inputs:
+      source_sha:
+        description: Immutable commit selected by the caller
+        required: true
+        type: string
+      skip_windows:
+        description: Caller performs its own signed Windows build and smoke
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
 
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
@@ -20,6 +33,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.source_sha || github.sha }}
 
       - name: Set up Python 3.11
         uses: actions/setup-python@v5
@@ -31,21 +46,27 @@ jobs:
       - name: Install dependencies
         run: 'python -m pip install --require-hashes --only-binary=:all: -r requirements-dev.txt'
 
+      - name: Verify source commit
+        env:
+          SOURCE_SHA: ${{ inputs.source_sha || github.sha }}
+        run: python ../scripts/verify_source.py "$SOURCE_SHA"
+
       - name: Check dependency consistency and Python lockfiles
         run: |
           python -m pip check
           python ../scripts/lock_python_dependencies.py --check
 
       - name: Lint (ruff check)
-        run: ruff check --config pyproject.toml . ../scripts/lock_python_dependencies.py ../scripts/check_types.py
+        run: ruff check --config pyproject.toml . ../scripts/lock_python_dependencies.py ../scripts/check_types.py ../scripts/verify_source.py
 
       - name: Format check (ruff format)
-        run: ruff format --config pyproject.toml --check . ../scripts/lock_python_dependencies.py ../scripts/check_types.py
+        run: ruff format --config pyproject.toml --check . ../scripts/lock_python_dependencies.py ../scripts/check_types.py ../scripts/verify_source.py
 
       - name: Type check (pinned mypy, no new debt)
         run: |
           python ../scripts/check_types.py
           python -m mypy --strict ../scripts/check_types.py
+          python -m mypy --strict ../scripts/verify_source.py
 
       - name: Tests (pytest)
         run: pytest -q
@@ -65,6 +86,13 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.source_sha || github.sha }}
+
+      - name: Verify source commit
+        env:
+          SOURCE_SHA: ${{ inputs.source_sha || github.sha }}
+        run: python scripts/verify_source.py "$SOURCE_SHA"
 
       - name: Set up Node.js 20
         uses: actions/setup-node@v4
@@ -82,6 +110,7 @@ jobs:
   windows-package:
     name: Windows package (PyInstaller + NSIS, /health smoke)
     runs-on: windows-latest
+    if: ${{ !inputs.skip_windows }}
     timeout-minutes: 40
     defaults:
       run:
@@ -89,6 +118,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.source_sha || github.sha }}
 
       - name: Set up Python 3.11
         uses: actions/setup-python@v5
@@ -106,11 +137,21 @@ jobs:
           cache: npm
           cache-dependency-path: frontend/launcher/package-lock.json
 
+      - name: Verify source commit
+        env:
+          SOURCE_SHA: ${{ inputs.source_sha || github.sha }}
+        run: python scripts/verify_source.py $env:SOURCE_SHA
+
       - name: Build backend exe, Electron app and NSIS installer
         run: ./scripts/build-windows.ps1
 
       - name: Smoke test (backend /health, app, installer)
         run: ./scripts/smoke-windows.ps1
+
+      - name: Verify source after packaging
+        env:
+          SOURCE_SHA: ${{ inputs.source_sha || github.sha }}
+        run: python scripts/verify_source.py $env:SOURCE_SHA
 
       - name: Upload installer
         if: success()

@@ -20,7 +20,7 @@
 | F12 | P2 | DTO/contract tests важных player/detail/facts ответов и их JS consumers | Не реализовано |
 | F13 | P2 | Извлекать jobs/locales/detail controller по одной границе с behavior/UI tests | Не реализовано |
 | F14 | P2 | Locked mypy + baseline и blocking checks чистых модулей; долг не растёт | Подготовлено в 0.53.9; 226 известных ошибок, blocking gate — [TYPE_CHECKING.md](TYPE_CHECKING.md) |
-| F15 | P2 | Reusable validation проверяет тот же SHA до release publish | Не реализовано |
+| F15 | P2 | Reusable validation проверяет тот же SHA до release publish | Подготовлено в 0.53.10; протокол — [RELEASE_VALIDATION.md](RELEASE_VALIDATION.md) |
 | F16 | P2 | Canonical npm syntax check, отмена superseded PR CI; затем meaningful-path Windows gating со стабильным required summary | Первая часть слита в #101; gating ещё нет |
 | F17 | P2 | Trusted IPC sender/frame, navigation/popup guards, incremental CSP; реальные UI smoke checks | Подготовлено в 0.53.8; границы и smoke — [DESKTOP_SECURITY.md](DESKTOP_SECURITY.md) |
 
