@@ -1,0 +1,7 @@
+-r requirements.in
+pytest>=8.2.0
+httpx>=0.27.0
+ruff>=0.6.0
+mypy>=1.11.0
+# Keep the lock compiler reproducible as well.
+uv==0.12.19

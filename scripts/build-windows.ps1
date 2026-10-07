@@ -3,7 +3,7 @@
   One-command Windows build of Wardly.
 
 .DESCRIPTION
-  1. Creates backend\.venv (if missing) and installs backend\requirements-build.txt.
+  1. Creates backend\.venv-build (if missing) and installs the hashed backend\requirements-build.txt.
   2. Builds the backend with PyInstaller (backend\dist\dota-ai-coach-backend\).
   3. Installs the Electron app dependencies (npm ci) in frontend\launcher.
   4. Packs the Electron app with electron-builder and produces the NSIS installer:
@@ -18,7 +18,7 @@
   electron-builder then signs Wardly.exe, the bundled backend exe and the installer.
 
 .PARAMETER Python
-  Python 3.11+ used to create backend\.venv when it does not exist yet.
+  Python 3.11+ used to create backend\.venv-build when it does not exist yet.
 
 .PARAMETER Portable
   Also build the optional single-file portable exe.
@@ -42,7 +42,7 @@ Set-StrictMode -Version Latest
 $RepoRoot = Split-Path -Parent $PSScriptRoot
 $BackendDir = Join-Path $RepoRoot "backend"
 $LauncherDir = Join-Path $RepoRoot "frontend\launcher"
-$VenvPython = Join-Path $BackendDir ".venv\Scripts\python.exe"
+$VenvPython = Join-Path $BackendDir ".venv-build\Scripts\python.exe"
 $BackendExe = Join-Path $BackendDir "dist\dota-ai-coach-backend\dota-ai-coach-backend.exe"
 
 function Invoke-Native {
@@ -82,10 +82,13 @@ if (-not $SkipBackend) {
   Push-Location $BackendDir
   try {
     if (-not (Test-Path $VenvPython)) {
-      Invoke-Native "Create backend\.venv" { & $Python -m venv .venv }
+      Invoke-Native "Create backend\.venv-build" { & $Python -m venv .venv-build }
     }
     Invoke-Native "Install backend build requirements" {
-      & $VenvPython -m pip install --disable-pip-version-check -r requirements-build.txt
+      & $VenvPython -m pip install --disable-pip-version-check --require-hashes --only-binary=:all: -r requirements-build.txt
+    }
+    Invoke-Native "Check backend build requirements" {
+      & $VenvPython -m pip check
     }
     foreach ($dir in @("build", "dist")) {
       if (Test-Path $dir) { Remove-Item -Recurse -Force $dir }

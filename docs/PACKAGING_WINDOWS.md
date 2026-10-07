@@ -18,7 +18,7 @@ Prerequisites (build on Windows; PyInstaller and Electron produce platform-speci
 
 - Windows 10/11
 - Python 3.11+ on `PATH` (or pass `-Python C:\path\to\python.exe`)
-- Node.js 20+ with npm
+- Node.js 22.12+ with npm
 
 From the repository root:
 
@@ -30,12 +30,17 @@ or double-click `scripts\build-windows.cmd`.
 
 The script:
 
-1. creates `backend\.venv` if missing and installs `backend\requirements-build.txt` (runtime deps + pinned PyInstaller);
+1. creates the dedicated `backend\.venv-build` if missing and installs `backend\requirements-build.txt` with hashes and wheels only (locked runtime + PyInstaller), then checks dependency consistency;
 2. builds the backend with `backend\packaging\dota_ai_coach_backend.spec`;
 3. runs `npm ci` in `frontend\launcher`;
 4. runs `electron-builder --win nsis --publish never`.
 
 Options: `-Portable` also builds the optional single-file portable exe; `-SkipBackend` reuses an existing `backend\dist` build.
+
+The build venv is separate from the development venv, so test-only packages do
+not enter packaging through a reused dev environment. CI and releases use
+Python 3.11 and the same lockfiles; see [Python dependencies](PYTHON_DEPENDENCIES.md)
+for installation and lock refresh commands.
 
 Output:
 
