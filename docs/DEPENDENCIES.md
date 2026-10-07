@@ -19,9 +19,9 @@ constraints. `electron-updater` stays at 6.8.10, the latest published 6.x
 version at the check date; its YAML dependency now resolves to 4.3.2.
 
 Wrangler 4.148.0 pins Miniflare's `sharp` to 0.35.4. A scoped
-`overrides.miniflare.sharp = 0.35.5` applies the available patch without
-changing unrelated dependencies. Remove the override when upstream pins a
-fixed version. The native package was checked by converting a tiny SVG to PNG
+`overrides["sharp@0.35.4"] = "0.35.5"` applies the available patch to this
+version without changing unrelated dependencies. Remove the override when
+upstream pins a fixed version. The native package was checked by converting a tiny SVG to PNG
 with sharp 0.35.5 / librsvg 2.63.2.
 
 ## Advisory results
@@ -66,8 +66,11 @@ npm audit --json
 Launcher also uses `npm run check`, a current Electron smoke result, and the
 Windows CI package/build smoke. Full launcher audit currently returns exit
 status 1 for the documented moderate advisory; `npm audit --omit=dev` and
-Worker audit return 0. Audit results describe the registry snapshot, not a
-permanent guarantee.
+Worker audit return 0. The override uses a version selector so the same
+lockfile installs with npm 10 and npm 11. Clean install, tests, bundling and
+migrations were checked with Node 22.23.3/npm 10.9.9; the cloud environment's
+Node 24.19.0/npm 11.9.0 clean install was checked as well.
+Audit results describe the registry snapshot, not a permanent guarantee.
 
 Worker CI installs the exact lockfile, bundles with
 `npx --no-install wrangler deploy --dry-run` and applies all six migrations
