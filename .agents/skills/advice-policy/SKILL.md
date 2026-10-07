@@ -17,8 +17,10 @@ description: >
 ## ГЛАВНЫЙ ПРИНЦИП
 
 Локальные правила авторитетны. LLM только формулирует текст, не меняет
-decision_point / priority / time_window / safety-гейтинг. Любой вызов LLM
-должен быть за флагом USE_LLM и не ломать работу при USE_LLM=false.
+decision_point / priority / time_window / safety-гейтинг. Live-формулировки LLM
+должны быть за флагом USE_LLM и не ломать работу при USE_LLM=false.
+Post-match AI (`coach_llm.py`, `coach_review.py`) включается отдельно и не зависит
+от USE_LLM; его факты поставляет детерминированный разбор.
 
 ## Архитектура: 3-слойный пайплайн + 2 фазовых коуча + UX-гарды
 
@@ -105,9 +107,11 @@ gsi_state.py → decision_points.py → advice_policy.py → recommender.py / ll
 game-time spacing, urgent interrupts, heartbeat nudges).
 
 ### Консервативность
-При отсутствии сигнала НЕ выдумывать. GSI не даёт точных позиций врагов,
-gold, кулдаунов из реплеев — не предполагать их наличие. Использовать
-`signal_capabilities.py` чтобы понимать, что реально доступно.
+При отсутствии сигнала НЕ выдумывать. Live GSI может передавать координаты
+видимых врагов в minimap и наблюдаемые события Roshan/Aegis; это не раскрывает
+скрытых врагов, готовность команды или полную картину файта. Replay GSI-like
+не гарантирует HP, gold и кулдауны. Проверять `signal_capabilities.py` и реальные
+поля source (`gsi_state.py`, `enemy_heroes.py`, `roshan_timer.py`).
 
 ### Scheduler — горячая зона
 `advice_scheduler.py` уже 2234 строки. Новую логику выносить в отдельные модули.
@@ -127,6 +131,6 @@ LOW_HP episode handling, death pinning.
 падает на любом видимом тексте без перевода.
 
 ### LLM-гейтинг
-- Все вызовы LLM за `USE_LLM` флагом
+- Live-формулировки LLM за `USE_LLM` флагом; post-match AI имеет отдельные настройки
 - LLM формулирует текст, не определяет decision_point/priority/time_window
-- При `USE_LLM=false` всё работает через `recommender.py` fallback-тексты
+- При `USE_LLM=false` live-советы работают через `recommender.py` fallback-тексты

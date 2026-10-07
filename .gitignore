@@ -121,3 +121,7 @@ credentials.*
 
 # Player profile / match history (local SQLite)
 backend/player_data/
+
+# Local Worker state and personal Claude instructions
+.wrangler/
+CLAUDE.local.md
