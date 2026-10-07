@@ -363,6 +363,9 @@ const I18N = {
     tourHint: "A short tour of the app, one minute",
     tourStart: "Show",
     whatsNew: {
+      "0.53.1": [
+        "Advice keeps working when its diagnostic log cannot be saved. The error is included in a problem report."
+      ],
       "0.53.0": [
         "Ctrl+K finds anything: a tab, a match by hero or your note, Progress on a hero, a setting or an action.",
         "Notes show on Home's last matches too."
@@ -1169,6 +1172,9 @@ const I18N = {
     tourHint: "Короткая экскурсия по приложению, на минуту",
     tourStart: "Показать",
     whatsNew: {
+      "0.53.1": [
+        "Советы продолжают работать, если журнал не удаётся сохранить. Ошибка попадёт в отчёт о проблеме."
+      ],
       "0.53.0": [
         "Ctrl+K находит всё: вкладку, матч по герою или вашей заметке, «Прогресс на герое», настройку или действие.",
         "Значок заметки теперь и в «Последних матчах» на Главной."

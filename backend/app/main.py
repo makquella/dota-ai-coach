@@ -75,7 +75,7 @@ app = FastAPI(
     lifespan=_lifespan,
     title="Wardly",
     description="MVP-1: rule-based carry coach with local knowledge-base RAG.",
-    version="0.53.0",
+    version="0.53.1",
 )
 app.include_router(player_router)
 
@@ -109,7 +109,7 @@ if FRONTEND_DIR.exists():
 @app.get("/", summary="Health check")
 def root():
     """Simple health-check endpoint."""
-    return {"status": "ok", "service": "Wardly", "version": "0.53.0"}
+    return {"status": "ok", "service": "Wardly", "version": "0.53.1"}
 
 
 @app.get("/health", summary="Health check")
@@ -118,10 +118,37 @@ def health():
     return {"status": "ok"}
 
 
+def _recommendation_log_filename(
+    request: GameSituationRequest,
+    rag_context: list[str],
+    response: RecommendationResponse,
+    decision_point: str | None = None,
+    provider: str = "fallback",
+    model: str | None = None,
+    llm_error: str | None = None,
+    fallback_reason: str | None = None,
+) -> str | None:
+    """A failed diagnostic write must not discard an already computed advice."""
+    try:
+        return log_recommendation(
+            request=request,
+            rag_context=rag_context,
+            response=response,
+            decision_point=decision_point,
+            provider=provider,
+            model=model,
+            llm_error=llm_error,
+            fallback_reason=fallback_reason,
+        ).name
+    except OSError as error:
+        record_error("recommendation-log", error)
+        return None
+
+
 def _build_recommendation(
     request: GameSituationRequest,
     decision_point: str | None = None,
-) -> tuple[RecommendationResponse, str]:
+) -> tuple[RecommendationResponse, str | None]:
     decision_point = decision_point or detect_decision_point(request.model_dump())
 
     rag_context = _retrieve_rag_context(request)
@@ -129,7 +156,7 @@ def _build_recommendation(
     if decision_point not in {"NO_ADVICE", "SOFT_STATUS"} and USE_LLM and is_llm_provider_enabled():
         llm_result = generate_llm_recommendation(request, decision_point, rag_context)
         if llm_result.recommendation is not None:
-            log_path = log_recommendation(
+            log_filename = _recommendation_log_filename(
                 request=request,
                 rag_context=rag_context,
                 response=llm_result.recommendation,
@@ -137,10 +164,10 @@ def _build_recommendation(
                 provider=llm_result.provider,
                 model=llm_result.model,
             )
-            return llm_result.recommendation, log_path.name
+            return llm_result.recommendation, log_filename
 
         fallback = generate_recommendation(request, rag_context)
-        log_path = log_recommendation(
+        log_filename = _recommendation_log_filename(
             request=request,
             rag_context=rag_context,
             response=fallback,
@@ -150,10 +177,10 @@ def _build_recommendation(
             llm_error=llm_result.error,
             fallback_reason="llm_unavailable_or_invalid",
         )
-        return fallback, log_path.name
+        return fallback, log_filename
 
     recommendation = generate_recommendation(request, rag_context)
-    log_path = log_recommendation(
+    log_filename = _recommendation_log_filename(
         request=request,
         rag_context=rag_context,
         response=recommendation,
@@ -166,7 +193,7 @@ def _build_recommendation(
             else None
         ),
     )
-    return recommendation, log_path.name
+    return recommendation, log_filename
 
 
 def _retrieve_rag_context(request: GameSituationRequest) -> list[str]:
@@ -212,7 +239,8 @@ def recommend(request: GameSituationRequest):
     recommendation, log_filename = _build_recommendation(request)
     # Attach the log filename as a response header for easy debugging
     response = JSONResponse(content=recommendation.model_dump())
-    response.headers["X-Log-File"] = log_filename
+    if log_filename is not None:
+        response.headers["X-Log-File"] = log_filename
     return response
 
 
@@ -771,7 +799,7 @@ def _overlay_recommendation_payload() -> dict[str, object]:
 
     log_filename = None
     if scheduled.new_advice and scheduled.recommendation is not None:
-        log_path = log_recommendation(
+        log_filename = _recommendation_log_filename(
             request=request,
             rag_context=rag_context,
             response=scheduled.recommendation,
@@ -779,7 +807,6 @@ def _overlay_recommendation_payload() -> dict[str, object]:
             provider=scheduled.source,
             fallback_reason="overlay_fallback_first" if scheduled.source == "fallback" else None,
         )
-        log_filename = log_path.name
         # The post-match review lists the advice given in this match.
         try:
             extra = (
@@ -1141,7 +1168,7 @@ def _overlay_response_for_state(
     scheduled = ADVICE_SCHEDULER.evaluate(game_request, decision_point, rag_context, now=now)
     log_filename = None
     if scheduled.new_advice and scheduled.recommendation is not None:
-        log_path = log_recommendation(
+        log_filename = _recommendation_log_filename(
             request=game_request,
             rag_context=rag_context,
             response=scheduled.recommendation,
@@ -1151,7 +1178,6 @@ def _overlay_response_for_state(
             if scheduled.source == "fallback"
             else None,
         )
-        log_filename = log_path.name
 
     return _overlay_response(scheduled, timestamp, log_filename, state, record_history=False)
 

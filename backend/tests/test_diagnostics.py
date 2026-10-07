@@ -3,8 +3,11 @@
 from __future__ import annotations
 
 import json
+from pathlib import Path
+from typing import Any
 
 import pytest
+from fastapi.testclient import TestClient
 from match_fixtures import MATCH_ID, ME, FakeOpenDota, opendota_match
 
 from app import diagnostics
@@ -98,6 +101,90 @@ def test_old_recommendation_logs_are_pruned(tmp_path):
     names = sorted(path.name for path in tmp_path.glob("*.json"))
     assert len(names) == 5 and names[0].startswith("2026-09-17")
     assert (tmp_path / "notes.txt").exists()
+
+
+@pytest.mark.parametrize(
+    "endpoint", ["/recommend", "/overlay/recommendation", "/demo/replay-state"]
+)
+@pytest.mark.parametrize("failure", ["directory", "write"])
+def test_recommendation_log_failure_keeps_advice_and_records_diagnostics(
+    client: TestClient,
+    repo_root: Path,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    endpoint: str,
+    failure: str,
+) -> None:
+    from app import logger
+
+    logs = tmp_path / "recommendation-logs"
+    monkeypatch.setattr(logger, "LOGS_DIR", logs)
+    if failure == "directory":
+        logs.write_text("A file is blocking the log directory.")
+    else:
+        write_text = Path.write_text
+
+        def fail_log_write(path: Path, text: str, **kwargs: Any) -> int:
+            if path.parent == logs:
+                raise OSError("No space left on device")
+            return write_text(path, text, **kwargs)
+
+        monkeypatch.setattr(Path, "write_text", fail_log_write)
+
+    sample = json.loads(
+        (repo_root / "data/gsi_samples/juggernaut_laning_low_hp_warning.json").read_text()
+    )
+    state_response = client.post("/gsi", json=sample)
+    assert state_response.status_code == 200
+    state = state_response.json()["state"]
+    if endpoint == "/overlay/recommendation":
+        response = client.get(endpoint)
+    elif endpoint == "/demo/replay-state":
+        response = client.post(endpoint, json={"timestamp_seconds": 600, "state": state})
+    else:
+        response = client.post(endpoint, json=state)
+
+    assert response.status_code == 200
+    data = response.json()
+    if endpoint == "/recommend":
+        assert data["action"] == "Use Blade Fury now and walk out of the fight."
+        assert data["priority"] == "medium"
+        assert "X-Log-File" not in response.headers
+    else:
+        overlay = data["overlay"] if endpoint == "/demo/replay-state" else data
+        assert overlay["status"] == "advice"
+        assert overlay["recommendation"]["action"]
+        assert "log_file" not in overlay
+
+    errors = client.get("/diagnostics").json()["errors"]
+    assert errors["counts"] == {"recommendation-log": 1}
+    assert errors["last"][-1]["scope"] == "recommendation-log"
+
+
+def test_recommendation_logging_recovers_after_a_temporary_directory_failure(
+    client: TestClient,
+    repo_root: Path,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from app import logger
+
+    logs = tmp_path / "recommendation-logs"
+    logs.write_text("Temporarily unavailable")
+    monkeypatch.setattr(logger, "LOGS_DIR", logs)
+    sample = json.loads(
+        (repo_root / "data/gsi_samples/juggernaut_laning_low_hp_warning.json").read_text()
+    )
+    state = client.post("/gsi", json=sample).json()["state"]
+    first = client.post("/recommend", json=state)
+    assert first.status_code == 200 and "X-Log-File" not in first.headers
+
+    logs.unlink()
+    second = client.post("/recommend", json=state)
+    assert second.status_code == 200 and second.json() == first.json()
+    entry = json.loads((logs / second.headers["X-Log-File"]).read_text())
+    assert entry["output"] == second.json()
+    assert client.get("/diagnostics").json()["errors"]["counts"] == {"recommendation-log": 1}
 
 
 def test_opendota_key_is_not_in_offline_errors():
