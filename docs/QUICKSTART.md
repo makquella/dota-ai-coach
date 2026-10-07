@@ -16,9 +16,12 @@ The replay demo can run without Dota 2.
 cd backend
 python3 -m venv .venv
 source .venv/bin/activate
-pip install -r requirements.txt
+python -m pip install --require-hashes --only-binary=:all: -r requirements.txt
 USE_LLM=false uvicorn app.main:app --reload
 ```
+
+Use `requirements-dev.txt` for tests/linting. Install profiles and lock refresh
+are documented in [Python dependencies](PYTHON_DEPENDENCIES.md).
 
 Backend URL:
 

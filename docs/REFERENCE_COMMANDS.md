@@ -21,6 +21,7 @@ python -m uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload --no-access
 ```bash
 cd backend
 source .venv/bin/activate
+python -m pip install --require-hashes --only-binary=:all: -r requirements-dev.txt
 pytest -q
 python3 -m compileall -q app scripts packaging tests
 ```

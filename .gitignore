@@ -9,6 +9,7 @@ __pycache__/
 .coverage
 htmlcov/
 backend/.venv/
+backend/.venv-build/
 .venv/
 venv/
 .env
