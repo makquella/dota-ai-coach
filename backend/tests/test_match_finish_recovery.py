@@ -13,6 +13,7 @@ import pytest
 from fastapi.testclient import TestClient
 from match_fixtures import MATCH_ID, ME, gsi_match_stream
 
+from app.local_api_auth import LOCAL_API_AUTH, LOCAL_API_URL
 from app.main import app
 from app.match_tracker import FINISH_RETRY_SECONDS, MatchTracker
 from app.player_api import PLAYER_SERVICE
@@ -285,7 +286,9 @@ def test_concurrent_finish_keeps_status_and_new_gsi_available(
         except Exception as error:  # noqa: BLE001 - assert thread result in parent
             errors.append(error)
 
-    with TestClient(app) as client:
+    with TestClient(
+        app, base_url=LOCAL_API_URL, headers=LOCAL_API_AUTH.headers, client=("127.0.0.1", 50000)
+    ) as client:
         stream = _stream()
         for payload in stream[:-1]:
             assert client.post("/gsi", json=payload).status_code == 200

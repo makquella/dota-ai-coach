@@ -5,6 +5,7 @@ const fs = require("node:fs");
 const path = require("node:path");
 const { chromium } = require("playwright");
 const { createAssetHandler } = require("../../frontend/launcher/dota-assets");
+const { controlHeaders } = require("../../frontend/launcher/local-api");
 
 // Hero portraits and item icons: the app loads them from dota-asset:// (its
 // main process). Here the same handler (dota-assets.js) serves them from a disk
@@ -35,6 +36,15 @@ async function serveDotaAssets(page) {
 }
 
 const [outDir = "out", BACKEND = "http://127.0.0.1:8777", APP = "http://127.0.0.1:8766"] = process.argv.slice(2);
+// Node owns the credential; only fetched DTOs cross into the browser renderer.
+// Share DOTA_AI_CONTROL_TOKEN with demo_backend.py, or use its standalone file.
+const auth = process.env.DOTA_AI_CONTROL_TOKEN || JSON.parse(fs.readFileSync(
+  path.join(__dirname, "../../backend/local-api-auth.json"), "utf8"
+)).control;
+function backendFetch(endpoint) {
+  const url = new URL(endpoint, BACKEND);
+  return fetch(url, { headers: controlHeaders(url, BACKEND, auth), redirect: "error" });
+}
 // Whole views in the wide layout (side navigation, two columns from 1240 px);
 // single cards from the narrow window, where they are larger on the site.
 const SIZE = { width: 1280, height: 800 };
@@ -165,13 +175,13 @@ async function openPage(browser, lang, label, size = SIZE) {
     if (!endpoint) {
       return { ok: false, code: "unknown_op" };
     }
-    const response = await fetch(BACKEND + endpoint);
+    const response = await backendFetch(endpoint);
     return response.ok ? { ok: true, data: await response.json() } : { ok: false, status: response.status };
   });
   // «Друзья»: the own card from the demo backend and two made-up friends (the
   // demo has no server); their looks are real items of the shop.
   await page.exposeFunction("__friends", async () => {
-    const response = await fetch(`${BACKEND}/player/profile/public?lang=${lang}`);
+    const response = await backendFetch(`/player/profile/public?lang=${lang}`);
     const own = response.ok ? (await response.json()).card : null;
     const friend = (name, level, mmr, frame, nameLook, title, week) => ({
       lang, name, level, mmr, rank_label: lang === "ru" ? "Властелин 2" : "Ancient 2", title,

@@ -7,14 +7,16 @@ This file keeps longer commands out of the main README.
 ```bash
 cd backend
 source .venv/bin/activate
-USE_LLM=false uvicorn app.main:app --reload
+USE_LLM=false uvicorn app.main:app --reload --no-proxy-headers
 ```
 
 With access logs reduced:
 
 ```bash
-python -m uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload --no-access-log
+python -m uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload --no-access-log --no-proxy-headers
 ```
+
+Private requests need a control Bearer token. Standalone startup creates the private `backend/local-api-auth.json`; use its control token in Swagger **Authorize** or the developer page's password field. Launcher manages its own credentials. See [LOCAL_API_SECURITY.md](LOCAL_API_SECURITY.md) for ports, GSI config migration and replay tooling.
 
 ## Tests
 

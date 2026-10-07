@@ -26,7 +26,7 @@ STARTED_AT = time.time()
 # ?api_key=… in URLs (OpenDota).
 _SECRET_RE = re.compile(
     r"(AIza[\w-]{20,}|AQ\.[\w-]{20,}|gsk_[\w-]{16,}|sk-[\w-]{16,}|Bearer\s+[\w.-]{12,}"
-    r"|(?<=api_key=)[^&\s'\"]+)"
+    r"|(?<=api_key=)[^&\s'\"]+|\b[0-9a-fA-F]{64}\b)"
 )
 
 _lock = threading.Lock()

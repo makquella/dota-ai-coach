@@ -62,6 +62,7 @@ from app import gsi_state  # noqa: E402
 from app.advice_scheduler import ADVICE_SCHEDULER  # noqa: E402
 from app.coach_review import HERO_NAMES, FactChecker, match_facts  # noqa: E402
 from app.coach_summary import COACH_SESSION_HISTORY  # noqa: E402
+from app.local_api_auth import LOCAL_API_AUTH, LOCAL_API_URL  # noqa: E402
 from app.main import _clear_demo_overlay_response, app  # noqa: E402
 from app.match_memory import MATCH_MEMORY  # noqa: E402
 from app.player_api import PLAYER_SERVICE  # noqa: E402
@@ -528,7 +529,9 @@ def main() -> None:
     args = parser.parse_args()
 
     recommendation_logger.LOGS_DIR = Path(tempfile.mkdtemp(prefix="dota-ai-coach-eval-logs-"))
-    client = TestClient(app)
+    client = TestClient(
+        app, base_url=LOCAL_API_URL, headers=LOCAL_API_AUTH.headers, client=("127.0.0.1", 50000)
+    )
     result = {
         "environment": {
             "generated_at": datetime.now(UTC).isoformat(timespec="seconds"),

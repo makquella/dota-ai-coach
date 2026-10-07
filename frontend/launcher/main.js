@@ -42,6 +42,7 @@ const {
 } = require("./problem-report");
 const { DOTA_STATUS, dotaStatus, overlayVisibility } = require("./overlay-visibility");
 const { createSettingsStore } = require("./settings");
+const { loadLocalApiAuth, controlHeaders, renderGsiConfig } = require("./local-api");
 const {
   GSI_LAUNCH_OPTION,
   checkLaunchOptions,
@@ -65,6 +66,12 @@ const IS_PACKAGED = app.isPackaged;
 const RESOURCES_ROOT = IS_PACKAGED ? process.resourcesPath : REPO_ROOT;
 const BACKEND_DIR = path.join(REPO_ROOT, "backend");
 const USER_DATA_DIR = app.getPath("userData");
+let apiAuth = null;
+
+function localApiAuth() {
+  if (!apiAuth) apiAuth = loadLocalApiAuth(path.join(USER_DATA_DIR, "local-api-gsi.json"));
+  return apiAuth;
+}
 // Mirrors WRITABLE_DIR in backend/app/config.py.
 const WRITABLE_DIR = IS_PACKAGED ? USER_DATA_DIR : BACKEND_DIR;
 const LOGS_DIR = path.join(WRITABLE_DIR, "logs");
@@ -1578,6 +1585,14 @@ function startBackend() {
 
 async function launchBackend() {
   setBackendStatus("starting");
+  let auth;
+  try {
+    auth = localApiAuth();
+  } catch {
+    appendLog("backend", "Local API credentials could not be initialized. Check the app data folder.", { force: true });
+    setBackendStatus("stopped");
+    return false;
+  }
   const port = await pickBackendPort();
   backend.port = port;
   if (!isValidPort(process.env.DOTA_AI_BACKEND_PORT)) {
@@ -1600,6 +1615,8 @@ async function launchBackend() {
     DOTA_AI_BACKEND_PORT: String(port),
     DOTA_AI_BACKEND_LOG_LEVEL: "info",
     DOTA_AI_BACKEND_STDIN_CONTROL: "1",
+    DOTA_AI_CONTROL_TOKEN: auth.control,
+    DOTA_AI_GSI_TOKEN: auth.gsi,
     SESSION_RECORDS_DIR
   };
   let command = pythonExecutable();
@@ -1730,7 +1747,7 @@ function requestBackendJson(endpointPath, method = "GET", body = undefined, time
       {
         method,
         timeout: timeoutMs,
-        headers: { "Content-Type": "application/json" }
+        headers: controlHeaders(url, backendUrl(), localApiAuth().control)
       },
       (response) => {
         let responseBody = "";
@@ -2025,7 +2042,10 @@ async function runDemo(presetName = "plMacro", includeDeepReview = false) {
     env: {
       PYTHONUNBUFFERED: "1",
       SIMULATION_USE_LLM: "false",
-      USE_LLM: "false"
+      USE_LLM: "false",
+      DOTA_AI_CONTROL_TOKEN: localApiAuth().control,
+      DOTA_AI_GSI_TOKEN: localApiAuth().gsi,
+      DOTA_AI_BACKEND_PORT: String(backend.port)
     },
     onExit: () => {
       processStatus.demo = "stopped";
@@ -2098,27 +2118,7 @@ function formatLiveGsiStatus(status) {
 // "heartbeat" keeps a paused match fresh for the backend's staleness check
 // (GSI_STALE_SECONDS=5); otherwise the overlay would hide during pauses.
 function gsiConfigText() {
-  return `"Wardly GSI"
-{
-  "uri"           "${gsiEndpoint()}"
-  "timeout"       "5.0"
-  "buffer"        "0.1"
-  "throttle"      "0.1"
-  "heartbeat"     "2.0"
-  "data"
-  {
-    "provider"    "1"
-    "map"         "1"
-    "player"      "1"
-    "hero"        "1"
-    "abilities"   "1"
-    "items"       "1"
-    "buildings"   "1"
-    "events"      "1"
-    "minimap"     "1"
-  }
-}
-`;
+  return renderGsiConfig(gsiEndpoint(), localApiAuth().gsi);
 }
 
 function refreshLaunchOptions() {
@@ -2216,7 +2216,8 @@ function installGsiConfig(customPath = "") {
   try {
     fs.mkdirSync(dir, { recursive: true });
     const filePath = path.join(dir, GSI_CONFIG_NAME);
-    fs.writeFileSync(filePath, gsiConfigText(), "utf8");
+    fs.writeFileSync(filePath, gsiConfigText(), { encoding: "utf8", mode: 0o600 });
+    fs.chmodSync(filePath, 0o600);
     settings.set("gsiConfigPath", filePath);
     gsiStatus = { status: "installed", path: filePath };
     appendLog("gsi", `Installed config: ${filePath} -> ${gsiEndpoint()}`, { force: true });
@@ -2240,7 +2241,8 @@ function syncGsiConfig() {
     if (fs.readFileSync(status.path, "utf8") === gsiConfigText()) {
       return;
     }
-    fs.writeFileSync(status.path, gsiConfigText(), "utf8");
+    fs.writeFileSync(status.path, gsiConfigText(), { encoding: "utf8", mode: 0o600 });
+    fs.chmodSync(status.path, 0o600);
     appendLog("gsi", `Updated GSI config (${gsiEndpoint()}). Restart Dota 2 if it is already running.`, {
       force: true
     });
@@ -3715,6 +3717,23 @@ async function runSmokeTest(resultPath) {
 
     const started = await startBackend();
     step("backend /health", started && (await isBackendReady()), backendUrl());
+    const rejected = await fetch(`${backendUrl()}/session/reset`, { method: "POST" });
+    step("unauthorized local mutation rejected", rejected.status === 401);
+    const foreignOrigin = await fetch(`${backendUrl()}/session/reset`, {
+      method: "POST",
+      headers: { ...controlHeaders(backendUrl(), backendUrl(), localApiAuth().control), Origin: "https://audit.invalid" },
+      body: "{}",
+    });
+    step("foreign origin rejected", foreignOrigin.status === 403);
+    const valveToken = gsiConfigText().match(/"token"\s+"([a-f0-9]{64})"/)?.[1];
+    const valve = await fetch(`${backendUrl()}/gsi`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ auth: { token: valveToken }, provider: { name: "Dota 2" }, map: { game_state: "DOTA_GAMERULES_STATE_PRE_GAME" } }),
+    });
+    step("Valve config token accepted", Boolean(valveToken) && valve.status === 200);
+    const gsiControl = await fetch(`${backendUrl()}/player`, { headers: { Authorization: `Bearer ${valveToken}` } });
+    step("GSI token cannot access player data", gsiControl.status === 401);
     // Both renderers must have drawn their UI from live data (catches script
     // errors that a plain "page loaded" check would miss). Only app.js sets
     // these values: the static HTML has data-state="starting", "—" and an empty action.

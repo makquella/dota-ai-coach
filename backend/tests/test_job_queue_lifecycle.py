@@ -13,6 +13,7 @@ import pytest
 from fastapi.testclient import TestClient
 from match_fixtures import MATCH_ID, ME, FakeOpenDota, opendota_match
 
+from app.local_api_auth import LOCAL_API_AUTH, LOCAL_API_URL
 from app.main import app
 from app.player_api import PLAYER_SERVICE
 from app.player_service import JobQueue, PlayerService
@@ -403,7 +404,9 @@ def test_http_sync_deduplicates_running_fetch_and_lifespan_joins_it(
     monkeypatch.setattr(queue, "request_stop", observe_stop)
     helper = threading.Thread(target=release_on_stop)
     try:
-        with TestClient(app) as client:
+        with TestClient(
+            app, base_url=LOCAL_API_URL, headers=LOCAL_API_AUTH.headers, client=("127.0.0.1", 50000)
+        ) as client:
             assert client.post("/player/link", json={"steam": str(ME)}).status_code == 200
             assert entered.wait(5)
             for _ in range(5):
@@ -444,7 +447,12 @@ def test_lifespan_timeout_keeps_store_usable_by_the_old_worker(
     try:
         with monkeypatch.context() as scoped:
             scoped.setattr(service, "shutdown", bounded_shutdown)
-            with TestClient(app) as client:
+            with TestClient(
+                app,
+                base_url=LOCAL_API_URL,
+                headers=LOCAL_API_AUTH.headers,
+                client=("127.0.0.1", 50000),
+            ) as client:
                 service.jobs.submit("old-job", old_job)
                 assert entered.wait(5)
                 assert client.get("/health").status_code == 200
@@ -481,7 +489,9 @@ def test_inflight_http_question_can_save_after_queue_shutdown(tmp_path: Path) ->
     service.fetch_match(MATCH_ID, request_parse=False)
     service.jobs.run_pending(until=float("inf"))
 
-    with TestClient(app) as client:
+    with TestClient(
+        app, base_url=LOCAL_API_URL, headers=LOCAL_API_AUTH.headers, client=("127.0.0.1", 50000)
+    ) as client:
 
         def ask() -> None:
             try:
@@ -529,7 +539,9 @@ def test_completed_sync_does_not_get_stuck_queued_while_callback_returns(
 
     monkeypatch.setattr(service, "_job_sync", completed_callback)
     try:
-        with TestClient(app) as client:
+        with TestClient(
+            app, base_url=LOCAL_API_URL, headers=LOCAL_API_AUTH.headers, client=("127.0.0.1", 50000)
+        ) as client:
             assert client.post("/player/sync").status_code == 200
             assert completed.wait(5)
             for _ in range(3):

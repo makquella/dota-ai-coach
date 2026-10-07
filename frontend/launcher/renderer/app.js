@@ -363,6 +363,9 @@ const I18N = {
     tourHint: "A short tour of the app, one minute",
     tourStart: "Show",
     whatsNew: {
+      "0.53.7": [
+        "Websites can no longer change the coach’s local settings or send game data. Dota uses a separate protected connection; restart Dota once after updating."
+      ],
       "0.53.6": [
         "History backups are checked before loading and restored as one operation. A damaged cache no longer interrupts opening a review."
       ],
@@ -1188,6 +1191,9 @@ const I18N = {
     tourHint: "Короткая экскурсия по приложению, на минуту",
     tourStart: "Показать",
     whatsNew: {
+      "0.53.7": [
+        "Сайты больше не могут менять локальные настройки тренера или отправлять игровые данные. Дота использует отдельное защищённое подключение; после обновления перезапустите Доту один раз."
+      ],
       "0.53.6": [
         "Файл истории проверяется до загрузки и восстанавливается целиком одной операцией. Повреждённый кеш больше не мешает открыть разбор."
       ],

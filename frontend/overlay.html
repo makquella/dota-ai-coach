@@ -179,6 +179,8 @@
   </head>
   <body>
     <main>
+      <label for="api-token">Local API token / Токен локального API</label>
+      <input id="api-token" type="password" autocomplete="off" aria-label="Local API token">
       <section id="status-panel" class="status-panel" aria-live="polite">
         <p id="status" class="status">Waiting for Dota 2 GSI...</p>
         <p id="status-updated" class="updated">Last updated: --</p>
@@ -219,7 +221,10 @@
 
       async function refreshRecommendation() {
         try {
-          const response = await fetch("/overlay/recommendation", { cache: "no-store" });
+          const token = document.querySelector("#api-token").value.trim();
+          if (!token) { showStatus("Enter the local API token / Введите токен локального API"); return; }
+          const response = await fetch("/overlay/recommendation", { cache: "no-store", headers: { Authorization: `Bearer ${token}` } });
+          if (!response.ok) throw new Error("Backend authorization failed.");
           const data = await response.json();
           renderOverlay(data);
         } catch (error) {

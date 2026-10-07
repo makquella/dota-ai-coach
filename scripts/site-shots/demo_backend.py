@@ -19,14 +19,16 @@ BACKEND = HERE.parents[1] / "backend"
 sys.path[:0] = [str(BACKEND), str(BACKEND / "tests"), str(HERE)]
 os.chdir(BACKEND)
 os.environ["OPENDOTA_ENABLED"] = "false"
+os.environ["DOTA_AI_BACKEND_PORT"] = sys.argv[1] if len(sys.argv) > 1 else "8777"
 
 import uvicorn  # noqa: E402
+from demo_data import PRO_SKILLS, DemoLLM, friend_row, vary, with_route  # noqa: E402
 from fastapi.testclient import TestClient  # noqa: E402
 from match_fixtures import ME, FakeOpenDota, gsi_match_stream, recent_matches  # noqa: E402
 
+from app.local_api_auth import LOCAL_API_AUTH, LOCAL_API_URL  # noqa: E402
 from app.main import app  # noqa: E402
 from app.player_api import PLAYER_SERVICE  # noqa: E402
-from demo_data import PRO_SKILLS, DemoLLM, friend_row, vary, with_route  # noqa: E402
 
 
 def main() -> None:
@@ -60,7 +62,9 @@ def main() -> None:
     )
     data = Path(tempfile.mkdtemp(prefix="site-shots-"))
     PLAYER_SERVICE.configure(data / "svc", client=fake, auto_start=False, llm=DemoLLM())
-    with TestClient(app) as client:
+    with TestClient(
+        app, base_url=LOCAL_API_URL, headers=LOCAL_API_AUTH.headers, client=("127.0.0.1", 50000)
+    ) as client:
         client.post("/player/link", json={"steam": str(ME)})
         # The first match was also recorded live: the hero's path and deaths on the map.
         first = recent[0]["match_id"]

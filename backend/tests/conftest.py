@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import secrets
 import sys
 import tempfile
 from pathlib import Path
@@ -10,6 +11,8 @@ from fastapi.testclient import TestClient
 
 # Tests never talk to OpenDota and never write into backend/player_data.
 os.environ["OPENDOTA_ENABLED"] = "false"
+os.environ.setdefault("DOTA_AI_CONTROL_TOKEN", secrets.token_hex(32))
+os.environ.setdefault("DOTA_AI_GSI_TOKEN", secrets.token_hex(32))
 os.environ.setdefault("PLAYER_DATA_DIR", tempfile.mkdtemp(prefix="dota-ai-coach-player-"))
 
 BACKEND_DIR = Path(__file__).resolve().parents[1]
@@ -22,6 +25,7 @@ from app.advice_scheduler import ADVICE_SCHEDULER  # noqa: E402
 from app.coach_summary import COACH_SESSION_HISTORY  # noqa: E402
 from app.gsi_census import GSI_CENSUS  # noqa: E402
 from app.live_role import set_role_setting  # noqa: E402
+from app.local_api_auth import LOCAL_API_AUTH, LOCAL_API_URL  # noqa: E402
 from app.main import _clear_demo_overlay_response, _map_hints, app  # noqa: E402
 from app.match_memory import MATCH_MEMORY  # noqa: E402
 from app.match_records import MATCH_RECORDS  # noqa: E402
@@ -63,7 +67,9 @@ def reset_runtime_state(tmp_path):
 
 @pytest.fixture
 def client() -> TestClient:
-    return TestClient(app)
+    return TestClient(
+        app, base_url=LOCAL_API_URL, headers=LOCAL_API_AUTH.headers, client=("127.0.0.1", 50000)
+    )
 
 
 @pytest.fixture

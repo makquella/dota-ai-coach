@@ -34,6 +34,9 @@ backend/.venv/bin/python scripts/site-shots/game_frames.py /tmp/site-shots/raw
   matches are dated this week (the newest three hours ago) so Home has a week.
   Hero portraits and item icons go through the app's own `dota-assets.js`
   handler (cached in `$ASSET_CACHE`, default the system temp folder).
+  Its Node bridge reads the demo backend's private `backend/local-api-auth.json`
+  or the shared `DOTA_AI_CONTROL_TOKEN` environment variable. Credentials stay
+  outside the browser; the demo backend still enforces normal local API checks.
 - Profile pictures (`profile`, `profile-shop`, `profile-friends`): run the demo
   backend with `DEMO_LOOKS=frame_gold,title_immortal` (looks a profile of its
   level can own — every demo match then counts as played with the app, so the

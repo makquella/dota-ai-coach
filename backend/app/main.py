@@ -9,6 +9,7 @@ from typing import Any
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.openapi.utils import get_openapi
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, ValidationError
@@ -51,6 +52,8 @@ from app.live_role import lane_of, role_setting, set_role_setting
 from app.live_session_recorder import LIVE_SESSION_RECORDER
 from app.live_tools import disabled_copy
 from app.llm_provider import generate_llm_recommendation, is_llm_provider_enabled
+from app.local_api_auth import LOCAL_API_AUTH
+from app.local_api_security import LocalApiSecurity, local_origins
 from app.logger import log_recommendation, prune_logs
 from app.map_hints import map_hint, score_gap, timer_strip
 from app.match_memory import MATCH_MEMORY
@@ -71,31 +74,48 @@ async def _lifespan(_app: FastAPI) -> AsyncIterator[None]:
     PLAYER_SERVICE.shutdown()
 
 
-app = FastAPI(
+class LocalApiApp(FastAPI):
+    def openapi(self) -> dict[str, Any]:
+        if self.openapi_schema is None:
+            schema = get_openapi(
+                title=self.title,
+                description=self.description,
+                version=self.version,
+                routes=self.routes,
+            )
+            schema.setdefault("components", {}).setdefault("securitySchemes", {})[
+                "LocalControl"
+            ] = {
+                "type": "http",
+                "scheme": "bearer",
+            }
+            for path, operations in schema["paths"].items():
+                for method, operation in operations.items():
+                    if method in {"get", "post", "put", "patch", "delete", "head", "options"}:
+                        operation["security"] = (
+                            [] if path in {"/", "/health"} else [{"LocalControl": []}]
+                        )
+            self.openapi_schema = schema
+        return self.openapi_schema
+
+
+app = LocalApiApp(
     lifespan=_lifespan,
     title="Wardly",
     description="MVP-1: rule-based carry coach with local knowledge-base RAG.",
-    version="0.53.6",
+    version="0.53.7",
 )
 app.include_router(player_router)
 
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        f"http://127.0.0.1:{BACKEND_PORT}",
-        f"http://localhost:{BACKEND_PORT}",
-        "http://127.0.0.1:8000",
-        "http://localhost:8000",
-        "http://127.0.0.1:3000",
-        "http://localhost:3000",
-        "http://127.0.0.1:5173",
-        "http://localhost:5173",
-    ],
+    allow_origins=local_origins(BACKEND_PORT),
     allow_credentials=False,
-    allow_methods=["GET", "POST", "OPTIONS"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "DELETE", "OPTIONS"],
+    allow_headers=["Content-Type", "Authorization"],
 )
+app.add_middleware(LocalApiSecurity, auth=LOCAL_API_AUTH, port=BACKEND_PORT)
 
 FRONTEND_DIR = RESOURCE_ROOT / "frontend"
 _DEMO_OVERLAY_RESPONSE: dict[str, object] | None = None
@@ -109,7 +129,7 @@ if FRONTEND_DIR.exists():
 @app.get("/", summary="Health check")
 def root():
     """Simple health-check endpoint."""
-    return {"status": "ok", "service": "Wardly", "version": "0.53.6"}
+    return {"status": "ok", "service": "Wardly", "version": "0.53.7"}
 
 
 @app.get("/health", summary="Health check")
@@ -247,20 +267,7 @@ def recommend(request: GameSituationRequest):
 @app.post("/gsi", summary="Receive Dota 2 Game State Integration data")
 async def receive_gsi(request: Request):
     """Accept raw Dota 2 GSI JSON and keep the latest normalized state in memory."""
-    try:
-        payload = await request.json()
-    except Exception:
-        return JSONResponse(
-            status_code=400,
-            content={"status": "error", "detail": "Request body must be valid JSON."},
-        )
-
-    if not isinstance(payload, dict):
-        return JSONResponse(
-            status_code=400,
-            content={"status": "error", "detail": "GSI payload must be a JSON object."},
-        )
-
+    payload = request.scope["wardly.gsi_payload"]
     result = update_latest_gsi(payload)
     GSI_CENSUS.observe(payload)
     GSI_CENSUS.save_due(PLAYER_SERVICE.data_dir / CENSUS_FILE)

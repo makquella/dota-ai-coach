@@ -73,6 +73,9 @@ def main() -> int:
     from app.config import BACKEND_HOST, BACKEND_PORT, DATA_DIR, WRITABLE_DIR
     from app.main import app  # noqa: WPS433
 
+    if BACKEND_HOST not in {"127.0.0.1", "localhost", "::1"}:
+        raise ValueError("Wardly backend must bind to a loopback address.")
+
     _log(f"[backend] Starting Wardly backend on http://{BACKEND_HOST}:{BACKEND_PORT}")
     _log(f"[backend] Runtime directory: {runtime_dir}")
     _log(f"[backend] Data directory: {DATA_DIR}")
@@ -82,6 +85,7 @@ def main() -> int:
         host=BACKEND_HOST,
         port=BACKEND_PORT,
         access_log=False,
+        proxy_headers=False,
         log_level=log_level,
         loop="asyncio",
         timeout_graceful_shutdown=3,

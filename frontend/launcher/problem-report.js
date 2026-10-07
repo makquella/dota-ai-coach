@@ -11,6 +11,7 @@ const SECRET_PATTERNS = [
   /gsk_[\w-]{16,}/g, // Groq
   /sk-[\w-]{16,}/g, // OpenRouter and other OpenAI-style keys
   /Bearer\s+[\w.-]{12,}/g,
+  /\b[0-9a-fA-F]{64}\b/g, // Local control/GSI credentials, including pasted Valve configs
   /(?<=api_key=)[^&\s'"]+/g, // OpenDota key in a URL
   /(?<=\/api\/(?:v\d+\/)?webhooks\/\d+\/)[\w-]+/g // Discord webhook token (the week in Discord)
 ];

@@ -62,6 +62,11 @@ function Test-BackendExe {
   $psi.WorkingDirectory = Split-Path -Parent $BackendExe
   $psi.Environment["DOTA_AI_BACKEND_PORT"] = "$port"
   $psi.Environment["DOTA_AI_BACKEND_STDIN_CONTROL"] = "1"
+  $controlToken = [Convert]::ToHexString([System.Security.Cryptography.RandomNumberGenerator]::GetBytes(32)).ToLowerInvariant()
+  $gsiToken = [Convert]::ToHexString([System.Security.Cryptography.RandomNumberGenerator]::GetBytes(32)).ToLowerInvariant()
+  $psi.Environment["DOTA_AI_CONTROL_TOKEN"] = $controlToken
+  $psi.Environment["DOTA_AI_GSI_TOKEN"] = $gsiToken
+  $controlHeaders = @{ Authorization = "Bearer $controlToken" }
   $proc = [System.Diagnostics.Process]::Start($psi)
   $stdout = $proc.StandardOutput.ReadToEndAsync()
   $stderr = $proc.StandardError.ReadToEndAsync()
@@ -80,11 +85,29 @@ function Test-BackendExe {
     }
     Assert-True $healthy "backend answers $base/health"
 
-    $overlay = Invoke-RestMethod -Uri "$base/overlay/recommendation" -TimeoutSec 5
+    $unauthorized = 0
+    try {
+      $null = Invoke-RestMethod -Method Post -Uri "$base/session/reset" -TimeoutSec 5
+    } catch {
+      if ($null -ne $_.Exception.Response) { $unauthorized = [int]$_.Exception.Response.StatusCode }
+    }
+    Assert-True ($unauthorized -eq 401) "backend rejects an unauthorized local mutation"
+
+    $forbidden = 0
+    try {
+      $null = Invoke-RestMethod -Method Post -Uri "$base/session/reset" -Headers @{ Authorization = "Bearer $controlToken"; Origin = "https://audit.invalid" } -ContentType "application/json" -Body '{}' -TimeoutSec 5
+    } catch {
+      if ($null -ne $_.Exception.Response) { $forbidden = [int]$_.Exception.Response.StatusCode }
+    }
+    Assert-True ($forbidden -eq 403) "backend rejects a foreign origin even with a control token"
+
+    $overlay = Invoke-RestMethod -Uri "$base/overlay/recommendation" -Headers $controlHeaders -TimeoutSec 5
     Assert-True ([bool]$overlay.status) "/overlay/recommendation returns status '$($overlay.status)'"
 
-    $recording = Invoke-RestMethod -Method Post -Uri "$base/session-recording/start" -TimeoutSec 5
-    $null = Invoke-RestMethod -Method Post -Uri "$base/session-recording/stop" -TimeoutSec 5
+    $recording = Invoke-RestMethod -Method Post -Uri "$base/session-recording/start" -Headers $controlHeaders -TimeoutSec 5
+    $null = Invoke-RestMethod -Method Post -Uri "$base/session-recording/stop" -Headers $controlHeaders -TimeoutSec 5
+    $gsi = @{ auth = @{ token = $gsiToken }; provider = @{ name = "Dota 2" }; map = @{ game_state = "DOTA_GAMERULES_STATE_PRE_GAME" } } | ConvertTo-Json -Depth 5 -Compress
+    $null = Invoke-RestMethod -Method Post -Uri "$base/gsi" -ContentType "application/json" -Body $gsi -TimeoutSec 5
     $sessionDir = [string]$recording.session_dir
     Assert-True ($sessionDir.StartsWith($UserDataDir, [System.StringComparison]::OrdinalIgnoreCase)) "session records go to $UserDataDir ($sessionDir)"
     Assert-True (Test-Path $sessionDir) "session record folder was created"

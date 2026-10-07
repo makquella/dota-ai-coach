@@ -16,6 +16,7 @@ import time
 import urllib.error
 import urllib.request
 from datetime import datetime
+from email.message import Message
 from pathlib import Path
 from typing import Any
 
@@ -265,16 +266,33 @@ def _send_demo_state(
     return overlay if isinstance(overlay, dict) else {}
 
 
+class _NoRedirect(urllib.request.HTTPRedirectHandler):
+    def redirect_request(
+        self,
+        req: urllib.request.Request,
+        fp: Any,
+        code: int,
+        msg: str,
+        headers: Message,
+        newurl: str,
+    ) -> None:
+        # Never forward the control credential to another server.
+        return None
+
+
 def _post_json(url: str, payload: dict[str, Any]) -> dict[str, Any]:
+    from app.local_api_auth import LOCAL_API_AUTH
+
+    _check_local_url(url)
     data = json.dumps(payload).encode("utf-8")
     request = urllib.request.Request(
         url,
         data=data,
-        headers={"Content-Type": "application/json"},
+        headers={"Content-Type": "application/json", **LOCAL_API_AUTH.headers},
         method="POST",
     )
     try:
-        with urllib.request.urlopen(request, timeout=5) as response:
+        with urllib.request.build_opener(_NoRedirect()).open(request, timeout=5) as response:
             return json.loads(response.read().decode("utf-8"))
     except urllib.error.HTTPError as exc:
         body = exc.read().decode("utf-8", errors="replace")
@@ -284,14 +302,31 @@ def _post_json(url: str, payload: dict[str, Any]) -> dict[str, Any]:
 
 
 def _get_json(url: str) -> dict[str, Any]:
+    from app.local_api_auth import LOCAL_API_AUTH
+
+    _check_local_url(url)
+    request = urllib.request.Request(url, headers=LOCAL_API_AUTH.headers)
     try:
-        with urllib.request.urlopen(url, timeout=5) as response:
+        with urllib.request.build_opener(_NoRedirect()).open(request, timeout=5) as response:
             return json.loads(response.read().decode("utf-8"))
     except urllib.error.HTTPError as exc:
         body = exc.read().decode("utf-8", errors="replace")
         raise SystemExit(f"Backend error {exc.code} from {url}: {body}") from exc
     except urllib.error.URLError as exc:
         raise SystemExit(f"Could not reach backend at {url}: {exc}") from exc
+
+
+def _check_local_url(url: str) -> None:
+    from urllib.parse import urlsplit
+
+    parsed = urlsplit(url)
+    if (
+        parsed.scheme != "http"
+        or parsed.hostname not in {"localhost", "127.0.0.1", "::1"}
+        or parsed.username
+        or parsed.password
+    ):
+        raise SystemExit("Replay demos must use the local backend.")
 
 
 def _export_reviews_if_requested(
