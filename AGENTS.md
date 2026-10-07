@@ -27,7 +27,7 @@ Use the isolated cloud checkout; create a worktree only when requested.
 Check map: [docs/TESTING.md](docs/TESTING.md). Backend cwd: `backend/`; use the existing venv (`.venv/bin/python` or `.venv/Scripts/python.exe`).
 
 - Backend: `python -m ruff check <changed paths>`; `python -m ruff format --check <changed paths>`; `python -m pytest <feature tests and consumers>`.
-- Full backend: `python -m pytest`. Report nonblocking mypy debt separately. Keep intentional Ruff SIM exceptions.
+- Full backend: `python -m pytest`; `python ../scripts/check_types.py` blocks new debt and requires pruning resolved allowances. Report reviewed mypy debt separately. Keep intentional Ruff SIM exceptions.
 - Desktop, from `frontend/launcher/`: `npm run check`; `npm test` or a relevant `node --test test/<feature>.test.js`.
 - Worker, from `services/api/`: `npm test`; SQL/concurrency also needs real local D1 validation.
 - Site, from root with backend venv: `python scripts/build_site.py --check`; release notes: `python scripts/build_changelog.py --check`.

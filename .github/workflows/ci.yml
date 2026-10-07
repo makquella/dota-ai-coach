@@ -37,14 +37,15 @@ jobs:
           python ../scripts/lock_python_dependencies.py --check
 
       - name: Lint (ruff check)
-        run: ruff check --config pyproject.toml . ../scripts/lock_python_dependencies.py
+        run: ruff check --config pyproject.toml . ../scripts/lock_python_dependencies.py ../scripts/check_types.py
 
       - name: Format check (ruff format)
-        run: ruff format --config pyproject.toml --check . ../scripts/lock_python_dependencies.py
+        run: ruff format --config pyproject.toml --check . ../scripts/lock_python_dependencies.py ../scripts/check_types.py
 
-      # Soft start: mypy reports issues but does not fail the job yet.
-      - name: Type check (mypy, non-blocking)
-        run: mypy app || true
+      - name: Type check (pinned mypy, no new debt)
+        run: |
+          python ../scripts/check_types.py
+          python -m mypy --strict ../scripts/check_types.py
 
       - name: Tests (pytest)
         run: pytest -q

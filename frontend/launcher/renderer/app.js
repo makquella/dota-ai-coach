@@ -363,6 +363,9 @@ const I18N = {
     tourHint: "A short tour of the app, one minute",
     tourStart: "Show",
     whatsNew: {
+      "0.53.9": [
+        "Improved automated update checks to detect new code errors earlier."
+      ],
       "0.53.8": [
         "Protected the app’s windows: privileged actions only accept their own local interface, and unexpected navigation or popups are blocked."
       ],
@@ -1194,6 +1197,9 @@ const I18N = {
     tourHint: "Короткая экскурсия по приложению, на минуту",
     tourStart: "Показать",
     whatsNew: {
+      "0.53.9": [
+        "Улучшены автоматические проверки обновлений, чтобы раньше находить новые ошибки в коде."
+      ],
       "0.53.8": [
         "Защищены окна приложения: действия принимаются только от своего локального интерфейса, а посторонние переходы и всплывающие окна блокируются."
       ],

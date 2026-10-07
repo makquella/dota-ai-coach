@@ -48,13 +48,15 @@ python -c "import pathlib,subprocess,sys; paths=sorted(str(p) for p in pathlib.P
 ```bash
 python -m ruff check .
 python -m ruff format --check .
+python ../scripts/check_types.py
+python -m mypy --strict ../scripts/check_types.py
 python -m pytest --junitxml=/tmp/wardly-backend-tests.xml
 python -m compileall -q app scripts packaging tests
 python ../scripts/build_changelog.py --check
 python ../scripts/build_site.py --check
 ```
 
-На Windows путь XML заменить на доступный временный файл. Сохранить exit status pytest и проверить текущий XML: tests > 0, failures/errors = 0; skipped сообщать отдельно. `python -m mypy app` пока nonblocking по CI: ошибки типизации не равны runtime defects, но результат необходимо сообщать. Locked baseline и clean-module gate ещё не внедрены.
+На Windows путь XML заменить на доступный временный файл. Сохранить exit status pytest и проверить текущий XML: tests > 0, failures/errors = 0; skipped сообщать отдельно. Locked mypy gate блокирует новые ошибки и требует удалять resolved allowances; 226 существующих ошибок остаются известным долгом. Команды prune и границы проверки — [TYPE_CHECKING.md](TYPE_CHECKING.md).
 
 Из `frontend/launcher/`: `npm run check`, `npm test`. Из `services/api/`: `npm test`. Backend tests используют TestClient + SQLite и чистые domain modules; Worker tests используют fake D1/R2, поэтому passing mocks не доказывают SQL syntax/atomicity настоящего D1.
 

@@ -25,6 +25,8 @@ cd backend
 source .venv/bin/activate
 python -m pip install --require-hashes --only-binary=:all: -r requirements-dev.txt
 pytest -q
+python ../scripts/check_types.py
+python -m mypy --strict ../scripts/check_types.py
 python3 -m compileall -q app scripts packaging tests
 ```
 
