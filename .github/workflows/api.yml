@@ -35,7 +35,16 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
+          cache: npm
+          cache-dependency-path: services/api/package-lock.json
+      - run: npm ci --no-audit --no-fund
       - run: npm test
+      - name: Bundle Worker and apply local D1 migrations
+        env:
+          WRANGLER_SEND_METRICS: "false"
+        run: |
+          npx --no-install wrangler deploy --dry-run --outdir "${{ runner.temp }}/worker-bundle"
+          npx --no-install wrangler d1 migrations apply dota-ai-coach --local --persist-to "${{ runner.temp }}/worker-d1"
 
   deploy:
     name: Deploy to Cloudflare
