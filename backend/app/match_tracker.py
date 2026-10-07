@@ -18,14 +18,16 @@ starts reporting another match id, or when no GSI arrived for STALE_AFTER
 seconds (game closed / disconnected). The in-progress timeline is saved to
 disk every few samples so a restart of the app does not lose it.
 
-The finished timeline goes to `on_finished` (player_service.py stores and
-reviews it). Demo/replay states never reach this module.
+The finished timeline stays in the recovery journal until `on_finished`
+(player_service.py) stores and reviews it successfully. Delivery is at least
+once, with startup/status retries; the receiver must upsert idempotently.
+Demo/replay states never reach this module.
 """
 
 from __future__ import annotations
 
-import contextlib
 import json
+import os
 import threading
 import time
 from collections.abc import Callable
@@ -33,6 +35,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
+from app.diagnostics import record_error
 from app.dota_constants import hero_id_from_name, hero_name_from_npc
 from app.gsi_state import normalize_abilities
 from app.last_moments import LastSeconds
@@ -41,6 +44,8 @@ from app.map_hints import observer_charges
 from app.steam_ids import STEAM64_BASE
 
 TIMELINE_VERSION = 1
+RECOVERY_VERSION = 1
+FINISH_RETRY_SECONDS = 5
 SAMPLE_EVERY_SECONDS = 15
 SAVE_EVERY_SAMPLES = 4
 STALE_AFTER_SECONDS = 10 * 60
@@ -142,7 +147,10 @@ class MatchTracker:
         self.on_finished = on_finished
         self._clock = clock
         self._lock = threading.Lock()
+        self._delivery_lock = threading.Lock()
         self._current: dict[str, Any] | None = None
+        self._pending: list[dict[str, Any]] = []
+        self._retry_at = 0.0
         self._last_seen = 0.0
         self._unsaved_samples = 0
         # Not saved to disk: after a restart the next deaths fill it again.
@@ -161,37 +169,77 @@ class MatchTracker:
         match_id = match_id_from_gsi(map_block)
         if match_id is None:
             return
-        finished: dict[str, Any] | None = None
         with self._lock:
             if self._current and self._current["match_id"] != match_id:
-                finished = self._finish_locked(reason="next_match")
-            if self._current is None:
+                self._finish_locked(reason="next_match")
+            # Opening the app on a score screen: nothing new to record, but
+            # an earlier finish may still need delivery.
+            if self._current is not None or map_block.get("game_state") != POST_GAME_STATE:
+                if self._current is None:
+                    self._current = self._new_match(match_id, player, payload)
+                    self._last_seconds.reset()
+                self._last_seen = self._clock()
+                self._update_locked(payload, map_block, player)
                 if map_block.get("game_state") == POST_GAME_STATE:
-                    # Opening the app on a score screen: nothing to record.
-                    return
-                self._current = self._new_match(match_id, player, payload)
-                self._last_seconds.reset()
-            self._last_seen = self._clock()
-            self._update_locked(payload, map_block, player)
-            if map_block.get("game_state") == POST_GAME_STATE and finished is None:
-                self.set_result(self._current, map_block.get("win_team"))
-                finished = self._finish_locked(reason="post_game")
-        if finished is not None:
-            self._emit(finished)
+                    self.set_result(self._current, map_block.get("win_team"))
+                    self._finish_locked(reason="post_game")
+        self.retry_pending()
 
     def check_stale(self) -> None:
         """Finish a match whose GSI stopped (called from status polling)."""
-        finished = None
         with self._lock:
             if self._current and self._clock() - self._last_seen > STALE_AFTER_SECONDS:
-                finished = self._finish_locked(reason="stale")
-        if finished is not None:
-            self._emit(finished)
+                self._finish_locked(reason="stale")
+        self.retry_pending()
 
     def flush(self) -> None:
-        """Save the in-progress match (app shutdown)."""
+        """Save recovery state and retry pending finishes (app shutdown/backup)."""
         with self._lock:
             self._save_locked()
+        self.retry_pending(force=True)
+
+    def pending_count(self) -> int:
+        with self._lock:
+            return len(self._pending)
+
+    def retry_pending(self, *, force: bool = False) -> None:
+        """Deliver durable finishes outside the state lock; ack only on success.
+
+        Callback delivery is at least once, so the receiver must upsert by
+        account/match. Concurrent GSI/status calls never deliver simultaneously.
+        """
+        if self.on_finished is None or not self._delivery_lock.acquire(blocking=False):
+            return
+        try:
+            with self._lock:
+                if not force and self._clock() < self._retry_at:
+                    return
+                pending = list(self._pending)
+            for timeline in pending:
+                with self._lock:
+                    # Persist before handing anything to the receiver. A failed
+                    # write keeps RAM and the previous checkpoint for recovery.
+                    if not self._save_locked():
+                        self._retry_at = self._clock() + FINISH_RETRY_SECONDS
+                        return
+                try:
+                    self._emit(timeline)
+                except Exception as error:  # noqa: BLE001 - retain until DB acknowledgement
+                    record_error("match-finish", error)
+                    with self._lock:
+                        self._retry_at = self._clock() + FINISH_RETRY_SECONDS
+                    return
+                with self._lock:
+                    self._pending.remove(timeline)
+                    if not self._save_locked():
+                        # The old journal still contains this entry. Replaying
+                        # the idempotent callback is safe even after a restart.
+                        self._pending.insert(0, timeline)
+                        self._retry_at = self._clock() + FINISH_RETRY_SECONDS
+                        return
+                    self._retry_at = 0.0
+        finally:
+            self._delivery_lock.release()
 
     def current(self) -> dict[str, Any] | None:
         with self._lock:
@@ -453,24 +501,19 @@ class MatchTracker:
 
     # --- finishing ------------------------------------------------------------
 
-    def _finish_locked(self, *, reason: str) -> dict[str, Any] | None:
+    def _finish_locked(self, *, reason: str) -> None:
         current = self._current
-        self._current = None
-        self._unsaved_samples = 0
-        self._delete_saved_locked()
         if not current:
-            return None
+            return
         if reason == "post_game":
             current["finished"] = True
         current["end_reason"] = reason
         current["ended_at"] = datetime.now(UTC).isoformat()
         current["duration"] = current.get("last_clock")
-        if (current.get("last_clock") or 0) < MIN_REVIEW_CLOCK_SECONDS:
-            return None
-        if not current.get("hero"):
-            # No hero ever seen (not the player's own game): nothing to review.
-            return None
-        return current
+        if (current.get("last_clock") or 0) >= MIN_REVIEW_CLOCK_SECONDS and current.get("hero"):
+            self._pending.append(current)
+        self._current = None
+        self._save_locked()
 
     def set_result(self, timeline: dict[str, Any], win_team: str | None) -> None:
         team = str(timeline.get("team") or "").lower()
@@ -484,28 +527,50 @@ class MatchTracker:
 
     # --- persistence ----------------------------------------------------------
 
-    def _save_locked(self) -> None:
-        self._unsaved_samples = 0
-        if not self._current:
-            return
+    def _save_locked(self) -> bool:
         try:
+            if self._current is None and not self._pending:
+                self.state_path.unlink(missing_ok=True)
+                self._unsaved_samples = 0
+                return True
             self.state_path.parent.mkdir(parents=True, exist_ok=True)
             tmp = self.state_path.with_suffix(".tmp")
-            tmp.write_text(json.dumps(self._current, ensure_ascii=False), encoding="utf-8")
+            recovery = {
+                "recovery_version": RECOVERY_VERSION,
+                "current": self._current,
+                "pending": self._pending,
+            }
+            with tmp.open("w", encoding="utf-8") as stream:
+                json.dump(recovery, stream, ensure_ascii=False)
+                stream.flush()
+                os.fsync(stream.fileno())
             tmp.replace(self.state_path)
-        except OSError:
-            # Losing the in-progress file only matters if the app restarts mid-game.
-            pass
-
-    def _delete_saved_locked(self) -> None:
-        with contextlib.suppress(OSError):
-            self.state_path.unlink(missing_ok=True)
+            self._unsaved_samples = 0
+            return True
+        except OSError as error:
+            record_error("match-recovery", error)
+            return False
 
     def _load(self) -> None:
         try:
             data = json.loads(self.state_path.read_text(encoding="utf-8"))
         except (OSError, ValueError):
             return
-        if isinstance(data, dict) and data.get("version") == TIMELINE_VERSION:
+        if not isinstance(data, dict):
+            return
+        if data.get("recovery_version") == RECOVERY_VERSION:
+            current = data.get("current")
+            if isinstance(current, dict) and current.get("version") == TIMELINE_VERSION:
+                self._current = current
+            pending = data.get("pending")
+            if isinstance(pending, list):
+                self._pending = [
+                    timeline
+                    for timeline in pending
+                    if isinstance(timeline, dict) and timeline.get("version") == TIMELINE_VERSION
+                ]
+        elif data.get("version") == TIMELINE_VERSION:
+            # Legacy in-progress files from 0.53.3 and earlier.
             self._current = data
+        if self._current is not None:
             self._last_seen = self._clock()

@@ -361,6 +361,8 @@ class PlayerService:
             "error": None,
             "error_code": None,
         }
+        # Recovery callbacks need all service state initialized first.
+        self.tracker.retry_pending()
 
     def shutdown(self) -> None:
         self.tracker.flush()
@@ -832,6 +834,7 @@ class PlayerService:
             if status["account_id"]
             else {},
             "live_match": status["live_match"],
+            "pending_match_finishes": self.tracker.pending_count(),
             "last_recorded_match": self._last_recorded(status["account_id"]),
             "jobs": self.jobs.pending(),
             "ai_jobs": self.ai_jobs.pending(),
@@ -1952,7 +1955,7 @@ class PlayerService:
         account_id = timeline.get("account_id") or self.store.primary_account_id()
         match_id = timeline.get("match_id")
         if not account_id or not match_id:
-            return
+            raise ValueError("Finished match needs an account and match id before acknowledgement")
         facts = facts_from_timeline(timeline)
         fields = {
             "hero_id": facts.get("hero_id"),
@@ -1969,14 +1972,16 @@ class PlayerService:
             "denies": facts.get("denies"),
             "start_time": _start_time(timeline),
         }
-        self.store.upsert_match(
-            account_id,
-            match_id,
-            source="gsi",
-            fields=fields,
-            timeline=timeline,
-            parse_status="waiting_opendota" if self.client is not None else "gsi_only",
-        )
+        existing = self.store.get_match(account_id, match_id)
+        if existing is None or existing.get("timeline") != timeline:
+            self.store.upsert_match(
+                account_id,
+                match_id,
+                source="gsi",
+                fields=fields,
+                timeline=timeline,
+                parse_status="waiting_opendota" if self.client is not None else "gsi_only",
+            )
         analysis = self._rebuild_analysis(account_id, match_id)
         # Per account: a match of another (detected, not linked) account must not
         # replace the linked player's "review ready" banner.
