@@ -363,6 +363,9 @@ const I18N = {
     tourHint: "A short tour of the app, one minute",
     tourStart: "Show",
     whatsNew: {
+      "0.53.2": [
+        "Updated the app engine and dependencies with security fixes."
+      ],
       "0.53.1": [
         "Advice keeps working when its diagnostic log cannot be saved. The error is included in a problem report."
       ],
@@ -1172,6 +1175,9 @@ const I18N = {
     tourHint: "Короткая экскурсия по приложению, на минуту",
     tourStart: "Показать",
     whatsNew: {
+      "0.53.2": [
+        "Обновлены движок приложения и зависимости с исправлениями безопасности."
+      ],
       "0.53.1": [
         "Советы продолжают работать, если журнал не удаётся сохранить. Ошибка попадёт в отчёт о проблеме."
       ],
