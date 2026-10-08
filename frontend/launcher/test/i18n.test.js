@@ -1,6 +1,6 @@
 // Every visible text exists in both languages: the control panel (I18N in
 // renderer/app.js + data-i18n keys in index.html), the match screens (TEXT in
-// renderer/matches.js) and the overlay card (OVERLAY_TEXT in overlay/app.js).
+// renderer/match-texts.js) and the overlay card (OVERLAY_TEXT in overlay/app.js).
 // The tables are object literals inside browser scripts, so they are cut out
 // of the source and evaluated on their own.
 const assert = require("node:assert/strict");
@@ -123,7 +123,7 @@ function duplicateKeys(text) {
 test("no text key is written twice in one table", () => {
   for (const [file, declaration] of [
     ["renderer/app.js", "const I18N ="],
-    ["renderer/matches.js", "const TEXT ="],
+    ["renderer/match-texts.js", "const TEXT ="],
     ["overlay/app.js", "const OVERLAY_TEXT ="]
   ]) {
     assert.deepEqual(duplicateKeys(tableSource(file, declaration)), [], file);
@@ -144,7 +144,7 @@ test("every data-i18n key of the control panel is defined", () => {
 });
 
 test("match screen texts exist in both languages", () => {
-  assertSameKeys(tableFrom("renderer/matches.js", "const TEXT ="), "renderer/matches.js");
+  assertSameKeys(tableFrom("renderer/match-texts.js", "const TEXT ="), "renderer/match-texts.js");
 });
 
 test("overlay texts exist in both languages", () => {

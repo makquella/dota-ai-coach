@@ -363,6 +363,9 @@ const I18N = {
     tourHint: "A short tour of the app, one minute",
     tourStart: "Show",
     whatsNew: {
+      "0.53.16": [
+        "Match-screen translations now have their own module, with the same copy and number formatting checked in both languages."
+      ],
       "0.53.15": [
         "GSI packet, state and timestamp now update together. Reset clears the old packet and waits for fresh Dota data."
       ],
@@ -1215,6 +1218,9 @@ const I18N = {
     tourHint: "Короткая экскурсия по приложению, на минуту",
     tourStart: "Показать",
     whatsNew: {
+      "0.53.16": [
+        "Переводы экранов матчей выделены в отдельный модуль; прежние тексты и форматирование чисел проверяются на обоих языках."
+      ],
       "0.53.15": [
         "GSI-пакет, состояние и время получения обновляются вместе. Сброс очищает прежний пакет и ждёт свежие данные Dota."
       ],

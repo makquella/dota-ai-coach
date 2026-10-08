@@ -24,6 +24,15 @@ async function runRendererSecuritySmoke({ mainWindow, overlayWindow, skillArrows
       await main.executeJavaScript(`document.querySelector('#tab-settings').click(); document.querySelector('[data-language="${lang}"]').click(); true`);
       const drawn = await until(() => main.executeJavaScript(`document.documentElement.lang === '${lang}' && document.querySelector('#language-title').textContent === '${label}' && document.querySelector('[data-language="${lang}"]').getAttribute('aria-checked') === 'true'`));
       step(`settings UI and trusted IPC (${lang})`, drawn);
+      await main.executeJavaScript("window.PlayerViews.setView('matches', { remember: false }); true");
+      const matchCopy = await until(() => main.executeJavaScript(`(() => {
+        const root = document.querySelector('#matches-root');
+        const linked = ${JSON.stringify(lang === "ru" ? "Матчи" : "Matches")};
+        const unlinked = ${JSON.stringify(lang === "ru" ? "Привяжите аккаунт Steam" : "Link your Steam account")};
+        return !document.querySelector('#view-matches').classList.contains('hidden')
+          && !root.querySelector('.skeleton') && (root.textContent.includes(unlinked) || root.textContent.includes(linked));
+      })()`));
+      step(`matches UI and extracted texts (${lang})`, matchCopy);
     }
   } finally {
     await main.executeJavaScript(`window.launcherApi.setLanguage(${JSON.stringify(originalLanguage)})`);
