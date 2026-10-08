@@ -36,10 +36,10 @@ These are acceptance tasks too. They are not included in the 17-finding percenta
   unstaged and untracked paths; optional thin hook adapter; explicit argv/cwd,
   Windows venv discovery; no deploy/publish/paid AI (0.53.42, DEV_RUNNER.md).
 - [x] Version consistency script and generated site/changelog checks in the runner and CI (0.53.42).
-- [ ] Remove F841 unused assignment while preserving the state-changing call;
-  remove the global lint exemption.
-- [ ] Pure abilities normalization helper to break the documented GSI/skills cycle,
-  with compatibility re-export.
+- [x] Remove F841 unused assignment while preserving the state-changing call;
+  remove the global lint exemption (0.53.43).
+- [x] Pure abilities normalization helper to break the documented GSI/skills cycle,
+  with compatibility re-export (0.53.43, PURE_ABILITIES.md).
 - [ ] Incremental live-message translation by ID/params rather than retranslating
   full historical copies.
 - [x] Measure GSI phase p50/p95 and persistence time, move synchronous GSI/demo work off the ASGI event loop (0.53.41, LIVE_EVENT_LOOP.md; real same-loop requests).

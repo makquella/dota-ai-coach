@@ -201,7 +201,7 @@ class AdviceScheduler:
 
         with self._lock:
             self._ensure_session_locked(current_time, minute, state)
-            game_time_seconds = self._game_time_seconds_locked(state, current_time)
+            self._game_time_seconds_locked(state, current_time)
             self._update_hashes_locked(state_hash, tactical_hash)
             self._update_low_hp_recovery_locked(state)
 

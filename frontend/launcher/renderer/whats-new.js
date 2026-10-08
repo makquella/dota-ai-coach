@@ -9,6 +9,9 @@
 
   const TEXT = {
     en: {
+      "0.53.43": [
+        "GSI and skill tips share a pure ability normalizer, removing the reverse import cycle while preserving names, cooldowns and missing values. Unused-variable lint is enabled across the backend."
+      ],
       "0.53.42": [
         "Development checks now have a portable runner that selects consumer profiles from all changed files. CI verifies matching backend, launcher, lock and Russian/English release versions."
       ],
@@ -445,6 +448,9 @@
       ]
     },
     ru: {
+      "0.53.43": [
+        "GSI и подсказки прокачки используют чистую нормализацию способностей без обратного цикла импорта. Названия, кулдауны и неизвестные значения сохранены; проверка неиспользованных переменных включена для всего backend."
+      ],
       "0.53.42": [
         "Проверки разработки запускаются через переносимый runner с выбором профилей по всем изменённым файлам. CI проверяет совпадение версий backend, launcher, lock и RU/EN описаний выпуска."
       ],

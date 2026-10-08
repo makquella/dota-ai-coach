@@ -5,16 +5,23 @@ gsi_state.py — in-memory Dota 2 Game State Integration state for MVP overlay u
 from __future__ import annotations
 
 import json
-import math
 from collections.abc import Callable
 from typing import Any
 
+from app.ability_normalization import normalize_abilities as _normalize_abilities
 from app.advice_context import MAP_CENTER, build_advice_context
 from app.config import GSI_DEBUG_LOG, GSI_DEBUG_SAMPLES_DIR
 from app.domain_contracts import NormalizedState
 from app.dota_constants import NPC_TO_HERO_ID, hero_name
 from app.enemy_heroes import visible_enemy_heroes, visible_enemy_units
 from app.gsi_snapshot import GSIRegister, GSISnapshot
+from app.gsi_values import MAX_GSI_NUMBER as MAX_GSI_NUMBER
+from app.gsi_values import first_value as _first_value
+from app.gsi_values import optional_bool as _optional_bool
+from app.gsi_values import optional_int as _optional_int
+from app.gsi_values import optional_number as _optional_number
+from app.gsi_values import optional_str as _optional_str
+from app.gsi_values import title_from_token as _title_from_token
 from app.hero_profiles import evaluate_laning_context, load_hero_profile
 from app.hero_safety import evaluate_hero_safety
 from app.item_timing import normalize_item_name
@@ -22,7 +29,7 @@ from app.last_moments import ready_savers
 from app.live_tools import bottle_rune, regen_items, wand_charges
 from app.map_hints import has_observer_ward, item_names, observer_charges, timers
 from app.signal_capabilities import capability_summary, live_gsi_observed_capabilities
-from app.skill_tips import not_hero_ability, read_skills
+from app.skill_tips import read_skills
 from app.tp_tracker import has_teleport
 
 _GSI = GSIRegister()
@@ -101,35 +108,6 @@ _ITEM_NAME_MAP = {
 }
 
 _EMPTY_ITEM_NAMES = {"", "empty", "item_empty", "item_unknown", "item_none"}
-
-_ABILITY_NAME_MAP = {
-    "antimage_blink": "Blink",
-    "anti_mage_blink": "Blink",
-    "juggernaut_blade_fury": "Blade Fury",
-    "life_stealer_rage": "Rage",
-    "lifestealer_rage": "Rage",
-    "medusa_mana_shield": "Mana Shield",
-    "slark_dark_pact": "Dark Pact",
-    "slark_pounce": "Pounce",
-    "morphling_morph_agi": "Attribute Shift",
-    "morphling_morph_str": "Attribute Shift",
-    "morphling_attribute_shift": "Attribute Shift",
-    "phantom_assassin_blur": "Blur",
-    "drow_ranger_wave_of_silence": "Gust",
-    "drow_ranger_gust": "Gust",
-    "luna_lucent_beam": "Lucent Beam",
-    "sven_warcry": "Warcry",
-    "kez_grappling_claw": "Grappling Claw",
-    "kez_raptor_dance": "Raptor Dance",
-    "kez_echo_slash": "Echo Slash",
-    "kez_talon_toss": "Talon Toss",
-    "kez_falcon_rush": "Falcon Rush",
-    "kez_ravens_veil": "Raven's Veil",
-    "kez_kazurai_katana": "Kazurai Katana",
-    "kez_switch_weapons": "Switch Weapons",
-    "slardar_sprint": "Guardian Sprint",
-    "bounty_hunter_wind_walk": "Shadow Walk",
-}
 
 
 def update_latest_gsi(
@@ -677,58 +655,6 @@ def _value_increased(previous: dict[str, Any] | None, current: dict[str, Any], k
     return now > before
 
 
-# No real GSI number (gold, experience, clock, coordinates, cooldowns) comes
-# near this; anything larger, and inf/nan, is garbage and counts as missing.
-MAX_GSI_NUMBER = 10_000_000
-
-
-def _optional_int(value: Any) -> int | None:
-    number = _optional_number(value)
-    return None if number is None else int(number)
-
-
-def _optional_number(value: Any) -> float | int | None:
-    if value is None:
-        return None
-    try:
-        number = float(value)
-    except (TypeError, ValueError, OverflowError):
-        return None
-    if not math.isfinite(number) or abs(number) > MAX_GSI_NUMBER:
-        return None
-    return int(number) if number.is_integer() else number
-
-
-def _optional_bool(value: Any) -> bool | None:
-    if value is None:
-        return None
-    if isinstance(value, bool):
-        return value
-    if isinstance(value, str):
-        lowered = value.strip().lower()
-        if lowered in {"1", "true", "yes", "on"}:
-            return True
-        if lowered in {"0", "false", "no", "off"}:
-            return False
-    if isinstance(value, (int, float)):
-        return bool(value)
-    return None
-
-
-def _optional_str(value: Any) -> str | None:
-    if value is None:
-        return None
-    text = str(value).strip()
-    return text or None
-
-
-def _first_value(*values: Any) -> Any:
-    for value in values:
-        if value is not None:
-            return value
-    return None
-
-
 def _clamp_int(value: Any, minimum: int, maximum: int | None, default: int) -> int:
     try:
         number = int(value)
@@ -814,68 +740,6 @@ def normalize_abilities(value: Any) -> list[dict[str, Any]]:
     return _normalize_abilities(value)
 
 
-def _normalize_abilities(value: Any) -> list[dict[str, Any]]:
-    if isinstance(value, list):
-        raw_abilities = value
-    elif isinstance(value, dict):
-        raw_abilities = [value[key] for key in sorted(value)]
-    else:
-        raw_abilities = []
-
-    abilities: list[dict[str, Any]] = []
-    seen_names: set[str] = set()
-    for raw_ability in raw_abilities:
-        if isinstance(raw_ability, dict) and not_hero_ability(raw_ability.get("name")):
-            continue
-        ability = _normalize_ability(raw_ability)
-        if not ability:
-            continue
-        dedupe_key = str(ability.get("name") or ability.get("raw_name") or "").lower()
-        if dedupe_key in seen_names:
-            continue
-        seen_names.add(dedupe_key)
-        abilities.append(ability)
-    return abilities
-
-
-def _normalize_ability(value: Any) -> dict[str, Any] | None:
-    if isinstance(value, dict):
-        raw_name = _optional_str(value.get("name"))
-        level = _optional_int(value.get("level"))
-        cooldown = _optional_number(
-            _first_value(
-                value.get("cooldown"), value.get("cooldown_remaining"), value.get("cooldown_time")
-            )
-        )
-        can_cast = _optional_bool(value.get("can_cast"))
-        if can_cast is None:
-            can_cast = _optional_bool(value.get("ability_active"))
-    else:
-        raw_name = _optional_str(value)
-        level = None
-        cooldown = None
-        can_cast = None
-
-    if not raw_name:
-        return None
-
-    return {
-        "name": _normalize_ability_name(raw_name),
-        "raw_name": raw_name,
-        "level": level,
-        "cooldown": cooldown,
-        "can_cast": can_cast,
-    }
-
-
-def _normalize_ability_name(value: Any) -> str:
-    raw_name = str(value or "").strip()
-    key = raw_name.lower().removeprefix("ability_")
-    if key in _ABILITY_NAME_MAP:
-        return _ABILITY_NAME_MAP[key]
-    return _title_from_token(key)
-
-
 def _normalize_game_state(payload: dict[str, Any], map_block: dict[str, Any]) -> str:
     state = _first_value(
         payload.get("game_state"),
@@ -892,7 +756,3 @@ def _normalize_team_status(payload: dict[str, Any], hero_block: dict[str, Any]) 
     if hero_block.get("alive") is False:
         return "hero_dead"
     return "unknown"
-
-
-def _title_from_token(value: str) -> str:
-    return value.replace("_", " ").replace("-", " ").title()

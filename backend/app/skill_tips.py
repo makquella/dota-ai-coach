@@ -20,6 +20,8 @@ from __future__ import annotations
 import math
 from typing import Any
 
+from app.ability_normalization import NOT_HERO_ABILITY_PREFIXES as NOT_HERO_ABILITY_PREFIXES
+from app.ability_normalization import not_hero_ability as not_hero_ability
 from app.skill_build import label, next_skill
 
 ULTIMATE_LEVELS = (6, 12, 18)
@@ -86,15 +88,6 @@ def _int(value: Any) -> int | None:
     if not math.isfinite(value) or abs(value) > 1000:
         return None
     return int(value)
-
-
-# Real GSI lists the Dota Plus wheel among the abilities (plus_high_five,
-# plus_guild_banner, level 1 from the start): not the hero's, never a skill point.
-NOT_HERO_ABILITY_PREFIXES = ("plus_",)
-
-
-def not_hero_ability(name: Any) -> bool:
-    return isinstance(name, str) and name.startswith(NOT_HERO_ABILITY_PREFIXES)
 
 
 def read_skills(payload: Any) -> dict[str, Any] | None:

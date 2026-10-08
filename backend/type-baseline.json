@@ -3,6 +3,7 @@
   "mypy_version": "2.4.0",
   "python_target": "3.11",
   "clean_modules": [
+    "app/ability_normalization.py",
     "app/coach_evidence.py",
     "app/coach_finding_evidence.py",
     "app/demo_overlay_cache.py",
@@ -10,6 +11,7 @@
     "app/domain_contracts.py",
     "app/finding_evidence.py",
     "app/gsi_snapshot.py",
+    "app/gsi_values.py",
     "app/job_queue.py",
     "app/live_hints.py",
     "app/live_path_metrics.py",

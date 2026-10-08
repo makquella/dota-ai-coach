@@ -5,6 +5,7 @@ Use the isolated cloud checkout; create a worktree only when requested.
 
 ## Owning code
 
+- GSI scalar/ability normalization is pure in `gsi_values.py` / `ability_normalization.py`; skill helpers import it directly, with legacy exports retained.
 - Live: `backend/app/gsi_state.py` (atomic publication: `gsi_snapshot.py`) → `match_memory.py` / `decision_points.py` → `recommender.py` / `advice_policy.py` → `advice_scheduler.py`; helpers in `backend/app/scheduler/`.
 - Live hint mutations use the owned `MatchMemory.live_hints` facade (`live_hints.py`); prepare PlayerService metadata before ownership and avoid direct child-tracker access.
 - History: `backend/app/player_api.py` (status/list/detail/progress/profile DTOs: `player_contracts.py`) → `player_service.py` → `player_store.py` (SQLite), `match_tracker.py`, `opendota.py`, `match_facts.py`, `post_match_analysis.py`. Queue execution/retries/shutdown: `backend/app/job_queue.py`.
