@@ -16,7 +16,7 @@
 | F06 | P1 | Отдельные control/GSI tokens, Origin/Host checks и bounded body; реальный Dota config и launcher smoke совместимы | Подготовлено в 0.53.7; протокол и manual debug — [LOCAL_API_SECURITY.md](LOCAL_API_SECURITY.md) |
 | F04 | P1 | Связать AI числа с метрикой и источником; начать с трёх findings, запретить metric swaps | Не реализовано; разбивать на slices |
 | F10 | P2 | Согласованный runtime snapshot и ownership MatchMemory; concurrent publish/read/reset без disk/network под lock | Не реализовано |
-| F11 | P2 | Atomic conditional transfer claims и conflict-safe insert; migrations + concurrency на local D1 | Не реализовано |
+| F11 | P2 | Atomic conditional transfer claims и conflict-safe insert; migrations + concurrency на local D1 | Подготовлено в 0.53.11; реальные D1 проверки — [TRANSFER_ATOMICITY.md](TRANSFER_ATOMICITY.md) |
 | F12 | P2 | DTO/contract tests важных player/detail/facts ответов и их JS consumers | Не реализовано |
 | F13 | P2 | Извлекать jobs/locales/detail controller по одной границе с behavior/UI tests | Не реализовано |
 | F14 | P2 | Locked mypy + baseline и blocking checks чистых модулей; долг не растёт | Подготовлено в 0.53.9; 226 известных ошибок, blocking gate — [TYPE_CHECKING.md](TYPE_CHECKING.md) |
@@ -28,4 +28,4 @@
 
 Следующие продуктовые улучшения после safeguards: источники/покрытие данных в разборе, preview восстановления истории, rotating local backups, сопоставимость Progress между версиями правил. Метрики и сроки проверять на фактических данных; их наличие в плане не означает, что функции уже реализованы.
 
-Developer runner `scripts/dev.py`, portable scoped hook adapter, local D1 harness и UI regression harness пока **не созданы**. До их внедрения использовать проверенные команды из [TESTING.md](TESTING.md) и [REFERENCE_COMMANDS.md](REFERENCE_COMMANDS.md). Новые helpers должны выбирать cwd и argv явно, учитывать staged/unstaged/untracked paths и не выполнять deploy, publish или платные AI вызовы.
+Минимальный local D1 harness для transfer создан в `services/api/test/integration/`; другие SQL paths требуют расширения проверок. Developer runner `scripts/dev.py`, portable scoped hook adapter и общий UI regression harness пока **не созданы**. До их внедрения использовать проверенные команды из [TESTING.md](TESTING.md) и [REFERENCE_COMMANDS.md](REFERENCE_COMMANDS.md). Новые helpers должны выбирать cwd и argv явно, учитывать staged/unstaged/untracked paths и не выполнять deploy, publish или платные AI вызовы.

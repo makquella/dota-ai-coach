@@ -58,7 +58,7 @@ python ../scripts/build_site.py --check
 
 На Windows путь XML заменить на доступный временный файл. Сохранить exit status pytest и проверить текущий XML: tests > 0, failures/errors = 0; skipped сообщать отдельно. Locked mypy gate блокирует новые ошибки и требует удалять resolved allowances; 226 существующих ошибок остаются известным долгом. Команды prune и границы проверки — [TYPE_CHECKING.md](TYPE_CHECKING.md).
 
-Из `frontend/launcher/`: `npm run check`, `npm test`. Из `services/api/`: `npm test`. Backend tests используют TestClient + SQLite и чистые domain modules; Worker tests используют fake D1/R2, поэтому passing mocks не доказывают SQL syntax/atomicity настоящего D1.
+Из `frontend/launcher/`: `npm run check`, `npm test`. Из `services/api/`: `npm test` запускает unit tests и integration tests transfer на настоящем local D1/Miniflare. Отдельно доступны `npm run test:unit` и `npm run test:integration`. Backend tests используют TestClient + SQLite и чистые domain modules; другие Worker SQL paths пока используют fake D1/R2, поэтому при изменении их атомарности нужно расширять реальные D1 проверки. Границы harness — [TRANSFER_ATOMICITY.md](TRANSFER_ATOMICITY.md).
 
 `backend/tests/conftest.py` сбрасывает shared state, отключает OpenDota и обычно не запускает фоновые threads. Изменения queue/lifespan проверять настоящими threads + Events и context-managed TestClient. Fault tests проверяют recovery/rollback/ответ пользователю; не ослаблять assertions и не заменять проверку zero-test запуском.
 

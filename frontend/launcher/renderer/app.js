@@ -363,6 +363,9 @@ const I18N = {
     tourHint: "A short tour of the app, one minute",
     tourStart: "Show",
     whatsNew: {
+      "0.53.11": [
+        "History transfer now handles simultaneous downloads and code collisions safely. Late cleanup preserves a fresh transfer that reused a code."
+      ],
       "0.53.10": [
         "Installer releases now require the same source version to pass the shared checks before publishing."
       ],
@@ -1200,6 +1203,9 @@ const I18N = {
     tourHint: "Короткая экскурсия по приложению, на минуту",
     tourStart: "Показать",
     whatsNew: {
+      "0.53.11": [
+        "Перенос истории теперь надёжно обрабатывает одновременные скачивания и совпадения кодов. Поздняя очистка сохраняет новый перенос с повторно занятым кодом."
+      ],
       "0.53.10": [
         "Для выпуска установщика теперь нужны общие проверки той же версии исходного кода перед публикацией."
       ],

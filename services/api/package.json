@@ -5,11 +5,14 @@
   "description": "Cloud side of Wardly: problem reports (Cloudflare Worker + D1 + R2). See docs/DATA_PLAN.md.",
   "type": "module",
   "scripts": {
-    "test": "node --test test/*.test.js",
+    "test": "npm run test:unit && npm run test:integration",
     "dev": "wrangler dev",
-    "deploy": "wrangler deploy"
+    "deploy": "wrangler deploy",
+    "test:unit": "node --test test/*.test.js",
+    "test:integration": "node --test test/integration/*.test.js"
   },
   "devDependencies": {
+    "miniflare": "5.20261006.0-alpha",
     "wrangler": "4.148.0"
   },
   "overrides": {

@@ -41,8 +41,17 @@ function fakeEnv(vars = {}, { r2 = true } = {}) {
           if (sql.startsWith("SELECT token_hash FROM profiles WHERE id") || sql.startsWith("SELECT body FROM profiles WHERE id")) {
             return profiles.find((r) => r.id === args[0]) || null;
           }
-          if (sql.startsWith("SELECT id FROM transfers WHERE id") || sql.startsWith("SELECT body, expires_at, tries FROM transfers WHERE id")) {
-            return transfers.find((r) => r.id === args[0]) || null;
+          if (sql.startsWith("INSERT INTO transfers")) {
+            const [id, created_at, expires_at, install_id, size, body] = args;
+            if (transfers.some((row) => row.id === id)) return null;
+            transfers.push({ id, created_at, expires_at, install_id, size, tries: 0, body: [...body] });
+            return { id };
+          }
+          if (sql.startsWith("UPDATE transfers SET tries")) {
+            const row = transfers.find((r) => r.id === args[0] && r.tries < args[1] && r.expires_at >= args[2]);
+            if (!row) return null;
+            row.tries += 1;
+            return { body: [...row.body], tries: row.tries };
           }
           throw new Error(`unexpected first(): ${sql}`);
         },
@@ -86,13 +95,13 @@ function fakeEnv(vars = {}, { r2 = true } = {}) {
             profiles.splice(0, profiles.length, ...profiles.filter((r) => r.install_id !== args[0]));
           } else if (sql.startsWith("DELETE FROM profiles WHERE updated_at <")) {
             profiles.splice(0, profiles.length, ...profiles.filter((r) => r.updated_at >= args[0]));
-          } else if (sql.startsWith("INSERT INTO transfers")) {
-            const [id, created_at, expires_at, install_id, size, body] = args;
-            transfers.push({ id, created_at, expires_at, install_id, size, tries: 0, body: [...body] });
-          } else if (sql.startsWith("UPDATE transfers SET tries")) {
-            transfers.find((r) => r.id === args[0]).tries += 1;
           } else if (sql.startsWith("DELETE FROM transfers WHERE id")) {
-            transfers.splice(0, transfers.length, ...transfers.filter((r) => r.id !== args[0]));
+            transfers.splice(0, transfers.length, ...transfers.filter((r) => {
+              if (r.id !== args[0]) return true;
+              if (sql.includes("expires_at <")) return !(r.expires_at < args[1] || r.tries >= args[2]);
+              if (sql.includes("tries >=")) return r.tries < args[1];
+              return false;
+            }));
           } else if (sql.startsWith("DELETE FROM transfers WHERE install_id")) {
             transfers.splice(0, transfers.length, ...transfers.filter((r) => r.install_id !== args[0]));
           } else if (sql.startsWith("DELETE FROM transfers WHERE expires_at")) {
