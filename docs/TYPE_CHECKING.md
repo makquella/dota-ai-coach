@@ -2,12 +2,12 @@
 
 F14 в 0.53.9 заменяет `mypy app || true` на обязательный `scripts/check_types.py`. Используется **mypy 2.4.0** из hash-locked `requirements-dev.txt` и Python target **3.11** из backend config. Проверяется весь `app/`, включая новые модули. Сам checker дополнительно проходит `mypy --strict` без baseline.
 
-Текущий baseline содержит **225 ошибок в 31 файле**, сгруппированных в 102 уникальных записи. В 0.53.15 исправлена повторная аннотация `items` в GSI normalizer и удалено одно allowance; исходный F14 baseline содержал 226 ошибок. Оставшийся baseline — известный долг, а не исправленные ошибки. Запись включает путь, сообщение, error code и число повторений. Номера diagnostic строк/колонок и лишние пробелы форматирования не участвуют в сравнении; текст сообщения сравнивается полностью, включая embedded line references, если checker их выдаёт.
+Текущий baseline содержит **214 ошибок в 30 файлах**, сгруппированных в 100 уникальных записей. В 0.53.18 устранены 11 ошибок narrowing в MatchMemory и удалены соответствующие allowances. В 0.53.15 исправлена повторная аннотация `items` в GSI normalizer и удалено одно allowance; исходный F14 baseline содержал 226 ошибок. Оставшийся baseline — известный долг, а не исправленные ошибки. Запись включает путь, сообщение, error code и число повторений. Номера diagnostic строк/колонок и лишние пробелы форматирования не участвуют в сравнении; текст сообщения сравнивается полностью, включая embedded line references, если checker их выдаёт.
 
 ## Что останавливает CI
 
 - Новое сообщение, code или файл, а также дополнительное повторение известной ошибки. Одинаковое общее число ошибок не скрывает замену одной ошибки другой.
-- Ошибка в чистом модуле. В baseline явно объявлены `coach_evidence`, `diagnostics`, `gsi_snapshot`, `job_queue`, `local_api_auth`, `local_api_security`, `player_contracts`, `player_store`, `signal_capabilities`, `storage_json`; для них нет allowances. Все остальные модули без известных ошибок тоже проверяются без allowances.
+- Ошибка в чистом модуле. В baseline явно объявлены `coach_evidence`, `diagnostics`, `gsi_snapshot`, `job_queue`, `local_api_auth`, `local_api_security`, `match_memory`, `player_contracts`, `player_store`, `signal_capabilities`, `storage_json`; для них нет allowances. Все остальные модули без известных ошибок тоже проверяются без allowances.
 - Устаревшее allowance после исправления ошибки: его нужно удалить из baseline, чтобы последующий возврат ошибки считался регрессией.
 - Несовпадение версии mypy/target, неверный baseline, исчезнувший clean module, нераспознанный error format, failure/timeout самого mypy.
 

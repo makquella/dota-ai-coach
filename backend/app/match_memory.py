@@ -9,10 +9,12 @@ from __future__ import annotations
 
 import hashlib
 import json
+import threading
 from collections import deque
-from collections.abc import Mapping
+from collections.abc import Callable, Mapping
 from datetime import UTC, datetime
-from typing import Any
+from functools import wraps
+from typing import Any, Concatenate, ParamSpec, TypeVar
 
 from app.buyback_tracker import BuybackTracker
 from app.enemy_heroes import EnemyHeroes
@@ -71,12 +73,30 @@ ESCAPE_OR_DEFENSIVE_FLAG_HINTS = (
     "unavailable",
 )
 
+P = ParamSpec("P")
+R = TypeVar("R")
+
+
+def _owned(
+    method: Callable[Concatenate[MatchMemory, P], R],
+) -> Callable[Concatenate[MatchMemory, P], R]:
+    """Serialize a core memory operation; never hold this lock across I/O."""
+
+    @wraps(method)
+    def guarded(self: MatchMemory, *args: P.args, **kwargs: P.kwargs) -> R:
+        with self._lock:
+            return method(self, *args, **kwargs)
+
+    return guarded
+
 
 class MatchMemory:
     def __init__(self) -> None:
+        self._lock = threading.RLock()
         self.allow_demo_history = False
         self.reset("init")
 
+    @_owned
     def reset(self, reason: str = "manual") -> None:
         now = _now()
         self.match_id: str | None = None
@@ -107,6 +127,7 @@ class MatchMemory:
         self.enemies = EnemyHeroes()
         self.enemy_lanes = EnemyLanes()
 
+    @_owned
     def observe_state(self, state: dict[str, Any]) -> dict[str, Any]:
         now_dt = datetime.now(UTC)
         now = now_dt.isoformat()
@@ -180,7 +201,8 @@ class MatchMemory:
             current_alive,
             paused=_ctx_bool(state, "paused"),
         )
-        extra = state.get("extra_context") if isinstance(state.get("extra_context"), dict) else {}
+        raw_extra = state.get("extra_context")
+        extra = raw_extra if isinstance(raw_extra, dict) else {}
         if extra.get("source_type") == "live_gsi":
             self.roshan.observe(extra)
             self.enemies.observe(extra.get("visible_enemies"))
@@ -201,6 +223,7 @@ class MatchMemory:
         self._annotate_state(state)
         return state
 
+    @_owned
     def death_review_decision(self) -> str | None:
         if not self.death_events:
             return None
@@ -215,6 +238,18 @@ class MatchMemory:
             return "DEATH_LOW_RESOURCE"
         return "DEATH_REVIEW"
 
+    @_owned
+    def death_review_for_state(self, state_session: object, *, available: bool) -> str | None:
+        """Keep the existing fallback's session check and decision one read."""
+        if available or state_session == self.match_id:
+            return self.death_review_decision()
+        return None
+
+    @_owned
+    def note_advice(self, decision_point: str) -> None:
+        self.last_advice_type = decision_point
+
+    @_owned
     def summary(self) -> dict[str, Any]:
         return {
             "match_id": self.match_id,
@@ -232,6 +267,7 @@ class MatchMemory:
             "updated_at": self.updated_at,
         }
 
+    @_owned
     def overlay_context(self) -> dict[str, Any]:
         recent_patterns = self._recent_death_patterns()
         return {
@@ -259,11 +295,8 @@ class MatchMemory:
         hp_percent = _to_int(state.get("hp_percent"), 100)
         hp_delta_5s = _hp_delta_from_recent_peak(self.last_states, hp_percent, now_ts, 5)
         hp_delta_10s = _hp_delta_from_recent_peak(self.last_states, hp_percent, now_ts, 10)
-        laning_context = (
-            extra_context.get("laning_context")
-            if isinstance(extra_context.get("laning_context"), Mapping)
-            else {}
-        )
+        raw_laning = extra_context.get("laning_context")
+        laning_context = raw_laning if isinstance(raw_laning, Mapping) else {}
         low_hp_threshold = _to_int(laning_context.get("low_hp_warning_threshold"), 50)
         critical_hp_threshold = _to_int(laning_context.get("critical_hp_threshold"), 35)
         recent_damage_taken = hp_delta_10s <= -20

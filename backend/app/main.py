@@ -104,7 +104,7 @@ app = LocalApiApp(
     lifespan=_lifespan,
     title="Wardly",
     description="MVP-1: rule-based carry coach with local knowledge-base RAG.",
-    version="0.53.17",
+    version="0.53.18",
 )
 app.include_router(player_router)
 
@@ -130,7 +130,7 @@ if FRONTEND_DIR.exists():
 @app.get("/", summary="Health check")
 def root():
     """Simple health-check endpoint."""
-    return {"status": "ok", "service": "Wardly", "version": "0.53.17"}
+    return {"status": "ok", "service": "Wardly", "version": "0.53.18"}
 
 
 @app.get("/health", summary="Health check")
@@ -291,7 +291,7 @@ def _observe_live_gsi(state: dict[str, Any]) -> None:
     coverage = _advisor_coverage(state)
     if coverage:
         decision_point = _covered_decision_point(detect_decision_point(state), coverage)
-        MATCH_MEMORY.last_advice_type = decision_point
+        MATCH_MEMORY.note_advice(decision_point)
         ADVICE_SCHEDULER.observe_state(state, decision_point)
     else:
         ADVICE_SCHEDULER.observe_state(state, "NO_ADVICE")

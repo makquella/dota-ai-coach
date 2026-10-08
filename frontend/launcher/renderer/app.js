@@ -363,6 +363,9 @@ const I18N = {
     tourHint: "A short tour of the app, one minute",
     tourStart: "Show",
     whatsNew: {
+      "0.53.18": [
+        "Match-memory summaries stay consistent while game data, demo replay and resets update the session."
+      ],
       "0.53.17": [
         "Match K/D/A keeps known values, including zero, and shows a dash for each missing counter."
       ],
@@ -1221,6 +1224,9 @@ const I18N = {
     tourHint: "Короткая экскурсия по приложению, на минуту",
     tourStart: "Показать",
     whatsNew: {
+      "0.53.18": [
+        "Сводка памяти матча обновляется согласованно при поступлении игровых и демо-данных и при сбросе сессии."
+      ],
       "0.53.17": [
         "K/D/A матча сохраняет известные значения, включая ноль, и показывает прочерк для каждого отсутствующего счётчика."
       ],

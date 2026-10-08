@@ -374,10 +374,8 @@ def detect_decision_point(state: Mapping[str, Any] | None) -> DecisionPoint:
         if replay_death_decision in DEATH_DECISION_POINTS:
             return replay_death_decision
         state_session = extra_context.get("match_session_id")
-        death_decision = (
-            MATCH_MEMORY.death_review_decision()
-            if extra_context.get("death_review_available") or state_session == MATCH_MEMORY.match_id
-            else None
+        death_decision = MATCH_MEMORY.death_review_for_state(
+            state_session, available=bool(extra_context.get("death_review_available"))
         )
         if death_decision in DEATH_DECISION_POINTS:
             return death_decision

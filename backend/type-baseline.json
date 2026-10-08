@@ -9,6 +9,7 @@
     "app/job_queue.py",
     "app/local_api_auth.py",
     "app/local_api_security.py",
+    "app/match_memory.py",
     "app/player_contracts.py",
     "app/player_store.py",
     "app/signal_capabilities.py",
@@ -434,18 +435,6 @@
       "message": "Value of type \"tuple[int, int] | None\" is not indexable",
       "code": "index",
       "count": 1
-    },
-    {
-      "path": "app/match_memory.py",
-      "message": "Argument 1 to \"observe\" of \"RoshanTimer\" has incompatible type \"Any | dict[Any, Any] | None\"; expected \"dict[str, Any]\"",
-      "code": "arg-type",
-      "count": 1
-    },
-    {
-      "path": "app/match_memory.py",
-      "message": "Item \"None\" of \"Any | dict[Any, Any] | None\" has no attribute \"get\"",
-      "code": "union-attr",
-      "count": 10
     },
     {
       "path": "app/match_records.py",
