@@ -9,6 +9,9 @@
 
   const TEXT = {
     en: {
+      "0.53.34": [
+        "Older status responses cannot undo linking or unlinking in the interface; simultaneous player-status reads share one request."
+      ],
       "0.53.33": [
         "Delayed Progress responses cannot replace a newer hero or language selection, including leaving and returning to the tab."
       ],
@@ -418,6 +421,9 @@
       ]
     },
     ru: {
+      "0.53.34": [
+        "Старый ответ статуса не отменяет привязку или отвязку в интерфейсе; одновременные чтения статуса используют один запрос."
+      ],
       "0.53.33": [
         "Запоздавшие ответы Прогресса не заменяют новую выборку героя или языка, включая уход со вкладки и возврат."
       ],

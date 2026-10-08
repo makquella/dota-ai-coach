@@ -73,3 +73,29 @@ transport/normalized errors. Source/Windows smoke starts genuine IPC with
 microtask yields between hero selections and before leaving a pending load,
 then verifies the final filtered UI and canceled/accepted load results in RU/EN.
 The isolated SQLite history fixture and existing security checks remain active.
+
+## Shared player status in 0.53.34
+
+`renderer/player-status-requests.js` coalesces concurrent `refreshPlayer` reads
+into one pending promise and applies a current result once. It is shared across
+views and is not canceled on tab changes. Starting an explicit link, detected
+link or unlink invalidates pending reads; a successful result invalidates reads
+again before publishing the authoritative mutation response. Failed mutations
+keep the existing player state and a subsequent read can recover normally.
+An older completion cannot clear a newer generation's pending read. Normalized
+errors keep the current UI behavior; thrown/rejected transports release the
+pending slot, including synchronous throws. No backend/IPC work is aborted.
+
+This covers status reads in matches/career/profile/AI reload/sync/palette.
+Explicit mutation responses retain their existing handling; ordering two account
+mutations themselves, profile/friends/question/goal/coach controllers and full
+account-scoped view-cache reset remain separate F13 work. Backend account/storage
+semantics and polling intervals are unchanged.
+
+Five public module scenarios exercise coalescing, account invalidation,
+old/new completion, normalized errors and synchronous/asynchronous failure
+recovery. Source/Windows smoke begins two actual shared IPC status reads, then
+uses the genuine Change/link form to unlink/relink the fixture account. Both
+old consumers return false, unlinked UI appears, and all history returns after
+relink in RU/EN. Only the dedicated temporary smoke DB is mutated; OpenDota
+is disabled, no AI question/generation is requested, and history remains stored.

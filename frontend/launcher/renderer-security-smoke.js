@@ -59,6 +59,17 @@ async function runRendererSecuritySmoke({ mainWindow, overlayWindow, skillArrows
         return rows.every(row => row.cells[2].textContent === '0 / — / 5' && row.querySelector('.row-note')?.title === '<b>Тест / Test</b>' && !row.querySelector('b'))
           && rows.some(row => row.dataset.result === 'unknown');
       })()`);
+      const canceledStatus = await main.executeJavaScript(`(async () => {
+        const a = window.PlayerViews.refreshPlayer(), b = window.PlayerViews.refreshPlayer();
+        await Promise.resolve();
+        document.querySelector('#matches-root .player-actions .btn-ghost').click();
+        const applied = await Promise.all([a,b]);
+        return applied.every(value => value === false);
+      })()`);
+      const unlinked = await until(() => main.executeJavaScript("Boolean(document.querySelector('#matches-root .link-form')) && document.querySelectorAll('#matches-root tbody .row-link').length === 0"));
+      await main.executeJavaScript("(() => { const form = document.querySelector('#matches-root .link-form'); form.querySelector('input').value = '12345'; form.requestSubmit(); })()");
+      const relinked = await until(() => main.executeJavaScript("document.querySelectorAll('#matches-root tbody .row-link').length === 30 && !document.querySelector('#matches-root .link-form') && Boolean(document.querySelector('#matches-root .player-actions .btn-ghost'))"));
+      step(`shared status invalidation and genuine unlink/relink UI (${lang})`, canceledStatus && unlinked && relinked, JSON.stringify({canceledStatus,unlinked,relinked}));
       await main.executeJavaScript("(() => { const more = document.querySelector('#matches-root .table-wrap + .btn-block'); more?.click(); more?.click(); })(); true");
       const paged = await until(() => main.executeJavaScript("document.querySelectorAll('#matches-root tbody .row-link').length === 32"));
       let sorted = true;

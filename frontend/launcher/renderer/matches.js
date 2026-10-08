@@ -351,13 +351,18 @@
     }
   }
 
-  async function refreshPlayer() {
-    const result = await call("status");
-    if (result.ok) {
-      state.player = result.data;
-      state.lastPlayerRefresh = Date.now();
+  const playerStatusRequests = window.WardlyPlayerStatusRequests.create({
+    request: () => call("status"),
+    apply: result => {
+      if (result.ok) {
+        state.player = result.data;
+        state.lastPlayerRefresh = Date.now();
+      }
     }
-    return result;
+  });
+
+  function refreshPlayer() {
+    return playerStatusRequests.load();
   }
 
   // --- account ----------------------------------------------------------------
@@ -408,10 +413,12 @@
         onsubmit: async (event) => {
           event.preventDefault();
           button.disabled = true;
+          playerStatusRequests.cancel();
           const result = await call("link", { steam: input.value });
           button.disabled = false;
           if (result.ok) {
             state.linkError = "";
+            playerStatusRequests.cancel();
             matchListRequests.cancel();
             careerRequests.cancel();
             clearTimeout(careerRefreshTimer);
@@ -464,8 +471,10 @@
   }
 
   async function linkDetected() {
+    playerStatusRequests.cancel();
     const result = await call("linkDetected");
     if (result.ok) {
+      playerStatusRequests.cancel();
       matchListRequests.cancel();
       careerRequests.cancel();
       clearTimeout(careerRefreshTimer);
@@ -526,8 +535,10 @@
         class: "btn btn-sm btn-ghost",
         type: "button",
         onclick: async () => {
+          playerStatusRequests.cancel();
           const result = await call("unlink");
           if (result.ok) {
+            playerStatusRequests.cancel();
             matchListRequests.cancel();
             careerRequests.cancel();
             clearTimeout(careerRefreshTimer);
@@ -5467,6 +5478,6 @@
     });
   }
 
-  window.PlayerViews = { onStatus, openMatch, setView, loadMatches, loadCareer };
+  window.PlayerViews = { onStatus, openMatch, setView, loadMatches, loadCareer, refreshPlayer };
   init();
 })();
