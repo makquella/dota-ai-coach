@@ -71,6 +71,17 @@ async function runRendererSecuritySmoke({ mainWindow, overlayWindow, skillArrows
       await main.executeJavaScript("(() => { const select = document.querySelector('#matches-root .filter-bar select'); select.value = ''; select.dispatchEvent(new Event('change', {bubbles:true})); })()");
       const cleared = await until(() => main.executeJavaScript("document.querySelectorAll('#matches-root tbody .row-link').length === 30 && Boolean(document.querySelector('#matches-root .table-wrap + .btn-block'))"));
       step(`linked match table paging, sorting, filter and partial counters (${lang})`, partial && paged && sorted && filtered && cleared, JSON.stringify({partial,paged,sorted,filtered,cleared}));
+      await main.executeJavaScript("window.PlayerViews.setView('home', {remember:false}); window.PlayerViews.setView('matches', {remember:false}); true");
+      const matchId = await main.executeJavaScript("(() => { const row = document.querySelector('#matches-root tbody .row-link'); const id = row.dataset.matchId; row.click(); return id; })()");
+      const review = await until(() => main.executeJavaScript("!document.querySelector('#view-match').classList.contains('hidden') && Boolean(document.querySelector('#match-root .back')) && !document.querySelector('#match-root .skeleton')"));
+      await main.executeJavaScript("document.body.dispatchEvent(new KeyboardEvent('keydown', {key:'ArrowLeft',altKey:true,bubbles:true,cancelable:true})); true");
+      const back = await until(() => main.executeJavaScript("!document.querySelector('#view-matches').classList.contains('hidden') && document.querySelector('#view-match').classList.contains('hidden')"));
+      await main.executeJavaScript("document.body.dispatchEvent(new KeyboardEvent('keydown', {key:'ArrowRight',altKey:true,bubbles:true,cancelable:true})); true");
+      const forward = await until(() => main.executeJavaScript("!document.querySelector('#view-match').classList.contains('hidden') && Boolean(document.querySelector('#match-root .back')) && !document.querySelector('#match-root .skeleton')"));
+      await main.executeJavaScript(`window.__wardlyReturnRow = document.querySelector('#matches-root tr[data-match-id="${matchId}"]'); document.querySelector('#match-root .back')?.click(); true`);
+      const returned = await until(() => main.executeJavaScript(`!document.querySelector('#view-matches').classList.contains('hidden') && document.activeElement?.dataset.matchId === ${JSON.stringify(matchId)} && document.activeElement !== window.__wardlyReturnRow`));
+      await main.executeJavaScript("delete window.__wardlyReturnRow; true");
+      step(`review history back, forward and focused return (${lang})`, review && back && forward && returned, JSON.stringify({review,back,forward,returned}));
       const history = await main.executeJavaScript(`(() => {
         window.PlayerViews.setView('home', { remember: false });
         const version = ${JSON.stringify(require("./package.json").version)};

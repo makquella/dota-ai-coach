@@ -9,6 +9,9 @@
 
   const TEXT = {
     en: {
+      "0.53.28": [
+        "Returning from a review keeps the match row focused through the table refresh; back/forward history is checked in both languages."
+      ],
       "0.53.27": [
         "The match table preserves partial K/D/A, notes and unknown results when paging, sorting and filtering; these flows are checked in both interface languages."
       ],
@@ -400,6 +403,9 @@
       ]
     },
     ru: {
+      "0.53.28": [
+        "Возврат из разбора сохраняет фокус строки при обновлении таблицы; история переходов назад/вперёд проверяется на двух языках."
+      ],
       "0.53.27": [
         "Таблица матчей сохраняет частичный K/D/A, заметки и неизвестный результат при загрузке страниц, сортировке и фильтрации; эти действия проверяются на двух языках."
       ],

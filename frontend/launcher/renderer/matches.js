@@ -251,15 +251,11 @@
   // Back / forward like a browser (the mouse's side buttons, Alt+←/→): the
   // places the player went through — a tab or a match review — newest last.
   // A review also keeps the tab it was opened from, which its «‹» returns to.
-  const NAV_LIMIT = 30;
-  const nav = { back: [], forward: [], moving: false };
+  const { samePlace } = window.WardlyMatchNavigation;
+  const navigation = window.WardlyMatchNavigation.create({ current: currentPlace, visit: goTo });
 
   function currentPlace() {
     return state.view === "match" && state.matchId ? { view: "match", matchId: state.matchId } : { view: state.view || "home" };
-  }
-
-  function samePlace(a, b) {
-    return Boolean(a && b) && a.view === b.view && String(a.matchId || "") === String(b.matchId || "");
   }
 
   // Where each tab was scrolled when the player left it: back there (the
@@ -274,47 +270,23 @@
     if (next.view === "match" && here.view !== "match") {
       state.reviewFrom = here.view;
     }
-    if (nav.moving || !state.view || samePlace(here, next)) {
-      return;
-    }
-    nav.back.push(here);
-    if (nav.back.length > NAV_LIMIT) {
-      nav.back.shift();
-    }
-    nav.forward = [];
+    navigation.note(next, Boolean(state.view));
   }
 
   function goTo(place) {
-    nav.moving = true;
-    try {
-      if (place.view === "match") {
-        openMatch(place.matchId);
-      } else {
-        setView(place.view, { restore: true });
-      }
-    } finally {
-      nav.moving = false;
+    if (place.view === "match") {
+      openMatch(place.matchId);
+    } else {
+      setView(place.view, { restore: true });
     }
   }
 
   function goBack() {
-    const place = nav.back.pop();
-    if (!place) {
-      return false;
-    }
-    nav.forward.push(currentPlace());
-    goTo(place);
-    return true;
+    return navigation.back();
   }
 
   function goForward() {
-    const place = nav.forward.pop();
-    if (!place) {
-      return false;
-    }
-    nav.back.push(currentPlace());
-    goTo(place);
-    return true;
+    return navigation.forward();
   }
 
   // «‹ Матчи» / «‹ Главная»: a review goes back to the tab it came from.
@@ -629,6 +601,8 @@
 
   function renderMatches() {
     const root = document.getElementById("matches-root");
+    const focusedMatch = root.contains(document.activeElement)
+      ? document.activeElement.closest("tr.row-link")?.dataset.matchId : null;
     if (!state.player) {
       root.replaceChildren(...offlinePage("matches"));
       hydrate(root);
@@ -685,6 +659,11 @@
       card(t("matchesTableTitle"), "history", [filters, body, skipped].filter(Boolean), state.matchesTotal ? h("span", { class: "num", text: String(state.matchesTotal) }) : null)
     );
     hydrate(root);
+    // A return from the review focuses its row before loadMatches completes.
+    // Keep that keyboard position when a later API response replaces the table.
+    if (focusedMatch) {
+      root.querySelector(`tr.row-link[data-match-id="${CSS.escape(focusedMatch)}"]`)?.focus({ preventScroll: true });
+    }
   }
 
   function filterArgs() {
