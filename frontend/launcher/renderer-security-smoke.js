@@ -33,9 +33,26 @@ async function runRendererSecuritySmoke({ mainWindow, overlayWindow, skillArrows
           && !root.querySelector('.skeleton') && (root.textContent.includes(unlinked) || root.textContent.includes(linked));
       })()`));
       step(`matches UI and extracted texts (${lang})`, matchCopy);
+      const history = await main.executeJavaScript(`(() => {
+        window.PlayerViews.setView('home', { remember: false });
+        const version = ${JSON.stringify(require("./package.json").version)};
+        renderWhatsNew({ whatsNew: version, whatsNewFrom: '0.0.0' });
+        const card = document.querySelector('#whats-new-card');
+        const heading = document.querySelector('#whats-new-heading');
+        const list = document.querySelector('#whats-new-list');
+        const label = ${JSON.stringify(lang === "ru" ? "Что нового в " : "What's new in ")};
+        const also = ${JSON.stringify(lang === "ru" ? "Также в " : "Also in ")};
+        const table = window.WardlyWhatsNew.texts(${JSON.stringify(lang)});
+        return !card.classList.contains('hidden') && heading.textContent === label + version
+          && list.querySelectorAll('.whats-new-version').length === 3
+          && [...list.querySelectorAll('.whats-new-version')].every(node => node.textContent.startsWith(also))
+          && table[version].every(text => list.textContent.includes(text));
+      })()`);
+      step(`update history and skipped versions DOM (${lang})`, history);
     }
   } finally {
     await main.executeJavaScript(`window.launcherApi.setLanguage(${JSON.stringify(originalLanguage)})`);
+    await main.executeJavaScript("window.launcherApi.getStatus().then(renderWhatsNew)");
   }
 
   const partialCounters = await main.executeJavaScript(`(() => {

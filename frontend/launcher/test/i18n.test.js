@@ -12,7 +12,9 @@ const vm = require("node:vm");
 const ROOT = path.join(__dirname, "..");
 
 function tableFrom(file, declaration) {
-  return vm.runInNewContext(`(${tableSource(file, declaration)})`);
+  return vm.runInNewContext(`(${tableSource(file, declaration)})`, {
+    window: { WardlyWhatsNew: require("../renderer/whats-new") }
+  });
 }
 
 function tableSource(file, declaration) {
@@ -123,6 +125,7 @@ function duplicateKeys(text) {
 test("no text key is written twice in one table", () => {
   for (const [file, declaration] of [
     ["renderer/app.js", "const I18N ="],
+    ["renderer/whats-new.js", "const TEXT ="],
     ["renderer/match-texts.js", "const TEXT ="],
     ["overlay/app.js", "const OVERLAY_TEXT ="]
   ]) {
@@ -132,6 +135,10 @@ test("no text key is written twice in one table", () => {
 
 test("control panel texts exist in both languages", () => {
   assertSameKeys(tableFrom("renderer/app.js", "const I18N ="), "renderer/app.js");
+});
+
+test("update history texts exist in both languages", () => {
+  assertSameKeys(tableFrom("renderer/whats-new.js", "const TEXT ="), "renderer/whats-new.js");
 });
 
 test("every data-i18n key of the control panel is defined", () => {
