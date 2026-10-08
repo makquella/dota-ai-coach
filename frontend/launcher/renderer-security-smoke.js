@@ -33,6 +33,13 @@ async function runRendererSecuritySmoke({ mainWindow, overlayWindow, skillArrows
         win: index === 15 ? null : index % 2 === 0,
         kills: 0, deaths: null, assists: 5, gpm: 400 + index,
         note: "<b>Тест / Test</b>", sources: "gsi", parse_status: "",
+        timeline_json: JSON.stringify({
+          match_id:8100000001+index, hero:index%2===0?"Juggernaut":"Anti-Mage",hero_id:index%2===0?8:1,
+          duration:1800,finished:true,win:index===15?null:index%2===0,obs_placed:0,
+          samples:Array.from({length:61},(_,m)=>({t:m*30,lh:Math.floor(m*1.5),dn:0,gpm:400+index})),
+          deaths:[{t:240},{t:420}],items:[{t:600,item:"item_phase_boots"}],
+          final:{kills:0,deaths:null,assists:5,last_hits:90,gpm:400+index,xpm:550,level:15,inventory:["item_phase_boots"]}
+        }),
       })),
     },
   });
@@ -44,6 +51,11 @@ async function runRendererSecuritySmoke({ mainWindow, overlayWindow, skillArrows
       await main.executeJavaScript(`document.querySelector('#tab-settings').click(); document.querySelector('[data-language="${lang}"]').click(); true`);
       const drawn = await until(() => main.executeJavaScript(`document.documentElement.lang === '${lang}' && document.querySelector('#language-title').textContent === '${label}' && document.querySelector('[data-language="${lang}"]').getAttribute('aria-checked') === 'true'`));
       step(`settings UI and trusted IPC (${lang})`, drawn);
+      await main.executeJavaScript("document.querySelector('#backup-export').click(); true");
+      const saved = await until(() => main.executeJavaScript("!document.querySelector('#backup-export').disabled && document.querySelector('#backup-hint').textContent.includes('history-smoke.json.gz')"), 10000);
+      await main.executeJavaScript("document.querySelector('#backup-import').click(); true");
+      const loaded = await until(() => main.executeJavaScript(`!document.querySelector('#backup-import').disabled && document.querySelector('#backup-hint').textContent.includes(${JSON.stringify(lang === "ru" ? "Загружено новых матчей: 0" : "Loaded: 0 new matches")})`), 10000);
+      step(`history file roundtrip through UI and trusted IPC (${lang})`, saved && loaded, JSON.stringify({saved,loaded}));
       await main.executeJavaScript("window.PlayerViews.setView('matches', { remember: false }); true");
       const matchCopy = await until(() => main.executeJavaScript(`(() => {
         const root = document.querySelector('#matches-root');
@@ -179,6 +191,8 @@ async function runRendererSecuritySmoke({ mainWindow, overlayWindow, skillArrows
       step(`relinking from profile restores the account's stored history (${lang})`, historyPreserved && historyTableRestored);
       const matchId = await main.executeJavaScript("(() => { const row = document.querySelector('#matches-root tbody .row-link'); const id = row.dataset.matchId; row.click(); return id; })()");
       const review = await until(() => main.executeJavaScript("!document.querySelector('#view-match').classList.contains('hidden') && Boolean(document.querySelector('#match-root .back')) && !document.querySelector('#match-root .skeleton')"));
+      const fullReview = await until(() => main.executeJavaScript("Boolean(document.querySelector('#match-root .finding-evidence')) && Boolean(document.querySelector('#match-root .chart-line')) && document.querySelector('#match-root .review-stats').textContent.includes('0 / — / 5')"));
+      step(`extracted detail renders generated source review and evidence (${lang})`, review && fullReview);
       await main.executeJavaScript("document.body.dispatchEvent(new KeyboardEvent('keydown', {key:'ArrowLeft',altKey:true,bubbles:true,cancelable:true})); true");
       const back = await until(() => main.executeJavaScript("!document.querySelector('#view-matches').classList.contains('hidden') && document.querySelector('#view-match').classList.contains('hidden')"));
       await main.executeJavaScript("document.body.dispatchEvent(new KeyboardEvent('keydown', {key:'ArrowRight',altKey:true,bubbles:true,cancelable:true})); true");
@@ -187,6 +201,11 @@ async function runRendererSecuritySmoke({ mainWindow, overlayWindow, skillArrows
       const returned = await until(() => main.executeJavaScript(`!document.querySelector('#view-matches').classList.contains('hidden') && document.activeElement?.dataset.matchId === ${JSON.stringify(matchId)} && document.activeElement !== window.__wardlyReturnRow`));
       await main.executeJavaScript("delete window.__wardlyReturnRow; true");
       step(`review history back, forward and focused return (${lang})`, review && back && forward && returned, JSON.stringify({review,back,forward,returned}));
+      await main.executeJavaScript("window.PlayerViews.openMatch('8999999999'); true");
+      const missingDetail = await until(() => main.executeJavaScript(`document.querySelector('#match-root').textContent.includes(${JSON.stringify(lang === "ru" ? "Этого матча больше нет в истории." : "This match is no longer in your history.")}) && !document.querySelector('#match-root .skeleton')`));
+      step(`extracted detail missing-record UI via genuine IPC (${lang})`, missingDetail);
+      await main.executeJavaScript("window.PlayerViews.setView('matches', {remember:false}); true");
+      await until(() => main.executeJavaScript("document.querySelectorAll('#matches-root tbody .row-link').length >= 30"));
       const latestOnly = await main.executeJavaScript(`(async () => {
         const rows = [...document.querySelectorAll('#matches-root tbody .row-link')];
         const a = rows[0].dataset.matchId, b = rows[1].dataset.matchId;

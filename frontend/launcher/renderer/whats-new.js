@@ -9,6 +9,9 @@
 
   const TEXT = {
     en: {
+      "0.53.40": [
+        "File/code history transfer, control-panel language catalogs and match-review composition have their own modules. File roundtrip, complete reviews and missing-match screens are checked through actual UI and IPC in both languages."
+      ],
       "0.53.39": [
         "Normalized game data and match facts have typed core contracts. Finding sources, counts and recording coverage are validated at the review API without dropping legacy fields or unknown values."
       ],
@@ -436,6 +439,9 @@
       ]
     },
     ru: {
+      "0.53.40": [
+        "Перенос истории файлом и кодом, языковые каталоги панели и сборка экрана разбора вынесены в свои модули. Файловый перенос, полный разбор и экран отсутствующего матча проверяются через настоящий UI и IPC на обоих языках."
+      ],
       "0.53.39": [
         "Нормализованные игровые данные и факты матча получили типизированные контракты. Источники, числа и покрытие findings проверяются на границе API разбора; старые поля и неизвестные значения сохраняются."
       ],

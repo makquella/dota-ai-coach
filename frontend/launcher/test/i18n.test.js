@@ -1,8 +1,8 @@
 // Every visible text exists in both languages: the control panel (I18N in
-// renderer/app.js + data-i18n keys in index.html), the match screens (TEXT in
+// renderer/app-texts.js + data-i18n keys in index.html), the match screens (TEXT in
 // renderer/match-texts.js) and the overlay card (OVERLAY_TEXT in overlay/app.js).
-// The tables are object literals inside browser scripts, so they are cut out
-// of the source and evaluated on their own.
+// Desktop catalogs are imported directly. The small overlay catalog remains
+// a source literal; duplicate-key checks examine literals without executing UI.
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
@@ -10,6 +10,9 @@ const test = require("node:test");
 const vm = require("node:vm");
 
 const ROOT = path.join(__dirname, "..");
+const appTexts = require("../renderer/app-texts").create(require("../renderer/whats-new"));
+const matchTexts = require("../renderer/match-texts").create({});
+const updateTexts = {en: require("../renderer/whats-new").texts("en"), ru: require("../renderer/whats-new").texts("ru")};
 
 function tableFrom(file, declaration) {
   return vm.runInNewContext(`(${tableSource(file, declaration)})`, {
@@ -124,7 +127,7 @@ function duplicateKeys(text) {
 
 test("no text key is written twice in one table", () => {
   for (const [file, declaration] of [
-    ["renderer/app.js", "const I18N ="],
+    ["renderer/app-texts.js", "const I18N ="],
     ["renderer/whats-new.js", "const TEXT ="],
     ["renderer/match-texts.js", "const TEXT ="],
     ["overlay/app.js", "const OVERLAY_TEXT ="]
@@ -134,15 +137,15 @@ test("no text key is written twice in one table", () => {
 });
 
 test("control panel texts exist in both languages", () => {
-  assertSameKeys(tableFrom("renderer/app.js", "const I18N ="), "renderer/app.js");
+  assertSameKeys(appTexts, "renderer/app.js");
 });
 
 test("update history texts exist in both languages", () => {
-  assertSameKeys(tableFrom("renderer/whats-new.js", "const TEXT ="), "renderer/whats-new.js");
+  assertSameKeys(updateTexts, "renderer/whats-new.js");
 });
 
 test("every data-i18n key of the control panel is defined", () => {
-  const table = tableFrom("renderer/app.js", "const I18N =");
+  const table = appTexts;
   const html = fs.readFileSync(path.join(ROOT, "renderer/index.html"), "utf8");
   const keys = [...html.matchAll(/data-i18n(?:-title|-placeholder|-aria)?="([^"]+)"/g)].map((match) => match[1]);
   assert.ok(keys.length > 30);
@@ -151,7 +154,7 @@ test("every data-i18n key of the control panel is defined", () => {
 });
 
 test("match screen texts exist in both languages", () => {
-  assertSameKeys(tableFrom("renderer/match-texts.js", "const TEXT ="), "renderer/match-texts.js");
+  assertSameKeys(matchTexts, "renderer/match-texts.js");
 });
 
 test("overlay texts exist in both languages", () => {
@@ -176,7 +179,7 @@ test("every id in index.html is unique (aria-labelledby resolves to the first on
 });
 
 test("the autostart hint says which state the switch is in", () => {
-  const table = tableFrom("renderer/app.js", "const I18N");
+  const table = appTexts;
   for (const lang of ["en", "ru"]) {
     assert.notEqual(table[lang].autostartOn, table[lang].autostartOff, lang);
   }
