@@ -39,12 +39,13 @@ async function runRendererSecuritySmoke({ mainWindow, overlayWindow, skillArrows
   }
 
   for (const [language, label] of [["ru", "Убийства: 0"], ["en", "Kills: 0"]]) {
-    const rendered = await main.executeJavaScript(`(async () => {
+    const rendered = await main.executeJavaScript(`(() => {
       const row = { source: 'analysis.headline', field: 'kills', observed_at: null, precision: 'reported_total', value: 0 };
       const node = window.WardlyCoachEvidence.render({ counter_evidence: [row] }, ${JSON.stringify(language)});
       document.body.append(node);
       node.querySelector('summary').click();
-      await new Promise(requestAnimationFrame);
+      // The smoke window is hidden; Chromium may suspend animation frames.
+      // The details click and text content are synchronous DOM operations.
       const valid = node.open && node.textContent.includes(${JSON.stringify(label)}) && node.querySelectorAll('p').length === 2;
       node.remove();
       return valid;
