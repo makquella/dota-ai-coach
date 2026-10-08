@@ -58,7 +58,7 @@ from app.llm_provider import generate_llm_recommendation, is_llm_provider_enable
 from app.local_api_auth import LOCAL_API_AUTH
 from app.local_api_security import LocalApiSecurity, local_origins
 from app.logger import log_recommendation, prune_logs
-from app.map_hints import map_hint, score_gap, timer_strip
+from app.map_hints import map_hint, score_gap, timer_strip, timers
 from app.match_memory import MATCH_MEMORY
 from app.match_records import KEEP_DAYS, MATCH_RECORDS
 from app.player_api import PLAYER_SERVICE
@@ -106,7 +106,7 @@ app = LocalApiApp(
     lifespan=_lifespan,
     title="Wardly",
     description="MVP-1: rule-based carry coach with local knowledge-base RAG.",
-    version="0.53.19",
+    version="0.53.20",
 )
 app.include_router(player_router)
 
@@ -132,7 +132,7 @@ if FRONTEND_DIR.exists():
 @app.get("/", summary="Health check")
 def root():
     """Simple health-check endpoint."""
-    return {"status": "ok", "service": "Wardly", "version": "0.53.19"}
+    return {"status": "ok", "service": "Wardly", "version": "0.53.20"}
 
 
 @app.get("/health", summary="Health check")
@@ -273,12 +273,7 @@ async def receive_gsi(request: Request):
     payload = request.scope["wardly.gsi_payload"]
     # Role history/cache can read SQLite. Prepare it before the GSI writer and
     # core memory owners; the callback uses the lane read after observation.
-    hero = hero_from_gsi(payload)
-    prior = (
-        await run_in_threadpool(PLAYER_SERVICE.role_prior, hero)
-        if hero_coverage(hero) == "full"
-        else None
-    )
+    prior = await run_in_threadpool(_prepare_gsi_prior, payload)
     result = update_latest_gsi(payload, enrich=lambda state: _observe_live_gsi(state, prior=prior))
     GSI_CENSUS.observe(payload)
     GSI_CENSUS.save_due(PLAYER_SERVICE.data_dir / CENSUS_FILE)
@@ -293,6 +288,13 @@ async def receive_gsi(request: Request):
     if isinstance(state, dict):
         LIVE_SESSION_RECORDER.record_gsi(payload, state)
     return result
+
+
+def _prepare_gsi_prior(payload: dict[str, Any]) -> dict[str, Any] | None:
+    """Cold timer/profile/role lookups stay off the ASGI loop and state owners."""
+    timers()
+    hero = hero_from_gsi(payload)
+    return PLAYER_SERVICE.role_prior(hero) if hero_coverage(hero) == "full" else None
 
 
 def _observe_live_gsi(state: dict[str, Any], *, prior: dict[str, Any] | None) -> None:

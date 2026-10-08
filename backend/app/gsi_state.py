@@ -19,7 +19,7 @@ from app.hero_safety import evaluate_hero_safety
 from app.item_timing import normalize_item_name
 from app.last_moments import ready_savers
 from app.live_tools import bottle_rune, regen_items, wand_charges
-from app.map_hints import has_observer_ward, item_names, observer_charges
+from app.map_hints import has_observer_ward, item_names, observer_charges, timers
 from app.signal_capabilities import capability_summary, live_gsi_observed_capabilities
 from app.skill_tips import not_hero_ability, read_skills
 from app.tp_tracker import has_teleport
@@ -137,6 +137,7 @@ def update_latest_gsi(
     # Warm the lazy profile file/alias cache before acquiring writer ownership.
     # The normalizer and live-memory callback subsequently use in-memory data.
     load_hero_profile("")
+    timers()
     snapshot = _GSI.update(payload, normalize_gsi_payload, enrich=enrich)
     _write_debug_payload_sample(snapshot.raw, snapshot.timestamp)
     return _current(snapshot)

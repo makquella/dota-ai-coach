@@ -148,7 +148,7 @@ def test_simultaneous_live_and_demo_observers_see_complete_previous_memory(
     errors: list[Exception] = []
     responses: list[Any] = []
     original = threading.gettrace()
-    real_observe = MatchMemory.observe_state.__wrapped__.__code__
+    real_observe = MatchMemory._observe_state.__wrapped__.__code__
 
     def trace(frame: FrameType, event: str, _arg: Any) -> Any:
         if event == "call" and frame.f_code is real_observe:

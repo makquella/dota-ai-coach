@@ -24,7 +24,7 @@ Frozen dataclass `GSISnapshot` immutable by convention: published dictionaries �
 - reset и concurrent async `/gsi`/sync `/session/reset`;
 - writer progress при остановке на реальной debug-file границе и две записи на filesystem.
 
-Live/GSI/replay/role/death consumers проходят полный backend suite. Новый module проходит strict mypy и объявлен clean; один старый duplicate-annotation error исправлен, baseline сокращён с 226 до 225 без новых allowances. Source/Windows smoke подтверждает app/backend lifecycle.
+Live/GSI/replay/role/death consumers проходят полный backend suite. Новый module проходит strict mypy и объявлен clean; один старый duplicate-annotation error исправлен, baseline сокращён с 226 до 225 без новых allowances. Cold timer settings дополнительно прогреваются до обоих owners в 0.53.20 — [GSI_TIMER_PREPARATION.md](GSI_TIMER_PREPARATION.md). Source/Windows smoke подтверждает app/backend lifecycle.
 
 ## Следующая граница F10
 

@@ -10,6 +10,8 @@ The HTTP GSI path now selects the hero through the same `hero_from_gsi`
 function used by normalization, then prepares the prior before acquiring
 either GSI or core memory ownership. SQLite lookup runs in the standard ASGI
 thread pool so it cannot block the event loop while other requests arrive.
+In 0.53.20 that preparer also warms the cold timer settings cache; see
+[GSI_TIMER_PREPARATION.md](GSI_TIMER_PREPARATION.md).
 The hero/profile lookup also warms the
 same lazy profile cache outside ownership. The prior is requested only for
 full-coverage cores, matching the former callback condition; support/safety

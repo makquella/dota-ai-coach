@@ -363,6 +363,9 @@ const I18N = {
     tourHint: "A short tour of the app, one minute",
     tourStart: "Show",
     whatsNew: {
+      "0.53.20": [
+        "Roshan and Aegis timer settings load before game-state updates, keeping the first timer event and reset responsive."
+      ],
       "0.53.19": [
         "Session reset no longer waits for role-history lookup; game state updates use the prepared role data."
       ],
@@ -1227,6 +1230,9 @@ const I18N = {
     tourHint: "Короткая экскурсия по приложению, на минуту",
     tourStart: "Показать",
     whatsNew: {
+      "0.53.20": [
+        "Настройки таймеров Рошана и Аегиса загружаются перед обновлением состояния, сохраняя отзывчивость первого события и сброса."
+      ],
       "0.53.19": [
         "Сброс сессии не ждёт чтения истории для определения роли; игровое состояние использует заранее подготовленные данные."
       ],

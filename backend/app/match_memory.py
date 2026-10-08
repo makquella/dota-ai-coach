@@ -22,7 +22,7 @@ from app.enemy_lanes import EnemyLanes
 from app.farm_tracker import FarmTracker
 from app.gold_tips import GoldTips
 from app.live_role import LiveRoleTracker
-from app.map_hints import RoleTips
+from app.map_hints import RoleTips, timers
 from app.roshan_timer import RoshanTimer
 from app.skill_tips import SkillTips
 from app.tp_tracker import TpTracker
@@ -127,8 +127,14 @@ class MatchMemory:
         self.enemies = EnemyHeroes()
         self.enemy_lanes = EnemyLanes()
 
-    @_owned
     def observe_state(self, state: dict[str, Any]) -> dict[str, Any]:
+        # Roshan/Aegis can need timer settings on the first observed event.
+        # Warm that file cache before core ownership, including demo/direct use.
+        timers()
+        return self._observe_state(state)
+
+    @_owned
+    def _observe_state(self, state: dict[str, Any]) -> dict[str, Any]:
         now_dt = datetime.now(UTC)
         now = now_dt.isoformat()
         now_ts = now_dt.timestamp()
