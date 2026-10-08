@@ -26,6 +26,7 @@ from app.advice_follow import analyze_advice_follow
 from app.build_analysis import analyze_build
 from app.death_review import review_deaths
 from app.draft_analysis import analyze_draft
+from app.finding_evidence import FINDING_FIELDS, attach_finding_evidence
 from app.item_timing import classify_item_timing, normalize_item_name
 from app.lane_duel import analyze_lane
 from app.map_analysis import analyze_map
@@ -35,7 +36,7 @@ from app.skill_build import review_skills
 from app.usage_stats import advice_counts
 
 # Bump when the rules change: stored reviews of an older version are rebuilt on read.
-ANALYSIS_VERSION = 20
+ANALYSIS_VERSION = 21
 # Dota replays run at 30 ticks a second.
 REPLAY_TICK_RATE = 30
 # Last seconds before deaths (last_moments.py, via death_review.py).
@@ -98,7 +99,7 @@ def _rating(score: int) -> str:
     return "good" if score >= 70 else "ok" if score >= 50 else "bad"
 
 
-def _at(series: list[int], minute: int) -> int | None:
+def _at(series: list[int | None], minute: int) -> int | None:
     return series[minute] if len(series) > minute else None
 
 
@@ -197,6 +198,12 @@ def analyze_match(
             sections["fights"]["enemy_stuns"] = role_block["enemy_stuns"]
     if role_block and role_block.get("enemy_tower_damage") is not None and "fights" in sections:
         sections["fights"]["enemy_tower_damage"] = role_block["enemy_tower_damage"]
+    attach_finding_evidence(findings, facts)
+    evidence_findings = [
+        {"id": f["id"], "params": f["params"], "evidence": f["evidence"]}
+        for f in findings
+        if f["id"] in FINDING_FIELDS
+    ]
     findings = _dedupe(findings)
 
     weights = SECTION_WEIGHTS[role]
@@ -221,6 +228,8 @@ def analyze_match(
         "generated_at": datetime.now(UTC).isoformat(),
         "sources": facts.get("sources", []),
         "parsed": bool(facts.get("parsed")),
+        "evidence_findings": evidence_findings,
+        "recording_coverage": facts.get("recording_coverage"),
         "role": role,
         "position": position,
         "headline": {
@@ -393,10 +402,15 @@ def _finding(
 
 def _laning(facts, role, targets, findings) -> dict[str, Any] | None:
     lh10 = _at(facts.get("lh_t") or [], 10)
+    lh_source = (facts.get("provenance") or {}).get("lh10")
+    if isinstance(lh_source, dict) and lh_source.get("precision") == "carried_sample":
+        lh10 = None
     dn10 = _at(facts.get("dn_t") or [], 10)
     efficiency = facts.get("lane_efficiency_pct")
-    lane_deaths = [d for d in facts.get("deaths_log") or [] if (d.get("t") or 0) <= 600]
-    if lh10 is None and efficiency is None:
+    lane_deaths = [
+        d for d in facts.get("deaths_log") or [] if type(d.get("t")) is int and 0 <= d["t"] <= 600
+    ]
+    if lh10 is None and efficiency is None and len(lane_deaths) < 2:
         return None
     scores = []
     if lh10 is not None and role != "support":
@@ -535,19 +549,25 @@ def _farm(facts, role, targets, findings) -> dict[str, Any] | None:
     }
 
 
-def _farm_stalls(lh_t: list[int], role: str) -> list[dict[str, Any]]:
+def _farm_stalls(lh_t: list[int | None], role: str) -> list[dict[str, Any]]:
     """Stretches after minute 10 where a core took < 2 last hits a minute."""
     if role == "support" or len(lh_t) < 14:
         return []
     stalls, start = [], None
     for minute in range(11, len(lh_t)):
-        slow = lh_t[minute] - lh_t[minute - 1] < 2
+        current, previous = lh_t[minute], lh_t[minute - 1]
+        if current is None or previous is None:
+            start = None
+            continue
+        slow = current - previous < 2
         if slow and start is None:
             start = minute - 1
         if (not slow or minute == len(lh_t) - 1) and start is not None:
             end = minute if slow else minute - 1
             if end - start >= FARM_STALL_MINUTES:
-                stalls.append({"from": start, "to": end, "last_hits": lh_t[end] - lh_t[start]})
+                begin, finish = lh_t[start], lh_t[end]
+                if begin is not None and finish is not None:
+                    stalls.append({"from": start, "to": end, "last_hits": finish - begin})
             start = None
     return sorted(stalls, key=lambda s: s["from"] - s["to"])
 
@@ -864,6 +884,10 @@ def _items(facts, role, targets, findings) -> dict[str, Any] | None:
 
 def _vision(facts, role, targets, findings) -> dict[str, Any] | None:
     obs = facts.get("obs_placed")
+    provenance = (facts.get("provenance") or {}).get("obs_placed")
+    if isinstance(provenance, dict) and provenance.get("precision") == "inventory_estimate":
+        if not (provenance.get("coverage") or {}).get("complete"):
+            return None
     if role != "support" or obs is None:
         return None
     minutes = max(1.0, (facts.get("duration") or 0) / 60)
@@ -877,7 +901,7 @@ def _vision(facts, role, targets, findings) -> dict[str, Any] | None:
             "vision",
             weight=1.5,
             obs=obs,
-            sen=facts.get("sen_placed") or 0,
+            sen=facts.get("sen_placed"),
         )
     elif per10 < 1.5:
         _finding(

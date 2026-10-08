@@ -21,20 +21,21 @@ from __future__ import annotations
 from typing import Any
 
 from app.dota_constants import hero_name, hero_name_from_npc
+from app.finding_evidence import count, opendota_provenance, recording_coverage, timeline_provenance
 from app.opendota import my_player
 
 
 def _int(value: Any) -> int | None:
     try:
         return int(value)
-    except (TypeError, ValueError):
+    except (TypeError, ValueError, OverflowError):
         return None
 
 
 def _num(value: Any) -> float | None:
     try:
         return float(value)
-    except (TypeError, ValueError):
+    except (TypeError, ValueError, OverflowError):
         return None
 
 
@@ -42,6 +43,8 @@ def empty_facts(match_id: int) -> dict[str, Any]:
     return {
         "match_id": int(match_id),
         "sources": [],
+        "provenance": {},
+        "recording_coverage": None,
         # game_time - clock_time of the recording (GSI only): replay ticks.
         "clock_offset": None,
         "parsed": False,
@@ -164,8 +167,8 @@ def facts_from_opendota(trimmed: dict[str, Any]) -> dict[str, Any] | None:
             "kill_participation": (kills + assists) / team_kills if team_kills else None,
             "teamfight_participation": _num(me.get("teamfight_participation")),
             "lane_efficiency_pct": _num(me.get("lane_efficiency_pct")),
-            "obs_placed": _int(me.get("obs_placed")),
-            "sen_placed": _int(me.get("sen_placed")),
+            "obs_placed": count(me.get("obs_placed")),
+            "sen_placed": count(me.get("sen_placed")),
             "camps_stacked": _int(me.get("camps_stacked")),
             "rune_pickups": _int(me.get("rune_pickups")),
             "stuns": _num(me.get("stuns")),
@@ -216,6 +219,20 @@ def facts_from_opendota(trimmed: dict[str, Any]) -> dict[str, Any] | None:
     facts["skill_upgrades"] = [
         value for value in _list(me.get("ability_upgrades_arr")) if isinstance(value, int)
     ]
+    facts["provenance"] = opendota_provenance(
+        me,
+        parsed=facts["parsed"],
+        deaths=facts["deaths_log"],
+        death_logs_available=any(
+            isinstance(p.get("kills_log"), list)
+            for p in trimmed.get("players") or []
+            if not p.get("me")
+        ),
+    )
+    for field in ("obs_placed", "sen_placed"):
+        evidence = facts["provenance"].get(field)
+        if evidence is not None:
+            facts[field] = evidence["value"]
     return facts
 
 
@@ -238,10 +255,10 @@ def _benchmarks(raw: Any) -> dict[str, float]:
     return result
 
 
-def _series(raw: Any) -> list[int]:
+def _series(raw: Any) -> list[int | None]:
     if not isinstance(raw, list):
         return []
-    return [_int(value) or 0 for value in raw]
+    return [count(value) for value in raw]
 
 
 def _deaths_from_kill_logs(trimmed: dict[str, Any], me: dict[str, Any]) -> list[dict[str, Any]]:
@@ -305,7 +322,7 @@ def facts_from_timeline(timeline: dict[str, Any]) -> dict[str, Any]:
             "xpm": _int(final.get("xpm")),
             "level": _int(final.get("level")),
             # Observer wards placed, counted from the inventory (match_tracker).
-            "obs_placed": _int(timeline.get("obs_placed")),
+            "obs_placed": count(timeline.get("obs_placed")),
             "inventory": [
                 str(name)
                 for name in final.get("inventory") or []
@@ -359,32 +376,39 @@ def facts_from_timeline(timeline: dict[str, Any]) -> dict[str, Any]:
     respawns = [d.get("respawn") for d in facts["deaths_log"] if d.get("respawn")]
     if respawns:
         facts["time_dead"] = sum(respawns)
+    facts["recording_coverage"] = recording_coverage(timeline)
+    facts["provenance"] = timeline_provenance(timeline)
     return facts
 
 
-def _per_minute(samples: list[dict[str, Any]], key: str, duration: int | None) -> list[int]:
-    """Value at the start of each minute, from 15-second samples."""
-    points = [
-        (s["t"], s[key]) for s in samples if s.get(key) is not None and s.get("t") is not None
-    ]
+def _per_minute(samples: list[dict[str, Any]], key: str, duration: int | None) -> list[int | None]:
+    """Latest known value within 30 seconds; missing recording remains unknown."""
+    points = sorted(
+        (s["t"], s[key])
+        for s in samples
+        if type(s.get("t")) is int and count(s.get(key)) is not None
+    )
     if not points:
         return []
     last_minute = (duration if duration is not None else points[-1][0]) // 60
-    result, index, value = [], 0, 0
+    result: list[int | None] = []
+    index, value, observed = 0, None, None
     for minute in range(last_minute + 1):
         while index < len(points) and points[index][0] <= minute * 60:
-            value = points[index][1]
+            observed, value = points[index]
             index += 1
-        result.append(value)
+        result.append(value if observed is not None and minute * 60 - observed <= 30 else None)
     return result
 
 
-def _earned_gold_per_minute(samples: list[dict[str, Any]], duration: int | None) -> list[int]:
+def _earned_gold_per_minute(
+    samples: list[dict[str, Any]], duration: int | None
+) -> list[int | None]:
     """GSI has no net worth; GPM x minutes is the gold earned so far."""
     earned = [
-        {"t": s["t"], "earned": round((s["gpm"] or 0) * s["t"] / 60)}
+        {"t": s["t"], "earned": round(s["gpm"] * s["t"] / 60)}
         for s in samples
-        if s.get("gpm") is not None and s.get("t") is not None
+        if count(s.get("gpm")) is not None and type(s.get("t")) is int
     ]
     return _per_minute(earned, "earned", duration)
 
@@ -401,6 +425,16 @@ def merge_facts(
     for key, value in gsi.items():
         if merged.get(key) in (None, [], {}) and value not in (None, [], {}):
             merged[key] = value
+    provenance = dict(opendota.get("provenance") or {})
+    for field, fact_key in (
+        ("obs_placed", "obs_placed"),
+        ("sen_placed", "sen_placed"),
+        ("lh10", "lh_t"),
+        ("lane_deaths", "deaths_log"),
+    ):
+        if not opendota.get(fact_key) and opendota.get(fact_key) != 0:
+            provenance[field] = (gsi.get("provenance") or {}).get(field)
+    merged["provenance"] = provenance
     # OpenDota knows who killed us, GSI knows how much gold we lost.
     if gsi.get("deaths_log"):
         merged["deaths_log"] = _merge_deaths(opendota.get("deaths_log") or [], gsi["deaths_log"])

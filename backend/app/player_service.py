@@ -1498,6 +1498,7 @@ class PlayerService:
             "rate_evidence": result["review"].get("rate_evidence", []),
             "farm_evidence": result["review"].get("farm_evidence", []),
             "farm_slice_evidence": result["review"].get("farm_slice_evidence", []),
+            "finding_evidence": result["review"].get("finding_evidence", []),
             "at": _now_iso(),
             "lang": lang,
         }
@@ -1527,6 +1528,7 @@ class PlayerService:
                         "rate_evidence": list(checker.rate_bindings.evidence.values()),
                         "farm_evidence": list(checker.farm_bindings.evidence.values()),
                         "farm_slice_evidence": checker.farm_bindings.slice_evidence,
+                        "finding_evidence": checker.finding_bindings.evidence,
                     }
                 )
         return returned

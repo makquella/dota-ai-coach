@@ -301,6 +301,34 @@ async function runRendererSecuritySmoke({ mainWindow, overlayWindow, skillArrows
     step(`coach farm evidence DOM (${language})`, rendered);
   }
 
+  for (const [language, label] of [["ru", "неполные данные"], ["en", "partial data"]]) {
+    const finding = await main.executeJavaScript(`(() => {
+      const row = {field:'obs_placed',source:'gsi.inventory_changes',precision:'inventory_estimate',value:0,observed_at:null,coverage:{start:900,end:1800,gaps:[[1200,1260]],complete:false}};
+      const node = window.WardlyFindingEvidence.render({id:'wards_low',params:{obs:0},evidence:[row]}, ${JSON.stringify(language)});
+      document.body.append(node); node.querySelector('summary').click();
+      const valid = node.open && node.textContent.includes(${JSON.stringify(label)}) && node.textContent.includes('15:00–30:00') && node.textContent.includes('20:00–21:00') && node.textContent.includes('gsi.inventory_changes') && !node.textContent.includes('undefined');
+      node.remove();
+      const bad = [{...row,value:'<img src=x onerror=alert(1)>'},{...row,source:'<b>unknown</b>'}];
+      const checked = window.WardlyCoachEvidence.render({finding_evidence:[row]}, ${JSON.stringify(language)});
+      return valid && checked && bad.every(value => window.WardlyFindingEvidence.renderRows([value], 'en') === null)
+        && window.WardlyFindingEvidence.render({id:'wards_low',params:{obs:2},evidence:[row]}, 'en') === null
+        && window.WardlyFindingEvidence.render({id:'__proto__',evidence:[row]}, 'en') === null;
+    })()`);
+    step(`finding measurement and recording coverage DOM (${language})`, finding);
+  }
+  const gaps = await main.executeJavaScript(`(() => {
+    const host = document.createElement('div'); document.body.append(host);
+    window.LauncherCharts.line(host,{series:[{label:'LH',values:[null,0,10,null,20,30,null],color:'#fff',area:true}],reference:{values:[0,1,null,3,4,null,6],label:'Target'}});
+    const lines = [...host.querySelectorAll('.chart-line')];
+    const valid = lines.length === 2 && lines.every(line => line.getAttribute('points').split(' ').length === 2)
+      && host.querySelectorAll('.chart-reference').length === 3 && !/NaN|Infinity/.test(host.innerHTML)
+      && host.querySelector('.chart-end').textContent === '30';
+    window.LauncherCharts.line(host,{series:[{values:[null,null,null],label:'Unknown',color:'#fff'}]});
+    const unknown = host.querySelectorAll('.chart-line').length === 0 && !/NaN|Infinity/.test(host.innerHTML);
+    host.remove(); return valid && unknown;
+  })()`);
+  step("unknown chart intervals break paths without invented zero", gaps);
+
   for (const [name, contents] of [["panel", main], ["overlay", overlayWindow.webContents]]) {
     const policy = await contents.executeJavaScript(`(async () => {
       const violations = [];

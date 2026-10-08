@@ -129,3 +129,11 @@ absence, unknown-vs-zero and evidence roundtrip. Existing real HTTP/SQLite
 review/question/cache tests continue. COACH_VERSION stays 4: verification policy
 is unchanged; changed compact facts naturally change their digest. Analysis/trim
 versions and live behavior stay the same.
+
+## First three finding groups in 0.53.38
+
+Vision, LH10 and early-death findings now have source measurements and recording
+coverage, plus semantic checks and RU/EN disclosure. See [FINDING_EVIDENCE.md](FINDING_EVIDENCE.md).
+ANALYSIS_VERSION is 21 and COACH_VERSION is 5; the older version descriptions above
+record their original patch behavior. F04's first-three-findings acceptance is
+prepared. This does not claim arbitrary prose, causality or career verification.

@@ -34,22 +34,22 @@ FINDINGS: dict[str, dict[str, dict[str, str]]] = {
     "lh10_great": {
         "ru": {
             "title": "Сильная линия",
-            "text": "{lh10} добиваний к 10-й минуте при цели {target}. Линию вы закончили с хорошим запасом золота.",
+            "text": "{lh10} добиваний к 10-й минуте при ориентире {target}.",
         },
         "en": {
             "title": "Strong lane",
-            "text": "{lh10} last hits by minute 10 with a {target} target. You left the lane with a solid gold lead.",
+            "text": "{lh10} last hits by minute 10 with a {target} reference target.",
         },
     },
     "lh10_low": {
         "ru": {
             "title": "Мало добиваний на линии",
-            "text": "{lh10} добиваний к 10-й минуте при цели {target} — это примерно {gold_lost} золота, которых не хватило к первому предмету.",
+            "text": "{lh10} добиваний к 10-й минуте при ориентире {target}.",
             "drill": "5–10 минут в «Демо героя» перед игрой: только добивания без соперника, цель — 45+ к 10:00. На линии бейте крипа, когда его HP ниже урона одной атаки.",
         },
         "en": {
             "title": "Few last hits in lane",
-            "text": "{lh10} last hits by minute 10 against a {target} target — about {gold_lost} gold missing from your first item.",
+            "text": "{lh10} last hits by minute 10 against a {target} reference target.",
             "drill": "5–10 minutes of Hero Demo before playing: last hits only, no enemy, aim for 45+ by 10:00. In lane, attack when the creep's HP is below one hit.",
         },
     },
@@ -88,12 +88,12 @@ FINDINGS: dict[str, dict[str, dict[str, str]]] = {
     "lane_deaths": {
         "ru": {
             "title": "Смерти на линии",
-            "text": "{count} {count_deaths} до 10-й минуты ({times}). Каждая — это ~300 золота и минута без опыта в самый важный отрезок игры.",
+            "text": "В данных записи: {count} {count_deaths} до 10-й минуты ({times}).",
             "drill": "Держитесь за своими крипами, когда у врага готовы способности и рядом нет вашего саппорта; при пропаже врага с карты отходите к вышке.",
         },
         "en": {
             "title": "Lane deaths",
-            "text": "{count} deaths before minute 10 ({times}). Each costs ~300 gold and a minute of experience at the most important stage.",
+            "text": "Recorded events: {count} deaths before minute 10 ({times}).",
             "drill": "Stay behind your creeps while enemy spells are up and your support is away; step back to the tower when an enemy goes missing.",
         },
     },
@@ -408,11 +408,11 @@ FINDINGS: dict[str, dict[str, dict[str, str]]] = {
     "wards_high": {
         "ru": {
             "title": "Хороший обзор",
-            "text": "{obs} обсервер-вардов и {sen} сентри — команда видела карту.",
+            "text": "В данных: {obs} обсервер-вардов и {sen} сентри. Способ подсчёта указан в источнике.",
         },
         "en": {
             "title": "Good vision",
-            "text": "{obs} observer and {sen} sentry wards — the team could see the map.",
+            "text": "Data reports {obs} observer and {sen} sentry wards. See the evidence for the counting method.",
         },
     },
     "wards_low": {
@@ -942,6 +942,10 @@ def _prepared_params(finding: dict[str, Any], lang: str) -> dict[str, Any]:
 
 
 class _SafeDict(dict):
+    def __getitem__(self, key: str) -> Any:
+        value = super().__getitem__(key)
+        return "—" if value is None else value
+
     def __missing__(self, key: str) -> str:
         return "—"
 

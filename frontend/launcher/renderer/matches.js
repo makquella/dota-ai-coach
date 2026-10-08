@@ -1546,6 +1546,7 @@
           h("h2", { class: "review-hero", text: headline.hero || summary.hero || "—" }),
           h("p", { class: "review-meta" }, resultBadge(win), h("span", { class: "muted", text: `· ${relativeTime(summary.start_time)} · #${detail.match_id}` }), matchSiteLinks(detail.match_id)),
           h("p", { class: "review-source" }, icon(analysis && analysis.parsed ? "circle-check" : "info"), h("span", { text: sourceText })),
+          window.WardlyFindingEvidence.renderCoverage(analysis?.recording_coverage, state.locale),
           statusText ? h("p", { class: "muted small", text: statusText }) : null,
           baselineLine(detail.baseline),
           detail.focus
@@ -1696,6 +1697,7 @@
         { class: "finding-body" },
         h("p", { class: "finding-title" }, h("span", { text: finding.title }), finding.section_label ? h("span", { class: "tag", text: finding.section_label }) : null),
         h("p", { class: "finding-text", text: finding.text }),
+        window.WardlyFindingEvidence.render(finding, state.locale),
         repeatNote(repeats && repeats[finding.id]),
         finding.drill ? h("p", { class: "finding-drill" }, icon("lightbulb"), h("span", {}, h("strong", { text: `${t("drill")}: ` }), finding.drill)) : null
       )

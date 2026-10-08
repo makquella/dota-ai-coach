@@ -40,7 +40,7 @@
   }
 
   function formatNumber(value) {
-    if (value === null || value === undefined || Number.isNaN(value)) {
+    if (typeof value !== "number" || !Number.isFinite(value)) {
       return "—";
     }
     const abs = Math.abs(value);
@@ -138,7 +138,7 @@
     const strip = icons.length ? ICON_H + 10 : 0;
     const all = series.flatMap((s) => s.values).concat(reference ? reference.values.slice(0, count) : []);
     // 3-5 gridline steps, each a round number (0 / 50 / 100 / 150 / 200 / 250).
-    const dataMax = Math.max(...all.filter((v) => typeof v === "number"));
+    const dataMax = Math.max(0, ...all.filter((v) => typeof v === "number" && Number.isFinite(v)));
     const yStep = niceMax(dataMax / 5);
     const ySteps = Math.max(3, Math.ceil(dataMax / yStep));
     const yMax = yStep * ySteps;
@@ -166,21 +166,36 @@
       const label = el("text", { x: x(i), y: height - 8, class: "chart-tick", "text-anchor": "middle" }, svg);
       label.textContent = options.xLabel ? options.xLabel(i) : String(i);
     }
+    // Unknown intervals break the path instead of drawing an invented zero.
+    const segments = values => {
+      const groups = []; let group = [];
+      values.forEach((v, i) => {
+        if (typeof v === "number" && Number.isFinite(v)) group.push([x(i), y(v), i]);
+        else if (group.length) { groups.push(group); group = []; }
+      });
+      if (group.length) groups.push(group);
+      return groups;
+    };
     if (reference) {
-      const points = reference.values.slice(0, count).map((v, i) => `${x(i)},${y(v)}`).join(" ");
-      el("polyline", { points, class: "chart-reference" }, svg);
+      for (const group of segments(reference.values.slice(0, count))) {
+        el("polyline", { points: group.map(p => `${p[0]},${p[1]}`).join(" "), class: "chart-reference" }, svg);
+      }
     }
     for (const s of series) {
-      const points = s.values.map((v, i) => [x(i), y(v || 0)]);
-      if (s.area) {
-        const d = `M${points[0][0]},${y(0)} L${points.map((p) => p.join(",")).join(" L")} L${points[points.length - 1][0]},${y(0)} Z`;
-        el("path", { d, fill: s.color, "fill-opacity": 0.1, stroke: "none" }, svg);
+      const groups = segments(s.values);
+      for (const points of groups) {
+        if (s.area) {
+          const d = `M${points[0][0]},${y(0)} L${points.map(p => `${p[0]},${p[1]}`).join(" L")} L${points[points.length - 1][0]},${y(0)} Z`;
+          el("path", { d, fill: s.color, "fill-opacity": 0.1, stroke: "none" }, svg);
+        }
+        el("polyline", { points: points.map(p => `${p[0]},${p[1]}`).join(" "), class: "chart-line", stroke: s.color, ...(s.dashed ? { "stroke-dasharray": "5 4" } : {}) }, svg);
       }
-      el("polyline", { points: points.map((p) => p.join(",")).join(" "), class: "chart-line", stroke: s.color, ...(s.dashed ? { "stroke-dasharray": "5 4" } : {}) }, svg);
-      const last = points[points.length - 1];
-      el("circle", { cx: last[0], cy: last[1], r: 4, fill: s.color, class: "chart-dot" }, svg);
-      const endLabel = el("text", { x: last[0] + 8, y: last[1] + 4, class: "chart-end" }, svg);
-      endLabel.textContent = formatNumber(s.values[s.values.length - 1]);
+      const last = groups.at(-1)?.at(-1);
+      if (last) {
+        el("circle", { cx: last[0], cy: last[1], r: 4, fill: s.color, class: "chart-dot" }, svg);
+        const endLabel = el("text", { x: last[0] + 8, y: last[1] + 4, class: "chart-end" }, svg);
+        endLabel.textContent = formatNumber(s.values[last[2]]);
+      }
     }
     // Event markers (e.g. deaths) on the baseline.
     for (const marker of options.markers || []) {

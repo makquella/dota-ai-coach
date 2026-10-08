@@ -9,6 +9,9 @@
 
   const TEXT = {
     en: {
+      "0.53.38": [
+        "Ward, last-hit-at-10 and early-death findings show their measurement source. Partial recordings stay unknown, inventory counts are labeled estimates, and AI checks these claims against their own data."
+      ],
       "0.53.37": [
         "Profile API preserves unknown rating and winrate, zero totals, signed estimates and complete shop/achievement data through a validated core contract."
       ],
@@ -430,6 +433,9 @@
       ]
     },
     ru: {
+      "0.53.38": [
+        "Выводы о вардах, добиваниях к 10:00 и ранних смертях показывают источник измерения. Пропуски записи остаются неизвестными, подсчёт по инвентарю помечен как оценка, а AI проверяет эти утверждения по своим данным."
+      ],
       "0.53.37": [
         "API профиля сохраняет неизвестный рейтинг и процент побед, нулевые счётчики, оценки со знаком и полные данные магазина/наград через проверяемый контракт основных полей."
       ],

@@ -11,6 +11,8 @@ import re
 from collections.abc import Mapping
 from typing import Literal, TypedDict
 
+from app.finding_evidence import validated_evidence
+
 CombatMetric = Literal["kills", "deaths", "assists"]
 METRICS: tuple[CombatMetric, ...] = ("kills", "deaths", "assists")
 
@@ -250,7 +252,13 @@ FarmSubject = Literal["player", "opponent"]
 
 
 class FarmSliceEvidence(TypedDict):
-    source: Literal["analysis.lane.points", "analysis.peers.me", "analysis.peers.peers[0].metrics"]
+    source: Literal[
+        "analysis.lane.points",
+        "analysis.peers.me",
+        "analysis.peers.peers[0].metrics",
+        "opendota.lh_t",
+        "gsi.samples",
+    ]
     field: FarmMetric
     subject: FarmSubject
     hero: str | None
@@ -299,7 +307,7 @@ def farm_slice_evidence(lane: Mapping[str, object]) -> list[FarmSliceEvidence]:
 def _peer_farm_slice_evidence(context: Mapping[str, object]) -> list[FarmSliceEvidence]:
     peers = context.get("peers")
     if not isinstance(peers, dict):
-        return []
+        peers = {}
     me = peers.get("me")
     others = peers.get("peers")
     opponent = (
@@ -325,6 +333,27 @@ def _peer_farm_slice_evidence(context: Mapping[str, object]) -> list[FarmSliceEv
                 "observed_at": 600,
                 "precision": "reported_sample",
                 "value": value,
+            }
+        )
+    finding = validated_evidence(context.get("finding_lh10"))
+    player_hero = context.get("hero")
+    if (
+        finding
+        and finding["field"] == "lh10"
+        and finding["precision"] == "sample"
+        and not any(row["subject"] == "player" for row in out)
+    ):
+        out.append(
+            {
+                "source": "opendota.lh_t"
+                if finding["source"] == "opendota.lh_t"
+                else "gsi.samples",
+                "field": "last_hits",
+                "subject": "player",
+                "hero": player_hero if isinstance(player_hero, str) else None,
+                "observed_at": 600,
+                "precision": "reported_sample",
+                "value": finding["value"],
             }
         )
     return out

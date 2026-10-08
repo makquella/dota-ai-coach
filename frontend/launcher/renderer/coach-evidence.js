@@ -29,10 +29,12 @@ window.WardlyCoachEvidence = {
       row.observed_at === 600 && row.precision === "reported_sample" &&
       Number.isSafeInteger(row.value) && row.value >= 0 &&
       (row.source === "analysis.lane.points" ||
+        (["opendota.lh_t", "gsi.samples"].includes(row.source) && row.subject === "player" && row.field === "last_hits") ||
         (row.source === "analysis.peers.me" && row.subject === "player" && row.field === "last_hits") ||
         (row.source === "analysis.peers.peers[0].metrics" && row.subject === "opponent" && row.field === "last_hits"))
     );
-    if (!rows.length && !rates.length && !farm.length && !samples.length) return null;
+    const finding = window.WardlyFindingEvidence.renderRows(review?.finding_evidence, language);
+    if (!rows.length && !rates.length && !farm.length && !samples.length) return finding;
     const details = document.createElement("details");
     details.className = "coach-counter-evidence muted small";
     const summary = document.createElement("summary");
@@ -57,6 +59,7 @@ window.WardlyCoachEvidence = {
       ? "Итоговые счётчики из разбора матча. Они не подтверждают время и причины событий; цели следующей игры проверяются отдельно."
       : "Reported totals from the match analysis. They do not prove event times or causes; next-game goals are checked separately.";
     details.append(summary, values, scope);
+    if (finding) details.append(finding);
     return details;
   }
 };
