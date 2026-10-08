@@ -45,6 +45,7 @@ from app.player_contracts import (
     MatchListResponse,
     MatchNotFoundResponse,
     PlayerStatusResponse,
+    ProfileResponse,
 )
 from app.player_profile import public_card
 from app.player_service import PlayerService
@@ -317,8 +318,13 @@ class MmrRequest(BaseModel):
     mmr: int
 
 
-@router.get("/profile", summary="The profile tab: rating graph, level, achievements, sparks")
-def player_profile(lang: str = "en"):
+@router.get(
+    "/profile",
+    response_model=ProfileResponse,
+    response_model_exclude_unset=True,
+    summary="The profile tab: rating graph, level, achievements, sparks",
+)
+def player_profile(lang: str = "en") -> dict[str, Any]:
     return {"profile": PLAYER_SERVICE.profile(normalize_lang(lang))}
 
 
@@ -330,8 +336,13 @@ def player_profile_public(lang: str = "en", mmr: bool = True):
     return {"card": public_card(profile, normalize_lang(lang), show_mmr=mmr)}
 
 
-@router.post("/profile/mmr", summary="The player's MMR now (an anchor of the rating graph)")
-def set_mmr(request: MmrRequest, lang: str = "en"):
+@router.post(
+    "/profile/mmr",
+    response_model=ProfileResponse,
+    response_model_exclude_unset=True,
+    summary="The player's MMR now (an anchor of the rating graph)",
+)
+def set_mmr(request: MmrRequest, lang: str = "en") -> dict[str, Any] | JSONResponse:
     try:
         PLAYER_SERVICE.set_mmr(request.mmr)
     except ValueError as error:
@@ -343,8 +354,13 @@ class ShopRequest(BaseModel):
     id: str
 
 
-@router.post("/shop/buy", summary="Buy a profile look with sparks (and wear it)")
-def shop_buy(request: ShopRequest, lang: str = "en"):
+@router.post(
+    "/shop/buy",
+    response_model=ProfileResponse,
+    response_model_exclude_unset=True,
+    summary="Buy a profile look with sparks (and wear it)",
+)
+def shop_buy(request: ShopRequest, lang: str = "en") -> dict[str, Any] | JSONResponse:
     try:
         profile = PLAYER_SERVICE.shop_action("buy", request.id, normalize_lang(lang))
     except ValueError as error:
@@ -352,8 +368,13 @@ def shop_buy(request: ShopRequest, lang: str = "en"):
     return {"profile": profile}
 
 
-@router.post("/shop/equip", summary="Wear a profile look the player owns")
-def shop_equip(request: ShopRequest, lang: str = "en"):
+@router.post(
+    "/shop/equip",
+    response_model=ProfileResponse,
+    response_model_exclude_unset=True,
+    summary="Wear a profile look the player owns",
+)
+def shop_equip(request: ShopRequest, lang: str = "en") -> dict[str, Any] | JSONResponse:
     try:
         profile = PLAYER_SERVICE.shop_action("equip", request.id, normalize_lang(lang))
     except ValueError as error:
@@ -361,8 +382,13 @@ def shop_equip(request: ShopRequest, lang: str = "en"):
     return {"profile": profile}
 
 
-@router.delete("/profile/mmr", summary="Forget the typed-in MMR (back to the medal estimate)")
-def clear_mmr(lang: str = "en"):
+@router.delete(
+    "/profile/mmr",
+    response_model=ProfileResponse,
+    response_model_exclude_unset=True,
+    summary="Forget the typed-in MMR (back to the medal estimate)",
+)
+def clear_mmr(lang: str = "en") -> dict[str, Any]:
     PLAYER_SERVICE.clear_mmr()
     return {"profile": PLAYER_SERVICE.profile(normalize_lang(lang))}
 

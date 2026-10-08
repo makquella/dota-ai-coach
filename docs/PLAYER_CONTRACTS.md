@@ -131,3 +131,36 @@ unknown results, zero/partial averages and nested extension retention. Schema
 and malformed values are checked. Source/Windows Electron smoke opens genuine
 Progress for the isolated 32-match fixture, checks unknown KDA and 52% from
 16 wins/15 losses/one unknown, filters Juggernaut and clears it in RU/EN.
+
+## Profile in 0.53.37
+
+`ProfileResponse` validates the success responses of `GET /player/profile`,
+`POST`/`DELETE /player/profile/mmr` and both shop actions. Required nullable
+`profile` retains exactly `{"profile": null}` for an unlinked player. Nested
+player, level, stats, sparks, rating and rating-point models validate their
+core and preserve extensions. Achievements, cosmetics and shop rows remain
+unvalidated extensions; the public friends-card contract is a separate boundary.
+
+Player name/avatar/rank remain nullable. Level/XP, match/win counts and sparks
+are nonnegative safe integers; level and next-level cost are positive. Unknown
+winrate stays null and known percentage is a 0–100 integer. Hours are finite
+nonnegative numbers. Rating source retains manual/medal, nullable rating stays
+unknown, and estimated MMR and changes use signed safe integers: the existing
+graph can extrapolate below zero. This validates its wire values without
+changing rating calculations. Point time is an integer; optional nullable game,
+hero, result and anchor keys retain their exact presence with exclude-unset.
+Match IDs keep the existing stored int64 format.
+
+Malformed core output raises server validation failure instead of numeric
+coercion. Complete HTTP responses are compared with actual SQLite/service
+output for unlinked/empty, unknown results, manual zero/positive MMR, medal
+estimates, signed graphs and RU/EN. Real MMR save/clear and funded cosmetic
+purchase/equip exercise every success endpoint; normal error responses remain.
+Validation checks cover invalid nested numbers/booleans/strings, nonfinite
+hours, extension retention and the five published OpenAPI schemas. JS JSDoc
+mirrors the core. Source/Windows smoke retains actual Profile/friends IPC,
+MMR save/clear, locale and account transitions from 0.53.36.
+
+Analysis/coach/cache versions and stored history do not change. F12 remains
+partial: nested achievements/shop, public card, other mutations, facts and
+overlay responses still require their own contracts.

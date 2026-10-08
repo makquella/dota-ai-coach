@@ -9,6 +9,9 @@
 
   const TEXT = {
     en: {
+      "0.53.37": [
+        "Profile API preserves unknown rating and winrate, zero totals, signed estimates and complete shop/achievement data through a validated core contract."
+      ],
       "0.53.36": [
         "Delayed profile, rating, shop and friends responses cannot replace the current account, tab or language; linking from Profile reloads that screen."
       ],
@@ -427,6 +430,9 @@
       ]
     },
     ru: {
+      "0.53.37": [
+        "API профиля сохраняет неизвестный рейтинг и процент побед, нулевые счётчики, оценки со знаком и полные данные магазина/наград через проверяемый контракт основных полей."
+      ],
       "0.53.36": [
         "Запоздалые ответы профиля, рейтинга, магазина и друзей не заменяют текущий аккаунт, вкладку или язык; привязка из профиля перезагружает его экран."
       ],

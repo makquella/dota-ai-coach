@@ -1,16 +1,18 @@
-"""Validated player status/list/detail/progress cores; extensions stay intact."""
+"""Validated player status/list/detail/progress/profile cores; preserve extensions."""
 
 from __future__ import annotations
 
 from typing import Annotated, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, StrictInt
+from pydantic import BaseModel, ConfigDict, Field, StrictFloat, StrictInt
 
 CombatCount = Annotated[StrictInt, Field(ge=0, le=2**53 - 1)]
 StoredMatchId = Annotated[StrictInt, Field(ge=0, le=2**63 - 1)]
 Count = CombatCount
 StoredAccountId = StoredMatchId
 Percent = Annotated[StrictInt, Field(ge=0, le=100)]
+SignedCount = Annotated[StrictInt, Field(ge=-(2**53 - 1), le=2**53 - 1)]
+Hours = Annotated[StrictFloat, Field(ge=0, allow_inf_nan=False)]
 
 
 class ExtensibleResponse(BaseModel):
@@ -150,3 +152,68 @@ class CareerResponse(ExtensibleResponse):
     hero_filter: Count | None = None
     hero_choices: list[MatchHeroCount] | None = None
     series: list[CareerSeriesItem] | None = None
+
+
+class ProfilePlayer(ExtensibleResponse):
+    name: str | None
+    avatar_url: str | None
+    rank_tier: Count | None
+    rank_label: str | None
+
+
+class ProfileLevel(ExtensibleResponse):
+    level: Annotated[Count, Field(ge=1)]
+    xp: Count
+    into: Count
+    need: Annotated[Count, Field(ge=1)]
+
+
+class ProfileStats(ExtensibleResponse):
+    app_games: Count
+    app_wins: Count
+    app_winrate: Percent | None
+    app_hours: Hours
+    all_games: Count
+    week_games: Count
+
+
+class ProfileSparks(ExtensibleResponse):
+    balance: Count
+    earned: Count
+    spent: Count
+
+
+class ProfileRatingPoint(ExtensibleResponse):
+    t: StrictInt
+    mmr: SignedCount
+    win: bool | None = None
+    hero_id: Count | None = None
+    match_id: StoredMatchId | None = None
+    anchor: bool | None = None
+
+
+class ProfileRating(ExtensibleResponse):
+    source: Literal["manual", "medal"]
+    # The existing graph extrapolates backwards; estimates can be negative.
+    current: SignedCount
+    peak: SignedCount
+    lowest: SignedCount
+    gain_from_lowest: Count
+    change_20: SignedCount
+    wins_20: Count
+    losses_20: Count
+    games: Count
+    step: Count
+    points: list[ProfileRatingPoint]
+
+
+class ProfileCore(ExtensibleResponse):
+    player: ProfilePlayer
+    level: ProfileLevel
+    rating: ProfileRating | None
+    stats: ProfileStats
+    sparks: ProfileSparks
+
+
+class ProfileResponse(ExtensibleResponse):
+    profile: ProfileCore | None

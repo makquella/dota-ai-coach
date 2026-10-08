@@ -1,4 +1,4 @@
-/* Validated player status/list/detail/progress cores; see app/player_contracts.py. */
+/* Validated player status/list/detail/progress/profile cores; see app/player_contracts.py. */
 (function (root, factory) {
   "use strict";
   const api = factory();
@@ -78,6 +78,34 @@
    * @property {{hero_id:number,hero:string|null,games:number}[]|null} [hero_choices]
    * @property {{match_id:number,hero:string|null,win:boolean|null}[]|null} [series]
    * Averages, trends, findings, coach/questions and other nested extensions remain intact.
+   */
+
+  /**
+   * @typedef {Object} Profile
+   * @property {{name:string|null,avatar_url:string|null,rank_tier:number|null,rank_label:string|null}} player
+   * @property {{level:number,xp:number,into:number,need:number}} level Nonnegative safe integers; level/need are positive.
+   * @property {{app_games:number,app_wins:number,app_winrate:number|null,app_hours:number,all_games:number,week_games:number}} stats
+   * @property {{balance:number,earned:number,spent:number}} sparks Nonnegative safe integers.
+   * @property {ProfileRating|null} rating Null when no anchor or medal is known.
+   * Winrate is a nullable 0-100 integer; hours are finite and nonnegative.
+   * Existing achievements, cosmetics and shop extensions remain intact.
+   * Profile/MMR/shop success responses wrap this as {profile: Profile|null}.
+   */
+
+  /**
+   * @typedef {Object} ProfileRating
+   * @property {"manual"|"medal"} source
+   * @property {number} current Signed safe integer; existing extrapolation can be negative.
+   * @property {number} peak
+   * @property {number} lowest
+   * @property {number} change_20 Signed safe integer.
+   * @property {number} gain_from_lowest Nonnegative safe integer.
+   * @property {number} wins_20
+   * @property {number} losses_20
+   * @property {number} games
+   * @property {number} step
+   * @property {{t:number,mmr:number,win?:boolean|null,hero_id?:number|null,match_id?:number|null,anchor?:boolean|null}[]} points
+   * Anchor points omit game keys; game points omit anchor. Extra fields survive.
    */
 
   /**
