@@ -18,7 +18,7 @@
 | F10 | P2 | Согласованный runtime snapshot и ownership MatchMemory; concurrent publish/read/reset без disk/network под lock | Не реализовано |
 | F11 | P2 | Atomic conditional transfer claims и conflict-safe insert; migrations + concurrency на local D1 | Подготовлено в 0.53.11; реальные D1 проверки — [TRANSFER_ATOMICITY.md](TRANSFER_ATOMICITY.md) |
 | F12 | P2 | DTO/contract tests важных player/detail/facts ответов и их JS consumers | Не реализовано |
-| F13 | P2 | Извлекать jobs/locales/detail controller по одной границе с behavior/UI tests | Не реализовано |
+| F13 | P2 | Извлекать jobs/locales/detail controller по одной границе с behavior/UI tests | Первый slice в 0.53.14: independent JobQueue + fresh-process/real-thread tests; UI slices остаются |
 | F14 | P2 | Locked mypy + baseline и blocking checks чистых модулей; долг не растёт | Подготовлено в 0.53.9; 226 известных ошибок, blocking gate — [TYPE_CHECKING.md](TYPE_CHECKING.md) |
 | F15 | P2 | Reusable validation проверяет тот же SHA до release publish | Подготовлено в 0.53.10; протокол — [RELEASE_VALIDATION.md](RELEASE_VALIDATION.md) |
 | F16 | P2 | Canonical npm syntax check, отмена superseded PR CI; meaningful-path Windows gating со стабильным required summary | Первая часть слита в #101; gating подготовлен в 0.53.12 — [WINDOWS_CI_SCOPE.md](WINDOWS_CI_SCOPE.md) |

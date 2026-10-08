@@ -5,6 +5,7 @@
   "clean_modules": [
     "app/coach_evidence.py",
     "app/diagnostics.py",
+    "app/job_queue.py",
     "app/local_api_auth.py",
     "app/local_api_security.py",
     "app/player_store.py",

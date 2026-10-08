@@ -1,5 +1,12 @@
 # Background job lifetime
 
+From 0.53.14, the canonical executor and stop-budget constant live in
+`app.job_queue`, independently of PlayerService, SQLite, HTTP and providers.
+`app.player_service.JobQueue` and `JOB_STOP_TIMEOUT_SECONDS` remain reexports of
+the same class/value for existing callers. The extraction preserves the queue
+methods, Condition ownership, retry semantics, diagnostics and shutdown behavior
+described below; PlayerService still owns both queue instances and the store.
+
 From 0.53.5, `JobQueue` protects queued keys, its running key and worker creation
 with one `Condition`. A key remains outstanding through callback completion.
 `submit()` returns false for a queued duplicate, an external duplicate of a

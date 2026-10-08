@@ -13,10 +13,11 @@ import pytest
 from fastapi.testclient import TestClient
 from match_fixtures import MATCH_ID, ME, FakeOpenDota, opendota_match
 
+from app.job_queue import JobQueue
 from app.local_api_auth import LOCAL_API_AUTH, LOCAL_API_URL
 from app.main import app
 from app.player_api import PLAYER_SERVICE
-from app.player_service import JobQueue, PlayerService
+from app.player_service import PlayerService
 from app.player_store import PlayerStore
 
 
