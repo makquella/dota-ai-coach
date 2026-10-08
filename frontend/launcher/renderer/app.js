@@ -363,6 +363,9 @@ const I18N = {
     tourHint: "A short tour of the app, one minute",
     tourStart: "Show",
     whatsNew: {
+      "0.53.23": [
+        "A delayed demo frame cannot restore the overlay after session reset or replace a newer demo frame."
+      ],
       "0.53.22": [
         "Map, skill and shop tips update together; hints prepared before a session reset are discarded."
       ],
@@ -1236,6 +1239,9 @@ const I18N = {
     tourHint: "Короткая экскурсия по приложению, на минуту",
     tourStart: "Показать",
     whatsNew: {
+      "0.53.23": [
+        "Задержавшийся демо-кадр не возвращает оверлей после сброса сессии и не заменяет более новый кадр."
+      ],
       "0.53.22": [
         "Подсказки карты, прокачки и покупок обновляются вместе; подготовленные до сброса сессии подсказки отбрасываются."
       ],

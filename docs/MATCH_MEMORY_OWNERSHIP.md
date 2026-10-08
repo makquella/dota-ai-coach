@@ -50,7 +50,10 @@ Remaining F10 boundaries:
   bypass ownership if accessed directly.
 - The whole overlay response, demo response cache, scheduler, PlayerService
   trackers and GSI register do not form one atomic epoch. A demo can publish its
-  response after a reset; core memory itself remains serialized.
+  response after a reset; core memory itself remains serialized. Demo cache
+  publication is guarded separately in 0.53.23; see
+  [DEMO_OVERLAY_CACHE.md](DEMO_OVERLAY_CACHE.md). Demo processing is not atomic
+  with scheduler/coach reset.
 - The role-prior metadata lookup was moved outside the separate GSI writer
   owner in 0.53.19; role reads now use an owned snapshot method. See
   [GSI_ROLE_PREPARATION.md](GSI_ROLE_PREPARATION.md).

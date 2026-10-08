@@ -37,7 +37,8 @@ separate invocation. The whole-app baseline still checks those imported
 modules; this does not claim they have become strictly typed.
 
 Remaining F10 scope: the whole overlay response/GSI/metadata/scheduler is not
-one atomic epoch; demo response-cache publication and PlayerService/history
-ownership remain separate. A main card can still finish computing after reset.
+one atomic epoch; demo response-cache publication gains a separate guard in
+0.53.23 ([DEMO_OVERLAY_CACHE.md](DEMO_OVERLAY_CACHE.md)). Demo execution and
+PlayerService/history ownership remain separate. A main card can still finish computing after reset.
 Legacy mutable attributes exist for internal code/tests and bypass ownership
 if accessed directly. No new background history or recording worker is added.

@@ -92,6 +92,7 @@ jobs:
           python -m mypy --strict app/coach_evidence.py
           python -m mypy --strict app/job_queue.py
           python -m mypy --strict app/gsi_snapshot.py
+          python -m mypy --strict app/demo_overlay_cache.py
           python -m mypy --strict app/player_contracts.py
           python -m mypy --strict --follow-imports=silent app/live_hints.py
 

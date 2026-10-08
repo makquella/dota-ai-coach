@@ -5,6 +5,7 @@ main.py — FastAPI application entry point for Wardly (formerly Dota AI Coach) 
 from collections.abc import AsyncIterator, Mapping
 from contextlib import asynccontextmanager
 from datetime import UTC, datetime, timedelta
+from time import monotonic
 from typing import Any
 
 from fastapi import FastAPI, Request
@@ -34,6 +35,7 @@ from app.config import (
     WRITABLE_DIR,
 )
 from app.decision_points import detect_decision_point
+from app.demo_overlay_cache import DemoOverlayCache, DemoToken
 from app.diagnostics import recent_errors, record_error, runtime_info
 from app.game_plan import SHOW_FROM_CLOCK as GAME_PLAN_SHOW_FROM_CLOCK
 from app.game_plan import SHOW_UNTIL_CLOCK as GAME_PLAN_SHOW_UNTIL_CLOCK
@@ -107,7 +109,7 @@ app = LocalApiApp(
     lifespan=_lifespan,
     title="Wardly",
     description="MVP-1: rule-based carry coach with local knowledge-base RAG.",
-    version="0.53.22",
+    version="0.53.23",
 )
 app.include_router(player_router)
 
@@ -122,9 +124,8 @@ app.add_middleware(
 app.add_middleware(LocalApiSecurity, auth=LOCAL_API_AUTH, port=BACKEND_PORT)
 
 FRONTEND_DIR = RESOURCE_ROOT / "frontend"
-_DEMO_OVERLAY_RESPONSE: dict[str, object] | None = None
-_DEMO_OVERLAY_EXPIRES_AT: datetime | None = None
 _DEMO_CACHE_SECONDS = 8
+_DEMO_OVERLAY_CACHE = DemoOverlayCache(ttl_seconds=_DEMO_CACHE_SECONDS)
 
 if FRONTEND_DIR.exists():
     app.mount("/frontend", StaticFiles(directory=FRONTEND_DIR, html=True), name="frontend")
@@ -133,7 +134,7 @@ if FRONTEND_DIR.exists():
 @app.get("/", summary="Health check")
 def root():
     """Simple health-check endpoint."""
-    return {"status": "ok", "service": "Wardly", "version": "0.53.22"}
+    return {"status": "ok", "service": "Wardly", "version": "0.53.23"}
 
 
 @app.get("/health", summary="Health check")
@@ -324,8 +325,8 @@ def reset_session():
         ADVICE_SCHEDULER.reset()
         COACH_SESSION_HISTORY.reset()
 
-    reset_latest_gsi(reset_context)
-    _clear_demo_overlay_response()
+    with _DEMO_OVERLAY_CACHE.resetting():
+        reset_latest_gsi(reset_context)
     return {
         "status": "ok",
         "detail": "Live GSI, match memory, overlay scheduler, and coach summary reset.",
@@ -780,6 +781,7 @@ async def demo_replay_state(request: Request):
             content={"status": "error", "detail": "Payload must contain a state object."},
         )
 
+    token = _DEMO_OVERLAY_CACHE.reserve()
     timestamp_seconds = _safe_int(payload.get("timestamp_seconds"), 0)
     state = dict(payload["state"])
     extra_context = (
@@ -804,7 +806,7 @@ async def demo_replay_state(request: Request):
         }
     )
     COACH_SESSION_HISTORY.record_overlay_advice(response, state)
-    _set_demo_overlay_response(response)
+    _set_demo_overlay_response(response, token)
     return {"status": "ok", "overlay": response}
 
 
@@ -1500,22 +1502,13 @@ def _format_game_time(timestamp_seconds: int) -> str:
     return f"{timestamp_seconds // 60:02d}:{timestamp_seconds % 60:02d}"
 
 
-def _set_demo_overlay_response(response: dict[str, object]) -> None:
-    global _DEMO_OVERLAY_RESPONSE, _DEMO_OVERLAY_EXPIRES_AT
-    _DEMO_OVERLAY_RESPONSE = response
-    _DEMO_OVERLAY_EXPIRES_AT = datetime.now(UTC) + timedelta(seconds=_DEMO_CACHE_SECONDS)
+def _set_demo_overlay_response(response: dict[str, object], token: DemoToken) -> bool:
+    return _DEMO_OVERLAY_CACHE.publish(response, token, now=monotonic())
 
 
 def _get_demo_overlay_response() -> dict[str, object] | None:
-    if _DEMO_OVERLAY_RESPONSE is None or _DEMO_OVERLAY_EXPIRES_AT is None:
-        return None
-    if datetime.now(UTC) > _DEMO_OVERLAY_EXPIRES_AT:
-        _clear_demo_overlay_response()
-        return None
-    return _DEMO_OVERLAY_RESPONSE
+    return _DEMO_OVERLAY_CACHE.capture(now=monotonic())
 
 
 def _clear_demo_overlay_response() -> None:
-    global _DEMO_OVERLAY_RESPONSE, _DEMO_OVERLAY_EXPIRES_AT
-    _DEMO_OVERLAY_RESPONSE = None
-    _DEMO_OVERLAY_EXPIRES_AT = None
+    _DEMO_OVERLAY_CACHE.clear()
