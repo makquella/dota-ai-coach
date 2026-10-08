@@ -89,6 +89,7 @@ jobs:
           python -m mypy --strict ../scripts/check_types.py
           python -m mypy --strict ../scripts/verify_source.py
           python -m mypy --strict ../scripts/windows_checks.py
+          python -m mypy --strict app/coach_evidence.py
 
       - name: Tests (pytest)
         run: pytest -q

@@ -29,6 +29,27 @@ async function runRendererSecuritySmoke({ mainWindow, overlayWindow, skillArrows
     await main.executeJavaScript(`window.launcherApi.setLanguage(${JSON.stringify(originalLanguage)})`);
   }
 
+  for (const [language, label] of [["ru", "Убийства: 0"], ["en", "Kills: 0"]]) {
+    const rendered = await main.executeJavaScript(`(async () => {
+      const row = { source: 'analysis.headline', field: 'kills', observed_at: null, precision: 'reported_total', value: 0 };
+      const node = window.WardlyCoachEvidence.render({ counter_evidence: [row] }, ${JSON.stringify(language)});
+      document.body.append(node);
+      node.querySelector('summary').click();
+      await new Promise(requestAnimationFrame);
+      const valid = node.open && node.textContent.includes(${JSON.stringify(label)}) && node.querySelectorAll('p').length === 2;
+      node.remove();
+      return valid;
+    })()`);
+    step(`coach counter evidence DOM (${language})`, rendered);
+  }
+  const rejected = await main.executeJavaScript(`(() => {
+    const row = { source: 'analysis.headline', field: 'kills', observed_at: null, precision: 'reported_total', value: '<img src=x onerror=alert(1)>' };
+    return window.WardlyCoachEvidence.render({ counter_evidence: [row] }, 'en') === null
+      && window.WardlyCoachEvidence.render({}, 'ru') === null
+      && window.WardlyCoachEvidence.render({ counter_evidence: [{...row, value: 2, source: 'unknown'}] }, 'en') === null;
+  })()`);
+  step("coach evidence rejects malformed data and supports legacy reviews", rejected);
+
   for (const [name, contents] of [["panel", main], ["overlay", overlayWindow.webContents]]) {
     const policy = await contents.executeJavaScript(`(async () => {
       const violations = [];

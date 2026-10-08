@@ -3,6 +3,7 @@
   "mypy_version": "2.4.0",
   "python_target": "3.11",
   "clean_modules": [
+    "app/coach_evidence.py",
     "app/diagnostics.py",
     "app/local_api_auth.py",
     "app/local_api_security.py",

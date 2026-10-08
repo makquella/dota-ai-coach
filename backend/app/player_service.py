@@ -43,7 +43,9 @@ from app.analysis_texts import rank_label, render_analysis
 from app.career_analysis import NOT_RECURRING, analyze_career
 from app.coach_llm import PROVIDERS, AISettings, CoachLLM, CoachLLMError, settings_from
 from app.coach_review import (
+    COACH_VERSION,
     QUESTION_LIMIT,
+    FactChecker,
     answer_question,
     career_facts,
     facts_hash,
@@ -1137,7 +1139,7 @@ class PlayerService:
         detail["coach"] = self._match_coach(primary, match_id, detail, lang, force=force_coach)
         detail["baseline"] = self._baseline(primary, record, analysis)
         detail["best_on_hero"] = self._best_on_hero(primary, record, analysis)
-        detail["questions"] = self._questions(primary, match_id)
+        detail["questions"] = self._questions(primary, match_id, facts=match_facts(detail))
         current = self._focus(primary)
         detail["focus_id"] = current["id"] if current else None
         # The review's top problems that can become the player's focus.
@@ -1637,16 +1639,36 @@ class PlayerService:
         entry = {
             "question": " ".join(str(question).split())[:QUESTION_LIMIT],
             "answer": result["review"]["answer"],
+            "counter_evidence": result["review"].get("counter_evidence", []),
             "at": _now_iso(),
             "lang": lang,
         }
         key = f"{ASK_CACHE_KEY}:{primary}:{match_id}"
-        history = [entry, *(self.store.cache_get(key) or [])][:ASK_HISTORY]
+        history = [entry, *self._questions(primary, match_id, facts=facts)][:ASK_HISTORY]
         self.store.cache_set(key, history)
         return {"ok": True, "answer": entry, "history": history}
 
-    def _questions(self, account_id: int, match_id: int) -> list[dict[str, Any]]:
-        return self.store.cache_get(f"{ASK_CACHE_KEY}:{account_id}:{match_id}") or []
+    def _questions(
+        self, account_id: int, match_id: int, *, facts: dict[str, Any] | None
+    ) -> list[dict[str, Any]]:
+        history = self.store.cache_get(f"{ASK_CACHE_KEY}:{account_id}:{match_id}") or []
+        if facts is None:
+            return []
+        checker = FactChecker(json.dumps(facts, ensure_ascii=False), self._known_items())
+        # Old Q&A has no verification version. Recheck the returned view without
+        # deleting stored questions or calling the provider during reads.
+        returned = []
+        for entry in history:
+            cleaned, _, _, _ = checker.scrub({"answer": entry.get("answer") or ""})
+            if cleaned and cleaned.get("answer"):
+                returned.append(
+                    {
+                        **entry,
+                        "answer": cleaned["answer"],
+                        "counter_evidence": list(checker.counter_bindings.evidence.values()),
+                    }
+                )
+        return returned
 
     def _coach_client_with(self, timeout: float) -> Any:
         settings = self.ai_settings()
@@ -1710,6 +1732,10 @@ class PlayerService:
         """Cached review, or queue a new one: off / waiting / pending / ready / error."""
         digest = facts_hash(facts, lang)
         cached = self.store.cache_get(key)
+        if kind == "match" and cached and cached.get("verification_version") != COACH_VERSION:
+            # A policy upgrade must not display unverified legacy prose while
+            # regenerating (including when AI is disabled). Keep the stored copy.
+            cached = None
         shown = _coach_public(cached, stale=bool(cached) and cached.get("hash") != digest)
         if not self.ai_configured():
             return {"state": "off", **shown}
@@ -1764,6 +1790,7 @@ class PlayerService:
             key,
             {
                 "hash": digest,
+                "verification_version": COACH_VERSION,
                 "review": result["review"],
                 "provider": label.get("provider"),
                 "model": label.get("model"),

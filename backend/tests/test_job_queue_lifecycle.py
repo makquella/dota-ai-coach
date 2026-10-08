@@ -515,7 +515,7 @@ def test_inflight_http_question_can_save_after_queue_shutdown(tmp_path: Path) ->
             assert not request.is_alive() and not errors
             assert len(responses) == 1 and responses[0].status_code == 200
             assert responses[0].json()["ok"] is True
-            questions = service._questions(ME, MATCH_ID)
+            questions = client.get(f"/player/matches/{MATCH_ID}?lang=ru").json()["questions"]
             assert len(questions) == 1 and questions[0]["question"] == "Как играть безопаснее?"
         finally:
             release.set()

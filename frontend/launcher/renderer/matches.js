@@ -4568,7 +4568,7 @@
     const renderHistory = () =>
       history.replaceChildren(
         ...(detail.questions || []).map((qa) =>
-          h("div", { class: "ask-item" }, h("p", { class: "ask-q", text: qa.question }), h("p", { class: "ask-a", text: qa.answer }))
+          h("div", { class: "ask-item" }, h("p", { class: "ask-q", text: qa.question }), h("p", { class: "ask-a", text: qa.answer }), window.WardlyCoachEvidence.render(qa, state.locale))
         )
       );
     renderHistory();
@@ -4689,6 +4689,8 @@
     if (review.next_game?.length) {
       parts.push(coachSection(t("coachNextGame"), coachGoals(review.next_game)));
     }
+    const evidence = window.WardlyCoachEvidence.render(review, state.locale);
+    if (evidence) parts.push(evidence);
     return h("div", { class: "coach-review" }, parts);
   }
 

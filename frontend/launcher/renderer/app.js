@@ -363,6 +363,9 @@ const I18N = {
     tourHint: "A short tour of the app, one minute",
     tourStart: "Show",
     whatsNew: {
+      "0.53.13": [
+        "The AI checks match kills, deaths and assists against their own counters. Open the review’s data disclosure to see the reported totals."
+      ],
       "0.53.12": [
         "Documentation and site checks are faster while app changes retain the required Windows installer validation."
       ],
@@ -1206,6 +1209,9 @@ const I18N = {
     tourHint: "Короткая экскурсия по приложению, на минуту",
     tourStart: "Показать",
     whatsNew: {
+      "0.53.13": [
+        "ИИ проверяет убийства, смерти и ассисты по их собственным счётчикам матча. В разборе можно раскрыть данные, на которых основана проверка."
+      ],
       "0.53.12": [
         "Документация и сайт проверяются быстрее, а изменения приложения сохраняют обязательную проверку Windows-установщика."
       ],

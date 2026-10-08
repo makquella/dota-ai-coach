@@ -13,6 +13,7 @@ import pytest
 from fastapi.testclient import TestClient
 from match_fixtures import MATCH_ID, ME, FakeOpenDota, opendota_match, recent_matches
 
+from app.coach_review import COACH_VERSION
 from app.diagnostics import clear, recent_errors
 from app.player_api import PLAYER_SERVICE
 from app.player_store import PlayerStore
@@ -173,7 +174,9 @@ def test_match_http_survives_corrupt_constants_reviews_and_questions(
     assert client.post(f"/player/matches/{MATCH_ID}/refresh").status_code == 200
     PLAYER_SERVICE.jobs.run_pending(until=float("inf"))
     assert store.cache_get("opendota:items")["by_id"]
-    store.cache_set(keys[1], {"review": {"summary": "restored"}})
+    store.cache_set(
+        keys[1], {"verification_version": COACH_VERSION, "review": {"summary": "restored"}}
+    )
     store.cache_set(keys[2], [{"question": "q", "answer": "a", "lang": "ru"}])
     restored = client.get(f"/player/matches/{MATCH_ID}?lang=ru")
     assert restored.status_code == 200

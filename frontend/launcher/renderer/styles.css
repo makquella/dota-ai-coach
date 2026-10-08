@@ -2985,6 +2985,14 @@ span.setup-mark {
   gap: var(--sp-5);
 }
 
+.coach-counter-evidence summary {
+  cursor: pointer;
+}
+
+.coach-counter-evidence p {
+  margin-top: var(--sp-2);
+}
+
 .coach-summary {
   color: var(--text);
   font-size: var(--fs-14);

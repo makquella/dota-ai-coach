@@ -7,8 +7,9 @@ facts, asks the model to explain the match (or the last matches) like a coach
 watching the replay, and checks the answer before it is shown:
 
 - shape: the expected JSON fields, sizes, no markdown;
-- facts: every number, hero and item in the text must be present in the facts
-  (plus small counts and minute marks). Sentences that fail are dropped; if
+- facts: numbers, heroes and items must be present in the facts (plus small
+  goals and minute marks). Supported combat counts also bind to their metric.
+  Sentences that fail are dropped; if
   too much is lost the model gets one retry with the list of offending
   tokens, then the answer is rejected.
 
@@ -23,15 +24,17 @@ import re
 from typing import Any
 
 from app.analysis_texts import clock
+from app.coach_evidence import CombatCounterBindings, counter_evidence
 from app.coach_llm import CoachLLMError, parse_json_object
 from app.dota_constants import HEROES
 from app.last_moments import saver_label
 
-COACH_VERSION = 1
+COACH_VERSION = 2
 # Share of the text that may be dropped by the fact check before a retry.
 MAX_SCRUBBED_SHARE = 0.25
-# Small counts ("3 deaths") are always allowed; minute marks ("by minute 15",
-# "15:00") only as minutes, so "50 last hits" still has to come from the facts.
+# Small counts remain available for goals and legacy metric types. Supported
+# match combat assertions must also satisfy CombatCounterBindings.
+# Minute marks are allowed only as minutes, not as unrelated quantities.
 ALWAYS_ALLOWED_NUMBERS = {float(n) for n in range(13)} | {100.0}
 MINUTE_RE = re.compile(
     r"(?<![\d:.,])(\d{1,2})(?:-?(?:й|я|ю|ой|ей|th))?\s+(?:минут\w*|мин\b|minutes?\b|min\b)"
@@ -136,6 +139,8 @@ def match_facts(detail: dict[str, Any]) -> dict[str, Any] | None:
         "result": _result(headline.get("win")),
         "duration": clock(headline.get("duration")),
         "kills_deaths_assists": _kda(headline),
+        "match_totals": {field: row["value"] for field, row in counter_evidence(headline).items()},
+        "match_totals_evidence": counter_evidence(headline),
         "gpm": headline.get("gpm"),
         "xpm": headline.get("xpm"),
         "last_hits": headline.get("last_hits"),
@@ -216,7 +221,12 @@ def match_facts(detail: dict[str, Any]) -> dict[str, Any] | None:
         side = mine.get("is_radiant") if mine else True
         facts["your_team"] = [_score_row(r) for r in scoreboard if r.get("is_radiant") == side]
         facts["enemy_team"] = [_score_row(r) for r in scoreboard if r.get("is_radiant") != side]
-    return _prune(facts)
+    pruned = _prune(facts)
+    # Empty totals still mean "match counters unknown", not permission to use
+    # the legacy global number whitelist for quantified combat claims.
+    pruned["match_totals"] = facts["match_totals"]
+    pruned["match_totals_evidence"] = facts["match_totals_evidence"]
+    return pruned
 
 
 def career_facts(career: dict[str, Any], recent: list[dict[str, Any]]) -> dict[str, Any] | None:
@@ -379,8 +389,16 @@ def _generate(
 ) -> dict[str, Any]:
     facts_text = json.dumps(facts, ensure_ascii=False)
     checker = FactChecker(facts_text, known_items or [])
+    counter_rules = (
+        "\nCombat numbers in retrospective text must describe only the player's match_totals. "
+        "Match kills/deaths/assists to their own fields, never to another metric or another hero. "
+        "Do not quantify lane/time-slice combat counts or rates: this evidence only proves "
+        "reported match totals. Put future numeric goals in next_game/plan/fix only."
+        if "match_totals" in facts
+        else ""
+    )
     messages = [
-        {"role": "system", "content": system + "\n\n" + LANGUAGE_RULES[lang]},
+        {"role": "system", "content": system + counter_rules + "\n\n" + LANGUAGE_RULES[lang]},
         {"role": "user", "content": facts_text},
     ]
     if question:
@@ -402,7 +420,9 @@ def _generate(
             raise
         scrubbed, dropped, total, problems = checker.scrub(review)
         ok = scrubbed is not None and is_valid(scrubbed)
-        if ok and (dropped <= MAX_SCRUBBED_SHARE * total or attempt == 1):
+        if ok and scrubbed is not None and (dropped <= MAX_SCRUBBED_SHARE * total or attempt == 1):
+            if "match_totals" in facts:
+                scrubbed["counter_evidence"] = list(checker.counter_bindings.evidence.values())
             return {"review": scrubbed, "dropped_chars": dropped, "attempts": attempt + 1}
         last_problems = problems
         messages = [
@@ -460,10 +480,15 @@ def _normalize_career(data: dict[str, Any]) -> dict[str, Any]:
 
 
 class FactChecker:
-    """Numbers, heroes and items of a text must appear in the facts."""
+    """Check the token inventory and supported field-bound combat assertions."""
 
     def __init__(self, facts_text: str, known_items: list[str]) -> None:
         self.facts_text = facts_text
+        try:
+            facts = json.loads(facts_text)
+        except (ValueError, TypeError):
+            facts = {}
+        self.counter_bindings = CombatCounterBindings(facts if isinstance(facts, dict) else {})
         self.allowed = set(ALWAYS_ALLOWED_NUMBERS)
         self.times = {f"{m}:00" for m in range(0, 91, 5)}
         self.times |= {_plain_time(t) for t in TIME_RE.findall(facts_text)}
@@ -484,7 +509,10 @@ class FactChecker:
             else None
         )
 
-    def problems(self, text: str) -> list[str]:
+    def problems(self, text: str, *, bind_counters: bool = True) -> list[str]:
+        counter_problems = (
+            self.counter_bindings.problems(text, other_heroes=HERO_NAMES) if bind_counters else []
+        )
         found = [t for t in TIME_RE.findall(text) if _plain_time(t) not in self.times]
         text = MINUTE_RE.sub(_minute_mark, TIME_RE.sub(" ", text))
         for value in _numbers(text):
@@ -492,19 +520,19 @@ class FactChecker:
                 found.append(_format_number(value))
         if self._name_re:
             found += self._name_re.findall(text)
-        return found
+        return found + counter_problems
 
     def scrub(self, review: dict[str, Any]) -> tuple[dict[str, Any] | None, int, int, list[str]]:
         """Drop sentences with unknown facts. -> (review, dropped chars, total chars, problems)."""
         dropped = total = 0
         problems: list[str] = []
 
-        def clean(text: str) -> str:
+        def clean(text: str, *, bind_counters: bool = True) -> str:
             nonlocal dropped, total
             total += len(text)
             kept = []
             for sentence in _sentences(text):
-                bad = self.problems(sentence)
+                bad = self.problems(sentence, bind_counters=bind_counters)
                 if bad:
                     problems.extend(bad)
                     dropped += len(sentence)
@@ -520,11 +548,14 @@ class FactChecker:
                 items: list[Any] = []
                 for item in value:
                     if isinstance(item, str):
-                        text = clean(item)
+                        text = clean(item, bind_counters=key not in {"next_game", "plan"})
                         if text:
                             items.append(text)
                     elif isinstance(item, dict):
-                        cleaned = {k: clean(v) if k != "time" else v for k, v in item.items()}
+                        cleaned = {
+                            k: clean(v, bind_counters=k != "fix") if k != "time" else v
+                            for k, v in item.items()
+                        }
                         if "time" in cleaned and self.problems(cleaned["time"]):
                             problems.append(cleaned["time"])
                             continue
