@@ -90,6 +90,19 @@ async function runRendererSecuritySmoke({ mainWindow, overlayWindow, skillArrows
       step(`history response ownership and concurrent pagination (${lang})`, paged && rapidFilter && revisitedList, JSON.stringify({paged,rapidFilter,revisitedList}));
       await main.executeJavaScript("(() => { const select = document.querySelector('#matches-root .filter-bar select'); select.value = ''; select.dispatchEvent(new Event('change', {bubbles:true})); })()");
       await until(() => main.executeJavaScript("document.querySelectorAll('#matches-root tbody .row-link').length === 30"));
+      await main.executeJavaScript("window.PlayerViews.setView('progress', {remember:false}); true");
+      const progress = await until(() => main.executeJavaScript(`(() => {
+        const root = document.querySelector('#progress-root');
+        const rows = [...root.querySelectorAll('.table-wrapping tbody tr')];
+        const tiles = root.querySelectorAll('.tiles .tile-value');
+        return !document.querySelector('#view-progress').classList.contains('hidden') && root.textContent.includes(${JSON.stringify(lang === "ru" ? "Прогресс" : "Progress")})
+          && rows.length === 2 && tiles[0]?.textContent === '52%' && tiles[1]?.textContent === '—';
+      })()`));
+      await main.executeJavaScript("(() => { const select = document.querySelector('#progress-root select'); select.value = '8'; select.dispatchEvent(new Event('change', {bubbles:true})); })()");
+      const progressFiltered = await until(() => main.executeJavaScript("(() => { const rows = [...document.querySelectorAll('#progress-root .table-wrapping tbody tr')]; return rows.length === 1 && rows[0].cells[0].textContent.includes('Juggernaut') && rows[0].cells[1].textContent === '16' && document.querySelector('#progress-root .tiles .tile-value')?.textContent === '100%'; })()"));
+      await main.executeJavaScript("(() => { const select = document.querySelector('#progress-root select'); select.value = ''; select.dispatchEvent(new Event('change', {bubbles:true})); })()");
+      const progressCleared = await until(() => main.executeJavaScript("document.querySelectorAll('#progress-root .table-wrapping tbody tr').length === 2 && document.querySelector('#progress-root .tiles .tile-value')?.textContent === '52%'"));
+      step(`Progress contract, unknown averages and hero filter (${lang})`, progress && progressFiltered && progressCleared, JSON.stringify({progress,progressFiltered,progressCleared}));
       await main.executeJavaScript("window.PlayerViews.setView('home', {remember:false}); window.PlayerViews.setView('matches', {remember:false}); true");
       const matchId = await main.executeJavaScript("(() => { const row = document.querySelector('#matches-root tbody .row-link'); const id = row.dataset.matchId; row.click(); return id; })()");
       const review = await until(() => main.executeJavaScript("!document.querySelector('#view-match').classList.contains('hidden') && Boolean(document.querySelector('#match-root .back')) && !document.querySelector('#match-root .skeleton')"));

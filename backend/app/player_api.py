@@ -40,6 +40,7 @@ from app.config import OPENDOTA_API_KEY, OPENDOTA_API_URL, OPENDOTA_ENABLED, PLA
 from app.history_backup import BackupError
 from app.opendota import OpenDotaClient
 from app.player_contracts import (
+    CareerResponse,
     MatchDetailResponse,
     MatchListResponse,
     MatchNotFoundResponse,
@@ -295,8 +296,13 @@ def remove_friend():
     return PLAYER_SERVICE.remove_friend()
 
 
-@router.get("/career", summary="Statistics and advice over recent matches")
-def player_career(lang: str = "en", hero_id: HeroId = None):
+@router.get(
+    "/career",
+    summary="Statistics and advice over recent matches",
+    response_model=CareerResponse,
+    response_model_exclude_unset=True,
+)
+def player_career(lang: str = "en", hero_id: HeroId = None) -> dict[str, Any]:
     """`hero_id` narrows the progress to one hero (no AI review then)."""
     return PLAYER_SERVICE.career(normalize_lang(lang), hero_id=hero_id)
 

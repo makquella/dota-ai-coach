@@ -1,4 +1,4 @@
-/* Validated player status/list/detail cores; see app/player_contracts.py. */
+/* Validated player status/list/detail/progress cores; see app/player_contracts.py. */
 (function (root, factory) {
   "use strict";
   const api = factory();
@@ -62,6 +62,22 @@
    * @property {PlayerSyncStatus|null} [sync]
    * @property {{count:number,turbo:number,of:number}|null} [skipped]
    * Existing row/stat/filter extensions are preserved; unlinked responses omit them.
+   */
+
+  /**
+   * @typedef {Object} Career
+   * @property {boolean} linked Unlinked responses contain only this field.
+   * @property {number|null} [matches] Nonnegative safe integer; zero when linked but empty.
+   * @property {number|null} [analyzed]
+   * @property {number|null} [wins]
+   * @property {number|null} [losses]
+   * @property {number|null} [winrate] 0-100 integer, null with no decided games.
+   * @property {{win:boolean,length:number}|null} [streak]
+   * @property {{hero:string,hero_id:number|null,matches:number,wins:number,winrate:number|null}[]|null} [heroes]
+   * @property {number|null} [hero_filter]
+   * @property {{hero_id:number,hero:string|null,games:number}[]|null} [hero_choices]
+   * @property {{match_id:number,hero:string|null,win:boolean|null}[]|null} [series]
+   * Averages, trends, findings, coach/questions and other nested extensions remain intact.
    */
 
   /**

@@ -9,6 +9,9 @@
 
   const TEXT = {
     en: {
+      "0.53.32": [
+        "Progress preserves unknown results and missing averages when selecting heroes; both interface languages are checked against stored match history."
+      ],
       "0.53.31": [
         "AI match reviews and saved answers check last hits and denies against their own totals, with separate data for samples at 10:00 and opponent comparisons."
       ],
@@ -412,6 +415,9 @@
       ]
     },
     ru: {
+      "0.53.32": [
+        "Прогресс сохраняет неизвестные результаты и отсутствующие средние при выборе героя; оба языка проверяются на сохранённой истории."
+      ],
       "0.53.31": [
         "AI-разборы и сохранённые ответы проверяют добивания и денаи по собственным итогам матча, отдельно — данные к 10:00 и сравнение с соперником."
       ],

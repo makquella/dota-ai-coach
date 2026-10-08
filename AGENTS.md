@@ -7,7 +7,7 @@ Use the isolated cloud checkout; create a worktree only when requested.
 
 - Live: `backend/app/gsi_state.py` (atomic publication: `gsi_snapshot.py`) → `match_memory.py` / `decision_points.py` → `recommender.py` / `advice_policy.py` → `advice_scheduler.py`; helpers in `backend/app/scheduler/`.
 - Live hint mutations use the owned `MatchMemory.live_hints` facade (`live_hints.py`); prepare PlayerService metadata before ownership and avoid direct child-tracker access.
-- History: `backend/app/player_api.py` (status/list/detail DTOs: `player_contracts.py`) → `player_service.py` → `player_store.py` (SQLite), `match_tracker.py`, `opendota.py`, `match_facts.py`, `post_match_analysis.py`. Queue execution/retries/shutdown: `backend/app/job_queue.py`.
+- History: `backend/app/player_api.py` (status/list/detail/progress DTOs: `player_contracts.py`) → `player_service.py` → `player_store.py` (SQLite), `match_tracker.py`, `opendota.py`, `match_facts.py`, `post_match_analysis.py`. Queue execution/retries/shutdown: `backend/app/job_queue.py`.
 - Desktop: `frontend/launcher/main.js`, `preload.js`, `renderer/app.js`, `renderer/matches.js` (RU/EN copy: `renderer/match-texts.js`); overlay in `overlay/` and `overlay-window.js`.
 - What's New history/selection is in `renderer/whats-new.js`; add both locale entries there when bumping versions.
 - Match back/forward history is private to `renderer/match-navigation.js`; view/scroll/DOM and IPC stay in `renderer/matches.js`.

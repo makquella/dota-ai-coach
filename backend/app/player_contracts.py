@@ -1,4 +1,4 @@
-"""Validated player status/list/detail cores; extensions stay intact."""
+"""Validated player status/list/detail/progress cores; extensions stay intact."""
 
 from __future__ import annotations
 
@@ -117,3 +117,36 @@ class MatchListResponse(ExtensibleResponse):
     filters: MatchListFilters | None = None
     sync: PlayerSyncResponse | None = None
     skipped: SkippedModesResponse | None = None
+
+
+class CareerStreak(ExtensibleResponse):
+    win: bool
+    length: Count
+
+
+class CareerHero(ExtensibleResponse):
+    hero: str
+    hero_id: Count | None
+    matches: Count
+    wins: Count
+    winrate: Percent | None
+
+
+class CareerSeriesItem(ExtensibleResponse):
+    match_id: StoredMatchId
+    hero: str | None
+    win: bool | None
+
+
+class CareerResponse(ExtensibleResponse):
+    linked: bool
+    matches: Count | None = None
+    analyzed: Count | None = None
+    wins: Count | None = None
+    losses: Count | None = None
+    winrate: Percent | None = None
+    streak: CareerStreak | None = None
+    heroes: list[CareerHero] | None = None
+    hero_filter: Count | None = None
+    hero_choices: list[MatchHeroCount] | None = None
+    series: list[CareerSeriesItem] | None = None

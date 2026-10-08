@@ -106,3 +106,28 @@ scenarios. Match/account IDs retain the existing SQLite int64 numeric wire
 format: IDs beyond JavaScript's safe integer range need a separate string-format
 migration. These slices do not change analysis rules, ANALYSIS_VERSION,
 COACH_VERSION or caches.
+
+## Progress in 0.53.32
+
+`GET /player/career` now publishes `CareerResponse`. Required `linked` is a
+strict boolean. Optional nullable counts, percentage, streak, hero filter,
+hero choices, hero rows and series preserve the exact unlinked response
+`{"linked": false}` through exclude-unset. Linked empty history retains known
+zero counts with unknown winrate/streak; unknown match results stay nullable
+booleans. Counts are nonnegative safe integers; percentages are 0–100 integers.
+Series match IDs keep the same stored int64 wire format. All heroes remain
+available as choices when filtering to one hero.
+
+Nested `CareerHero`, `CareerStreak` and `CareerSeriesItem` validate their core
+fields and retain extensions. Averages, trends, findings, focus, coach/Q&A,
+rank, builds and other blocks remain unvalidated extensions. The existing
+analysis, known-result denominator, averages, filters and cache/AI policy are
+unchanged; this does not close F12. Malformed core output is a server validation
+failure, not numeric coercion. JS JSDoc mirrors the core.
+
+Functional cases compare complete decoded HTTP output with the actual service
+for unlinked/empty and filtered SQLite history plus parsed reviews in RU/EN,
+unknown results, zero/partial averages and nested extension retention. Schema
+and malformed values are checked. Source/Windows Electron smoke opens genuine
+Progress for the isolated 32-match fixture, checks unknown KDA and 52% from
+16 wins/15 losses/one unknown, filters Juggernaut and clears it in RU/EN.
