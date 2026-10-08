@@ -12,6 +12,7 @@
     "app/gsi_snapshot.py",
     "app/job_queue.py",
     "app/live_hints.py",
+    "app/live_path_metrics.py",
     "app/local_api_auth.py",
     "app/local_api_security.py",
     "app/match_facts.py",

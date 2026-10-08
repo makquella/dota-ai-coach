@@ -53,6 +53,7 @@ from app.gsi_state import (
 )
 from app.lane_duel import lane_record_for
 from app.live_hints import GoldHintInputs, LiveHintInputs
+from app.live_path_metrics import LIVE_PATH_METRICS
 from app.live_role import SETTINGS as ROLE_SETTINGS
 from app.live_role import lane_of, role_setting, set_role_setting
 from app.live_session_recorder import LIVE_SESSION_RECORDER
@@ -109,7 +110,7 @@ app = LocalApiApp(
     lifespan=_lifespan,
     title="Wardly",
     description="MVP-1: rule-based carry coach with local knowledge-base RAG.",
-    version="0.53.40",
+    version="0.53.41",
 )
 app.include_router(player_router)
 
@@ -134,7 +135,7 @@ if FRONTEND_DIR.exists():
 @app.get("/", summary="Health check")
 def root():
     """Simple health-check endpoint."""
-    return {"status": "ok", "service": "Wardly", "version": "0.53.40"}
+    return {"status": "ok", "service": "Wardly", "version": "0.53.41"}
 
 
 @app.get("/health", summary="Health check")
@@ -275,20 +276,35 @@ async def receive_gsi(request: Request):
     payload = request.scope["wardly.gsi_payload"]
     # Role history/cache can read SQLite. Prepare it before the GSI writer and
     # core memory owners; the callback uses the lane read after observation.
-    prior = await run_in_threadpool(_prepare_gsi_prior, payload)
-    result = update_latest_gsi(payload, enrich=lambda state: _observe_live_gsi(state, prior=prior))
-    GSI_CENSUS.observe(payload)
-    GSI_CENSUS.save_due(PLAYER_SERVICE.data_dir / CENSUS_FILE)
-    MATCH_RECORDS.record_gsi(payload)
-    # Whole-match recording + Steam account detection (never breaks the live path).
-    try:
-        PLAYER_SERVICE.observe_gsi(payload)
-    except Exception as error:  # noqa: BLE001
-        print(f"[player] GSI observe failed: {error}")
-        record_error("gsi-player", error)
-    state = result.get("state")
-    if isinstance(state, dict):
-        LIVE_SESSION_RECORDER.record_gsi(payload, state)
+    return await run_in_threadpool(_process_gsi, payload)
+
+
+def _process_gsi(payload: dict[str, Any]) -> dict[str, Any]:
+    with LIVE_PATH_METRICS.measure("gsi.total"):
+        return _receive_gsi_payload(payload)
+
+
+def _receive_gsi_payload(payload: dict[str, Any]) -> dict[str, Any]:
+    # This entire path (including census, SQLite and recording) runs off ASGI.
+    with LIVE_PATH_METRICS.measure("gsi.prepare"):
+        prior = _prepare_gsi_prior(payload)
+    with LIVE_PATH_METRICS.measure("gsi.policy"):
+        result = update_latest_gsi(
+            payload, enrich=lambda state: _observe_live_gsi(state, prior=prior)
+        )
+    with LIVE_PATH_METRICS.measure("gsi.persistence"):
+        GSI_CENSUS.observe(payload)
+        GSI_CENSUS.save_due(PLAYER_SERVICE.data_dir / CENSUS_FILE)
+        MATCH_RECORDS.record_gsi(payload)
+        # Whole-match recording + Steam account detection (never breaks the live path).
+        try:
+            PLAYER_SERVICE.observe_gsi(payload)
+        except Exception as error:  # noqa: BLE001
+            print(f"[player] GSI observe failed: {error}")
+            record_error("gsi-player", error)
+        state = result.get("state")
+        if isinstance(state, dict):
+            LIVE_SESSION_RECORDER.record_gsi(payload, state)
     return result
 
 
@@ -781,6 +797,15 @@ async def demo_replay_state(request: Request):
             content={"status": "error", "detail": "Payload must contain a state object."},
         )
 
+    return await run_in_threadpool(_process_demo, payload)
+
+
+def _process_demo(payload: dict[str, Any]) -> dict[str, Any]:
+    with LIVE_PATH_METRICS.measure("demo.total"):
+        return _demo_replay_payload(payload)
+
+
+def _demo_replay_payload(payload: dict[str, Any]) -> dict[str, Any]:
     token = _DEMO_OVERLAY_CACHE.reserve()
     timestamp_seconds = _safe_int(payload.get("timestamp_seconds"), 0)
     state = dict(payload["state"])
@@ -917,6 +942,7 @@ def diagnostics():
     return {
         "generated_at": datetime.now(UTC).isoformat(timespec="seconds"),
         "runtime": runtime_info(),
+        "live_path": LIVE_PATH_METRICS.snapshot(),
         "config": {
             "use_llm": USE_LLM,
             "llm_provider": LLM_PROVIDER,

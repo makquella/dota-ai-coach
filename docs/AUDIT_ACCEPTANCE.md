@@ -19,7 +19,7 @@ Additional engineering/product work is tracked separately, not silently dropped.
 | F07 | Locked Python runtime/dev/build with shared installation path | Merged #103, 0.53.3 |
 | F08 | Advisory triage, compatible upgrades, clean install and Windows checks | Merged #102, 0.53.2; DEPENDENCIES.md lists residual build-only advisory |
 | F09 | Short AGENTS/CLAUDE adapter, scoped explicit checks, preserve useful docs | Merged #101 |
-| F10 | One coherent published runtime revision and ownership/reset, no I/O under locks; concurrent endpoints | Partial through 0.53.23; finish whole-overlay/demo execution/history boundary |
+| F10 | One coherent published runtime revision and ownership/reset, no I/O under locks; concurrent endpoints | Partial through 0.53.41: GSI/demo off the ASGI loop and bounded phase timings; finish whole-overlay/demo execution/history boundary |
 | F11 | Atomic transfer claims/inserts and real local D1 concurrency | Prepared 0.53.11; TRANSFER_ATOMICITY.md |
 | F12 | Typed NormalizedState, MatchFacts, Finding + important I/O/detail DTO and consumers | Prepared 0.53.39: actual NormalizedState/MatchFacts producers, Finding core and evidence/coverage/detail DTOs; DOMAIN_CONTRACTS.md and test_domain_contracts.py. Open tracker/event/params extensions are explicit. |
 | F13 | Extract locales, JobQueue, transfer orchestration and match-detail slice; preserve exports/behavior and 2 actual UI scenarios | Prepared 0.53.40: history-transfer, app-texts and match-detail modules plus prior JobQueue/match-locales extraction; real RU/EN file/full-review/missing-review scenarios, DESKTOP_BOUNDARIES.md |
@@ -42,6 +42,7 @@ These are acceptance tasks too. They are not included in the 17-finding percenta
   with compatibility re-export.
 - [ ] Incremental live-message translation by ID/params rather than retranslating
   full historical copies.
+- [x] Measure GSI phase p50/p95 and persistence time, move synchronous GSI/demo work off the ASGI event loop (0.53.41, LIVE_EVENT_LOOP.md; real same-loop requests).
 - [ ] Bound remaining census/recorder/settings I/O failures and retain diagnostics.
 - [ ] Async AI questions with request IDs/status, total deadline/attempt cap,
   duplicate retry protection, stale/cancel guards and atomic history append.
