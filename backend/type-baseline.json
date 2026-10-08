@@ -5,6 +5,7 @@
   "clean_modules": [
     "app/coach_evidence.py",
     "app/diagnostics.py",
+    "app/gsi_snapshot.py",
     "app/job_queue.py",
     "app/local_api_auth.py",
     "app/local_api_security.py",
@@ -144,12 +145,6 @@
       "message": "Argument 1 to \"int\" has incompatible type \"Any | None\"; expected \"str | Buffer | SupportsInt | SupportsIndex | SupportsTrunc\"",
       "code": "arg-type",
       "count": 4
-    },
-    {
-      "path": "app/gsi_state.py",
-      "message": "Name \"items\" already defined on line 756",
-      "code": "no-redef",
-      "count": 1
     },
     {
       "path": "app/gsi_state.py",

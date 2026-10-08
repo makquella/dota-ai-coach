@@ -91,6 +91,7 @@ jobs:
           python -m mypy --strict ../scripts/windows_checks.py
           python -m mypy --strict app/coach_evidence.py
           python -m mypy --strict app/job_queue.py
+          python -m mypy --strict app/gsi_snapshot.py
 
       - name: Tests (pytest)
         run: pytest -q

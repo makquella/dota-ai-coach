@@ -363,6 +363,9 @@ const I18N = {
     tourHint: "A short tour of the app, one minute",
     tourStart: "Show",
     whatsNew: {
+      "0.53.15": [
+        "GSI packet, state and timestamp now update together. Reset clears the old packet and waits for fresh Dota data."
+      ],
       "0.53.14": [
         "Background tasks now have an independent checked executor, preserving delayed retries and safe shutdown."
       ],
@@ -1212,6 +1215,9 @@ const I18N = {
     tourHint: "Короткая экскурсия по приложению, на минуту",
     tourStart: "Показать",
     whatsNew: {
+      "0.53.15": [
+        "GSI-пакет, состояние и время получения обновляются вместе. Сброс очищает прежний пакет и ждёт свежие данные Dota."
+      ],
       "0.53.14": [
         "Фоновые задачи выделены в самостоятельную проверяемую очередь с прежними отложенными повторными попытками и безопасной остановкой."
       ],

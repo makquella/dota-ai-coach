@@ -15,7 +15,7 @@
 | F03 | P1 | Валидация backup до записи и одна transaction с account linking; rollback на сбое, восстановление повреждённого cache | Подготовлено в 0.53.6; формат и гарантии — [HISTORY_BACKUP.md](HISTORY_BACKUP.md) |
 | F06 | P1 | Отдельные control/GSI tokens, Origin/Host checks и bounded body; реальный Dota config и launcher smoke совместимы | Подготовлено в 0.53.7; протокол и manual debug — [LOCAL_API_SECURITY.md](LOCAL_API_SECURITY.md) |
 | F04 | P1 | Связать AI числа с метрикой и источником; начать с трёх findings, запретить metric swaps | Первый slice в 0.53.13: match combat totals + typed refs/UI; другие метрики, findings/time slices и career остаются — [AI_COUNTER_EVIDENCE.md](AI_COUNTER_EVIDENCE.md) |
-| F10 | P2 | Согласованный runtime snapshot и ownership MatchMemory; concurrent publish/read/reset без disk/network под lock | Не реализовано |
+| F10 | P2 | Согласованный runtime snapshot и ownership MatchMemory; concurrent publish/read/reset без disk/network под lock | Первый slice в 0.53.15: detached GSI snapshot + serialized GSI/reset; полный ownership demo/tips/overlay consumers ещё открыт — [GSI_SNAPSHOT.md](GSI_SNAPSHOT.md) |
 | F11 | P2 | Atomic conditional transfer claims и conflict-safe insert; migrations + concurrency на local D1 | Подготовлено в 0.53.11; реальные D1 проверки — [TRANSFER_ATOMICITY.md](TRANSFER_ATOMICITY.md) |
 | F12 | P2 | DTO/contract tests важных player/detail/facts ответов и их JS consumers | Не реализовано |
 | F13 | P2 | Извлекать jobs/locales/detail controller по одной границе с behavior/UI tests | Первый slice в 0.53.14: independent JobQueue + fresh-process/real-thread tests; UI slices остаются |

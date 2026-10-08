@@ -28,10 +28,7 @@ def _reset_runtime() -> None:
     ADVICE_SCHEDULER.reset()
     COACH_SESSION_HISTORY.reset()
     _clear_demo_overlay_response()
-    gsi_state._latest_raw_payload = None
-    gsi_state._latest_normalized_state = None
-    gsi_state._latest_timestamp = None
-    gsi_state._previous_extra_context = None
+    gsi_state.reset_latest_gsi()
 
 
 def _visible_texts(response: dict) -> list[str]:

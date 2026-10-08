@@ -45,10 +45,7 @@ def reset_runtime_state(tmp_path):
     GSI_CENSUS.reset()
     MATCH_RECORDS.set_enabled(False)
     _clear_demo_overlay_response()
-    gsi_state._latest_raw_payload = None
-    gsi_state._latest_normalized_state = None
-    gsi_state._latest_timestamp = None
-    gsi_state._previous_extra_context = None
+    gsi_state.reset_latest_gsi()
     yield
     MATCH_MEMORY.reset()
     ADVICE_SCHEDULER.reset()
@@ -59,10 +56,7 @@ def reset_runtime_state(tmp_path):
     GSI_CENSUS.reset()
     MATCH_RECORDS.set_enabled(False)
     _clear_demo_overlay_response()
-    gsi_state._latest_raw_payload = None
-    gsi_state._latest_normalized_state = None
-    gsi_state._latest_timestamp = None
-    gsi_state._previous_extra_context = None
+    gsi_state.reset_latest_gsi()
 
 
 @pytest.fixture

@@ -42,8 +42,9 @@ from app.gsi_state import (
     get_current_state,
     get_gsi_debug_fields,
     get_gsi_debug_latest,
-    is_in_match,
+    get_gsi_status_snapshot,
     post_game_match_id,
+    reset_latest_gsi,
     update_latest_gsi,
 )
 from app.lane_duel import lane_record_for
@@ -103,7 +104,7 @@ app = LocalApiApp(
     lifespan=_lifespan,
     title="Wardly",
     description="MVP-1: rule-based carry coach with local knowledge-base RAG.",
-    version="0.53.14",
+    version="0.53.15",
 )
 app.include_router(player_router)
 
@@ -129,7 +130,7 @@ if FRONTEND_DIR.exists():
 @app.get("/", summary="Health check")
 def root():
     """Simple health-check endpoint."""
-    return {"status": "ok", "service": "Wardly", "version": "0.53.14"}
+    return {"status": "ok", "service": "Wardly", "version": "0.53.15"}
 
 
 @app.get("/health", summary="Health check")
@@ -268,7 +269,7 @@ def recommend(request: GameSituationRequest):
 async def receive_gsi(request: Request):
     """Accept raw Dota 2 GSI JSON and keep the latest normalized state in memory."""
     payload = request.scope["wardly.gsi_payload"]
-    result = update_latest_gsi(payload)
+    result = update_latest_gsi(payload, enrich=_observe_live_gsi)
     GSI_CENSUS.observe(payload)
     GSI_CENSUS.save_due(PLAYER_SERVICE.data_dir / CENSUS_FILE)
     MATCH_RECORDS.record_gsi(payload)
@@ -281,15 +282,19 @@ async def receive_gsi(request: Request):
     state = result.get("state")
     if isinstance(state, dict):
         LIVE_SESSION_RECORDER.record_gsi(payload, state)
-        MATCH_MEMORY.observe_state(state)
-        coverage = _advisor_coverage(state)
-        if coverage:
-            decision_point = _covered_decision_point(detect_decision_point(state), coverage)
-            MATCH_MEMORY.last_advice_type = decision_point
-            ADVICE_SCHEDULER.observe_state(state, decision_point)
-        else:
-            ADVICE_SCHEDULER.observe_state(state, "NO_ADVICE")
     return result
+
+
+def _observe_live_gsi(state: dict[str, Any]) -> None:
+    """In-memory enrichment completes before the packet/state is published."""
+    MATCH_MEMORY.observe_state(state)
+    coverage = _advisor_coverage(state)
+    if coverage:
+        decision_point = _covered_decision_point(detect_decision_point(state), coverage)
+        MATCH_MEMORY.last_advice_type = decision_point
+        ADVICE_SCHEDULER.observe_state(state, decision_point)
+    else:
+        ADVICE_SCHEDULER.observe_state(state, "NO_ADVICE")
 
 
 @app.get("/state/current", summary="Get latest normalized GSI state")
@@ -299,11 +304,17 @@ def current_state():
 
 @app.post("/session/reset", summary="Reset in-memory match session")
 def reset_session():
-    MATCH_MEMORY.reset()
-    ADVICE_SCHEDULER.reset()
-    COACH_SESSION_HISTORY.reset()
+    def reset_context() -> None:
+        MATCH_MEMORY.reset()
+        ADVICE_SCHEDULER.reset()
+        COACH_SESSION_HISTORY.reset()
+
+    reset_latest_gsi(reset_context)
     _clear_demo_overlay_response()
-    return {"status": "ok", "detail": "Match memory, overlay scheduler, and coach summary reset."}
+    return {
+        "status": "ok",
+        "detail": "Live GSI, match memory, overlay scheduler, and coach summary reset.",
+    }
 
 
 @app.get("/session/memory", summary="Inspect safe match memory summary")
@@ -1324,12 +1335,12 @@ def _gsi_status_response() -> dict[str, object]:
             "current_mode": "demo_replay",
         }
 
-    current = get_current_state()
+    current = get_gsi_status_snapshot()
     timestamp = current.get("timestamp")
     state = current.get("state") if isinstance(current.get("state"), dict) else {}
     seconds_since = _seconds_since_timestamp(timestamp)
     connected = seconds_since is not None and seconds_since <= GSI_STALE_SECONDS
-    fields = get_gsi_debug_fields()
+    fields = current["fields_summary"]
     latest_advice = ADVICE_SCHEDULER.latest_advice_snapshot()
     latest_recommendation = latest_advice.get("recommendation")
     extra_context = (
@@ -1337,7 +1348,7 @@ def _gsi_status_response() -> dict[str, object]:
     )
     return {
         "gsi_connected": connected,
-        "in_match": connected and is_in_match(),
+        "in_match": connected and current["in_match"],
         # The score screen with a fresh review: the overlay shows the summary card.
         "post_game": connected and _post_game_for_overlay({}, "en") is not None,
         "last_gsi_received_at": timestamp,
