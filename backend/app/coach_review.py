@@ -8,7 +8,7 @@ watching the replay, and checks the answer before it is shown:
 
 - shape: the expected JSON fields, sizes, no markdown;
 - facts: numbers, heroes and items must be present in the facts (plus small
-  goals and minute marks). Supported combat counts also bind to their metric.
+  goals and minute marks). Supported combat counts and match rates bind to their metric.
   Sentences that fail are dropped; if
   too much is lost the model gets one retry with the list of offending
   tokens, then the answer is rejected.
@@ -24,16 +24,21 @@ import re
 from typing import Any
 
 from app.analysis_texts import clock
-from app.coach_evidence import CombatCounterBindings, counter_evidence
+from app.coach_evidence import (
+    CombatCounterBindings,
+    MatchRateBindings,
+    counter_evidence,
+    rate_evidence,
+)
 from app.coach_llm import CoachLLMError, parse_json_object
 from app.dota_constants import HEROES
 from app.last_moments import saver_label
 
-COACH_VERSION = 2
+COACH_VERSION = 3
 # Share of the text that may be dropped by the fact check before a retry.
 MAX_SCRUBBED_SHARE = 0.25
 # Small counts remain available for goals and legacy metric types. Supported
-# match combat assertions must also satisfy CombatCounterBindings.
+# match combat/rate assertions must also satisfy their field bindings.
 # Minute marks are allowed only as minutes, not as unrelated quantities.
 ALWAYS_ALLOWED_NUMBERS = {float(n) for n in range(13)} | {100.0}
 MINUTE_RE = re.compile(
@@ -133,6 +138,7 @@ def match_facts(detail: dict[str, Any]) -> dict[str, Any] | None:
         return None
     headline = analysis.get("headline") or {}
     sources = analysis.get("sources") or []
+    rates = {field: row["value"] for field, row in rate_evidence(headline).items()}
     facts: dict[str, Any] = {
         "hero": headline.get("hero"),
         "role": analysis.get("role_label") or analysis.get("role"),
@@ -141,8 +147,10 @@ def match_facts(detail: dict[str, Any]) -> dict[str, Any] | None:
         "kills_deaths_assists": _kda(headline),
         "match_totals": {field: row["value"] for field, row in counter_evidence(headline).items()},
         "match_totals_evidence": counter_evidence(headline),
-        "gpm": headline.get("gpm"),
-        "xpm": headline.get("xpm"),
+        "match_rates": rates,
+        "match_rates_evidence": rate_evidence(headline),
+        "gpm": rates.get("gpm"),
+        "xpm": rates.get("xpm"),
         "last_hits": headline.get("last_hits"),
         "denies": headline.get("denies"),
         "net_worth": headline.get("net_worth"),
@@ -226,6 +234,11 @@ def match_facts(detail: dict[str, Any]) -> dict[str, Any] | None:
     # the legacy global number whitelist for quantified combat claims.
     pruned["match_totals"] = facts["match_totals"]
     pruned["match_totals_evidence"] = facts["match_totals_evidence"]
+    pruned["match_rates"] = facts["match_rates"]
+    pruned["match_rates_evidence"] = facts["match_rates_evidence"]
+    # Preserve the same exact rate in the old root fields and the new ledger;
+    # prompt compaction must not introduce a conflicting rounded value.
+    pruned.update(rates)
     return pruned
 
 
@@ -397,8 +410,18 @@ def _generate(
         if "match_totals" in facts
         else ""
     )
+    rate_rules = (
+        "\nGPM/XPM assertions must match their own exact values in the player's match_rates. "
+        "Do not use another metric, hero, lane or time slice as evidence for these rates. "
+        "Put future numeric rate goals in next_game/plan/fix only."
+        if "match_rates" in facts
+        else ""
+    )
     messages = [
-        {"role": "system", "content": system + counter_rules + "\n\n" + LANGUAGE_RULES[lang]},
+        {
+            "role": "system",
+            "content": system + counter_rules + rate_rules + "\n\n" + LANGUAGE_RULES[lang],
+        },
         {"role": "user", "content": facts_text},
     ]
     if question:
@@ -423,6 +446,8 @@ def _generate(
         if ok and scrubbed is not None and (dropped <= MAX_SCRUBBED_SHARE * total or attempt == 1):
             if "match_totals" in facts:
                 scrubbed["counter_evidence"] = list(checker.counter_bindings.evidence.values())
+            if "match_rates" in facts:
+                scrubbed["rate_evidence"] = list(checker.rate_bindings.evidence.values())
             return {"review": scrubbed, "dropped_chars": dropped, "attempts": attempt + 1}
         last_problems = problems
         messages = [
@@ -480,7 +505,7 @@ def _normalize_career(data: dict[str, Any]) -> dict[str, Any]:
 
 
 class FactChecker:
-    """Check the token inventory and supported field-bound combat assertions."""
+    """Check the token inventory and supported field-bound match metrics."""
 
     def __init__(self, facts_text: str, known_items: list[str]) -> None:
         self.facts_text = facts_text
@@ -489,6 +514,7 @@ class FactChecker:
         except (ValueError, TypeError):
             facts = {}
         self.counter_bindings = CombatCounterBindings(facts if isinstance(facts, dict) else {})
+        self.rate_bindings = MatchRateBindings(facts if isinstance(facts, dict) else {})
         self.allowed = set(ALWAYS_ALLOWED_NUMBERS)
         self.times = {f"{m}:00" for m in range(0, 91, 5)}
         self.times |= {_plain_time(t) for t in TIME_RE.findall(facts_text)}
@@ -513,6 +539,9 @@ class FactChecker:
         counter_problems = (
             self.counter_bindings.problems(text, other_heroes=HERO_NAMES) if bind_counters else []
         )
+        rate_problems = (
+            self.rate_bindings.problems(text, other_heroes=HERO_NAMES) if bind_counters else []
+        )
         found = [t for t in TIME_RE.findall(text) if _plain_time(t) not in self.times]
         text = MINUTE_RE.sub(_minute_mark, TIME_RE.sub(" ", text))
         for value in _numbers(text):
@@ -520,7 +549,7 @@ class FactChecker:
                 found.append(_format_number(value))
         if self._name_re:
             found += self._name_re.findall(text)
-        return found + counter_problems
+        return found + counter_problems + rate_problems
 
     def scrub(self, review: dict[str, Any]) -> tuple[dict[str, Any] | None, int, int, list[str]]:
         """Drop sentences with unknown facts. -> (review, dropped chars, total chars, problems)."""

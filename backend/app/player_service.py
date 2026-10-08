@@ -1495,6 +1495,7 @@ class PlayerService:
             "question": " ".join(str(question).split())[:QUESTION_LIMIT],
             "answer": result["review"]["answer"],
             "counter_evidence": result["review"].get("counter_evidence", []),
+            "rate_evidence": result["review"].get("rate_evidence", []),
             "at": _now_iso(),
             "lang": lang,
         }
@@ -1521,6 +1522,7 @@ class PlayerService:
                         **entry,
                         "answer": cleaned["answer"],
                         "counter_evidence": list(checker.counter_bindings.evidence.values()),
+                        "rate_evidence": list(checker.rate_bindings.evidence.values()),
                     }
                 )
         return returned

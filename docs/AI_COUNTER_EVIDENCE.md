@@ -26,4 +26,37 @@ F04, первый slice в 0.53.13. Раньше число могло быть 
 
 Electron smoke создаёт настоящий disclosure DOM из bundled renderer script, открывает его на RU/EN и проверяет zero, malformed values/source и legacy отсутствие refs. Общая source/Windows smoke проверяет приложение, preload и IPC.
 
-Это ограниченный детерминированный parser, не полная семантическая проверка AI. Spelled-out counts, произвольные глагольные/coreference конструкции и противоречия без поддержанной числовой noun phrase здесь не доказываются. GPM/XPM, farm/item/findings refs, временные claims и career ещё требуют собственных bindings. F04 остаётся открытым до следующих slices; нет заявления, что каждое AI утверждение теперь доказано.
+## GPM/XPM в 0.53.26
+
+`MatchRateBindings` отдельно проверяет match-wide GPM и XPM игрока.
+`match_rates` и `match_rates_evidence` формируются только из `analysis.headline`;
+пустой ledger сохраняется в compact facts. Rate evidence имеет тот же source,
+свой field, `observed_at: null`, `precision: reported_match_rate` и исходное
+число. Поддерживаются finite nonnegative integer/float до JS safe-integer
+границы; bool, строки и отсутствующие значения остаются unknown. Ноль остаётся
+измерением. Quantified noun phrases GPM/XPM, gold/experience per minute и
+«золота/опыта в минуту» должны точно совпадать со своим полем, включая дробную
+часть. Округлённая, другая или nested метрика не подтверждает такое утверждение.
+
+Названия единиц «per minute» / «в минуту» не считаются временным отрезком.
+Другие time/lane/team/hero scopes требуют отдельного evidence и отклоняются.
+Future goal slots сохраняют прежнюю общую проверку. Модель не формирует refs:
+после deterministic проверки backend добавляет `rate_evidence` к review/answer;
+UI disclosure показывает только validated rows на RU/EN, включая zero и decimal.
+Combat-only legacy disclosure сохраняет прежний текст.
+
+`COACH_VERSION` теперь 3. Match review с verification version 2 скрывается до
+обычной регенерации, включая offline/AI-off view; исходный cache сохраняется.
+Policy version участвует в общем digest и может вызвать обычное обновление
+career cache, но career field binding здесь не добавлен. Saved Q&A при чтении
+перепроверяется sentence-by-sentence без provider call и без удаления хранения;
+returned refs соответствуют текущему разбору. Share payload по-прежнему не
+публикует вопросы или внутренний evidence.
+
+Новые functional checks используют настоящий HTTP, SQLite, generation/retry и
+cache upgrade с внешним scripted provider. Parser checks покрывают metric swap,
+small-number bypass, unsupported subject/time scope, RU/EN units и decimal,
+unknown/zero/invalid rate. Source/Windows Electron smoke открывает настоящий
+disclosure DOM на двух языках, проверяет combined/legacy UI и malformed rates.
+
+Это ограниченный детерминированный parser, не полная семантическая проверка AI. Spelled-out counts, произвольные глагольные/coreference конструкции и противоречия без поддержанной числовой noun phrase здесь не доказываются. Farm/item/findings refs, временные claims, другие метрики и career ещё требуют собственных bindings. F04 остаётся открытым до следующих slices; нет заявления, что каждое AI утверждение теперь доказано.

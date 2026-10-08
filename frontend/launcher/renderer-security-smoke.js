@@ -87,6 +87,25 @@ async function runRendererSecuritySmoke({ mainWindow, overlayWindow, skillArrows
   })()`);
   step("coach evidence rejects malformed data and supports legacy reviews", rejected);
 
+  for (const [language, decimal] of [["ru", "430,5"], ["en", "430.5"]]) {
+    const rendered = await main.executeJavaScript(`(() => {
+      const rate = { source: 'analysis.headline', field: 'gpm', observed_at: null, precision: 'reported_match_rate', value: 0 };
+      const node = window.WardlyCoachEvidence.render({ rate_evidence: [rate, {...rate, field: 'xpm', value: 430.5}] }, ${JSON.stringify(language)});
+      document.body.append(node);
+      node.querySelector('summary').click();
+      const valid = node.open && node.querySelector('summary').textContent.includes('GPM/XPM')
+        && node.textContent.includes('GPM: 0') && node.textContent.includes('XPM: ' + ${JSON.stringify(decimal)})
+        && !node.textContent.includes('undefined') && node.querySelectorAll('p').length === 2;
+      node.remove();
+      const combined = window.WardlyCoachEvidence.render({rate_evidence: [rate], counter_evidence: [{...rate, field: 'kills', precision: 'reported_total'}]}, ${JSON.stringify(language)});
+      const bad = [true, '390', -1, NaN, Infinity, Number.MAX_SAFE_INTEGER + 1];
+      return valid && combined.textContent.includes('K/D/A, GPM/XPM')
+        && bad.every(value => window.WardlyCoachEvidence.render({rate_evidence: [{...rate, value}]}, 'en') === null)
+        && window.WardlyCoachEvidence.render({rate_evidence: [{...rate, precision: 'reported_total'}]}, 'en') === null;
+    })()`);
+    step(`coach rate evidence DOM (${language})`, rendered);
+  }
+
   for (const [name, contents] of [["panel", main], ["overlay", overlayWindow.webContents]]) {
     const policy = await contents.executeJavaScript(`(async () => {
       const violations = [];

@@ -9,6 +9,9 @@
 
   const TEXT = {
     en: {
+      "0.53.26": [
+        "AI match reviews and answers check GPM and XPM against their own player metrics and show the data used for verification."
+      ],
       "0.53.25": [
         "Player polling preserves idle, queued, running, completed and failed sync states, with zero counts kept distinct from missing data."
       ],
@@ -394,6 +397,9 @@
       ]
     },
     ru: {
+      "0.53.26": [
+        "AI-разбор и ответы проверяют GPM и XPM по соответствующим показателям игрока и показывают данные для проверки."
+      ],
       "0.53.25": [
         "Статус игрока сохраняет состояния ожидания, очереди, выполнения, завершения и ошибки синхронизации; нулевые счётчики отличаются от отсутствующих данных."
       ],

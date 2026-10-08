@@ -1,7 +1,7 @@
-"""Bind quantified combat counters to the player's reported match totals.
+"""Bind combat counters and GPM/XPM to the player's reported match metrics.
 
 This is a deliberately small evidence boundary, not a semantic verifier for all
-AI prose. Other subjects, time slices and rates need separate evidence.
+AI prose. Other subjects, time slices and metrics need separate evidence.
 """
 
 from __future__ import annotations
@@ -111,6 +111,91 @@ class CombatCounterBindings:
             return ["combat counter requires subject/time-slice evidence"]
         return [
             f"{field}={value:g} (player match total: "
+            + (str(self.evidence[field]["value"]) if field in self.evidence else "unknown")
+            + ")"
+            for field, value in claims
+            if field not in self.evidence or value != self.evidence[field]["value"]
+        ]
+
+
+RateMetric = Literal["gpm", "xpm"]
+RATE_METRICS: tuple[RateMetric, ...] = ("gpm", "xpm")
+
+
+class RateEvidence(TypedDict):
+    source: Literal["analysis.headline"]
+    field: RateMetric
+    observed_at: None
+    precision: Literal["reported_match_rate"]
+    value: int | float
+
+
+def rate_evidence(headline: Mapping[str, object]) -> dict[RateMetric, RateEvidence]:
+    evidence: dict[RateMetric, RateEvidence] = {}
+    for field in RATE_METRICS:
+        value = headline.get(field)
+        if (
+            isinstance(value, (int, float))
+            and not isinstance(value, bool)
+            and 0 <= value <= 2**53 - 1
+            and math.isfinite(value)
+        ):
+            evidence[field] = {
+                "source": "analysis.headline",
+                "field": field,
+                "observed_at": None,
+                "precision": "reported_match_rate",
+                "value": value,
+            }
+    return evidence
+
+
+RATE_LABELS: dict[RateMetric, str] = {
+    "gpm": r"gpm|gold\s+per\s+minute|золот\w*\s+(?:в|за)\s+минут\w*",
+    "xpm": r"xpm|(?:xp|experience)\s+per\s+minute|опыт\w*\s+(?:в|за)\s+минут\w*",
+}
+RATE_PATTERNS = {
+    field: re.compile(
+        rf"(?<![\w:.,])(?P<before>{NUMBER})\s+(?:{label})(?!\w)"
+        rf"|(?<!\w)(?:{label})\s*[:=—–]?\s*"
+        rf"(?:(?:их\s+)?было\s+|(?:was|were|of|total)\s+)?"
+        rf"(?P<after>{NUMBER})(?![\w:]|[.,]\d)",
+        re.IGNORECASE,
+    )
+    for field, label in RATE_LABELS.items()
+}
+RATE_NOUNS = re.compile(r"(?<!\w)(?:" + "|".join(RATE_LABELS.values()) + r")(?!\w)", re.IGNORECASE)
+
+
+class MatchRateBindings:
+    def __init__(self, facts: Mapping[str, object]) -> None:
+        rates = facts.get("match_rates")
+        self.enabled = isinstance(rates, dict) or any(field in facts for field in RATE_METRICS)
+        self.evidence = rate_evidence(rates if isinstance(rates, dict) else facts)
+        self.hero = facts.get("hero")
+
+    def problems(self, text: str, *, other_heroes: list[str]) -> list[str]:
+        if not self.enabled:
+            return []
+        claims: list[tuple[RateMetric, float]] = []
+        for field, pattern in RATE_PATTERNS.items():
+            claims.extend(
+                (field, _value(match.group("before") or match.group("after")))
+                for match in pattern.finditer(text)
+            )
+        if not claims:
+            return []
+        # "Gold per minute" names a metric, not a separate time slice. Any
+        # remaining named scope still needs its own evidence.
+        scope_text = RATE_NOUNS.sub(" ", text)
+        if SCOPED.search(scope_text) or any(
+            re.search(r"(?<!\w)" + re.escape(hero) + r"(?!\w)", text, re.IGNORECASE)
+            for hero in other_heroes
+            if hero != self.hero
+        ):
+            return ["GPM/XPM requires player match-rate evidence"]
+        return [
+            f"{field}={value:g} (player match rate: "
             + (str(self.evidence[field]["value"]) if field in self.evidence else "unknown")
             + ")"
             for field, value in claims
