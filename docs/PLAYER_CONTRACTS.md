@@ -25,6 +25,40 @@ published schema and rejection of malformed core values are also checked.
 `renderer/match-contract.js` documents this core for existing JS consumers;
 their behavior and IPC privileges are unchanged.
 
+## Match table
+
+0.53.27 adds `MatchListResponse` to authenticated `GET /player/matches`. Its
+three required fields are `linked`, `items` and `total`; an unlinked account
+still returns exactly those fields with an empty list and zero total. Linked
+responses keep stats, hero counts, filters, sync and nullable skipped-mode
+counts. Nested models use the same strict/extensible and exclude-unset policy.
+Pagination does not change the filtered total; hero choices count all stored
+heroes. The existing query clamps, sort whitelist, order and SQL behavior stay.
+
+List rows validate the stored match ID, optional nullable hero/result and K/D/A,
+source strings, nullable parse state, analysis/timeline booleans, optional
+nullable inventory and note. Stats validate nonnegative game/win counts,
+nullable 0–100 integer winrate and nullable integer average score. Hero and
+skipped counts use nonnegative safe integers; filters retain nullable hero/win,
+extensible sort string and a strict ascending flag. Other row metrics and future
+nested fields are preserved but not yet validated. Combat counters remain
+independent measurements, and item/note text is not rendered as HTML.
+
+Functional HTTP/SQLite cases compare full responses with the actual service for
+empty/unlinked/filtered/paged tables, sorting, unknown results, zero/partial K/D/A,
+notes, inventory and skipped modes. Existing sort/filter/history consumers run
+alongside them; OpenAPI and malformed nested values are checked. JS JSDoc
+describes this shape without changing consumer behavior.
+
+Source and packaged Windows Electron smoke restores 32 fixture matches through
+the actual backup API into a dedicated temporary `PLAYER_DATA_DIR`, with
+OpenDota disabled. The genuine preload/IPC and table render load the next page,
+toggle GPM sorting, select/clear a hero filter and preserve partial K/D/A,
+unknown results and literal notes in RU/EN. The smoke restores the saved sort
+and language, and removes its fixture DB after backend exit; it never imports
+fixture history into the user's/developer's normal store. This covers the linked
+table flow; full linked-review/analysis consumer scenarios remain future work.
+
 ## Match detail
 
 F12 starts in 0.53.17 at `GET /player/matches/{match_id}`. The canonical runtime

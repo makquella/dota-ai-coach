@@ -9,6 +9,9 @@
 
   const TEXT = {
     en: {
+      "0.53.27": [
+        "The match table preserves partial K/D/A, notes and unknown results when paging, sorting and filtering; these flows are checked in both interface languages."
+      ],
       "0.53.26": [
         "AI match reviews and answers check GPM and XPM against their own player metrics and show the data used for verification."
       ],
@@ -397,6 +400,9 @@
       ]
     },
     ru: {
+      "0.53.27": [
+        "Таблица матчей сохраняет частичный K/D/A, заметки и неизвестный результат при загрузке страниц, сортировке и фильтрации; эти действия проверяются на двух языках."
+      ],
       "0.53.26": [
         "AI-разбор и ответы проверяют GPM и XPM по соответствующим показателям игрока и показывают данные для проверки."
       ],

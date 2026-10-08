@@ -96,6 +96,8 @@ const WINDOW_BACKGROUND = "#0b0b0c";
 const START_HIDDEN = process.argv.includes("--hidden");
 const SMOKE_TEST_RESULT = argValue("--smoke-test");
 const IS_SMOKE_TEST = SMOKE_TEST_RESULT !== null;
+// Functional history fixtures must never enter the installed/developer store.
+const SMOKE_PLAYER_DATA_DIR = IS_SMOKE_TEST ? fs.mkdtempSync(path.join(os.tmpdir(), "wardly-player-smoke-")) : null;
 
 const DEMO_PRESETS = {
   plMacro: {
@@ -1620,6 +1622,10 @@ async function launchBackend() {
     DOTA_AI_GSI_TOKEN: auth.gsi,
     SESSION_RECORDS_DIR
   };
+  if (IS_SMOKE_TEST) {
+    env.PLAYER_DATA_DIR = SMOKE_PLAYER_DATA_DIR;
+    env.OPENDOTA_ENABLED = "false";
+  }
   let command = pythonExecutable();
   let args = ["-u", path.join("packaging", "backend_server.py")];
   let cwd = BACKEND_DIR;
@@ -3761,6 +3767,7 @@ async function runSmokeTest(resultPath) {
     // Player history (SQLite store, match reviews) must work in the bundled backend.
     const player = await playerRequest("status");
     step("player API", player.ok && typeof player.data.linked === "boolean", JSON.stringify(player.ok ? player.data.sync : player));
+    step("smoke player store is isolated and initially empty", player.ok && !player.data.linked && player.data.matches === 0 && fs.existsSync(path.join(SMOKE_PLAYER_DATA_DIR, "coach.sqlite3")));
 
     const recommendation = await fetchOverlayRecommendation();
     step(
@@ -3769,7 +3776,7 @@ async function runSmokeTest(resultPath) {
       recommendation.ok ? recommendation.data.status : recommendation.error
     );
 
-    await require("./renderer-security-smoke").runRendererSecuritySmoke({ mainWindow, overlayWindow, skillArrows, backendUrl: backendUrl(), step });
+    await require("./renderer-security-smoke").runRendererSecuritySmoke({ mainWindow, overlayWindow, skillArrows, backendUrl: backendUrl(), requestBackend: requestBackendJson, step });
 
     const outcome = await stopBackend();
     const exit = lastExit.backend || {};
@@ -3778,6 +3785,9 @@ async function runSmokeTest(resultPath) {
     step("unexpected error", false, error.stack || error.message);
   }
   const ok = steps.length > 0 && steps.every((item) => item.ok);
+  if (!processes.backend && SMOKE_PLAYER_DATA_DIR) {
+    fs.rmSync(SMOKE_PLAYER_DATA_DIR, { recursive: true, force: true });
+  }
   const result = { ok, port: backend.port, packaged: IS_PACKAGED, steps, logs: logs.slice(-20000) };
   if (resultPath) {
     fs.mkdirSync(path.dirname(path.resolve(resultPath)), { recursive: true });

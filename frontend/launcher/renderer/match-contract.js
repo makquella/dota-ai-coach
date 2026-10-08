@@ -1,4 +1,4 @@
-/* Validated GET /player and match-detail cores; see app/player_contracts.py. */
+/* Validated player status/list/detail cores; see app/player_contracts.py. */
 (function (root, factory) {
   "use strict";
   const api = factory();
@@ -35,6 +35,33 @@
    * @property {number|null} [kills] Nonnegative integer, null/absent when unknown.
    * @property {number|null} [deaths] Nonnegative integer, null/absent when unknown.
    * @property {number|null} [assists] Nonnegative integer, null/absent when unknown.
+   */
+
+  /**
+   * @typedef {CombatCounters & Object} MatchListItem
+   * @property {number} match_id Nonnegative stored int64.
+   * @property {number|null} [hero_id]
+   * @property {string|null} [hero]
+   * @property {boolean|null} [win] Unknown result stays null/absent.
+   * @property {string[]} sources
+   * @property {string|null} parse_status
+   * @property {boolean} has_analysis
+   * @property {boolean} has_timeline
+   * @property {string[]|null} [items]
+   * @property {string|null} [note]
+   */
+
+  /**
+   * @typedef {Object} MatchList
+   * @property {boolean} linked
+   * @property {MatchListItem[]} items
+   * @property {number} total Nonnegative safe integer; filtered total, not page size.
+   * @property {{games:number,wins:number,winrate:number|null,avg_score:number|null}|null} [stats]
+   * @property {{hero_id:number,hero:string|null,games:number}[]|null} [heroes]
+   * @property {{hero_id:number|null,win:boolean|null,sort:string,ascending:boolean}|null} [filters]
+   * @property {PlayerSyncStatus|null} [sync]
+   * @property {{count:number,turbo:number,of:number}|null} [skipped]
+   * Existing row/stat/filter extensions are preserved; unlinked responses omit them.
    */
 
   /**

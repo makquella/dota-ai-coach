@@ -39,7 +39,12 @@ from app.coach_llm import env_settings
 from app.config import OPENDOTA_API_KEY, OPENDOTA_API_URL, OPENDOTA_ENABLED, PLAYER_DATA_DIR
 from app.history_backup import BackupError
 from app.opendota import OpenDotaClient
-from app.player_contracts import MatchDetailResponse, MatchNotFoundResponse, PlayerStatusResponse
+from app.player_contracts import (
+    MatchDetailResponse,
+    MatchListResponse,
+    MatchNotFoundResponse,
+    PlayerStatusResponse,
+)
 from app.player_profile import public_card
 from app.player_service import PlayerService
 from app.player_store import MATCH_SORTS
@@ -121,7 +126,12 @@ def sync_player():
     return {"sync": PLAYER_SERVICE.request_sync(), "opendota": PLAYER_SERVICE.client is not None}
 
 
-@router.get("/matches", summary="Match table of the linked player")
+@router.get(
+    "/matches",
+    summary="Match table of the linked player",
+    response_model=MatchListResponse,
+    response_model_exclude_unset=True,
+)
 def player_matches(
     limit: int = 50,
     offset: Offset = 0,
@@ -129,7 +139,7 @@ def player_matches(
     result: str | None = None,
     sort: str | None = None,
     order: str | None = None,
-):
+) -> dict[str, Any]:
     """`hero_id` and `result` (win | loss) filter the table; `sort` (date | score |
     gpm | lh_10 | duration | kda) and `order` (asc | desc) order it."""
     limit = max(1, min(int(limit), 200))
