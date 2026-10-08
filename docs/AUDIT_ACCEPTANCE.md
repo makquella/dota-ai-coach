@@ -21,7 +21,7 @@ Additional engineering/product work is tracked separately, not silently dropped.
 | F09 | Short AGENTS/CLAUDE adapter, scoped explicit checks, preserve useful docs | Merged #101 |
 | F10 | One coherent published runtime revision and ownership/reset, no I/O under locks; concurrent endpoints | Partial through 0.53.23; finish whole-overlay/demo execution/history boundary |
 | F11 | Atomic transfer claims/inserts and real local D1 concurrency | Prepared 0.53.11; TRANSFER_ATOMICITY.md |
-| F12 | Typed NormalizedState, MatchFacts, Finding + important I/O/detail DTO and consumers | Partial through 0.53.37; domain types still required |
+| F12 | Typed NormalizedState, MatchFacts, Finding + important I/O/detail DTO and consumers | Prepared 0.53.39: actual NormalizedState/MatchFacts producers, Finding core and evidence/coverage/detail DTOs; DOMAIN_CONTRACTS.md and test_domain_contracts.py. Open tracker/event/params extensions are explicit. |
 | F13 | Extract locales, JobQueue, transfer orchestration and match-detail slice; preserve exports/behavior and 2 actual UI scenarios | Partial through 0.53.36; transfer/detail extraction still required |
 | F14 | Pinned mypy, reviewed debt cannot grow, clean-module blocking gate | Prepared 0.53.9, baseline pruned later; TYPE_CHECKING.md |
 | F15 | Release validation on the same tag SHA before publication | Prepared 0.53.10; RELEASE_VALIDATION.md |

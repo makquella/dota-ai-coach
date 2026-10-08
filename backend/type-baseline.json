@@ -7,12 +7,14 @@
     "app/coach_finding_evidence.py",
     "app/demo_overlay_cache.py",
     "app/diagnostics.py",
+    "app/domain_contracts.py",
     "app/finding_evidence.py",
     "app/gsi_snapshot.py",
     "app/job_queue.py",
     "app/live_hints.py",
     "app/local_api_auth.py",
     "app/local_api_security.py",
+    "app/match_facts.py",
     "app/match_memory.py",
     "app/player_contracts.py",
     "app/player_store.py",
@@ -142,21 +144,9 @@
     },
     {
       "path": "app/gsi_state.py",
-      "message": "\"object\" has no attribute \"update\"",
-      "code": "attr-defined",
-      "count": 2
-    },
-    {
-      "path": "app/gsi_state.py",
       "message": "Argument 1 to \"int\" has incompatible type \"Any | None\"; expected \"str | Buffer | SupportsInt | SupportsIndex | SupportsTrunc\"",
       "code": "arg-type",
       "count": 4
-    },
-    {
-      "path": "app/gsi_state.py",
-      "message": "Unsupported target for indexed assignment (\"object\")",
-      "code": "index",
-      "count": 1
     },
     {
       "path": "app/hero_build.py",

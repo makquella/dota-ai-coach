@@ -164,3 +164,11 @@ MMR save/clear, locale and account transitions from 0.53.36.
 Analysis/coach/cache versions and stored history do not change. F12 remains
 partial: nested achievements/shop, public card, other mutations, facts and
 overlay responses still require their own contracts.
+
+## Domain/finding cores in 0.53.39
+
+Actual normalized-state and source-facts producers return typed domain shapes.
+The match-detail response validates finding/source/coverage cores and binds each
+measurement to its own finding params. Legacy extensions and unset fields remain
+intact. See [DOMAIN_CONTRACTS.md](DOMAIN_CONTRACTS.md) for scope, static negative
+fixtures and remaining open tracker/event/params extensions.

@@ -21,6 +21,7 @@ zone and note ids in the review language («Смерти» card).
 from __future__ import annotations
 
 from collections import Counter
+from collections.abc import Mapping
 from typing import Any
 
 from app.map_analysis import map_side, zone
@@ -31,7 +32,7 @@ SOON_AFTER_RESPAWN = 60
 LANING_END = 10 * 60
 
 
-def review_deaths(facts: dict[str, Any]) -> dict[str, Any] | None:
+def review_deaths(facts: Mapping[str, Any]) -> dict[str, Any] | None:
     """{"deaths": [...], "notes": {note id: count}} or None without deaths."""
     deaths = sorted(
         (d for d in facts.get("deaths_log") or [] if d.get("t") is not None),

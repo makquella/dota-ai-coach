@@ -11,6 +11,7 @@ from typing import Any
 
 from app.advice_context import MAP_CENTER, build_advice_context
 from app.config import GSI_DEBUG_LOG, GSI_DEBUG_SAMPLES_DIR
+from app.domain_contracts import NormalizedState
 from app.dota_constants import NPC_TO_HERO_ID, hero_name
 from app.enemy_heroes import visible_enemy_heroes, visible_enemy_units
 from app.gsi_snapshot import GSIRegister, GSISnapshot
@@ -323,7 +324,7 @@ def _write_debug_payload_sample(payload: dict[str, Any], timestamp: str) -> None
 def normalize_gsi_payload(
     payload: dict[str, Any],
     previous_extra_context: dict[str, Any] | None = None,
-) -> dict[str, Any]:
+) -> NormalizedState:
     hero_block = _dict_value(payload.get("hero"))
     player_block = _dict_value(payload.get("player"))
     map_block = _dict_value(payload.get("map"))
@@ -362,7 +363,7 @@ def normalize_gsi_payload(
         previous_extra_context=previous_extra_context,
     )
 
-    state = {
+    state: NormalizedState = {
         "hero": hero,
         "role": "carry",
         "minute": minute,

@@ -31,7 +31,7 @@ import re
 import threading
 import time
 from collections import Counter
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
@@ -87,6 +87,7 @@ from app.opendota import (
 )
 from app.personal_baseline import MAX_GAMES as MAX_BASELINE_GAMES
 from app.personal_baseline import personal_baseline
+from app.player_contracts import analysis_core_valid
 from app.player_goals import goal_streaks, tilt
 from app.player_profile import MMR_MAX, MMR_MIN, add_anchor, build_profile
 from app.player_store import PlayerStore
@@ -962,7 +963,9 @@ class PlayerService:
         if record is None:
             return None
         analysis = record.get("analysis")
-        if analysis is not None and analysis.get("version") != ANALYSIS_VERSION:
+        if analysis is not None and (
+            analysis.get("version") != ANALYSIS_VERSION or not analysis_core_valid(analysis)
+        ):
             analysis = None  # rules changed since it was stored
         if analysis is None and (record.get("opendota") or record.get("timeline")):
             analysis = self._rebuild_analysis(primary, match_id)
@@ -1295,7 +1298,9 @@ class PlayerService:
         )
         for match in matches:
             stale = match.get("analysis")
-            if stale is not None and stale.get("version") != ANALYSIS_VERSION:
+            if stale is not None and (
+                stale.get("version") != ANALYSIS_VERSION or not analysis_core_valid(stale)
+            ):
                 match["analysis"] = self._rebuild_analysis(primary, match["match_id"])
         result = analyze_career(
             matches,
@@ -2037,7 +2042,7 @@ class PlayerService:
         )
         return analysis
 
-    def _inventory_keys(self, facts: dict[str, Any]) -> list[str] | None:
+    def _inventory_keys(self, facts: Mapping[str, Any]) -> list[str] | None:
         """The final inventory as item keys for the match table's icons: GSI
         names directly, OpenDota ids through the cached item constants. None
         when it cannot be read yet (ids without constants), [] when empty."""

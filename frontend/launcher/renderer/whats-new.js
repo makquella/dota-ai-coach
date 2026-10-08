@@ -9,6 +9,9 @@
 
   const TEXT = {
     en: {
+      "0.53.39": [
+        "Normalized game data and match facts have typed core contracts. Finding sources, counts and recording coverage are validated at the review API without dropping legacy fields or unknown values."
+      ],
       "0.53.38": [
         "Ward, last-hit-at-10 and early-death findings show their measurement source. Partial recordings stay unknown, inventory counts are labeled estimates, and AI checks these claims against their own data."
       ],
@@ -433,6 +436,9 @@
       ]
     },
     ru: {
+      "0.53.39": [
+        "Нормализованные игровые данные и факты матча получили типизированные контракты. Источники, числа и покрытие findings проверяются на границе API разбора; старые поля и неизвестные значения сохраняются."
+      ],
       "0.53.38": [
         "Выводы о вардах, добиваниях к 10:00 и ранних смертях показывают источник измерения. Пропуски записи остаются неизвестными, подсчёт по инвентарю помечен как оценка, а AI проверяет эти утверждения по своим данным."
       ],

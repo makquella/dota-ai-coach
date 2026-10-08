@@ -10,6 +10,7 @@ a habit, not a new skill — react to the warning at once.
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from typing import Any
 
 FOLLOW_WINDOW_SECONDS = 30
@@ -17,7 +18,7 @@ MIN_IGNORED_FOR_FINDING = 2
 
 
 def analyze_advice_follow(
-    facts: dict[str, Any],
+    facts: Mapping[str, Any],
 ) -> tuple[dict[str, Any] | None, list[dict[str, Any]]]:
     advice = [a for a in facts.get("advice_log") or [] if a.get("mode") == "urgent"]
     if not advice:

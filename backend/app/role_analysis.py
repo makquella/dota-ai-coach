@@ -19,6 +19,7 @@ in the review's laning / vision facts; the findings use _finding's shape.
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from typing import Any
 
 from app.peer_analysis import player_roles
@@ -83,7 +84,7 @@ def _enemy_mid_runes(opendota: dict[str, Any] | None) -> tuple[str | None, int |
 
 
 def analyze_role(
-    facts: dict[str, Any], opendota: dict[str, Any] | None, position: str | None
+    facts: Mapping[str, Any], opendota: dict[str, Any] | None, position: str | None
 ) -> tuple[dict[str, Any] | None, list[dict[str, Any]]]:
     minutes = (facts.get("duration") or 0) / 60
     if not facts.get("parsed") or minutes < MIN_MINUTES:
@@ -144,7 +145,7 @@ def analyze_role(
 
 
 def _offlane(
-    facts: dict[str, Any], opendota: dict[str, Any] | None
+    facts: Mapping[str, Any], opendota: dict[str, Any] | None
 ) -> tuple[dict[str, Any] | None, list[dict[str, Any]]]:
     stuns = facts.get("stuns")
     if not isinstance(stuns, (int, float)):
@@ -178,7 +179,7 @@ def _offlane(
 
 
 def _offlane_towers(
-    facts: dict[str, Any], opendota: dict[str, Any] | None, block: dict[str, Any]
+    facts: Mapping[str, Any], opendota: dict[str, Any] | None, block: dict[str, Any]
 ) -> list[dict[str, Any]]:
     """Damage to buildings against the enemy offlaner: a clear gap only."""
     towers = facts.get("tower_damage")

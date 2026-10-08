@@ -8,6 +8,64 @@
   "use strict";
 
   /**
+   * @typedef {Object} NormalizedState
+   * @property {string} hero Canonical hero title.
+   * @property {"carry"} role Legacy public role; actual role lives in extra_context.
+   * @property {number} minute
+   * @property {number} level
+   * @property {number} gold
+   * @property {string[]} items
+   * @property {number} hp_percent
+   * @property {string} game_state
+   * @property {string} team_status
+   * @property {Object<string, *>} extra_context Optional observed/owned tracker signals; unknown signals are absent.
+   */
+  /**
+   * @typedef {Object} MatchFacts
+   * @property {number} match_id
+   * @property {string[]} sources
+   * @property {boolean} parsed
+   * @property {string|null} hero
+   * @property {number|null} duration
+   * @property {number|null} kills
+   * @property {number|null} deaths
+   * @property {number|null} assists
+   * @property {Array<number|null>} lh_t Unknown intervals stay null, not zero.
+   * @property {Array<number|null>} dn_t
+   * @property {Object<string, FindingEvidence|null>} provenance
+   * @property {RecordingCoverage|null} recording_coverage
+   * Backend-only full shape is declared in app/domain_contracts.py; event extensions remain source-specific.
+   */
+
+  /**
+   * @typedef {Object} RecordingCoverage
+   * @property {number} start First observed sample in game seconds.
+   * @property {number} end Last observed sample in game seconds.
+   * @property {number[][]} gaps Ordered endpoint pairs, unknown intervals >30 s.
+   * @property {boolean} complete Whole-match sampling coverage; no unknown gaps.
+   */
+  /**
+   * @typedef {Object} FindingEvidence
+   * @property {"obs_placed"|"sen_placed"|"lh10"|"lane_deaths"} field
+   * @property {string} source Field-specific source whitelist; never model-owned.
+   * @property {"reported_total"|"log_count"|"inventory_estimate"|"sample"|"carried_sample"} precision
+   * @property {number} value Native nonnegative safe integer; zero is known.
+   * @property {number|null} observed_at Exact or carried sample time; null for counts.
+   * @property {RecordingCoverage|null} coverage GSI intervals; null for OpenDota.
+   */
+  /**
+   * @typedef {Object} Finding
+   * @property {string} id Stable finding ID; localized title is separate.
+   * @property {Object<string, *>} params Finding-specific values; not HTML.
+   * @property {FindingEvidence[]} [evidence] New findings always supply this; legacy may omit it.
+   * @property {"strength"|"improve"} [kind]
+   * @property {string} [section]
+   * @property {number} [severity]
+   * @property {number} [weight]
+   * Localized title/text/drill and additional extensions survive the response.
+   */
+
+  /**
    * @typedef {Object} PlayerSyncStatus
    * @property {string} state Existing idle/queued/running/done/error values; extensible.
    * @property {string|null} at

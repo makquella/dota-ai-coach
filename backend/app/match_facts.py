@@ -18,10 +18,17 @@ and deaths carry them already, OpenDota logs use 128-unit cells.
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, Literal, cast
 
+from app.domain_contracts import MatchFacts
 from app.dota_constants import hero_name, hero_name_from_npc
-from app.finding_evidence import count, opendota_provenance, recording_coverage, timeline_provenance
+from app.finding_evidence import (
+    FindingField,
+    count,
+    opendota_provenance,
+    recording_coverage,
+    timeline_provenance,
+)
 from app.opendota import my_player
 
 
@@ -39,7 +46,7 @@ def _num(value: Any) -> float | None:
         return None
 
 
-def empty_facts(match_id: int) -> dict[str, Any]:
+def empty_facts(match_id: int) -> MatchFacts:
     return {
         "match_id": int(match_id),
         "sources": [],
@@ -129,7 +136,7 @@ def _lane_pos(raw: Any) -> list[list[int]]:
     return points
 
 
-def facts_from_opendota(trimmed: dict[str, Any]) -> dict[str, Any] | None:
+def facts_from_opendota(trimmed: dict[str, Any]) -> MatchFacts | None:
     me = my_player(trimmed)
     if not me:
         return None
@@ -183,22 +190,23 @@ def facts_from_opendota(trimmed: dict[str, Any]) -> dict[str, Any] | None:
                 for npc, count in _dict(me.get("killed_by")).items()
                 if str(npc).startswith("npc_dota_hero_")
             },
-            "inventory": [me.get(f"item_{slot}") for slot in range(6) if me.get(f"item_{slot}")],
-            "final_items": [
-                me.get(key)
-                for key in (
-                    "item_0",
-                    "item_1",
-                    "item_2",
-                    "item_3",
-                    "item_4",
-                    "item_5",
-                    "backpack_0",
-                    "backpack_1",
-                    "backpack_2",
-                )
-                if me.get(key)
-            ],
+            "inventory": _inventory_values([me.get(f"item_{slot}") for slot in range(6)]),
+            "final_items": _inventory_values(
+                [
+                    me.get(key)
+                    for key in (
+                        "item_0",
+                        "item_1",
+                        "item_2",
+                        "item_3",
+                        "item_4",
+                        "item_5",
+                        "backpack_0",
+                        "backpack_1",
+                        "backpack_2",
+                    )
+                ]
+            ),
         }
     )
     facts["deaths_log"] = _with_fight_positions(
@@ -210,9 +218,9 @@ def facts_from_opendota(trimmed: dict[str, Any]) -> dict[str, Any] | None:
         if isinstance(entry, dict) and entry.get("key") and _int(entry.get("time")) is not None
     ]
     facts["buybacks"] = [
-        _int(entry.get("time"))
+        time
         for entry in _list(me.get("buyback_log"))
-        if isinstance(entry, dict) and _int(entry.get("time")) is not None
+        if isinstance(entry, dict) and (time := _int(entry.get("time"))) is not None
     ]
     facts["wards"] = _wards(me)
     facts["lane_pos"] = _lane_pos(me.get("lane_pos"))
@@ -229,7 +237,8 @@ def facts_from_opendota(trimmed: dict[str, Any]) -> dict[str, Any] | None:
             if not p.get("me")
         ),
     )
-    for field in ("obs_placed", "sen_placed"):
+    ward_fields: tuple[Literal["obs_placed", "sen_placed"], ...] = ("obs_placed", "sen_placed")
+    for field in ward_fields:
         evidence = facts["provenance"].get(field)
         if evidence is not None:
             facts[field] = evidence["value"]
@@ -242,6 +251,14 @@ def _dict(value: Any) -> dict[str, Any]:
 
 def _list(value: Any) -> list[Any]:
     return value if isinstance(value, list) else []
+
+
+def _inventory_values(values: list[Any]) -> list[int | str]:
+    result: list[int | str] = []
+    for value in values:
+        if type(value) is int and value > 0 or isinstance(value, str) and value:
+            result.append(value)
+    return result
 
 
 def _benchmarks(raw: Any) -> dict[str, float]:
@@ -296,7 +313,7 @@ def _with_fight_positions(deaths: list[dict[str, Any]], fights: Any) -> list[dic
     return deaths
 
 
-def facts_from_timeline(timeline: dict[str, Any]) -> dict[str, Any]:
+def facts_from_timeline(timeline: dict[str, Any]) -> MatchFacts:
     facts = empty_facts(_int(timeline.get("match_id")) or 0)
     facts["sources"] = ["gsi"]
     samples = [s for s in timeline.get("samples") or [] if isinstance(s, dict)]
@@ -323,11 +340,13 @@ def facts_from_timeline(timeline: dict[str, Any]) -> dict[str, Any]:
             "level": _int(final.get("level")),
             # Observer wards placed, counted from the inventory (match_tracker).
             "obs_placed": count(timeline.get("obs_placed")),
-            "inventory": [
-                str(name)
-                for name in final.get("inventory") or []
-                if isinstance(name, str) and name.startswith("item_")
-            ][:6],
+            "inventory": _inventory_values(
+                [
+                    str(name)
+                    for name in final.get("inventory") or []
+                    if isinstance(name, str) and name.startswith("item_")
+                ][:6]
+            ),
             "lh_t": _per_minute(samples, "lh", duration),
             "dn_t": _per_minute(samples, "dn", duration),
             "gold_t": _earned_gold_per_minute(samples, duration),
@@ -360,9 +379,9 @@ def facts_from_timeline(timeline: dict[str, Any]) -> dict[str, Any]:
                 if isinstance(item, dict) and item.get("item")
             ],
             "buybacks": [
-                _int(entry.get("t"))
+                time
                 for entry in timeline.get("buybacks") or []
-                if isinstance(entry, dict) and _int(entry.get("t")) is not None
+                if isinstance(entry, dict) and (time := _int(entry.get("t"))) is not None
             ],
         }
     )
@@ -373,7 +392,7 @@ def facts_from_timeline(timeline: dict[str, Any]) -> dict[str, Any]:
         facts["kill_participation"] = min(
             1.0, ((kills or 0) + (facts["assists"] or 0)) / team_kills
         )
-    respawns = [d.get("respawn") for d in facts["deaths_log"] if d.get("respawn")]
+    respawns = [value for d in facts["deaths_log"] if (value := _int(d.get("respawn")))]
     if respawns:
         facts["time_dead"] = sum(respawns)
     facts["recording_coverage"] = recording_coverage(timeline)
@@ -413,9 +432,7 @@ def _earned_gold_per_minute(
     return _per_minute(earned, "earned", duration)
 
 
-def merge_facts(
-    opendota: dict[str, Any] | None, gsi: dict[str, Any] | None
-) -> dict[str, Any] | None:
+def merge_facts(opendota: MatchFacts | None, gsi: MatchFacts | None) -> MatchFacts | None:
     if opendota is None:
         return gsi
     if gsi is None:
@@ -426,19 +443,21 @@ def merge_facts(
         if merged.get(key) in (None, [], {}) and value not in (None, [], {}):
             merged[key] = value
     provenance = dict(opendota.get("provenance") or {})
-    for field, fact_key in (
+    provenance_keys: tuple[tuple[FindingField, str], ...] = (
         ("obs_placed", "obs_placed"),
         ("sen_placed", "sen_placed"),
         ("lh10", "lh_t"),
         ("lane_deaths", "deaths_log"),
-    ):
+    )
+    for field, fact_key in provenance_keys:
         if not opendota.get(fact_key) and opendota.get(fact_key) != 0:
             provenance[field] = (gsi.get("provenance") or {}).get(field)
     merged["provenance"] = provenance
     # OpenDota knows who killed us, GSI knows how much gold we lost.
     if gsi.get("deaths_log"):
         merged["deaths_log"] = _merge_deaths(opendota.get("deaths_log") or [], gsi["deaths_log"])
-    return merged
+    # Dynamic fallback copies only between two complete, typed source shapes.
+    return cast(MatchFacts, merged)
 
 
 def _last_moments(value: Any) -> dict[str, Any] | None:

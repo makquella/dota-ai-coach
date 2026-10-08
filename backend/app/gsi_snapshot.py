@@ -3,14 +3,14 @@
 from __future__ import annotations
 
 import threading
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 from copy import deepcopy
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from typing import Any
 
 State = dict[str, Any]
-Normalizer = Callable[[State, State | None], State]
+Normalizer = Callable[[State, State | None], Mapping[str, Any]]
 
 
 @dataclass(frozen=True)
@@ -51,7 +51,8 @@ class GSIRegister:
         raw = deepcopy(payload)
         with self._writer:
             previous = self.capture()
-            state = normalizer(raw, previous.previous_context if previous else None)
+            # Adapt the typed normalized mapping to the mutable enrichment port.
+            state = dict(normalizer(raw, previous.previous_context if previous else None))
             context = deepcopy(state.get("extra_context") or {})
             if enrich is not None:
                 enrich(state)

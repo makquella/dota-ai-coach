@@ -19,12 +19,14 @@ players of the same hero) are preferred over the static targets below.
 from __future__ import annotations
 
 from collections import Counter
+from collections.abc import Mapping
 from datetime import UTC, datetime
-from typing import Any
+from typing import Any, Literal
 
 from app.advice_follow import analyze_advice_follow
 from app.build_analysis import analyze_build
 from app.death_review import review_deaths
+from app.domain_contracts import Finding
 from app.draft_analysis import analyze_draft
 from app.finding_evidence import FINDING_FIELDS, attach_finding_evidence
 from app.item_timing import classify_item_timing, normalize_item_name
@@ -107,7 +109,7 @@ def _at(series: list[int | None], minute: int) -> int | None:
 REVIEW_ROLE = {"carry": "core", "mid": "core", "offlane": "offlane", "support": "support"}
 
 
-def match_position(facts: dict[str, Any], opendota: dict[str, Any] | None) -> str | None:
+def match_position(facts: Mapping[str, Any], opendota: dict[str, Any] | None) -> str | None:
     """carry | mid | offlane | support from OpenDota's lineup (lanes of a parsed
     replay, else the farm order inside the team, as for the rank comparison);
     None without the lineup."""
@@ -118,7 +120,7 @@ def match_position(facts: dict[str, Any], opendota: dict[str, Any] | None) -> st
     return player_roles(players, (opendota or {}).get("duration") or facts.get("duration"))[index]
 
 
-def detect_role(facts: dict[str, Any], opendota: dict[str, Any] | None = None) -> str:
+def detect_role(facts: Mapping[str, Any], opendota: dict[str, Any] | None = None) -> str:
     """The review role (TARGETS). Last hits per minute alone make a farming
     support a "core", so the match lineup decides when there is one."""
     position = match_position(facts, opendota)
@@ -136,7 +138,7 @@ def detect_role(facts: dict[str, Any], opendota: dict[str, Any] | None = None) -
 
 
 def analyze_match(
-    facts: dict[str, Any],
+    facts: Mapping[str, Any],
     *,
     meta: dict[str, Any] | None = None,
     opendota: dict[str, Any] | None = None,
@@ -378,26 +380,23 @@ def _dedupe(findings: list[dict[str, Any]]) -> list[dict[str, Any]]:
 def _finding(
     findings: list[dict[str, Any]],
     finding_id: str,
-    kind: str,
+    kind: Literal["strength", "improve"],
     section: str,
     *,
     severity: int = 1,
     weight: float = 1.0,
     **params: Any,
 ) -> None:
-    findings.append(
-        {
-            "id": finding_id,
-            "kind": kind,
-            "section": section,
-            "severity": severity,
-            "weight": weight,
-            "params": params,
-        }
-    )
-
-
-# --- sections -------------------------------------------------------------------
+    finding: Finding = {
+        "id": finding_id,
+        "kind": kind,
+        "section": section,
+        "severity": severity,
+        "weight": weight,
+        "params": params,
+        "evidence": [],
+    }
+    findings.append(dict(finding))
 
 
 def _laning(facts, role, targets, findings) -> dict[str, Any] | None:
@@ -931,7 +930,7 @@ def _vision(facts, role, targets, findings) -> dict[str, Any] | None:
 # --- charts / timeline ------------------------------------------------------------
 
 
-def _series(facts: dict[str, Any], targets: dict[str, float]) -> dict[str, Any]:
+def _series(facts: Mapping[str, Any], targets: dict[str, float]) -> dict[str, Any]:
     lh_t = facts.get("lh_t") or []
     gold = facts.get("gold_t") or []
     xp = facts.get("xp_t") or []
@@ -956,7 +955,7 @@ ITEM_MARK_MIN_COST = 1200
 ITEM_MARKS_MAX = 12
 
 
-def _item_marks(facts: dict[str, Any], meta: dict[str, Any] | None) -> list[dict[str, Any]]:
+def _item_marks(facts: Mapping[str, Any], meta: dict[str, Any] | None) -> list[dict[str, Any]]:
     """[{t, key}]: the minute each finished item (a recipe of 1200+ gold, or a
     Blink Dagger) came, for the icons on the review's chart. The cached item
     constants tell a finished item from a part; without them, nothing."""
@@ -979,7 +978,7 @@ def _item_marks(facts: dict[str, Any], meta: dict[str, Any] | None) -> list[dict
     return marks[:ITEM_MARKS_MAX]
 
 
-def _moments(facts: dict[str, Any], findings: list[dict[str, Any]]) -> list[dict[str, Any]]:
+def _moments(facts: Mapping[str, Any], findings: list[dict[str, Any]]) -> list[dict[str, Any]]:
     moments: list[dict[str, Any]] = []
     for death in facts.get("deaths_log") or []:
         if death.get("t") is not None:

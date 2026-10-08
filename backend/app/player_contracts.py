@@ -2,9 +2,26 @@
 
 from __future__ import annotations
 
-from typing import Annotated, Literal
+from typing import Annotated, Any, Literal, Self
 
-from pydantic import BaseModel, ConfigDict, Field, StrictFloat, StrictInt
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    StrictFloat,
+    StrictInt,
+    ValidationError,
+    model_validator,
+)
+
+from app.finding_evidence import (
+    FINDING_FIELDS,
+    PARAMS,
+    FindingField,
+    Precision,
+    count,
+    validated_evidence,
+)
 
 CombatCount = Annotated[StrictInt, Field(ge=0, le=2**53 - 1)]
 StoredMatchId = Annotated[StrictInt, Field(ge=0, le=2**63 - 1)]
@@ -29,8 +46,67 @@ class CombatCounters(ExtensibleResponse):
     assists: CombatCount | None = None
 
 
+class RecordingCoverageResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True)
+    start: Count
+    end: Count
+    gaps: list[list[Count]]
+    complete: bool
+
+    @model_validator(mode="after")
+    def ordered_intervals(self) -> Self:
+        if self.start > self.end or any(
+            len(gap) != 2 or not self.start <= gap[0] < gap[1] <= self.end for gap in self.gaps
+        ):
+            raise ValueError("Invalid recording intervals")
+        if self.complete and (self.gaps or self.start > 15):
+            raise ValueError("Complete coverage cannot have an unknown beginning or gaps")
+        return self
+
+
+class FindingEvidenceResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True)
+    field: FindingField
+    source: str
+    precision: Precision
+    value: Count
+    observed_at: Count | None
+    coverage: RecordingCoverageResponse | None
+
+    @model_validator(mode="after")
+    def source_matches_field(self) -> Self:
+        if validated_evidence(self.model_dump()) is None:
+            raise ValueError("Finding source, field, precision or time is inconsistent")
+        return self
+
+
+class FindingResponse(ExtensibleResponse):
+    id: Annotated[str, Field(min_length=1)]
+    params: dict[str, Any]
+    # Old stored/extension findings remain readable; unset evidence stays unset.
+    evidence: list[FindingEvidenceResponse] = Field(default_factory=list)
+    kind: Literal["strength", "improve"] | None = None
+    section: str | None = None
+    severity: Count | None = None
+    weight: Annotated[StrictFloat, Field(ge=0, allow_inf_nan=False)] | None = None
+
+    @model_validator(mode="after")
+    def measurement_matches_finding(self) -> Self:
+        permitted = FINDING_FIELDS.get(self.id, ())
+        if any(
+            row.field not in permitted or row.value != count(self.params.get(PARAMS[row.field]))
+            for row in self.evidence
+        ):
+            raise ValueError("Evidence differs from the finding field or parameters")
+        return self
+
+
 class MatchAnalysis(ExtensibleResponse):
     headline: CombatCounters
+    strengths: list[FindingResponse] | None = None
+    improvements: list[FindingResponse] | None = None
+    evidence_findings: list[FindingResponse] | None = None
+    recording_coverage: RecordingCoverageResponse | None = None
 
 
 class MatchDetailResponse(ExtensibleResponse):
@@ -217,3 +293,12 @@ class ProfileCore(ExtensibleResponse):
 
 class ProfileResponse(ExtensibleResponse):
     profile: ProfileCore | None
+
+
+def analysis_core_valid(value: object) -> bool:
+    """Check cached/imported cores without coercing or replacing stored extensions."""
+    try:
+        MatchAnalysis.model_validate(value)
+    except ValidationError:
+        return False
+    return True

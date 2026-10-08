@@ -24,6 +24,7 @@ from datetime import UTC, datetime
 from typing import Any
 
 from app.diagnostics import record_error
+from app.player_contracts import analysis_core_valid
 from app.player_store import MATCH_COLUMNS, PlayerStore
 from app.storage_json import cache_value_valid, load_json
 
@@ -163,6 +164,8 @@ def _validate_row(table: str, raw: dict[str, Any]) -> dict[str, Any]:
                 raise _invalid()
             if key in JSON_OBJECTS:
                 blob = _json(value, dict)
+                if key == "analysis_json" and "headline" in blob and not analysis_core_valid(blob):
+                    raise _invalid()
                 for field, kind in JSON_CONTAINERS[key].items():
                     part = blob.get(field)
                     if part is not None and not isinstance(part, kind):
