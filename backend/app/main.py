@@ -8,6 +8,7 @@ from datetime import UTC, datetime, timedelta
 from typing import Any
 
 from fastapi import FastAPI, Request
+from fastapi.concurrency import run_in_threadpool
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.openapi.utils import get_openapi
 from fastapi.responses import FileResponse, JSONResponse
@@ -43,6 +44,7 @@ from app.gsi_state import (
     get_gsi_debug_fields,
     get_gsi_debug_latest,
     get_gsi_status_snapshot,
+    hero_from_gsi,
     post_game_match_id,
     reset_latest_gsi,
     update_latest_gsi,
@@ -104,7 +106,7 @@ app = LocalApiApp(
     lifespan=_lifespan,
     title="Wardly",
     description="MVP-1: rule-based carry coach with local knowledge-base RAG.",
-    version="0.53.18",
+    version="0.53.19",
 )
 app.include_router(player_router)
 
@@ -130,7 +132,7 @@ if FRONTEND_DIR.exists():
 @app.get("/", summary="Health check")
 def root():
     """Simple health-check endpoint."""
-    return {"status": "ok", "service": "Wardly", "version": "0.53.18"}
+    return {"status": "ok", "service": "Wardly", "version": "0.53.19"}
 
 
 @app.get("/health", summary="Health check")
@@ -269,7 +271,15 @@ def recommend(request: GameSituationRequest):
 async def receive_gsi(request: Request):
     """Accept raw Dota 2 GSI JSON and keep the latest normalized state in memory."""
     payload = request.scope["wardly.gsi_payload"]
-    result = update_latest_gsi(payload, enrich=_observe_live_gsi)
+    # Role history/cache can read SQLite. Prepare it before the GSI writer and
+    # core memory owners; the callback uses the lane read after observation.
+    hero = hero_from_gsi(payload)
+    prior = (
+        await run_in_threadpool(PLAYER_SERVICE.role_prior, hero)
+        if hero_coverage(hero) == "full"
+        else None
+    )
+    result = update_latest_gsi(payload, enrich=lambda state: _observe_live_gsi(state, prior=prior))
     GSI_CENSUS.observe(payload)
     GSI_CENSUS.save_due(PLAYER_SERVICE.data_dir / CENSUS_FILE)
     MATCH_RECORDS.record_gsi(payload)
@@ -285,10 +295,12 @@ async def receive_gsi(request: Request):
     return result
 
 
-def _observe_live_gsi(state: dict[str, Any]) -> None:
+def _observe_live_gsi(state: dict[str, Any], *, prior: dict[str, Any] | None) -> None:
     """In-memory enrichment completes before the packet/state is published."""
     MATCH_MEMORY.observe_state(state)
-    coverage = _advisor_coverage(state)
+    coverage = hero_coverage(str(state.get("hero") or ""))
+    if coverage == "full" and _role_is_support(MATCH_MEMORY.role_snapshot(prior)):
+        coverage = "support"
     if coverage:
         decision_point = _covered_decision_point(detect_decision_point(state), coverage)
         MATCH_MEMORY.note_advice(decision_point)
@@ -420,7 +432,10 @@ def _plays_support(state: Mapping[str, object] | None) -> bool:
     extra: Mapping[str, object] = raw_extra if isinstance(raw_extra, dict) else {}
     if extra.get("source_type") != "live_gsi":
         return False
-    role = _live_role(state)
+    return _role_is_support(_live_role(state))
+
+
+def _role_is_support(role: dict[str, Any] | None) -> bool:
     return role is not None and role.get("role") == "support" and role.get("source") != "hero"
 
 
@@ -428,7 +443,7 @@ def _live_role(state: Mapping[str, object] | None) -> dict[str, Any] | None:
     state = state or {}
     hero = str(state.get("hero") or "")
     prior = PLAYER_SERVICE.role_prior(hero) if hero else None
-    return MATCH_MEMORY.role.role(prior)
+    return MATCH_MEMORY.role_snapshot(prior)
 
 
 def _live_role_and_hint(response: dict[str, object], lang: str) -> dict[str, object]:

@@ -363,6 +363,9 @@ const I18N = {
     tourHint: "A short tour of the app, one minute",
     tourStart: "Show",
     whatsNew: {
+      "0.53.19": [
+        "Session reset no longer waits for role-history lookup; game state updates use the prepared role data."
+      ],
       "0.53.18": [
         "Match-memory summaries stay consistent while game data, demo replay and resets update the session."
       ],
@@ -1224,6 +1227,9 @@ const I18N = {
     tourHint: "Короткая экскурсия по приложению, на минуту",
     tourStart: "Показать",
     whatsNew: {
+      "0.53.19": [
+        "Сброс сессии не ждёт чтения истории для определения роли; игровое состояние использует заранее подготовленные данные."
+      ],
       "0.53.18": [
         "Сводка памяти матча обновляется согласованно при поступлении игровых и демо-данных и при сбросе сессии."
       ],

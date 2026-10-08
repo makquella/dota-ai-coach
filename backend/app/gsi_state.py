@@ -146,6 +146,18 @@ def reset_latest_gsi(reset_context: Callable[[], None] | None = None) -> None:
     _GSI.reset(reset_context)
 
 
+def hero_from_gsi(payload: dict[str, Any]) -> str:
+    """Select the canonical hero before any register ownership or metadata I/O."""
+    hero_block = _dict_value(payload.get("hero"))
+    return _normalize_hero_name(
+        _first_value(
+            payload.get("hero_name"),
+            payload.get("hero") if isinstance(payload.get("hero"), str) else None,
+            hero_block.get("name"),
+        )
+    )
+
+
 # Game rules states before the heroes are on the map.
 _PRE_SPAWN_STATES = frozenset(
     {
@@ -324,13 +336,7 @@ def normalize_gsi_payload(
         hero_block = {**hero_block, "alive": True}
         payload = {**payload, "hero": hero_block}
 
-    hero = _normalize_hero_name(
-        _first_value(
-            payload.get("hero_name"),
-            payload.get("hero") if isinstance(payload.get("hero"), str) else None,
-            hero_block.get("name"),
-        )
-    )
+    hero = hero_from_gsi(payload)
     if payload.get("minute") is not None:
         minute = _clamp_int(payload.get("minute"), 0, 90, default=0)
     else:

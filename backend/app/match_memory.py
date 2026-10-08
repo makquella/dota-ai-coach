@@ -250,6 +250,11 @@ class MatchMemory:
         self.last_advice_type = decision_point
 
     @_owned
+    def role_snapshot(self, prior: dict[str, Any] | None = None) -> dict[str, Any] | None:
+        """Read the observed/selected role with an already prepared prior."""
+        return self.role.role(prior)
+
+    @_owned
     def summary(self) -> dict[str, Any]:
         return {
             "match_id": self.match_id,

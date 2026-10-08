@@ -48,6 +48,6 @@ Remaining F10 boundaries:
 - The whole overlay response, demo response cache, scheduler, PlayerService
   trackers and GSI register do not form one atomic epoch. A demo can publish its
   response after a reset; core memory itself remains serialized.
-- The GSI enrichment callback still calls the role-prior metadata path after
-  releasing memory ownership. That path can read SQLite while the separate GSI
-  writer owner is held. Move this lookup outside that owner in the next slice.
+- The role-prior metadata lookup was moved outside the separate GSI writer
+  owner in 0.53.19; role reads now use an owned snapshot method. See
+  [GSI_ROLE_PREPARATION.md](GSI_ROLE_PREPARATION.md).
