@@ -304,6 +304,8 @@
 
   function setView(view, { remember = true, restore = false } = {}) {
     if (view !== "match") {
+      matchRequests.cancel();
+      clearTimeout(matchRefreshTimer);
       notePlace({ view });
     }
     state.view = view;
@@ -924,6 +926,11 @@
 
   // --- match review -------------------------------------------------------------
 
+  const matchRequests = window.WardlyMatchRequests.create({
+    current: () => ({view: state.view, matchId: state.matchId, locale: state.locale}),
+    request: matchId => call("match", { matchId })
+  });
+
   async function openMatch(matchId) {
     state.adviceLogOpen = false;
     notePlace({ view: "match", matchId: String(matchId) });
@@ -931,13 +938,11 @@
     state.match = null;
     setView("match", { remember: false });
     renderMatch();
-    const result = await call("match", { matchId: state.matchId });
-    if (String(matchId) !== state.matchId) {
-      return;
-    }
-    state.match = result.ok ? result.data : { error: result.code };
-    renderMatch();
-    scheduleMatchRefresh(String(matchId));
+    return matchRequests.load(state.matchId, result => {
+      state.match = result.ok ? result.data : { error: result.code };
+      renderMatch();
+      scheduleMatchRefresh(String(matchId));
+    });
   }
 
   // While the review is loading (queued OpenDota fetch) or OpenDota is still
@@ -964,17 +969,18 @@
     if (state.matchId !== matchId || state.view !== "match") {
       return;
     }
-    const result = await call("match", { matchId });
-    if (result.ok && state.matchId === matchId && state.view === "match") {
-      const changed = JSON.stringify(result.data) !== JSON.stringify(state.match);
-      state.match = result.data;
-      // Don't wipe a key or a question the player is typing, or a question on its way.
-      const asking = state.askBusy || Boolean(document.querySelector(".ask-input")?.value.trim()) || Boolean(document.querySelector(".review-note-input"));
-      if (changed && state.aiPanel !== "form" && !asking) {
-        renderMatch();
+    return matchRequests.load(matchId, result => {
+      if (result.ok) {
+        const changed = JSON.stringify(result.data) !== JSON.stringify(state.match);
+        state.match = result.data;
+        // Don't wipe a key or a question the player is typing, or a question on its way.
+        const asking = state.askBusy || Boolean(document.querySelector(".ask-input")?.value.trim()) || Boolean(document.querySelector(".review-note-input"));
+        if (changed && state.aiPanel !== "form" && !asking) {
+          renderMatch();
+        }
       }
-    }
-    scheduleMatchRefresh(matchId);
+      scheduleMatchRefresh(matchId);
+    });
   }
 
   // Saves the current view as a PDF (light print theme, see @media print).
@@ -5039,7 +5045,7 @@
       } else if (state.view === "progress") {
         loadCareer();
       } else if (state.view === "match" && state.matchId) {
-        openMatchQuietly(state.matchId).then(() => renderMatch());
+        openMatchQuietly(state.matchId).then(applied => { if (applied) renderMatch(); });
       } else if (state.view === "settings") {
         renderAiSettings();
       }

@@ -9,6 +9,9 @@
 
   const TEXT = {
     en: {
+      "0.53.29": [
+        "Delayed review responses cannot replace a newer selection or update a review after changing tabs or language."
+      ],
       "0.53.28": [
         "Returning from a review keeps the match row focused through the table refresh; back/forward history is checked in both languages."
       ],
@@ -403,6 +406,9 @@
       ]
     },
     ru: {
+      "0.53.29": [
+        "Задержавшийся ответ разбора не заменяет новый выбор и не обновляет разбор после смены вкладки или языка."
+      ],
       "0.53.28": [
         "Возврат из разбора сохраняет фокус строки при обновлении таблицы; история переходов назад/вперёд проверяется на двух языках."
       ],

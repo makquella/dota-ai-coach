@@ -82,6 +82,20 @@ async function runRendererSecuritySmoke({ mainWindow, overlayWindow, skillArrows
       const returned = await until(() => main.executeJavaScript(`!document.querySelector('#view-matches').classList.contains('hidden') && document.activeElement?.dataset.matchId === ${JSON.stringify(matchId)} && document.activeElement !== window.__wardlyReturnRow`));
       await main.executeJavaScript("delete window.__wardlyReturnRow; true");
       step(`review history back, forward and focused return (${lang})`, review && back && forward && returned, JSON.stringify({review,back,forward,returned}));
+      const latestOnly = await main.executeJavaScript(`(async () => {
+        const rows = [...document.querySelectorAll('#matches-root tbody .row-link')];
+        const a = rows[0].dataset.matchId, b = rows[1].dataset.matchId;
+        const first = window.PlayerViews.openMatch(a);
+        const second = window.PlayerViews.openMatch(b);
+        window.PlayerViews.setView('home', {remember:false});
+        const latest = window.PlayerViews.openMatch(a);
+        const applied = await Promise.all([first,second,latest]);
+        const valid = applied[0] === false && applied[1] === false && applied[2] === true
+          && !document.querySelector('#view-match').classList.contains('hidden') && Boolean(document.querySelector('#match-root .back'));
+        document.querySelector('#match-root .back')?.click();
+        return valid;
+      })()`);
+      step(`latest review request owns real IPC result (${lang})`, latestOnly);
       const history = await main.executeJavaScript(`(() => {
         window.PlayerViews.setView('home', { remember: false });
         const version = ${JSON.stringify(require("./package.json").version)};
