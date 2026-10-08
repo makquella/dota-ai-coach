@@ -17,9 +17,9 @@
 | F04 | P1 | Связать AI числа с метрикой и источником; начать с трёх findings, запретить metric swaps | Первый slice в 0.53.13: match combat totals + typed refs/UI; другие метрики, findings/time slices и career остаются — [AI_COUNTER_EVIDENCE.md](AI_COUNTER_EVIDENCE.md) |
 | F10 | P2 | Согласованный runtime snapshot и ownership MatchMemory; concurrent publish/read/reset без disk/network под lock | Первый slice в 0.53.15: detached GSI snapshot + serialized GSI/reset; полный ownership demo/tips/overlay consumers ещё открыт — [GSI_SNAPSHOT.md](GSI_SNAPSHOT.md) |
 | F11 | P2 | Atomic conditional transfer claims и conflict-safe insert; migrations + concurrency на local D1 | Подготовлено в 0.53.11; реальные D1 проверки — [TRANSFER_ATOMICITY.md](TRANSFER_ATOMICITY.md) |
-| F12 | P2 | DTO/contract tests важных player/detail/facts ответов и их JS consumers | Не реализовано |
+| F12 | P2 | DTO/contract tests важных player/detail/facts ответов и их JS consumers | Первый slice в 0.53.17: detail core DTO/OpenAPI + partial K/D/A consumers; остальные responses/extensions открыты — [PLAYER_CONTRACTS.md](PLAYER_CONTRACTS.md) |
 | F13 | P2 | Извлекать jobs/locales/detail controller по одной границе с behavior/UI tests | JobQueue в 0.53.14; match locales в 0.53.16 с formatter/DOM checks — [RENDERER_TEXTS.md](RENDERER_TEXTS.md); detail/controller slices остаются |
-| F14 | P2 | Locked mypy + baseline и blocking checks чистых модулей; долг не растёт | Подготовлено в 0.53.9; 226 известных ошибок, blocking gate — [TYPE_CHECKING.md](TYPE_CHECKING.md) |
+| F14 | P2 | Locked mypy + baseline и blocking checks чистых модулей; долг не растёт | Подготовлено в 0.53.9; 225 известных ошибок после prune в 0.53.15, blocking gate — [TYPE_CHECKING.md](TYPE_CHECKING.md) |
 | F15 | P2 | Reusable validation проверяет тот же SHA до release publish | Подготовлено в 0.53.10; протокол — [RELEASE_VALIDATION.md](RELEASE_VALIDATION.md) |
 | F16 | P2 | Canonical npm syntax check, отмена superseded PR CI; meaningful-path Windows gating со стабильным required summary | Первая часть слита в #101; gating подготовлен в 0.53.12 — [WINDOWS_CI_SCOPE.md](WINDOWS_CI_SCOPE.md) |
 | F17 | P2 | Trusted IPC sender/frame, navigation/popup guards, incremental CSP; реальные UI smoke checks | Подготовлено в 0.53.8; границы и smoke — [DESKTOP_SECURITY.md](DESKTOP_SECURITY.md) |

@@ -38,6 +38,16 @@ async function runRendererSecuritySmoke({ mainWindow, overlayWindow, skillArrows
     await main.executeJavaScript(`window.launcherApi.setLanguage(${JSON.stringify(originalLanguage)})`);
   }
 
+  const partialCounters = await main.executeJavaScript(`(() => {
+    const node = document.createElement('span');
+    node.textContent = window.WardlyMatchContract.combatScore({ kills: 0, deaths: null, assists: 5 });
+    document.body.append(node);
+    const valid = node.textContent === '0 / — / 5' && !node.textContent.includes('null');
+    node.remove();
+    return valid && window.WardlyMatchContract.combatScore({ deaths: 4, assists: 9 }) === '— / 4 / 9';
+  })()`);
+  step("match counter contract renders partial and zero totals", partialCounters);
+
   for (const [language, label] of [["ru", "Убийства: 0"], ["en", "Kills: 0"]]) {
     const rendered = await main.executeJavaScript(`(() => {
       const row = { source: 'analysis.headline', field: 'kills', observed_at: null, precision: 'reported_total', value: 0 };

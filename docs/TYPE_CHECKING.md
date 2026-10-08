@@ -7,7 +7,7 @@ F14 в 0.53.9 заменяет `mypy app || true` на обязательный 
 ## Что останавливает CI
 
 - Новое сообщение, code или файл, а также дополнительное повторение известной ошибки. Одинаковое общее число ошибок не скрывает замену одной ошибки другой.
-- Ошибка в чистом модуле. В baseline явно объявлены `coach_evidence`, `diagnostics`, `gsi_snapshot`, `job_queue`, `local_api_auth`, `local_api_security`, `player_store`, `signal_capabilities`, `storage_json`; для них нет allowances. Все остальные модули без известных ошибок тоже проверяются без allowances.
+- Ошибка в чистом модуле. В baseline явно объявлены `coach_evidence`, `diagnostics`, `gsi_snapshot`, `job_queue`, `local_api_auth`, `local_api_security`, `player_contracts`, `player_store`, `signal_capabilities`, `storage_json`; для них нет allowances. Все остальные модули без известных ошибок тоже проверяются без allowances.
 - Устаревшее allowance после исправления ошибки: его нужно удалить из baseline, чтобы последующий возврат ошибки считался регрессией.
 - Несовпадение версии mypy/target, неверный baseline, исчезнувший clean module, нераспознанный error format, failure/timeout самого mypy.
 

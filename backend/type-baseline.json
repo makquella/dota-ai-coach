@@ -9,6 +9,7 @@
     "app/job_queue.py",
     "app/local_api_auth.py",
     "app/local_api_security.py",
+    "app/player_contracts.py",
     "app/player_store.py",
     "app/signal_capabilities.py",
     "app/storage_json.py"

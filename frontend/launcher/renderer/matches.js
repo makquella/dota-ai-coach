@@ -8,6 +8,7 @@
 // with DOM nodes and textContent — backend strings are never parsed as HTML.
 (function () {
   const TEXT = window.WardlyMatchTexts.create({ number, decimal, clock, plural });
+  const { combatScore } = window.WardlyMatchContract;
 
   // Chart colours come from the design tokens (assets/ui/tokens.css).
   const cssVar = (name, fallback) =>
@@ -911,7 +912,7 @@
               row.note ? h("span", { class: "row-note", title: row.note, "aria-label": `${t("noteLabel")}: ${row.note}` }, icon("sticky-note")) : null
             )
           ),
-          h("td", { class: "num-col num", text: row.kills == null ? "—" : `${row.kills} / ${row.deaths} / ${row.assists}` }),
+          h("td", { class: "num-col num", text: combatScore(row) }),
           h("td", { class: "num-col num", text: number(row.gpm) }),
           h("td", { class: "num-col num hide-narrow", text: number(row.lh_10) }),
           h("td", { class: "num-col num", text: clock(row.duration) }),
@@ -1491,7 +1492,7 @@
       : null;
     const requestNote = h("span", { class: "muted" });
     const stats = [
-      [t("stats.kda"), headline.kills == null ? "—" : `${headline.kills} / ${headline.deaths} / ${headline.assists}`],
+      [t("stats.kda"), combatScore(headline)],
       [t("stats.gpm"), `${number(headline.gpm)} / ${number(headline.xpm)}`],
       [t("stats.lh"), `${number(headline.last_hits)} / ${number(headline.denies)}`],
       [t("stats.duration"), clock(headline.duration ?? summary.duration)]
@@ -3108,7 +3109,7 @@
                     ? h("span", { class: "player-items", "aria-label": t("stats.items") }, row.items.slice(0, 6).map((key) => window.DotaIcons.itemPicture(document, key, "sm")))
                     : null
                 ),
-                h("td", { class: "num-col num", text: `${row.kills ?? "—"} / ${row.deaths ?? "—"} / ${row.assists ?? "—"}` }),
+                h("td", { class: "num-col num", text: combatScore(row) }),
                 h("td", { class: "num-col num", text: number(row.net_worth) }),
                 h("td", { class: "num-col num hide-narrow", text: number(row.gpm) }),
                 h("td", { class: "num-col num hide-narrow", text: number(row.hero_damage) })
@@ -4590,8 +4591,9 @@
     }
     const last = summary.last;
     const result = last.win === true ? "win" : last.win === false ? "loss" : "unknown";
+    const combat = combatScore(last, "/");
     const facts = [
-      last.kills == null ? null : `${last.kills}/${last.deaths}/${last.assists}`,
+      combat === "—" ? null : combat,
       last.duration ? clock(last.duration) : null,
       relativeTime(last.start_time, "short")
     ].filter(Boolean).join(" · ");
@@ -4711,7 +4713,8 @@
     cardEl.classList.toggle("hidden", !rows.length);
     list.replaceChildren(
       ...rows.map((row) => {
-        const kda = row.kills == null ? null : `${row.kills}/${row.deaths}/${row.assists}`;
+        const score = combatScore(row, "/");
+        const kda = score === "—" ? null : score;
         const facts = [kda, row.duration ? clock(row.duration) : null, relativeTime(row.start_time)].filter(Boolean).join(" · ");
         const result = row.win === true ? "win" : row.win === false ? "loss" : "unknown";
         return h(
@@ -5117,7 +5120,8 @@
 
   function paletteMatchItem(row) {
     const result = row.win === true ? t("win") : row.win === false ? t("loss") : "";
-    const kda = row.kills == null ? null : `${row.kills}/${row.deaths}/${row.assists}`;
+    const score = combatScore(row, "/");
+    const kda = score === "—" ? null : score;
     return {
       group: "matches",
       hero: row.hero_id || row.hero,

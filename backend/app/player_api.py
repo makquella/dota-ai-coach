@@ -28,7 +28,7 @@ All review texts follow `lang` (ru/en).
 
 from __future__ import annotations
 
-from typing import Annotated
+from typing import Annotated, Any
 
 from fastapi import APIRouter, Body, Path, Query, Request
 from fastapi.responses import JSONResponse
@@ -39,6 +39,7 @@ from app.coach_llm import env_settings
 from app.config import OPENDOTA_API_KEY, OPENDOTA_API_URL, OPENDOTA_ENABLED, PLAYER_DATA_DIR
 from app.history_backup import BackupError
 from app.opendota import OpenDotaClient
+from app.player_contracts import MatchDetailResponse, MatchNotFoundResponse
 from app.player_profile import public_card
 from app.player_service import PlayerService
 from app.player_store import MATCH_SORTS
@@ -151,8 +152,14 @@ def add_match_status(match_id: MatchId):
     return PLAYER_SERVICE.add_status(match_id)
 
 
-@router.get("/matches/{match_id}", summary="Post-match review")
-def player_match(match_id: MatchId, lang: str = "en"):
+@router.get(
+    "/matches/{match_id}",
+    summary="Post-match review",
+    response_model=MatchDetailResponse,
+    response_model_exclude_unset=True,
+    responses={404: {"model": MatchNotFoundResponse, "description": "Match is not stored"}},
+)
+def player_match(match_id: MatchId, lang: str = "en") -> dict[str, Any] | JSONResponse:
     detail = PLAYER_SERVICE.match_detail(match_id, normalize_lang(lang))
     if detail is None:
         return JSONResponse(status_code=404, content={"status": "error", "code": "match_not_found"})
