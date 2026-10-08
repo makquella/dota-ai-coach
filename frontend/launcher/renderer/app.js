@@ -363,6 +363,9 @@ const I18N = {
     tourHint: "A short tour of the app, one minute",
     tourStart: "Show",
     whatsNew: {
+      "0.53.12": [
+        "Documentation and site checks are faster while app changes retain the required Windows installer validation."
+      ],
       "0.53.11": [
         "History transfer now handles simultaneous downloads and code collisions safely. Late cleanup preserves a fresh transfer that reused a code."
       ],
@@ -1203,6 +1206,9 @@ const I18N = {
     tourHint: "Короткая экскурсия по приложению, на минуту",
     tourStart: "Показать",
     whatsNew: {
+      "0.53.12": [
+        "Документация и сайт проверяются быстрее, а изменения приложения сохраняют обязательную проверку Windows-установщика."
+      ],
       "0.53.11": [
         "Перенос истории теперь надёжно обрабатывает одновременные скачивания и совпадения кодов. Поздняя очистка сохраняет новый перенос с повторно занятым кодом."
       ],

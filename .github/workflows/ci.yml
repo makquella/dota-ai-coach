@@ -24,6 +24,27 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
+  changes:
+    name: Determine Windows validation scope
+    runs-on: ubuntu-latest
+    outputs:
+      windows_required: ${{ steps.scope.outputs.windows_required }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.source_sha || github.sha }}
+          fetch-depth: 0
+      - name: Verify source commit
+        env:
+          SOURCE_SHA: ${{ inputs.source_sha || github.sha }}
+        run: python scripts/verify_source.py "$SOURCE_SHA"
+      - name: Determine changed desktop paths
+        id: scope
+        env:
+          SOURCE_SHA: ${{ inputs.source_sha || github.sha }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before || '' }}
+        run: python scripts/windows_checks.py scope --source "$SOURCE_SHA" --base "$BASE_SHA"
+
   backend:
     name: Backend (ruff, mypy, pytest)
     runs-on: ubuntu-latest
@@ -57,16 +78,17 @@ jobs:
           python ../scripts/lock_python_dependencies.py --check
 
       - name: Lint (ruff check)
-        run: ruff check --config pyproject.toml . ../scripts/lock_python_dependencies.py ../scripts/check_types.py ../scripts/verify_source.py
+        run: ruff check --config pyproject.toml . ../scripts/lock_python_dependencies.py ../scripts/check_types.py ../scripts/verify_source.py ../scripts/windows_checks.py
 
       - name: Format check (ruff format)
-        run: ruff format --config pyproject.toml --check . ../scripts/lock_python_dependencies.py ../scripts/check_types.py ../scripts/verify_source.py
+        run: ruff format --config pyproject.toml --check . ../scripts/lock_python_dependencies.py ../scripts/check_types.py ../scripts/verify_source.py ../scripts/windows_checks.py
 
       - name: Type check (pinned mypy, no new debt)
         run: |
           python ../scripts/check_types.py
           python -m mypy --strict ../scripts/check_types.py
           python -m mypy --strict ../scripts/verify_source.py
+          python -m mypy --strict ../scripts/windows_checks.py
 
       - name: Tests (pytest)
         run: pytest -q
@@ -107,10 +129,11 @@ jobs:
         working-directory: frontend/launcher
         run: npm test
 
-  windows-package:
-    name: Windows package (PyInstaller + NSIS, /health smoke)
+  windows-build:
+    name: Windows build and installer smoke
+    needs: changes
     runs-on: windows-latest
-    if: ${{ !inputs.skip_windows }}
+    if: ${{ needs.changes.outputs.windows_required == 'true' && !inputs.skip_windows }}
     timeout-minutes: 40
     defaults:
       run:
@@ -171,3 +194,28 @@ jobs:
             ${{ runner.temp }}/smoke-*.json
             ${{ runner.temp }}/launcher.log
           if-no-files-found: ignore
+
+  windows-package:
+    # Keep the existing required check context while expensive builds are scoped.
+    name: Windows package (PyInstaller + NSIS, /health smoke)
+    needs: [changes, windows-build]
+    if: ${{ always() }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.source_sha || github.sha }}
+      - name: Verify source commit
+        env:
+          SOURCE_SHA: ${{ inputs.source_sha || github.sha }}
+        run: python scripts/verify_source.py "$SOURCE_SHA"
+      - name: Require successful or justified skipped Windows validation
+        env:
+          CHANGES_RESULT: ${{ needs.changes.result }}
+          BUILD_RESULT: ${{ needs.windows-build.result }}
+          WINDOWS_REQUIRED: ${{ needs.changes.outputs.windows_required }}
+          CALLER_BUILDS_WINDOWS: ${{ inputs.skip_windows || false }}
+        run: >-
+          python scripts/windows_checks.py summary
+          --changes "$CHANGES_RESULT" --build "$BUILD_RESULT"
+          --required "$WINDOWS_REQUIRED" --caller-builds-windows "$CALLER_BUILDS_WINDOWS"
