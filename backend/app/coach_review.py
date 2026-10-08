@@ -31,7 +31,9 @@ from app.coach_evidence import (
     counter_evidence,
     farm_evidence,
     farm_slice_evidence,
+    farm_slice_facts,
     rate_evidence,
+    sample_farm_count,
 )
 from app.coach_llm import CoachLLMError, parse_json_object
 from app.dota_constants import HEROES
@@ -212,18 +214,31 @@ def match_facts(detail: dict[str, Any]) -> dict[str, Any] | None:
         if peers
         else {},
     }
+    farm_slice = farm_slice_facts(farm_slice)
     facts["match_farm_at_10"] = farm_slice
     facts["match_farm_at_10_evidence"] = farm_slice_evidence(farm_slice)
     if lane and lane.get("points"):
         # The lane against its enemy core by minute 10 (lane_duel.py).
         last = at_10[0] if len(at_10) == 1 else {}
+        lane_player_farm = {
+            field: row["value"]
+            for field, row in farm_evidence(
+                {"last_hits": last.get("lh"), "denies": last.get("dn")}
+            ).items()
+        }
+        lane_opponent_farm = {
+            field: row["value"]
+            for field, row in farm_evidence(
+                {"last_hits": last.get("enemy_lh"), "denies": last.get("enemy_dn")}
+            ).items()
+        }
         facts["lane"] = {
             "enemy_core": lane.get("enemy"),
             "result": lane.get("result"),
-            "last_hits_at_10": last.get("lh"),
-            "enemy_last_hits_at_10": last.get("enemy_lh"),
-            "denies_at_10": last.get("dn"),
-            "enemy_denies_at_10": last.get("enemy_dn"),
+            "last_hits_at_10": lane_player_farm.get("last_hits"),
+            "enemy_last_hits_at_10": lane_opponent_farm.get("last_hits"),
+            "denies_at_10": lane_player_farm.get("denies"),
+            "enemy_denies_at_10": lane_opponent_farm.get("denies"),
             "gold_difference_at_10": lane.get("gold_diff"),
             "xp_difference_at_10": lane.get("xp_diff"),
             "gap_opened_at_minute": lane.get("turn"),
@@ -841,14 +856,16 @@ def _peer_facts(peers: dict[str, Any]) -> dict[str, Any]:
     me, them = peers.get("me") or {}, opponent.get("metrics") or {}
     metrics = []
     for key in ("gpm", "xpm", "lh_10", "deaths", "kda", "damage_per_min", "net_worth"):
-        if me.get(key) is None or them.get(key) is None:
+        you = sample_farm_count(me.get(key)) if key == "lh_10" else me.get(key)
+        other = sample_farm_count(them.get(key)) if key == "lh_10" else them.get(key)
+        if you is None or other is None:
             continue
         metrics.append(
             {
                 "metric": "last_hits_at_10:00" if key == "lh_10" else key,
-                "you": me[key],
-                "them": them[key],
-                "diff": round(me[key] - them[key], 2),
+                "you": you,
+                "them": other,
+                "diff": round(you - other, 2),
             }
         )
     return {

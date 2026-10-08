@@ -9,6 +9,9 @@
 
   const TEXT = {
     en: {
+      "0.53.35": [
+        "Invalid farm samples stay unknown without crashing AI fact preparation or reappearing through older compact fields."
+      ],
       "0.53.34": [
         "Older status responses cannot undo linking or unlinking in the interface; simultaneous player-status reads share one request."
       ],
@@ -421,6 +424,9 @@
       ]
     },
     ru: {
+      "0.53.35": [
+        "Некорректные показатели фарма остаются неизвестными без сбоя подготовки AI-фактов и возврата через старые поля."
+      ],
       "0.53.34": [
         "Старый ответ статуса не отменяет привязку или отвязку в интерфейсе; одновременные чтения статуса используют один запрос."
       ],

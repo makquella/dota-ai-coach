@@ -109,3 +109,23 @@ providers. Parser cases include metric swaps, small numbers, unsupported scope,
 RU/EN labels, unknown/zero, total/sample/subject/field swaps and invalid values.
 Source/Windows Electron smoke opens actual farm/sample/combined disclosure DOM and rejects malformed rows in both
 languages. No live or paid AI calls are made.
+
+## Safe sample compaction in 0.53.35
+
+Malformed NaN/Infinity in a minute-10 sample previously reached `_prune` through
+raw `match_farm_at_10` and legacy lane/peer fields, even though evidence validation
+rejected it. `farm_slice_facts` now rebuilds the ledger only from validated refs;
+legacy lane counters and peer LH-at-10 metrics use the same bounded measurements.
+Unknown inputs cannot crash this farm preparation or reappear in the number
+inventory. Integral peer floats remain exact counts; fractional/nonfinite values,
+strings, bool and out-of-range counters remain unknown. Zero, source, subject
+and time survive compaction and reconstruct the same refs. Duplicate samples
+still cannot fall back to peer evidence accidentally. Other metric types and
+malformed whole analysis structures remain separate boundaries.
+
+Eighteen deterministic compaction scenarios exercise lane/peer invalid inputs
+(including the reproduced exceptions), strict JSON serialization, legacy-field
+absence, unknown-vs-zero and evidence roundtrip. Existing real HTTP/SQLite
+review/question/cache tests continue. COACH_VERSION stays 4: verification policy
+is unchanged; changed compact facts naturally change their digest. Analysis/trim
+versions and live behavior stay the same.

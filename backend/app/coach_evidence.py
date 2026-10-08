@@ -310,12 +310,8 @@ def _peer_farm_slice_evidence(context: Mapping[str, object]) -> list[FarmSliceEv
     subjects: tuple[FarmSubject, ...] = ("player", "opponent")
     for subject in subjects:
         metrics = me if subject == "player" else them
-        value = metrics.get("lh_10") if isinstance(metrics, dict) else None
-        # Peer analysis stores numeric metrics as floats, even integral counts.
-        if isinstance(value, float) and math.isfinite(value) and value.is_integer():
-            value = int(value)
-        row = farm_evidence({"last_hits": value}).get("last_hits")
-        if row is None or (subject == "opponent" and opponent.get("enemy") is not True):
+        value = sample_farm_count(metrics.get("lh_10") if isinstance(metrics, dict) else None)
+        if value is None or (subject == "opponent" and opponent.get("enemy") is not True):
             continue
         hero = context.get("hero") if subject == "player" else opponent.get("hero")
         out.append(
@@ -328,9 +324,49 @@ def _peer_farm_slice_evidence(context: Mapping[str, object]) -> list[FarmSliceEv
                 "hero": hero if isinstance(hero, str) else None,
                 "observed_at": 600,
                 "precision": "reported_sample",
-                "value": row["value"],
+                "value": value,
             }
         )
+    return out
+
+
+def sample_farm_count(value: object) -> int | None:
+    # Peer analysis stores numeric metrics as floats, even integral counts.
+    if isinstance(value, float) and math.isfinite(value) and value.is_integer():
+        value = int(value)
+    row = farm_evidence({"last_hits": value}).get("last_hits")
+    return row["value"] if row is not None else None
+
+
+def farm_slice_facts(context: Mapping[str, object]) -> dict[str, object]:
+    """Rebuild the prompt ledger exclusively from validated source measurements."""
+    rows = farm_slice_evidence(context)
+    hero = context.get("hero")
+    enemy = context.get("enemy")
+    out: dict[str, object] = {
+        "hero": hero if isinstance(hero, str) else None,
+        "enemy": enemy if isinstance(enemy, str) else None,
+        "points": [],
+        "peers": {},
+    }
+    lane_rows = [row for row in rows if row["source"] == "analysis.lane.points"]
+    if lane_rows:
+        point: dict[str, int] = {"minute": 10}
+        for row in lane_rows:
+            prefix = "" if row["subject"] == "player" else "enemy_"
+            point[prefix + ("lh" if row["field"] == "last_hits" else "dn")] = row["value"]
+        out["points"] = [point]
+    else:
+        me: dict[str, int] = {}
+        peers: list[dict[str, object]] = []
+        for row in rows:
+            if row["subject"] == "player":
+                me["lh_10"] = row["value"]
+            else:
+                peers.append(
+                    {"hero": row["hero"], "enemy": True, "metrics": {"lh_10": row["value"]}}
+                )
+        out["peers"] = {"me": me, "peers": peers}
     return out
 
 
