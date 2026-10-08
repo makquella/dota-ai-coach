@@ -1,4 +1,31 @@
-# Match-detail response contract
+# Player response contracts
+
+## Player polling status
+
+0.53.25 extends the same runtime boundary to authenticated `GET /player` with
+`PlayerStatusResponse` and nested `PlayerSyncResponse` / `PlayerAIResponse`
+schemas in OpenAPI. Strict booleans cover linking, provider enablement and key
+configuration; nullable account/source values preserve an unlinked account.
+Account IDs retain the existing nonnegative SQLite int64 wire format. Match,
+pending-job and optional fetched counts are nonnegative safe integers. Running
+work still counts as pending work. A fetched count of zero is a measured value.
+
+Sync state remains an extensible string; timestamps, errors and error codes
+remain nullable strings. `fetched` is optional: `exclude_unset=True` keeps it
+absent before fetching, and preserves an explicitly supplied null. The response
+retains undeclared player, detected-account, live, review, today, goals and tilt
+extensions, including future nested sync/AI fields. Those extensions are not yet
+validated. Link/unlink/sync mutation endpoints are outside this polling slice.
+
+Functional checks compare complete HTTP responses with actual service output
+for unlinked, manual and GSI linking, SQLite profile/match data and provider
+errors. A real queue thread paused at an external OpenDota fixture verifies
+queued/running/completed states, pending counts and zero fetched results. The
+published schema and rejection of malformed core values are also checked.
+`renderer/match-contract.js` documents this core for existing JS consumers;
+their behavior and IPC privileges are unchanged.
+
+## Match detail
 
 F12 starts in 0.53.17 at `GET /player/matches/{match_id}`. The canonical runtime
 contract is `backend/app/player_contracts.py`, used as the FastAPI response model
@@ -39,8 +66,9 @@ zero and malformed inputs; real source/Windows Electron smoke loads the module,
 checks partial-counter DOM text and navigates the actual RU/EN Matches screen.
 The counter smoke checks the shared formatter, not a full linked-match UI flow.
 
-Remaining F12 work: type the other analysis/facts/career/player/overlay response
-boundaries and nested extensions, and add full linked-match consumer scenarios.
-Match IDs retain the existing SQLite int64 numeric wire format: IDs beyond
-JavaScript's safe integer range need a separate string-format migration. This
-slice does not change analysis rules, ANALYSIS_VERSION, COACH_VERSION or caches.
+Remaining F12 work: type the other analysis/facts/career/player mutations/overlay
+response boundaries and nested extensions, and add full linked-match consumer
+scenarios. Match/account IDs retain the existing SQLite int64 numeric wire
+format: IDs beyond JavaScript's safe integer range need a separate string-format
+migration. These slices do not change analysis rules, ANALYSIS_VERSION,
+COACH_VERSION or caches.

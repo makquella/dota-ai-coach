@@ -4,6 +4,8 @@
 
 Это текущий backlog. Старый продуктовый план сохранён в [архиве](archive/roadmap-before-2026-10-07.md), подробности облачного хранения — в [DATA_PLAN.md](DATA_PLAN.md). Подтверждённых P0 в аудите нет; security hardening и подтверждённые сбои данных остаются обязательными независимо от оценки трудозатрат.
 
+Прогресс по 17 основным замечаниям F01–F17: **13 пунктов с подготовленными исправлениями и проверками (около 76%)**, F04/F10/F12/F13 выполнены частично. Это счёт пунктов, а не трудозатрат: оставшиеся границы требуют отдельных slices. В main слиты четыре пункта (F05/F07/F08/F09, около 24%); остальные исправления находятся в последовательных открытых PR. Продуктовые предложения и дополнительная automation из аудита учитываются отдельно ниже.
+
 | ID | Приоритет | Работа и приёмка | Состояние |
 |---|---|---|---|
 | F05 | P1 | Ошибка записи recommendation log сохраняет HTTP-ответ и попадает в diagnostics; запись восстанавливается после устранения ошибки | Слито: [PR #100](https://github.com/makquella/dota-ai-coach/pull/100), 0.53.1 |
@@ -17,7 +19,7 @@
 | F04 | P1 | Связать AI числа с метрикой и источником; начать с трёх findings, запретить metric swaps | Первый slice в 0.53.13: match combat totals + typed refs/UI; другие метрики, findings/time slices и career остаются — [AI_COUNTER_EVIDENCE.md](AI_COUNTER_EVIDENCE.md) |
 | F10 | P2 | Согласованный runtime snapshot и ownership MatchMemory; concurrent publish/read/reset без disk/network под lock | GSI snapshot в 0.53.15; core MatchMemory в 0.53.18; role/timer preparation в 0.53.19/20; child reads в 0.53.21; owned tips в 0.53.22; demo publication guard в 0.53.23 — [DEMO_OVERLAY_CACHE.md](DEMO_OVERLAY_CACHE.md); whole-overlay/demo-execution/history boundaries ещё открыты |
 | F11 | P2 | Atomic conditional transfer claims и conflict-safe insert; migrations + concurrency на local D1 | Подготовлено в 0.53.11; реальные D1 проверки — [TRANSFER_ATOMICITY.md](TRANSFER_ATOMICITY.md) |
-| F12 | P2 | DTO/contract tests важных player/detail/facts ответов и их JS consumers | Первый slice в 0.53.17: detail core DTO/OpenAPI + partial K/D/A consumers; остальные responses/extensions открыты — [PLAYER_CONTRACTS.md](PLAYER_CONTRACTS.md) |
+| F12 | P2 | DTO/contract tests важных player/detail/facts ответов и их JS consumers | Detail core DTO/OpenAPI + partial K/D/A consumers в 0.53.17; polling player/sync/AI core в 0.53.25 с real queue/HTTP checks; остальные responses/extensions открыты — [PLAYER_CONTRACTS.md](PLAYER_CONTRACTS.md) |
 | F13 | P2 | Извлекать jobs/locales/detail controller по одной границе с behavior/UI tests | JobQueue в 0.53.14; match locales в 0.53.16; in-memory hints в 0.53.22; update history в 0.53.24 с numeric selection/DOM checks — [RENDERER_UPDATE_HISTORY.md](RENDERER_UPDATE_HISTORY.md); detail/controller slices остаются |
 | F14 | P2 | Locked mypy + baseline и blocking checks чистых модулей; долг не растёт | Подготовлено в 0.53.9; 179 известных ошибок после prune в 0.53.15/0.53.18/0.53.21/0.53.22, blocking gate — [TYPE_CHECKING.md](TYPE_CHECKING.md) |
 | F15 | P2 | Reusable validation проверяет тот же SHA до release publish | Подготовлено в 0.53.10; протокол — [RELEASE_VALIDATION.md](RELEASE_VALIDATION.md) |

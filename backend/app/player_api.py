@@ -39,7 +39,7 @@ from app.coach_llm import env_settings
 from app.config import OPENDOTA_API_KEY, OPENDOTA_API_URL, OPENDOTA_ENABLED, PLAYER_DATA_DIR
 from app.history_backup import BackupError
 from app.opendota import OpenDotaClient
-from app.player_contracts import MatchDetailResponse, MatchNotFoundResponse
+from app.player_contracts import MatchDetailResponse, MatchNotFoundResponse, PlayerStatusResponse
 from app.player_profile import public_card
 from app.player_service import PlayerService
 from app.player_store import MATCH_SORTS
@@ -81,8 +81,13 @@ class AIRequest(BaseModel):
     model: str | None = None
 
 
-@router.get("", summary="Linked player and sync status")
-def player_status():
+@router.get(
+    "",
+    summary="Linked player and sync status",
+    response_model=PlayerStatusResponse,
+    response_model_exclude_unset=True,
+)
+def player_status() -> dict[str, Any]:
     return PLAYER_SERVICE.status()
 
 

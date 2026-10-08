@@ -1,4 +1,4 @@
-"""Validated core of the match-detail wire response; extensions stay intact."""
+"""Validated player-status/match-detail cores; extensions stay intact."""
 
 from __future__ import annotations
 
@@ -8,6 +8,8 @@ from pydantic import BaseModel, ConfigDict, Field, StrictInt
 
 CombatCount = Annotated[StrictInt, Field(ge=0, le=2**53 - 1)]
 StoredMatchId = Annotated[StrictInt, Field(ge=0, le=2**63 - 1)]
+Count = CombatCount
+StoredAccountId = StoredMatchId
 
 
 class ExtensibleResponse(BaseModel):
@@ -40,3 +42,27 @@ class MatchDetailResponse(ExtensibleResponse):
 class MatchNotFoundResponse(BaseModel):
     status: Literal["error"]
     code: Literal["match_not_found"]
+
+
+class PlayerSyncResponse(ExtensibleResponse):
+    state: str
+    at: str | None
+    error: str | None
+    error_code: str | None
+    fetched: Count | None = None
+
+
+class PlayerAIResponse(ExtensibleResponse):
+    configured: bool
+
+
+class PlayerStatusResponse(ExtensibleResponse):
+    linked: bool
+    account_id: StoredAccountId | None
+    source: str | None
+    opendota: bool
+    sync: PlayerSyncResponse
+    matches: Count
+    pending_jobs: Count
+    ai: PlayerAIResponse
+    opendota_key: bool

@@ -9,6 +9,9 @@
 
   const TEXT = {
     en: {
+      "0.53.25": [
+        "Player polling preserves idle, queued, running, completed and failed sync states, with zero counts kept distinct from missing data."
+      ],
       "0.53.24": [
         "The update history keeps its Russian and English summaries, including versions skipped during an update."
       ],
@@ -391,6 +394,9 @@
       ]
     },
     ru: {
+      "0.53.25": [
+        "Статус игрока сохраняет состояния ожидания, очереди, выполнения, завершения и ошибки синхронизации; нулевые счётчики отличаются от отсутствующих данных."
+      ],
       "0.53.24": [
         "История обновлений сохраняет русские и английские описания, включая пропущенные при обновлении версии."
       ],
