@@ -304,6 +304,7 @@
 
   function setView(view, { remember = true, restore = false } = {}) {
     if (view !== "matches") matchListRequests.cancel();
+    if (view !== "profile") invalidateProfile();
     if (view !== "progress") {
       careerRequests.cancel();
       clearTimeout(careerRefreshTimer);
@@ -414,6 +415,7 @@
           event.preventDefault();
           button.disabled = true;
           playerStatusRequests.cancel();
+          invalidateProfile();
           const result = await call("link", { steam: input.value });
           button.disabled = false;
           if (result.ok) {
@@ -422,6 +424,7 @@
             matchListRequests.cancel();
             careerRequests.cancel();
             clearTimeout(careerRefreshTimer);
+            invalidateProfile({ clear: true });
             state.player = result.data;
             state.matchesLoaded = false;
             await afterLink();
@@ -472,12 +475,14 @@
 
   async function linkDetected() {
     playerStatusRequests.cancel();
+    invalidateProfile();
     const result = await call("linkDetected");
     if (result.ok) {
       playerStatusRequests.cancel();
       matchListRequests.cancel();
       careerRequests.cancel();
       clearTimeout(careerRefreshTimer);
+      invalidateProfile({ clear: true });
       state.player = result.data;
       state.matchesLoaded = false;
       await afterLink();
@@ -485,10 +490,10 @@
   }
 
   async function afterLink() {
-    await loadMatches(true);
-    if (state.view === "progress") {
-      loadCareer();
-    }
+    state.lastPlayerRefresh = 0;
+    if (state.view === "matches") return loadMatches(true);
+    if (state.view === "progress") return loadCareer();
+    if (state.view === "profile") return loadProfile();
   }
 
   function playerBar() {
@@ -536,12 +541,14 @@
         type: "button",
         onclick: async () => {
           playerStatusRequests.cancel();
+          invalidateProfile();
           const result = await call("unlink");
           if (result.ok) {
             playerStatusRequests.cancel();
             matchListRequests.cancel();
             careerRequests.cancel();
             clearTimeout(careerRefreshTimer);
+            invalidateProfile({ clear: true });
             state.player = result.data;
             state.matches = [];
             state.matchesLoaded = false;
@@ -3638,49 +3645,59 @@
 
   // --- profile ----------------------------------------------------------------
 
-  async function loadProfile() {
-    const root = document.getElementById("profile-root");
-    if (!state.profile) {
-      root.replaceChildren(card(t("pfTitle"), "user", skeletonRows(4)));
-    }
-    if (!state.player) {
-      await refreshPlayer();
-    }
-    if (!state.player) {
-      root.replaceChildren(...offlinePage("profile"));
-      hydrate(root);
-      return;
-    }
-    if (!state.player.linked) {
-      root.replaceChildren(...linkPage("profile"));
-      hydrate(root);
-      return;
-    }
-    const result = await call("profile");
-    if (result.ok) {
-      state.profile = result.data.profile;
-    }
-    renderProfile();
-    loadFriends();
+  function profileContext() {
+    return { view: state.view, locale: state.locale, accountId: state.player?.account_id ?? null, linked: Boolean(state.player?.linked) };
   }
 
-  // Friends come from the server: drawn when they arrive, the profile does not wait.
-  async function loadFriends(request = { op: "status" }) {
-    try {
-      const result = await api.friends?.(request);
-      if (result) {
-        state.friends = result;
-      }
-    } catch {
-      state.friends = { ok: false, code: "offline" };
+  const profileRequests = window.WardlyProfileRequests.create({
+    current: profileContext,
+    prepare: async () => { if (!state.player) await refreshPlayer(); },
+    request: ({ op = "profile", args } = {}) => call(op, args)
+  });
+  const friendsRequests = window.WardlyProfileRequests.create({
+    current: profileContext,
+    request: async request => {
+      try { return await api.friends?.(request); }
+      catch { return { ok: false, code: "offline" }; }
     }
-    if (state.view === "profile") {
+  });
+
+  function invalidateProfile({ clear = false } = {}) {
+    profileRequests.cancel();
+    friendsRequests.cancel();
+    if (clear) {
+      state.profile = null;
+      state.friends = null;
+    }
+  }
+
+  async function loadProfile() {
+    const root = document.getElementById("profile-root");
+    if (!state.profile && state.view === "profile") {
+      root.replaceChildren(card(t("pfTitle"), "user", skeletonRows(4)));
+    }
+    return profileRequests.load(result => {
+      if (!state.player || !state.player.linked) {
+        root.replaceChildren(...(!state.player ? offlinePage("profile") : linkPage("profile")));
+        hydrate(root);
+        return;
+      }
+      if (result?.ok) state.profile = result.data.profile;
+      renderProfile();
+      loadFriends();
+    });
+  }
+
+  // Friends arrive independently; an older response cannot replace this visit.
+  function loadFriends(request = { op: "status" }) {
+    return friendsRequests.load(result => {
+      if (result) state.friends = result;
       const host = document.getElementById("pf-friends");
       if (host) {
         host.replaceWith(friendsCard());
         hydrate(document.getElementById("profile-root"));
       }
-    }
+    }, request);
   }
 
   function renderProfile() {
@@ -3818,20 +3835,22 @@
         error.textContent = t("pfMmrBad");
         return;
       }
-      const result = await call("profileMmr", { mmr: value });
-      if (result.ok) {
-        state.profile = result.data.profile;
-        renderProfile();
-      } else {
-        error.textContent = t("pfMmrBad");
-      }
+      await profileRequests.load(result => {
+        if (result?.ok) {
+          state.profile = result.data.profile;
+          renderProfile();
+        } else {
+          error.textContent = t("pfMmrBad");
+        }
+      }, { op: "profileMmr", args: { mmr: value } });
     });
     form.querySelector("[data-mmr-clear]")?.addEventListener("click", async () => {
-      const result = await call("profileMmrClear");
-      if (result.ok) {
-        state.profile = result.data.profile;
-        renderProfile();
-      }
+      await profileRequests.load(result => {
+        if (result?.ok) {
+          state.profile = result.data.profile;
+          renderProfile();
+        }
+      }, { op: "profileMmrClear" });
     });
     if (!rating) {
       return card(t("pfRating"), "chart-line", [h("p", { class: "muted", text: t("pfRatingNone") }), form]);
@@ -3979,13 +3998,14 @@
     const badges = Object.fromEntries((profile.achievements || []).map((badge) => [badge.id, badge.title]));
     const message = h("p", { class: "pf-shop-message muted", role: "status", "aria-live": "polite" });
     const act = async (op, id) => {
-      const result = await call(op, { id });
-      if (result.ok) {
-        state.profile = result.data.profile;
-        renderProfile();
-      } else {
-        message.textContent = tOptional(`pfShopErrors.${result.code}`) || "";
-      }
+      await profileRequests.load(result => {
+        if (result?.ok) {
+          state.profile = result.data.profile;
+          renderProfile();
+        } else {
+          message.textContent = tOptional(`pfShopErrors.${result?.code}`) || "";
+        }
+      }, { op, args: { id } });
     };
     const groups = ["frame", "banner", "name", "title"].map((kind) => {
       const items = (profile.shop || []).filter((item) => item.kind === kind);
@@ -5064,12 +5084,14 @@
       renderSession(null, status);
     }
     if (localeChanged) {
-      // Texts from the backend (reviews, progress) come in the new language only
+      // Texts from the backend (reviews, progress, profile) come in the new language only
       // when asked again.
       if (state.view === "matches") {
         renderMatches();
       } else if (state.view === "progress") {
         loadCareer();
+      } else if (state.view === "profile") {
+        loadProfile();
       } else if (state.view === "match" && state.matchId) {
         openMatchQuietly(state.matchId).then(applied => { if (applied) renderMatch(); });
       } else if (state.view === "settings") {
@@ -5478,6 +5500,6 @@
     });
   }
 
-  window.PlayerViews = { onStatus, openMatch, setView, loadMatches, loadCareer, refreshPlayer };
+  window.PlayerViews = { onStatus, openMatch, setView, loadMatches, loadCareer, loadProfile, loadFriends, refreshPlayer };
   init();
 })();

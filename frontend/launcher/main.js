@@ -998,6 +998,16 @@ async function publishProfile({ force = false } = {}) {
 }
 
 async function friendsStatus({ force = false } = {}) {
+  // Profile UI smoke reads a real local card without publishing the fixture or
+  // using the installed player's friend codes or consent settings.
+  if (IS_SMOKE_TEST) {
+    const { card } = await requestBackendJson(`/player/profile/public?lang=${uiLocale()}&mmr=true`, "GET", undefined, 15000);
+    return {
+      ok: true, enabled: false, code: "", url: "", showMmr: true,
+      rows: friends.leaderboard(card ? [{ id: "me", me: true, card }] : []),
+      missing: [], error: ""
+    };
+  }
   let own = friendsProfile();
   let card = null;
   let error = "";

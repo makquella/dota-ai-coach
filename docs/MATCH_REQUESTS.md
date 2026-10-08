@@ -99,3 +99,35 @@ uses the genuine Change/link form to unlink/relink the fixture account. Both
 old consumers return false, unlinked UI appears, and all history returns after
 relink in RU/EN. Only the dedicated temporary smoke DB is mutated; OpenDota
 is disabled, no AI question/generation is requested, and history remains stored.
+
+## Profile and friends in 0.53.36
+
+`renderer/profile-requests.js` supplies two independent owners: profile reads,
+MMR and shop results share one generation; the friends panel has its own.
+The owner captures visible view and locale before status preparation, then
+captures the prepared account/link state. Only the latest result for that
+still-visible context applies synchronously. Leaving Profile invalidates both
+owners, including same-account leave/return. Starting an account mutation
+invalidates them; a successful mutation invalidates again and clears their
+in-memory caches before publishing the selected player. Backend history,
+MMR, cosmetics, friend codes and consent are retained.
+
+Linking now reloads the visible matches/Progress/Profile screen. Locale changes
+reload Profile, including backend achievement/shop text. Current errors retain
+their existing handling. Underlying requests and already-started writes are not
+aborted: this guards application of results, not ordering of persisted writes.
+Concurrent account mutations, MMR/shop/friends write ordering, copy/open actions,
+other account-scoped caches and question/goal/coach controllers remain separate
+work. F13 is partial.
+
+Seven public-module scenarios check completion order, reads versus actions,
+view/locale/account/link changes, canceled preparation, first/unlinked loads,
+independent owners and error recovery. Source and Windows smoke use genuine
+profile/friends IPC, MMR save/clear, pending leave/return, visible locale changes
+and two account links from Profile. The empty second account cannot show the
+first profile, and relinking restores its 32 stored matches in RU/EN.
+
+Smoke friends status builds the actual public card through the local backend
+without external publication or reading installed friend codes/consent. It does
+not validate remote friend publication or ordering; those paths retain their
+existing tests. The fixture and MMR anchors stay in the dedicated temporary DB.

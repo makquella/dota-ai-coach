@@ -9,6 +9,9 @@
 
   const TEXT = {
     en: {
+      "0.53.36": [
+        "Delayed profile, rating, shop and friends responses cannot replace the current account, tab or language; linking from Profile reloads that screen."
+      ],
       "0.53.35": [
         "Invalid farm samples stay unknown without crashing AI fact preparation or reappearing through older compact fields."
       ],
@@ -424,6 +427,9 @@
       ]
     },
     ru: {
+      "0.53.36": [
+        "Запоздалые ответы профиля, рейтинга, магазина и друзей не заменяют текущий аккаунт, вкладку или язык; привязка из профиля перезагружает его экран."
+      ],
       "0.53.35": [
         "Некорректные показатели фарма остаются неизвестными без сбоя подготовки AI-фактов и возврата через старые поля."
       ],
