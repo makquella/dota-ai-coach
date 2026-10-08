@@ -363,6 +363,9 @@ const I18N = {
     tourHint: "A short tour of the app, one minute",
     tourStart: "Show",
     whatsNew: {
+      "0.53.21": [
+        "Enemy, lane, teleport and objective tracker reads stay consistent during game updates and session resets."
+      ],
       "0.53.20": [
         "Roshan and Aegis timer settings load before game-state updates, keeping the first timer event and reset responsive."
       ],
@@ -1230,6 +1233,9 @@ const I18N = {
     tourHint: "Короткая экскурсия по приложению, на минуту",
     tourStart: "Показать",
     whatsNew: {
+      "0.53.21": [
+        "Сведения о врагах, линии, телепортации и объектах читаются согласованно при обновлении игры и сбросе сессии."
+      ],
       "0.53.20": [
         "Настройки таймеров Рошана и Аегиса загружаются перед обновлением состояния, сохраняя отзывчивость первого события и сброса."
       ],

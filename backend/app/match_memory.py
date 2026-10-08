@@ -12,6 +12,7 @@ import json
 import threading
 from collections import deque
 from collections.abc import Callable, Mapping
+from dataclasses import dataclass
 from datetime import UTC, datetime
 from functools import wraps
 from typing import Any, Concatenate, ParamSpec, TypeVar
@@ -75,6 +76,22 @@ ESCAPE_OR_DEFENSIVE_FLAG_HINTS = (
 
 P = ParamSpec("P")
 R = TypeVar("R")
+
+
+@dataclass(frozen=True)
+class LiveTrackerSnapshot:
+    """Detached child-tracker reads captured under one memory owner."""
+
+    match_id: str | None
+    hero: str | None
+    enemies: list[str]
+    opponents: list[str]
+    missing: dict[str, Any] | None
+    skill_bar: int | None
+    tp_missing: bool
+    roshan_open: bool
+    objective: dict[str, Any] | None
+    roshan_strip: list[dict[str, Any]]
 
 
 def _owned(
@@ -259,6 +276,34 @@ class MatchMemory:
     def role_snapshot(self, prior: dict[str, Any] | None = None) -> dict[str, Any] | None:
         """Read the observed/selected role with an already prepared prior."""
         return self.role.role(prior)
+
+    @_owned
+    def enemy_heroes(self) -> list[str]:
+        return self.enemies.heroes()
+
+    def tracker_snapshot(
+        self, *, clock: int | None, lane: str | None, alive: bool, lang: str
+    ) -> LiveTrackerSnapshot:
+        # Roshan reads the same settings as observation; prepare outside ownership.
+        timers()
+        return self._tracker_snapshot(clock=clock, lane=lane, alive=alive, lang=lang)
+
+    @_owned
+    def _tracker_snapshot(
+        self, *, clock: int | None, lane: str | None, alive: bool, lang: str
+    ) -> LiveTrackerSnapshot:
+        return LiveTrackerSnapshot(
+            match_id=self.match_id,
+            hero=self.hero,
+            enemies=self.enemies.heroes(),
+            opponents=self.enemy_lanes.opponents(lane),
+            missing=self.enemy_lanes.missing(clock, lane) if alive else None,
+            skill_bar=self.skills.bar_size(),
+            tp_missing=self.tp.signal() is not None,
+            roshan_open=self.roshan.maybe_up(clock),
+            objective=self.roshan.hint(clock, lang),
+            roshan_strip=self.roshan.strip(clock, lang),
+        )
 
     @_owned
     def summary(self) -> dict[str, Any]:

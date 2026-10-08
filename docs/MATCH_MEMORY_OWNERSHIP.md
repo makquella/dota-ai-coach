@@ -43,8 +43,10 @@ named clean modules. This is not a claim of strict typing for all imported
 policy modules or arbitrary Any payloads.
 
 Remaining F10 boundaries:
-- Direct access to mutable child trackers/tips and legacy public attributes
-  still needs a facade; this lock does not protect code that bypasses it.
+- Child reads have an owned detached snapshot in 0.53.21; see
+  [LIVE_TRACKER_SNAPSHOT.md](LIVE_TRACKER_SNAPSHOT.md). Mutable tip calls and
+  legacy public attributes still need a facade; the lock does not protect code
+  that bypasses it.
 - The whole overlay response, demo response cache, scheduler, PlayerService
   trackers and GSI register do not form one atomic epoch. A demo can publish its
   response after a reset; core memory itself remains serialized.

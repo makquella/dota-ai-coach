@@ -106,7 +106,7 @@ app = LocalApiApp(
     lifespan=_lifespan,
     title="Wardly",
     description="MVP-1: rule-based carry coach with local knowledge-base RAG.",
-    version="0.53.20",
+    version="0.53.21",
 )
 app.include_router(player_router)
 
@@ -132,7 +132,7 @@ if FRONTEND_DIR.exists():
 @app.get("/", summary="Health check")
 def root():
     """Simple health-check endpoint."""
-    return {"status": "ok", "service": "Wardly", "version": "0.53.20"}
+    return {"status": "ok", "service": "Wardly", "version": "0.53.21"}
 
 
 @app.get("/health", summary="Health check")
@@ -403,29 +403,20 @@ def _advisor_coverage(state: Mapping[str, object]) -> str | None:
     return coverage
 
 
-def _lane_record(extra: dict[str, Any]) -> dict[str, Any] | None:
+def _lane_record(opponents: list[str]) -> dict[str, Any] | None:
     """The player's past lanes against the enemy now in their lane
     (lane_duel.lane_record_for over PlayerService.lane_records)."""
-    x, y = extra.get("xpos"), extra.get("ypos")
-    if not isinstance(x, (int, float)) or not isinstance(y, (int, float)):
-        return None
-    opponents = MATCH_MEMORY.enemy_lanes.opponents(lane_of(float(x), float(y)))
     if not opponents:
         return None
     return lane_record_for(opponents, PLAYER_SERVICE.lane_records())
 
 
-def _missing_enemy(extra: dict[str, Any], clock: Any) -> dict[str, Any] | None:
-    """The enemy to call missing (enemy_lanes.py) for the lane the player stands
-    in; None while dead or without a position."""
+def _player_lane(extra: dict[str, Any]) -> str | None:
+    """The player's observed lane; unknown coordinates stay unknown."""
     x, y = extra.get("xpos"), extra.get("ypos")
-    if (
-        extra.get("alive") is False
-        or not isinstance(x, (int, float))
-        or not isinstance(y, (int, float))
-    ):
+    if not isinstance(x, (int, float)) or not isinstance(y, (int, float)):
         return None
-    return MATCH_MEMORY.enemy_lanes.missing(clock, lane_of(float(x), float(y)))
+    return lane_of(float(x), float(y))
 
 
 def _plays_support(state: Mapping[str, object] | None) -> bool:
@@ -453,13 +444,22 @@ def _live_role_and_hint(response: dict[str, object], lang: str) -> dict[str, obj
     if response.get("demo_mode") or response.get("status") in {"waiting_for_gsi", "stale_gsi"}:
         return {}
     current = get_current_state()
-    state = current.get("state") if isinstance(current.get("state"), dict) else {}
-    extra = state.get("extra_context") if isinstance(state.get("extra_context"), dict) else {}
+    raw_state = current.get("state")
+    state = raw_state if isinstance(raw_state, dict) else {}
+    raw_extra = state.get("extra_context")
+    extra = raw_extra if isinstance(raw_extra, dict) else {}
     if extra.get("source_type") != "live_gsi":
         return {}
     role = _live_role(state)
     result: dict[str, object] = {"live_role": role}
-    bar = MATCH_MEMORY.skills.bar_size()
+    clock = extra.get("clock_time")
+    trackers = MATCH_MEMORY.tracker_snapshot(
+        clock=clock if isinstance(clock, int) else None,
+        lane=_player_lane(extra),
+        alive=extra.get("alive") is not False,
+        lang=lang,
+    )
+    bar = trackers.skill_bar
     if bar:
         # The launcher sizes the skill arrows' frame by it (skill-arrows.js).
         result["skill_bar"] = bar
@@ -482,7 +482,7 @@ def _live_role_and_hint(response: dict[str, object], lang: str) -> dict[str, obj
             if isinstance(extra.get("observer_charges"), int)
             else None,
             lang=lang,
-            tp_missing=MATCH_MEMORY.tp.signal() is not None,
+            tp_missing=trackers.tp_missing,
             carry_advisor=carry_advisor,
             last_hits=last_hits if isinstance(last_hits, int) else None,
             level=extra.get("hero_level") if isinstance(extra.get("hero_level"), int) else None,
@@ -496,22 +496,22 @@ def _live_role_and_hint(response: dict[str, object], lang: str) -> dict[str, obj
             save_item=PLAYER_SERVICE.save_item(
                 str(state.get("hero") or ""),
                 extra.get("item_names") if isinstance(extra.get("item_names"), list) else None,
-                MATCH_MEMORY.enemies.heroes() or None,
+                trackers.enemies or None,
             )
             if role and role.get("role") == "support"
             else None,
             score_gap=score_gap(extra),
-            enemies=MATCH_MEMORY.enemies.heroes() or None,
+            enemies=trackers.enemies or None,
             bottle_rune=extra.get("bottle_rune")
             if isinstance(extra.get("bottle_rune"), str)
             else None,
             denies=extra.get("denies") if isinstance(extra.get("denies"), int) else None,
             hp=state.get("hp_percent") if isinstance(state.get("hp_percent"), int) else None,
             regen=extra.get("regen_items") if isinstance(extra.get("regen_items"), list) else None,
-            missing=_missing_enemy(extra, clock),
-            lane_record=_lane_record(extra),
-            roshan_open=MATCH_MEMORY.roshan.maybe_up(clock if isinstance(clock, int) else None),
-            objective=MATCH_MEMORY.roshan.hint(clock if isinstance(clock, int) else None, lang),
+            missing=trackers.missing,
+            lane_record=_lane_record(trackers.opponents),
+            roshan_open=trackers.roshan_open,
+            objective=trackers.objective,
             skill=MATCH_MEMORY.skills.tip(
                 clock if isinstance(clock, int) else None,
                 lang,
@@ -527,7 +527,7 @@ def _live_role_and_hint(response: dict[str, object], lang: str) -> dict[str, obj
             clock if isinstance(clock, int) else None,
             role.get("role") if role else None,
             lang,
-            MATCH_MEMORY.roshan.strip(clock if isinstance(clock, int) else None, lang),
+            trackers.roshan_strip,
         )
         if strip:
             result["timer_strip"] = strip
@@ -1274,7 +1274,7 @@ def _with_enemies(state: dict[str, object]) -> dict[str, object]:
     """The enemy heroes seen on the minimap this match (enemy_heroes.py), for the
     counter items; the state unchanged when none is known."""
     raw_extra = state.get("extra_context")
-    enemies = MATCH_MEMORY.enemies.heroes()
+    enemies = MATCH_MEMORY.enemy_heroes()
     if not enemies or not isinstance(raw_extra, dict) or raw_extra.get("source_type") != "live_gsi":
         return state
     return {**state, "extra_context": {**raw_extra, "enemy_heroes": enemies}}

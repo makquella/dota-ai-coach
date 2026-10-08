@@ -318,24 +318,6 @@
     },
     {
       "path": "app/main.py",
-      "message": "Argument 1 to \"_gold_hint\" has incompatible type \"Any | dict[Any, Any] | None\"; expected \"Mapping[str, object]\"",
-      "code": "arg-type",
-      "count": 1
-    },
-    {
-      "path": "app/main.py",
-      "message": "Argument 1 to \"_lane_record\" has incompatible type \"Any | dict[Any, Any] | None\"; expected \"dict[str, Any]\"",
-      "code": "arg-type",
-      "count": 1
-    },
-    {
-      "path": "app/main.py",
-      "message": "Argument 1 to \"_missing_enemy\" has incompatible type \"Any | dict[Any, Any] | None\"; expected \"dict[str, Any]\"",
-      "code": "arg-type",
-      "count": 1
-    },
-    {
-      "path": "app/main.py",
       "message": "Argument 1 to \"_missing_important_fields\" has incompatible type \"Any | dict[Any, Any] | None\"; expected \"dict[str, object]\"",
       "code": "arg-type",
       "count": 1
@@ -349,18 +331,6 @@
     {
       "path": "app/main.py",
       "message": "Argument 1 to \"_with_enemies\" has incompatible type \"Any | dict[Any, Any] | None\"; expected \"dict[str, object]\"",
-      "code": "arg-type",
-      "count": 1
-    },
-    {
-      "path": "app/main.py",
-      "message": "Argument 1 to \"score_gap\" has incompatible type \"Any | dict[Any, Any] | None\"; expected \"dict[str, Any]\"",
-      "code": "arg-type",
-      "count": 1
-    },
-    {
-      "path": "app/main.py",
-      "message": "Argument 2 to \"_gold_hint\" has incompatible type \"Any | dict[Any, Any] | None\"; expected \"Mapping[str, object]\"",
       "code": "arg-type",
       "count": 1
     },
@@ -380,7 +350,7 @@
       "path": "app/main.py",
       "message": "Item \"None\" of \"Any | dict[Any, Any] | None\" has no attribute \"get\"",
       "code": "union-attr",
-      "count": 39
+      "count": 12
     },
     {
       "path": "app/main.py",
