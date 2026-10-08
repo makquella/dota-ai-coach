@@ -26,19 +26,22 @@ from typing import Any
 from app.analysis_texts import clock
 from app.coach_evidence import (
     CombatCounterBindings,
+    MatchFarmBindings,
     MatchRateBindings,
     counter_evidence,
+    farm_evidence,
+    farm_slice_evidence,
     rate_evidence,
 )
 from app.coach_llm import CoachLLMError, parse_json_object
 from app.dota_constants import HEROES
 from app.last_moments import saver_label
 
-COACH_VERSION = 3
+COACH_VERSION = 4
 # Share of the text that may be dropped by the fact check before a retry.
 MAX_SCRUBBED_SHARE = 0.25
 # Small counts remain available for goals and legacy metric types. Supported
-# match combat/rate assertions must also satisfy their field bindings.
+# match combat/farm/rate assertions must also satisfy their field bindings.
 # Minute marks are allowed only as minutes, not as unrelated quantities.
 ALWAYS_ALLOWED_NUMBERS = {float(n) for n in range(13)} | {100.0}
 MINUTE_RE = re.compile(
@@ -139,6 +142,7 @@ def match_facts(detail: dict[str, Any]) -> dict[str, Any] | None:
     headline = analysis.get("headline") or {}
     sources = analysis.get("sources") or []
     rates = {field: row["value"] for field, row in rate_evidence(headline).items()}
+    farm = {field: row["value"] for field, row in farm_evidence(headline).items()}
     facts: dict[str, Any] = {
         "hero": headline.get("hero"),
         "role": analysis.get("role_label") or analysis.get("role"),
@@ -151,8 +155,10 @@ def match_facts(detail: dict[str, Any]) -> dict[str, Any] | None:
         "match_rates_evidence": rate_evidence(headline),
         "gpm": rates.get("gpm"),
         "xpm": rates.get("xpm"),
-        "last_hits": headline.get("last_hits"),
-        "denies": headline.get("denies"),
+        "match_farm": farm,
+        "match_farm_evidence": farm_evidence(headline),
+        "last_hits": farm.get("last_hits"),
+        "denies": farm.get("denies"),
         "net_worth": headline.get("net_worth"),
         "hero_damage": headline.get("hero_damage"),
         "review_score_of_100": headline.get("score"),
@@ -181,10 +187,36 @@ def match_facts(detail: dict[str, Any]) -> dict[str, Any] | None:
     build = analysis.get("build")
     if build:
         facts["build"] = _build_facts(build)
-    lane = analysis.get("lane")
+    lane = analysis.get("lane") or {}
+    lane_points = lane.get("points") or []
+    at_10 = [
+        p
+        for p in lane_points
+        if isinstance(p, dict) and type(p.get("minute")) is int and p["minute"] == 10
+    ]
+    farm_slice = {
+        "hero": lane.get("hero") or headline.get("hero"),
+        "enemy": lane.get("enemy"),
+        "points": at_10,
+        "peers": {
+            "me": {"lh_10": (peers.get("me") or {}).get("lh_10")},
+            "peers": [
+                {
+                    "hero": peer.get("hero"),
+                    "enemy": peer.get("enemy"),
+                    "metrics": {"lh_10": (peer.get("metrics") or {}).get("lh_10")},
+                }
+                for peer in (peers.get("peers") or [])[:1]
+            ],
+        }
+        if peers
+        else {},
+    }
+    facts["match_farm_at_10"] = farm_slice
+    facts["match_farm_at_10_evidence"] = farm_slice_evidence(farm_slice)
     if lane and lane.get("points"):
         # The lane against its enemy core by minute 10 (lane_duel.py).
-        last = lane["points"][-1]
+        last = at_10[0] if len(at_10) == 1 else {}
         facts["lane"] = {
             "enemy_core": lane.get("enemy"),
             "result": lane.get("result"),
@@ -239,6 +271,11 @@ def match_facts(detail: dict[str, Any]) -> dict[str, Any] | None:
     # Preserve the same exact rate in the old root fields and the new ledger;
     # prompt compaction must not introduce a conflicting rounded value.
     pruned.update(rates)
+    pruned["match_farm"] = facts["match_farm"]
+    pruned["match_farm_evidence"] = facts["match_farm_evidence"]
+    pruned.update(farm)
+    pruned["match_farm_at_10"] = facts["match_farm_at_10"]
+    pruned["match_farm_at_10_evidence"] = facts["match_farm_at_10_evidence"]
     return pruned
 
 
@@ -417,10 +454,24 @@ def _generate(
         if "match_rates" in facts
         else ""
     )
+    farm_rules = (
+        "\nLast hits/LH and denies/DN assertions must match their own player's match_farm totals. "
+        "Do not use another metric, hero, lane or time slice as evidence for these totals. "
+        "At 10:00 only, use match_farm_at_10 player samples; an explicit comparison against "
+        "the named lane or same-role opponent must also match its own sample. Other time slices are unproven. "
+        "Put future numeric farm goals in next_game/plan/fix only."
+        if "match_farm" in facts
+        else ""
+    )
     messages = [
         {
             "role": "system",
-            "content": system + counter_rules + rate_rules + "\n\n" + LANGUAGE_RULES[lang],
+            "content": system
+            + counter_rules
+            + rate_rules
+            + farm_rules
+            + "\n\n"
+            + LANGUAGE_RULES[lang],
         },
         {"role": "user", "content": facts_text},
     ]
@@ -448,6 +499,9 @@ def _generate(
                 scrubbed["counter_evidence"] = list(checker.counter_bindings.evidence.values())
             if "match_rates" in facts:
                 scrubbed["rate_evidence"] = list(checker.rate_bindings.evidence.values())
+            if "match_farm" in facts:
+                scrubbed["farm_evidence"] = list(checker.farm_bindings.evidence.values())
+                scrubbed["farm_slice_evidence"] = checker.farm_bindings.slice_evidence
             return {"review": scrubbed, "dropped_chars": dropped, "attempts": attempt + 1}
         last_problems = problems
         messages = [
@@ -515,6 +569,7 @@ class FactChecker:
             facts = {}
         self.counter_bindings = CombatCounterBindings(facts if isinstance(facts, dict) else {})
         self.rate_bindings = MatchRateBindings(facts if isinstance(facts, dict) else {})
+        self.farm_bindings = MatchFarmBindings(facts if isinstance(facts, dict) else {})
         self.allowed = set(ALWAYS_ALLOWED_NUMBERS)
         self.times = {f"{m}:00" for m in range(0, 91, 5)}
         self.times |= {_plain_time(t) for t in TIME_RE.findall(facts_text)}
@@ -542,6 +597,9 @@ class FactChecker:
         rate_problems = (
             self.rate_bindings.problems(text, other_heroes=HERO_NAMES) if bind_counters else []
         )
+        farm_problems = (
+            self.farm_bindings.problems(text, other_heroes=HERO_NAMES) if bind_counters else []
+        )
         found = [t for t in TIME_RE.findall(text) if _plain_time(t) not in self.times]
         text = MINUTE_RE.sub(_minute_mark, TIME_RE.sub(" ", text))
         for value in _numbers(text):
@@ -549,7 +607,7 @@ class FactChecker:
                 found.append(_format_number(value))
         if self._name_re:
             found += self._name_re.findall(text)
-        return found + counter_problems + rate_problems
+        return found + counter_problems + rate_problems + farm_problems
 
     def scrub(self, review: dict[str, Any]) -> tuple[dict[str, Any] | None, int, int, list[str]]:
         """Drop sentences with unknown facts. -> (review, dropped chars, total chars, problems)."""

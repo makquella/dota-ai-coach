@@ -9,6 +9,9 @@
 
   const TEXT = {
     en: {
+      "0.53.31": [
+        "AI match reviews and saved answers check last hits and denies against their own totals, with separate data for samples at 10:00 and opponent comparisons."
+      ],
       "0.53.30": [
         "Delayed history responses cannot replace a newer filter or sort; repeated More clicks cannot duplicate a page."
       ],
@@ -409,6 +412,9 @@
       ]
     },
     ru: {
+      "0.53.31": [
+        "AI-разборы и сохранённые ответы проверяют добивания и денаи по собственным итогам матча, отдельно — данные к 10:00 и сравнение с соперником."
+      ],
       "0.53.30": [
         "Запоздавшие ответы истории не заменяют новый фильтр или сортировку; повторные нажатия «Ещё» не дублируют страницу."
       ],

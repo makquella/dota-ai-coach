@@ -98,7 +98,7 @@ def test_review_scrubs_metric_swaps_without_removing_future_goals(
     facts = json.loads(provider.calls[0][1]["content"])
     assert facts["match_totals_evidence"]["kills"] == review["counter_evidence"][0]
     assert "match_totals" in provider.calls[0][0]["content"]
-    assert COACH_VERSION == 3
+    assert COACH_VERSION == 4
 
 
 def test_question_swapped_metrics_retry_and_cache_only_verified_answer(

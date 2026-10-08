@@ -189,6 +189,32 @@ async function runRendererSecuritySmoke({ mainWindow, overlayWindow, skillArrows
     step(`coach rate evidence DOM (${language})`, rendered);
   }
 
+  for (const [language, label] of [["ru", "Добивания: 0"], ["en", "Last hits: 0"]]) {
+    const rendered = await main.executeJavaScript(`(() => {
+      const row = {source:'analysis.headline', field:'last_hits', observed_at:null, precision:'reported_total', value:0};
+      const node = window.WardlyCoachEvidence.render({farm_evidence:[row,{...row,field:'denies',value:3}]}, ${JSON.stringify(language)});
+      document.body.append(node); node.querySelector('summary').click();
+      const valid = node.open && node.textContent.includes(${JSON.stringify(label)}) && node.querySelector('summary').textContent.includes('LH/DN') && node.querySelectorAll('p').length === 2;
+      node.remove();
+      const combined = window.WardlyCoachEvidence.render({farm_evidence:[row],counter_evidence:[{...row,field:'kills'}],rate_evidence:[{...row,field:'gpm',precision:'reported_match_rate'}]}, ${JSON.stringify(language)});
+      const sample = {source:'analysis.peers.me',field:'last_hits',subject:'player',hero:'<b>Juggernaut</b>',observed_at:600,precision:'reported_sample',value:36};
+      const sampleNode = window.WardlyCoachEvidence.render({farm_slice_evidence:[sample]}, ${JSON.stringify(language)});
+      document.body.append(sampleNode); sampleNode.querySelector('summary').click();
+      const sampleValid = sampleNode.open && sampleNode.textContent.includes('10:00') && sampleNode.textContent.includes('<b>Juggernaut</b>') && sampleNode.textContent.includes('36') && !sampleNode.querySelector('b');
+      sampleNode.remove();
+      const bad = [true,'160',-1,1.5,NaN,Infinity,Number.MAX_SAFE_INTEGER+1,'<img src=x onerror=alert(1)>'];
+      return valid && sampleValid && combined.textContent.includes('K/D/A, GPM/XPM, LH/DN')
+        && bad.every(value => window.WardlyCoachEvidence.render({farm_slice_evidence:[{...sample,value}]}, 'en') === null)
+        && window.WardlyCoachEvidence.render({farm_slice_evidence:[{...sample,subject:'opponent'}]}, 'en') === null
+        && window.WardlyCoachEvidence.render({farm_slice_evidence:[{...sample,field:'denies'}]}, 'en') === null
+        && window.WardlyCoachEvidence.render({farm_slice_evidence:[{...sample,observed_at:300}]}, 'en') === null
+        && bad.every(value => window.WardlyCoachEvidence.render({farm_evidence:[{...row,value}]}, 'en') === null)
+        && window.WardlyCoachEvidence.render({farm_evidence:[{...row,precision:'reported_match_rate'}]}, 'en') === null
+        && window.WardlyCoachEvidence.render({farm_evidence:[{...row,source:'unknown'}]}, 'en') === null;
+    })()`);
+    step(`coach farm evidence DOM (${language})`, rendered);
+  }
+
   for (const [name, contents] of [["panel", main], ["overlay", overlayWindow.webContents]]) {
     const policy = await contents.executeJavaScript(`(async () => {
       const violations = [];

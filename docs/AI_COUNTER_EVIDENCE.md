@@ -60,3 +60,52 @@ unknown/zero/invalid rate. Source/Windows Electron smoke открывает на
 disclosure DOM на двух языках, проверяет combined/legacy UI и malformed rates.
 
 Это ограниченный детерминированный parser, не полная семантическая проверка AI. Spelled-out counts, произвольные глагольные/coreference конструкции и противоречия без поддержанной числовой noun phrase здесь не доказываются. Farm/item/findings refs, временные claims, другие метрики и career ещё требуют собственных bindings. F04 остаётся открытым до следующих slices; нет заявления, что каждое AI утверждение теперь доказано.
+
+## Match farm totals in 0.53.31
+
+`MatchFarmBindings` checks last hits/LH and denies/DN against their own
+`analysis.headline` fields. `match_farm` and `match_farm_evidence` preserve an
+explicit empty ledger when unknown; root fields use the same validated values.
+Only nonnegative integer totals through JS MAX_SAFE_INTEGER are evidence. Bool,
+strings, fractional values and missing/invalid counters stay unknown; zero is
+known. Refs have `precision: reported_total` and `observed_at: null`.
+
+Supported RU/EN numeric noun phrases include last hits, LH, denies/DN,
+добивания/добитые крипы and денаи. Each count must match its own total exactly.
+Nested lane/team values cannot license a match total. Removing the metric
+name "last hits" before scope checks avoids treating "last" in the name as a
+time slice. At exactly 10:00, a separate `match_farm_at_10` ledger licenses
+player samples and a narrowly parsed numeric comparison against its named
+opponent; each count is checked against its own subject/field. A valid, unique
+minute-10 `analysis.lane.points` sample takes priority. Without a lane sample,
+LH alone may use `analysis.peers.me` / `analysis.peers.peers[0].metrics` for the
+same-role enemy comparison; this does not invent a physical lane or DN sample.
+Integral float peer counts are retained exactly as integers. Duplicate/invalid
+sample times stay unknown. Total/10-minute and player/opponent swaps are
+rejected. Supported comparison forms include “36 last hits versus 65 for
+Anti-Mage at 10:00” and the Russian equivalents already used in review text.
+Other timestamps, lane-exclusive counts, last-N-minutes, unnamed/different
+subjects, standalone enemy claims and per-minute scopes remain rejected.
+Future goal slots keep the existing generic number policy. This small parser
+does not prove spelled-out counts, arbitrary verbs/coreference, item/build or
+finding causes, other time slices or career claims. F04 stays partial.
+
+Backend adds `farm_evidence` and `farm_slice_evidence` after checking, including
+stored Q&A. Sample refs carry their actual source, player/opponent subject,
+hero, `observed_at: 600` (game-relative seconds, not a wall-clock timestamp) and
+`precision: reported_sample`. UI labels these samples separately at 10:00;
+samples do not prove event causes or why a lane was lost. Reads scrub
+old answers without provider calls or deleting their stored copy. COACH_VERSION
+is 4: v3 match reviews are hidden through pending/offline/AI-off states until
+normal regeneration; storage is retained. The shared digest also invalidates
+career cache normally, without changing its verification policy. Analysis/trim
+versions and live behavior are unchanged. Share payload keeps excluding refs
+and questions. RU/EN disclosure validates field/source/precision/value and uses
+textContent; older combat-only and rate-only disclosures retain their copy.
+
+Functional tests exercise real HTTP/service/SQLite review generation, question
+retry/rejection, future goals and offline cache upgrades with external scripted
+providers. Parser cases include metric swaps, small numbers, unsupported scope,
+RU/EN labels, unknown/zero, total/sample/subject/field swaps and invalid values.
+Source/Windows Electron smoke opens actual farm/sample/combined disclosure DOM and rejects malformed rows in both
+languages. No live or paid AI calls are made.

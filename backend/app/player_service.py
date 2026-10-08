@@ -1496,6 +1496,8 @@ class PlayerService:
             "answer": result["review"]["answer"],
             "counter_evidence": result["review"].get("counter_evidence", []),
             "rate_evidence": result["review"].get("rate_evidence", []),
+            "farm_evidence": result["review"].get("farm_evidence", []),
+            "farm_slice_evidence": result["review"].get("farm_slice_evidence", []),
             "at": _now_iso(),
             "lang": lang,
         }
@@ -1523,6 +1525,8 @@ class PlayerService:
                         "answer": cleaned["answer"],
                         "counter_evidence": list(checker.counter_bindings.evidence.values()),
                         "rate_evidence": list(checker.rate_bindings.evidence.values()),
+                        "farm_evidence": list(checker.farm_bindings.evidence.values()),
+                        "farm_slice_evidence": checker.farm_bindings.slice_evidence,
                     }
                 )
         return returned
