@@ -303,6 +303,7 @@
   }
 
   function setView(view, { remember = true, restore = false } = {}) {
+    if (view !== "matches") matchListRequests.cancel();
     if (view !== "match") {
       matchRequests.cancel();
       clearTimeout(matchRefreshTimer);
@@ -407,6 +408,7 @@
           button.disabled = false;
           if (result.ok) {
             state.linkError = "";
+            matchListRequests.cancel();
             state.player = result.data;
             state.matchesLoaded = false;
             await afterLink();
@@ -458,6 +460,7 @@
   async function linkDetected() {
     const result = await call("linkDetected");
     if (result.ok) {
+      matchListRequests.cancel();
       state.player = result.data;
       state.matchesLoaded = false;
       await afterLink();
@@ -517,6 +520,7 @@
         onclick: async () => {
           const result = await call("unlink");
           if (result.ok) {
+            matchListRequests.cancel();
             state.player = result.data;
             state.matches = [];
             state.matchesLoaded = false;
@@ -575,17 +579,28 @@
 
   // --- matches table ------------------------------------------------------------
 
-  async function loadMatches(force = false) {
-    const root = document.getElementById("matches-root");
-    if (!state.player || force || Date.now() - state.lastPlayerRefresh > 5000) {
-      if (!state.matchesLoaded) {
-        root.replaceChildren(card(t("matchesTitle"), "history", skeletonRows(5)));
+  const matchListRequests = window.WardlyMatchListRequests.create({
+    current: () => ({
+      view: state.view, accountId: state.player?.account_id ?? null,
+      linked: Boolean(state.player?.linked), count: state.matches.length,
+      heroId: state.filter.heroId, result: state.filter.result,
+      sort: state.sort.key, asc: state.sort.asc
+    }),
+    prepare: async () => {
+      if (!state.player || Date.now() - state.lastPlayerRefresh > 5000) {
+        if (!state.matchesLoaded) {
+          document.getElementById("matches-root").replaceChildren(card(t("matchesTitle"), "history", skeletonRows(5)));
+        }
+        await refreshPlayer();
       }
-      await refreshPlayer();
-    }
-    if (state.player?.linked) {
-      const result = await call("matches", { limit: Math.max(30, state.matches.length), ...filterArgs() });
-      if (result.ok) {
+    },
+    request: args => call("matches", args)
+  });
+
+  async function loadMatches(force = false) {
+    if (force) state.lastPlayerRefresh = 0;
+    return matchListRequests.replace(result => {
+      if (result?.ok) {
         state.matches = result.data.items || [];
         state.matchesTotal = result.data.total || 0;
         state.matchesStats = result.data.stats || null;
@@ -593,12 +608,10 @@
         state.heroes = result.data.heroes || [];
         state.matchesLoaded = true;
       }
-    }
-    renderMatches();
-    const syncing = ["queued", "running"].includes(state.player?.sync?.state) || (state.player?.pending_jobs || 0) > 0;
-    if (syncing) {
-      pollSync();
-    }
+      renderMatches();
+      const syncing = ["queued", "running"].includes(state.player?.sync?.state) || (state.player?.pending_jobs || 0) > 0;
+      if (syncing) pollSync();
+    });
   }
 
   function renderMatches() {
@@ -638,11 +651,12 @@
               class: "btn btn-ghost btn-block",
               type: "button",
               onclick: async () => {
-                const result = await call("matches", { limit: 30, offset: state.matches.length, ...filterArgs() });
-                if (result.ok) {
-                  state.matches = state.matches.concat(result.data.items || []);
-                  renderMatches();
-                }
+                return matchListRequests.more(result => {
+                  if (result.ok) {
+                    state.matches = state.matches.concat(result.data.items || []);
+                    renderMatches();
+                  }
+                });
               }
             },
             h("span", { text: t("more") })
@@ -666,15 +680,6 @@
     if (focusedMatch) {
       root.querySelector(`tr.row-link[data-match-id="${CSS.escape(focusedMatch)}"]`)?.focus({ preventScroll: true });
     }
-  }
-
-  function filterArgs() {
-    return {
-      heroId: state.filter.heroId === null ? undefined : state.filter.heroId,
-      result: state.filter.result === "all" ? undefined : state.filter.result,
-      sort: state.sort.key === "date" ? undefined : state.sort.key,
-      order: state.sort.asc ? "asc" : undefined
-    };
   }
 
   function savedSort() {
@@ -5452,6 +5457,6 @@
     });
   }
 
-  window.PlayerViews = { onStatus, openMatch, setView };
+  window.PlayerViews = { onStatus, openMatch, setView, loadMatches };
   init();
 })();

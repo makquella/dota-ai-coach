@@ -9,6 +9,9 @@
 
   const TEXT = {
     en: {
+      "0.53.30": [
+        "Delayed history responses cannot replace a newer filter or sort; repeated More clicks cannot duplicate a page."
+      ],
       "0.53.29": [
         "Delayed review responses cannot replace a newer selection or update a review after changing tabs or language."
       ],
@@ -406,6 +409,9 @@
       ]
     },
     ru: {
+      "0.53.30": [
+        "Запоздавшие ответы истории не заменяют новый фильтр или сортировку; повторные нажатия «Ещё» не дублируют страницу."
+      ],
       "0.53.29": [
         "Задержавшийся ответ разбора не заменяет новый выбор и не обновляет разбор после смены вкладки или языка."
       ],

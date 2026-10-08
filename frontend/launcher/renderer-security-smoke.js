@@ -59,7 +59,7 @@ async function runRendererSecuritySmoke({ mainWindow, overlayWindow, skillArrows
         return rows.every(row => row.cells[2].textContent === '0 / — / 5' && row.querySelector('.row-note')?.title === '<b>Тест / Test</b>' && !row.querySelector('b'))
           && rows.some(row => row.dataset.result === 'unknown');
       })()`);
-      await main.executeJavaScript("document.querySelector('#matches-root .table-wrap + .btn-block')?.click(); true");
+      await main.executeJavaScript("(() => { const more = document.querySelector('#matches-root .table-wrap + .btn-block'); more?.click(); more?.click(); })(); true");
       const paged = await until(() => main.executeJavaScript("document.querySelectorAll('#matches-root tbody .row-link').length === 32"));
       let sorted = true;
       for (let click = 0; click < 2; click += 1) {
@@ -71,6 +71,25 @@ async function runRendererSecuritySmoke({ mainWindow, overlayWindow, skillArrows
       await main.executeJavaScript("(() => { const select = document.querySelector('#matches-root .filter-bar select'); select.value = ''; select.dispatchEvent(new Event('change', {bubbles:true})); })()");
       const cleared = await until(() => main.executeJavaScript("document.querySelectorAll('#matches-root tbody .row-link').length === 30 && Boolean(document.querySelector('#matches-root .table-wrap + .btn-block'))"));
       step(`linked match table paging, sorting, filter and partial counters (${lang})`, partial && paged && sorted && filtered && cleared, JSON.stringify({partial,paged,sorted,filtered,cleared}));
+      await main.executeJavaScript(`(() => {
+        document.querySelector('#matches-root .table-wrap + .btn-block').click();
+        const select = document.querySelector('#matches-root .filter-bar select');
+        for (const hero of ['8','1','8']) {
+          select.value = hero; select.dispatchEvent(new Event('change', {bubbles:true}));
+        }
+      })()`);
+      const rapidFilter = await until(() => main.executeJavaScript("(() => { const rows = [...document.querySelectorAll('#matches-root tbody .row-link')]; return rows.length === 16 && rows.every(row => row.cells[1].textContent.includes('Juggernaut')) && !document.querySelector('#matches-root .table-wrap + .btn-block'); })()"));
+      const revisitedList = await main.executeJavaScript(`(async () => {
+        const old = window.PlayerViews.loadMatches();
+        window.PlayerViews.setView('home', {remember:false});
+        window.PlayerViews.setView('matches', {remember:false});
+        const latest = window.PlayerViews.loadMatches();
+        const applied = await Promise.all([old,latest]);
+        return applied[0] === false && applied[1] === true;
+      })()`);
+      step(`history response ownership and concurrent pagination (${lang})`, paged && rapidFilter && revisitedList, JSON.stringify({paged,rapidFilter,revisitedList}));
+      await main.executeJavaScript("(() => { const select = document.querySelector('#matches-root .filter-bar select'); select.value = ''; select.dispatchEvent(new Event('change', {bubbles:true})); })()");
+      await until(() => main.executeJavaScript("document.querySelectorAll('#matches-root tbody .row-link').length === 30"));
       await main.executeJavaScript("window.PlayerViews.setView('home', {remember:false}); window.PlayerViews.setView('matches', {remember:false}); true");
       const matchId = await main.executeJavaScript("(() => { const row = document.querySelector('#matches-root tbody .row-link'); const id = row.dataset.matchId; row.click(); return id; })()");
       const review = await until(() => main.executeJavaScript("!document.querySelector('#view-match').classList.contains('hidden') && Boolean(document.querySelector('#match-root .back')) && !document.querySelector('#match-root .skeleton')"));

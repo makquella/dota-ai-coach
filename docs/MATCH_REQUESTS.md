@@ -23,3 +23,29 @@ smoke starts actual A/B/A review requests through preload/IPC with a tab change,
 awaits all of them and verifies that only the latest applies, on RU/EN. It uses
 the isolated history fixture from 0.53.27. Navigation/focus, table and security
 checks continue. No new renderer privileges, API routes or dependencies are added.
+
+## Match list and pagination
+
+0.53.30 adds `renderer/match-list-requests.js`. The table's replacement request
+owns a generation before awaiting player-status preparation. Superseded
+preparations cannot start a list fetch. The request captures the prepared
+account/link state and filter/sort; only the latest still-visible selection may
+apply its result. Leaving the table or successfully linking/unlinking cancels
+pending table work, including A/B/A returns. Status preparation itself still
+uses the existing shared player-status loader; this is not a status controller
+refactor. The first preparation may discover the selected account.
+
+Pagination permits one pending page and blocks paging during replacement. A
+page captures selection, account and offset; replacement, cancellation, changed
+account or changed row count rejects it. Current errors preserve the previous
+UI behavior and release ownership for retries. Validation and the parent
+callback are synchronous in one JS turn. Underlying IPC/HTTP is not aborted.
+Table strings remain localized at render time; no locale-dependent list
+response is cached. Periodic/sync refresh and return-row focus are preserved.
+
+Ten module scenarios exercise controlled external completion order, preparation,
+filter/sort/account changes, replacement/page races, duplicate clicks, tab
+return, offset and error recovery. Source/Windows smoke double-clicks More,
+starts a page then switches filters A/B/A, and checks leave/return generations
+through actual preload/IPC in RU/EN using the isolated SQLite fixture. F13
+remains partial: career/profile/status/question/action controllers remain.
