@@ -32,10 +32,10 @@ Additional engineering/product work is tracked separately, not silently dropped.
 
 These are acceptance tasks too. They are not included in the 17-finding percentage.
 
-- [ ] Portable `scripts/dev.py` with profiles and `check --changed` across staged,
+- [x] Portable `scripts/dev.py` with profiles and `check --changed` across staged,
   unstaged and untracked paths; optional thin hook adapter; explicit argv/cwd,
-  Windows venv discovery; no deploy/publish/paid AI.
-- [ ] Version consistency script and generated site/changelog checks in the runner.
+  Windows venv discovery; no deploy/publish/paid AI (0.53.42, DEV_RUNNER.md).
+- [x] Version consistency script and generated site/changelog checks in the runner and CI (0.53.42).
 - [ ] Remove F841 unused assignment while preserving the state-changing call;
   remove the global lint exemption.
 - [ ] Pure abilities normalization helper to break the documented GSI/skills cycle,

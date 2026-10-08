@@ -56,7 +56,7 @@ python ../scripts/build_changelog.py --check
 python ../scripts/build_site.py --check
 ```
 
-На Windows путь XML заменить на доступный временный файл. Сохранить exit status pytest и проверить текущий XML: tests > 0, failures/errors = 0; skipped сообщать отдельно. Locked mypy gate блокирует новые ошибки и требует удалять resolved allowances; 226 существующих ошибок остаются известным долгом. Команды prune и границы проверки — [TYPE_CHECKING.md](TYPE_CHECKING.md).
+На Windows путь XML заменить на доступный временный файл. Сохранить exit status pytest и проверить текущий XML: tests > 0, failures/errors = 0; skipped сообщать отдельно. Locked mypy gate блокирует новые ошибки и требует удалять resolved allowances; 176 существующих ошибок остаются известным долгом. Команды prune и границы проверки — [TYPE_CHECKING.md](TYPE_CHECKING.md).
 
 Из `frontend/launcher/`: `npm run check`, `npm test`. Из `services/api/`: `npm test` запускает unit tests и integration tests transfer на настоящем local D1/Miniflare. Отдельно доступны `npm run test:unit` и `npm run test:integration`. Backend tests используют TestClient + SQLite и чистые domain modules; другие Worker SQL paths пока используют fake D1/R2, поэтому при изменении их атомарности нужно расширять реальные D1 проверки. Границы harness — [TRANSFER_ATOMICITY.md](TRANSFER_ATOMICITY.md).
 
@@ -78,4 +78,4 @@ xvfb-run -a ./node_modules/.bin/electron . --no-sandbox --smoke-test=/tmp/wardly
 
 Windows packaging: из корня `scripts/build-windows.ps1`, затем `scripts/smoke-windows.ps1`. `-SkipBackend` подходит только frontend-изменениям при наличии валидного backend build; release требует полного build. Linux Electron smoke не заменяет Windows installer, watcher и реальную Dota GSI проверку.
 
-После проверки: `git diff --check`, просмотр финального diff и untracked files. Логи, SQLite, записи матчей и локальные результаты не коммитить. Отчёт должен отличать passed, failed, skipped и unrun проверки. Отдельный portable runner и D1/UI harness — задачи roadmap, команды к ним пока не предлагать как готовые.
+После проверки: `git diff --check`, просмотр финального diff и untracked files. Логи, SQLite, записи матчей и локальные результаты не коммитить. Отчёт должен отличать passed, failed, skipped и unrun проверки. Portable runner и version gate: [DEV_RUNNER.md](DEV_RUNNER.md); `python scripts/dev.py check --changed --dry-run` показывает текущие пути, profiles, argv и cwd. Actual Electron smoke и local D1 harness уже существуют; их границы описаны выше.

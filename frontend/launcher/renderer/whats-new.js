@@ -9,6 +9,9 @@
 
   const TEXT = {
     en: {
+      "0.53.42": [
+        "Development checks now have a portable runner that selects consumer profiles from all changed files. CI verifies matching backend, launcher, lock and Russian/English release versions."
+      ],
       "0.53.41": [
         "Live game packets and demo replay no longer run filesystem and game processing on the API event loop. Local diagnostics retain bounded timing observations for preparation, rules and persistence."
       ],
@@ -442,6 +445,9 @@
       ]
     },
     ru: {
+      "0.53.42": [
+        "Проверки разработки запускаются через переносимый runner с выбором профилей по всем изменённым файлам. CI проверяет совпадение версий backend, launcher, lock и RU/EN описаний выпуска."
+      ],
       "0.53.41": [
         "Обработка игровых пакетов и demo больше не выполняет файловые операции и расчёты в event loop API. Локальная диагностика хранит ограниченные замеры подготовки, правил и сохранения данных."
       ],

@@ -28,6 +28,8 @@ Use the isolated cloud checkout; create a worktree only when requested.
 
 ## Checks and workflow
 
+Review selected paths/cwd/argv with `python scripts/dev.py check --changed --dry-run`; run with `--changed`, explicit `--scope`, `--target` or `--full`. Version gate: `python scripts/bump_version.py --check`. Runner/hooks: [docs/DEV_RUNNER.md](docs/DEV_RUNNER.md).
+
 Check map: [docs/TESTING.md](docs/TESTING.md). Backend cwd: `backend/`; use the existing venv (`.venv/bin/python` or `.venv/Scripts/python.exe`).
 
 - Backend: `python -m ruff check <changed paths>`; `python -m ruff format --check <changed paths>`; `python -m pytest <feature tests and consumers>`.

@@ -172,3 +172,7 @@ python scripts/simulate_live_gsi.py --lang ru --reasons
 python scripts/simulate_live_gsi.py --deaths 7,18,19,33 --minutes 40
 python scripts/simulate_live_gsi.py --session session_records/<id>/raw_gsi_states.jsonl
 ```
+
+## Portable developer checks
+
+`python scripts/dev.py check --changed --dry-run` shows staged/unstaged/untracked paths and the exact consumer checks. Run without `--dry-run` to execute them; `--base main` also includes committed branch changes. Explicit scopes/targets, setup and Windows build: [DEV_RUNNER.md](DEV_RUNNER.md) and `python scripts/dev.py --help`. `python scripts/bump_version.py --check` verifies backend, launcher, lock, both update catalogs and release notes.

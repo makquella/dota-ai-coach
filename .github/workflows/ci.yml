@@ -78,23 +78,26 @@ jobs:
           python ../scripts/lock_python_dependencies.py --check
 
       - name: Lint (ruff check)
-        run: ruff check --config pyproject.toml . ../scripts/lock_python_dependencies.py ../scripts/check_types.py ../scripts/verify_source.py ../scripts/windows_checks.py
+        run: ruff check --config pyproject.toml . ../scripts/lock_python_dependencies.py ../scripts/check_types.py ../scripts/verify_source.py ../scripts/windows_checks.py ../scripts/dev.py ../scripts/bump_version.py ../scripts/check_hook.py
 
       - name: Format check (ruff format)
-        run: ruff format --config pyproject.toml --check . ../scripts/lock_python_dependencies.py ../scripts/check_types.py ../scripts/verify_source.py ../scripts/windows_checks.py
+        run: ruff format --config pyproject.toml --check . ../scripts/lock_python_dependencies.py ../scripts/check_types.py ../scripts/verify_source.py ../scripts/windows_checks.py ../scripts/dev.py ../scripts/bump_version.py ../scripts/check_hook.py
 
       - name: Type check (pinned mypy, no new debt)
         run: |
           python ../scripts/check_types.py
           python -m mypy --strict ../scripts/check_types.py
           python -m mypy --strict ../scripts/verify_source.py
-          python -m mypy --strict ../scripts/windows_checks.py
+          python -m mypy --strict ../scripts/windows_checks.py ../scripts/dev.py ../scripts/bump_version.py ../scripts/check_hook.py
           python -m mypy --strict app/coach_evidence.py
           python -m mypy --strict app/job_queue.py
           python -m mypy --strict app/gsi_snapshot.py
           python -m mypy --strict app/demo_overlay_cache.py
           python -m mypy --strict app/player_contracts.py
           python -m mypy --strict --follow-imports=silent app/live_hints.py
+
+      - name: Check backend, package, lock and RU/EN release versions
+        run: python ../scripts/bump_version.py --check
 
       - name: Tests (pytest)
         run: pytest -q
