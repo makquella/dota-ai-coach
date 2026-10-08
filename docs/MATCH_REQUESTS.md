@@ -49,3 +49,27 @@ return, offset and error recovery. Source/Windows smoke double-clicks More,
 starts a page then switches filters A/B/A, and checks leave/return generations
 through actual preload/IPC in RU/EN using the isolated SQLite fixture. F13
 remains partial: career/profile/status/question/action controllers remain.
+
+## Progress in 0.53.33
+
+Foreground career loads and the 4-second pending-AI poll use one generation
+owner in `renderer/career-requests.js`. It captures view, hero filter and locale
+before awaiting status preparation; superseded preparation cannot launch a
+career fetch. After preparation it captures account/link state. Only the latest
+still-visible same selection/account/locale may synchronously apply a result.
+The first status preparation may discover the account. Leaving Progress and
+explicit successful link/unlink invalidate pending loads and clear its timer.
+Foreground loads also clear a previously scheduled quiet timer.
+
+Stale results cannot render or schedule a poll. Current normalized errors keep
+existing behavior; quiet rendering preserves the AI form, with the same 4-second
+policy. Underlying HTTP/IPC continues; the shared status loader and explicit
+coach/goal/question actions remain separate controller work. F13 is partial.
+
+Seven asynchronous module scenarios exercise completion order, hero A/B/A,
+locale/view/account/link changes, canceled preparation, same-hero return,
+first linking/unlinked/hidden states, shared quiet/foreground ownership and
+transport/normalized errors. Source/Windows smoke starts genuine IPC with
+microtask yields between hero selections and before leaving a pending load,
+then verifies the final filtered UI and canceled/accepted load results in RU/EN.
+The isolated SQLite history fixture and existing security checks remain active.

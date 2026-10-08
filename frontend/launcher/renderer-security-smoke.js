@@ -103,6 +103,26 @@ async function runRendererSecuritySmoke({ mainWindow, overlayWindow, skillArrows
       await main.executeJavaScript("(() => { const select = document.querySelector('#progress-root select'); select.value = ''; select.dispatchEvent(new Event('change', {bubbles:true})); })()");
       const progressCleared = await until(() => main.executeJavaScript("document.querySelectorAll('#progress-root .table-wrapping tbody tr').length === 2 && document.querySelector('#progress-root .tiles .tile-value')?.textContent === '52%'"));
       step(`Progress contract, unknown averages and hero filter (${lang})`, progress && progressFiltered && progressCleared, JSON.stringify({progress,progressFiltered,progressCleared}));
+      await main.executeJavaScript(`(async () => {
+        const select = document.querySelector('#progress-root select');
+        for (const hero of ['8','1','8']) {
+          select.value = hero; select.dispatchEvent(new Event('change', {bubbles:true}));
+          await Promise.resolve();
+        }
+      })()`);
+      const rapidProgress = await until(() => main.executeJavaScript("document.querySelectorAll('#progress-root .table-wrapping tbody tr').length === 1 && document.querySelector('#progress-root select')?.value === '8' && document.querySelector('#progress-root .tiles .tile-value')?.textContent === '100%'"));
+      const revisitedProgress = await main.executeJavaScript(`(async () => {
+        const old = window.PlayerViews.loadCareer();
+        await Promise.resolve();
+        window.PlayerViews.setView('home', {remember:false});
+        window.PlayerViews.setView('progress', {remember:false});
+        const latest = window.PlayerViews.loadCareer();
+        const applied = await Promise.all([old,latest]);
+        return applied[0] === false && applied[1] === true;
+      })()`);
+      step(`latest Progress request owns hero and tab selection (${lang})`, rapidProgress && revisitedProgress, JSON.stringify({rapidProgress,revisitedProgress}));
+      await main.executeJavaScript("(() => { const select = document.querySelector('#progress-root select'); select.value = ''; select.dispatchEvent(new Event('change', {bubbles:true})); })()");
+      await until(() => main.executeJavaScript("document.querySelectorAll('#progress-root .table-wrapping tbody tr').length === 2"));
       await main.executeJavaScript("window.PlayerViews.setView('home', {remember:false}); window.PlayerViews.setView('matches', {remember:false}); true");
       const matchId = await main.executeJavaScript("(() => { const row = document.querySelector('#matches-root tbody .row-link'); const id = row.dataset.matchId; row.click(); return id; })()");
       const review = await until(() => main.executeJavaScript("!document.querySelector('#view-match').classList.contains('hidden') && Boolean(document.querySelector('#match-root .back')) && !document.querySelector('#match-root .skeleton')"));

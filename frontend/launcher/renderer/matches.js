@@ -304,6 +304,10 @@
 
   function setView(view, { remember = true, restore = false } = {}) {
     if (view !== "matches") matchListRequests.cancel();
+    if (view !== "progress") {
+      careerRequests.cancel();
+      clearTimeout(careerRefreshTimer);
+    }
     if (view !== "match") {
       matchRequests.cancel();
       clearTimeout(matchRefreshTimer);
@@ -409,6 +413,8 @@
           if (result.ok) {
             state.linkError = "";
             matchListRequests.cancel();
+            careerRequests.cancel();
+            clearTimeout(careerRefreshTimer);
             state.player = result.data;
             state.matchesLoaded = false;
             await afterLink();
@@ -461,6 +467,8 @@
     const result = await call("linkDetected");
     if (result.ok) {
       matchListRequests.cancel();
+      careerRequests.cancel();
+      clearTimeout(careerRefreshTimer);
       state.player = result.data;
       state.matchesLoaded = false;
       await afterLink();
@@ -521,6 +529,8 @@
           const result = await call("unlink");
           if (result.ok) {
             matchListRequests.cancel();
+            careerRequests.cancel();
+            clearTimeout(careerRefreshTimer);
             state.player = result.data;
             state.matches = [];
             state.matchesLoaded = false;
@@ -4076,30 +4086,35 @@
     );
   }
 
+  const careerRequests = window.WardlyCareerRequests.create({
+    current: () => ({
+      view: state.view, heroId: state.careerHero, locale: state.locale,
+      accountId: state.player?.account_id ?? null, linked: Boolean(state.player?.linked)
+    }),
+    prepare: async () => { if (!state.player) await refreshPlayer(); },
+    request: args => call("career", args)
+  });
+
   async function loadCareer() {
+    if (state.view !== "progress") return false;
+    clearTimeout(careerRefreshTimer);
     const root = document.getElementById("progress-root");
     if (!state.career) {
       root.replaceChildren(card(t("tiles.winrate"), "chart-line", skeletonRows(4)));
     }
-    if (!state.player) {
-      await refreshPlayer();
-    }
-    if (!state.player) {
-      root.replaceChildren(...offlinePage("progress"));
-      hydrate(root);
-      return;
-    }
-    if (!state.player.linked) {
-      root.replaceChildren(...linkPage("progress"));
-      hydrate(root);
-      return;
-    }
-    const result = await call("career", careerArgs());
-    if (result.ok) {
-      state.career = result.data;
-    }
-    renderCareer();
-    scheduleCareerRefresh();
+    return careerRequests.load(result => {
+      if (!state.player) {
+        root.replaceChildren(...offlinePage("progress"));
+        hydrate(root);
+      } else if (!state.player.linked) {
+        root.replaceChildren(...linkPage("progress"));
+        hydrate(root);
+      } else {
+        if (result?.ok) state.career = result.data;
+        renderCareer();
+        scheduleCareerRefresh();
+      }
+    });
   }
 
   let careerRefreshTimer = null;
@@ -4114,15 +4129,14 @@
       if (state.view !== "progress") {
         return;
       }
-      const result = await call("career", careerArgs());
-      if (result.ok) {
-        const changed = JSON.stringify(result.data) !== JSON.stringify(state.career);
-        state.career = result.data;
-        if (changed && state.aiPanel !== "form") {
-          renderCareer();
+      await careerRequests.load(result => {
+        if (result?.ok) {
+          const changed = JSON.stringify(result.data) !== JSON.stringify(state.career);
+          state.career = result.data;
+          if (changed && state.aiPanel !== "form") renderCareer();
         }
-      }
-      scheduleCareerRefresh();
+        scheduleCareerRefresh();
+      });
     }, 4000);
   }
 
@@ -4178,10 +4192,6 @@
       return null;
     }
     return h("div", { class: "result-strip", "aria-hidden": "true" }, known.map((match) => h("span", { dataset: { win: String(match.win) } })));
-  }
-
-  function careerArgs() {
-    return state.careerHero === null ? {} : { heroId: state.careerHero };
   }
 
   // "All heroes" or one hero for the whole Progress page.
@@ -5457,6 +5467,6 @@
     });
   }
 
-  window.PlayerViews = { onStatus, openMatch, setView, loadMatches };
+  window.PlayerViews = { onStatus, openMatch, setView, loadMatches, loadCareer };
   init();
 })();

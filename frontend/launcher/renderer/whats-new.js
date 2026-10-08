@@ -9,6 +9,9 @@
 
   const TEXT = {
     en: {
+      "0.53.33": [
+        "Delayed Progress responses cannot replace a newer hero or language selection, including leaving and returning to the tab."
+      ],
       "0.53.32": [
         "Progress preserves unknown results and missing averages when selecting heroes; both interface languages are checked against stored match history."
       ],
@@ -415,6 +418,9 @@
       ]
     },
     ru: {
+      "0.53.33": [
+        "Запоздавшие ответы Прогресса не заменяют новую выборку героя или языка, включая уход со вкладки и возврат."
+      ],
       "0.53.32": [
         "Прогресс сохраняет неизвестные результаты и отсутствующие средние при выборе героя; оба языка проверяются на сохранённой истории."
       ],
