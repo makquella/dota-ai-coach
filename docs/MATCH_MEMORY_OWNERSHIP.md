@@ -44,9 +44,10 @@ policy modules or arbitrary Any payloads.
 
 Remaining F10 boundaries:
 - Child reads have an owned detached snapshot in 0.53.21; see
-  [LIVE_TRACKER_SNAPSHOT.md](LIVE_TRACKER_SNAPSHOT.md). Mutable tip calls and
-  legacy public attributes still need a facade; the lock does not protect code
-  that bypasses it.
+  [LIVE_TRACKER_SNAPSHOT.md](LIVE_TRACKER_SNAPSHOT.md). Mutable tip calls use
+  an owned facade with prepared metadata in 0.53.22; see
+  [LIVE_HINT_OWNERSHIP.md](LIVE_HINT_OWNERSHIP.md). Legacy public attributes
+  bypass ownership if accessed directly.
 - The whole overlay response, demo response cache, scheduler, PlayerService
   trackers and GSI register do not form one atomic epoch. A demo can publish its
   response after a reset; core memory itself remains serialized.

@@ -22,6 +22,7 @@ from app.enemy_heroes import EnemyHeroes
 from app.enemy_lanes import EnemyLanes
 from app.farm_tracker import FarmTracker
 from app.gold_tips import GoldTips
+from app.live_hints import LiveHintInputs, render_live_hints
 from app.live_role import LiveRoleTracker
 from app.map_hints import RoleTips, timers
 from app.roshan_timer import RoshanTimer
@@ -84,6 +85,7 @@ class LiveTrackerSnapshot:
 
     match_id: str | None
     hero: str | None
+    generation: int
     enemies: list[str]
     opponents: list[str]
     missing: dict[str, Any] | None
@@ -110,11 +112,13 @@ def _owned(
 class MatchMemory:
     def __init__(self) -> None:
         self._lock = threading.RLock()
+        self._generation = 0
         self.allow_demo_history = False
         self.reset("init")
 
     @_owned
     def reset(self, reason: str = "manual") -> None:
+        self._generation += 1
         now = _now()
         self.match_id: str | None = None
         self.hero: str | None = None
@@ -152,6 +156,7 @@ class MatchMemory:
 
     @_owned
     def _observe_state(self, state: dict[str, Any]) -> dict[str, Any]:
+        self._generation += 1
         now_dt = datetime.now(UTC)
         now = now_dt.isoformat()
         now_ts = now_dt.timestamp()
@@ -295,6 +300,7 @@ class MatchMemory:
         return LiveTrackerSnapshot(
             match_id=self.match_id,
             hero=self.hero,
+            generation=self._generation,
             enemies=self.enemies.heroes(),
             opponents=self.enemy_lanes.opponents(lane),
             missing=self.enemy_lanes.missing(clock, lane) if alive else None,
@@ -304,6 +310,32 @@ class MatchMemory:
             objective=self.roshan.hint(clock, lang),
             roshan_strip=self.roshan.strip(clock, lang),
         )
+
+    def live_hints(
+        self,
+        state: Mapping[str, Any],
+        extra: Mapping[str, Any],
+        trackers: LiveTrackerSnapshot,
+        inputs: LiveHintInputs,
+        lang: str,
+    ) -> dict[str, object]:
+        timers()
+        return self._live_hints(state, extra, trackers, inputs, lang)
+
+    @_owned
+    def _live_hints(
+        self,
+        state: Mapping[str, Any],
+        extra: Mapping[str, Any],
+        trackers: LiveTrackerSnapshot,
+        inputs: LiveHintInputs,
+        lang: str,
+    ) -> dict[str, object]:
+        if trackers.generation != self._generation:
+            # Observation/reset ran while metadata was being prepared. Leave
+            # new-session tip memory untouched; the next overlay poll retries.
+            return {}
+        return render_live_hints(self, state, extra, trackers, inputs, lang)
 
     @_owned
     def summary(self) -> dict[str, Any]:

@@ -7,6 +7,7 @@
     "app/diagnostics.py",
     "app/gsi_snapshot.py",
     "app/job_queue.py",
+    "app/live_hints.py",
     "app/local_api_auth.py",
     "app/local_api_security.py",
     "app/match_memory.py",
@@ -336,18 +337,6 @@
     },
     {
       "path": "app/main.py",
-      "message": "Argument 2 to \"next_item\" of \"PlayerService\" has incompatible type \"object\"; expected \"list[str] | None\"",
-      "code": "arg-type",
-      "count": 1
-    },
-    {
-      "path": "app/main.py",
-      "message": "Argument 3 to \"buy_now\" of \"PlayerService\" has incompatible type \"object\"; expected \"list[str] | None\"",
-      "code": "arg-type",
-      "count": 1
-    },
-    {
-      "path": "app/main.py",
       "message": "Item \"None\" of \"Any | dict[Any, Any] | None\" has no attribute \"get\"",
       "code": "union-attr",
       "count": 12
@@ -362,12 +351,6 @@
       "path": "app/main.py",
       "message": "Unpacked dict entry 0 has incompatible type \"Any | dict[Any, Any] | None\"; expected \"SupportsKeysAndGetItem[Any, Any]\"",
       "code": "dict-item",
-      "count": 1
-    },
-    {
-      "path": "app/main.py",
-      "message": "Value of type \"dict[Any, Any] | None\" is not indexable",
-      "code": "index",
       "count": 1
     },
     {

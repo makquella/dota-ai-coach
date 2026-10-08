@@ -50,6 +50,7 @@ from app.gsi_state import (
     update_latest_gsi,
 )
 from app.lane_duel import lane_record_for
+from app.live_hints import GoldHintInputs, LiveHintInputs
 from app.live_role import SETTINGS as ROLE_SETTINGS
 from app.live_role import lane_of, role_setting, set_role_setting
 from app.live_session_recorder import LIVE_SESSION_RECORDER
@@ -58,7 +59,7 @@ from app.llm_provider import generate_llm_recommendation, is_llm_provider_enable
 from app.local_api_auth import LOCAL_API_AUTH
 from app.local_api_security import LocalApiSecurity, local_origins
 from app.logger import log_recommendation, prune_logs
-from app.map_hints import map_hint, score_gap, timer_strip, timers
+from app.map_hints import timers
 from app.match_memory import MATCH_MEMORY
 from app.match_records import KEEP_DAYS, MATCH_RECORDS
 from app.player_api import PLAYER_SERVICE
@@ -106,7 +107,7 @@ app = LocalApiApp(
     lifespan=_lifespan,
     title="Wardly",
     description="MVP-1: rule-based carry coach with local knowledge-base RAG.",
-    version="0.53.21",
+    version="0.53.22",
 )
 app.include_router(player_router)
 
@@ -132,7 +133,7 @@ if FRONTEND_DIR.exists():
 @app.get("/", summary="Health check")
 def root():
     """Simple health-check endpoint."""
-    return {"status": "ok", "service": "Wardly", "version": "0.53.21"}
+    return {"status": "ok", "service": "Wardly", "version": "0.53.22"}
 
 
 @app.get("/health", summary="Health check")
@@ -451,7 +452,6 @@ def _live_role_and_hint(response: dict[str, object], lang: str) -> dict[str, obj
     if extra.get("source_type") != "live_gsi":
         return {}
     role = _live_role(state)
-    result: dict[str, object] = {"live_role": role}
     clock = extra.get("clock_time")
     trackers = MATCH_MEMORY.tracker_snapshot(
         clock=clock if isinstance(clock, int) else None,
@@ -459,120 +459,45 @@ def _live_role_and_hint(response: dict[str, object], lang: str) -> dict[str, obj
         alive=extra.get("alive") is not False,
         lang=lang,
     )
-    bar = trackers.skill_bar
-    if bar:
-        # The launcher sizes the skill arrows' frame by it (skill-arrows.js).
-        result["skill_bar"] = bar
-    gold = _gold_hint(state, extra, role, lang)
-    if _map_hints["enabled"]:
-        clock = extra.get("clock_time")
-        carry_advisor = hero_coverage(str(state.get("hero") or "")) == "full" and not (
-            _plays_support(state)
-        )
-        last_hits = extra.get("last_hits")
-        hint = map_hint(
-            clock if isinstance(clock, int) else None,
-            role.get("role") if role else None,
-            MATCH_MEMORY.tips,
-            alive=extra.get("alive") is not False,
-            has_ward=extra.get("has_observer")
-            if isinstance(extra.get("has_observer"), bool)
-            else None,
-            ward_charges=extra.get("observer_charges")
-            if isinstance(extra.get("observer_charges"), int)
-            else None,
-            lang=lang,
-            tp_missing=trackers.tp_missing,
-            carry_advisor=carry_advisor,
-            last_hits=last_hits if isinstance(last_hits, int) else None,
-            level=extra.get("hero_level") if isinstance(extra.get("hero_level"), int) else None,
-            deaths=extra.get("deaths") if isinstance(extra.get("deaths"), int) else None,
-            gold=state.get("gold") if isinstance(state.get("gold"), int) else None,
-            lane=role.get("lane") if role else None,
-            items=extra.get("item_names") if isinstance(extra.get("item_names"), list) else None,
-            key_item=PLAYER_SERVICE.key_item(str(state.get("hero") or ""))
-            if role and role.get("role") != "support"
-            else None,
-            save_item=PLAYER_SERVICE.save_item(
-                str(state.get("hero") or ""),
-                extra.get("item_names") if isinstance(extra.get("item_names"), list) else None,
-                trackers.enemies or None,
-            )
-            if role and role.get("role") == "support"
-            else None,
-            score_gap=score_gap(extra),
-            enemies=trackers.enemies or None,
-            bottle_rune=extra.get("bottle_rune")
-            if isinstance(extra.get("bottle_rune"), str)
-            else None,
-            denies=extra.get("denies") if isinstance(extra.get("denies"), int) else None,
-            hp=state.get("hp_percent") if isinstance(state.get("hp_percent"), int) else None,
-            regen=extra.get("regen_items") if isinstance(extra.get("regen_items"), list) else None,
-            missing=trackers.missing,
-            lane_record=_lane_record(trackers.opponents),
-            roshan_open=trackers.roshan_open,
-            objective=trackers.objective,
-            skill=MATCH_MEMORY.skills.tip(
-                clock if isinstance(clock, int) else None,
-                lang,
-                alive=extra.get("alive") is not False,
-                build=PLAYER_SERVICE.skill_build(str(state.get("hero") or "")),
-            ),
-        )
-        hint = _with_role_check(_with_gold_hint(hint, gold), role, clock, lang)
-        if hint is not None:
-            result["map_hint"] = hint
-        # The overlay's strip of the next events (runes, stacks, Roshan, Aegis).
-        strip = timer_strip(
-            clock if isinstance(clock, int) else None,
-            role.get("role") if role else None,
-            lang,
-            trackers.roshan_strip,
-        )
-        if strip:
-            result["timer_strip"] = strip
-    else:
-        # «Map timers» off still leaves the skill point tips: they are not timers.
-        clock = extra.get("clock_time")
-        skill = MATCH_MEMORY.skills.tip(
-            clock if isinstance(clock, int) else None,
-            lang,
-            alive=extra.get("alive") is not False,
-            build=PLAYER_SERVICE.skill_build(str(state.get("hero") or "")),
-        )
-        hint = _with_role_check(_with_gold_hint(skill, gold), role, clock, lang)
-        if hint is not None:
-            result["map_hint"] = hint
-    return result
+    gold = _gold_hint_inputs(state, extra, role)
+    map_enabled = _map_hints["enabled"]
+    hero = str(state.get("hero") or "")
+    names = extra.get("item_names") if isinstance(extra.get("item_names"), list) else None
+    carry_advisor = map_enabled and hero_coverage(hero) == "full" and not _plays_support(state)
+    key_item = (
+        PLAYER_SERVICE.key_item(hero)
+        if map_enabled and role and role.get("role") != "support"
+        else None
+    )
+    save_item = (
+        PLAYER_SERVICE.save_item(hero, names, trackers.enemies or None)
+        if map_enabled and role and role.get("role") == "support"
+        else None
+    )
+    lane_record = _lane_record(trackers.opponents) if map_enabled else None
+    inputs = LiveHintInputs(
+        role=role,
+        gold=gold,
+        map_enabled=map_enabled,
+        carry_advisor=carry_advisor,
+        key_item=key_item,
+        save_item=save_item,
+        lane_record=lane_record,
+        skill_build=PLAYER_SERVICE.skill_build(hero),
+    )
+    return MATCH_MEMORY.live_hints(state, extra, trackers, inputs, lang)
 
 
-def _with_role_check(
-    hint: dict[str, Any] | None, role: dict | None, clock: object, lang: str
-) -> dict[str, Any] | None:
-    """A role chosen in the settings that the lane contradicts (live_role.mismatch)
-    is said once, over timers and role tips; a skill point, the start card, a
-    missing call or Roshan/Aegis keep the card and the check waits for them."""
-    seen = role.get("mismatch") if role else None
-    if not seen or not isinstance(clock, int):
-        return hint
-    if hint is not None and (
-        hint.get("over_plan")
-        or str(hint.get("id") or "").startswith(("missing", "roshan", "aegis"))
-    ):
-        return hint
-    tip = MATCH_MEMORY.tips.role_mismatch(clock, lang, str(role["role"]), str(seen))
-    return tip or hint
-
-
-def _gold_hint(
-    state: Mapping[str, object], extra: Mapping[str, object], role: dict | None, lang: str
-) -> dict[str, Any] | None:
-    """An empty bag at the start or gold left unspent (app/gold_tips.py), any role."""
+def _gold_hint_inputs(
+    state: Mapping[str, object], extra: Mapping[str, object], role: dict[str, Any] | None
+) -> GoldHintInputs:
+    """Prepare item metadata before acquiring tip ownership."""
     clock = extra.get("clock_time")
     gold = state.get("gold")
     role_name = role.get("role") if role else None
     hero = str(state.get("hero") or "")
-    names = extra.get("item_names") if isinstance(extra.get("item_names"), list) else None
+    raw_names = extra.get("item_names")
+    names = raw_names if isinstance(raw_names, list) else None
     next_item = None
     part = None
     if role_name != "support" and isinstance(clock, int) and clock >= 3 * 60:
@@ -586,14 +511,7 @@ def _gold_hint(
                 )
         except Exception as error:  # noqa: BLE001 - never breaks the live path
             record_error("gold-hint", error)
-    buyback = extra.get("buyback_cost")
-    return MATCH_MEMORY.gold.tip(
-        clock if isinstance(clock, int) else None,
-        lang,
-        gold=gold if isinstance(gold, int) else None,
-        alive=extra.get("alive") is not False,
-        role=role_name,
-        buyback_cost=buyback if isinstance(buyback, int) else None,
+    return GoldHintInputs(
         next_item=next_item,
         buy_now=part,
         start_items=_start_items(state, role_name)
@@ -610,21 +528,6 @@ def _start_items(state: Mapping[str, object], role: str | None) -> list[dict[str
     except Exception as error:  # noqa: BLE001 - never breaks the live path
         record_error("start-items", error)
         return None
-
-
-def _with_gold_hint(
-    hint: dict[str, Any] | None, gold: dict[str, Any] | None
-) -> dict[str, Any] | None:
-    """The gold card goes before timers and role tips; a skill point, a missing
-    enemy and Roshan/Aegis keep the card."""
-    if gold is None:
-        return hint
-    if hint is not None and (
-        hint.get("over_plan")
-        or str(hint.get("id") or "").startswith(("missing", "roshan", "aegis"))
-    ):
-        return hint
-    return gold
 
 
 GAME_PLAN_STATUSES = {"no_advice", "monitoring", "unsupported_hero"}

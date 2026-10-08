@@ -27,6 +27,7 @@ counter/timer tests cover the public overlay consumers.
 
 This is one snapshot of child reads, not an atomic epoch for the entire overlay.
 GSI state, role, metadata and later rendering can still belong to different
-updates. Mutable role/skill/gold tip calls still need owned facades; demo cache,
+updates. Mutable role/skill/gold tip calls gain an owned facade and stale
+preparation guard in 0.53.22; see [LIVE_HINT_OWNERSHIP.md](LIVE_HINT_OWNERSHIP.md). Demo cache,
 scheduler and PlayerService/history ownership remain separate. Legacy child
 attributes remain available internally/tests and should not be new API consumers.
