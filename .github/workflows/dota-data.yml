@@ -38,7 +38,7 @@ jobs:
         run: python scripts/build_dota_data.py
       # The workflow token's pull request starts no CI: the launcher's tests that
       # read dota-data.js run here first.
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         with:
           node-version-file: .node-version
       - name: Check the new file
