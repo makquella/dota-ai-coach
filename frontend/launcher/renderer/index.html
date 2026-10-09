@@ -698,6 +698,16 @@
             </div>
           </section>
 
+          <section class="dev-section" id="ops-health" data-search="состояние операций очередь задачи сохранение матча свежесть operations health queue jobs saving freshness">
+            <div class="row row-between">
+              <h3 data-i18n="groupOps">Operations health</h3>
+              <button id="ops-refresh" class="btn btn-sm btn-ghost" type="button"><i data-icon="refresh-cw"></i><span data-i18n="opsRefresh">Refresh</span></button>
+            </div>
+            <p class="note" data-i18n="opsHint">Background queues, saving the finished match, the live GSI path and how fresh the data are. Counts and times only.</p>
+            <dl class="facts facts-tight" id="ops-rows"></dl>
+            <ul class="note ops-warnings" id="ops-warnings" aria-live="polite"></ul>
+          </section>
+
           <section class="dev-section">
             <div class="row row-between">
               <h3 id="logs-title" data-i18n="groupLogs">Logs</h3>
@@ -747,6 +757,7 @@
     <script src="./charts.js"></script>
     <script src="./tour.js"></script>
     <script src="./settings-search.js"></script>
+    <script src="./ops-health.js"></script>
     <script src="./whats-new.js"></script>
     <script src="./app-texts.js"></script>
     <script src="./app.js"></script>

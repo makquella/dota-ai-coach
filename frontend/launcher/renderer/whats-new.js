@@ -9,6 +9,9 @@
 
   const TEXT = {
     en: {
+      "0.53.51": [
+        "For developers: Settings → For developers now shows operations health — background queues, whether the finished match was saved, live GSI timings and how fresh the data are, with plain warnings when something is off."
+      ],
       "0.53.50": [
         "One hero table behind every hero name: the live game, the supported list, profiles, share pages and the launcher's pictures all resolve through it, and a test keeps them in step. The public profile page wears every look exactly as the app draws it."
       ],
@@ -469,6 +472,9 @@
       ]
     },
     ru: {
+      "0.53.51": [
+        "Для разработчика: в «Настройки → Для разработчиков» появилось «Состояние операций» — фоновые очереди, сохранился ли сыгранный матч, задержки живого GSI и свежесть данных, с понятными предупреждениями, если что-то не так."
+      ],
       "0.53.50": [
         "Одна таблица героев для всех имён: живая игра, список поддерживаемых героев, профили, страницы «Поделиться» и картинки лаунчера опираются на неё, а тест следит за совпадением. Публичная страница профиля показывает образы точно так же, как приложение."
       ],

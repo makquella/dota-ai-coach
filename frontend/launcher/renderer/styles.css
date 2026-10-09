@@ -987,6 +987,21 @@ label.setting:has(.switch:disabled) {
   grid-template-columns: repeat(5, minmax(0, 1fr));
 }
 
+/* Operations health: what is off, one line each (renderer/ops-health.js). */
+.ops-warnings {
+  margin: var(--sp-2) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ops-warnings[data-state="good"] {
+  color: var(--ok);
+}
+
+.ops-warnings[data-state="bad"] {
+  color: var(--error);
+}
+
 #logs {
   height: 200px;
   margin: 0;

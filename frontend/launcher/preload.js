@@ -18,6 +18,7 @@ contextBridge.exposeInMainWorld("launcherApi", {
   stopDemo: () => ipcRenderer.invoke("launcher:stop-demo"),
   setLogMode: (mode) => ipcRenderer.invoke("launcher:set-log-mode", mode),
   checkLiveGsi: () => ipcRenderer.invoke("launcher:check-live-gsi"),
+  operationsHealth: () => ipcRenderer.invoke("launcher:operations-health"),
   startLiveRecording: () => ipcRenderer.invoke("launcher:start-live-recording"),
   stopLiveRecording: () => ipcRenderer.invoke("launcher:stop-live-recording"),
   checkGsi: (customPath) => ipcRenderer.invoke("launcher:check-gsi", customPath),

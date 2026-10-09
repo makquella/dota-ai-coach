@@ -98,6 +98,15 @@
       <article data-doc="ru" lang="ru">
         <h1>Что нового</h1>
         <p class="doc-updated">Все версии Wardly. Установленное приложение обновляется само, когда Дота закрыта.</p>
+<section class="release" id="v0.53.51">
+<h2><a href="#v0.53.51">Версия 0.53.51</a></h2>
+<ul>
+  <li><strong>Состояние операций.</strong> В разделе «Для разработчиков» новый блок показывает задачи истории и ИИ-тренера (сколько ждут и как долго выполняется текущая), сохранение сыгранного матча (ждёт ли он записи, когда сохранён последний), задержки пути живого GSI (p50/p95) и свежесть данных (обновление матчей, дата встроенных сборок). Он обновляется сам, пока раздел открыт.</li>
+  <li><strong>Понятные предупреждения.</strong> Если задача застряла, матч не удалось записать, GSI тормозит или сборки устарели, блок пишет это одной строкой. Те же сведения (только числа и время, без номеров матчей и аккаунтов) попадают в отчёт о проблеме.</li>
+  <li><strong>Проверка CI стабильнее.</strong> Проверка workflow-файлов больше не скачивает Docker-образ, упиравшийся в лимит Docker Hub, а берёт ту же версию actionlint с проверкой контрольной суммы.</li>
+</ul>
+<p class="release-link"><a href="https://github.com/makquella/dota-ai-coach/releases/tag/v0.53.51" rel="noopener">Скачать и подробности</a></p>
+</section>
 <section class="release" id="v0.53.50">
 <h2><a href="#v0.53.50">Версия 0.53.50</a></h2>
 <ul>
@@ -1283,6 +1292,15 @@
       <article data-doc="en" lang="en" hidden>
         <h1>What's new</h1>
         <p class="doc-updated">Every Wardly version. The installed app updates itself while Dota is closed.</p>
+<section class="release" id="v0.53.51">
+<h2><a href="#v0.53.51">Version 0.53.51</a></h2>
+<ul>
+  <li><strong>Operations health:</strong> a new block in For developers shows history and AI coach jobs (how many wait and how long the current one runs), saving of the finished match (whether it waits for the store, when the last one was saved), live GSI timings (p50/p95) and data freshness (match sync, bundled builds date). It refreshes itself while the section is open.</li>
+  <li><strong>Plain warnings:</strong> a stuck job, a match the store refused, slow GSI or stale builds are named in one line each. The same facts (counts and times only, no match or account ids) go into the problem report.</li>
+  <li><strong>Steadier CI:</strong> workflow linting no longer pulls a Docker image that hit Docker Hub's rate limit; it uses the same actionlint release with a checksum check.</li>
+</ul>
+<p class="release-link"><a href="https://github.com/makquella/dota-ai-coach/releases/tag/v0.53.51" rel="noopener">Download and details</a></p>
+</section>
 <section class="release" id="v0.53.50">
 <h2><a href="#v0.53.50">Version 0.53.50</a></h2>
 <ul>

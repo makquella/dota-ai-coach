@@ -7,6 +7,8 @@ import itertools
 import threading
 import time
 from collections.abc import Callable
+from datetime import UTC, datetime
+from typing import Any
 
 from app.diagnostics import record_error
 
@@ -36,6 +38,12 @@ class JobQueue:
         self._running: str | None = None
         self._runner_id: int | None = None
         self._stopped = False
+        # Health (operations_health.py): counts and clock times, never job keys.
+        self._running_since: float | None = None
+        self._completed = 0
+        self._failed = 0
+        self._last_finished_at: str | None = None
+        self._last_failed_at: str | None = None
 
     def submit(self, key: str, fn: Callable[[], None], *, delay: float = 0.0) -> bool:
         """Accept one job, or reject a duplicate/stopped submission.
@@ -63,6 +71,32 @@ class JobQueue:
             keys = [self._running, *self._jobs] if self._running is not None else list(self._jobs)
             return list(dict.fromkeys(keys))
 
+    def health(self) -> dict[str, Any]:
+        """Queue depth and ages for the developer section: how many jobs wait,
+        how long the oldest due one has waited, how long the running one runs."""
+        with self._cond:
+            now = self._clock()
+            due = [at for at, _, key in self._heap if key in self._jobs and at <= now]
+            later = [at for at, _, key in self._heap if key in self._jobs and at > now]
+            running_for = None if self._running_since is None else now - self._running_since
+            thread = self._thread
+            return {
+                "name": self.name,
+                "queued": len(self._jobs),
+                "due": len(due),
+                "oldest_due_s": round(now - min(due), 1) if due else None,
+                "next_in_s": round(min(later) - now, 1) if later else None,
+                "running": self._running is not None,
+                "running_kind": self._running.split(":", 1)[0] if self._running else None,
+                "running_for_s": round(running_for, 1) if running_for is not None else None,
+                "completed": self._completed,
+                "failed": self._failed,
+                "last_finished_at": self._last_finished_at,
+                "last_failed_at": self._last_failed_at,
+                "stopped": self._stopped,
+                "worker_alive": bool(thread and thread.is_alive()),
+            }
+
     def run_pending(self, *, until: float | None = None) -> int:
         """Run every job due by `until` (default: now). Returns how many ran."""
         ran = 0
@@ -81,14 +115,24 @@ class JobQueue:
                 if fn is not None:
                     self._running = key
                     self._runner_id = threading.get_ident()
+                    self._running_since = self._clock()
             if fn is not None:
+                failed = True
                 try:
                     fn()
+                    failed = False
                     ran += 1
                 finally:
                     with self._cond:
+                        at = datetime.now(UTC).isoformat(timespec="seconds")
                         self._running = None
                         self._runner_id = None
+                        self._running_since = None
+                        self._completed += int(not failed)
+                        self._failed += int(failed)
+                        self._last_finished_at = at
+                        if failed:
+                            self._last_failed_at = at
                         self._cond.notify_all()
 
     def run_due(self, *, until: float | None = None) -> int:

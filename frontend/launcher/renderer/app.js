@@ -285,6 +285,7 @@ async function init() {
   bind("#install-gsi", () => installGsi(els.gsiPath.value));
   bind("#choose-gsi", chooseGsiFolder);
   bind("#check-live-gsi", checkLiveGsi);
+  bind("#ops-refresh", refreshOps);
   bind("#start-recording", startLiveRecording);
   bind("#stop-recording", stopLiveRecording);
   bind("#open-records", () => window.launcherApi.openSessionRecords());
@@ -710,6 +711,9 @@ async function init() {
     // Storage unavailable: start collapsed.
   }
   els.devTools.addEventListener("toggle", () => {
+    if (els.devTools.open) {
+      run(refreshOps);
+    }
     // Opened by the settings search for a moment: not the player's choice.
     if (settingsSearching) {
       return;
@@ -958,6 +962,9 @@ function renderStatus(status) {
   renderAdvice(status);
   renderOverlaySettings(status);
   renderFacts(status);
+  if (lastOps && opsLocale !== locale) {
+    renderOps(lastOps);
+  }
   renderControlButtons(status);
   renderLogMode(status.logMode || "clean");
   updateGsiDetail({ status: status.gsiConfig, path: status.gsiPath });
@@ -1729,6 +1736,54 @@ function renderLiveStatus(status = {}) {
     ? status.missing_important_fields.join(", ")
     : tr("none");
   liveEls.missing.textContent = tr("liveMissing", missing);
+}
+
+// «Operations health» in the developer section (renderer/ops-health.js): read
+// when the section opens, on «Refresh» and every OPS_REFRESH_MS while it is open
+// and the window is visible.
+const OPS_REFRESH_MS = 10000;
+let lastOps = null;
+let opsLocale = "";
+let opsTimer = null;
+
+async function refreshOps() {
+  renderOps(await window.launcherApi.operationsHealth());
+  clearTimeout(opsTimer);
+  opsTimer = setTimeout(() => {
+    if (els.devTools.open && !document.hidden) {
+      run(refreshOps);
+    }
+  }, OPS_REFRESH_MS);
+}
+
+function renderOps(health) {
+  lastOps = health || {};
+  opsLocale = locale;
+  const rowsEl = $("#ops-rows");
+  const warningsEl = $("#ops-warnings");
+  if (!rowsEl || !warningsEl || typeof OpsHealth === "undefined") {
+    return;
+  }
+  if (lastOps.error) {
+    rowsEl.replaceChildren();
+    warningsEl.replaceChildren(Object.assign(document.createElement("li"), { textContent: tr("opsUnavailable") }));
+    return;
+  }
+  rowsEl.replaceChildren(
+    ...OpsHealth.rows(lastOps, tr).map(({ key, value, state }) => {
+      const row = document.createElement("div");
+      const term = Object.assign(document.createElement("dt"), { textContent: tr(key) });
+      const detail = Object.assign(document.createElement("dd"), { textContent: value });
+      detail.dataset.state = state;
+      row.append(term, detail);
+      return row;
+    })
+  );
+  const warnings = OpsHealth.warningTexts(lastOps, trOr);
+  warningsEl.replaceChildren(
+    ...(warnings.length ? warnings : [tr("opsAllGood")]).map((text) => Object.assign(document.createElement("li"), { textContent: text }))
+  );
+  warningsEl.dataset.state = warnings.length ? "bad" : "good";
 }
 
 function renderLogs(logs) {
