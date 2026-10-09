@@ -2099,6 +2099,15 @@ async function checkLiveGsiStatus() {
   }
 }
 
+// The developer section's «Operations health» (backend operations_health.py).
+async function operationsHealth() {
+  try {
+    return await requestBackendJson("/operations/health", "GET", undefined, 5000);
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
 async function setLiveRecording(active) {
   const verb = active ? "start" : "stop";
   try {
@@ -3287,6 +3296,7 @@ function registerIpc() {
   handleLauncher("launcher:stop-demo", () => stopManaged("demo"));
   handleLauncher("launcher:set-log-mode", (_event, nextMode) => setLogMode(nextMode));
   handleLauncher("launcher:check-live-gsi", () => checkLiveGsiStatus());
+  handleLauncher("launcher:operations-health", () => operationsHealth());
   handleLauncher("launcher:start-live-recording", () => setLiveRecording(true));
   handleLauncher("launcher:stop-live-recording", () => setLiveRecording(false));
   handleLauncher("launcher:check-gsi", async (_event, customPath) => {

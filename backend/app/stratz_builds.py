@@ -89,3 +89,9 @@ def bracket() -> str | None:
     """The bracket of the data (for the card's wording), None without a file."""
     value = _data().get("bracket")
     return str(value) if value else None
+
+
+def generated() -> str | None:
+    """The day the bundled STRATZ file was built (YYYY-MM-DD), None without one."""
+    value = _data().get("generated")
+    return str(value) if value else None

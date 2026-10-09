@@ -62,6 +62,10 @@ _INVENTORY_PREFIXES = ("slot", "stash", "neutral", "teleport")
 MAX_GSI_NUMBER = 10_000_000
 
 
+def _now() -> str:
+    return datetime.now(UTC).isoformat(timespec="seconds")
+
+
 def _int(value: Any) -> int | None:
     try:
         number = int(value)
@@ -155,6 +159,12 @@ class MatchTracker:
         self._unsaved_samples = 0
         # Not saved to disk: after a restart the next deaths fill it again.
         self._last_seconds = LastSeconds()
+        # Health (operations_health.py): when the recovery file and the store
+        # last took a match, and when either last failed.
+        self._last_checkpoint_at: str | None = None
+        self._last_checkpoint_error_at: str | None = None
+        self._last_ack_at: str | None = None
+        self._last_ack_error_at: str | None = None
         self._load()
 
     # --- public ---------------------------------------------------------------
@@ -202,6 +212,22 @@ class MatchTracker:
         with self._lock:
             return len(self._pending)
 
+    def health(self) -> dict[str, Any]:
+        """Finished matches waiting for the store, and the last save/ack times."""
+        with self._lock:
+            ended = [str(t.get("ended_at") or "") for t in self._pending]
+            retry_in = self._retry_at - self._clock() if self._pending else 0.0
+            return {
+                "recording": self._current is not None,
+                "pending_finishes": len(self._pending),
+                "oldest_pending_ended_at": min(ended) if ended and all(ended) else None,
+                "retry_in_s": round(retry_in, 1) if retry_in > 0 else None,
+                "last_checkpoint_at": self._last_checkpoint_at,
+                "last_checkpoint_error_at": self._last_checkpoint_error_at,
+                "last_ack_at": self._last_ack_at,
+                "last_ack_error_at": self._last_ack_error_at,
+            }
+
     def retry_pending(self, *, force: bool = False) -> None:
         """Deliver durable finishes outside the state lock; ack only on success.
 
@@ -228,8 +254,10 @@ class MatchTracker:
                     record_error("match-finish", error)
                     with self._lock:
                         self._retry_at = self._clock() + FINISH_RETRY_SECONDS
+                        self._last_ack_error_at = _now()
                     return
                 with self._lock:
+                    self._last_ack_at = _now()
                     self._pending.remove(timeline)
                     if not self._save_locked():
                         # The old journal still contains this entry. Replaying
@@ -546,9 +574,11 @@ class MatchTracker:
                 os.fsync(stream.fileno())
             tmp.replace(self.state_path)
             self._unsaved_samples = 0
+            self._last_checkpoint_at = _now()
             return True
         except OSError as error:
             record_error("match-recovery", error)
+            self._last_checkpoint_error_at = _now()
             return False
 
     def _load(self) -> None:

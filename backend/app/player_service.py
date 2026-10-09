@@ -812,6 +812,17 @@ class PlayerService:
             "analysis_version": ANALYSIS_VERSION,
         }
 
+    def operations(self) -> dict[str, Any]:
+        """Queue and match-finish health for operations_health.build."""
+        with self._sync_lock:
+            sync = {key: self._sync.get(key) for key in ("state", "at")}
+        return {
+            "jobs": self.jobs.health(),
+            "ai_jobs": self.ai_jobs.health(),
+            "match_finish": self.tracker.health(),
+            "sync": sync,
+        }
+
     def _last_recorded(self, account_id: Any) -> dict[str, Any] | None:
         """The newest match the app recorded from live GSI, in counts only: a
         problem report then says whether the last game was recorded at all."""

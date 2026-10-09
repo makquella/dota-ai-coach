@@ -66,8 +66,9 @@ These are acceptance tasks too. They are not included in the 17-finding percenta
   (0.53.44, LOCAL_IO_HEALTH.md; bounded retry/disable, not a filesystem timeout).
 - [ ] Async AI questions with request IDs/status, total deadline/attempt cap,
   duplicate retry protection, stale/cancel guards and atomic history append.
-- [ ] Local operations health: job age/running/pending, persistence ack/error,
-  queue depth, bounded latency observations and source freshness in developer UI.
+- [x] Local operations health: job age/running/pending, persistence ack/error,
+  queue depth, bounded latency observations and source freshness in developer UI
+  (0.53.51, OPERATIONS_HEALTH.md; `/operations/health`, «Состояние операций»).
 - [x] Investigate and fix the observed nightly fuzz seed-12 dead-hero phase
   container regression (0.53.48); preserve unknown signals and normal phases.
 - [ ] More sanitized support/mid role replay acceptance cases and a fixed-clock

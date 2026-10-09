@@ -17,6 +17,7 @@ from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, ValidationError
 
+from app import operations_health, stratz_builds
 from app.advice_i18n import (
     advice_messages,
     localize_advice_items,
@@ -118,7 +119,7 @@ app = LocalApiApp(
     lifespan=_lifespan,
     title="Wardly",
     description="MVP-1: rule-based carry coach with local knowledge-base RAG.",
-    version="0.53.50",
+    version="0.53.51",
 )
 app.include_router(player_router)
 
@@ -154,7 +155,7 @@ if _DEBUG_PAGES is not None:
 @app.get("/", summary="Health check")
 def root():
     """Simple health-check endpoint."""
-    return {"status": "ok", "service": "Wardly", "version": "0.53.50"}
+    return {"status": "ok", "service": "Wardly", "version": "0.53.51"}
 
 
 @app.get("/health", summary="Health check")
@@ -962,6 +963,23 @@ def _census_for_report() -> dict[str, object]:
     return summary
 
 
+def _operations_health() -> dict[str, Any]:
+    seconds = _gsi_status_response().get("seconds_since_last_gsi")
+    return operations_health.build(
+        **PLAYER_SERVICE.operations(),
+        live_path=LIVE_PATH_METRICS.snapshot(),
+        gsi_seconds_since=float(seconds) if isinstance(seconds, (int, float)) else None,
+        builds_generated=stratz_builds.generated(),
+        error_counts=recent_errors()["counts"],
+    )
+
+
+@app.get("/operations/health", summary="Queues, match saving and data freshness")
+def operations_health_endpoint():
+    """The developer section's health block: counts, ages and times only."""
+    return _operations_health()
+
+
 @app.get("/diagnostics", summary="State and recent errors for a problem report")
 def diagnostics():
     """No keys and no raw GSI: what a tester can safely send to the developer."""
@@ -996,6 +1014,7 @@ def diagnostics():
             for record in reversed(records)
         ],
         "player": PLAYER_SERVICE.diagnostics(),
+        "operations": _operations_health(),
         "errors": recent_errors(),
     }
 
