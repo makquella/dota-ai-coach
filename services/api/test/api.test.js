@@ -18,6 +18,10 @@ function fakeEnv(vars = {}, { r2 = true } = {}) {
   const daily = new Map();
   const rate = new Map();
   const objects = new Map();
+  // OWNED in src/index.js: the key's rows, or this install's rows without an owner.
+  const owned = (row, installId, owner) => row.owner_hash === owner || (row.install_id === installId && row.owner_hash == null);
+  const dropOwned = (list) => list.splice(0, list.length, ...list.filter((r) => !owned(r, ownedArgs[0], ownedArgs[1])));
+  let ownedArgs = [];
   const DB = {
     prepare(sql) {
       let args = [];
@@ -42,10 +46,13 @@ function fakeEnv(vars = {}, { r2 = true } = {}) {
             return profiles.find((r) => r.id === args[0]) || null;
           }
           if (sql.startsWith("INSERT INTO transfers")) {
-            const [id, created_at, expires_at, install_id, size, body] = args;
+            const [id, created_at, expires_at, install_id, size, body, owner_hash = null, delete_hash = null] = args;
             if (transfers.some((row) => row.id === id)) return null;
-            transfers.push({ id, created_at, expires_at, install_id, size, tries: 0, body: [...body] });
+            transfers.push({ id, created_at, expires_at, install_id, size, tries: 0, body: [...body], owner_hash, delete_hash });
             return { id };
+          }
+          if (sql.startsWith("SELECT 1 AS kept FROM transfers WHERE id")) {
+            return transfers.some((r) => r.id === args[0]) ? { kept: 1 } : null;
           }
           if (sql.startsWith("UPDATE transfers SET tries")) {
             const row = transfers.find((r) => r.id === args[0] && r.tries < args[1] && r.expires_at >= args[2]);
@@ -59,8 +66,8 @@ function fakeEnv(vars = {}, { r2 = true } = {}) {
           if (sql.startsWith("SELECT id, updated_at, body FROM profiles WHERE id IN")) {
             return { results: profiles.filter((r) => args.includes(r.id)) };
           }
-          if (sql.startsWith("SELECT r2_key FROM reports WHERE install_id")) {
-            return { results: reports.filter((r) => r.install_id === args[0]) };
+          if (sql.startsWith("SELECT r2_key FROM reports WHERE (owner_hash")) {
+            return { results: reports.filter((r) => owned(r, args[0], args[1])) };
           }
           if (sql.startsWith("SELECT id, r2_key FROM reports WHERE created_at <")) {
             const limit = Number(sql.match(/LIMIT (\d+)/)[1]);
@@ -75,9 +82,12 @@ function fakeEnv(vars = {}, { r2 = true } = {}) {
           throw new Error(`unexpected all(): ${sql}`);
         },
         async run() {
-          if (sql.startsWith("INSERT INTO shares")) {
-            const [id, created_at, expires_at, install_id, delete_hash, lang, version, body] = args;
-            shares.push({ id, created_at, expires_at, install_id, delete_hash, lang, version, body: [...body] });
+          ownedArgs = args;
+          if (/^DELETE FROM (reports|shares|transfers|profiles) WHERE \(owner_hash/.test(sql)) {
+            dropOwned({ reports, shares, transfers, profiles }[sql.split(" ")[2]]);
+          } else if (sql.startsWith("INSERT INTO shares")) {
+            const [id, created_at, expires_at, install_id, delete_hash, lang, version, body, owner_hash = null] = args;
+            shares.push({ id, created_at, expires_at, install_id, delete_hash, lang, version, body: [...body], owner_hash });
           } else if (sql.startsWith("DELETE FROM shares WHERE id")) {
             shares.splice(0, shares.length, ...shares.filter((r) => r.id !== args[0]));
           } else if (sql.startsWith("DELETE FROM shares WHERE install_id")) {
@@ -85,10 +95,11 @@ function fakeEnv(vars = {}, { r2 = true } = {}) {
           } else if (sql.startsWith("DELETE FROM shares WHERE expires_at")) {
             shares.splice(0, shares.length, ...shares.filter((r) => r.expires_at >= args[0]));
           } else if (sql.startsWith("INSERT INTO profiles")) {
-            const [id, created_at, install_id, token_hash, version, body] = args;
-            profiles.push({ id, created_at, updated_at: created_at, install_id, token_hash, version, body });
+            const [id, created_at, install_id, token_hash, version, body, owner_hash = null] = args;
+            profiles.push({ id, created_at, updated_at: created_at, install_id, token_hash, version, body, owner_hash });
           } else if (sql.startsWith("UPDATE profiles SET updated_at")) {
-            Object.assign(profiles.find((r) => r.id === args[0]), { updated_at: args[1], version: args[2], body: args[3] });
+            const row = profiles.find((r) => r.id === args[0]);
+            Object.assign(row, { updated_at: args[1], version: args[2], body: args[3], owner_hash: row.owner_hash ?? args[4] ?? null });
           } else if (sql.startsWith("DELETE FROM profiles WHERE id")) {
             profiles.splice(0, profiles.length, ...profiles.filter((r) => r.id !== args[0]));
           } else if (sql.startsWith("DELETE FROM profiles WHERE install_id")) {
@@ -100,6 +111,7 @@ function fakeEnv(vars = {}, { r2 = true } = {}) {
               if (r.id !== args[0]) return true;
               if (sql.includes("expires_at <")) return !(r.expires_at < args[1] || r.tries >= args[2]);
               if (sql.includes("tries >=")) return r.tries < args[1];
+              if (sql.includes("delete_hash IS NULL")) return !(r.delete_hash == null || r.delete_hash === args[1]);
               return false;
             }));
           } else if (sql.startsWith("DELETE FROM transfers WHERE install_id")) {
@@ -116,10 +128,10 @@ function fakeEnv(vars = {}, { r2 = true } = {}) {
           } else if (sql.startsWith("DELETE FROM channel_counts WHERE day <")) {
             // Source counts (test/channels.test.js) are not kept by this fake.
           } else if (sql.startsWith("INSERT INTO reports")) {
-            const [id, created_at, install_id, version, os, lang, size, summary, r2_key, body] = args;
+            const [id, created_at, install_id, version, os, lang, size, summary, r2_key, body, owner_hash = null] = args;
             // D1 returns a BLOB as an array of bytes.
             const blob = body ? [...body] : null;
-            reports.push({ id, created_at, install_id, version, os, lang, size, summary, r2_key, body: blob });
+            reports.push({ id, created_at, install_id, version, os, lang, size, summary, r2_key, body: blob, owner_hash });
           } else if (sql.startsWith("DELETE FROM reports WHERE install_id")) {
             reports.splice(0, reports.length, ...reports.filter((r) => r.install_id !== args[0]));
           } else if (sql.startsWith("DELETE FROM reports WHERE id IN")) {

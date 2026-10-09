@@ -8,7 +8,7 @@ const transferCode = require("./transfer-code");
 // Main supplies OS/backend/cloud ports. File, gzip, encryption, retry and import
 // orchestration live here; trusted IPC registration remains in main.js.
 function createHistoryTransfer({getWindow, dialog, reportFolder, requestBackendJson,
-  appendLog, showItemInFolder, backendRunning, fetch, apiUrl, installId}) {
+  appendLog, showItemInFolder, backendRunning, fetch, apiUrl, installId, deviceHeaders = () => ({})}) {
   // ---------------------------------------------------------------------------
   // History backup: the backend's whole history (no keys) in one gzipped file
   // ---------------------------------------------------------------------------
@@ -121,7 +121,12 @@ function createHistoryTransfer({getWindow, dialog, reportFolder, requestBackendJ
         }
         const response = await transferFetch(`${apiUrl()}/v1/transfer/${code.id}`, {
           method: "PUT",
-          headers: { "content-type": "application/octet-stream", "x-install-id": installId() },
+          headers: {
+            "content-type": "application/octet-stream",
+            "x-install-id": installId(),
+            "x-delete-token": transferCode.deleteToken(code),
+            ...deviceHeaders()
+          },
           body: box
         });
         if (response.status === 409) {
@@ -166,7 +171,10 @@ function createHistoryTransfer({getWindow, dialog, reportFolder, requestBackendJ
     try {
       const result = await requestBackendJson("/player/backup", "POST", data, BACKUP_TIMEOUT_MS);
       // Imported: nothing left to keep on the server.
-      transferFetch(`${apiUrl()}/v1/transfer/${code.id}`, { method: "DELETE" }).catch(() => {});
+      transferFetch(`${apiUrl()}/v1/transfer/${code.id}`, {
+        method: "DELETE",
+        headers: { "x-delete-token": transferCode.deleteToken(code) }
+      }).catch(() => {});
       appendLog("launcher", "History received by code.", { force: true });
       return { ok: true, ...result };
     } catch (error) {

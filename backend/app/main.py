@@ -119,7 +119,7 @@ app = LocalApiApp(
     lifespan=_lifespan,
     title="Wardly",
     description="MVP-1: rule-based carry coach with local knowledge-base RAG.",
-    version="0.53.53",
+    version="0.53.54",
 )
 app.include_router(player_router)
 
@@ -155,7 +155,7 @@ if _DEBUG_PAGES is not None:
 @app.get("/", summary="Health check")
 def root():
     """Simple health-check endpoint."""
-    return {"status": "ok", "service": "Wardly", "version": "0.53.53"}
+    return {"status": "ok", "service": "Wardly", "version": "0.53.54"}
 
 
 @app.get("/health", summary="Health check")

@@ -16,8 +16,8 @@ const SECRET_PATTERNS = [
   /(?<=\/api\/(?:v\d+\/)?webhooks\/\d+\/)[\w-]+/g // Discord webhook token (the week in Discord)
 ];
 // JSON fields holding a secret: API keys, the delete tokens of shared links
-// (settings.shares) and the Discord webhook link.
-const KEY_FIELD = /("(?:api_?key|token|delete_?token|discord_?webhook)"\s*:\s*")[^"]*"/gi;
+// (settings.shares), the Discord webhook link and the device key.
+const KEY_FIELD = /("(?:api_?key|token|delete_?token|discord_?webhook|device_?key)"\s*:\s*")[^"]*"/gi;
 
 const LOG_TAIL_LINES = 600;
 

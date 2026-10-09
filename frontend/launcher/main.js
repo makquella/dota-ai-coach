@@ -170,7 +170,7 @@ const settings = createSettingsStore(path.join(USER_DATA_DIR, "settings.json"), 
   overlay: { ...OVERLAY_DEFAULTS }
 }, {
   // Delete tokens, the profile token and the webhook: sealed on disk (DPAPI).
-  secretKeys: ["shares", "friendsProfile", "discordWebhook"],
+  secretKeys: ["shares", "friendsProfile", "discordWebhook", "deviceKey"],
   codec: createSecretCodec(safeStorage)
 });
 
@@ -909,6 +909,7 @@ async function deleteServerData() {
   try {
     const response = await electronNet.fetch(`${apiUrl()}/v1/device/${encodeURIComponent(installId())}`, {
       method: "DELETE",
+      headers: deviceHeaders(),
       signal: controller.signal
     });
     if (!response.ok) {
@@ -949,7 +950,7 @@ async function apiRequest(path, { method = "GET", headers = {}, body } = {}) {
   try {
     const response = await electronNet.fetch(`${apiUrl()}${path}`, {
       method,
-      headers: { "content-type": "application/json", ...headers },
+      headers: { "content-type": "application/json", ...deviceHeaders(), ...headers },
       body: body === undefined ? undefined : JSON.stringify(body),
       signal: controller.signal
     });
@@ -2534,6 +2535,26 @@ const REPORT_UPLOAD_TIMEOUT_MS = 30_000;
 let outboxTimer = null;
 let outboxFlushing = false;
 
+// The device key proves to the server that uploads are this installation's
+// (services/api: only its hash is stored); sealed like the other secrets. None
+// while its seal is not open yet, so a new key never replaces the sealed one.
+function deviceKey() {
+  if (settings.isLocked("deviceKey")) {
+    return "";
+  }
+  let key = settings.get("deviceKey");
+  if (typeof key !== "string" || !/^[a-f0-9]{64}$/.test(key)) {
+    key = crypto.randomBytes(32).toString("hex");
+    settings.set("deviceKey", key);
+  }
+  return key;
+}
+
+function deviceHeaders() {
+  const key = deviceKey();
+  return key ? { "x-device-key": key } : {};
+}
+
 function installId() {
   let id = settings.get("installId");
   if (typeof id !== "string" || !/^[a-z0-9-]{8,64}$/.test(id)) {
@@ -2549,7 +2570,7 @@ async function postReport(payload) {
   try {
     const response = await electronNet.fetch(`${apiUrl()}/v1/report`, {
       method: "POST",
-      headers: { "content-type": "application/json" },
+      headers: { "content-type": "application/json", ...deviceHeaders() },
       body: JSON.stringify(payload),
       signal: controller.signal
     });
@@ -2765,7 +2786,7 @@ async function createShare(matchId, withCoach) {
   try {
     const response = await electronNet.fetch(`${apiUrl()}/v1/share`, {
       method: "POST",
-      headers: { "content-type": "application/json" },
+      headers: { "content-type": "application/json", ...deviceHeaders() },
       body: JSON.stringify({ install_id: installId(), version: app.getVersion(), ...content }),
       signal: controller.signal
     });
@@ -2837,6 +2858,7 @@ const {exportHistory, importHistory, sendHistoryByCode, receiveHistoryByCode} = 
   showItemInFolder: file => { if (!IS_SMOKE_TEST) shell.showItemInFolder(file); },
   backendRunning: () => processStatus.backend === "running",
   fetch: (...args) => electronNet.fetch(...args),
+  deviceHeaders,
   apiUrl,
   installId
 });

@@ -73,4 +73,11 @@ function open(box, { id, secret }) {
   }
 }
 
-module.exports = { ALPHABET, newTransferCode, parseTransferCode, seal, open };
+/** The token that cancels this transfer on the server (64 hex). Derived from the
+ * whole code, so only the sender and the receiver have it; the server keeps
+ * its hash (services/api deleteTransfer). */
+function deleteToken({ id, secret }) {
+  return crypto.createHmac("sha256", keyFor(id, secret)).update("wardly-transfer-delete").digest("hex");
+}
+
+module.exports = { ALPHABET, newTransferCode, parseTransferCode, seal, open, deleteToken };
