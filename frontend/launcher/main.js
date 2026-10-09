@@ -2413,6 +2413,7 @@ async function collectProblemReport() {
       recentAdviceCount: Array.isArray(recentAdvice) ? recentAdvice.length : 0
     },
     settings: settings.all(),
+    settingsHealth: settings.health(),
     watcher: dotaWatcher.getState(),
     diagnostics,
     diagnosticsError,
@@ -3700,6 +3701,7 @@ function bootstrap() {
   app.on("second-instance", showMainWindow);
 
   app.whenReady().then(() => {
+    settings.onError(error => appendLog("settings", `Persistence ${error.operation} failed (${error.code}).`, {force:true}));
     registerDotaAssets();
     appendLog("launcher", `${APP_NAME} ${app.getVersion()} started (${IS_PACKAGED ? "packaged" : "dev"}).`, {
       force: true

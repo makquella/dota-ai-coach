@@ -77,6 +77,7 @@ function buildReport(parts, date = new Date()) {
     section("App", parts.app || {}),
     section("Launcher status", parts.status || {}),
     section("Settings", parts.settings || {}),
+    section("Settings persistence", parts.settingsHealth || {}),
     section("Dota watcher", parts.watcher || {}),
     section(
       "Service diagnostics (GET /diagnostics)",

@@ -4,6 +4,7 @@
   "python_target": "3.11",
   "clean_modules": [
     "app/ability_normalization.py",
+    "app/atomic_file.py",
     "app/coach_evidence.py",
     "app/coach_finding_evidence.py",
     "app/demo_overlay_cache.py",

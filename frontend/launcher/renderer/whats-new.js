@@ -9,6 +9,9 @@
 
   const TEXT = {
     en: {
+      "0.53.44": [
+        "Failed local writes now retain diagnostics and remain unacknowledged. Optional debug recording stops on write failure, while live advice and settings in memory keep working."
+      ],
       "0.53.43": [
         "GSI and skill tips share a pure ability normalizer, removing the reverse import cycle while preserving names, cooldowns and missing values. Unused-variable lint is enabled across the backend."
       ],
@@ -448,6 +451,9 @@
       ]
     },
     ru: {
+      "0.53.44": [
+        "Сбои локальной записи сохраняются в диагностике и не подтверждаются как успешное сохранение. Отладочная запись останавливается при ошибке, а live-советы и настройки в памяти продолжают работать."
+      ],
       "0.53.43": [
         "GSI и подсказки прокачки используют чистую нормализацию способностей без обратного цикла импорта. Названия, кулдауны и неизвестные значения сохранены; проверка неиспользованных переменных включена для всего backend."
       ],

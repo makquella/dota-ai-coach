@@ -28,7 +28,7 @@ Additional engineering/product work is tracked separately, not silently dropped.
 | F16 | Canonical npm check, CI concurrency, meaningful Windows scope/stable required summary | Prepared 0.53.12; WINDOWS_CI_SCOPE.md |
 | F17 | Trusted sender/frame, navigation/popup guards, CSP and actual UI checks | Prepared 0.53.8; DESKTOP_SECURITY.md |
 
-## Additional tasks from sections 15–18 and 22
+## Additional tasks from sections 8–10, 15–18 and 22
 
 These are acceptance tasks too. They are not included in the 17-finding percentage.
 
@@ -40,10 +40,25 @@ These are acceptance tasks too. They are not included in the 17-finding percenta
   remove the global lint exemption (0.53.43).
 - [x] Pure abilities normalization helper to break the documented GSI/skills cycle,
   with compatibility re-export (0.53.43, PURE_ABILITIES.md).
+- [ ] Cache Markdown knowledge-base parsing at startup with dev mtime invalidation;
+  defer retrieval until scheduler needs a candidate.
+- [ ] Profile large-history read models and EXPLAIN QUERY PLAN; avoid repeated
+  analysis JSON parsing with revision-invalidated projections/caches.
+- [ ] Protect local secrets with OS-backed storage and migrate existing keys without
+  logs/backups; backend receives credentials in memory.
+- [ ] Device/transfer deletion capabilities with stored hashes and explicit legacy
+  compatibility; preserve public share/profile ownership.
+- [ ] Scheduled dependency refresh/audit for runtime and build locks plus tests
+  and actual Windows package checks.
+- [ ] Validate data-update PRs directly before merge even when workflow-token PRs
+  do not trigger ordinary CI; include a change summary.
+- [ ] Canonical Node/Python tooling versions and optional parser build guidance
+  where its maintained use warrants it.
 - [ ] Incremental live-message translation by ID/params rather than retranslating
   full historical copies.
 - [x] Measure GSI phase p50/p95 and persistence time, move synchronous GSI/demo work off the ASGI event loop (0.53.41, LIVE_EVENT_LOOP.md; real same-loop requests).
-- [ ] Bound remaining census/recorder/settings I/O failures and retain diagnostics.
+- [x] Bound remaining census/recorder/settings I/O failures and retain diagnostics
+  (0.53.44, LOCAL_IO_HEALTH.md; bounded retry/disable, not a filesystem timeout).
 - [ ] Async AI questions with request IDs/status, total deadline/attempt cap,
   duplicate retry protection, stale/cancel guards and atomic history append.
 - [ ] Local operations health: job age/running/pending, persistence ack/error,

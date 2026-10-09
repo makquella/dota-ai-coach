@@ -13,7 +13,6 @@ other values — so `GET /diagnostics` can carry it into a problem report.
 from __future__ import annotations
 
 import json
-import os
 import re
 import threading
 import time
@@ -21,6 +20,9 @@ from collections import Counter
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
+
+from app.atomic_file import write_json_atomic
+from app.diagnostics import record_error
 
 MAX_PATHS = 600
 MAX_DEPTH = 4
@@ -95,6 +97,7 @@ def _part(block: str, depth: int, key: str) -> str:
 class GsiCensus:
     def __init__(self) -> None:
         self._lock = threading.Lock()
+        self._save_token = 0
         self.reset()
 
     def reset(self) -> None:
@@ -117,6 +120,11 @@ class GsiCensus:
         self._saved_in_game = 0
         self._saved_at = 0.0
         self._last_in_game: bool | None = None
+        self._save_token += 1
+        self._pending_save: int | None = None
+        self._last_attempt_at: float | None = None
+        self._save_failures = 0
+        self._last_save_error: str | None = None
         # Values of a Bottle's contains_rune (a game enum: which rune names come).
         self.bottle_runes: Counter[str] = Counter()
 
@@ -223,27 +231,46 @@ class GsiCensus:
             self.enemy_hero_payloads += 1
 
     def save_due(self, path: Path, *, now: float | None = None) -> bool:
-        """Write the summary to `path` when in-game payloads came since the last
-        save and SAVE_EVERY seconds passed, or the match stopped sending them
-        (the last payload was not in game); never raises."""
+        """Acknowledge only a successful replacement; failed saves retry after 5s."""
         now = time.monotonic() if now is None else now
         with self._lock:
             fresh = self.in_game > self._saved_in_game
             ended = bool(self.game_states) and self._last_in_game is False
-            if not fresh or (now - self._saved_at < SAVE_EVERY and not ended):
+            if not fresh or self._pending_save is not None:
                 return False
-            self._saved_in_game = self.in_game
-            self._saved_at = now
+            if now - self._saved_at < SAVE_EVERY and not ended:
+                return False
+            if (
+                self._last_save_error
+                and self._last_attempt_at is not None
+                and now - self._last_attempt_at < 5
+            ):
+                return False
+            self._save_token += 1
+            token = self._save_token
+            self._pending_save = token
+            self._last_attempt_at = now
+            observed = self.in_game
+            data = self._summary_locked()
+            data.pop("persistence", None)
+        data["saved_at"] = datetime.now(UTC).isoformat(timespec="seconds")
+        failure = None
         try:
-            data = {"saved_at": datetime.now(UTC).isoformat(timespec="seconds")}
-            data.update(self.summary())
-            path.parent.mkdir(parents=True, exist_ok=True)
-            tmp = path.with_suffix(".tmp")
-            tmp.write_text(json.dumps(data), encoding="utf-8")
-            os.replace(tmp, path)
-            return True
-        except (OSError, TypeError, ValueError):
-            return False
+            write_json_atomic(path, data)
+        except (OSError, TypeError, ValueError) as error:
+            failure = type(error).__name__
+            record_error("gsi-census-save", error, with_trace=False)
+        with self._lock:
+            if self._pending_save == token:
+                self._pending_save = None
+                if failure is None:
+                    self._saved_in_game = observed
+                    self._saved_at = now
+                    self._last_save_error = None
+                else:
+                    self._save_failures += 1
+                    self._last_save_error = failure
+        return failure is None
 
     def _share(self, path: str, base: int | None = None) -> float:
         base = self.in_game if base is None else base
@@ -266,33 +293,42 @@ class GsiCensus:
 
     def summary(self) -> dict[str, Any]:
         with self._lock:
-            flags = {
-                path: count
-                for path, count in self.true_flags.items()
-                if path.startswith("hero.") and count
-            }
-            return {
-                "payloads": self.payloads,
-                "in_game_payloads": self.in_game,
-                "matches": self.matches,
-                "payloads_with_items": self.item_payloads,
-                "game_states": dict(self.game_states),
-                "top_level": sorted({p.split(".", 1)[0].split("[", 1)[0] for p in self.paths}),
-                "features": self.features(),
-                "hero_flags_true": dict(sorted(flags.items())),
-                "event_types": dict(self.event_types),
-                "bottle_runes": dict(self.bottle_runes),
-                "minimap": {
-                    "payloads": self.minimap_payloads,
-                    "units_max": self.minimap_units_max,
-                    "own_heroes_max": self.own_heroes_max,
-                    "own_hero_names_max": self.own_hero_names_max,
-                    "hero_images": dict(self.hero_images),
-                    "payloads_with_enemy_heroes": self.enemy_hero_payloads,
-                    "enemy_heroes_seen": sorted(self.enemy_heroes),
-                },
-                "paths": dict(sorted(self.paths.items())),
-            }
+            return self._summary_locked()
+
+    def _summary_locked(self) -> dict[str, Any]:
+        flags = {
+            path: count
+            for path, count in self.true_flags.items()
+            if path.startswith("hero.") and count
+        }
+        return {
+            "persistence": {
+                "acknowledged_in_game": self._saved_in_game,
+                "pending": self._pending_save is not None,
+                "failures": self._save_failures,
+                "last_error": self._last_save_error,
+            },
+            "payloads": self.payloads,
+            "in_game_payloads": self.in_game,
+            "matches": self.matches,
+            "payloads_with_items": self.item_payloads,
+            "game_states": dict(self.game_states),
+            "top_level": sorted({p.split(".", 1)[0].split("[", 1)[0] for p in self.paths}),
+            "features": self.features(),
+            "hero_flags_true": dict(sorted(flags.items())),
+            "event_types": dict(self.event_types),
+            "bottle_runes": dict(self.bottle_runes),
+            "minimap": {
+                "payloads": self.minimap_payloads,
+                "units_max": self.minimap_units_max,
+                "own_heroes_max": self.own_heroes_max,
+                "own_hero_names_max": self.own_hero_names_max,
+                "hero_images": dict(self.hero_images),
+                "payloads_with_enemy_heroes": self.enemy_hero_payloads,
+                "enemy_heroes_seen": sorted(self.enemy_heroes),
+            },
+            "paths": dict(sorted(self.paths.items())),
+        }
 
 
 def load_previous(path: Path) -> dict[str, Any] | None:

@@ -110,7 +110,7 @@ app = LocalApiApp(
     lifespan=_lifespan,
     title="Wardly",
     description="MVP-1: rule-based carry coach with local knowledge-base RAG.",
-    version="0.53.43",
+    version="0.53.44",
 )
 app.include_router(player_router)
 
@@ -135,7 +135,7 @@ if FRONTEND_DIR.exists():
 @app.get("/", summary="Health check")
 def root():
     """Simple health-check endpoint."""
-    return {"status": "ok", "service": "Wardly", "version": "0.53.43"}
+    return {"status": "ok", "service": "Wardly", "version": "0.53.44"}
 
 
 @app.get("/health", summary="Health check")
@@ -943,6 +943,10 @@ def diagnostics():
         "generated_at": datetime.now(UTC).isoformat(timespec="seconds"),
         "runtime": runtime_info(),
         "live_path": LIVE_PATH_METRICS.snapshot(),
+        "recording_health": {
+            "live_session": LIVE_SESSION_RECORDER.health(),
+            "match_records": MATCH_RECORDS.health(),
+        },
         "config": {
             "use_llm": USE_LLM,
             "llm_provider": LLM_PROVIDER,

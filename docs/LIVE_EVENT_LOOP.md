@@ -13,8 +13,10 @@ preparation, policy, persistence, and demo total. Local `/diagnostics.live_path`
 contains count, failed/running, latest, nearest-rank p50/p95, retained sample count
 and observation time. Cold phases are null; a small sample is not a latency SLA.
 The total includes nested phases, so their durations must not be summed with it.
-Only fixed labels and timing numbers are retained. This does not upload metrics,
-retain GSI/account/advice content or create a background flush queue. Counter and
+Only fixed labels and timing numbers are retained. There is no automatic metrics
+upload or background flush queue. The existing user-requested problem report
+includes these aggregates in its preview and consent flow (site/privacy.html);
+the metrics retain no GSI/account/advice content. Counter and
 snapshot locks cover short in-memory operations; measured work executes outside
 those locks. Exceptions decrement running and remain visible to their caller.
 Handled recorder/player failures continue through existing diagnostics.

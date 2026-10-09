@@ -13,8 +13,11 @@ import threading
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
+from uuid import uuid4
 
+from app.atomic_file import write_json_atomic
 from app.config import SESSION_RECORDS_DIR
+from app.diagnostics import record_error
 
 
 class LiveSessionRecorder:
@@ -26,6 +29,8 @@ class LiveSessionRecorder:
         self._metadata: dict[str, Any] = {}
         self._gsi_count = 0
         self._advice_count = 0
+        self._failures = 0
+        self._last_error: str | None = None
 
     def start(self) -> dict[str, Any]:
         with self._lock:
@@ -36,9 +41,9 @@ class LiveSessionRecorder:
             safe_stamp = (
                 started_at.replace(":", "").replace("-", "").replace("+", "_").replace(".", "_")
             )
-            self._session_dir = self.base_dir / f"live_session_{safe_stamp}"
-            self._session_dir.mkdir(parents=True, exist_ok=True)
+            self._session_dir = self.base_dir / f"live_session_{safe_stamp}_{uuid4().hex[:8]}"
             self._active = True
+            self._last_error = None
             self._gsi_count = 0
             self._advice_count = 0
             self._metadata = {
@@ -51,6 +56,11 @@ class LiveSessionRecorder:
                 "gsi_count": 0,
                 "advice_count": 0,
             }
+            try:
+                self._session_dir.mkdir(parents=True, exist_ok=True)
+            except (OSError, ValueError, TypeError) as error:
+                self._fail_locked("start", error)
+                return self._status_locked()
             self._write_metadata_locked()
             return self._status_locked()
 
@@ -73,6 +83,8 @@ class LiveSessionRecorder:
     def _status_locked(self) -> dict[str, Any]:
         return {
             "active": self._active,
+            "failures": self._failures,
+            "last_error": self._last_error,
             "session_dir": str(self._session_dir) if self._session_dir else None,
             "records_dir": str(self.base_dir),
             "metadata": dict(self._metadata),
@@ -84,7 +96,6 @@ class LiveSessionRecorder:
         with self._lock:
             if not self._active or self._session_dir is None:
                 return
-            self._gsi_count += 1
             entry = {
                 "timestamp": _now_iso(),
                 "mode": "live_gsi",
@@ -104,7 +115,6 @@ class LiveSessionRecorder:
         with self._lock:
             if not self._active or self._session_dir is None:
                 return
-            self._advice_count += 1
             entry = {
                 "timestamp": _now_iso(),
                 "mode": "live_gsi",
@@ -121,12 +131,39 @@ class LiveSessionRecorder:
             }
             self._append_jsonl_locked("shown_advice.jsonl", entry)
 
+    def _fail_locked(self, phase: str, error: OSError | ValueError | TypeError) -> None:
+        self._active = False
+        self._failures += 1
+        self._last_error = f"{phase}:{type(error).__name__}"
+        self._metadata["status"] = "failed"
+        self._metadata["stopped_at"] = _now_iso()
+        record_error("live-recording-" + phase, error, with_trace=False)
+
+    def health(self) -> dict[str, Any]:
+        with self._lock:
+            return {
+                "active": self._active,
+                "failures": self._failures,
+                "last_error": self._last_error,
+                "gsi_count": self._gsi_count,
+                "advice_count": self._advice_count,
+            }
+
     def _append_jsonl_locked(self, filename: str, entry: dict[str, Any]) -> None:
         if self._session_dir is None:
             return
         path = self._session_dir / filename
-        with path.open("a", encoding="utf-8") as handle:
-            handle.write(json.dumps(entry, ensure_ascii=False, default=str) + "\n")
+        try:
+            with path.open("a", encoding="utf-8") as handle:
+                handle.write(json.dumps(entry, ensure_ascii=False, default=str) + "\n")
+        except (OSError, ValueError, TypeError) as error:
+            # Stop the optional debug recorder; future packets need no failed I/O.
+            self._fail_locked("append", error)
+            return
+        if filename == "raw_gsi_states.jsonl":
+            self._gsi_count += 1
+        else:
+            self._advice_count += 1
         self._metadata["gsi_count"] = self._gsi_count
         self._metadata["advice_count"] = self._advice_count
         self._write_metadata_locked()
@@ -134,10 +171,10 @@ class LiveSessionRecorder:
     def _write_metadata_locked(self) -> None:
         if self._session_dir is None:
             return
-        path = self._session_dir / "metadata.json"
-        path.write_text(
-            json.dumps(self._metadata, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
-        )
+        try:
+            write_json_atomic(self._session_dir / "metadata.json", self._metadata, indent=2)
+        except (OSError, ValueError, TypeError) as error:
+            self._fail_locked("metadata", error)
 
 
 def _state_summary(state: dict[str, Any]) -> dict[str, Any]:
