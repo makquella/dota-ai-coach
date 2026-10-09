@@ -118,7 +118,11 @@ def test_release_workflow_cannot_build_or_publish_before_shared_validation() -> 
     assert set(windows["needs"]) == {"source", "validation"}
     assert "if" not in windows  # GitHub's default success gate must remain in effect.
     assert windows["env"]["RELEASE_SHA"] == selected
-    checkout = next(step for step in windows["steps"] if step.get("uses") == "actions/checkout@v4")
+    checkout = next(
+        step
+        for step in windows["steps"]
+        if str(step.get("uses", "")).startswith("actions/checkout@")
+    )
     assert checkout["with"]["ref"] == selected
     publish = next(
         step for step in windows["steps"] if step.get("name") == "Publish GitHub release"
@@ -128,6 +132,10 @@ def test_release_workflow_cannot_build_or_publish_before_shared_validation() -> 
     assert ci["on"]["workflow_call"]["inputs"]["source_sha"]["required"] == "true"
     assert ci["permissions"]["contents"] == "read"
     for job in ci["jobs"].values():
-        checkout = next(step for step in job["steps"] if step.get("uses") == "actions/checkout@v4")
+        checkout = next(
+            step
+            for step in job["steps"]
+            if str(step.get("uses", "")).startswith("actions/checkout@")
+        )
         assert checkout["with"]["ref"] == "${{ inputs.source_sha || github.sha }}"
         assert any("verify_source.py" in step.get("run", "") for step in job["steps"])
