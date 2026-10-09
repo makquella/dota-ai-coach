@@ -113,6 +113,10 @@ function createSettingsStore(filePath, defaults, { secretKeys = [], codec = null
       save();
       return data[key];
     },
+    // A sealed value not opened yet (before ready) or not openable (another user).
+    isLocked(key) {
+      return key in lockedRaw;
+    },
     // Once the app is ready: open the sealed values, seal the plain ones.
     unlockSecrets() {
       if (sealing || !codec || !secret.size || !codec.available()) {

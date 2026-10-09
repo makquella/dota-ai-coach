@@ -9,6 +9,9 @@
 
   const TEXT = {
     en: {
+      "0.53.54": [
+        "Only you can delete your data on the server: uploads now carry a device key whose hash the server keeps, and a history transfer can be cancelled only by someone who has the whole code."
+      ],
       "0.53.53": [
         "Your keys are now encrypted on disk: the AI and OpenDota keys, the Discord link and the share and profile tokens are sealed for your Windows user, and keys saved by older versions are sealed automatically."
       ],
@@ -478,6 +481,9 @@
       ]
     },
     ru: {
+      "0.53.54": [
+        "Удалить ваши данные на сервере можете только вы: отправки теперь несут ключ устройства, а сервер хранит лишь его хеш; перенос истории по коду может отменить только тот, у кого есть весь код."
+      ],
       "0.53.53": [
         "Ключи теперь зашифрованы на диске: ключи ИИ и OpenDota, ссылка Discord и токены ссылок и профиля защищены для вашей учётной записи Windows, а ключи из прошлых версий шифруются автоматически."
       ],

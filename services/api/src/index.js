@@ -128,6 +128,15 @@ export function config(env) {
   };
 }
 
+// The device key (x-device-key, 64 hex) proves ownership of what a launcher
+// uploaded; only its hash is stored. Older launchers send none: null.
+const DEVICE_KEY = /^[a-f0-9]{64}$/;
+
+async function ownerHash(request) {
+  const key = String(request.headers.get("x-device-key") || "").toLowerCase();
+  return DEVICE_KEY.test(key) ? sha256(`dac-device:${key}`) : null;
+}
+
 async function sha256(text) {
   const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(text));
   return [...new Uint8Array(digest)].map((b) => b.toString(16).padStart(2, "0")).join("").slice(0, 32);
@@ -232,10 +241,10 @@ export async function handleReport(request, env, ctx, now = Date.now()) {
     inline = packed;
   }
   await env.DB.prepare(
-    "INSERT INTO reports (id, created_at, install_id, version, os, lang, size, summary, r2_key, body) " +
-      "VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)"
+    "INSERT INTO reports (id, created_at, install_id, version, os, lang, size, summary, r2_key, body, owner_hash) " +
+      "VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11)"
   )
-    .bind(id, now, report.installId, report.version, report.os, report.lang, stored.length, summarize(report), key, inline)
+    .bind(id, now, report.installId, report.version, report.os, report.lang, stored.length, summarize(report), key, inline, await ownerHash(request))
     .run();
   ctx.waitUntil(notifyTelegram(env, id, report).catch((error) => console.log(`telegram: ${error.message}`)));
   return json({ ok: true, id, retention_days: RETENTION_DAYS }, 201);
@@ -280,10 +289,10 @@ export async function handleShare(request, env, now = Date.now()) {
   const token = [...crypto.getRandomValues(new Uint8Array(24))].map((b) => b.toString(16).padStart(2, "0")).join("");
   const expiresAt = now + SHARE_DAYS * 24 * 3_600_000;
   await env.DB.prepare(
-    "INSERT INTO shares (id, created_at, expires_at, install_id, delete_hash, lang, version, body) " +
-      "VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)"
+    "INSERT INTO shares (id, created_at, expires_at, install_id, delete_hash, lang, version, body, owner_hash) " +
+      "VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)"
   )
-    .bind(id, now, expiresAt, installId, await sha256(`dac-share:${token}`), review.lang, version, await gzip(JSON.stringify(review)))
+    .bind(id, now, expiresAt, installId, await sha256(`dac-share:${token}`), review.lang, version, await gzip(JSON.stringify(review)), await ownerHash(request))
     .run();
   // SHARE_ORIGIN: the site's own address when a Workers route sends /r/* there
   // (luhovyimvp.dev/r/<id>); the pages work on the API's address too.
@@ -368,15 +377,19 @@ export async function putProfile(request, id, env, now = Date.now()) {
     // Someone else's code (or a lost token): the launcher picks a new id.
     return json({ ok: false, code: "taken" }, 409);
   }
+  const owner = await ownerHash(request);
   if (row) {
-    await env.DB.prepare("UPDATE profiles SET updated_at = ?2, version = ?3, body = ?4 WHERE id = ?1")
-      .bind(id, now, version, JSON.stringify(profile))
+    // A card published before device keys gets its owner on the next publish.
+    await env.DB.prepare(
+      "UPDATE profiles SET updated_at = ?2, version = ?3, body = ?4, owner_hash = COALESCE(owner_hash, ?5) WHERE id = ?1"
+    )
+      .bind(id, now, version, JSON.stringify(profile), owner)
       .run();
   } else {
     await env.DB.prepare(
-      "INSERT INTO profiles (id, created_at, updated_at, install_id, token_hash, version, body) VALUES (?1, ?2, ?2, ?3, ?4, ?5, ?6)"
+      "INSERT INTO profiles (id, created_at, updated_at, install_id, token_hash, version, body, owner_hash) VALUES (?1, ?2, ?2, ?3, ?4, ?5, ?6, ?7)"
     )
-      .bind(id, now, installId, hash, version, JSON.stringify(profile))
+      .bind(id, now, installId, hash, version, JSON.stringify(profile), owner)
       .run();
   }
   // The API's own address: /p/* on the site needs a Workers route like /r/*
@@ -474,10 +487,13 @@ export async function putTransfer(request, id, env, now = Date.now()) {
   }
   await env.DB.prepare("DELETE FROM transfers WHERE expires_at < ?1").bind(now).run();
   const expiresAt = now + TRANSFER_MINUTES * 60_000;
+  const deleteToken = String(request.headers.get("x-delete-token") || "").toLowerCase();
+  const deleteHash = TRANSFER_DELETE_TOKEN.test(deleteToken) ? await sha256(`dac-transfer:${deleteToken}`) : null;
   const inserted = await env.DB.prepare(
-    "INSERT INTO transfers (id, created_at, expires_at, install_id, size, body) VALUES (?1, ?2, ?3, ?4, ?5, ?6) ON CONFLICT(id) DO NOTHING RETURNING id"
+    "INSERT INTO transfers (id, created_at, expires_at, install_id, size, body, owner_hash, delete_hash) " +
+      "VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8) ON CONFLICT(id) DO NOTHING RETURNING id"
   )
-    .bind(id, now, expiresAt, installId, body.length, body)
+    .bind(id, now, expiresAt, installId, body.length, body, await ownerHash(request), deleteHash)
     .first();
   if (!inserted) {
     return json({ ok: false, code: "taken" }, 409);
@@ -517,15 +533,26 @@ export async function claimTransfer(request, id, env, now = Date.now()) {
   });
 }
 
+// A transfer sent with a delete token is cancelled only with that token (the
+// receiver derives it from the whole code); one from an older launcher keeps the
+// id-only delete under the claim rate limit.
+const TRANSFER_DELETE_TOKEN = /^[a-f0-9]{64}$/;
+
 export async function deleteTransfer(request, id, env, now = Date.now()) {
   const address = await sha256(`dac-rate:${clientAddress(request)}`);
   if (!(await allow(env, `transfer:claim:${address}`, TRANSFER_RATE_PER_HOUR.claim, now))) {
     return json({ ok: false, code: "rate_limited" }, 429);
   }
-  if (isTransferId(id)) {
-    await env.DB.prepare("DELETE FROM transfers WHERE id = ?1").bind(id).run();
+  if (!isTransferId(id)) {
+    return json({ ok: true });
   }
-  return json({ ok: true });
+  const token = String(request.headers.get("x-delete-token") || "").toLowerCase();
+  const hash = TRANSFER_DELETE_TOKEN.test(token) ? await sha256(`dac-transfer:${token}`) : "";
+  await env.DB.prepare("DELETE FROM transfers WHERE id = ?1 AND (delete_hash IS NULL OR delete_hash = ?2)")
+    .bind(id, hash)
+    .run();
+  const kept = await env.DB.prepare("SELECT 1 AS kept FROM transfers WHERE id = ?1").bind(id).first();
+  return kept ? json({ ok: false, code: "forbidden" }, 403) : json({ ok: true });
 }
 
 function statsHash(installId) {
@@ -676,18 +703,25 @@ export async function sendWeeklyStats(env, now = Date.now()) {
   return response.ok;
 }
 
-export async function deleteDevice(installId, env) {
+// «Удалить мои данные с сервера». With the device key: everything that key
+// uploaded plus this installation's rows from before device keys. Without it
+// (older launchers): only the rows without an owner, as before.
+const OWNED = "(owner_hash = ?2 OR (install_id = ?1 AND owner_hash IS NULL))";
+
+export async function deleteDevice(request, installId, env) {
   const id = String(installId || "").toLowerCase();
   if (!/^[a-z0-9-]{8,64}$/.test(id)) {
     return json({ ok: false, code: "bad_install_id" }, 400);
   }
-  const { results } = await env.DB.prepare("SELECT r2_key FROM reports WHERE install_id = ?1").bind(id).all();
+  // "" never equals a stored hash, so a request without a key matches only
+  // the rows without an owner.
+  const owner = (await ownerHash(request)) || "";
+  const { results } = await env.DB.prepare(`SELECT r2_key FROM reports WHERE ${OWNED}`).bind(id, owner).all();
   const rows = results || [];
   await deleteObjects(env, rows);
-  await env.DB.prepare("DELETE FROM reports WHERE install_id = ?1").bind(id).run();
-  await env.DB.prepare("DELETE FROM shares WHERE install_id = ?1").bind(id).run();
-  await env.DB.prepare("DELETE FROM transfers WHERE install_id = ?1").bind(id).run();
-  await env.DB.prepare("DELETE FROM profiles WHERE install_id = ?1").bind(id).run();
+  for (const table of ["reports", "shares", "transfers", "profiles"]) {
+    await env.DB.prepare(`DELETE FROM ${table} WHERE ${OWNED}`).bind(id, owner).run();
+  }
   await env.DB.prepare("DELETE FROM daily_stats WHERE install_hash = ?1").bind(await statsHash(id)).run();
   return json({ ok: true, deleted: rows.length });
 }
@@ -835,7 +869,7 @@ export default {
       }
       const device = path.match(/^\/v1\/device\/([^/]+)$/);
       if (request.method === "DELETE" && device) {
-        return await deleteDevice(decodeURIComponent(device[1]), env);
+        return await deleteDevice(request, decodeURIComponent(device[1]), env);
       }
       if (request.method === "GET" && (path === "/admin" || path === "/admin/app.js")) {
         if (!env.ADMIN_TOKEN) {

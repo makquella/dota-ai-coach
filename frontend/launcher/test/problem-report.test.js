@@ -141,3 +141,10 @@ test("a report saved instead of sent keeps the player's note", () => {
   assert.equal(withNote("REPORT", "  Overlay is gone gsk_1234567890abcdefXYZ "), "Player note:\nOverlay is gone [redacted]\n\nREPORT");
   assert.equal(withNote("REPORT", "   "), "REPORT");
 });
+
+test("the device key never reaches a problem report", () => {
+  const key = "f".repeat(64);
+  const text = redact(JSON.stringify({ deviceKey: key, installId: "12345678-1234-4123-8123-123456789abc" }));
+  assert.ok(!text.includes(key));
+  assert.match(text, /"deviceKey":"\[redacted\]"/);
+});

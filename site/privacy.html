@@ -205,7 +205,10 @@
           отчёты вашей установки удаляет запрос <code>DELETE https://api.luhovyimvp.dev/v1/device/&lt;идентификатор&gt;</code>;
           идентификатор — поле <code>installId</code> в файле <code>%APPDATA%\DotaAICoach\settings.json</code>. Этот же запрос удаляет
           все опубликованные разборы, карточку профиля и статистику установки; в приложении он запускается кнопкой «Удалить мои данные на сервере»
-          в «Настройках → Приложение» (под «Анонимной статистикой»).
+          в «Настройках → Приложение» (под «Анонимной статистикой»). С версии 0.53.54 приложение вместе с отправкой передаёт случайный
+          ключ устройства (он хранится зашифрованным на вашем компьютере, на сервере — только его хеш): то, что отправлено с ним, удаляется
+          только запросом с этим ключом, поэтому чужой человек, узнавший идентификатор, не сотрёт ваши данные. Кнопка в приложении передаёт
+          ключ сама; запрос без ключа удаляет только то, что отправили прежние версии.
         </p>
 
         <h2>Сторонние сервисы</h2>
@@ -342,7 +345,10 @@
           Every report of your installation is deleted by <code>DELETE https://api.luhovyimvp.dev/v1/device/&lt;id&gt;</code>; the
           id is <code>installId</code> in <code>%APPDATA%\DotaAICoach\settings.json</code>. The same request also deletes every
           review the installation shared and its statistics; in the app, «Delete my data on the server» in «Settings → App» (under
-          «Anonymous statistics») sends it.
+          «Anonymous statistics») sends it. From 0.53.54 the app also sends a random device key with each upload (kept encrypted on
+          your computer; the server stores only its hash): what was sent with it is deleted only by a request carrying that key, so
+          someone who learns the id cannot erase your data. The app's button sends the key itself; a request without it deletes only
+          what earlier versions sent.
         </p>
 
         <h2>Third-party services</h2>

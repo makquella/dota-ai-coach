@@ -50,8 +50,10 @@ These are acceptance tasks too. They are not included in the 17-finding percenta
   logs/backups; backend receives credentials in memory (0.53.53, SECRETS_AT_REST.md:
   the backend seals its keys itself with DPAPI for the same Windows user instead of
   a launcher handoff; the launcher seals tokens/webhook with safeStorage).
-- [ ] Device/transfer deletion capabilities with stored hashes and explicit legacy
-  compatibility; preserve public share/profile ownership.
+- [x] Device/transfer deletion capabilities with stored hashes and explicit legacy
+  compatibility; preserve public share/profile ownership (0.53.54, DATA_PLAN.md:
+  `owner_hash` from `x-device-key`, transfer `delete_hash` from the whole code,
+  legacy rows keep the install-id/id delete; real local D1 test `ownership.test.js`).
 - [x] Scheduled dependency refresh/audit for runtime and build locks plus tests
   and actual Windows package checks (0.53.47, MAINTENANCE_VALIDATION.md).
 - [x] Validate data-update PRs directly before merge even when workflow-token PRs
