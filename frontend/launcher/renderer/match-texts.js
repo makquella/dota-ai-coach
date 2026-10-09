@@ -669,7 +669,9 @@
           empty_question: "Type a question first.",
           no_review: "The review of this match is not ready yet.",
           not_enough: "Not enough reviewed matches yet: open a few reviews first.",
-          off: "Turn the AI coach on in Settings first."
+          off: "Turn the AI coach on in Settings first.",
+          pending: "The answer is taking long. Ask again in a minute: while it is being prepared, asking again waits for the same answer.",
+          bad_request: "This question could not be sent. Ask it again."
         },
         aiSettingsTitle: "AI coach",
         aiOnTitle: "AI coach is on",
@@ -1361,7 +1363,9 @@
           empty_question: "Сначала напишите вопрос.",
           no_review: "Разбор этого матча ещё не готов.",
           not_enough: "Пока мало разобранных матчей: сначала откройте несколько разборов.",
-          off: "Сначала включите ИИ-тренера в настройках."
+          off: "Сначала включите ИИ-тренера в настройках.",
+          pending: "Ответ готовится дольше обычного. Спросите ещё раз через минуту — пока он готовится, повторный вопрос дождётся того же ответа.",
+          bad_request: "Не удалось отправить вопрос. Спросите ещё раз."
         },
         aiSettingsTitle: "ИИ-тренер",
         aiOnTitle: "ИИ-тренер включён",
