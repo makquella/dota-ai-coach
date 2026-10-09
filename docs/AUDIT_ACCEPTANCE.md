@@ -83,8 +83,9 @@ These are acceptance tasks too. They are not included in the 17-finding percenta
   profile appearance catalog/styles.
 - [ ] Review repeated main response builders and remaining AI/detail orchestration
   after concrete boundaries; retain distinct status semantics.
-- [ ] Mark retained browser entrypoints debug-only and fix routing/docs; deletion
-  requires evidence that they have no remaining users.
+- [x] Mark retained browser entrypoints debug-only and fix routing/docs; deletion
+  requires evidence that they have no remaining users (0.53.49: `frontend/debug/`,
+  `/debug/` from a source checkout only, the rest of `frontend/` no longer served or public).
 
 Deliberately excluded by the audit: generic SaaS, new event bus/task broker,
 plugin marketplace, deletion of replay fixtures or Java parser, merging live and

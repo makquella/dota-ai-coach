@@ -27,7 +27,7 @@ POSIX-файлы credentials/config создаются с mode `0600`. В Window
 
 При другом порте задайте `DOTA_AI_BACKEND_PORT` с тем же значением, что `--port`. Не запускайте второй backend вместе с launcher. Если заданы `DOTA_AI_CONTROL_TOKEN` / `DOTA_AI_GSI_TOKEN`, оба должны быть разными случайными строками из 64 lowercase hex символов; храните их в environment, а не в аргументах запуска или общих логах.
 
-Откройте `/docs`, нажмите **Authorize** и вставьте control-токен из своего приватного standalone файла. Swagger добавляет Bearer header к частным запросам. В простых developer pages `/frontend/index.html` и `/frontend/overlay.html` есть password-поле для того же токена; значение не сохраняется в localStorage. В обычном desktop интерфейсе ввод не нужен.
+Откройте `/docs`, нажмите **Authorize** и вставьте control-токен из своего приватного standalone файла. Swagger добавляет Bearer header к частным запросам. В отладочных страницах для разработчика `/debug/` и `/debug/overlay.html` (только из исходников, не в установленном приложении; без токена открываются только они сами, остальной `frontend/` не отдаётся) есть password-поле для того же токена; значение не сохраняется в localStorage. В обычном desktop интерфейсе ввод не нужен.
 
 Replay helper автоматически читает standalone credentials или использует environment, полученный от launcher. Кнопки demo передают обе variables и выбранный порт в дочерний процесс. Helper не пересылает токен через HTTP redirects. Для site screenshots Node-часть использует тот же control-токен из environment или standalone файла; браузер получает только результаты запросов.
 

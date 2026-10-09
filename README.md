@@ -87,7 +87,7 @@ Frontend:
 
 - Electron launcher for coursework defense.
 - Electron desktop overlay for compact advice.
-- Legacy `frontend/overlay.html` browser overlay kept as debug/fallback.
+- Legacy browser pages (`frontend/debug/`: a scenario form and a plain overlay) are developer-only: served at `/debug/` from a source checkout, never by the installed app.
 - Replay demo presets for Phantom Lancer and Juggernaut.
 - Clean/verbose launcher logs for defense and debugging.
 
