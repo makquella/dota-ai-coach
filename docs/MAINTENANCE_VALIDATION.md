@@ -5,7 +5,8 @@ version sources. Workflows read them after checkout; the backend CI explicitly
 installs Node for actual RU/EN catalog validation. Electron's embedded runtime
 remains its own packaged dependency. Local newer Node versions may work, but
 validation on the declared CI version remains required. Workflow syntax and
-expressions are checked by pinned actionlint 1.7.9.
+expressions are checked by pinned actionlint 1.7.9 (the release binary with its
+SHA-256 checked in ci.yml, not the Docker Hub image, which hit pull rate limits).
 
 Dependabot requests weekly launcher/Worker npm updates, including development and
 build dependencies. Compatible minor/patch updates are grouped; majors remain
