@@ -98,6 +98,15 @@
       <article data-doc="ru" lang="ru">
         <h1>Что нового</h1>
         <p class="doc-updated">Все версии Wardly. Установленное приложение обновляется само, когда Дота закрыта.</p>
+<section class="release" id="v0.53.53">
+<h2><a href="#v0.53.53">Версия 0.53.53</a></h2>
+<ul>
+  <li><strong>Ключи зашифрованы на диске.</strong> Ключ ИИ-тренера и ключ OpenDota в базе приложения, а также ссылка на канал Discord, токены удаления ссылок «Поделиться» и токен публичного профиля в настройках теперь хранятся зашифрованными средствами Windows (DPAPI) для вашей учётной записи. Скопированная папка с данными не даёт чужому человеку рабочих ключей.</li>
+  <li><strong>Ничего вводить заново не нужно.</strong> Ключи, сохранённые прошлыми версиями открытым текстом, шифруются сами при первом запуске. Если папку перенесли на другой компьютер или в другую учётную запись, ключ просто нужно ввести ещё раз — остальные данные не трогаются.</li>
+  <li><strong>Проверено на Windows.</strong> Сборка в CI теперь проверяет, что шифрование Windows работает и расшифровывает значение обратно.</li>
+</ul>
+<p class="release-link"><a href="https://github.com/makquella/dota-ai-coach/releases/tag/v0.53.53" rel="noopener">Скачать и подробности</a></p>
+</section>
 <section class="release" id="v0.53.52">
 <h2><a href="#v0.53.52">Версия 0.53.52</a></h2>
 <ul>
@@ -1302,6 +1311,15 @@
       <article data-doc="en" lang="en" hidden>
         <h1>What's new</h1>
         <p class="doc-updated">Every Wardly version. The installed app updates itself while Dota is closed.</p>
+<section class="release" id="v0.53.53">
+<h2><a href="#v0.53.53">Version 0.53.53</a></h2>
+<ul>
+  <li><strong>Keys are encrypted on disk:</strong> the AI coach and OpenDota keys in the app's database, plus the Discord channel link, the share-link delete tokens and the public profile token in the settings are now sealed with Windows DPAPI for your user account. A copied data folder gives nobody working keys.</li>
+  <li><strong>Nothing to enter again:</strong> keys saved in plain text by older versions are sealed automatically on the first start. If the folder moves to another computer or user account, just enter the key again; nothing else is touched.</li>
+  <li><strong>Checked on Windows:</strong> the CI build now proves that Windows encryption seals and opens a value back.</li>
+</ul>
+<p class="release-link"><a href="https://github.com/makquella/dota-ai-coach/releases/tag/v0.53.53" rel="noopener">Download and details</a></p>
+</section>
 <section class="release" id="v0.53.52">
 <h2><a href="#v0.53.52">Version 0.53.52</a></h2>
 <ul>

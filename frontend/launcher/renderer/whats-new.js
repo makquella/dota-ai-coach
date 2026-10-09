@@ -9,6 +9,9 @@
 
   const TEXT = {
     en: {
+      "0.53.53": [
+        "Your keys are now encrypted on disk: the AI and OpenDota keys, the Discord link and the share and profile tokens are sealed for your Windows user, and keys saved by older versions are sealed automatically."
+      ],
       "0.53.52": [
         "Ask the coach is sturdier: a question costs one AI request even after a lost answer or a double click, the wait is bounded, and an answer that arrives late still shows up."
       ],
@@ -475,6 +478,9 @@
       ]
     },
     ru: {
+      "0.53.53": [
+        "Ключи теперь зашифрованы на диске: ключи ИИ и OpenDota, ссылка Discord и токены ссылок и профиля защищены для вашей учётной записи Windows, а ключи из прошлых версий шифруются автоматически."
+      ],
       "0.53.52": [
         "«Спросить тренера» надёжнее: вопрос тратит один запрос к ИИ даже после потерянного ответа или двойного нажатия, ожидание ограничено, а ответ, пришедший позже, всё равно появится."
       ],

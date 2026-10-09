@@ -95,6 +95,7 @@ from app.player_store import PlayerStore
 from app.post_game import post_game_card
 from app.post_match_analysis import ANALYSIS_VERSION, analyze_match
 from app.schemas import is_supported_hero
+from app.secret_box import SecretBox
 from app.session_summary import session_summary
 from app.share_progress import public_progress
 from app.share_review import public_review
@@ -242,11 +243,13 @@ class PlayerService:
         llm: Any = None,
         env_ai: AISettings | None = None,
         stop_timeout: float = JOB_STOP_TIMEOUT_SECONDS,
+        secrets: SecretBox | None = None,
     ) -> None:
         """(Re)open the store in `data_dir`; used at startup and by tests.
 
         `llm` replaces the configured AI client (tests); `env_ai` is the key
-        from .env used when the player has not entered one.
+        from .env used when the player has not entered one; `secrets` replaces
+        the OS sealing of stored keys (tests; secret_box.py).
         """
         with self._lifecycle_lock:
             if not self._stop_queues(timeout=stop_timeout):
@@ -256,7 +259,14 @@ class PlayerService:
                 if not self._shutdown_complete:
                     self.tracker.flush()
                 old_store.close()
-            self._open_store(data_dir, client=client, auto_start=auto_start, llm=llm, env_ai=env_ai)
+            self._open_store(
+                data_dir,
+                client=client,
+                auto_start=auto_start,
+                llm=llm,
+                env_ai=env_ai,
+                secrets=secrets,
+            )
 
     def _open_store(
         self,
@@ -266,10 +276,15 @@ class PlayerService:
         auto_start: bool,
         llm: Any,
         env_ai: AISettings | None,
+        secrets: SecretBox | None = None,
     ) -> None:
         self.data_dir = Path(data_dir)
         self.client = client
         self.store = PlayerStore(self.data_dir / "coach.sqlite3")
+        # Stored keys under the OS's protection (DPAPI on Windows); keys an
+        # older version left in plain text are sealed now.
+        self.secrets = secrets or SecretBox()
+        self._seal_stored_secrets()
         # The key from .env (if any); a key entered in the launcher wins.
         self._env_opendota_key = str(getattr(client, "api_key", "") or "")
         self._apply_opendota_key()
@@ -820,6 +835,7 @@ class PlayerService:
                 key: value for key, value in self.opendota_status().items() if key != "key_hint"
             },
             "analysis_version": ANALYSIS_VERSION,
+            "secrets": self.secrets_status(),
         }
 
     def operations(self) -> dict[str, Any]:
@@ -1412,7 +1428,7 @@ class PlayerService:
     # --- OpenDota key --------------------------------------------------------------
 
     def _opendota_key(self) -> tuple[str, str | None]:
-        stored = self.store.get_meta(OPENDOTA_KEY_META) or ""
+        stored = self.secrets.open(self.store.get_meta(OPENDOTA_KEY_META)) or ""
         if stored:
             return stored, "app"
         if self._env_opendota_key:
@@ -1438,7 +1454,7 @@ class PlayerService:
         key = str(api_key or "").strip()
         if not OPENDOTA_KEY_RE.fullmatch(key):
             raise ValueError("bad_opendota_key")
-        self.store.set_meta(OPENDOTA_KEY_META, key)
+        self.store.set_meta(OPENDOTA_KEY_META, self.secrets.seal(key))
         self._apply_opendota_key()
         return self.opendota_status()
 
@@ -1447,10 +1463,39 @@ class PlayerService:
         self._apply_opendota_key()
         return self.opendota_status()
 
+    # --- stored keys (secret_box.py) ------------------------------------------------
+
+    SECRET_METAS = (OPENDOTA_KEY_META, AI_SETTINGS_KEY)
+
+    def _seal_stored_secrets(self) -> None:
+        if not self.secrets.available:
+            return
+        for key in self.SECRET_METAS:
+            raw = self.store.get_meta(key)
+            if raw and not self.secrets.is_sealed(raw):
+                sealed = self.secrets.seal(raw)
+                if self.secrets.is_sealed(sealed):
+                    self.store.set_meta(key, sealed)
+
+    def secrets_status(self) -> dict[str, Any]:
+        """How the stored keys are kept, in counts (for the problem report)."""
+        counts = {"sealed": 0, "plain": 0, "locked": 0}
+        for key in self.SECRET_METAS:
+            raw = self.store.get_meta(key)
+            if not raw:
+                continue
+            if not self.secrets.is_sealed(raw):
+                counts["plain"] += 1
+            elif self.secrets.open(raw) is None:
+                counts["locked"] += 1
+            else:
+                counts["sealed"] += 1
+        return {"sealing": self.secrets.kind, **counts}
+
     # --- AI coach ----------------------------------------------------------------
 
     def ai_settings(self) -> AISettings | None:
-        raw = self.store.get_meta(AI_SETTINGS_KEY)
+        raw = self.secrets.open(self.store.get_meta(AI_SETTINGS_KEY))
         stored = None
         if raw:
             with contextlib.suppress(ValueError):
@@ -1476,8 +1521,10 @@ class PlayerService:
             raise ValueError("bad_ai_settings")
         self.store.set_meta(
             AI_SETTINGS_KEY,
-            json.dumps(
-                {"provider": settings.provider, "api_key": settings.api_key, "model": model}
+            self.secrets.seal(
+                json.dumps(
+                    {"provider": settings.provider, "api_key": settings.api_key, "model": model}
+                )
             ),
         )
         with self._coach_lock:
