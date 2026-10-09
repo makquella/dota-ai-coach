@@ -65,7 +65,7 @@ jobs:
           cache-dependency-path: backend/requirements-dev.txt
 
       - name: Set up the canonical Node version for catalog validation
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version-file: .node-version
 
@@ -136,7 +136,7 @@ jobs:
         run: python scripts/verify_source.py "$SOURCE_SHA"
 
       - name: Set up Node.js 20
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version-file: .node-version
 
@@ -173,7 +173,7 @@ jobs:
             backend/requirements-build.txt
 
       - name: Set up Node.js 22
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version-file: .node-version
           cache: npm
