@@ -124,7 +124,8 @@ const TEXTS = {
 // The look of the card: the launcher's .pf-* and cos-<id> styles
 // (frontend/launcher/renderer/styles.css) with its dark tokens filled in, so a
 // friend sees the card as its owner does in the app. test/api.test.js checks
-// that every cos- class of the launcher is here.
+// that every cos- rule here equals the launcher's (tokens filled in), so a look
+// changed in the app fails the Worker tests until it is copied here.
 const LOOK_CSS = `
 .pf-banner{height:96px;background:linear-gradient(135deg,rgba(240,85,96,.28),transparent 60%),repeating-linear-gradient(-45deg,#1b1b1e 0 10px,#141416 10px 20px);border-bottom:1px solid #2a2a30}
 .pf-avatar-wrap{--frame:#f05560;position:relative;width:96px;height:96px;flex:none;display:grid;place-items:center}

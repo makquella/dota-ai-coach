@@ -8,6 +8,7 @@ reviews work offline; unknown ids fall back to "Hero <id>".
 
 from __future__ import annotations
 
+import re
 from typing import Any
 
 # hero_id -> (localized name, internal npc name)
@@ -169,6 +170,38 @@ def hero_id_from_name(name: object) -> int | None:
     if text.startswith("npc_dota_hero_"):
         return NPC_TO_HERO_ID.get(text)
     return _NAME_TO_HERO_ID.get(text.lower())
+
+
+# Every spelling a hero arrives in, folded to letters and digits: the localized
+# name ("Anti-Mage" -> antimage), the npc key ("life_stealer" -> lifestealer)
+# and its title-cased form from live GSI ("Nevermore"). tests/test_hero_identity.py
+# checks that no two heroes share a folded spelling.
+def _fold_hero(text: object) -> str:
+    return re.sub(r"[^a-z0-9]", "", str(text or "").lower().removeprefix("npc_dota_hero_"))
+
+
+_FOLDED_TO_HERO_ID: dict[str, int] = {
+    folded: hero_id
+    for hero_id, (name, npc) in HEROES.items()
+    for folded in (_fold_hero(name), _fold_hero(npc))
+}
+
+
+def hero_id_from_any(value: object) -> int | None:
+    """The one hero lookup for free text: a localized name, an npc name, its
+    bare key or a title-cased npc key ("Furion", "Shadow Fiend", "nevermore")."""
+    hero_id = hero_id_from_name(value)
+    if hero_id is not None:
+        return hero_id
+    folded = _fold_hero(value)
+    return _FOLDED_TO_HERO_ID.get(folded) if folded else None
+
+
+def hero_key(hero_id: Any) -> str | None:
+    """The npc name without its prefix: Valve's portrait key and the prefix of
+    the hero's ability names (1 -> "antimage"), None for an unknown id."""
+    npc = hero_npc_name(hero_id)
+    return npc.removeprefix("npc_dota_hero_") or None
 
 
 def hero_name_from_npc(npc_name: object) -> str:

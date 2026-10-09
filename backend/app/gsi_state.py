@@ -12,7 +12,7 @@ from app.ability_normalization import normalize_abilities as _normalize_abilitie
 from app.advice_context import MAP_CENTER, build_advice_context
 from app.config import GSI_DEBUG_LOG, GSI_DEBUG_SAMPLES_DIR
 from app.domain_contracts import NormalizedState
-from app.dota_constants import NPC_TO_HERO_ID, hero_name
+from app.dota_constants import hero_id_from_any, hero_name
 from app.enemy_heroes import visible_enemy_heroes, visible_enemy_units
 from app.gsi_snapshot import GSIRegister, GSISnapshot
 from app.gsi_values import MAX_GSI_NUMBER as MAX_GSI_NUMBER
@@ -44,54 +44,6 @@ _DEBUG_TOP_LEVEL_FIELDS = (
     "draft",
     "provider",
 )
-
-_HERO_NAME_MAP = {
-    "npc_dota_hero_antimage": "Anti-Mage",
-    "npc_dota_hero_drow_ranger": "Drow Ranger",
-    "npc_dota_hero_ember_spirit": "Ember Spirit",
-    "npc_dota_hero_gyrocopter": "Gyrocopter",
-    "npc_dota_hero_juggernaut": "Juggernaut",
-    "npc_dota_hero_kez": "Kez",
-    "npc_dota_hero_life_stealer": "Lifestealer",
-    "npc_dota_hero_luna": "Luna",
-    "npc_dota_hero_medusa": "Medusa",
-    "npc_dota_hero_monkey_king": "Monkey King",
-    "npc_dota_hero_morphling": "Morphling",
-    "npc_dota_hero_muerta": "Muerta",
-    "npc_dota_hero_naga_siren": "Naga Siren",
-    "npc_dota_hero_phantom_assassin": "Phantom Assassin",
-    "npc_dota_hero_phantom_lancer": "Phantom Lancer",
-    "npc_dota_hero_slark": "Slark",
-    "npc_dota_hero_sniper": "Sniper",
-    "npc_dota_hero_spectre": "Spectre",
-    "npc_dota_hero_sven": "Sven",
-    "npc_dota_hero_terrorblade": "Terrorblade",
-    "npc_dota_hero_ursa": "Ursa",
-    "antimage": "Anti-Mage",
-    "anti-mage": "Anti-Mage",
-    "drow ranger": "Drow Ranger",
-    "ember spirit": "Ember Spirit",
-    "emberspirit": "Ember Spirit",
-    "gyrocopter": "Gyrocopter",
-    "juggernaut": "Juggernaut",
-    "kez": "Kez",
-    "lifestealer": "Lifestealer",
-    "life stealer": "Lifestealer",
-    "luna": "Luna",
-    "medusa": "Medusa",
-    "monkey king": "Monkey King",
-    "morphling": "Morphling",
-    "muerta": "Muerta",
-    "naga siren": "Naga Siren",
-    "phantom assassin": "Phantom Assassin",
-    "phantom lancer": "Phantom Lancer",
-    "slark": "Slark",
-    "sniper": "Sniper",
-    "spectre": "Spectre",
-    "sven": "Sven",
-    "terrorblade": "Terrorblade",
-    "ursa": "Ursa",
-}
 
 _ITEM_NAME_MAP = {
     "item_bfury": "Battle Fury",
@@ -692,15 +644,11 @@ def _normalize_hp_percent(payload: dict[str, Any], hero_block: dict[str, Any]) -
 
 
 def _normalize_hero_name(value: Any) -> str:
-    raw_name = str(value or "").strip()
-    key = raw_name.lower()
-    if key in _HERO_NAME_MAP:
-        return _HERO_NAME_MAP[key]
-    if key.startswith("npc_dota_hero_"):
-        hero_id = NPC_TO_HERO_ID.get(key)
-        if hero_id is not None:
-            return hero_name(hero_id)
-        key = key.removeprefix("npc_dota_hero_")
+    """The localized name of any known hero; an unknown npc key title-cased."""
+    hero_id = hero_id_from_any(value)
+    if hero_id is not None:
+        return hero_name(hero_id)
+    key = str(value or "").strip().lower().removeprefix("npc_dota_hero_")
     return _title_from_token(key) if key else "Unknown"
 
 
