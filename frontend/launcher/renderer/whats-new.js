@@ -9,6 +9,9 @@
 
   const TEXT = {
     en: {
+      "0.53.46": [
+        "Advice history handles duplicate appends and reset safely, and recent requests copy only selected records. Live messages include stable IDs and parameters so unchanged translations reuse bounded caches, preserving English originals and unknown-text fallback."
+      ],
       "0.53.45": [
         "Local Markdown knowledge is cached at startup and refreshed on file changes during development. Repeated advice skips context retrieval after early scheduler checks, preserving advice rules and owned-item filtering."
       ],
@@ -454,6 +457,9 @@
       ]
     },
     ru: {
+      "0.53.46": [
+        "История защищает добавление повторов и reset, а последние советы копируют только выбранные записи. Live-тексты получают стабильные ID и параметры для ограниченного кэша перевода; английский оригинал и неизвестные фразы сохраняются."
+      ],
       "0.53.45": [
         "Локальная Markdown-база кэшируется при запуске и обновляется при изменении файлов в разработке. Повторные советы пропускают поиск контекста после ранних проверок scheduler; правила и фильтрация купленных предметов сохранены."
       ],

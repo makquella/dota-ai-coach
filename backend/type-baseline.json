@@ -7,6 +7,7 @@
     "app/atomic_file.py",
     "app/coach_evidence.py",
     "app/coach_finding_evidence.py",
+    "app/coach_summary.py",
     "app/demo_overlay_cache.py",
     "app/diagnostics.py",
     "app/domain_contracts.py",
@@ -61,12 +62,6 @@
       "path": "app/career_analysis.py",
       "message": "Unsupported operand types for > (\"int\" and \"object\")",
       "code": "operator",
-      "count": 1
-    },
-    {
-      "path": "app/coach_summary.py",
-      "message": "Need type annotation for \"missing\" (hint: \"missing: set[<type>] = ...\")",
-      "code": "var-annotated",
       "count": 1
     },
     {

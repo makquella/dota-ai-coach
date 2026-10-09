@@ -20,6 +20,9 @@ from __future__ import annotations
 
 import re
 from collections.abc import Callable
+from dataclasses import dataclass
+from functools import lru_cache, partial
+from hashlib import sha256
 from typing import Any
 
 from app.last_moments import RUNES_RU
@@ -1101,7 +1104,132 @@ def translate_text(text: Any, lang: str) -> Any:
     """Translate one visible text; unknown text and non-strings pass through."""
     if lang != "ru" or not isinstance(text, str):
         return text
-    return translate_ru(text) or text
+    return _render_message(_message_for_text(text)) or text
+
+
+@dataclass(frozen=True)
+class AdviceMessage:
+    id: str
+    params: tuple[tuple[str, str | None], ...] = ()
+    parts: tuple[AdviceMessage, ...] = ()
+
+    def dto(self) -> dict[str, Any]:
+        params: dict[str, Any] = dict(self.params)
+        if self.parts:
+            params["parts"] = [part.dto() for part in self.parts]
+        return {"id": self.id, "params": params}
+
+
+def _message_id(kind: str, source: str) -> str:
+    # Content-derived IDs stay stable when catalog entries are inserted/reordered.
+    return f"live.{kind}.{sha256(source.encode('utf-8')).hexdigest()[:20]}"
+
+
+_MESSAGE_RENDERERS: dict[str, Callable[[dict[str, Any]], str]] = {}
+_EXACT_MESSAGE_IDS: dict[str, str] = {}
+
+
+def _render_exact(_params: dict[str, Any], *, text: str) -> str:
+    return text
+
+
+def _render_pattern(params: dict[str, Any], *, template: str) -> str:
+    return template.format(**params)
+
+
+for _source, _russian in _RU_EXACT.items():
+    _id = _message_id("exact", _source)
+    _EXACT_MESSAGE_IDS[_source] = _id
+    _MESSAGE_RENDERERS[_id] = partial(_render_exact, text=_russian)
+
+_PATTERN_MESSAGE_IDS: list[tuple[re.Pattern[str], str]] = []
+for _pattern, _template in _RU_PATTERNS:
+    _id = _message_id("pattern", f"{_pattern.flags}:{_pattern.pattern}")
+    _PATTERN_MESSAGE_IDS.append((_pattern, _id))
+    _MESSAGE_RENDERERS[_id] = partial(_render_pattern, template=_template)
+for _pattern, _render in _RU_FUNCTIONS:
+    _id = _message_id("function", f"{_pattern.flags}:{_pattern.pattern}")
+    _PATTERN_MESSAGE_IDS.append((_pattern, _id))
+    _MESSAGE_RENDERERS[_id] = _render
+
+
+@lru_cache(maxsize=512)
+def _message_for_text(text: str) -> AdviceMessage:
+    normalized = _normalize(text)
+    exact = _EXACT_MESSAGE_IDS.get(normalized)
+    if exact:
+        return AdviceMessage(exact)
+    for pattern, message_id in _PATTERN_MESSAGE_IDS:
+        match = pattern.match(normalized)
+        if match:
+            return AdviceMessage(message_id, tuple(sorted(match.groupdict().items())))
+    consider = _CONSIDER_PREFIX.match(normalized)
+    if consider:
+        rest = consider.group("rest")
+        inner = _message_for_text(rest[:1].upper() + rest[1:])
+        if inner.id != "live.unknown":
+            return AdviceMessage("live.consider", parts=(inner,))
+    if normalized.endswith(_TRUNCATION) and not normalized.endswith("...."):
+        prefix = normalized[: -len(_TRUNCATION)].rstrip()
+        if len(prefix) >= 20:
+            candidates = [source for source in _EXACT_MESSAGE_IDS if source.startswith(prefix)]
+            if len(candidates) == 1:
+                return AdviceMessage(_EXACT_MESSAGE_IDS[candidates[0]])
+    sentences = _SENTENCE_SPLIT.split(normalized)
+    if len(sentences) > 1:
+        parts = tuple(_message_for_text(sentence) for sentence in sentences)
+        if all(part.id != "live.unknown" for part in parts):
+            return AdviceMessage("live.sentences", parts=parts)
+    return AdviceMessage("live.unknown", params=(("text", text),))
+
+
+@lru_cache(maxsize=512)
+def _render_message(message: AdviceMessage) -> str | None:
+    if message.id == "live.consider" and len(message.parts) == 1:
+        inner = _render_message(message.parts[0])
+        return f"Подумайте: {_lower_first(inner)}" if inner else None
+    if message.id == "live.sentences" and message.parts:
+        parts = [_render_message(part) for part in message.parts]
+        return " ".join(part for part in parts if part) if all(parts) else None
+    renderer = _MESSAGE_RENDERERS.get(message.id)
+    return renderer(dict(message.params)) if renderer else None
+
+
+def _message_from_dto(value: Any, *, depth: int = 0) -> AdviceMessage | None:
+    if not isinstance(value, dict) or depth > 4:
+        return None
+    message_id, params = value.get("id"), value.get("params")
+    if (
+        not isinstance(message_id, str)
+        or len(message_id) > 100
+        or not isinstance(params, dict)
+        or len(params) > 20
+    ):
+        return None
+    parts = params.get("parts", [])
+    if not isinstance(parts, list) or len(parts) > 16:
+        return None
+    children = tuple(_message_from_dto(part, depth=depth + 1) for part in parts)
+    if any(child is None for child in children):
+        return None
+    scalar = {k: v for k, v in params.items() if k != "parts"}
+    if any(
+        not isinstance(k, str) or (v is not None and (not isinstance(v, str) or len(v) > 2048))
+        for k, v in scalar.items()
+    ):
+        return None
+    return AdviceMessage(message_id, tuple(sorted(scalar.items())), tuple(c for c in children if c))
+
+
+def advice_messages(item: Any) -> Any:
+    """Attach additive IDs/params once; canonical English fields stay unchanged."""
+    if not isinstance(item, dict):
+        return item
+    result = dict(item)
+    for field in ("action", "reason"):
+        if isinstance(result.get(field), str):
+            result[field + "_message"] = _message_for_text(result[field]).dto()
+    return result
 
 
 def _localize_advice_fields(item: Any, lang: str) -> Any:
@@ -1110,7 +1238,14 @@ def _localize_advice_fields(item: Any, lang: str) -> Any:
     localized = dict(item)
     for key in ("action", "reason"):
         if key in localized:
-            localized[key] = translate_text(localized[key], lang)
+            message = _message_from_dto(item.get(key + "_message"))
+            if message is not None:
+                try:
+                    localized[key] = _render_message(message) or localized[key]
+                except (KeyError, ValueError, TypeError):
+                    localized[key] = translate_text(localized[key], lang)
+            else:
+                localized[key] = translate_text(localized[key], lang)
     return localized
 
 

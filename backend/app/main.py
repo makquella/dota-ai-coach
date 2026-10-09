@@ -16,7 +16,12 @@ from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, ValidationError
 
-from app.advice_i18n import localize_advice_items, localize_overlay_response, normalize_lang
+from app.advice_i18n import (
+    advice_messages,
+    localize_advice_items,
+    localize_overlay_response,
+    normalize_lang,
+)
 from app.advice_scheduler import ADVICE_SCHEDULER, ScheduledAdvice
 from app.advice_why import why
 from app.coach_summary import COACH_SESSION_HISTORY
@@ -111,7 +116,7 @@ app = LocalApiApp(
     lifespan=_lifespan,
     title="Wardly",
     description="MVP-1: rule-based carry coach with local knowledge-base RAG.",
-    version="0.53.45",
+    version="0.53.46",
 )
 app.include_router(player_router)
 
@@ -136,7 +141,7 @@ if FRONTEND_DIR.exists():
 @app.get("/", summary="Health check")
 def root():
     """Simple health-check endpoint."""
-    return {"status": "ok", "service": "Wardly", "version": "0.53.45"}
+    return {"status": "ok", "service": "Wardly", "version": "0.53.46"}
 
 
 @app.get("/health", summary="Health check")
@@ -850,16 +855,19 @@ def demo_session_summary():
 def recent_advice(limit: int = 5, lang: str = "en"):
     """Newest first; used by the launcher's "Recent advice" card."""
     limit = max(1, min(int(limit), 20))
-    records = COACH_SESSION_HISTORY.records()[-limit:]
+    records = COACH_SESSION_HISTORY.records(limit)
     return {
         "items": localize_advice_items(
             [
                 {
+                    "id": record.get("id"),
                     "timestamp": record.get("timestamp"),
                     "game_time": record.get("game_time") or None,
                     "hero": record.get("hero"),
                     "action": record.get("action"),
                     "reason": record.get("reason"),
+                    "action_message": record.get("action_message"),
+                    "reason_message": record.get("reason_message"),
                     "priority": record.get("priority"),
                     "advice_mode": record.get("advice_mode"),
                     "why": why(record.get("decision_point"), normalize_lang(lang)),
@@ -1003,7 +1011,9 @@ def _overlay_response(
     record_history: bool = True,
 ) -> dict[str, object]:
     recommendation = (
-        scheduled.recommendation.model_dump() if scheduled.recommendation is not None else None
+        advice_messages(scheduled.recommendation.model_dump())
+        if scheduled.recommendation is not None
+        else None
     )
     response: dict[str, object] = {
         "status": scheduled.status,
@@ -1018,7 +1028,7 @@ def _overlay_response(
         "suppressed_reason": scheduled.suppressed_reason,
         "message": _overlay_status_message(scheduled),
         "active_advice_until": scheduled.active_advice_until,
-        "last_visible_advice": scheduled.last_visible_advice,
+        "last_visible_advice": advice_messages(scheduled.last_visible_advice),
         "is_pinned": scheduled.is_pinned,
         "new_advice": scheduled.new_advice,
         "game_time_gap_since_previous_advice": scheduled.game_time_gap_since_previous_advice,
