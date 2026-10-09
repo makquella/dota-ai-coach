@@ -35,6 +35,10 @@ does it publish `Generated refresh functional validation` on the same head.
 Failure/cancellation/skipping cannot become success. The check links the original
 run and explicitly separates functional validation from advisory triage.
 
+The validator also accepts a manual immutable SHA, so its actual reusable
+CI/result-publication path can be checked without live STRATZ fetching or creating
+an unnecessary dependency-update PR.
+
 Generation gets contents/PR write permission; validation is read-only except the
 separate result publisher's checks permission. No new deployment, release,
 provider-paid call or auto-merge is introduced. Existing scheduled data fetching
