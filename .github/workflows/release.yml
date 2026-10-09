@@ -28,7 +28,7 @@ jobs:
       sha: ${{ steps.source.outputs.sha }}
       tag: ${{ steps.source.outputs.tag }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           ref: ${{ github.sha }}
       - name: Resolve source and release tag
@@ -84,7 +84,7 @@ jobs:
       RELEASE_SHA: ${{ needs.source.outputs.sha }}
       TAG: ${{ needs.source.outputs.tag }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           ref: ${{ needs.source.outputs.sha }}
 
