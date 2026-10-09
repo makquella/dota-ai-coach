@@ -193,6 +193,9 @@ jobs:
           SOURCE_SHA: ${{ inputs.source_sha || github.sha }}
         run: python scripts/verify_source.py $env:SOURCE_SHA
 
+      - name: Check DPAPI secret sealing (backend/app/secret_box.py)
+        run: python scripts/check_secret_box.py
+
       - name: Build backend exe, Electron app and NSIS installer
         run: ./scripts/build-windows.ps1
 

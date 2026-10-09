@@ -9,6 +9,7 @@ const {
   nativeImage,
   net: electronNet,
   protocol,
+  safeStorage,
   screen,
   shell
 } = require("electron");
@@ -26,6 +27,7 @@ const discordPresence = require("./discord-presence");
 const discordWeekly = require("./discord-weekly");
 const adviceStats = require("./advice-stats");
 const friends = require("./friends");
+const { createSecretCodec } = require("./secret-codec");
 const { createDotaWatcher } = require("./dota-watcher");
 const { createOverlayController, OVERLAY_DEFAULTS } = require("./overlay-window");
 const { createSkillArrowController } = require("./skill-arrow-window");
@@ -166,6 +168,10 @@ const settings = createSettingsStore(path.join(USER_DATA_DIR, "settings.json"), 
   // UI language: auto (system) | ru | en.
   language: "auto",
   overlay: { ...OVERLAY_DEFAULTS }
+}, {
+  // Delete tokens, the profile token and the webhook: sealed on disk (DPAPI).
+  secretKeys: ["shares", "friendsProfile", "discordWebhook"],
+  codec: createSecretCodec(safeStorage)
 });
 
 let mainWindow = null;
@@ -3710,6 +3716,16 @@ function registerDotaAssets() {
   );
 }
 
+// safeStorage works once the app is ready: open the sealed settings now.
+function unlockSettingsSecrets() {
+  const state = settings.unlockSecrets();
+  appendLog(
+    "settings",
+    state.sealing ? `Secrets sealed with the OS${state.locked ? `; ${state.locked} could not be opened (default used)` : ""}.` : "Secrets: OS sealing unavailable, kept as before.",
+    { force: true }
+  );
+}
+
 function bootstrap() {
   if (process.platform === "win32") {
     app.setAppUserModelId(APP_ID);
@@ -3719,6 +3735,7 @@ function bootstrap() {
 
   if (IS_SMOKE_TEST) {
     app.whenReady().then(() => {
+      unlockSettingsSecrets();
       registerDotaAssets();
       return runSmokeTest(SMOKE_TEST_RESULT);
     });
@@ -3733,6 +3750,7 @@ function bootstrap() {
 
   app.whenReady().then(() => {
     settings.onError(error => appendLog("settings", `Persistence ${error.operation} failed (${error.code}).`, {force:true}));
+    unlockSettingsSecrets();
     registerDotaAssets();
     appendLog("launcher", `${APP_NAME} ${app.getVersion()} started (${IS_PACKAGED ? "packaged" : "dev"}).`, {
       force: true

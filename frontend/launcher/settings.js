@@ -4,7 +4,16 @@ const crypto = require("node:crypto");
 
 // Small JSON settings store in the user data folder. The install directory of
 // a packaged app may be read-only, so nothing is written next to the code.
-function createSettingsStore(filePath, defaults) {
+// `secretKeys` (share/profile tokens, the Discord webhook) are written sealed by
+// `codec` (secret-codec.js: Electron safeStorage, DPAPI on Windows) and kept
+// open in memory only. safeStorage works once the app is ready, so sealed values
+// wait (reading as their defaults) until `unlockSecrets()`; it opens them and
+// seals the plain values an older version wrote. A seal this user cannot open
+// is kept on disk as it is and the key reads as its default.
+function createSettingsStore(filePath, defaults, { secretKeys = [], codec = null } = {}) {
+  const secret = new Set(secretKeys);
+  let sealing = false;
+  const lockedRaw = {};
   let revision = 0;
   let acknowledged = 0;
   let failures = 0;
@@ -24,11 +33,42 @@ function createSettingsStore(filePath, defaults) {
   function load() {
     try {
       const raw = JSON.parse(fs.readFileSync(filePath, "utf8"));
-      return mergeDefaults(defaults, raw);
+      return mergeDefaults(defaults, openSecrets(raw));
     } catch (error) {
       if (error.code !== "ENOENT") fail("load", error);
       return structuredClone(defaults);
     }
+  }
+
+  function openSecrets(raw) {
+    if (!raw || typeof raw !== "object") {
+      return raw;
+    }
+    const opened = { ...raw };
+    for (const key of secret) {
+      if (codec && codec.isSealed(raw[key])) {
+        lockedRaw[key] = raw[key];
+        delete opened[key];
+      }
+    }
+    return opened;
+  }
+
+  // What goes to disk: secrets sealed, a seal that could not be opened kept.
+  function onDisk() {
+    const out = { ...data };
+    for (const key of secret) {
+      if (key in lockedRaw) {
+        out[key] = lockedRaw[key];
+      } else if (sealing && out[key] !== undefined) {
+        const sealed = codec.seal(out[key]);
+        if (!sealed) {
+          throw Object.assign(new Error("sealing failed"), { code: "seal_failed" });
+        }
+        out[key] = sealed;
+      }
+    }
+    return out;
   }
 
   function save() {
@@ -36,7 +76,7 @@ function createSettingsStore(filePath, defaults) {
     try {
       tempPath = `${filePath}.${process.pid}.${crypto.randomBytes(6).toString("hex")}.tmp`;
       fs.mkdirSync(path.dirname(filePath), { recursive: true });
-      fs.writeFileSync(tempPath, `${JSON.stringify(data, null, 2)}\n`, {encoding:"utf8", mode:0o600, flag:"wx"});
+      fs.writeFileSync(tempPath, `${JSON.stringify(onDisk(), null, 2)}\n`, {encoding:"utf8", mode:0o600, flag:"wx"});
       fs.renameSync(tempPath, filePath);
       acknowledged = revision;
       lastSuccessAt = new Date().toISOString();
@@ -62,18 +102,40 @@ function createSettingsStore(filePath, defaults) {
     },
     set(key, value) {
       data[key] = value;
+      delete lockedRaw[key];
       revision += 1;
       save();
     },
     update(key, patch) {
       data[key] = { ...(data[key] || {}), ...patch };
+      delete lockedRaw[key];
       revision += 1;
       save();
       return data[key];
     },
+    // Once the app is ready: open the sealed values, seal the plain ones.
+    unlockSecrets() {
+      if (sealing || !codec || !secret.size || !codec.available()) {
+        return {sealing, locked:Object.keys(lockedRaw).length};
+      }
+      sealing = true;
+      for (const key of secret) {
+        if (key in lockedRaw) {
+          const plain = codec.open(lockedRaw[key]);
+          if (plain !== undefined) {
+            data[key] = mergeDefaults({ [key]: defaults[key] }, { [key]: plain })[key];
+            delete lockedRaw[key];
+          }
+        }
+      }
+      revision += 1;
+      save();
+      return {sealing, locked:Object.keys(lockedRaw).length};
+    },
     health() {
       return {revision, acknowledged, pending:revision !== acknowledged, failures,
-        lastError:lastError ? {...lastError} : null, lastSuccessAt};
+        lastError:lastError ? {...lastError} : null, lastSuccessAt,
+        secrets:{sealing, locked:Object.keys(lockedRaw).length}};
     },
     onError(sink) {
       errorSink = sink;
