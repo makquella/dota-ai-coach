@@ -16,7 +16,7 @@ from __future__ import annotations
 from datetime import UTC, datetime
 from typing import Any
 
-from app.dota_constants import HEROES
+from app.dota_constants import hero_key
 
 MAX_STRENGTHS = 3
 MAX_IMPROVEMENTS = 4
@@ -34,11 +34,7 @@ def _int(value: Any) -> int | None:
 
 def _hero_key(hero_id: Any) -> str | None:
     """The portrait key of Valve's CDN (npc_dota_hero_<key>)."""
-    entry = HEROES.get(_int(hero_id) or -1)
-    npc = entry[1] if isinstance(entry, (tuple, list)) else None
-    if isinstance(npc, str) and npc.startswith("npc_dota_hero_"):
-        return npc.removeprefix("npc_dota_hero_")
-    return None
+    return hero_key(_int(hero_id))
 
 
 def _finding(finding: dict[str, Any], *, drill: bool) -> dict[str, Any]:

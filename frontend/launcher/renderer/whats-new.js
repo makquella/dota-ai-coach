@@ -9,6 +9,12 @@
 
   const TEXT = {
     en: {
+      "0.53.50": [
+        "One hero table behind every hero name: the live game, the supported list, profiles, share pages and the launcher's pictures all resolve through it, and a test keeps them in step. The public profile page wears every look exactly as the app draws it."
+      ],
+      "0.53.49": [
+        "The old browser pages are developer-only now: served at /debug/ from a source checkout, never by the installed app, and the backend no longer serves the rest of the frontend folder."
+      ],
       "0.53.48": [
         "Malformed game-phase containers no longer crash dead-hero GSI packets. Invalid event fields remain unknown, while valid pre-spawn behavior is preserved; the nightly fuzz regression is covered by real HTTP cases."
       ],
@@ -463,6 +469,12 @@
       ]
     },
     ru: {
+      "0.53.50": [
+        "Одна таблица героев для всех имён: живая игра, список поддерживаемых героев, профили, страницы «Поделиться» и картинки лаунчера опираются на неё, а тест следит за совпадением. Публичная страница профиля показывает образы точно так же, как приложение."
+      ],
+      "0.53.49": [
+        "Старые браузерные страницы теперь только для разработчика: /debug/ из исходников, никогда в установленном приложении; остальная папка frontend бэкендом больше не отдаётся."
+      ],
       "0.53.48": [
         "Словарь или список вместо фазы игры больше не ломает GSI-пакет погибшего героя. Некорректные поля события остаются неизвестными, а обычное pre-spawn поведение сохранено; сбой nightly fuzz покрыт реальными HTTP-проверками."
       ],

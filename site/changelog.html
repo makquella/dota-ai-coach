@@ -98,6 +98,23 @@
       <article data-doc="ru" lang="ru">
         <h1>Что нового</h1>
         <p class="doc-updated">Все версии Wardly. Установленное приложение обновляется само, когда Дота закрыта.</p>
+<section class="release" id="v0.53.50">
+<h2><a href="#v0.53.50">Версия 0.53.50</a></h2>
+<ul>
+  <li><strong>Один источник героев.</strong> Имя героя из игры, внутреннее имя (<code>npc_dota_hero_…</code>), его ключ и старое написание вроде «Nevermore» или «Furion» теперь распознаются одной функцией по общей таблице. Раньше у живой игры и у проверки героя были свои списки и своя догадка по написанию.</li>
+  <li><strong>Проверка совпадения.</strong> Новый тест сверяет таблицу героев с картинками лаунчера, профилями героев, правилами безопасности, сборками STRATZ и списком поддерживаемых героев.</li>
+  <li><strong>Образы профиля одинаковы везде.</strong> Тест Worker сравнивает каждое правило рамок, баннеров, ников и титулов публичной страницы с приложением, так что изменённый образ не разойдётся между ними.</li>
+</ul>
+<p class="release-link"><a href="https://github.com/makquella/dota-ai-coach/releases/tag/v0.53.50" rel="noopener">Скачать и подробности</a></p>
+</section>
+<section class="release" id="v0.53.49">
+<h2><a href="#v0.53.49">Версия 0.53.49</a></h2>
+<ul>
+  <li><strong>Отладочные страницы отделены от приложения.</strong> Старые браузерные страницы (форма сценария и простой оверлей) переехали в <code>frontend/debug/</code>, открываются по адресу <code>/debug/</code> только из исходников и подписаны как отладочные. Установленное приложение их не отдаёт.</li>
+  <li><strong>Меньше открытого наружу.</strong> Бэкенд больше не раздаёт остальное содержимое папки <code>frontend/</code> (исходники лаунчера); без токена доступны только сами отладочные страницы.</li>
+</ul>
+<p class="release-link"><a href="https://github.com/makquella/dota-ai-coach/releases/tag/v0.53.49" rel="noopener">Скачать и подробности</a></p>
+</section>
 <section class="release" id="v0.53.48">
 <h2><a href="#v0.53.48">Версия 0.53.48</a></h2>
 <ul>
@@ -1266,6 +1283,23 @@
       <article data-doc="en" lang="en" hidden>
         <h1>What's new</h1>
         <p class="doc-updated">Every Wardly version. The installed app updates itself while Dota is closed.</p>
+<section class="release" id="v0.53.50">
+<h2><a href="#v0.53.50">Version 0.53.50</a></h2>
+<ul>
+  <li><strong>One source for heroes:</strong> the in-game name, the internal <code>npc_dota_hero_…</code> name, its key and old spellings such as «Nevermore» or «Furion» now resolve through one function over the shared table. The live game and the hero check used to keep their own lists and their own guess from the spelling.</li>
+  <li><strong>Kept in step:</strong> a new test checks the hero table against the launcher's pictures, hero profiles, safety rules, STRATZ builds and the supported list.</li>
+  <li><strong>Profile looks match everywhere:</strong> a Worker test compares every frame, banner, name and title rule of the public page with the app, so a changed look cannot drift between them.</li>
+</ul>
+<p class="release-link"><a href="https://github.com/makquella/dota-ai-coach/releases/tag/v0.53.50" rel="noopener">Download and details</a></p>
+</section>
+<section class="release" id="v0.53.49">
+<h2><a href="#v0.53.49">Version 0.53.49</a></h2>
+<ul>
+  <li><strong>Debug pages are separated from the app:</strong> the legacy browser pages moved to <code>frontend/debug/</code>, are served at <code>/debug/</code> from a source checkout only and are labelled as debug pages; the installed app never serves them.</li>
+  <li><strong>Less exposed:</strong> the backend no longer serves the rest of <code>frontend/</code> (the launcher's sources); only the debug pages themselves load without a token.</li>
+</ul>
+<p class="release-link"><a href="https://github.com/makquella/dota-ai-coach/releases/tag/v0.53.49" rel="noopener">Download and details</a></p>
+</section>
 <section class="release" id="v0.53.48">
 <h2><a href="#v0.53.48">Version 0.53.48</a></h2>
 <ul>

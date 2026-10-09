@@ -6,7 +6,7 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, Field, field_validator
 
-from app.dota_constants import NPC_TO_HERO_ID, hero_id_from_name, hero_name
+from app.dota_constants import hero_id_from_any, hero_name
 from app.hero_profiles import get_hero_position, hero_aliases
 
 SUPPORTED_HEROES = (
@@ -133,16 +133,13 @@ def is_supported_hero(value: str) -> bool:
 def safety_only_hero(value: str) -> str | None:
     """Any other Dota hero gets survival advice only: its canonical name, else None.
 
-    Live GSI names unknown heroes by title-casing the npc name ("Crystal Maiden",
-    "Furion"), so both the localized and the npc form are looked up.
+    Any spelling of a hero resolves through dota_constants.hero_id_from_any
+    (localized "Nature's Prophet", npc "npc_dota_hero_furion", "Furion").
     """
     text = str(value or "").strip()
     if not text or is_supported_hero(text):
         return None
-    hero_id = hero_id_from_name(text)
-    if hero_id is None:
-        npc = "npc_dota_hero_" + text.lower().replace(" ", "_").replace("-", "")
-        hero_id = NPC_TO_HERO_ID.get(npc)
+    hero_id = hero_id_from_any(text)
     return hero_name(hero_id) if hero_id is not None else None
 
 

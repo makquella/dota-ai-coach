@@ -91,7 +91,7 @@ class LocalApiSecurity:
             credential, self.auth.control.encode("ascii")
         )
         public = (
-            method in {"GET", "HEAD"} and (path in PUBLIC_PATHS or path.startswith("/frontend/"))
+            method in {"GET", "HEAD"} and (path in PUBLIC_PATHS or path.startswith("/debug/"))
         ) or method == "OPTIONS"
         gsi = path == "/gsi" and method == "POST"
         if not public and not gsi and not control:

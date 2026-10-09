@@ -665,14 +665,37 @@ test("a profile page without looks or avatar wears the free looks, and a bad ava
   assert.doesNotMatch(html, /<img src="https:\/\/evil/);
 });
 
-test("the profile page carries every look the launcher has", () => {
-  const css = readFileSync(new URL("../../../frontend/launcher/renderer/styles.css", import.meta.url), "utf8");
-  const looks = new Set(css.match(/\.cos-(?:frame|banner|name|title)_[a-z0-9_]+/g));
-  assert.ok(looks.size > 15);
-  const html = renderProfilePage({ ...CARD, name: "x", avatar: null, achievements: [], stats: { app_games: 0, app_winrate: null }, mmr: null }, { id: "4k7p9qx2", url: "" });
-  for (const cls of looks) {
-    assert.ok(html.includes(cls), `${cls} is not on the profile page`);
+// The cos- rules of a stylesheet, selector -> declarations, with whitespace,
+// comments and leading zeros folded and the launcher's tokens filled in.
+function lookRules(css, tokens = {}) {
+  const fold = (text) =>
+    text
+      .replace(/\/\*[\s\S]*?\*\//g, "")
+      .replace(/var\((--[a-z0-9-]+)\)/g, (all, name) => tokens[name] || all)
+      .replace(/\s+/g, " ")
+      .replace(/\s*([{}:;,>()])\s*/g, "$1")
+      .replace(/(^|[^0-9.])0\./g, "$1.")
+      .replace(/;$/, "")
+      .trim();
+  const rules = new Map();
+  for (const [, selector, body] of css.matchAll(/([^{}]+)\{([^{}]*)\}/g)) {
+    const key = fold(selector);
+    if (key.includes(".cos-")) {
+      rules.set(key, [rules.get(key), fold(body)].filter(Boolean).join(";"));
+    }
   }
+  return rules;
+}
+
+test("the profile page wears every look exactly as the launcher draws it", () => {
+  const read = (path) => readFileSync(new URL(`../../../frontend/launcher/${path}`, import.meta.url), "utf8");
+  const root = read("assets/ui/tokens.css").match(/:root\s*\{([^}]*)\}/)[1];
+  const tokens = Object.fromEntries([...root.matchAll(/(--[a-z0-9-]+)\s*:\s*([^;]+);/g)].map(([, name, value]) => [name, value.trim()]));
+  const launcher = lookRules(read("renderer/styles.css"), tokens);
+  assert.ok(launcher.size > 15);
+  const html = renderProfilePage({ ...CARD, name: "x", avatar: null, achievements: [], stats: { app_games: 0, app_winrate: null }, mmr: null }, { id: "4k7p9qx2", url: "" });
+  const page = lookRules([...html.matchAll(/<style>([\s\S]*?)<\/style>/g)].map((match) => match[1]).join("\n"));
+  assert.deepEqual(Object.fromEntries(page), Object.fromEntries(launcher));
 });
 
 test("a profile card is hidden with its token, by the device delete and after 180 days", async () => {

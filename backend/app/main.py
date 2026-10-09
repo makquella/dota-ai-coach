@@ -5,6 +5,7 @@ main.py — FastAPI application entry point for Wardly (formerly Dota AI Coach) 
 from collections.abc import AsyncIterator, Mapping
 from contextlib import asynccontextmanager
 from datetime import UTC, datetime, timedelta
+from pathlib import Path
 from time import monotonic
 from typing import Any
 
@@ -29,6 +30,7 @@ from app.config import (
     ADVICE_ROLE,
     BACKEND_PORT,
     GSI_STALE_SECONDS,
+    IS_FROZEN,
     LIVE_CONSERVATIVE_MODE,
     LLM_PROVIDER,
     MAP_HINTS,
@@ -116,7 +118,7 @@ app = LocalApiApp(
     lifespan=_lifespan,
     title="Wardly",
     description="MVP-1: rule-based carry coach with local knowledge-base RAG.",
-    version="0.53.48",
+    version="0.53.50",
 )
 app.include_router(player_router)
 
@@ -130,18 +132,29 @@ app.add_middleware(
 )
 app.add_middleware(LocalApiSecurity, auth=LOCAL_API_AUTH, port=BACKEND_PORT)
 
-FRONTEND_DIR = RESOURCE_ROOT / "frontend"
+# Legacy browser pages (a scenario form and a plain overlay) kept for developers
+# only: served at /debug/ from a source checkout, never from the frozen app and
+# never the rest of frontend/ (the launcher's sources and node_modules).
+DEBUG_PAGES_DIR = RESOURCE_ROOT / "frontend" / "debug"
+
+
+def debug_pages_dir(frozen: bool = IS_FROZEN, directory: Path = DEBUG_PAGES_DIR) -> Path | None:
+    """The developer pages to serve at /debug/, or None in the installed app."""
+    return None if frozen or not directory.is_dir() else directory
+
+
 _DEMO_CACHE_SECONDS = 8
 _DEMO_OVERLAY_CACHE = DemoOverlayCache(ttl_seconds=_DEMO_CACHE_SECONDS)
 
-if FRONTEND_DIR.exists():
-    app.mount("/frontend", StaticFiles(directory=FRONTEND_DIR, html=True), name="frontend")
+_DEBUG_PAGES = debug_pages_dir()
+if _DEBUG_PAGES is not None:
+    app.mount("/debug", StaticFiles(directory=_DEBUG_PAGES, html=True), name="debug-pages")
 
 
 @app.get("/", summary="Health check")
 def root():
     """Simple health-check endpoint."""
-    return {"status": "ok", "service": "Wardly", "version": "0.53.48"}
+    return {"status": "ok", "service": "Wardly", "version": "0.53.50"}
 
 
 @app.get("/health", summary="Health check")
