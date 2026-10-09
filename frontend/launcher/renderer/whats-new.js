@@ -9,6 +9,9 @@
 
   const TEXT = {
     en: {
+      "0.53.48": [
+        "Malformed game-phase containers no longer crash dead-hero GSI packets. Invalid event fields remain unknown, while valid pre-spawn behavior is preserved; the nightly fuzz regression is covered by real HTTP cases."
+      ],
       "0.53.47": [
         "Generated game-data and Python dependency updates validate their immutable PR head directly, including Windows packaging. Shared Node/Python version files, scheduled dependency PRs and separate all-profile audit reports keep maintenance reviewable."
       ],
@@ -460,6 +463,9 @@
       ]
     },
     ru: {
+      "0.53.48": [
+        "Словарь или список вместо фазы игры больше не ломает GSI-пакет погибшего героя. Некорректные поля события остаются неизвестными, а обычное pre-spawn поведение сохранено; сбой nightly fuzz покрыт реальными HTTP-проверками."
+      ],
       "0.53.47": [
         "Автоматические обновления данных игры и Python-зависимостей проверяют свой SHA напрямую, включая Windows-сборку. Общие версии Node/Python, регулярные PR обновлений и отдельные отчёты аудита сохраняют возможность проверки изменений."
       ],

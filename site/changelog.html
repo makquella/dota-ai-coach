@@ -98,6 +98,14 @@
       <article data-doc="ru" lang="ru">
         <h1>Что нового</h1>
         <p class="doc-updated">Все версии Wardly. Установленное приложение обновляется само, когда Дота закрыта.</p>
+<section class="release" id="v0.53.48">
+<h2><a href="#v0.53.48">Версия 0.53.48</a></h2>
+<ul>
+  <li><strong>Некорректная фаза GSI не ломает совет.</strong> Пакет с погибшим героем и словарём/списком вместо фазы больше не вызывает HTTP 500. Нестроковые поля события остаются неизвестными и не превращаются в текст о давлении или драке.</li>
+  <li><strong>Регрессия nightly fuzz покрыта.</strong> Добавлены реальные HTTP-проверки повреждённых фаз и контроля обычного pre-spawn поведения; повторяется найденный seed ночного прогона.</li>
+</ul>
+<p class="release-link"><a href="https://github.com/makquella/dota-ai-coach/releases/tag/v0.53.48" rel="noopener">Скачать и подробности</a></p>
+</section>
 <section class="release" id="v0.53.47">
 <h2><a href="#v0.53.47">Версия 0.53.47</a></h2>
 <ul>
@@ -1258,6 +1266,14 @@
       <article data-doc="en" lang="en" hidden>
         <h1>What's new</h1>
         <p class="doc-updated">Every Wardly version. The installed app updates itself while Dota is closed.</p>
+<section class="release" id="v0.53.48">
+<h2><a href="#v0.53.48">Version 0.53.48</a></h2>
+<ul>
+  <li><strong>Malformed GSI phases keep the live path working.</strong> Dead-hero packets with container phase values no longer cause HTTP 500. Non-text event fields stay unknown rather than becoming pressure/fight text.</li>
+  <li><strong>Nightly fuzz regression is covered.</strong> Actual HTTP checks cover malformed phases and preserve valid pre-spawn behavior, supplemented by replaying the failing nightly seed.</li>
+</ul>
+<p class="release-link"><a href="https://github.com/makquella/dota-ai-coach/releases/tag/v0.53.48" rel="noopener">Download and details</a></p>
+</section>
 <section class="release" id="v0.53.47">
 <h2><a href="#v0.53.47">Version 0.53.47</a></h2>
 <ul>

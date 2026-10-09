@@ -68,6 +68,8 @@ These are acceptance tasks too. They are not included in the 17-finding percenta
   duplicate retry protection, stale/cancel guards and atomic history append.
 - [ ] Local operations health: job age/running/pending, persistence ack/error,
   queue depth, bounded latency observations and source freshness in developer UI.
+- [x] Investigate and fix the observed nightly fuzz seed-12 dead-hero phase
+  container regression (0.53.48); preserve unknown signals and normal phases.
 - [ ] More sanitized support/mid role replay acceptance cases and a fixed-clock
   compact regression runner over the existing simulation tools.
 - [ ] Patch/source/rules/input versions, as-of/sample count where relevant, rebuild
