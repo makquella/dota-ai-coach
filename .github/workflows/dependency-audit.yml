@@ -1,0 +1,92 @@
+name: Dependency audit reports
+
+on:
+  schedule:
+    - cron: "13 7 * * 3"
+  workflow_dispatch:
+  workflow_call:
+    inputs:
+      source_sha:
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  npm:
+    name: Audit npm runtime and build dependencies
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - directory: frontend/launcher
+            label: desktop
+          - directory: services/api
+            label: worker
+    defaults:
+      run:
+        working-directory: ${{ matrix.directory }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.source_sha || github.sha }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .node-version
+          cache: npm
+          cache-dependency-path: ${{ matrix.directory }}/package-lock.json
+      - run: npm ci --no-audit --no-fund
+      - name: Produce full dependency advisory report
+        id: audit
+        continue-on-error: true
+        run: npm audit --json > audit.json
+      - name: Record scan outcome
+        if: always()
+        env:
+          AUDIT_OUTCOME: ${{ steps.audit.outcome }}
+        run: node -e 'console.log("Advisory scan outcome:", process.env.AUDIT_OUTCOME, "(inspect report; success is not required for artifact retention)")'
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: dependency-audit-npm-${{ matrix.label }}
+          path: ${{ matrix.directory }}/audit.json
+          if-no-files-found: error
+          retention-days: 30
+  python:
+    name: Audit Python runtime, dev and build profiles
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.source_sha || github.sha }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version-file: .python-version
+          cache: pip
+          cache-dependency-path: backend/requirements-dev.txt
+      - run: 'python -m pip install --require-hashes --only-binary=:all: -r backend/requirements-dev.txt'
+      - name: Produce all-profile advisory report
+        env:
+          UV_CACHE_DIR: ${{ runner.temp }}/wardly-audit-cache
+          UV_TOOL_DIR: ${{ runner.temp }}/wardly-audit-tools
+        id: audit
+        continue-on-error: true
+        run: python -m uv tool run --python 3.11 --from pip-audit==2.9.0 pip-audit --cache-dir "${{ runner.temp }}/wardly-pypi-audit" --no-deps --disable-pip --format json -r backend/requirements-dev.txt -r backend/requirements-build.txt --output python-audit.json
+      - name: Record scan outcome
+        if: always()
+        env:
+          AUDIT_OUTCOME: ${{ steps.audit.outcome }}
+        run: python -c "import os; print('Advisory scan outcome:', os.environ['AUDIT_OUTCOME'], '(inspect report; artifact retention is independent of advisories)')"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: dependency-audit-python-${{ matrix.os }}
+          path: python-audit.json
+          if-no-files-found: error
+          retention-days: 30
