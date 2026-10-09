@@ -37,6 +37,8 @@ LOCAL_META = {
     "primary_source",
     "opendota_api_key",
     "ai_settings",
+    "auto_backup",
+    "auto_backup_app_version",
 }
 SECRET = re.compile(r"key|token|secret|password", re.IGNORECASE)
 # The AI coach's reviews and answers (the model's quota was spent on them).
@@ -211,6 +213,38 @@ def _validate_row(table: str, raw: dict[str, Any]) -> dict[str, Any]:
 
 def import_backup(store: PlayerStore, data: Any) -> dict[str, Any]:
     """Validate all accepted rows before atomically merging the history."""
+    validated, account = validate_backup(data)
+    try:
+        return store.merge_backup(validated, account)
+    except sqlite3.Error as error:
+        record_error(
+            "history-backup", f"Restore rolled back: {type(error).__name__}", with_trace=False
+        )
+        raise BackupError(
+            "restore_failed", "Could not restore the history; no changes were saved."
+        ) from None
+
+
+def preview_backup(store: PlayerStore, data: Any) -> dict[str, Any]:
+    """What import_backup would add and fill in, with nothing written."""
+    validated, account = validate_backup(data)
+    try:
+        result = store.preview_backup(validated, account)
+    except sqlite3.Error as error:
+        record_error("history-backup", f"Preview failed: {type(error).__name__}", with_trace=False)
+        raise BackupError("restore_failed", "Could not read the history to compare.") from None
+    counts = data.get("counts") if isinstance(data.get("counts"), dict) else {}
+    return {
+        **result,
+        "preview": True,
+        "created_at": data.get("created_at"),
+        "app_version": data.get("app_version"),
+        "matches_in_backup": counts.get("matches"),
+    }
+
+
+def validate_backup(data: Any) -> tuple[dict[str, list[dict[str, Any]]], int | None]:
+    """Every accepted row checked; the backup's account. BackupError otherwise."""
     if not isinstance(data, dict) or data.get("format") != FORMAT:
         raise BackupError("not_backup", "This file is not a Wardly history backup.")
     version = data.get("version")
@@ -244,12 +278,4 @@ def import_backup(store: PlayerStore, data: Any) -> dict[str, Any]:
                     continue
             accepted.append(_validate_row(table, row))
         validated[table] = accepted
-    try:
-        return store.merge_backup(validated, account)
-    except sqlite3.Error as error:
-        record_error(
-            "history-backup", f"Restore rolled back: {type(error).__name__}", with_trace=False
-        )
-        raise BackupError(
-            "restore_failed", "Could not restore the history; no changes were saved."
-        ) from None
+    return validated, account

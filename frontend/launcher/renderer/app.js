@@ -134,6 +134,17 @@ const factEls = {
   mode: $("#mode-status"),
   llm: $("#llm-status")
 };
+// «Автоматические копии» (renderBackups below; init() binds them before the end of this file).
+const autoBackupEls = {
+  toggle: $("#auto-backup"),
+  status: $("#auto-backup-status"),
+  list: $("#auto-backup-list"),
+  now: $("#auto-backup-now")
+};
+let lastBackups = null;
+let backupsLocale = "";
+let backupsLoaded = false;
+
 const liveEls = {
   connection: $("#live-connection"),
   last: $("#live-last"),
@@ -460,6 +471,27 @@ async function init() {
     }
   }
   els.backupExport.addEventListener("click", () => run(() => backupRun(() => window.launcherApi.exportHistory())));
+  autoBackupEls.toggle.addEventListener("change", () =>
+    run(async () => {
+      const result = await window.launcherApi.player("backupSettings", { enabled: autoBackupEls.toggle.checked });
+      if (result.ok) {
+        renderBackups(result.data);
+      }
+    })
+  );
+  autoBackupEls.now.addEventListener("click", () =>
+    run(async () => {
+      autoBackupEls.now.disabled = true;
+      autoBackupEls.status.textContent = tr("autoBackupMaking");
+      try {
+        const result = await window.launcherApi.player("backupMake");
+        await refreshBackups();
+        autoBackupEls.status.textContent = tr(result.ok ? "autoBackupMade" : "autoBackupFailed");
+      } finally {
+        autoBackupEls.now.disabled = false;
+      }
+    })
+  );
   // The same history by a one-time code (main.js sendHistoryByCode / receiveHistoryByCode).
   const transferError = (code) => trOr(`transferErrors.${code}`, tr("transferErrors.fallback"));
   async function transferRun(button, busyText, action) {
@@ -964,6 +996,12 @@ function renderStatus(status) {
   renderFacts(status);
   if (lastOps && opsLocale !== locale) {
     renderOps(lastOps);
+  }
+  if (status.backend === "running" && !backupsLoaded) {
+    backupsLoaded = true;
+    run(refreshBackups);
+  } else if (lastBackups && backupsLocale !== locale) {
+    renderBackups(lastBackups);
   }
   renderControlButtons(status);
   renderLogMode(status.logMode || "clean");
@@ -1784,6 +1822,91 @@ function renderOps(health) {
     ...(warnings.length ? warnings : [tr("opsAllGood")]).map((text) => Object.assign(document.createElement("li"), { textContent: text }))
   );
   warningsEl.dataset.state = warnings.length ? "bad" : "good";
+}
+
+// «Автоматические копии» (backend auto_backup.py): the switch, «Сделать копию
+// сейчас» and each copy with «Проверить» (a preview that writes nothing), then
+// «Восстановить» when it would add something.
+
+async function refreshBackups() {
+  const result = await window.launcherApi.player("backups");
+  if (result.ok) {
+    renderBackups(result.data);
+  }
+}
+
+function backupSize(bytes) {
+  const ru = locale === "ru";
+  const mb = Number(bytes || 0) / 1048576;
+  return mb >= 1 ? `${mb.toFixed(1)} ${ru ? "МБ" : "MB"}` : `${Math.max(1, Math.round(Number(bytes || 0) / 1024))} ${ru ? "КБ" : "KB"}`;
+}
+
+function backupDate(iso) {
+  const date = new Date(iso);
+  return Number.isNaN(date.getTime())
+    ? ""
+    : date.toLocaleString(locale === "ru" ? "ru-RU" : "en-GB", { day: "numeric", month: "long", hour: "2-digit", minute: "2-digit" });
+}
+
+function renderBackups(state) {
+  lastBackups = state || {};
+  backupsLocale = locale;
+  const items = Array.isArray(lastBackups.items) ? lastBackups.items : [];
+  autoBackupEls.toggle.checked = lastBackups.enabled !== false;
+  autoBackupEls.status.textContent = lastBackups.enabled === false ? tr("autoBackupOff") : items.length ? "" : tr("autoBackupNone");
+  autoBackupEls.list.replaceChildren(
+    ...items.map((item) => {
+      const row = document.createElement("li");
+      row.className = "auto-backup-item";
+      const label = document.createElement("span");
+      label.textContent = tr("autoBackupItem", backupDate(item.created_at), trOr(`autoBackupKinds.${item.kind}`, item.kind), item.matches, backupSize(item.size));
+      const note = document.createElement("span");
+      note.className = "setting-hint";
+      note.setAttribute("aria-live", "polite");
+      const check = document.createElement("button");
+      check.type = "button";
+      check.className = "btn btn-sm btn-ghost";
+      check.textContent = tr("autoBackupCheck");
+      const restore = document.createElement("button");
+      restore.type = "button";
+      restore.className = "btn btn-sm";
+      restore.textContent = tr("autoBackupRestore");
+      restore.classList.add("hidden");
+      check.addEventListener("click", () =>
+        run(async () => {
+          check.disabled = true;
+          note.textContent = tr("autoBackupChecking");
+          const result = await window.launcherApi.player("backupPreview", { backupId: item.id });
+          check.disabled = false;
+          if (!result.ok || !result.data || !result.data.preview) {
+            note.textContent = tr(result.data && result.data.code === "not_backup" ? "autoBackupBroken" : "backupFailed");
+            return;
+          }
+          const imported = result.data.imported || {};
+          const added = Number(imported.matches?.added || 0);
+          const filled = ["players", "matches", "meta", "cache"].reduce((sum, table) => sum + Number(imported[table]?.filled || 0), 0);
+          note.textContent = tr("autoBackupPreview", added, filled);
+          restore.classList.toggle("hidden", !(added || filled || Object.values(imported).some((part) => Number(part?.added || 0))));
+        })
+      );
+      restore.addEventListener("click", () =>
+        run(async () => {
+          restore.disabled = true;
+          const result = await window.launcherApi.player("backupRestore", { backupId: item.id });
+          restore.disabled = false;
+          restore.classList.add("hidden");
+          note.textContent = result.ok && result.data && result.data.imported
+            ? tr("autoBackupRestored", Number(result.data.imported.matches?.added || 0))
+            : tr(result.data && result.data.code === "not_backup" ? "autoBackupBroken" : "backupRestoreFailed");
+        })
+      );
+      const actions = document.createElement("span");
+      actions.className = "auto-backup-actions";
+      actions.append(check, restore);
+      row.append(label, actions, note);
+      return row;
+    })
+  );
 }
 
 function renderLogs(logs) {

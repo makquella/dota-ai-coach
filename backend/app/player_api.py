@@ -273,6 +273,67 @@ def import_history(data: Annotated[dict, Body()]):
         )
 
 
+# Automatic local copies (auto_backup.py): list, make, preview, restore.
+BackupId = Annotated[
+    str, Path(pattern=r"^wardly-backup-\d{8}T\d{6}Z-(weekly|update|manual)\.json\.gz$")
+]
+
+
+class BackupSettingsRequest(BaseModel):
+    enabled: bool
+
+
+def _backup_error(error: BackupError) -> JSONResponse:
+    return JSONResponse(
+        status_code=503 if error.code == "restore_failed" else 400,
+        content={"status": "error", "code": error.code, "detail": str(error)},
+    )
+
+
+def _backup_missing() -> JSONResponse:
+    return JSONResponse(status_code=404, content={"status": "error", "code": "backup_not_found"})
+
+
+@router.get("/backups", summary="Automatic local copies of the history")
+def list_backups():
+    return PLAYER_SERVICE.backups_status()
+
+
+@router.post("/backups", summary="Make a local copy of the history now")
+def make_backup(request: Request):
+    return {"ok": True, "item": PLAYER_SERVICE.make_backup(str(request.app.version))}
+
+
+@router.post("/backups/auto", summary="Make the weekly or update copy when due")
+def auto_backup(request: Request):
+    return PLAYER_SERVICE.auto_backup(str(request.app.version))
+
+
+@router.post("/backups/settings", summary="Turn automatic local copies on or off")
+def backup_settings(request: BackupSettingsRequest):
+    return PLAYER_SERVICE.set_backups_enabled(request.enabled)
+
+
+@router.get("/backups/{backup_id}/preview", summary="What restoring a copy would add")
+def preview_backup(backup_id: BackupId):
+    try:
+        return PLAYER_SERVICE.preview_backup_copy(backup_id)
+    except KeyError:
+        return _backup_missing()
+    except BackupError as error:
+        return _backup_error(error)
+
+
+@router.post("/backups/{backup_id}/restore", summary="Merge a local copy back (adds only)")
+def restore_backup(backup_id: BackupId):
+    try:
+        return PLAYER_SERVICE.restore_backup_copy(backup_id)
+    except KeyError:
+        return _backup_missing()
+    except BackupError as error:
+        return _backup_error(error)
+
+
 class FriendRequest(BaseModel):
     steam: str
 

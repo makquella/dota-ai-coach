@@ -28,6 +28,7 @@ from __future__ import annotations
 import contextlib
 import json
 import re
+import sqlite3
 import threading
 import time
 from collections import Counter
@@ -36,9 +37,10 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
-from app import cosmetics, rank_history, stratz_builds
+from app import auto_backup, cosmetics, rank_history, stratz_builds
 from app.analysis_texts import rank_label, render_analysis
 from app.ask_runs import AskRuns
+from app.auto_backup import AutoBackups
 from app.career_analysis import NOT_RECURRING, analyze_career
 from app.coach_llm import PROVIDERS, AISettings, CoachLLM, CoachLLMError, settings_from
 from app.coach_review import (
@@ -68,7 +70,7 @@ from app.friend_compare import compare
 from app.game_plan import build_game_plan, key_item
 from app.hero_meta import item_key, start_items
 from app.hero_profiles import get_hero_position
-from app.history_backup import export_backup, import_backup
+from app.history_backup import export_backup, import_backup, preview_backup
 from app.home_summary import home_summary
 from app.job_queue import JOB_STOP_TIMEOUT_SECONDS, JobQueue
 from app.lane_duel import lane_records
@@ -91,7 +93,7 @@ from app.personal_baseline import personal_baseline
 from app.player_contracts import analysis_core_valid
 from app.player_goals import goal_streaks, tilt
 from app.player_profile import MMR_MAX, MMR_MIN, add_anchor, build_profile
-from app.player_store import PlayerStore
+from app.player_store import SCHEMA_VERSION, PlayerStore
 from app.post_game import post_game_card
 from app.post_match_analysis import ANALYSIS_VERSION, analyze_match
 from app.schemas import is_supported_hero
@@ -144,6 +146,13 @@ REPEATS_LOOKUP = 25
 ASK_CACHE_KEY = "coach:ask"
 ASK_HISTORY = 5
 ASK_TIMEOUT_SECONDS = 60.0
+# Automatic local copies (auto_backup.py): meta "auto_backup" = "off" turns
+# them off; the app version of the last copy marks an update.
+AUTO_BACKUP_META = "auto_backup"
+AUTO_BACKUP_VERSION_META = "auto_backup_app_version"
+AUTO_BACKUP_EVERY_SECONDS = auto_backup.EVERY_SECONDS
+AUTO_BACKUP_KEEP = auto_backup.KEEP
+AUTO_BACKUP_BUDGET = auto_backup.BUDGET_BYTES
 # The whole question, both attempts: past this the second attempt is not started,
 # so the answer (or an error) comes within this plus one call, under the
 # launcher's 150-second wait. A second request with the same id waits as long.
@@ -280,6 +289,10 @@ class PlayerService:
     ) -> None:
         self.data_dir = Path(data_dir)
         self.client = client
+        # A schema change ahead: a copy of the SQLite file as it was, first.
+        self.backups = AutoBackups(self.data_dir / "backups")
+        with contextlib.suppress(OSError, sqlite3.Error):
+            self.backups.pre_migration_snapshot(self.data_dir / "coach.sqlite3", SCHEMA_VERSION)
         self.store = PlayerStore(self.data_dir / "coach.sqlite3")
         # Stored keys under the OS's protection (DPAPI on Windows); keys an
         # older version left in plain text are sealed now.
@@ -1133,6 +1146,55 @@ class PlayerService:
         if result["linked"]:
             self.request_sync()
         return result
+
+    # --- automatic local copies (auto_backup.py) ----------------------------------------
+
+    def backups_status(self) -> dict[str, Any]:
+        return {
+            "enabled": self.store.get_meta(AUTO_BACKUP_META) != "off",
+            "every_days": AUTO_BACKUP_EVERY_SECONDS // 86400,
+            "keep": AUTO_BACKUP_KEEP,
+            "budget_mb": AUTO_BACKUP_BUDGET // (1024 * 1024),
+            "items": self.backups.items(),
+        }
+
+    def set_backups_enabled(self, enabled: bool) -> dict[str, Any]:
+        self.store.set_meta(AUTO_BACKUP_META, None if enabled else "off")
+        return self.backups_status()
+
+    def make_backup(self, app_version: str, kind: str = "manual") -> dict[str, Any]:
+        """A copy now (the launcher's «Сделать копию сейчас», or a due automatic one)."""
+        item = self.backups.write(self.export_backup(app_version), kind)
+        self.store.set_meta(AUTO_BACKUP_VERSION_META, app_version)
+        return item
+
+    def auto_backup(self, app_version: str) -> dict[str, Any]:
+        """Called by the launcher once a day: a copy when the newest is a week old,
+        or the first time a new app version runs (the history before an update)."""
+        if self.store.get_meta(AUTO_BACKUP_META) == "off":
+            return {"made": None, "reason": "off"}
+        last_version = self.store.get_meta(AUTO_BACKUP_VERSION_META)
+        age = self.backups.newest_age()
+        if last_version and last_version != app_version:
+            kind = "update"
+        elif age is None or age >= AUTO_BACKUP_EVERY_SECONDS:
+            kind = "weekly"
+        else:
+            return {"made": None, "reason": "recent"}
+        data = self.export_backup(app_version)
+        if not (data.get("counts") or {}).get("matches"):
+            # Nothing to keep yet; the version is remembered for the next update.
+            self.store.set_meta(AUTO_BACKUP_VERSION_META, app_version)
+            return {"made": None, "reason": "empty"}
+        item = self.backups.write(data, kind)
+        self.store.set_meta(AUTO_BACKUP_VERSION_META, app_version)
+        return {"made": item, "reason": kind}
+
+    def preview_backup_copy(self, backup_id: str) -> dict[str, Any]:
+        return preview_backup(self.store, self.backups.read(backup_id))
+
+    def restore_backup_copy(self, backup_id: str) -> dict[str, Any]:
+        return self.import_backup(self.backups.read(backup_id))
 
     # --- compare with a friend (friend_compare.py) --------------------------------------
 
