@@ -3,6 +3,12 @@ name: Validate generated refresh
 # Workflow-token PRs do not trigger ordinary pull_request CI. Run it directly
 # on the generated commit, then publish an honest result on that immutable SHA.
 on:
+  workflow_dispatch:
+    inputs:
+      source_sha:
+        description: Immutable commit to validate without fetching new source data
+        required: true
+        type: string
   workflow_call:
     inputs:
       source_sha:

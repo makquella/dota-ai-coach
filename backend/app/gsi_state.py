@@ -306,13 +306,13 @@ def normalize_gsi_payload(
     hero_block = _dict_value(payload.get("hero"))
     player_block = _dict_value(payload.get("player"))
     map_block = _dict_value(payload.get("map"))
+    phase = map_block.get("game_state")
+    pre_spawn = isinstance(phase, str) and phase in _PRE_SPAWN_STATES
     # Before the heroes spawn (strategy time, the showcase, loading) GSI reports the
     # picked hero as not alive: that is no death (a «respawn» card came at 00:00).
     # Nor is the first second of the pre-game, when the hero is being placed on the
     # map: not alive with no death counted yet (a «plan a safer route» card at -1:28).
-    if hero_block.get("alive") is False and (
-        map_block.get("game_state") in _PRE_SPAWN_STATES or player_block.get("deaths") == 0
-    ):
+    if hero_block.get("alive") is False and (pre_spawn or player_block.get("deaths") == 0):
         hero_block = {**hero_block, "alive": True}
         payload = {**payload, "hero": hero_block}
 
@@ -741,12 +741,15 @@ def normalize_abilities(value: Any) -> list[dict[str, Any]]:
 
 
 def _normalize_game_state(payload: dict[str, Any], map_block: dict[str, Any]) -> str:
-    state = _first_value(
+    candidates = (
         payload.get("game_state"),
         payload.get("event"),
         map_block.get("name"),
         map_block.get("game_state"),
     )
+    # Container reprs can contain words such as "pressure"/"fight". They are
+    # invalid event/phase signals, rather than advice context or hashable enums.
+    state = next((value for value in candidates if isinstance(value, str)), None)
     return str(state or "gsi_update").strip() or "gsi_update"
 
 
