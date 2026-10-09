@@ -1,0 +1,66 @@
+name: Refresh Python dependency locks
+
+on:
+  schedule:
+    - cron: "47 6 1 * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: python-dependency-refresh
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: write
+      pull-requests: write
+    outputs:
+      head_sha: ${{ steps.pr.outputs.pull-request-head-sha }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version-file: .python-version
+          cache: pip
+          cache-dependency-path: backend/requirements-dev.txt
+      - run: 'python -m pip install --require-hashes --only-binary=:all: -r backend/requirements-dev.txt'
+      - name: Refresh all compatible Python profiles with the pinned compiler
+        run: python scripts/lock_python_dependencies.py --upgrade
+      - name: Show exact lockfile change summary
+        run: git diff --stat -- backend/requirements.txt backend/requirements-dev.txt backend/requirements-build.txt >> "$GITHUB_STEP_SUMMARY"
+      - name: Open or update the reviewable dependency PR
+        id: pr
+        uses: peter-evans/create-pull-request@v7
+        with:
+          branch: chore/python-dependencies
+          commit-message: Refresh Python runtime, development and build locks
+          title: Refresh Python dependency locks
+          body: |
+            Recompile the runtime, development and build profiles with the pinned universal/hash compiler.
+            The workflow directly validates the immutable PR head with full reusable CI, including Windows packaging.
+            Advisory reports are retained separately for triage. Compiler/mypy contract changes need deliberate review; this workflow does not add type allowances or auto-merge.
+          add-paths: |
+            backend/requirements.txt
+            backend/requirements-dev.txt
+            backend/requirements-build.txt
+          delete-branch: true
+  validate:
+    needs: refresh
+    if: needs.refresh.outputs.head_sha != ''
+    permissions:
+      contents: read
+      checks: write
+    uses: ./.github/workflows/refresh-validation.yml
+    with:
+      source_sha: ${{ needs.refresh.outputs.head_sha }}
+  audit:
+    needs: refresh
+    if: needs.refresh.outputs.head_sha != ''
+    uses: ./.github/workflows/dependency-audit.yml
+    with:
+      source_sha: ${{ needs.refresh.outputs.head_sha }}

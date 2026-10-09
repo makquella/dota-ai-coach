@@ -9,6 +9,9 @@
 
   const TEXT = {
     en: {
+      "0.53.47": [
+        "Generated game-data and Python dependency updates validate their immutable PR head directly, including Windows packaging. Shared Node/Python version files, scheduled dependency PRs and separate all-profile audit reports keep maintenance reviewable."
+      ],
       "0.53.46": [
         "Advice history handles duplicate appends and reset safely, and recent requests copy only selected records. Live messages include stable IDs and parameters so unchanged translations reuse bounded caches, preserving English originals and unknown-text fallback."
       ],
@@ -457,6 +460,9 @@
       ]
     },
     ru: {
+      "0.53.47": [
+        "Автоматические обновления данных игры и Python-зависимостей проверяют свой SHA напрямую, включая Windows-сборку. Общие версии Node/Python, регулярные PR обновлений и отдельные отчёты аудита сохраняют возможность проверки изменений."
+      ],
       "0.53.46": [
         "История защищает добавление повторов и reset, а последние советы копируют только выбранные записи. Live-тексты получают стабильные ID и параметры для ограниченного кэша перевода; английский оригинал и неизвестные фразы сохраняются."
       ],

@@ -15,8 +15,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
-  pull-requests: write
+  contents: read
 
 concurrency:
   group: stratz-builds
@@ -24,13 +23,18 @@ concurrency:
 
 jobs:
   refresh:
+    permissions:
+      contents: write
+      pull-requests: write
+    outputs:
+      head_sha: ${{ steps.pr.outputs.pull-request-head-sha }}
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
-          python-version: "3.11"
+          python-version-file: .python-version
           cache: pip
           cache-dependency-path: backend/requirements-dev.txt
       - name: Install
@@ -46,7 +50,10 @@ jobs:
       - name: Check the new file
         working-directory: backend
         run: python -m pytest -q tests/test_stratz_builds.py tests/test_game_plan.py tests/test_gold_tips.py
+      - name: Show exact data change summary
+        run: git diff --stat -- data/meta/stratz_builds.json >> "$GITHUB_STEP_SUMMARY"
       - name: Open a pull request when it changed
+        id: pr
         uses: peter-evans/create-pull-request@v7
         with:
           branch: chore/stratz-builds
@@ -55,5 +62,15 @@ jobs:
           body: |
             `backend/scripts/build_stratz_builds.py` rebuilt `data/meta/stratz_builds.json` from STRATZ (Divine–Immortal games).
             The overlay's start card, the game plan and the quick-buy step use it after the next release.
+            Full reusable CI directly checks this PR head; inspect the generated-refresh validation check before merge.
           add-paths: data/meta/stratz_builds.json
           delete-branch: true
+  validate:
+    needs: refresh
+    if: needs.refresh.outputs.head_sha != ''
+    permissions:
+      contents: read
+      checks: write
+    uses: ./.github/workflows/refresh-validation.yml
+    with:
+      source_sha: ${{ needs.refresh.outputs.head_sha }}

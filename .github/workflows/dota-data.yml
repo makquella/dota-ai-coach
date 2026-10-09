@@ -13,17 +13,21 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
-  pull-requests: write
+  contents: read
 
 jobs:
   refresh:
+    permissions:
+      contents: write
+      pull-requests: write
+    outputs:
+      head_sha: ${{ steps.pr.outputs.pull-request-head-sha }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
-          python-version: "3.11"
+          python-version-file: .python-version
           cache: pip
           cache-dependency-path: backend/requirements.txt
       - name: Install
@@ -34,10 +38,19 @@ jobs:
         run: python scripts/build_dota_data.py
       # The workflow token's pull request starts no CI: the launcher's tests that
       # read dota-data.js run here first.
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .node-version
       - name: Check the new file
         working-directory: frontend/launcher
         run: node --check renderer/dota-data.js && node --test test/dota-icons.test.js
+      - name: Check heroes
+        working-directory: backend
+        run: python scripts/build_dota_data.py --check-heroes
+      - name: Show exact data change summary
+        run: git diff --stat -- frontend/launcher/renderer/dota-data.js >> "$GITHUB_STEP_SUMMARY"
       - name: Open a pull request when it changed
+        id: pr
         uses: peter-evans/create-pull-request@v7
         with:
           branch: chore/dota-data
@@ -46,8 +59,15 @@ jobs:
           body: |
             `backend/scripts/build_dota_data.py` found new or renamed items in OpenDota's dotaconstants.
             Regenerated `frontend/launcher/renderer/dota-data.js`; the launcher shows their icons after the next release.
+            Full reusable CI directly checks this PR head; inspect the generated-refresh validation check before merge.
           add-paths: frontend/launcher/renderer/dota-data.js
           delete-branch: true
-      - name: Check heroes
-        working-directory: backend
-        run: python scripts/build_dota_data.py --check-heroes
+  validate:
+    needs: refresh
+    if: needs.refresh.outputs.head_sha != ''
+    permissions:
+      contents: read
+      checks: write
+    uses: ./.github/workflows/refresh-validation.yml
+    with:
+      source_sha: ${{ needs.refresh.outputs.head_sha }}
