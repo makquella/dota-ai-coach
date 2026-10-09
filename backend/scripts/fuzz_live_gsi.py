@@ -182,9 +182,16 @@ def _send(
 ) -> list[dict[str, Any]]:
     from fastapi.testclient import TestClient
 
+    from app.local_api_auth import LOCAL_API_AUTH, LOCAL_API_URL
     from app.main import app
 
-    with TestClient(app, raise_server_exceptions=False) as client:
+    with TestClient(
+        app,
+        base_url=LOCAL_API_URL,
+        headers=LOCAL_API_AUTH.headers,
+        client=("127.0.0.1", 50000),
+        raise_server_exceptions=False,
+    ) as client:
         sent = 0
         while sent < payloads:
             stream = rng.choice(streams)

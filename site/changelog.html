@@ -98,6 +98,327 @@
       <article data-doc="ru" lang="ru">
         <h1>Что нового</h1>
         <p class="doc-updated">Все версии Wardly. Установленное приложение обновляется само, когда Дота закрыта.</p>
+<section class="release" id="v0.53.46">
+<h2><a href="#v0.53.46">Версия 0.53.46</a></h2>
+<ul>
+  <li><strong>История советов защищена от гонок.</strong> Одновременные повторы добавляют одну карточку; reset отклоняет подготовленную запись старой сессии. Запрос последних советов копирует только нужные записи.</li>
+  <li><strong>Перевод по ID и параметрам.</strong> Live-карточки сохраняют английский оригинал и получают описание текста. Неизменённые повторные запросы используют ограниченный кэш; неизвестные фразы остаются на английском целиком.</li>
+</ul>
+<p class="release-link"><a href="https://github.com/makquella/dota-ai-coach/releases/tag/v0.53.46" rel="noopener">Скачать и подробности</a></p>
+</section>
+<section class="release" id="v0.53.45">
+<h2><a href="#v0.53.45">Версия 0.53.45</a></h2>
+<ul>
+  <li><strong>База знаний читается один раз.</strong> Приложение загружает Markdown при запуске; в режиме разработки изменения файлов обновляют кэш. Ошибка обновления сохраняет последний целый набор и отмечается в диагностике.</li>
+  <li><strong>Меньше работы при повторных советах.</strong> Ранние проверки scheduler отсекают повтор, cooldown и отсутствие совета до поиска контекста. Формулировки, фильтрация купленных предметов и правила советов сохранены.</li>
+</ul>
+<p class="release-link"><a href="https://github.com/makquella/dota-ai-coach/releases/tag/v0.53.45" rel="noopener">Скачать и подробности</a></p>
+</section>
+<section class="release" id="v0.53.44">
+<h2><a href="#v0.53.44">Версия 0.53.44</a></h2>
+<ul>
+  <li><strong>Сбои записи видны в диагностике.</strong> Census подтверждает сохранение после успешной замены файла и повторяет неудачную попытку с паузой. Отладочная запись останавливается при ошибке, сохраняя уже записанные данные и live-ответы.</li>
+  <li><strong>Настройки продолжают работать в памяти.</strong> Ошибка файла не подтверждается как успешное сохранение; следующая правка может повторить запись. Диагностика содержит код ошибки и счётчики без значений настроек.</li>
+</ul>
+<p class="release-link"><a href="https://github.com/makquella/dota-ai-coach/releases/tag/v0.53.44" rel="noopener">Скачать и подробности</a></p>
+</section>
+<section class="release" id="v0.53.43">
+<h2><a href="#v0.53.43">Версия 0.53.43</a></h2>
+<ul>
+  <li><strong>Прокачка без цикла импорта.</strong> Названия и поля способностей нормализуются в чистом модуле, который используют GSI и skill build. Совместимые функции, нули, неизвестные значения и правила советов сохранены.</li>
+  <li><strong>Строже проверка backend.</strong> Удалено глобальное исключение F841; вызов, обновляющий игровой clock, сохранён без неиспользованного присваивания. Новые чистые модули проверяются strict mypy.</li>
+</ul>
+<p class="release-link"><a href="https://github.com/makquella/dota-ai-coach/releases/tag/v0.53.43" rel="noopener">Скачать и подробности</a></p>
+</section>
+<section class="release" id="v0.53.42">
+<h2><a href="#v0.53.42">Версия 0.53.42</a></h2>
+<ul>
+  <li><strong>Переносимые проверки разработки.</strong> <code>scripts/dev.py</code> учитывает staged, unstaged и untracked файлы, выбирает проверки потребителей и показывает точные команды и рабочие каталоги. Shared и неизвестные границы расширяют проверки.</li>
+  <li><strong>Единая версия выпуска.</strong> Отдельная проверка и CI сверяют обе версии backend, launcher package/lock, RU/EN каталог и release notes. Optional hooks проверяют один файл и дают подсказку; по умолчанию они выключены.</li>
+</ul>
+<p class="release-link"><a href="https://github.com/makquella/dota-ai-coach/releases/tag/v0.53.42" rel="noopener">Скачать и подробности</a></p>
+</section>
+<section class="release" id="v0.53.41">
+<h2><a href="#v0.53.41">Версия 0.53.41</a></h2>
+<ul>
+  <li><strong>API остаётся отзывчивым во время обработки игры.</strong> Игровые пакеты и demo обрабатываются в рабочем потоке вместе с файловыми операциями; основной event loop освобождён.</li>
+  <li><strong>Измерения live пути.</strong> Локальный отчёт содержит ограниченные замеры подготовки, правил и сохранения, число выполняющихся операций и p50/p95. Пакеты и тексты советов не сохраняются в этих измерениях.</li>
+</ul>
+<p class="release-link"><a href="https://github.com/makquella/dota-ai-coach/releases/tag/v0.53.41" rel="noopener">Скачать и подробности</a></p>
+</section>
+<section class="release" id="v0.53.40">
+<h2><a href="#v0.53.40">Версия 0.53.40</a></h2>
+<ul>
+  <li><strong>Перенос истории и разбор легче поддерживать.</strong> Файловые копии, шифрование и перенос кодом, локализация панели и сборка экрана матча вынесены в отдельные модули. Поведение и интерфейсы сохранены.</li>
+  <li><strong>Больше проверок настоящего интерфейса.</strong> RU/EN сценарии проходят сохранение и загрузку файла через IPC, показывают полный разбор из записанной истории и понятный экран отсутствующего матча. Проверки переноса также исполняют файловые операции, gzip, шифрование и HTTP.</li>
+</ul>
+<p class="release-link"><a href="https://github.com/makquella/dota-ai-coach/releases/tag/v0.53.40" rel="noopener">Скачать и подробности</a></p>
+</section>
+<section class="release" id="v0.53.39">
+<h2><a href="#v0.53.39">Версия 0.53.39</a></h2>
+<ul>
+  <li><strong>Контракты игровых данных и разбора.</strong> Нормализованное состояние, факты матча и findings получили проверяемые типы. API разбора проверяет источник, значение, время и покрытие evidence, а также соответствие полю finding. Неизвестные значения, нули, старые поля и локализованные тексты сохраняются.</li>
+  <li><strong>Проверка типов стала точнее.</strong> Ошибочные ключи и значения в основных полях выявляются до выполнения; три прежние ошибки устранены без новых исключений.</li>
+</ul>
+<p class="release-link"><a href="https://github.com/makquella/dota-ai-coach/releases/tag/v0.53.39" rel="noopener">Скачать и подробности</a></p>
+</section>
+<section class="release" id="v0.53.38">
+<h2><a href="#v0.53.38">Версия 0.53.38</a></h2>
+<ul>
+  <li><strong>Разбор показывает основания выводов.</strong> Для вардов, добиваний к 10:00 и ранних смертей доступны источник и способ подсчёта. Журналы вардов разобранного replay имеют приоритет над агрегатом; изменения инвентаря явно остаются оценкой.</li>
+  <li><strong>Пропуски записи остаются неизвестными.</strong> Видны начало, конец и разрывы GSI-записи. Неполная запись не оценивает обзор за весь матч, а график не рисует нули в неизвестных интервалах.</li>
+  <li><strong>AI проверяет эти числа по своим данным.</strong> Нельзя подменить обсерверы сентри, итоги матча ранними смертями или последний образец точным значением к 10:00. Сохранённые ответы проходят ту же проверку; старые записи сохраняются.</li>
+</ul>
+<p class="release-link"><a href="https://github.com/makquella/dota-ai-coach/releases/tag/v0.53.38" rel="noopener">Скачать и подробности</a></p>
+</section>
+<section class="release" id="v0.53.37">
+<h2><a href="#v0.53.37">Версия 0.53.37</a></h2>
+<ul>
+  <li><strong>Данные профиля проходят проверяемый контракт API.</strong> Основные поля игрока, уровня, статистики, искр и графика рейтинга сохраняют неизвестные значения, нули и оценки со знаком. Чтение профиля, сохранение/сброс MMR и ответы магазина возвращают ту же полную структуру с наградами и оформлением; строки и некорректные числа в основных полях отклоняются.</li>
+</ul>
+<p class="release-link"><a href="https://github.com/makquella/dota-ai-coach/releases/tag/v0.53.37" rel="noopener">Скачать и подробности</a></p>
+</section>
+<section class="release" id="v0.53.36">
+<h2><a href="#v0.53.36">Версия 0.53.36</a></h2>
+<ul>
+  <li><strong>Профиль сохраняет выбранный аккаунт и язык.</strong> Запоздалые ответы профиля, MMR, магазина и панели друзей отклоняются после смены аккаунта, вкладки или языка. Привязка из профиля перезагружает текущий экран; кеш профиля и друзей очищается при успешной смене аккаунта, а сохранённая история остаётся доступной при повторной привязке.</li>
+</ul>
+<p class="release-link"><a href="https://github.com/makquella/dota-ai-coach/releases/tag/v0.53.36" rel="noopener">Скачать и подробности</a></p>
+</section>
+<section class="release" id="v0.53.35">
+<h2><a href="#v0.53.35">Версия 0.53.35</a></h2>
+<ul>
+  <li><strong>Некорректный фарм не ломает подготовку AI-разбора.</strong> NaN, Infinity, дробные и другие недопустимые счётчики к 10:00 остаются неизвестными. Compact facts и прежние поля линии/сравнения используют только проверенные значения; ноль и сведения об источнике, участнике и времени сохраняются.</li>
+</ul>
+<p class="release-link"><a href="https://github.com/makquella/dota-ai-coach/releases/tag/v0.53.35" rel="noopener">Скачать и подробности</a></p>
+</section>
+<section class="release" id="v0.53.34">
+<h2><a href="#v0.53.34">Версия 0.53.34</a></h2>
+<ul>
+  <li><strong>Ответ статуса не возвращает старую привязку.</strong> Привязка и отвязка отклоняют чтения статуса, начатые до смены аккаунта. Одновременные обновления разных экранов используют один ожидающий запрос. Настоящие UI-переходы отвязки и повторной привязки проверяются на изолированной истории на русском и английском.</li>
+</ul>
+<p class="release-link"><a href="https://github.com/makquella/dota-ai-coach/releases/tag/v0.53.34" rel="noopener">Скачать и подробности</a></p>
+</section>
+<section class="release" id="v0.53.33">
+<h2><a href="#v0.53.33">Версия 0.53.33</a></h2>
+<ul>
+  <li><strong>Прогресс применяет только актуальный ответ.</strong> Старый запрос по другому герою или языку больше не заменяет текущий экран. Уход со вкладки отменяет применение ожидающего ответа и обновление AI-разбора; возврат к тому же герою начинает новое посещение. Быстрые переходы проверяются через настоящий IPC на русском и английском.</li>
+</ul>
+<p class="release-link"><a href="https://github.com/makquella/dota-ai-coach/releases/tag/v0.53.33" rel="noopener">Скачать и подробности</a></p>
+</section>
+<section class="release" id="v0.53.32">
+<h2><a href="#v0.53.32">Версия 0.53.32</a></h2>
+<ul>
+  <li><strong>Прогресс получает проверяемый контракт данных.</strong> Числа матчей и побед, серии, список героев и результаты проверяются по типам ответа. Неизвестный результат и отсутствующие средние сохраняются при выборе героя. Эти переходы проверяются на сохранённой истории через настоящий IPC на русском и английском.</li>
+</ul>
+<p class="release-link"><a href="https://github.com/makquella/dota-ai-coach/releases/tag/v0.53.32" rel="noopener">Скачать и подробности</a></p>
+</section>
+<section class="release" id="v0.53.31">
+<h2><a href="#v0.53.31">Версия 0.53.31</a></h2>
+<ul>
+  <li><strong>AI-разбор проверяет добивания и денаи по своим полям.</strong> Число из другой метрики, другого героя или отрезка матча больше не подтверждает эти итоги. Значения к 10:00 и сравнение с указанным соперником проверяются отдельно по своим данным. Сохранённые ответы перепроверяются при чтении; старый AI-разбор скрывается до обновления. Использованные итоги можно раскрыть в интерфейсе на русском и английском.</li>
+</ul>
+<p class="release-link"><a href="https://github.com/makquella/dota-ai-coach/releases/tag/v0.53.31" rel="noopener">Скачать и подробности</a></p>
+</section>
+<section class="release" id="v0.53.30">
+<h2><a href="#v0.53.30">Версия 0.53.30</a></h2>
+<ul>
+  <li><strong>История матчей сохраняет последнюю выборку.</strong> Запоздавший ответ старого фильтра, сортировки или предыдущего посещения вкладки больше не заменяет текущую таблицу. Повторные нажатия «Ещё» не добавляют одну страницу дважды; смена выборки отклоняет старую страницу. Проверки проходят через настоящий IPC на русском и английском.</li>
+</ul>
+<p class="release-link"><a href="https://github.com/makquella/dota-ai-coach/releases/tag/v0.53.30" rel="noopener">Скачать и подробности</a></p>
+</section>
+<section class="release" id="v0.53.29">
+<h2><a href="#v0.53.29">Версия 0.53.29</a></h2>
+<ul>
+  <li><strong>Запоздавшие ответы разбора проверяют актуальность экрана.</strong> Обновить разбор может только последний запрос для текущего матча и языка. Уход со вкладки отменяет применение старого ответа, включая возврат к тому же матчу. Эти переходы проверяются через настоящие IPC-запросы на русском и английском.</li>
+</ul>
+<p class="release-link"><a href="https://github.com/makquella/dota-ai-coach/releases/tag/v0.53.29" rel="noopener">Скачать и подробности</a></p>
+</section>
+<section class="release" id="v0.53.28">
+<h2><a href="#v0.53.28">Версия 0.53.28</a></h2>
+<ul>
+  <li><strong>Возврат из разбора сохраняет фокус строки матча.</strong> Обновление таблицы после ответа API больше не сбрасывает установленный фокус клавиатуры. История последних 30 переходов и работа назад/вперёд проверяются отдельно, включая настоящий русский и английский интерфейс.</li>
+</ul>
+<p class="release-link"><a href="https://github.com/makquella/dota-ai-coach/releases/tag/v0.53.28" rel="noopener">Скачать и подробности</a></p>
+</section>
+<section class="release" id="v0.53.27">
+<h2><a href="#v0.53.27">Версия 0.53.27</a></h2>
+<ul>
+  <li><strong>Таблица матчей проверяется от локальной истории до интерфейса.</strong> Контракт сохраняет страницы, фильтры, статистику, заметки и частичные счётчики K/D/A, включая нули и неизвестные значения. В настоящем интерфейсе проверяются загрузка следующей страницы, сортировка и выбор героя на русском и английском.</li>
+</ul>
+<p class="release-link"><a href="https://github.com/makquella/dota-ai-coach/releases/tag/v0.53.27" rel="noopener">Скачать и подробности</a></p>
+</section>
+<section class="release" id="v0.53.26">
+<h2><a href="#v0.53.26">Версия 0.53.26</a></h2>
+<ul>
+  <li><strong>GPM и XPM в AI-разборе привязаны к своим данным.</strong> Числовые формулировки проверяются по соответствующим показателям игрока за матч. Неверные предложения удаляются; рядом с разбором и ответами можно раскрыть данные для проверки. Сохранённые вопросы проходят новую проверку при чтении, а разбор со старой политикой проверки обновляется обычным способом.</li>
+</ul>
+<p class="release-link"><a href="https://github.com/makquella/dota-ai-coach/releases/tag/v0.53.26" rel="noopener">Скачать и подробности</a></p>
+</section>
+<section class="release" id="v0.53.25">
+<h2><a href="#v0.53.25">Версия 0.53.25</a></h2>
+<ul>
+  <li><strong>Статус игрока проверяется при передаче интерфейсу.</strong> Ожидание, очередь, выполнение, завершение и ошибка синхронизации сохраняют прежние поля. Нулевые счётчики матчей и полученных данных остаются нулями; отсутствующие данные не подменяются измерениями. Проверки проходят через настоящий HTTP, локальную историю и поток очереди.</li>
+</ul>
+<p class="release-link"><a href="https://github.com/makquella/dota-ai-coach/releases/tag/v0.53.25" rel="noopener">Скачать и подробности</a></p>
+</section>
+<section class="release" id="v0.53.24">
+<h2><a href="#v0.53.24">Версия 0.53.24</a></h2>
+<ul>
+  <li><strong>История обновлений сохранена на двух языках.</strong> Блок «Что нового» использует отдельную историю описаний и прежний выбор пропущенных версий. Русские и английские тексты, порядок и ограничение четырьмя версиями сохранены; их отображение проверяется в настоящем интерфейсе.</li>
+</ul>
+<p class="release-link"><a href="https://github.com/makquella/dota-ai-coach/releases/tag/v0.53.24" rel="noopener">Скачать и подробности</a></p>
+</section>
+<section class="release" id="v0.53.23">
+<h2><a href="#v0.53.23">Версия 0.53.23</a></h2>
+<ul>
+  <li><strong>Демо-кэш учитывает сброс сессии.</strong> Задержавшийся демо-кадр больше не возвращает оверлей после сброса и не заменяет уже опубликованный более новый кадр. Чтение и перевод ответа не меняют кэш; его прежний восьмисекундный срок считается по прошедшему времени.</li>
+</ul>
+<p class="release-link"><a href="https://github.com/makquella/dota-ai-coach/releases/tag/v0.53.23" rel="noopener">Скачать и подробности</a></p>
+</section>
+<section class="release" id="v0.53.22">
+<h2><a href="#v0.53.22">Версия 0.53.22</a></h2>
+<ul>
+  <li><strong>Память подсказок обновляется последовательно.</strong> Подсказки карты, прокачки и покупок больше не меняют свои счётчики одновременно с обновлением игры, сбросом или другим запросом оверлея. Если игра обновилась во время подготовки данных, устаревшая подготовка пропускается до следующего опроса.</li>
+</ul>
+<p class="release-link"><a href="https://github.com/makquella/dota-ai-coach/releases/tag/v0.53.22" rel="noopener">Скачать и подробности</a></p>
+</section>
+<section class="release" id="v0.53.21">
+<h2><a href="#v0.53.21">Версия 0.53.21</a></h2>
+<ul>
+  <li><strong>Согласованное чтение live-трекеров.</strong> Сведения о видимых врагах, линии, TP и событиях Рошана/Аегиса собираются одним снимком памяти матча. Обновление игры и сброс сессии больше не могут вклиниться между этими чтениями; возвращённые данные отделены от трекеров.</li>
+</ul>
+<p class="release-link"><a href="https://github.com/makquella/dota-ai-coach/releases/tag/v0.53.21" rel="noopener">Скачать и подробности</a></p>
+</section>
+<section class="release" id="v0.53.20">
+<h2><a href="#v0.53.20">Версия 0.53.20</a></h2>
+<ul>
+  <li><strong>Настройки таймеров загружаются до обновления состояния.</strong> Первое событие Рошана или Аегиса больше не вызывает чтение файла внутри блокировок игрового состояния. Сброс продолжает отвечать, пока настройки готовятся для GSI; демо и прямое наблюдение используют тот же cache.</li>
+</ul>
+<p class="release-link"><a href="https://github.com/makquella/dota-ai-coach/releases/tag/v0.53.20" rel="noopener">Скачать и подробности</a></p>
+</section>
+<section class="release" id="v0.53.19">
+<h2><a href="#v0.53.19">Версия 0.53.19</a></h2>
+<ul>
+  <li><strong>Сброс сессии не ждёт чтения истории для определения роли.</strong> Данные о роли готовятся перед обновлением игрового состояния. Прежние правила для кора и саппорта сохраняются, а ошибка чтения этих данных не оставляет частично обновлённую память матча.</li>
+</ul>
+<p class="release-link"><a href="https://github.com/makquella/dota-ai-coach/releases/tag/v0.53.19" rel="noopener">Скачать и подробности</a></p>
+</section>
+<section class="release" id="v0.53.18">
+<h2><a href="#v0.53.18">Версия 0.53.18</a></h2>
+<ul>
+  <li><strong>Согласованная сводка памяти матча.</strong> Чтение сводки, поступление игровых и демо-данных и сброс сессии используют общий порядок доступа. Читатель больше не получает частично обновлённую память посреди смены героя или записи состояния.</li>
+</ul>
+<p class="release-link"><a href="https://github.com/makquella/dota-ai-coach/releases/tag/v0.53.18" rel="noopener">Скачать и подробности</a></p>
+</section>
+<section class="release" id="v0.53.17">
+<h2><a href="#v0.53.17">Версия 0.53.17</a></h2>
+<ul>
+  <li><strong>Неполный K/D/A сохраняет известные значения.</strong> Ноль остаётся нулём; для каждого отсутствующего счётчика показывается прочерк. Разбор, таблица матчей и короткие сводки больше не выводят <code>null</code> и не скрывают смерти или ассисты при неизвестных убийствах.</li>
+  <li><strong>Проверяемый контракт деталей матча.</strong> API проверяет основные поля ответа и публикует их схему, сохраняя заметки, графики, разбор ИИ и остальные существующие разделы.</li>
+</ul>
+<p class="release-link"><a href="https://github.com/makquella/dota-ai-coach/releases/tag/v0.53.17" rel="noopener">Скачать и подробности</a></p>
+</section>
+<section class="release" id="v0.53.16">
+<h2><a href="#v0.53.16">Версия 0.53.16</a></h2>
+<ul>
+  <li><strong>Отдельный модуль переводов экранов матчей.</strong> RU/EN тексты вынесены из большого контроллера. Прежние тексты, склонения, форматирование чисел и переключение языка сохраняются и проверяются в настоящем интерфейсе.</li>
+</ul>
+<p class="release-link"><a href="https://github.com/makquella/dota-ai-coach/releases/tag/v0.53.16" rel="noopener">Скачать и подробности</a></p>
+</section>
+<section class="release" id="v0.53.15">
+<h2><a href="#v0.53.15">Версия 0.53.15</a></h2>
+<ul>
+  <li><strong>Целое состояние GSI.</strong> Исходный пакет Dota, нормализованное состояние и время получения публикуются вместе. Чтение во время обновления получает целый предыдущий либо следующий пакет; возвращаемые данные не могут изменить общий state.</li>
+  <li><strong>Чистый сброс live-сессии.</strong> Ручной reset очищает также прежний GSI-пакет и ждёт активную нормализацию. До следующего пакета приложение ожидает GSI, сохраняя историю матчей и настройки.</li>
+</ul>
+<p class="release-link"><a href="https://github.com/makquella/dota-ai-coach/releases/tag/v0.53.15" rel="noopener">Скачать и подробности</a></p>
+</section>
+<section class="release" id="v0.53.14">
+<h2><a href="#v0.53.14">Версия 0.53.14</a></h2>
+<ul>
+  <li><strong>Самостоятельная очередь фоновых задач.</strong> Очередь загрузок и AI вынесена в отдельный проверяемый модуль. Сохраняются дедупликация, отложенные повторные попытки и ожидание активной задачи при остановке; независимость от хранения и HTTP проверяется в отдельном процессе.</li>
+</ul>
+<p class="release-link"><a href="https://github.com/makquella/dota-ai-coach/releases/tag/v0.53.14" rel="noopener">Скачать и подробности</a></p>
+</section>
+<section class="release" id="v0.53.13">
+<h2><a href="#v0.53.13">Версия 0.53.13</a></h2>
+<ul>
+  <li><strong>Проверка K/D/A в AI-разборе.</strong> Убийства, смерти и ассисты проверяются по собственным итоговым счётчикам игрока. Число добиваний или другого показателя больше не разрешает подменить эти метрики; цели следующей игры сохраняются отдельно.</li>
+  <li><strong>Видны данные для проверки.</strong> В разборе и ответах тренера можно раскрыть итоговые счётчики и границу их точности. Старые ответы проверяются при чтении; разборы прежней версии проверки обновляются перед показом.</li>
+</ul>
+<p class="release-link"><a href="https://github.com/makquella/dota-ai-coach/releases/tag/v0.53.13" rel="noopener">Скачать и подробности</a></p>
+</section>
+<section class="release" id="v0.53.12">
+<h2><a href="#v0.53.12">Версия 0.53.12</a></h2>
+<ul>
+  <li><strong>Быстрее проверки документации и сайта.</strong> Windows-установщик собирается для изменений, которые могут затронуть приложение. Известные изменения вне desktop проходят остальные проверки без повторной сборки установщика.</li>
+  <li><strong>Сохраняется обязательный результат проверки Windows.</strong> Ошибка, отмена или необоснованный пропуск сборки не выдаются за успешную проверку.</li>
+</ul>
+<p class="release-link"><a href="https://github.com/makquella/dota-ai-coach/releases/tag/v0.53.12" rel="noopener">Скачать и подробности</a></p>
+</section>
+<section class="release" id="v0.53.11">
+<h2><a href="#v0.53.11">Версия 0.53.11</a></h2>
+<ul>
+  <li><strong>Надёжнее перенос истории по коду.</strong> Одновременные запросы теперь соблюдают лимит скачиваний. Если два переноса выбрали один короткий ID, сохраняется первый файл, а второй получает обычный ответ о занятом коде.</li>
+  <li><strong>Новый перенос защищён от поздней очистки старого.</strong> Запрос от завершённого или истёкшего переноса не удалит свежий файл, который уже занял тот же ID.</li>
+</ul>
+<p class="release-link"><a href="https://github.com/makquella/dota-ai-coach/releases/tag/v0.53.11" rel="noopener">Скачать и подробности</a></p>
+</section>
+<section class="release" id="v0.53.10">
+<h2><a href="#v0.53.10">Версия 0.53.10</a></h2>
+<ul>
+  <li><strong>Проверки перед выпуском установщика.</strong> Версия исходного кода для сборки должна пройти общие проверки backend и интерфейса перед публикацией. Сборка использует тот же commit, даже если основная ветка уже обновилась.</li>
+  <li><strong>Защита от несовпадения версии.</strong> Выпуск останавливается, если исходники изменились после выбора commit или тег уже указывает на другую версию кода.</li>
+</ul>
+<p class="release-link"><a href="https://github.com/makquella/dota-ai-coach/releases/tag/v0.53.10" rel="noopener">Скачать и подробности</a></p>
+</section>
+<section class="release" id="v0.53.9">
+<h2><a href="#v0.53.9">Версия 0.53.9</a></h2>
+<ul>
+  <li><strong>Усилены автоматические проверки изменений.</strong> Новые ошибки типов теперь останавливают проверку. Известные старые ошибки учтены отдельно; после исправления они больше не получают разрешение появиться снова.</li>
+  <li><strong>Проверки воспроизводимы.</strong> Используются закреплённая версия инструмента и одна конфигурация; изменения номеров строк не скрывают новые ошибки и не создают лишний шум.</li>
+</ul>
+<p class="release-link"><a href="https://github.com/makquella/dota-ai-coach/releases/tag/v0.53.9" rel="noopener">Скачать и подробности</a></p>
+</section>
+<section class="release" id="v0.53.8">
+<h2><a href="#v0.53.8">Версия 0.53.8</a></h2>
+<ul>
+  <li><strong>Защищены окна приложения.</strong> Действия тренера принимаются только от его собственного локального интерфейса. Посторонние переходы и всплывающие окна блокируются.</li>
+  <li><strong>Добавлены проверки обычного интерфейса.</strong> Автоматическая проверка готового приложения теперь переключает язык, открывает и закрывает калибровку и проверяет защиту окон.</li>
+</ul>
+<p class="release-link"><a href="https://github.com/makquella/dota-ai-coach/releases/tag/v0.53.8" rel="noopener">Скачать и подробности</a></p>
+</section>
+<section class="release" id="v0.53.7">
+<h2><a href="#v0.53.7">Версия 0.53.7</a></h2>
+<ul>
+  <li><strong>Защищено локальное подключение к тренеру.</strong> Посторонние сайты больше не могут менять его настройки или присылать игровые данные. Launcher и Дота используют разные права доступа, а приватные ответы требуют авторизации.</li>
+  <li><strong>После обновления перезапустите Доту один раз.</strong> Тренер обновит конфигурацию игрового подключения; перезапуск игры нужен, чтобы Дота её прочитала. Дальше обычный запуск работает автоматически.</li>
+</ul>
+<p class="release-link"><a href="https://github.com/makquella/dota-ai-coach/releases/tag/v0.53.7" rel="noopener">Скачать и подробности</a></p>
+</section>
+<section class="release" id="v0.53.6">
+<h2><a href="#v0.53.6">Версия 0.53.6</a></h2>
+<ul>
+  <li><strong>Надёжнее восстановление истории.</strong> Файл проверяется целиком до записи. Матчи, настройки, разборы и привязка аккаунта сохраняются одной операцией; при ошибке данные из файла не сохраняются частично. Существующие заметки и значения сохраняются.</li>
+  <li><strong>Повреждённый кеш не мешает открыть разбор.</strong> Тренер отмечает ошибку в отчёте о проблеме и продолжает работать; данные кеша можно получить заново обычным путём.</li>
+</ul>
+<p class="release-link"><a href="https://github.com/makquella/dota-ai-coach/releases/tag/v0.53.6" rel="noopener">Скачать и подробности</a></p>
+</section>
+<section class="release" id="v0.53.5">
+<h2><a href="#v0.53.5">Версия 0.53.5</a></h2>
+<ul>
+  <li><strong>Надёжнее работают фоновые задачи.</strong> Повторный запрос не запускает второй разбор или синхронизацию, пока первая задача ещё выполняется. При завершении работы тренер отменяет ожидающие задачи и ограниченно ждёт активные; база остаётся доступной до завершения записи.</li>
+</ul>
+<p class="release-link"><a href="https://github.com/makquella/dota-ai-coach/releases/tag/v0.53.5" rel="noopener">Скачать и подробности</a></p>
+</section>
+<section class="release" id="v0.53.4">
+<h2><a href="#v0.53.4">Версия 0.53.4</a></h2>
+<ul>
+  <li><strong>Надёжнее сохраняется история матчей.</strong> Если завершённый матч не удалось записать в базу, тренер сохраняет его для повторной попытки, в том числе после перезапуска. Следующий матч продолжает записываться; повторное сохранение не создаёт дублей и сохраняет заметки.</li>
+</ul>
+<p class="release-link"><a href="https://github.com/makquella/dota-ai-coach/releases/tag/v0.53.4" rel="noopener">Скачать и подробности</a></p>
+</section>
 <section class="release" id="v0.53.3">
 <h2><a href="#v0.53.3">Версия 0.53.3</a></h2>
 <ul>
@@ -929,6 +1250,327 @@
       <article data-doc="en" lang="en" hidden>
         <h1>What's new</h1>
         <p class="doc-updated">Every Wardly version. The installed app updates itself while Dota is closed.</p>
+<section class="release" id="v0.53.46">
+<h2><a href="#v0.53.46">Version 0.53.46</a></h2>
+<ul>
+  <li><strong>Advice history handles concurrent changes.</strong> Simultaneous duplicates add one card, reset rejects old prepared appends, and recent requests copy only their selected records.</li>
+  <li><strong>Translation uses IDs and parameters.</strong> Live cards preserve canonical English and include message descriptors. Unchanged polls reuse bounded caches; unknown phrases remain wholly English.</li>
+</ul>
+<p class="release-link"><a href="https://github.com/makquella/dota-ai-coach/releases/tag/v0.53.46" rel="noopener">Download and details</a></p>
+</section>
+<section class="release" id="v0.53.45">
+<h2><a href="#v0.53.45">Version 0.53.45</a></h2>
+<ul>
+  <li><strong>Knowledge is loaded once.</strong> Startup parses local Markdown; file changes refresh the development cache. Failed refresh keeps the last complete catalog and records diagnostics.</li>
+  <li><strong>Less work for repeated advice.</strong> Early duplicate, cooldown and no-advice checks run before context retrieval. Wording, owned-item filtering and advice policy remain unchanged.</li>
+</ul>
+<p class="release-link"><a href="https://github.com/makquella/dota-ai-coach/releases/tag/v0.53.45" rel="noopener">Download and details</a></p>
+</section>
+<section class="release" id="v0.53.44">
+<h2><a href="#v0.53.44">Version 0.53.44</a></h2>
+<ul>
+  <li><strong>Write failures are visible in diagnostics.</strong> Census acknowledges successful replacement and retries failed saves after a delay. Debug recording stops on failure while retaining written data and live responses.</li>
+  <li><strong>Settings remain usable in memory.</strong> Failed writes stay unacknowledged and a later edit can retry. Diagnostics retain safe error codes and counts without setting values.</li>
+</ul>
+<p class="release-link"><a href="https://github.com/makquella/dota-ai-coach/releases/tag/v0.53.44" rel="noopener">Download and details</a></p>
+</section>
+<section class="release" id="v0.53.43">
+<h2><a href="#v0.53.43">Version 0.53.43</a></h2>
+<ul>
+  <li><strong>Skill building without an import cycle.</strong> GSI and skill build use a pure ability normalizer. Compatible exports, zero, unknown values and advice rules are preserved.</li>
+  <li><strong>Stricter backend checks.</strong> The global F841 exception is removed; the game-clock update call remains without its unused assignment. The new pure modules are checked with strict mypy.</li>
+</ul>
+<p class="release-link"><a href="https://github.com/makquella/dota-ai-coach/releases/tag/v0.53.43" rel="noopener">Download and details</a></p>
+</section>
+<section class="release" id="v0.53.42">
+<h2><a href="#v0.53.42">Version 0.53.42</a></h2>
+<ul>
+  <li><strong>Portable development checks.</strong> <code>scripts/dev.py</code> covers staged, unstaged and untracked files, selects consumer checks and shows exact commands/cwd. Shared and unknown boundaries expand validation.</li>
+  <li><strong>One release version.</strong> A dedicated gate and CI compare both backend values, launcher package/lock, RU/EN catalogs and release notes. Optional hooks check one file and offer a hint; they remain disabled by default.</li>
+</ul>
+<p class="release-link"><a href="https://github.com/makquella/dota-ai-coach/releases/tag/v0.53.42" rel="noopener">Download and details</a></p>
+</section>
+<section class="release" id="v0.53.41">
+<h2><a href="#v0.53.41">Version 0.53.41</a></h2>
+<ul>
+  <li><strong>The API remains responsive during game processing.</strong> Game packets and demo processing, including filesystem work, run on worker threads, freeing the API event loop.</li>
+  <li><strong>Live-path measurements.</strong> Local reports include bounded preparation, rules and persistence timings, running counts and p50/p95. These measurements retain no packets or advice text.</li>
+</ul>
+<p class="release-link"><a href="https://github.com/makquella/dota-ai-coach/releases/tag/v0.53.41" rel="noopener">Download and details</a></p>
+</section>
+<section class="release" id="v0.53.40">
+<h2><a href="#v0.53.40">Version 0.53.40</a></h2>
+<ul>
+  <li><strong>History transfer and reviews are easier to maintain.</strong> File backup, encryption/code transfer, panel language catalogs and match-detail composition have separate modules, preserving existing behavior and interfaces.</li>
+  <li><strong>More actual UI checks.</strong> RU/EN scenarios save and load files through IPC, render a complete recorded-match review and show the missing-record screen. Transfer checks also execute filesystem, gzip, crypto and HTTP operations.</li>
+</ul>
+<p class="release-link"><a href="https://github.com/makquella/dota-ai-coach/releases/tag/v0.53.40" rel="noopener">Download and details</a></p>
+</section>
+<section class="release" id="v0.53.39">
+<h2><a href="#v0.53.39">Version 0.53.39</a></h2>
+<ul>
+  <li><strong>Typed game data and review contracts.</strong> Normalized state, match facts and finding cores have checked types. The review API validates measurement source, value, time, coverage and finding-field consistency, retaining unknown values, zero, legacy fields and localized text.</li>
+  <li><strong>More precise type checking.</strong> Invalid keys and values in core fields are caught before execution; three previous errors were removed without adding allowances.</li>
+</ul>
+<p class="release-link"><a href="https://github.com/makquella/dota-ai-coach/releases/tag/v0.53.39" rel="noopener">Download and details</a></p>
+</section>
+<section class="release" id="v0.53.38">
+<h2><a href="#v0.53.38">Version 0.53.38</a></h2>
+<ul>
+  <li><strong>Reviews show finding measurements.</strong> Ward, last-hit-at-10 and early-death findings disclose their source and counting method. Parsed ward logs take precedence over aggregate counts; inventory changes remain explicit estimates.</li>
+  <li><strong>Recording gaps stay unknown.</strong> GSI coverage shows its start, end and gaps. Partial recording does not score whole-match vision, and charts leave gaps instead of drawing invented zeroes.</li>
+  <li><strong>AI checks these counts against their own evidence.</strong> Observer/sentry swaps, match-total/early-death swaps and carried/exact-sample swaps fail verification. Saved answers are checked on read without deleting their stored copies.</li>
+</ul>
+<p class="release-link"><a href="https://github.com/makquella/dota-ai-coach/releases/tag/v0.53.38" rel="noopener">Download and details</a></p>
+</section>
+<section class="release" id="v0.53.37">
+<h2><a href="#v0.53.37">Version 0.53.37</a></h2>
+<ul>
+  <li><strong>Profile data has a validated API contract.</strong> Core player, level, statistics, sparks and rating-graph fields preserve unknown values, zero and signed estimates. Profile reads, MMR save/clear and shop responses retain the complete structure, including achievements and cosmetics; core fields reject numeric strings and invalid numbers.</li>
+</ul>
+<p class="release-link"><a href="https://github.com/makquella/dota-ai-coach/releases/tag/v0.53.37" rel="noopener">Download and details</a></p>
+</section>
+<section class="release" id="v0.53.36">
+<h2><a href="#v0.53.36">Version 0.53.36</a></h2>
+<ul>
+  <li><strong>Profile respects the selected account and language.</strong> Delayed profile, MMR, shop and friends responses are rejected after changing account, tab or language. Linking from Profile reloads the current screen; a successful account change clears profile/friends view caches while stored history remains available after relinking.</li>
+</ul>
+<p class="release-link"><a href="https://github.com/makquella/dota-ai-coach/releases/tag/v0.53.36" rel="noopener">Download and details</a></p>
+</section>
+<section class="release" id="v0.53.35">
+<h2><a href="#v0.53.35">Version 0.53.35</a></h2>
+<ul>
+  <li><strong>Invalid farm data cannot break AI fact preparation.</strong> NaN, Infinity, fractional and other invalid counters at 10:00 remain unknown. Compact facts and older lane/peer comparison fields use validated measurements only, preserving zero, source, subject and sample time.</li>
+</ul>
+<p class="release-link"><a href="https://github.com/makquella/dota-ai-coach/releases/tag/v0.53.35" rel="noopener">Download and details</a></p>
+</section>
+<section class="release" id="v0.53.34">
+<h2><a href="#v0.53.34">Version 0.53.34</a></h2>
+<ul>
+  <li><strong>Status responses cannot restore an older account selection.</strong> Linking and unlinking invalidate status reads started before the change. Concurrent view refreshes share one pending request. Actual unlink/relink UI transitions are checked against isolated history in Russian and English.</li>
+</ul>
+<p class="release-link"><a href="https://github.com/makquella/dota-ai-coach/releases/tag/v0.53.34" rel="noopener">Download and details</a></p>
+</section>
+<section class="release" id="v0.53.33">
+<h2><a href="#v0.53.33">Version 0.53.33</a></h2>
+<ul>
+  <li><strong>Progress applies only the current response.</strong> An older request for another hero or language cannot replace the visible page. Leaving the tab invalidates pending responses and the AI review refresh; returning to the same hero starts a new visit. Actual IPC checks exercise rapid transitions in Russian and English.</li>
+</ul>
+<p class="release-link"><a href="https://github.com/makquella/dota-ai-coach/releases/tag/v0.53.33" rel="noopener">Download and details</a></p>
+</section>
+<section class="release" id="v0.53.32">
+<h2><a href="#v0.53.32">Version 0.53.32</a></h2>
+<ul>
+  <li><strong>Progress has a validated data contract.</strong> Match and win counts, streaks, heroes and results use validated response types. Unknown results and missing averages remain intact when selecting a hero. Actual IPC checks exercise stored match history in Russian and English.</li>
+</ul>
+<p class="release-link"><a href="https://github.com/makquella/dota-ai-coach/releases/tag/v0.53.32" rel="noopener">Download and details</a></p>
+</section>
+<section class="release" id="v0.53.31">
+<h2><a href="#v0.53.31">Version 0.53.31</a></h2>
+<ul>
+  <li><strong>AI reviews check last hits and denies against their own fields.</strong> Another metric, hero or time slice cannot prove these match totals. Samples at 10:00 and comparisons with the named opponent use separate field and subject checks. Saved answers are rechecked when read; older AI reviews stay hidden until refreshed. The interface shows the reported totals used for verification in Russian and English.</li>
+</ul>
+<p class="release-link"><a href="https://github.com/makquella/dota-ai-coach/releases/tag/v0.53.31" rel="noopener">Download and details</a></p>
+</section>
+<section class="release" id="v0.53.30">
+<h2><a href="#v0.53.30">Version 0.53.30</a></h2>
+<ul>
+  <li><strong>Match history keeps the latest selection.</strong> A delayed response for an older filter, sort or tab visit cannot replace the current table. Repeated More clicks cannot duplicate a page, and changing selection rejects an older page. Actual IPC checks cover Russian and English.</li>
+</ul>
+<p class="release-link"><a href="https://github.com/makquella/dota-ai-coach/releases/tag/v0.53.30" rel="noopener">Download and details</a></p>
+</section>
+<section class="release" id="v0.53.29">
+<h2><a href="#v0.53.29">Version 0.53.29</a></h2>
+<ul>
+  <li><strong>Delayed review responses check the current view.</strong> Only the latest request for the selected match and language can update the review. Leaving the tab invalidates older responses, including returning to the same match. Actual IPC checks exercise these transitions in Russian and English.</li>
+</ul>
+<p class="release-link"><a href="https://github.com/makquella/dota-ai-coach/releases/tag/v0.53.29" rel="noopener">Download and details</a></p>
+</section>
+<section class="release" id="v0.53.28">
+<h2><a href="#v0.53.28">Version 0.53.28</a></h2>
+<ul>
+  <li><strong>Returning from a review keeps the match row focused.</strong> Refreshing the table after an API response preserves keyboard focus. History of the latest 30 places and back/forward travel have dedicated checks, including the actual Russian/English interface.</li>
+</ul>
+<p class="release-link"><a href="https://github.com/makquella/dota-ai-coach/releases/tag/v0.53.28" rel="noopener">Download and details</a></p>
+</section>
+<section class="release" id="v0.53.27">
+<h2><a href="#v0.53.27">Version 0.53.27</a></h2>
+<ul>
+  <li><strong>The match table is checked from local history to the interface.</strong> Its contract preserves pages, filters, statistics, notes and partial K/D/A counters, including zero and unknown values. Actual Russian/English interface checks exercise loading the next page, sorting and hero selection.</li>
+</ul>
+<p class="release-link"><a href="https://github.com/makquella/dota-ai-coach/releases/tag/v0.53.27" rel="noopener">Download and details</a></p>
+</section>
+<section class="release" id="v0.53.26">
+<h2><a href="#v0.53.26">Version 0.53.26</a></h2>
+<ul>
+  <li><strong>AI GPM and XPM claims are bound to their own data.</strong> Numerical statements are checked against the corresponding player metrics across the match. Incorrect sentences are removed, and reviews/answers can disclose the data used to check them. Saved questions are rechecked on read; reviews using the earlier verification policy follow the normal regeneration path.</li>
+</ul>
+<p class="release-link"><a href="https://github.com/makquella/dota-ai-coach/releases/tag/v0.53.26" rel="noopener">Download and details</a></p>
+</section>
+<section class="release" id="v0.53.25">
+<h2><a href="#v0.53.25">Version 0.53.25</a></h2>
+<ul>
+  <li><strong>Player status is checked before reaching the interface.</strong> Idle, queued, running, completed and failed synchronization keep their existing fields. Zero match/fetched counts remain zero; absent data is not replaced with invented measurements. Checks exercise real HTTP, local history and the queue thread.</li>
+</ul>
+<p class="release-link"><a href="https://github.com/makquella/dota-ai-coach/releases/tag/v0.53.25" rel="noopener">Download and details</a></p>
+</section>
+<section class="release" id="v0.53.24">
+<h2><a href="#v0.53.24">Version 0.53.24</a></h2>
+<ul>
+  <li><strong>Update history stays available in both languages.</strong> What's New uses separate history copy and the existing skipped-version selection. Russian/English text, ordering and the four-version limit are preserved and checked in the actual interface.</li>
+</ul>
+<p class="release-link"><a href="https://github.com/makquella/dota-ai-coach/releases/tag/v0.53.24" rel="noopener">Download and details</a></p>
+</section>
+<section class="release" id="v0.53.23">
+<h2><a href="#v0.53.23">Version 0.53.23</a></h2>
+<ul>
+  <li><strong>Demo caching respects session reset.</strong> A delayed demo frame cannot restore the overlay after reset or replace a newer published frame. Reading and translating a response do not change the cache; its existing eight-second lifetime uses elapsed time.</li>
+</ul>
+<p class="release-link"><a href="https://github.com/makquella/dota-ai-coach/releases/tag/v0.53.23" rel="noopener">Download and details</a></p>
+</section>
+<section class="release" id="v0.53.22">
+<h2><a href="#v0.53.22">Version 0.53.22</a></h2>
+<ul>
+  <li><strong>Tip memory updates sequentially.</strong> Map, skill and shop tips no longer change their bookkeeping concurrently with a game update, reset or another overlay request. If the game changes during metadata preparation, stale preparation is skipped until the next poll.</li>
+</ul>
+<p class="release-link"><a href="https://github.com/makquella/dota-ai-coach/releases/tag/v0.53.22" rel="noopener">Download and details</a></p>
+</section>
+<section class="release" id="v0.53.21">
+<h2><a href="#v0.53.21">Version 0.53.21</a></h2>
+<ul>
+  <li><strong>Consistent live tracker reads.</strong> Observed enemies, lane signals, TP and Roshan/Aegis events are captured in one match-memory snapshot. Game updates and session reset cannot interleave between these reads; returned data is detached from the trackers.</li>
+</ul>
+<p class="release-link"><a href="https://github.com/makquella/dota-ai-coach/releases/tag/v0.53.21" rel="noopener">Download and details</a></p>
+</section>
+<section class="release" id="v0.53.20">
+<h2><a href="#v0.53.20">Version 0.53.20</a></h2>
+<ul>
+  <li><strong>Timer settings load before state updates.</strong> The first Roshan or Aegis event no longer reads a file inside game-state locks. Reset remains responsive during GSI timer preparation; demo and direct observation use the same cache.</li>
+</ul>
+<p class="release-link"><a href="https://github.com/makquella/dota-ai-coach/releases/tag/v0.53.20" rel="noopener">Download and details</a></p>
+</section>
+<section class="release" id="v0.53.19">
+<h2><a href="#v0.53.19">Version 0.53.19</a></h2>
+<ul>
+  <li><strong>Session reset no longer waits for role-history lookup.</strong> Role metadata is prepared before updating game state. Existing core/support rules are preserved, and a metadata read failure does not leave partially updated match memory.</li>
+</ul>
+<p class="release-link"><a href="https://github.com/makquella/dota-ai-coach/releases/tag/v0.53.19" rel="noopener">Download and details</a></p>
+</section>
+<section class="release" id="v0.53.18">
+<h2><a href="#v0.53.18">Version 0.53.18</a></h2>
+<ul>
+  <li><strong>Consistent match-memory summaries.</strong> Reading a summary, observing game/demo data and resetting the session share an access order. Readers no longer receive partially updated memory during a hero change or state observation.</li>
+</ul>
+<p class="release-link"><a href="https://github.com/makquella/dota-ai-coach/releases/tag/v0.53.18" rel="noopener">Download and details</a></p>
+</section>
+<section class="release" id="v0.53.17">
+<h2><a href="#v0.53.17">Version 0.53.17</a></h2>
+<ul>
+  <li><strong>Partial K/D/A keeps known values.</strong> Zero stays zero; each missing counter shows a dash. The review, match table and compact summaries no longer print <code>null</code> or hide known deaths/assists when kills are unknown.</li>
+  <li><strong>A validated match-detail contract.</strong> The API validates core response fields and publishes their schema while preserving notes, charts, AI reviews and other existing sections.</li>
+</ul>
+<p class="release-link"><a href="https://github.com/makquella/dota-ai-coach/releases/tag/v0.53.17" rel="noopener">Download and details</a></p>
+</section>
+<section class="release" id="v0.53.16">
+<h2><a href="#v0.53.16">Version 0.53.16</a></h2>
+<ul>
+  <li><strong>An independent match-screen translation module.</strong> RU/EN copy is separate from the large view controller. Existing copy, plurals, number formatting and language switching are preserved and checked in the actual interface.</li>
+</ul>
+<p class="release-link"><a href="https://github.com/makquella/dota-ai-coach/releases/tag/v0.53.16" rel="noopener">Download and details</a></p>
+</section>
+<section class="release" id="v0.53.15">
+<h2><a href="#v0.53.15">Version 0.53.15</a></h2>
+<ul>
+  <li><strong>Coherent GSI state.</strong> The raw Dota packet, normalized state and receive timestamp are published together. Readers see a complete previous or next packet; returned data cannot mutate shared state.</li>
+  <li><strong>A clean live-session reset.</strong> Manual reset also clears the old GSI packet and waits for active normalization. The app waits for the next packet while preserving match history and settings.</li>
+</ul>
+<p class="release-link"><a href="https://github.com/makquella/dota-ai-coach/releases/tag/v0.53.15" rel="noopener">Download and details</a></p>
+</section>
+<section class="release" id="v0.53.14">
+<h2><a href="#v0.53.14">Version 0.53.14</a></h2>
+<ul>
+  <li><strong>An independent background queue.</strong> The download/AI executor now has its own checked module. Deduplication, delayed retries and bounded shutdown are preserved; independence from storage and HTTP is verified in a fresh process.</li>
+</ul>
+<p class="release-link"><a href="https://github.com/makquella/dota-ai-coach/releases/tag/v0.53.14" rel="noopener">Download and details</a></p>
+</section>
+<section class="release" id="v0.53.13">
+<h2><a href="#v0.53.13">Version 0.53.13</a></h2>
+<ul>
+  <li><strong>K/D/A checks in AI reviews.</strong> Kills, deaths and assists are checked against the player's own reported totals. A last-hit count or another metric cannot license these combat claims; next-game goals remain separate.</li>
+  <li><strong>Visible check data.</strong> Reviews and coach answers disclose the reported totals and their scope. Saved answers are rechecked on read; reviews from the previous verification version are refreshed before display.</li>
+</ul>
+<p class="release-link"><a href="https://github.com/makquella/dota-ai-coach/releases/tag/v0.53.13" rel="noopener">Download and details</a></p>
+</section>
+<section class="release" id="v0.53.12">
+<h2><a href="#v0.53.12">Version 0.53.12</a></h2>
+<ul>
+  <li><strong>Faster checks for documentation and site changes.</strong> Windows installers are built for changes that can affect the app. Known changes outside desktop still run the other checks without rebuilding the installer.</li>
+  <li><strong>A stable required Windows result.</strong> A failure, cancellation or unjustified build skip cannot appear as successful validation.</li>
+</ul>
+<p class="release-link"><a href="https://github.com/makquella/dota-ai-coach/releases/tag/v0.53.12" rel="noopener">Download and details</a></p>
+</section>
+<section class="release" id="v0.53.11">
+<h2><a href="#v0.53.11">Version 0.53.11</a></h2>
+<ul>
+  <li><strong>More reliable history transfer by code.</strong> Concurrent requests now respect the download limit. If two transfers choose the same short ID, the first file is preserved and the second gets the normal code-in-use response.</li>
+  <li><strong>Fresh transfers survive late cleanup.</strong> A request from a finished or expired transfer cannot delete a new file that has reused the same ID.</li>
+</ul>
+<p class="release-link"><a href="https://github.com/makquella/dota-ai-coach/releases/tag/v0.53.11" rel="noopener">Download and details</a></p>
+</section>
+<section class="release" id="v0.53.10">
+<h2><a href="#v0.53.10">Version 0.53.10</a></h2>
+<ul>
+  <li><strong>Validation before releasing the installer.</strong> The source selected for a build must pass shared backend and interface checks before publication. The build uses the same commit even if the main branch has advanced.</li>
+  <li><strong>Protection against source mismatches.</strong> Release stops if tracked source changes after selection or the tag points to a different commit.</li>
+</ul>
+<p class="release-link"><a href="https://github.com/makquella/dota-ai-coach/releases/tag/v0.53.10" rel="noopener">Download and details</a></p>
+</section>
+<section class="release" id="v0.53.9">
+<h2><a href="#v0.53.9">Version 0.53.9</a></h2>
+<ul>
+  <li><strong>Stronger automated checks for changes.</strong> New type errors now fail validation. Existing debt is tracked separately; once fixed, an error is no longer allowed to return.</li>
+  <li><strong>Reproducible checks.</strong> A pinned tool and shared configuration keep line-number changes from hiding new errors or creating unnecessary noise.</li>
+</ul>
+<p class="release-link"><a href="https://github.com/makquella/dota-ai-coach/releases/tag/v0.53.9" rel="noopener">Download and details</a></p>
+</section>
+<section class="release" id="v0.53.8">
+<h2><a href="#v0.53.8">Version 0.53.8</a></h2>
+<ul>
+  <li><strong>Protected the app's windows.</strong> Coach actions only accept requests from their own local interface. Unexpected navigation and popups are blocked.</li>
+  <li><strong>Added checks for the normal interface.</strong> The packaged app smoke test now switches languages, opens and closes calibration, and verifies window protections.</li>
+</ul>
+<p class="release-link"><a href="https://github.com/makquella/dota-ai-coach/releases/tag/v0.53.8" rel="noopener">Download and details</a></p>
+</section>
+<section class="release" id="v0.53.7">
+<h2><a href="#v0.53.7">Version 0.53.7</a></h2>
+<ul>
+  <li><strong>Protected local connection to the coach.</strong> Other websites can no longer change its settings or submit game data. The launcher and Dota use separate permissions, and private responses require authorization.</li>
+  <li><strong>Restart Dota once after updating.</strong> The coach updates the game connection configuration; restarting Dota lets it read the new configuration. After that, normal startup works automatically.</li>
+</ul>
+<p class="release-link"><a href="https://github.com/makquella/dota-ai-coach/releases/tag/v0.53.7" rel="noopener">Download and details</a></p>
+</section>
+<section class="release" id="v0.53.6">
+<h2><a href="#v0.53.6">Version 0.53.6</a></h2>
+<ul>
+  <li><strong>More reliable history restore.</strong> The entire file is checked before saving. Matches, settings, reviews and account linking are restored in one operation; a failure leaves no partial restore. Existing notes and values are preserved.</li>
+  <li><strong>A damaged cache no longer interrupts opening a review.</strong> The coach records the error in the problem report and keeps working; cached data can be obtained again through the usual requests.</li>
+</ul>
+<p class="release-link"><a href="https://github.com/makquella/dota-ai-coach/releases/tag/v0.53.6" rel="noopener">Download and details</a></p>
+</section>
+<section class="release" id="v0.53.5">
+<h2><a href="#v0.53.5">Version 0.53.5</a></h2>
+<ul>
+  <li><strong>More reliable background jobs.</strong> Repeated requests do not start another review or sync while the first job is running. On shutdown, the coach cancels queued jobs and waits within a limit for active work, keeping its database available until writes finish.</li>
+</ul>
+<p class="release-link"><a href="https://github.com/makquella/dota-ai-coach/releases/tag/v0.53.5" rel="noopener">Download and details</a></p>
+</section>
+<section class="release" id="v0.53.4">
+<h2><a href="#v0.53.4">Version 0.53.4</a></h2>
+<ul>
+  <li><strong>More reliable match history.</strong> When a finished match cannot be saved to the database, the coach keeps it for retry, including after a restart. Recording continues for the next match; replay does not create duplicates or erase your notes.</li>
+</ul>
+<p class="release-link"><a href="https://github.com/makquella/dota-ai-coach/releases/tag/v0.53.4" rel="noopener">Download and details</a></p>
+</section>
 <section class="release" id="v0.53.3">
 <h2><a href="#v0.53.3">Version 0.53.3</a></h2>
 <ul>

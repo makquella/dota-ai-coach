@@ -5,12 +5,46 @@ on:
     branches: [main]
   # All PRs, including ones stacked on another feature branch.
   pull_request:
+  workflow_call:
+    inputs:
+      source_sha:
+        description: Immutable commit selected by the caller
+        required: true
+        type: string
+      skip_windows:
+        description: Caller performs its own signed Windows build and smoke
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
 
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
+  changes:
+    name: Determine Windows validation scope
+    runs-on: ubuntu-latest
+    outputs:
+      windows_required: ${{ steps.scope.outputs.windows_required }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.source_sha || github.sha }}
+          fetch-depth: 0
+      - name: Verify source commit
+        env:
+          SOURCE_SHA: ${{ inputs.source_sha || github.sha }}
+        run: python scripts/verify_source.py "$SOURCE_SHA"
+      - name: Determine changed desktop paths
+        id: scope
+        env:
+          SOURCE_SHA: ${{ inputs.source_sha || github.sha }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before || '' }}
+        run: python scripts/windows_checks.py scope --source "$SOURCE_SHA" --base "$BASE_SHA"
+
   backend:
     name: Backend (ruff, mypy, pytest)
     runs-on: ubuntu-latest
@@ -20,6 +54,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.source_sha || github.sha }}
 
       - name: Set up Python 3.11
         uses: actions/setup-python@v5
@@ -31,20 +67,37 @@ jobs:
       - name: Install dependencies
         run: 'python -m pip install --require-hashes --only-binary=:all: -r requirements-dev.txt'
 
+      - name: Verify source commit
+        env:
+          SOURCE_SHA: ${{ inputs.source_sha || github.sha }}
+        run: python ../scripts/verify_source.py "$SOURCE_SHA"
+
       - name: Check dependency consistency and Python lockfiles
         run: |
           python -m pip check
           python ../scripts/lock_python_dependencies.py --check
 
       - name: Lint (ruff check)
-        run: ruff check --config pyproject.toml . ../scripts/lock_python_dependencies.py
+        run: ruff check --config pyproject.toml . ../scripts/lock_python_dependencies.py ../scripts/check_types.py ../scripts/verify_source.py ../scripts/windows_checks.py ../scripts/dev.py ../scripts/bump_version.py ../scripts/check_hook.py
 
       - name: Format check (ruff format)
-        run: ruff format --config pyproject.toml --check . ../scripts/lock_python_dependencies.py
+        run: ruff format --config pyproject.toml --check . ../scripts/lock_python_dependencies.py ../scripts/check_types.py ../scripts/verify_source.py ../scripts/windows_checks.py ../scripts/dev.py ../scripts/bump_version.py ../scripts/check_hook.py
 
-      # Soft start: mypy reports issues but does not fail the job yet.
-      - name: Type check (mypy, non-blocking)
-        run: mypy app || true
+      - name: Type check (pinned mypy, no new debt)
+        run: |
+          python ../scripts/check_types.py
+          python -m mypy --strict ../scripts/check_types.py
+          python -m mypy --strict ../scripts/verify_source.py
+          python -m mypy --strict ../scripts/windows_checks.py ../scripts/dev.py ../scripts/bump_version.py ../scripts/check_hook.py
+          python -m mypy --strict app/coach_evidence.py
+          python -m mypy --strict app/job_queue.py
+          python -m mypy --strict app/gsi_snapshot.py
+          python -m mypy --strict app/demo_overlay_cache.py
+          python -m mypy --strict app/player_contracts.py
+          python -m mypy --strict --follow-imports=silent app/live_hints.py
+
+      - name: Check backend, package, lock and RU/EN release versions
+        run: python ../scripts/bump_version.py --check
 
       - name: Tests (pytest)
         run: pytest -q
@@ -64,6 +117,13 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.source_sha || github.sha }}
+
+      - name: Verify source commit
+        env:
+          SOURCE_SHA: ${{ inputs.source_sha || github.sha }}
+        run: python scripts/verify_source.py "$SOURCE_SHA"
 
       - name: Set up Node.js 20
         uses: actions/setup-node@v4
@@ -78,9 +138,11 @@ jobs:
         working-directory: frontend/launcher
         run: npm test
 
-  windows-package:
-    name: Windows package (PyInstaller + NSIS, /health smoke)
+  windows-build:
+    name: Windows build and installer smoke
+    needs: changes
     runs-on: windows-latest
+    if: ${{ needs.changes.outputs.windows_required == 'true' && !inputs.skip_windows }}
     timeout-minutes: 40
     defaults:
       run:
@@ -88,6 +150,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.source_sha || github.sha }}
 
       - name: Set up Python 3.11
         uses: actions/setup-python@v5
@@ -105,11 +169,21 @@ jobs:
           cache: npm
           cache-dependency-path: frontend/launcher/package-lock.json
 
+      - name: Verify source commit
+        env:
+          SOURCE_SHA: ${{ inputs.source_sha || github.sha }}
+        run: python scripts/verify_source.py $env:SOURCE_SHA
+
       - name: Build backend exe, Electron app and NSIS installer
         run: ./scripts/build-windows.ps1
 
       - name: Smoke test (backend /health, app, installer)
         run: ./scripts/smoke-windows.ps1
+
+      - name: Verify source after packaging
+        env:
+          SOURCE_SHA: ${{ inputs.source_sha || github.sha }}
+        run: python scripts/verify_source.py $env:SOURCE_SHA
 
       - name: Upload installer
         if: success()
@@ -129,3 +203,28 @@ jobs:
             ${{ runner.temp }}/smoke-*.json
             ${{ runner.temp }}/launcher.log
           if-no-files-found: ignore
+
+  windows-package:
+    # Keep the existing required check context while expensive builds are scoped.
+    name: Windows package (PyInstaller + NSIS, /health smoke)
+    needs: [changes, windows-build]
+    if: ${{ always() }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.source_sha || github.sha }}
+      - name: Verify source commit
+        env:
+          SOURCE_SHA: ${{ inputs.source_sha || github.sha }}
+        run: python scripts/verify_source.py "$SOURCE_SHA"
+      - name: Require successful or justified skipped Windows validation
+        env:
+          CHANGES_RESULT: ${{ needs.changes.result }}
+          BUILD_RESULT: ${{ needs.windows-build.result }}
+          WINDOWS_REQUIRED: ${{ needs.changes.outputs.windows_required }}
+          CALLER_BUILDS_WINDOWS: ${{ inputs.skip_windows || false }}
+        run: >-
+          python scripts/windows_checks.py summary
+          --changes "$CHANGES_RESULT" --build "$BUILD_RESULT"
+          --required "$WINDOWS_REQUIRED" --caller-builds-windows "$CALLER_BUILDS_WINDOWS"

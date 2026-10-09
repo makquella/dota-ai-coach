@@ -10,7 +10,10 @@ Scoring weights:
 
 from pathlib import Path
 
-from app.config import KNOWLEDGE_BASE_DIR, RAG_TOP_K
+from app.config import IS_FROZEN, KNOWLEDGE_BASE_DIR, RAG_TOP_K
+from app.knowledge_base import KnowledgeBaseCache
+
+KNOWLEDGE_BASE = KnowledgeBaseCache(KNOWLEDGE_BASE_DIR, watch_changes=not IS_FROZEN)
 
 # Heroes tracked in the knowledge base (lowercase, space-separated)
 _KNOWN_HEROES = {"anti-mage", "juggernaut", "luna"}
@@ -36,15 +39,13 @@ def _paragraph_contradicts_owned_items(paragraph: str, owned_items: list[str]) -
 
 
 def _load_paragraphs(kb_dir: Path) -> list[str]:
-    """Read all .md files and split into non-empty paragraphs."""
-    paragraphs: list[str] = []
-    for md_file in sorted(kb_dir.glob("*.md")):
-        text = md_file.read_text(encoding="utf-8")
-        for para in text.split("\n\n"):
-            stripped = para.strip()
-            if stripped:
-                paragraphs.append(stripped)
-    return paragraphs
+    """Compatibility helper; the application uses its one owned catalog."""
+    cache = (
+        KNOWLEDGE_BASE
+        if kb_dir == KNOWLEDGE_BASE.directory
+        else KnowledgeBaseCache(kb_dir, watch_changes=True)
+    )
+    return list(cache.paragraphs())
 
 
 def _score(

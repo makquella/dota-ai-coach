@@ -6,14 +6,10 @@
 // timers never got a single event in a real game).
 const test = require("node:test");
 const assert = require("node:assert");
-const fs = require("node:fs");
-const path = require("node:path");
-
-const MAIN = fs.readFileSync(path.join(__dirname, "..", "main.js"), "utf8");
+const { renderGsiConfig } = require("../local-api");
 
 function configBlocks() {
-  const start = MAIN.indexOf("function gsiConfigText()");
-  const body = MAIN.slice(start, MAIN.indexOf("\n}\n", start));
+  const body = renderGsiConfig("http://127.0.0.1:8000/gsi", "a".repeat(64));
   const data = body.slice(body.indexOf('"data"'));
   return [...data.matchAll(/"([a-z_]+)"\s+"1"/g)].map((match) => match[1]);
 }

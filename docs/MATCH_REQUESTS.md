@@ -1,0 +1,133 @@
+# Review request ownership
+
+0.53.29 adds a private generation owner in `renderer/match-requests.js`.
+Foreground review loads and quiet refreshes use the same instance. A request
+captures view, match ID and locale before calling the real player API. Only the
+latest generation in the still-visible match/locale may synchronously apply its
+result. Leaving the review increments generation and clears its pending refresh
+timer; returning to the same ID cannot revive a response from an earlier visit.
+Changing locale also prevents an older response from applying. Rejected stale
+results cannot render or schedule another poll.
+
+The owner performs validation and the parent callback in one JS turn. It does
+not abort the underlying IPC/HTTP request or change backend cache/network work.
+Current normalized errors retain the normal error UI. Quiet refresh keeps the
+existing input/AI form protection and 4/30-second polling policy. Locale-change
+rendering occurs only after an applied response. Other table/career/question/
+action requests still have their own state handling; F13 remains partial.
+
+Five public module scenarios use controlled asynchronous external requests to
+verify out-of-order completion, same-ID leave/return, changed match/locale/view,
+skipped hidden loads and error recovery. Source and packaged Windows Electron
+smoke starts actual A/B/A review requests through preload/IPC with a tab change,
+awaits all of them and verifies that only the latest applies, on RU/EN. It uses
+the isolated history fixture from 0.53.27. Navigation/focus, table and security
+checks continue. No new renderer privileges, API routes or dependencies are added.
+
+## Match list and pagination
+
+0.53.30 adds `renderer/match-list-requests.js`. The table's replacement request
+owns a generation before awaiting player-status preparation. Superseded
+preparations cannot start a list fetch. The request captures the prepared
+account/link state and filter/sort; only the latest still-visible selection may
+apply its result. Leaving the table or successfully linking/unlinking cancels
+pending table work, including A/B/A returns. Status preparation itself still
+uses the existing shared player-status loader; this is not a status controller
+refactor. The first preparation may discover the selected account.
+
+Pagination permits one pending page and blocks paging during replacement. A
+page captures selection, account and offset; replacement, cancellation, changed
+account or changed row count rejects it. Current errors preserve the previous
+UI behavior and release ownership for retries. Validation and the parent
+callback are synchronous in one JS turn. Underlying IPC/HTTP is not aborted.
+Table strings remain localized at render time; no locale-dependent list
+response is cached. Periodic/sync refresh and return-row focus are preserved.
+
+Ten module scenarios exercise controlled external completion order, preparation,
+filter/sort/account changes, replacement/page races, duplicate clicks, tab
+return, offset and error recovery. Source/Windows smoke double-clicks More,
+starts a page then switches filters A/B/A, and checks leave/return generations
+through actual preload/IPC in RU/EN using the isolated SQLite fixture. F13
+remains partial: career/profile/status/question/action controllers remain.
+
+## Progress in 0.53.33
+
+Foreground career loads and the 4-second pending-AI poll use one generation
+owner in `renderer/career-requests.js`. It captures view, hero filter and locale
+before awaiting status preparation; superseded preparation cannot launch a
+career fetch. After preparation it captures account/link state. Only the latest
+still-visible same selection/account/locale may synchronously apply a result.
+The first status preparation may discover the account. Leaving Progress and
+explicit successful link/unlink invalidate pending loads and clear its timer.
+Foreground loads also clear a previously scheduled quiet timer.
+
+Stale results cannot render or schedule a poll. Current normalized errors keep
+existing behavior; quiet rendering preserves the AI form, with the same 4-second
+policy. Underlying HTTP/IPC continues; the shared status loader and explicit
+coach/goal/question actions remain separate controller work. F13 is partial.
+
+Seven asynchronous module scenarios exercise completion order, hero A/B/A,
+locale/view/account/link changes, canceled preparation, same-hero return,
+first linking/unlinked/hidden states, shared quiet/foreground ownership and
+transport/normalized errors. Source/Windows smoke starts genuine IPC with
+microtask yields between hero selections and before leaving a pending load,
+then verifies the final filtered UI and canceled/accepted load results in RU/EN.
+The isolated SQLite history fixture and existing security checks remain active.
+
+## Shared player status in 0.53.34
+
+`renderer/player-status-requests.js` coalesces concurrent `refreshPlayer` reads
+into one pending promise and applies a current result once. It is shared across
+views and is not canceled on tab changes. Starting an explicit link, detected
+link or unlink invalidates pending reads; a successful result invalidates reads
+again before publishing the authoritative mutation response. Failed mutations
+keep the existing player state and a subsequent read can recover normally.
+An older completion cannot clear a newer generation's pending read. Normalized
+errors keep the current UI behavior; thrown/rejected transports release the
+pending slot, including synchronous throws. No backend/IPC work is aborted.
+
+This covers status reads in matches/career/profile/AI reload/sync/palette.
+Explicit mutation responses retain their existing handling; ordering two account
+mutations themselves, profile/friends/question/goal/coach controllers and full
+account-scoped view-cache reset remain separate F13 work. Backend account/storage
+semantics and polling intervals are unchanged.
+
+Five public module scenarios exercise coalescing, account invalidation,
+old/new completion, normalized errors and synchronous/asynchronous failure
+recovery. Source/Windows smoke begins two actual shared IPC status reads, then
+uses the genuine Change/link form to unlink/relink the fixture account. Both
+old consumers return false, unlinked UI appears, and all history returns after
+relink in RU/EN. Only the dedicated temporary smoke DB is mutated; OpenDota
+is disabled, no AI question/generation is requested, and history remains stored.
+
+## Profile and friends in 0.53.36
+
+`renderer/profile-requests.js` supplies two independent owners: profile reads,
+MMR and shop results share one generation; the friends panel has its own.
+The owner captures visible view and locale before status preparation, then
+captures the prepared account/link state. Only the latest result for that
+still-visible context applies synchronously. Leaving Profile invalidates both
+owners, including same-account leave/return. Starting an account mutation
+invalidates them; a successful mutation invalidates again and clears their
+in-memory caches before publishing the selected player. Backend history,
+MMR, cosmetics, friend codes and consent are retained.
+
+Linking now reloads the visible matches/Progress/Profile screen. Locale changes
+reload Profile, including backend achievement/shop text. Current errors retain
+their existing handling. Underlying requests and already-started writes are not
+aborted: this guards application of results, not ordering of persisted writes.
+Concurrent account mutations, MMR/shop/friends write ordering, copy/open actions,
+other account-scoped caches and question/goal/coach controllers remain separate
+work. F13 is partial.
+
+Seven public-module scenarios check completion order, reads versus actions,
+view/locale/account/link changes, canceled preparation, first/unlinked loads,
+independent owners and error recovery. Source and Windows smoke use genuine
+profile/friends IPC, MMR save/clear, pending leave/return, visible locale changes
+and two account links from Profile. The empty second account cannot show the
+first profile, and relinking restores its 32 stored matches in RU/EN.
+
+Smoke friends status builds the actual public card through the local backend
+without external publication or reading installed friend codes/consent. It does
+not validate remote friend publication or ordering; those paths retain their
+existing tests. The fixture and MMR anchors stay in the dedicated temporary DB.

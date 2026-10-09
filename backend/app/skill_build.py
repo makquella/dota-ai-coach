@@ -24,6 +24,8 @@ from collections import Counter
 from statistics import median
 from typing import Any
 
+from app.ability_normalization import normalize_abilities
+
 MIN_GAMES = 3
 MAX_GAMES = 5  # pro games read per hero (each is one large OpenDota request)
 MAX_TRIES = 8  # recent pro matches tried: some are not parsed yet
@@ -167,8 +169,6 @@ def label(raw_name: str, hero_key: str | None = None) -> str:
     (juggernaut_blade_fury → Blade Fury), else the raw name title-cased without
     the hero's own prefix (`hero_key` "juggernaut": juggernaut_omni_slash →
     Omni Slash) and a slot number (nevermore_shadowraze1 → Shadowraze)."""
-    from app.gsi_state import normalize_abilities  # avoid an import cycle
-
     known = str(normalize_abilities([raw_name])[0]["name"])
     if known.lower().replace(" ", "_") != raw_name.lower():
         return known  # from the name table

@@ -22,7 +22,7 @@ def _history(client, tmp_path, name="old"):
     PLAYER_SERVICE.jobs.run_pending(until=float("inf"))
     client.post("/player/opendota", json={"api_key": SECRET})
     client.post("/player/ai", json={"provider": "gemini", "api_key": "AIza" + SECRET})
-    PLAYER_SERVICE.store.cache_set("coach:match:1:ru:x", {"review": "text"})
+    PLAYER_SERVICE.store.cache_set("coach:match:1:ru:x", {"review": {"summary": "text"}})
     PLAYER_SERVICE.store.cache_set("opendota:items", {"by_id": {}})
     return PLAYER_SERVICE
 
@@ -48,7 +48,7 @@ def test_backup_moves_the_history_to_a_new_computer(client, tmp_path):
     assert result["imported"]["matches"] == {"added": 6, "filled": 0}
     after = client.get(f"/player/matches/{MATCH_ID}?lang=ru").json()
     assert after["analysis"]["headline"] == before["analysis"]["headline"]
-    assert PLAYER_SERVICE.store.cache_get("coach:match:1:ru:x") == {"review": "text"}
+    assert PLAYER_SERVICE.store.cache_get("coach:match:1:ru:x") == {"review": {"summary": "text"}}
     assert client.get("/player/opendota").json().get("configured") is not True
 
     # The same file again adds nothing.
@@ -76,7 +76,7 @@ def test_not_a_backup(client, tmp_path):
     assert bad.status_code == 400 and bad.json()["code"] == "not_backup"
     newer = client.post("/player/backup", json={"format": "wardly-backup", "version": 99})
     assert newer.json()["code"] == "newer_version"
-    # Rows of unknown tables and odd values are skipped, never stored.
+    # Invalid known fields reject the entire file before writing any row.
     odd = {
         "format": "wardly-backup",
         "version": 1,
@@ -90,6 +90,7 @@ def test_not_a_backup(client, tmp_path):
             "sqlite_master": [{"name": "x"}],
         },
     }
-    result = client.post("/player/backup", json=odd).json()
-    assert result["imported"]["matches"]["added"] == 1
+    result = client.post("/player/backup", json=odd)
+    assert result.status_code == 400 and result.json()["code"] == "not_backup"
+    assert PLAYER_SERVICE.store.count_matches(1) == 0
     assert PLAYER_SERVICE.store.get_meta("opendota_api_key") is None

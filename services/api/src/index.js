@@ -473,16 +473,15 @@ export async function putTransfer(request, id, env, now = Date.now()) {
     return json({ ok: false, code: "rate_limited" }, 429);
   }
   await env.DB.prepare("DELETE FROM transfers WHERE expires_at < ?1").bind(now).run();
-  const taken = await env.DB.prepare("SELECT id FROM transfers WHERE id = ?1").bind(id).first();
-  if (taken) {
-    return json({ ok: false, code: "taken" }, 409);
-  }
   const expiresAt = now + TRANSFER_MINUTES * 60_000;
-  await env.DB.prepare(
-    "INSERT INTO transfers (id, created_at, expires_at, install_id, size, body) VALUES (?1, ?2, ?3, ?4, ?5, ?6)"
+  const inserted = await env.DB.prepare(
+    "INSERT INTO transfers (id, created_at, expires_at, install_id, size, body) VALUES (?1, ?2, ?3, ?4, ?5, ?6) ON CONFLICT(id) DO NOTHING RETURNING id"
   )
     .bind(id, now, expiresAt, installId, body.length, body)
-    .run();
+    .first();
+  if (!inserted) {
+    return json({ ok: false, code: "taken" }, 409);
+  }
   return json({ ok: true, id, expires_at: expiresAt }, 201);
 }
 
@@ -498,15 +497,20 @@ export async function claimTransfer(request, id, env, now = Date.now()) {
   if (!isTransferId(id)) {
     return json({ ok: false, code: "not_found" }, 404);
   }
-  const row = await env.DB.prepare("SELECT body, expires_at, tries FROM transfers WHERE id = ?1").bind(id).first();
-  if (!row || Number(row.expires_at) < now) {
-    await env.DB.prepare("DELETE FROM transfers WHERE id = ?1").bind(id).run();
+  // Claim and increment are one D1 statement; only a successful claimant gets
+  // ciphertext. Cleanup must not delete a fresh replacement with the same id.
+  const row = await env.DB.prepare(
+    "UPDATE transfers SET tries = tries + 1 WHERE id = ?1 AND tries < ?2 AND expires_at >= ?3 RETURNING body, tries"
+  ).bind(id, TRANSFER_TRIES, now).first();
+  if (!row) {
+    await env.DB.prepare(
+      "DELETE FROM transfers WHERE id = ?1 AND (expires_at < ?2 OR tries >= ?3)"
+    ).bind(id, now, TRANSFER_TRIES).run();
     return json({ ok: false, code: "not_found" }, 404);
   }
-  if (Number(row.tries) + 1 >= TRANSFER_TRIES) {
-    await env.DB.prepare("DELETE FROM transfers WHERE id = ?1").bind(id).run();
-  } else {
-    await env.DB.prepare("UPDATE transfers SET tries = tries + 1 WHERE id = ?1").bind(id).run();
+  if (Number(row.tries) >= TRANSFER_TRIES) {
+    await env.DB.prepare("DELETE FROM transfers WHERE id = ?1 AND tries >= ?2")
+      .bind(id, TRANSFER_TRIES).run();
   }
   return new Response(new Uint8Array(row.body), {
     headers: { "content-type": "application/octet-stream", "cache-control": "no-store" }

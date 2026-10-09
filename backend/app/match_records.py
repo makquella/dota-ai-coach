@@ -17,7 +17,6 @@ line is {"k": "meta", …}. Python's gzip reads the appended members as one file
 
 from __future__ import annotations
 
-import contextlib
 import copy
 import gzip
 import json
@@ -27,6 +26,8 @@ import time
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
+
+from app.diagnostics import record_error
 
 RECORDS_DIR = "match_records"
 KEEP_DAYS = 7
@@ -80,6 +81,9 @@ class MatchRecords:
         self._lock = threading.Lock()
         self.enabled = False
         self._dir: Path | None = None
+        self._failures = 0
+        self._unconfirmed_lines = 0
+        self._last_error: str | None = None
         self._reset_current()
 
     def _reset_current(self) -> None:
@@ -121,8 +125,13 @@ class MatchRecords:
         if not self.enabled or not isinstance(payload, dict):
             return
         # Recording must never break /gsi.
-        with contextlib.suppress(Exception):
+        try:
             self._record_gsi(payload, time.monotonic() if now is None else now)
+        except Exception as error:  # noqa: BLE001 - optional recording never breaks GSI
+            with self._lock:
+                self._failures += 1
+                self._last_error = type(error).__name__
+            record_error("match-records-observe", error, with_trace=False)
 
     def _record_gsi(self, payload: dict[str, Any], now: float) -> None:
         game = payload.get("map") if isinstance(payload.get("map"), dict) else {}
@@ -222,6 +231,7 @@ class MatchRecords:
         if self._path is None or not self._buffer:
             return
         data = ("\n".join(self._buffer) + "\n").encode("utf-8")
+        count = len(self._buffer)
         self._buffer = []
         self._last_flush = time.monotonic() if now is None else now
         try:
@@ -233,8 +243,21 @@ class MatchRecords:
             self._path.with_suffix("").with_suffix(".json").write_text(
                 json.dumps(summary), encoding="utf-8"
             )
-        except OSError:
-            pass
+        except OSError as error:
+            self._failures += 1
+            self._unconfirmed_lines += count
+            self._last_error = type(error).__name__
+            record_error("match-records-flush", error, with_trace=False)
+
+    def health(self) -> dict[str, Any]:
+        with self._lock:
+            return {
+                "enabled": self.enabled,
+                "failures": self._failures,
+                "unconfirmed_lines": self._unconfirmed_lines,
+                "last_error": self._last_error,
+                "buffered_lines": len(self._buffer),
+            }
 
     # --- files ----------------------------------------------------------------
 

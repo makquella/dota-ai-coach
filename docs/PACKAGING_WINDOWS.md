@@ -93,7 +93,7 @@ To release a version:
 
 Do not create the release with GitHub's "Draft a new release" form: it creates the release itself, and the workflow then fails at the publish step because the release already exists.
 
-The `Release` workflow (`.github/workflows/release.yml`) checks that the tag matches the version, builds and smoke-tests on `windows-latest` exactly like CI, then creates the GitHub Release with `latest.yml`, the installer and its `.blockmap`. All three are needed: the app reads `latest.yml` from the latest (non-draft, non-prerelease) release.
+The `Release` workflow (`.github/workflows/release.yml`) selects an immutable commit and checks the version tag, runs the shared backend/frontend CI against that exact source, then builds and smoke-tests on `windows-latest` before creating the GitHub Release with `latest.yml`, the installer and its `.blockmap`. Source and current remote tag are checked again before publication. See [RELEASE_VALIDATION.md](RELEASE_VALIDATION.md). All three files are needed: the app reads `latest.yml` from the latest (non-draft, non-prerelease) release.
 
 In the app:
 

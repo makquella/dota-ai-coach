@@ -21,7 +21,7 @@ python -m pytest tests/test_<feature>.py tests/test_<consumer>.py
 | GSI / сигналы | `test_gsi_samples_and_advice.py`, `test_gsi_in_match.py`, `test_spectator_gsi.py`, `test_fuzz_live_gsi.py`; skill/position tests при касании |
 | Decision / policy / coaches | `test_decision_points_recommender.py`, `test_hero_safety.py`, `test_laning_post_laning_coaches.py`; hero/support cases; `test_advice_i18n.py` при изменении видимого текста |
 | Scheduler / frequency / shared state | Все `test_evaluate_*_gate.py`, `test_scheduler_spacing.py`, `test_scheduler_state_snapshot.py`, `test_advice_frequency.py`, `test_replay_demo_data.py`; широкий state refactor → весь backend |
-| Tracker / store / persistence | `test_player_history.py`, `test_history_backup.py`, `test_match_notes.py`, `test_match_advice_log.py`; новые failure/restart/thread cases; `test_packaging_runtime.py` при paths/lifecycle |
+| Tracker / store / persistence | `test_player_history.py`, `test_history_backup.py`, `test_backup_atomicity.py`, `test_cache_corruption.py`, `test_match_notes.py`, `test_match_advice_log.py`; новые failure/restart/thread cases; `test_packaging_runtime.py` при paths/lifecycle |
 | Analysis / facts | `test_player_history.py`, связанные role/lane/build/death tests, `test_personal_baseline.py`, `test_focus_goal.py`; проверить review/cache versions |
 | AI client / facts / questions | `test_coach_ai.py`, `test_diagnostics.py`; fake providers, metric swaps, total deadline/idempotency; без live AI вызовов |
 | Profile / cosmetics / friends | `test_player_profile.py`, `test_cosmetics.py`, `test_friend_compare.py`; launcher `test/friends.test.js`, Worker profile tests при public contract |
@@ -48,15 +48,17 @@ python -c "import pathlib,subprocess,sys; paths=sorted(str(p) for p in pathlib.P
 ```bash
 python -m ruff check .
 python -m ruff format --check .
+python ../scripts/check_types.py
+python -m mypy --strict ../scripts/check_types.py
 python -m pytest --junitxml=/tmp/wardly-backend-tests.xml
 python -m compileall -q app scripts packaging tests
 python ../scripts/build_changelog.py --check
 python ../scripts/build_site.py --check
 ```
 
-На Windows путь XML заменить на доступный временный файл. Сохранить exit status pytest и проверить текущий XML: tests > 0, failures/errors = 0; skipped сообщать отдельно. `python -m mypy app` пока nonblocking по CI: ошибки типизации не равны runtime defects, но результат необходимо сообщать. Locked baseline и clean-module gate ещё не внедрены.
+На Windows путь XML заменить на доступный временный файл. Сохранить exit status pytest и проверить текущий XML: tests > 0, failures/errors = 0; skipped сообщать отдельно. Locked mypy gate блокирует новые ошибки и требует удалять resolved allowances; 176 существующих ошибок остаются известным долгом. Команды prune и границы проверки — [TYPE_CHECKING.md](TYPE_CHECKING.md).
 
-Из `frontend/launcher/`: `npm run check`, `npm test`. Из `services/api/`: `npm test`. Backend tests используют TestClient + SQLite и чистые domain modules; Worker tests используют fake D1/R2, поэтому passing mocks не доказывают SQL syntax/atomicity настоящего D1.
+Из `frontend/launcher/`: `npm run check`, `npm test`. Из `services/api/`: `npm test` запускает unit tests и integration tests transfer на настоящем local D1/Miniflare. Отдельно доступны `npm run test:unit` и `npm run test:integration`. Backend tests используют TestClient + SQLite и чистые domain modules; другие Worker SQL paths пока используют fake D1/R2, поэтому при изменении их атомарности нужно расширять реальные D1 проверки. Границы harness — [TRANSFER_ATOMICITY.md](TRANSFER_ATOMICITY.md).
 
 `backend/tests/conftest.py` сбрасывает shared state, отключает OpenDota и обычно не запускает фоновые threads. Изменения queue/lifespan проверять настоящими threads + Events и context-managed TestClient. Fault tests проверяют recovery/rollback/ответ пользователю; не ослаблять assertions и не заменять проверку zero-test запуском.
 
@@ -76,4 +78,4 @@ xvfb-run -a ./node_modules/.bin/electron . --no-sandbox --smoke-test=/tmp/wardly
 
 Windows packaging: из корня `scripts/build-windows.ps1`, затем `scripts/smoke-windows.ps1`. `-SkipBackend` подходит только frontend-изменениям при наличии валидного backend build; release требует полного build. Linux Electron smoke не заменяет Windows installer, watcher и реальную Dota GSI проверку.
 
-После проверки: `git diff --check`, просмотр финального diff и untracked files. Логи, SQLite, записи матчей и локальные результаты не коммитить. Отчёт должен отличать passed, failed, skipped и unrun проверки. Отдельный portable runner и D1/UI harness — задачи roadmap, команды к ним пока не предлагать как готовые.
+После проверки: `git diff --check`, просмотр финального diff и untracked files. Логи, SQLite, записи матчей и локальные результаты не коммитить. Отчёт должен отличать passed, failed, skipped и unrun проверки. Portable runner и version gate: [DEV_RUNNER.md](DEV_RUNNER.md); `python scripts/dev.py check --changed --dry-run` показывает текущие пути, profiles, argv и cwd. Actual Electron smoke и local D1 harness уже существуют; их границы описаны выше.

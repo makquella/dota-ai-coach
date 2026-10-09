@@ -9,18 +9,22 @@ from __future__ import annotations
 
 import hashlib
 import json
+import threading
 from collections import deque
-from collections.abc import Mapping
+from collections.abc import Callable, Mapping
+from dataclasses import dataclass
 from datetime import UTC, datetime
-from typing import Any
+from functools import wraps
+from typing import Any, Concatenate, ParamSpec, TypeVar
 
 from app.buyback_tracker import BuybackTracker
 from app.enemy_heroes import EnemyHeroes
 from app.enemy_lanes import EnemyLanes
 from app.farm_tracker import FarmTracker
 from app.gold_tips import GoldTips
+from app.live_hints import LiveHintInputs, render_live_hints
 from app.live_role import LiveRoleTracker
-from app.map_hints import RoleTips
+from app.map_hints import RoleTips, timers
 from app.roshan_timer import RoshanTimer
 from app.skill_tips import SkillTips
 from app.tp_tracker import TpTracker
@@ -71,13 +75,50 @@ ESCAPE_OR_DEFENSIVE_FLAG_HINTS = (
     "unavailable",
 )
 
+P = ParamSpec("P")
+R = TypeVar("R")
+
+
+@dataclass(frozen=True)
+class LiveTrackerSnapshot:
+    """Detached child-tracker reads captured under one memory owner."""
+
+    match_id: str | None
+    hero: str | None
+    generation: int
+    enemies: list[str]
+    opponents: list[str]
+    missing: dict[str, Any] | None
+    skill_bar: int | None
+    tp_missing: bool
+    roshan_open: bool
+    objective: dict[str, Any] | None
+    roshan_strip: list[dict[str, Any]]
+
+
+def _owned(
+    method: Callable[Concatenate[MatchMemory, P], R],
+) -> Callable[Concatenate[MatchMemory, P], R]:
+    """Serialize a core memory operation; never hold this lock across I/O."""
+
+    @wraps(method)
+    def guarded(self: MatchMemory, *args: P.args, **kwargs: P.kwargs) -> R:
+        with self._lock:
+            return method(self, *args, **kwargs)
+
+    return guarded
+
 
 class MatchMemory:
     def __init__(self) -> None:
+        self._lock = threading.RLock()
+        self._generation = 0
         self.allow_demo_history = False
         self.reset("init")
 
+    @_owned
     def reset(self, reason: str = "manual") -> None:
+        self._generation += 1
         now = _now()
         self.match_id: str | None = None
         self.hero: str | None = None
@@ -108,6 +149,14 @@ class MatchMemory:
         self.enemy_lanes = EnemyLanes()
 
     def observe_state(self, state: dict[str, Any]) -> dict[str, Any]:
+        # Roshan/Aegis can need timer settings on the first observed event.
+        # Warm that file cache before core ownership, including demo/direct use.
+        timers()
+        return self._observe_state(state)
+
+    @_owned
+    def _observe_state(self, state: dict[str, Any]) -> dict[str, Any]:
+        self._generation += 1
         now_dt = datetime.now(UTC)
         now = now_dt.isoformat()
         now_ts = now_dt.timestamp()
@@ -180,7 +229,8 @@ class MatchMemory:
             current_alive,
             paused=_ctx_bool(state, "paused"),
         )
-        extra = state.get("extra_context") if isinstance(state.get("extra_context"), dict) else {}
+        raw_extra = state.get("extra_context")
+        extra = raw_extra if isinstance(raw_extra, dict) else {}
         if extra.get("source_type") == "live_gsi":
             self.roshan.observe(extra)
             self.enemies.observe(extra.get("visible_enemies"))
@@ -201,6 +251,7 @@ class MatchMemory:
         self._annotate_state(state)
         return state
 
+    @_owned
     def death_review_decision(self) -> str | None:
         if not self.death_events:
             return None
@@ -215,6 +266,78 @@ class MatchMemory:
             return "DEATH_LOW_RESOURCE"
         return "DEATH_REVIEW"
 
+    @_owned
+    def death_review_for_state(self, state_session: object, *, available: bool) -> str | None:
+        """Keep the existing fallback's session check and decision one read."""
+        if available or state_session == self.match_id:
+            return self.death_review_decision()
+        return None
+
+    @_owned
+    def note_advice(self, decision_point: str) -> None:
+        self.last_advice_type = decision_point
+
+    @_owned
+    def role_snapshot(self, prior: dict[str, Any] | None = None) -> dict[str, Any] | None:
+        """Read the observed/selected role with an already prepared prior."""
+        return self.role.role(prior)
+
+    @_owned
+    def enemy_heroes(self) -> list[str]:
+        return self.enemies.heroes()
+
+    def tracker_snapshot(
+        self, *, clock: int | None, lane: str | None, alive: bool, lang: str
+    ) -> LiveTrackerSnapshot:
+        # Roshan reads the same settings as observation; prepare outside ownership.
+        timers()
+        return self._tracker_snapshot(clock=clock, lane=lane, alive=alive, lang=lang)
+
+    @_owned
+    def _tracker_snapshot(
+        self, *, clock: int | None, lane: str | None, alive: bool, lang: str
+    ) -> LiveTrackerSnapshot:
+        return LiveTrackerSnapshot(
+            match_id=self.match_id,
+            hero=self.hero,
+            generation=self._generation,
+            enemies=self.enemies.heroes(),
+            opponents=self.enemy_lanes.opponents(lane),
+            missing=self.enemy_lanes.missing(clock, lane) if alive else None,
+            skill_bar=self.skills.bar_size(),
+            tp_missing=self.tp.signal() is not None,
+            roshan_open=self.roshan.maybe_up(clock),
+            objective=self.roshan.hint(clock, lang),
+            roshan_strip=self.roshan.strip(clock, lang),
+        )
+
+    def live_hints(
+        self,
+        state: Mapping[str, Any],
+        extra: Mapping[str, Any],
+        trackers: LiveTrackerSnapshot,
+        inputs: LiveHintInputs,
+        lang: str,
+    ) -> dict[str, object]:
+        timers()
+        return self._live_hints(state, extra, trackers, inputs, lang)
+
+    @_owned
+    def _live_hints(
+        self,
+        state: Mapping[str, Any],
+        extra: Mapping[str, Any],
+        trackers: LiveTrackerSnapshot,
+        inputs: LiveHintInputs,
+        lang: str,
+    ) -> dict[str, object]:
+        if trackers.generation != self._generation:
+            # Observation/reset ran while metadata was being prepared. Leave
+            # new-session tip memory untouched; the next overlay poll retries.
+            return {}
+        return render_live_hints(self, state, extra, trackers, inputs, lang)
+
+    @_owned
     def summary(self) -> dict[str, Any]:
         return {
             "match_id": self.match_id,
@@ -232,6 +355,7 @@ class MatchMemory:
             "updated_at": self.updated_at,
         }
 
+    @_owned
     def overlay_context(self) -> dict[str, Any]:
         recent_patterns = self._recent_death_patterns()
         return {
@@ -259,11 +383,8 @@ class MatchMemory:
         hp_percent = _to_int(state.get("hp_percent"), 100)
         hp_delta_5s = _hp_delta_from_recent_peak(self.last_states, hp_percent, now_ts, 5)
         hp_delta_10s = _hp_delta_from_recent_peak(self.last_states, hp_percent, now_ts, 10)
-        laning_context = (
-            extra_context.get("laning_context")
-            if isinstance(extra_context.get("laning_context"), Mapping)
-            else {}
-        )
+        raw_laning = extra_context.get("laning_context")
+        laning_context = raw_laning if isinstance(raw_laning, Mapping) else {}
         low_hp_threshold = _to_int(laning_context.get("low_hp_warning_threshold"), 50)
         critical_hp_threshold = _to_int(laning_context.get("critical_hp_threshold"), 35)
         recent_damage_taken = hp_delta_10s <= -20

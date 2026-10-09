@@ -8,28 +8,41 @@ spendable gold when those signals are missing.
 
 from __future__ import annotations
 
+import threading
 from collections import Counter
 from copy import deepcopy
 from datetime import UTC, datetime
 from typing import Any
+from uuid import uuid4
+
+from app.advice_i18n import advice_messages
 
 MAX_HISTORY = 200
 
 
 class CoachSessionHistory:
     def __init__(self) -> None:
+        self._lock = threading.Lock()
+        self._instance_id = uuid4().hex
+        self._generation = 0
+        self._sequence = 0
         self._records: list[dict[str, Any]] = []
         self._last_record_key = ""
 
     def reset(self) -> None:
-        self._records.clear()
-        self._last_record_key = ""
+        with self._lock:
+            self._generation += 1
+            self._sequence = 0
+            self._records.clear()
+            self._last_record_key = ""
 
     def record_overlay_advice(
         self,
         overlay_response: dict[str, Any],
         state: dict[str, Any] | None = None,
     ) -> None:
+        with self._lock:
+            generation = self._generation
         recommendation = overlay_response.get("recommendation")
         if not isinstance(recommendation, dict):
             return
@@ -59,10 +72,6 @@ class CoachSessionHistory:
                 str(overlay_response.get("source") or ""),
             ]
         )
-        if record_key == self._last_record_key:
-            return
-        self._last_record_key = record_key
-
         record = {
             "timestamp": overlay_response.get("timestamp")
             or overlay_response.get("last_updated")
@@ -94,12 +103,31 @@ class CoachSessionHistory:
                 or []
             ),
         }
-        self._records.append(record)
-        if len(self._records) > MAX_HISTORY:
-            del self._records[: len(self._records) - MAX_HISTORY]
+        # Construct/translate/copy outside ownership. Once stored, a record is
+        # private and never mutated, allowing readers to copy after release.
+        private = deepcopy(advice_messages(record))
+        self._append_prepared(private, record_key, generation)
 
-    def records(self) -> list[dict[str, Any]]:
-        return deepcopy(self._records)
+    def _append_prepared(self, record: dict[str, Any], key: str, generation: int) -> None:
+        with self._lock:
+            if generation != self._generation or key == self._last_record_key:
+                return
+            self._last_record_key = key
+            self._sequence += 1
+            record["id"] = f"{self._instance_id}:{generation}:{self._sequence}"
+            self._records.append(record)
+            if len(self._records) > MAX_HISTORY:
+                del self._records[: len(self._records) - MAX_HISTORY]
+
+    def records(self, limit: int | None = None) -> list[dict[str, Any]]:
+        with self._lock:
+            if limit is None:
+                selected = list(self._records)
+            elif limit > 0:
+                selected = self._records[-limit:]
+            else:
+                selected = []
+        return deepcopy(selected)
 
     def build_summary(self, scheduler_stats: dict[str, Any] | None = None) -> dict[str, Any]:
         records = self.records()
@@ -303,7 +331,7 @@ def _focus_points(pattern_counts: Counter[str], records: list[dict[str, Any]]) -
 
 
 def _limitations(records: list[dict[str, Any]]) -> list[str]:
-    missing = set()
+    missing: set[str] = set()
     for record in records:
         missing.update(str(signal) for signal in record.get("missing_signals") or [])
 

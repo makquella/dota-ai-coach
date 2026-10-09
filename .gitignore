@@ -126,3 +126,6 @@ backend/player_data/
 # Local Worker state and personal Claude instructions
 .wrangler/
 CLAUDE.local.md
+# Private local API credentials (never included in history backups).
+local-api-auth.json
+local-api-gsi.json

@@ -12,6 +12,7 @@ const {
   validFrame
 } = require("./skill-arrow-placement");
 const { sameBounds } = require("./overlay-placement");
+const { trustedHandlers, protectWindow } = require("./renderer-security");
 
 // Skill arrows (0.43): while the overlay names the ability to level («Learn
 // your ultimate: Omnislash»), an arrow over that icon of Dota's ability bar.
@@ -135,9 +136,11 @@ function createSkillArrowController({ settings, getDotaRect = () => null, getLoc
       webPreferences: {
         preload: path.join(__dirname, "skill-arrows-preload.js"),
         contextIsolation: true,
-        nodeIntegration: false
+        nodeIntegration: false,
+        sandbox: true
       }
     });
+    protectWindow(arrowWindow);
     arrowWindow.setIgnoreMouseEvents(true);
     arrowWindow.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
     arrowWindow.loadFile(path.join(__dirname, "skill-arrows", "index.html"), { query: { mode: "arrow" } });
@@ -196,9 +199,11 @@ function createSkillArrowController({ settings, getDotaRect = () => null, getLoc
       webPreferences: {
         preload: path.join(__dirname, "skill-arrows-preload.js"),
         contextIsolation: true,
-        nodeIntegration: false
+        nodeIntegration: false,
+        sandbox: true
       }
     });
+    protectWindow(calibrationWindow);
     calibrationWindow.setAlwaysOnTop(true, ALWAYS_ON_TOP_LEVEL);
     calibrationWindow.loadFile(path.join(__dirname, "skill-arrows", "index.html"), { query: { mode: "calibrate" } });
     calibrationWindow.webContents.on("did-finish-load", () => send(calibrationWindow, "skill-arrow:calibrate", payload));
@@ -258,18 +263,19 @@ function createSkillArrowController({ settings, getDotaRect = () => null, getLoc
   }
 
   function registerIpc(onChange = () => {}) {
-    ipcMain.handle("skill-arrow:save", (_event, result) => {
+    const handle = trustedHandlers(ipcMain, () => calibrationWindow, path.join(__dirname, "skill-arrows", "index.html"), { mode: "calibrate" });
+    handle("skill-arrow:save", (_event, result) => {
       const next = finishCalibration(result && typeof result === "object" ? result : null);
       onChange();
       return next;
     });
-    ipcMain.handle("skill-arrow:auto", () => {
+    handle("skill-arrow:auto", () => {
       const next = resetCalibration();
       log("Skill arrows: back to the automatic layout.");
       onChange();
       return next;
     });
-    ipcMain.handle("skill-arrow:cancel", () => {
+    handle("skill-arrow:cancel", () => {
       const next = finishCalibration(null);
       onChange();
       return next;
@@ -294,6 +300,7 @@ function createSkillArrowController({ settings, getDotaRect = () => null, getLoc
     setEnabled,
     resetCalibration,
     state,
+    window: () => (isOpen(calibrationWindow) ? calibrationWindow : null),
     registerIpc,
     dispose
   };

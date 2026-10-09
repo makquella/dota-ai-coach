@@ -34,6 +34,8 @@ python3 scripts/run_overlay_demo.py \
 
 The script prints only newly shown advice events by default. Use `--verbose` for every state.
 
+The helper authenticates using the standalone backend's private credentials file. Launcher demo buttons pass their own credentials and selected port through the child environment. If you choose another port manually, set `DOTA_AI_BACKEND_PORT` consistently for the backend and helper and pass `--backend-url http://127.0.0.1:<port>`. See [LOCAL_API_SECURITY.md](LOCAL_API_SECURITY.md); do not print credentials in demo logs.
+
 ## Export Session Summary
 
 ```bash
@@ -46,7 +48,7 @@ python3 scripts/run_overlay_demo.py \
   --export-summary-json simulation_results/demo_session_summary_pl_20_30.json
 ```
 
-Summary endpoint during/after a demo:
+Summary endpoint during/after a demo (control Bearer header required, or Swagger Authorize):
 
 ```text
 GET http://127.0.0.1:8000/demo/session-summary

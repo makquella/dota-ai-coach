@@ -26,14 +26,12 @@ cached per match, language and facts, and rebuilt when the facts change.
 from __future__ import annotations
 
 import contextlib
-import heapq
-import itertools
 import json
 import re
 import threading
 import time
 from collections import Counter
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
@@ -43,7 +41,9 @@ from app.analysis_texts import rank_label, render_analysis
 from app.career_analysis import NOT_RECURRING, analyze_career
 from app.coach_llm import PROVIDERS, AISettings, CoachLLM, CoachLLMError, settings_from
 from app.coach_review import (
+    COACH_VERSION,
     QUESTION_LIMIT,
+    FactChecker,
     answer_question,
     career_facts,
     facts_hash,
@@ -69,6 +69,7 @@ from app.hero_meta import item_key, start_items
 from app.hero_profiles import get_hero_position
 from app.history_backup import export_backup, import_backup
 from app.home_summary import home_summary
+from app.job_queue import JOB_STOP_TIMEOUT_SECONDS, JobQueue
 from app.lane_duel import lane_records
 from app.map_analysis import map_side, zone
 from app.map_hints import SAVE_ITEMS
@@ -86,6 +87,7 @@ from app.opendota import (
 )
 from app.personal_baseline import MAX_GAMES as MAX_BASELINE_GAMES
 from app.personal_baseline import personal_baseline
+from app.player_contracts import analysis_core_valid
 from app.player_goals import goal_streaks, tilt
 from app.player_profile import MMR_MAX, MMR_MIN, add_anchor, build_profile
 from app.player_store import PlayerStore
@@ -150,90 +152,6 @@ COACH_BUSY_RETRY_SECONDS = (60, 120, 180)
 OPENDOTA_KEY_META = "opendota_api_key"
 # OpenDota keys are UUIDs; allow any similar token, never spaces or URL parts.
 OPENDOTA_KEY_RE = re.compile(r"[A-Za-z0-9-]{16,80}")
-
-
-class JobQueue:
-    """Delayed, de-duplicated jobs on one daemon thread (or run by hand in tests)."""
-
-    def __init__(
-        self,
-        *,
-        auto_start: bool = True,
-        clock: Callable[[], float] = time.monotonic,
-        name: str = "player-jobs",
-    ) -> None:
-        self.auto_start = auto_start
-        self.name = name
-        self._clock = clock
-        self._heap: list[tuple[float, int, str]] = []
-        self._jobs: dict[str, Callable[[], None]] = {}
-        self._counter = itertools.count()
-        self._cond = threading.Condition()
-        self._thread: threading.Thread | None = None
-        self._stopped = False
-
-    def submit(self, key: str, fn: Callable[[], None], *, delay: float = 0.0) -> None:
-        with self._cond:
-            if key in self._jobs:
-                return
-            self._jobs[key] = fn
-            heapq.heappush(self._heap, (self._clock() + delay, next(self._counter), key))
-            self._cond.notify()
-        if self.auto_start:
-            self._ensure_thread()
-
-    def pending(self) -> list[str]:
-        with self._cond:
-            return list(self._jobs)
-
-    def run_pending(self, *, until: float | None = None) -> int:
-        """Run every job due by `until` (default: now). Returns how many ran."""
-        ran = 0
-        while True:
-            with self._cond:
-                limit = self._clock() if until is None else until
-                if not self._heap or self._heap[0][0] > limit:
-                    return ran
-                _, _, key = heapq.heappop(self._heap)
-                fn = self._jobs.pop(key, None)
-            if fn is not None:
-                fn()
-                ran += 1
-
-    def run_due(self, *, until: float | None = None) -> int:
-        """Like run_pending, but a failing job is recorded for the problem report
-        and the next jobs still run (the worker thread must never die)."""
-        ran = 0
-        while True:
-            try:
-                return ran + self.run_pending(until=until)
-            except Exception as error:  # noqa: BLE001
-                record_error(self.name, error)
-                ran += 1
-
-    def stop(self) -> None:
-        with self._cond:
-            self._stopped = True
-            self._cond.notify_all()
-
-    def _ensure_thread(self) -> None:
-        if self._thread and self._thread.is_alive():
-            return
-        self._thread = threading.Thread(target=self._loop, name=self.name, daemon=True)
-        self._thread.start()
-
-    def _loop(self) -> None:
-        while True:
-            with self._cond:
-                if self._stopped:
-                    return
-                wait = None
-                if self._heap:
-                    wait = max(0.0, self._heap[0][0] - self._clock())
-                if wait is None or wait > 0:
-                    self._cond.wait(timeout=wait if wait is not None else 60)
-                    continue
-            self.run_due()
 
 
 def _now_iso() -> str:
@@ -306,6 +224,7 @@ class PlayerService:
         llm: Any = None,
         env_ai: AISettings | None = None,
     ) -> None:
+        self._lifecycle_lock = threading.RLock()
         self.configure(data_dir, client=client, auto_start=auto_start, llm=llm, env_ai=env_ai)
 
     def configure(
@@ -316,19 +235,32 @@ class PlayerService:
         auto_start: bool = True,
         llm: Any = None,
         env_ai: AISettings | None = None,
+        stop_timeout: float = JOB_STOP_TIMEOUT_SECONDS,
     ) -> None:
         """(Re)open the store in `data_dir`; used at startup and by tests.
 
         `llm` replaces the configured AI client (tests); `env_ai` is the key
         from .env used when the player has not entered one.
         """
-        for name in ("jobs", "ai_jobs"):
-            old_jobs = getattr(self, name, None)
-            if old_jobs is not None:
-                old_jobs.stop()
-        old_store = getattr(self, "store", None)
-        if old_store is not None:
-            old_store.close()
+        with self._lifecycle_lock:
+            if not self._stop_queues(timeout=stop_timeout):
+                raise TimeoutError("Player service jobs are still running; store remains unchanged")
+            old_store = getattr(self, "store", None)
+            if old_store is not None:
+                if not self._shutdown_complete:
+                    self.tracker.flush()
+                old_store.close()
+            self._open_store(data_dir, client=client, auto_start=auto_start, llm=llm, env_ai=env_ai)
+
+    def _open_store(
+        self,
+        data_dir: Path,
+        *,
+        client: OpenDotaClient | None,
+        auto_start: bool,
+        llm: Any,
+        env_ai: AISettings | None,
+    ) -> None:
         self.data_dir = Path(data_dir)
         self.client = client
         self.store = PlayerStore(self.data_dir / "coach.sqlite3")
@@ -343,6 +275,7 @@ class PlayerService:
         self.env_ai = env_ai
         self._coach_lock = threading.Lock()
         self._shop_lock = threading.Lock()
+        self._sync_lock = threading.Lock()
         self._coach_jobs: dict[str, dict[str, Any]] = {}
         self.tracker = MatchTracker(
             self.data_dir / "live_match.json", on_finished=self._on_match_finished
@@ -361,11 +294,46 @@ class PlayerService:
             "error": None,
             "error_code": None,
         }
+        self._shutdown_complete = False
+        # Recovery callbacks need all service state initialized first.
+        self.tracker.retry_pending()
 
-    def shutdown(self) -> None:
-        self.tracker.flush()
-        self.jobs.stop()
-        self.ai_jobs.stop()
+    def _stop_queues(self, *, timeout: float) -> bool:
+        queues = [
+            queue
+            for name in ("jobs", "ai_jobs")
+            if (queue := getattr(self, name, None)) is not None
+        ]
+        # Signal both before joining either, with one budget across both queues.
+        for queue in queues:
+            queue.request_stop()
+        deadline = time.monotonic() + max(0.0, timeout)
+        stopped = True
+        for queue in queues:
+            if not queue.stop(timeout=max(0.0, deadline - time.monotonic())):
+                stopped = False
+                record_error(
+                    "player-lifecycle",
+                    f"{queue.name} did not stop before the deadline",
+                    with_trace=False,
+                )
+        return stopped
+
+    def shutdown(self, *, timeout: float = JOB_STOP_TIMEOUT_SECONDS) -> bool:
+        """Bound queue joins; retain the store while any callback still uses it."""
+        with self._lifecycle_lock:
+            if self._shutdown_complete:
+                return True
+            self.jobs.request_stop()
+            self.ai_jobs.request_stop()
+            self.tracker.flush()
+            if not self._stop_queues(timeout=timeout):
+                return False
+            # Synchronous HTTP writers are outside these queues and can outlive
+            # ASGI cancellation. Keep the process-owned connection until a safe
+            # configure replaces it, or until the backend process exits.
+            self._shutdown_complete = True
+            return True
 
     # --- GSI ------------------------------------------------------------------
 
@@ -832,6 +800,7 @@ class PlayerService:
             if status["account_id"]
             else {},
             "live_match": status["live_match"],
+            "pending_match_finishes": self.tracker.pending_count(),
             "last_recorded_match": self._last_recorded(status["account_id"]),
             "jobs": self.jobs.pending(),
             "ai_jobs": self.ai_jobs.pending(),
@@ -994,7 +963,9 @@ class PlayerService:
         if record is None:
             return None
         analysis = record.get("analysis")
-        if analysis is not None and analysis.get("version") != ANALYSIS_VERSION:
+        if analysis is not None and (
+            analysis.get("version") != ANALYSIS_VERSION or not analysis_core_valid(analysis)
+        ):
             analysis = None  # rules changed since it was stored
         if analysis is None and (record.get("opendota") or record.get("timeline")):
             analysis = self._rebuild_analysis(primary, match_id)
@@ -1026,7 +997,7 @@ class PlayerService:
         detail["coach"] = self._match_coach(primary, match_id, detail, lang, force=force_coach)
         detail["baseline"] = self._baseline(primary, record, analysis)
         detail["best_on_hero"] = self._best_on_hero(primary, record, analysis)
-        detail["questions"] = self._questions(primary, match_id)
+        detail["questions"] = self._questions(primary, match_id, facts=match_facts(detail))
         current = self._focus(primary)
         detail["focus_id"] = current["id"] if current else None
         # The review's top problems that can become the player's focus.
@@ -1327,7 +1298,9 @@ class PlayerService:
         )
         for match in matches:
             stale = match.get("analysis")
-            if stale is not None and stale.get("version") != ANALYSIS_VERSION:
+            if stale is not None and (
+                stale.get("version") != ANALYSIS_VERSION or not analysis_core_valid(stale)
+            ):
                 match["analysis"] = self._rebuild_analysis(primary, match["match_id"])
         result = analyze_career(
             matches,
@@ -1526,16 +1499,44 @@ class PlayerService:
         entry = {
             "question": " ".join(str(question).split())[:QUESTION_LIMIT],
             "answer": result["review"]["answer"],
+            "counter_evidence": result["review"].get("counter_evidence", []),
+            "rate_evidence": result["review"].get("rate_evidence", []),
+            "farm_evidence": result["review"].get("farm_evidence", []),
+            "farm_slice_evidence": result["review"].get("farm_slice_evidence", []),
+            "finding_evidence": result["review"].get("finding_evidence", []),
             "at": _now_iso(),
             "lang": lang,
         }
         key = f"{ASK_CACHE_KEY}:{primary}:{match_id}"
-        history = [entry, *(self.store.cache_get(key) or [])][:ASK_HISTORY]
+        history = [entry, *self._questions(primary, match_id, facts=facts)][:ASK_HISTORY]
         self.store.cache_set(key, history)
         return {"ok": True, "answer": entry, "history": history}
 
-    def _questions(self, account_id: int, match_id: int) -> list[dict[str, Any]]:
-        return self.store.cache_get(f"{ASK_CACHE_KEY}:{account_id}:{match_id}") or []
+    def _questions(
+        self, account_id: int, match_id: int, *, facts: dict[str, Any] | None
+    ) -> list[dict[str, Any]]:
+        history = self.store.cache_get(f"{ASK_CACHE_KEY}:{account_id}:{match_id}") or []
+        if facts is None:
+            return []
+        checker = FactChecker(json.dumps(facts, ensure_ascii=False), self._known_items())
+        # Old Q&A has no verification version. Recheck the returned view without
+        # deleting stored questions or calling the provider during reads.
+        returned = []
+        for entry in history:
+            cleaned, _, _, _ = checker.scrub({"answer": entry.get("answer") or ""})
+            if cleaned and cleaned.get("answer"):
+                returned.append(
+                    {
+                        **entry,
+                        "answer": cleaned["answer"],
+                        "counter_evidence": list(checker.counter_bindings.evidence.values()),
+                        "rate_evidence": list(checker.rate_bindings.evidence.values()),
+                        "farm_evidence": list(checker.farm_bindings.evidence.values()),
+                        "farm_slice_evidence": checker.farm_bindings.slice_evidence,
+                        "finding_evidence": checker.finding_bindings.evidence,
+                    }
+                )
+        return returned
 
     def _coach_client_with(self, timeout: float) -> Any:
         settings = self.ai_settings()
@@ -1599,6 +1600,10 @@ class PlayerService:
         """Cached review, or queue a new one: off / waiting / pending / ready / error."""
         digest = facts_hash(facts, lang)
         cached = self.store.cache_get(key)
+        if kind == "match" and cached and cached.get("verification_version") != COACH_VERSION:
+            # A policy upgrade must not display unverified legacy prose while
+            # regenerating (including when AI is disabled). Keep the stored copy.
+            cached = None
         shown = _coach_public(cached, stale=bool(cached) and cached.get("hash") != digest)
         if not self.ai_configured():
             return {"state": "off", **shown}
@@ -1653,6 +1658,7 @@ class PlayerService:
             key,
             {
                 "hash": digest,
+                "verification_version": COACH_VERSION,
                 "review": result["review"],
                 "provider": label.get("provider"),
                 "model": label.get("model"),
@@ -1668,9 +1674,15 @@ class PlayerService:
         primary = self.store.primary_account_id()
         if primary is None or self.client is None:
             return dict(self._sync)
-        self._sync = {**self._sync, "state": "queued"}
-        self.jobs.submit(f"sync:{primary}", lambda: self._job_sync(primary))
-        return dict(self._sync)
+        with self._sync_lock:
+            key = f"sync:{primary}"
+            if key in self.jobs.pending():
+                return dict(self._sync)
+            previous = self._sync
+            self._sync = {**previous, "state": "queued"}
+            if not self.jobs.submit(key, lambda: self._job_sync(primary)):
+                self._sync = previous
+            return dict(self._sync)
 
     def fetch_match(self, match_id: int, *, request_parse: bool = True, delay: float = 0.0) -> None:
         primary = self.store.primary_account_id()
@@ -1688,7 +1700,8 @@ class PlayerService:
         client = self.client
         if client is None:
             return
-        self._sync = {**self._sync, "state": "running", "error": None, "error_code": None}
+        with self._sync_lock:
+            self._sync = {**self._sync, "state": "running", "error": None, "error_code": None}
         try:
             self._ensure_hero_stats()
             try:
@@ -1756,29 +1769,32 @@ class PlayerService:
             # tell which role the player plays each pool hero in (the draft's
             # better pick): rebuild them once all of these jobs have run.
             self.jobs.submit(f"rebuild:{account_id}", lambda: self._rebuild_recent(account_id))
-            self._sync = {
-                "state": "done",
-                "at": _now_iso(),
-                "error": None,
-                "error_code": None,
-                "fetched": len(recent),
-            }
+            with self._sync_lock:
+                self._sync = {
+                    "state": "done",
+                    "at": _now_iso(),
+                    "error": None,
+                    "error_code": None,
+                    "fetched": len(recent),
+                }
         except OpenDotaError as error:
             record_error("sync", f"OpenDota: {error.code}", with_trace=False)
-            self._sync = {
-                "state": "error",
-                "at": _now_iso(),
-                "error": str(error),
-                "error_code": error.code,
-            }
+            with self._sync_lock:
+                self._sync = {
+                    "state": "error",
+                    "at": _now_iso(),
+                    "error": str(error),
+                    "error_code": error.code,
+                }
         except Exception as error:  # noqa: BLE001 - never leave the UI stuck on "updating"
             record_error("sync", error)
-            self._sync = {
-                "state": "error",
-                "at": _now_iso(),
-                "error": str(error),
-                "error_code": "internal",
-            }
+            with self._sync_lock:
+                self._sync = {
+                    "state": "error",
+                    "at": _now_iso(),
+                    "error": str(error),
+                    "error_code": "internal",
+                }
 
     def _job_fetch_match(
         self, account_id: int, match_id: int, *, request_parse: bool, attempt: int
@@ -1952,7 +1968,7 @@ class PlayerService:
         account_id = timeline.get("account_id") or self.store.primary_account_id()
         match_id = timeline.get("match_id")
         if not account_id or not match_id:
-            return
+            raise ValueError("Finished match needs an account and match id before acknowledgement")
         facts = facts_from_timeline(timeline)
         fields = {
             "hero_id": facts.get("hero_id"),
@@ -1969,14 +1985,16 @@ class PlayerService:
             "denies": facts.get("denies"),
             "start_time": _start_time(timeline),
         }
-        self.store.upsert_match(
-            account_id,
-            match_id,
-            source="gsi",
-            fields=fields,
-            timeline=timeline,
-            parse_status="waiting_opendota" if self.client is not None else "gsi_only",
-        )
+        existing = self.store.get_match(account_id, match_id)
+        if existing is None or existing.get("timeline") != timeline:
+            self.store.upsert_match(
+                account_id,
+                match_id,
+                source="gsi",
+                fields=fields,
+                timeline=timeline,
+                parse_status="waiting_opendota" if self.client is not None else "gsi_only",
+            )
         analysis = self._rebuild_analysis(account_id, match_id)
         # Per account: a match of another (detected, not linked) account must not
         # replace the linked player's "review ready" banner.
@@ -2024,7 +2042,7 @@ class PlayerService:
         )
         return analysis
 
-    def _inventory_keys(self, facts: dict[str, Any]) -> list[str] | None:
+    def _inventory_keys(self, facts: Mapping[str, Any]) -> list[str] | None:
         """The final inventory as item keys for the match table's icons: GSI
         names directly, OpenDota ids through the cached item constants. None
         when it cannot be read yet (ids without constants), [] when empty."""

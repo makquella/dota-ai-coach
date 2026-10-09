@@ -17,6 +17,7 @@ and the review simply has no build section.
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from typing import Any
 
 from app.hero_meta import build_items, popular_build, timing_verdict
@@ -29,7 +30,7 @@ GOOD_TIMING_MARGIN = 3
 
 
 def analyze_build(
-    facts: dict[str, Any], meta: dict[str, Any] | None, role: str
+    facts: Mapping[str, Any], meta: dict[str, Any] | None, role: str
 ) -> tuple[dict[str, Any] | None, list[dict[str, Any]]]:
     findings: list[dict[str, Any]] = []
     if not meta or not facts.get("items_log"):

@@ -76,6 +76,7 @@ def simulate(
     from fastapi.testclient import TestClient
 
     from app.live_role import set_role_setting
+    from app.local_api_auth import LOCAL_API_AUTH, LOCAL_API_URL
     from app.main import app
     from app.player_api import PLAYER_SERVICE
 
@@ -87,7 +88,9 @@ def simulate(
     last = None
     hint_ids: set[str] = set()
     try:
-        with TestClient(app) as client:
+        with TestClient(
+            app, base_url=LOCAL_API_URL, headers=LOCAL_API_AUTH.headers, client=("127.0.0.1", 50000)
+        ) as client:
             for payload in payloads:
                 clock = (payload.get("map") or {}).get("clock_time")
                 if isinstance(clock, int):

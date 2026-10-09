@@ -1,0 +1,566 @@
+{
+  "format": 1,
+  "mypy_version": "2.4.0",
+  "python_target": "3.11",
+  "clean_modules": [
+    "app/ability_normalization.py",
+    "app/atomic_file.py",
+    "app/coach_evidence.py",
+    "app/coach_finding_evidence.py",
+    "app/coach_summary.py",
+    "app/demo_overlay_cache.py",
+    "app/diagnostics.py",
+    "app/domain_contracts.py",
+    "app/finding_evidence.py",
+    "app/gsi_snapshot.py",
+    "app/gsi_values.py",
+    "app/job_queue.py",
+    "app/knowledge_base.py",
+    "app/live_hints.py",
+    "app/live_path_metrics.py",
+    "app/local_api_auth.py",
+    "app/local_api_security.py",
+    "app/match_facts.py",
+    "app/match_memory.py",
+    "app/player_contracts.py",
+    "app/player_store.py",
+    "app/signal_capabilities.py",
+    "app/storage_json.py"
+  ],
+  "errors": [
+    {
+      "path": "app/advice_context.py",
+      "message": "Argument 1 to \"dict\" has incompatible type \"Any | dict[Any, Any] | None\"; expected \"SupportsKeysAndGetItem[Any, Any]\"",
+      "code": "arg-type",
+      "count": 1
+    },
+    {
+      "path": "app/analysis_texts.py",
+      "message": "Invalid index type \"Any | None\" for \"dict[str, str]\"; expected type \"str\"",
+      "code": "index",
+      "count": 1
+    },
+    {
+      "path": "app/career_analysis.py",
+      "message": "Argument 1 to \"int\" has incompatible type \"str | Any | int | float | None\"; expected \"str | Buffer | SupportsInt | SupportsIndex | SupportsTrunc\"",
+      "code": "arg-type",
+      "count": 1
+    },
+    {
+      "path": "app/career_analysis.py",
+      "message": "Unsupported operand type for unary - (\"object\")",
+      "code": "operator",
+      "count": 2
+    },
+    {
+      "path": "app/career_analysis.py",
+      "message": "Unsupported operand types for <= (\"int\" and \"object\")",
+      "code": "operator",
+      "count": 1
+    },
+    {
+      "path": "app/career_analysis.py",
+      "message": "Unsupported operand types for > (\"int\" and \"object\")",
+      "code": "operator",
+      "count": 1
+    },
+    {
+      "path": "app/cosmetics.py",
+      "message": "Item \"None\" of \"Any | dict[Any, Any] | None\" has no attribute \"items\"",
+      "code": "union-attr",
+      "count": 1
+    },
+    {
+      "path": "app/death_screen.py",
+      "message": "Incompatible types in assignment (expression has type \"int | None\", variable has type \"int\")",
+      "code": "assignment",
+      "count": 1
+    },
+    {
+      "path": "app/death_screen.py",
+      "message": "Item \"None\" of \"dict[str, Any] | None\" has no attribute \"get\"",
+      "code": "union-attr",
+      "count": 2
+    },
+    {
+      "path": "app/death_screen.py",
+      "message": "Value of type \"dict[str, Any] | None\" is not indexable",
+      "code": "index",
+      "count": 2
+    },
+    {
+      "path": "app/decision_points.py",
+      "message": "Incompatible return value type (got \"str\", expected \"Literal['LOW_HP', 'LOW_HP_WARNING', 'RECENT_DAMAGE_WARNING', 'OVERSTAY_WARNING', 'DEATH_REVIEW', 'REPEATED_DEATH_PATTERN', 'DEATH_WITH_ESCAPE_ON_COOLDOWN', 'DEATH_LOW_RESOURCE', 'LOW_MANA', 'DISABLED_STATUS', 'BUYBACK_AVAILABLE', 'DEAD_WAIT', 'SMOKED_STATUS', 'HERO_SURVIVABILITY_RISK', 'LANING_REGEN_CHECK', 'LANING_FARM_CHECK', 'ABILITY_SAFETY_COOLDOWN', 'SOFT_STATUS', 'FARMING_PHASE_PRESSURE', 'OBJECTIVE_FIGHT_CHECK', 'BAD_FIGHT_RISK', 'ITEM_TIMING', 'SAFE_FARMING', 'NO_ADVICE']\")",
+      "code": "return-value",
+      "count": 2
+    },
+    {
+      "path": "app/deep_replay_review.py",
+      "message": "Argument 1 to \"_duration_minutes\" has incompatible type \"list[int | None]\"; expected \"list[int]\"",
+      "code": "arg-type",
+      "count": 1
+    },
+    {
+      "path": "app/deep_replay_review.py",
+      "message": "Argument 1 to \"_time_window\" has incompatible type \"list[int | None]\"; expected \"list[int]\"",
+      "code": "arg-type",
+      "count": 1
+    },
+    {
+      "path": "app/deep_replay_review.py",
+      "message": "Need type annotation for \"missing\" (hint: \"missing: set[<type>] = ...\")",
+      "code": "var-annotated",
+      "count": 1
+    },
+    {
+      "path": "app/draft_analysis.py",
+      "message": "Argument 2 to \"_edge\" has incompatible type \"list[int | None]\"; expected \"list[int]\"",
+      "code": "arg-type",
+      "count": 1
+    },
+    {
+      "path": "app/draft_analysis.py",
+      "message": "Argument 5 to \"_finding\" has incompatible type \"**dict[str, str]\"; expected \"int\"",
+      "code": "arg-type",
+      "count": 2
+    },
+    {
+      "path": "app/draft_analysis.py",
+      "message": "Incompatible types in assignment (expression has type \"bool\", variable has type \"list[str]\")",
+      "code": "assignment",
+      "count": 1
+    },
+    {
+      "path": "app/enemy_lanes.py",
+      "message": "Unsupported operand type for unary - (\"object\")",
+      "code": "operator",
+      "count": 1
+    },
+    {
+      "path": "app/gsi_census.py",
+      "message": "Item \"None\" of \"Any | dict[Any, Any] | None\" has no attribute \"get\"",
+      "code": "union-attr",
+      "count": 3
+    },
+    {
+      "path": "app/gsi_state.py",
+      "message": "Argument 1 to \"int\" has incompatible type \"Any | None\"; expected \"str | Buffer | SupportsInt | SupportsIndex | SupportsTrunc\"",
+      "code": "arg-type",
+      "count": 4
+    },
+    {
+      "path": "app/hero_build.py",
+      "message": "Unsupported operand type for unary - (\"object\")",
+      "code": "operator",
+      "count": 1
+    },
+    {
+      "path": "app/hero_profiles.py",
+      "message": "Item \"None\" of \"dict[str, list[int]] | int | list[Any] | str | Mapping[Any, Any] | None\" has no attribute \"__iter__\" (not iterable)",
+      "code": "union-attr",
+      "count": 1
+    },
+    {
+      "path": "app/hero_profiles.py",
+      "message": "Item \"None\" of \"dict[str, list[int]] | int | list[Any] | str | Mapping[Any, Any] | None\" has no attribute \"get\"",
+      "code": "union-attr",
+      "count": 1
+    },
+    {
+      "path": "app/hero_profiles.py",
+      "message": "Item \"int\" of \"dict[str, list[int]] | int | list[Any] | str | Mapping[Any, Any] | None\" has no attribute \"__iter__\" (not iterable)",
+      "code": "union-attr",
+      "count": 1
+    },
+    {
+      "path": "app/hero_profiles.py",
+      "message": "Item \"int\" of \"dict[str, list[int]] | int | list[Any] | str | Mapping[Any, Any] | None\" has no attribute \"get\"",
+      "code": "union-attr",
+      "count": 1
+    },
+    {
+      "path": "app/hero_profiles.py",
+      "message": "Item \"list[Any]\" of \"dict[str, list[int]] | int | list[Any] | str | Mapping[Any, Any] | None\" has no attribute \"get\"",
+      "code": "union-attr",
+      "count": 1
+    },
+    {
+      "path": "app/hero_profiles.py",
+      "message": "Item \"str\" of \"dict[str, list[int]] | int | list[Any] | str | Mapping[Any, Any] | None\" has no attribute \"get\"",
+      "code": "union-attr",
+      "count": 1
+    },
+    {
+      "path": "app/hero_profiles.py",
+      "message": "Need type annotation for \"DEFAULT_PROFILE\"",
+      "code": "var-annotated",
+      "count": 1
+    },
+    {
+      "path": "app/hero_profiles.py",
+      "message": "No overload variant of \"get\" of \"dict\" matches argument type \"int\"",
+      "code": "call-overload",
+      "count": 1
+    },
+    {
+      "path": "app/lane_duel.py",
+      "message": "Incompatible return value type (got \"dict[str, list[int | float]] | None\", expected \"dict[str, list[int]] | None\")",
+      "code": "return-value",
+      "count": 1
+    },
+    {
+      "path": "app/lane_duel.py",
+      "message": "Item \"None\" of \"Any | dict[Any, Any] | None\" has no attribute \"get\"",
+      "code": "union-attr",
+      "count": 1
+    },
+    {
+      "path": "app/lane_duel.py",
+      "message": "Unsupported operand type for unary - (\"object\")",
+      "code": "operator",
+      "count": 1
+    },
+    {
+      "path": "app/live_tools.py",
+      "message": "Incompatible types in assignment (expression has type \"str | None\", variable has type \"str\")",
+      "code": "assignment",
+      "count": 1
+    },
+    {
+      "path": "app/live_tools.py",
+      "message": "Unsupported operand types for <= (\"int\" and \"None\")",
+      "code": "operator",
+      "count": 1
+    },
+    {
+      "path": "app/llm_provider.py",
+      "message": "\"BaseContext\" has no attribute \"Process\"",
+      "code": "attr-defined",
+      "count": 1
+    },
+    {
+      "path": "app/main.py",
+      "message": "\"object\" has no attribute \"get\"",
+      "code": "attr-defined",
+      "count": 34
+    },
+    {
+      "path": "app/main.py",
+      "message": "Argument \"state\" to \"state_machine_debug\" of \"AdviceScheduler\" has incompatible type \"Any | dict[Any, Any] | None\"; expected \"dict[str, Any]\"",
+      "code": "arg-type",
+      "count": 1
+    },
+    {
+      "path": "app/main.py",
+      "message": "Argument 1 to \"GameSituationRequest\" has incompatible type \"**dict[str, object]\"; expected \"Literal['carry']\"",
+      "code": "arg-type",
+      "count": 2
+    },
+    {
+      "path": "app/main.py",
+      "message": "Argument 1 to \"GameSituationRequest\" has incompatible type \"**dict[str, object]\"; expected \"Literal['good', 'slow', 'unknown']\"",
+      "code": "arg-type",
+      "count": 2
+    },
+    {
+      "path": "app/main.py",
+      "message": "Argument 1 to \"GameSituationRequest\" has incompatible type \"**dict[str, object]\"; expected \"bool | None\"",
+      "code": "arg-type",
+      "count": 2
+    },
+    {
+      "path": "app/main.py",
+      "message": "Argument 1 to \"GameSituationRequest\" has incompatible type \"**dict[str, object]\"; expected \"bool\"",
+      "code": "arg-type",
+      "count": 2
+    },
+    {
+      "path": "app/main.py",
+      "message": "Argument 1 to \"GameSituationRequest\" has incompatible type \"**dict[str, object]\"; expected \"dict[str, Any]\"",
+      "code": "arg-type",
+      "count": 2
+    },
+    {
+      "path": "app/main.py",
+      "message": "Argument 1 to \"GameSituationRequest\" has incompatible type \"**dict[str, object]\"; expected \"int | None\"",
+      "code": "arg-type",
+      "count": 2
+    },
+    {
+      "path": "app/main.py",
+      "message": "Argument 1 to \"GameSituationRequest\" has incompatible type \"**dict[str, object]\"; expected \"int\"",
+      "code": "arg-type",
+      "count": 2
+    },
+    {
+      "path": "app/main.py",
+      "message": "Argument 1 to \"GameSituationRequest\" has incompatible type \"**dict[str, object]\"; expected \"list[str]\"",
+      "code": "arg-type",
+      "count": 2
+    },
+    {
+      "path": "app/main.py",
+      "message": "Argument 1 to \"GameSituationRequest\" has incompatible type \"**dict[str, object]\"; expected \"str | None\"",
+      "code": "arg-type",
+      "count": 2
+    },
+    {
+      "path": "app/main.py",
+      "message": "Argument 1 to \"GameSituationRequest\" has incompatible type \"**dict[str, object]\"; expected \"str\"",
+      "code": "arg-type",
+      "count": 2
+    },
+    {
+      "path": "app/main.py",
+      "message": "Argument 1 to \"_missing_important_fields\" has incompatible type \"Any | dict[Any, Any] | None\"; expected \"dict[str, object]\"",
+      "code": "arg-type",
+      "count": 1
+    },
+    {
+      "path": "app/main.py",
+      "message": "Argument 1 to \"_overlay_live_context\" has incompatible type \"Any | dict[Any, Any] | None\"; expected \"dict[str, object]\"",
+      "code": "arg-type",
+      "count": 1
+    },
+    {
+      "path": "app/main.py",
+      "message": "Argument 1 to \"_with_enemies\" has incompatible type \"Any | dict[Any, Any] | None\"; expected \"dict[str, object]\"",
+      "code": "arg-type",
+      "count": 1
+    },
+    {
+      "path": "app/main.py",
+      "message": "Item \"None\" of \"Any | dict[Any, Any] | None\" has no attribute \"get\"",
+      "code": "union-attr",
+      "count": 12
+    },
+    {
+      "path": "app/main.py",
+      "message": "No overload variant of \"int\" matches argument type \"object\"",
+      "code": "call-overload",
+      "count": 1
+    },
+    {
+      "path": "app/main.py",
+      "message": "Unpacked dict entry 0 has incompatible type \"Any | dict[Any, Any] | None\"; expected \"SupportsKeysAndGetItem[Any, Any]\"",
+      "code": "dict-item",
+      "count": 1
+    },
+    {
+      "path": "app/map_hints.py",
+      "message": "Incompatible return value type (got \"Any | int | None\", expected \"int\")",
+      "code": "return-value",
+      "count": 1
+    },
+    {
+      "path": "app/map_hints.py",
+      "message": "Incompatible return value type (got \"str\", expected \"dict[str, Any] | None\")",
+      "code": "return-value",
+      "count": 1
+    },
+    {
+      "path": "app/map_hints.py",
+      "message": "Incompatible types in assignment (expression has type \"dict[str, Any] | None\", variable has type \"str | None\")",
+      "code": "assignment",
+      "count": 1
+    },
+    {
+      "path": "app/map_hints.py",
+      "message": "Unsupported operand types for <= (\"int\" and \"None\")",
+      "code": "operator",
+      "count": 1
+    },
+    {
+      "path": "app/map_hints.py",
+      "message": "Unsupported operand types for > (\"int\" and \"None\")",
+      "code": "operator",
+      "count": 1
+    },
+    {
+      "path": "app/map_hints.py",
+      "message": "Value of type \"tuple[int, int] | None\" is not indexable",
+      "code": "index",
+      "count": 1
+    },
+    {
+      "path": "app/match_records.py",
+      "message": "Argument 2 to \"_start_locked\" of \"MatchRecords\" has incompatible type \"Any | dict[Any, Any] | None\"; expected \"dict[str, Any]\"",
+      "code": "arg-type",
+      "count": 1
+    },
+    {
+      "path": "app/match_records.py",
+      "message": "Item \"None\" of \"Any | dict[Any, Any] | None\" has no attribute \"get\"",
+      "code": "union-attr",
+      "count": 6
+    },
+    {
+      "path": "app/match_records.py",
+      "message": "Unsupported right operand type for in (\"Any | dict[Any, Any] | None\")",
+      "code": "operator",
+      "count": 1
+    },
+    {
+      "path": "app/match_records.py",
+      "message": "Value of type \"Any | dict[Any, Any] | None\" is not indexable",
+      "code": "index",
+      "count": 2
+    },
+    {
+      "path": "app/opendota.py",
+      "message": "Item \"None\" of \"Any | None\" has no attribute \"__iter__\" (not iterable)",
+      "code": "union-attr",
+      "count": 1
+    },
+    {
+      "path": "app/opendota.py",
+      "message": "Name \"names\" already defined on line 306",
+      "code": "no-redef",
+      "count": 1
+    },
+    {
+      "path": "app/opendota.py",
+      "message": "Need type annotation for \"fights\" (hint: \"fights: list[<type>] = ...\")",
+      "code": "var-annotated",
+      "count": 1
+    },
+    {
+      "path": "app/opendota.py",
+      "message": "No overload variant of \"__setitem__\" of \"list\" matches argument types \"str\", \"str\"",
+      "code": "call-overload",
+      "count": 2
+    },
+    {
+      "path": "app/player_goals.py",
+      "message": "Argument 1 to \"round\" has incompatible type \"float | None\"; expected \"_SupportsRound1[int]\"",
+      "code": "arg-type",
+      "count": 1
+    },
+    {
+      "path": "app/player_goals.py",
+      "message": "Argument 1 to \"sum\" has incompatible type \"list[float | None]\"; expected \"Iterable[bool]\"",
+      "code": "arg-type",
+      "count": 1
+    },
+    {
+      "path": "app/player_goals.py",
+      "message": "Unsupported operand types for >= (\"float\" and \"None\")",
+      "code": "operator",
+      "count": 1
+    },
+    {
+      "path": "app/player_service.py",
+      "message": "Cannot infer type of lambda",
+      "code": "misc",
+      "count": 2
+    },
+    {
+      "path": "app/player_service.py",
+      "message": "Incompatible return value type (got \"dict[str, Any] | None\", expected \"dict[str, dict[str, int]]\")",
+      "code": "return-value",
+      "count": 1
+    },
+    {
+      "path": "app/player_service.py",
+      "message": "Incompatible return value type (got \"dict[str, Any] | None\", expected \"list[dict[str, Any]]\")",
+      "code": "return-value",
+      "count": 1
+    },
+    {
+      "path": "app/player_service.py",
+      "message": "Incompatible types in assignment (expression has type \"tuple[float, list[dict[str, Any]]]\", target has type \"tuple[float, dict[str, Any] | None]\")",
+      "code": "assignment",
+      "count": 1
+    },
+    {
+      "path": "app/player_service.py",
+      "message": "Item \"None\" of \"Any | dict[Any, Any] | None\" has no attribute \"get\"",
+      "code": "union-attr",
+      "count": 10
+    },
+    {
+      "path": "app/recommender.py",
+      "message": "Argument 1 to \"int\" has incompatible type \"Any | None\"; expected \"str | Buffer | SupportsInt | SupportsIndex | SupportsTrunc\"",
+      "code": "arg-type",
+      "count": 2
+    },
+    {
+      "path": "app/scheduler/hashing.py",
+      "message": "Item \"None\" of \"Any | dict[Any, Any] | None\" has no attribute \"get\"",
+      "code": "union-attr",
+      "count": 2
+    },
+    {
+      "path": "app/scheduler/safety_predicates.py",
+      "message": "Item \"None\" of \"Any | dict[Any, Any] | None\" has no attribute \"get\"",
+      "code": "union-attr",
+      "count": 1
+    },
+    {
+      "path": "app/scheduler/state_utils.py",
+      "message": "Item \"None\" of \"Any | dict[Any, Any] | None\" has no attribute \"get\"",
+      "code": "union-attr",
+      "count": 2
+    },
+    {
+      "path": "app/scheduler/state_utils.py",
+      "message": "Unsupported right operand type for in (\"Any | dict[Any, Any] | None\")",
+      "code": "operator",
+      "count": 1
+    },
+    {
+      "path": "app/scheduler/stats_utils.py",
+      "message": "Item \"None\" of \"Any | dict[Any, Any] | None\" has no attribute \"get\"",
+      "code": "union-attr",
+      "count": 1
+    },
+    {
+      "path": "app/self_compare.py",
+      "message": "Argument 1 to \"_fmt\" has incompatible type \"object\"; expected \"str\"",
+      "code": "arg-type",
+      "count": 2
+    },
+    {
+      "path": "app/self_compare.py",
+      "message": "Argument 2 to \"_fmt\" has incompatible type \"object\"; expected \"float\"",
+      "code": "arg-type",
+      "count": 2
+    },
+    {
+      "path": "app/self_compare.py",
+      "message": "Invalid index type \"object\" for \"dict[str, str]\"; expected type \"str\"",
+      "code": "index",
+      "count": 1
+    },
+    {
+      "path": "app/self_compare.py",
+      "message": "Need type annotation for \"highlights\" (hint: \"highlights: list[<type>] = ...\")",
+      "code": "var-annotated",
+      "count": 1
+    },
+    {
+      "path": "app/self_compare.py",
+      "message": "No overload variant of \"round\" matches argument types \"object\", \"int\"",
+      "code": "call-overload",
+      "count": 1
+    },
+    {
+      "path": "app/self_compare.py",
+      "message": "Unsupported operand type for unary - (\"object\")",
+      "code": "operator",
+      "count": 1
+    },
+    {
+      "path": "app/self_compare.py",
+      "message": "Unsupported operand types for > (\"float\" and \"object\")",
+      "code": "operator",
+      "count": 1
+    },
+    {
+      "path": "app/situational_items.py",
+      "message": "Item \"None\" of \"Any | list[Any] | None\" has no attribute \"__iter__\" (not iterable)",
+      "code": "union-attr",
+      "count": 1
+    }
+  ]
+}

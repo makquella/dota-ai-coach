@@ -7,14 +7,16 @@ This file keeps longer commands out of the main README.
 ```bash
 cd backend
 source .venv/bin/activate
-USE_LLM=false uvicorn app.main:app --reload
+USE_LLM=false uvicorn app.main:app --reload --no-proxy-headers
 ```
 
 With access logs reduced:
 
 ```bash
-python -m uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload --no-access-log
+python -m uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload --no-access-log --no-proxy-headers
 ```
+
+Private requests need a control Bearer token. Standalone startup creates the private `backend/local-api-auth.json`; use its control token in Swagger **Authorize** or the developer page's password field. Launcher manages its own credentials. See [LOCAL_API_SECURITY.md](LOCAL_API_SECURITY.md) for ports, GSI config migration and replay tooling.
 
 ## Tests
 
@@ -23,6 +25,8 @@ cd backend
 source .venv/bin/activate
 python -m pip install --require-hashes --only-binary=:all: -r requirements-dev.txt
 pytest -q
+python ../scripts/check_types.py
+python -m mypy --strict ../scripts/check_types.py
 python3 -m compileall -q app scripts packaging tests
 ```
 
@@ -168,3 +172,7 @@ python scripts/simulate_live_gsi.py --lang ru --reasons
 python scripts/simulate_live_gsi.py --deaths 7,18,19,33 --minutes 40
 python scripts/simulate_live_gsi.py --session session_records/<id>/raw_gsi_states.jsonl
 ```
+
+## Portable developer checks
+
+`python scripts/dev.py check --changed --dry-run` shows staged/unstaged/untracked paths and the exact consumer checks. Run without `--dry-run` to execute them; `--base main` also includes committed branch changes. Explicit scopes/targets, setup and Windows build: [DEV_RUNNER.md](DEV_RUNNER.md) and `python scripts/dev.py --help`. `python scripts/bump_version.py --check` verifies backend, launcher, lock, both update catalogs and release notes.

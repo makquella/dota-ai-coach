@@ -1,4 +1,4 @@
-const API_URL = "http://127.0.0.1:8000/recommend";
+const API_URL = new URL("/recommend", window.location.origin).href;
 const REQUEST_TIMEOUT_MS = 35000;
 
 const presets = {
@@ -76,7 +76,8 @@ recommendButton.addEventListener("click", async () => {
     const response = await fetch(API_URL, {
       method: "POST",
       headers: {
-        "Content-Type": "application/json"
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${document.querySelector("#api-token").value.trim()}`
       },
       body: JSON.stringify(payload),
       signal: controller.signal

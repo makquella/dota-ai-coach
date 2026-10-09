@@ -16,6 +16,7 @@ shows only your own hero). Works on cached OpenDota matchups
 from __future__ import annotations
 
 from collections import Counter
+from collections.abc import Mapping
 from statistics import mean
 from typing import Any
 
@@ -181,7 +182,7 @@ def pool_heroes(matches: list[dict[str, Any]], *, limit: int = 5, min_games: int
     return [hero for hero, games in ranked if games >= min_games][:limit]
 
 
-def bought_items(facts: dict[str, Any], constants: dict[str, Any] | None) -> set[str] | None:
+def bought_items(facts: Mapping[str, Any], constants: dict[str, Any] | None) -> set[str] | None:
     """Item keys the player had: the purchase log of a parsed replay, else the
     final inventory (OpenDota gives item ids there). None when neither is known."""
     log = {item_key(entry.get("item")) for entry in facts.get("items_log") or []}
@@ -242,7 +243,7 @@ def _edge(matchups: dict[str, list[int]] | None, enemy_ids: list[int]) -> float 
 
 
 def analyze_draft(
-    facts: dict[str, Any],
+    facts: Mapping[str, Any],
     trimmed: dict[str, Any] | None,
     draft_meta: dict[str, Any] | None,
     role: str,

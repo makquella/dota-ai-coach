@@ -5,15 +5,23 @@ main.py — FastAPI application entry point for Wardly (formerly Dota AI Coach) 
 from collections.abc import AsyncIterator, Mapping
 from contextlib import asynccontextmanager
 from datetime import UTC, datetime, timedelta
+from time import monotonic
 from typing import Any
 
 from fastapi import FastAPI, Request
+from fastapi.concurrency import run_in_threadpool
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.openapi.utils import get_openapi
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, ValidationError
 
-from app.advice_i18n import localize_advice_items, localize_overlay_response, normalize_lang
+from app.advice_i18n import (
+    advice_messages,
+    localize_advice_items,
+    localize_overlay_response,
+    normalize_lang,
+)
 from app.advice_scheduler import ADVICE_SCHEDULER, ScheduledAdvice
 from app.advice_why import why
 from app.coach_summary import COACH_SESSION_HISTORY
@@ -32,6 +40,7 @@ from app.config import (
     WRITABLE_DIR,
 )
 from app.decision_points import detect_decision_point
+from app.demo_overlay_cache import DemoOverlayCache, DemoToken
 from app.diagnostics import recent_errors, record_error, runtime_info
 from app.game_plan import SHOW_FROM_CLOCK as GAME_PLAN_SHOW_FROM_CLOCK
 from app.game_plan import SHOW_UNTIL_CLOCK as GAME_PLAN_SHOW_UNTIL_CLOCK
@@ -41,23 +50,29 @@ from app.gsi_state import (
     get_current_state,
     get_gsi_debug_fields,
     get_gsi_debug_latest,
-    is_in_match,
+    get_gsi_status_snapshot,
+    hero_from_gsi,
     post_game_match_id,
+    reset_latest_gsi,
     update_latest_gsi,
 )
 from app.lane_duel import lane_record_for
+from app.live_hints import GoldHintInputs, LiveHintInputs
+from app.live_path_metrics import LIVE_PATH_METRICS
 from app.live_role import SETTINGS as ROLE_SETTINGS
 from app.live_role import lane_of, role_setting, set_role_setting
 from app.live_session_recorder import LIVE_SESSION_RECORDER
 from app.live_tools import disabled_copy
 from app.llm_provider import generate_llm_recommendation, is_llm_provider_enabled
+from app.local_api_auth import LOCAL_API_AUTH
+from app.local_api_security import LocalApiSecurity, local_origins
 from app.logger import log_recommendation, prune_logs
-from app.map_hints import map_hint, score_gap, timer_strip
+from app.map_hints import timers
 from app.match_memory import MATCH_MEMORY
 from app.match_records import KEEP_DAYS, MATCH_RECORDS
 from app.player_api import PLAYER_SERVICE
 from app.player_api import router as player_router
-from app.rag import retrieve_context
+from app.rag import KNOWLEDGE_BASE, retrieve_context
 from app.recommender import generate_recommendation
 from app.scheduler.frequency import FREQUENCIES
 from app.schemas import GameSituationRequest, RecommendationResponse, hero_coverage
@@ -66,41 +81,58 @@ from app.schemas import GameSituationRequest, RecommendationResponse, hero_cover
 @asynccontextmanager
 async def _lifespan(_app: FastAPI) -> AsyncIterator[None]:
     prune_logs()
+    await run_in_threadpool(KNOWLEDGE_BASE.paragraphs)
     yield
     # Keeps an in-progress match timeline across a restart of the app.
     PLAYER_SERVICE.shutdown()
 
 
-app = FastAPI(
+class LocalApiApp(FastAPI):
+    def openapi(self) -> dict[str, Any]:
+        if self.openapi_schema is None:
+            schema = get_openapi(
+                title=self.title,
+                description=self.description,
+                version=self.version,
+                routes=self.routes,
+            )
+            schema.setdefault("components", {}).setdefault("securitySchemes", {})[
+                "LocalControl"
+            ] = {
+                "type": "http",
+                "scheme": "bearer",
+            }
+            for path, operations in schema["paths"].items():
+                for method, operation in operations.items():
+                    if method in {"get", "post", "put", "patch", "delete", "head", "options"}:
+                        operation["security"] = (
+                            [] if path in {"/", "/health"} else [{"LocalControl": []}]
+                        )
+            self.openapi_schema = schema
+        return self.openapi_schema
+
+
+app = LocalApiApp(
     lifespan=_lifespan,
     title="Wardly",
     description="MVP-1: rule-based carry coach with local knowledge-base RAG.",
-    version="0.53.3",
+    version="0.53.46",
 )
 app.include_router(player_router)
 
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        f"http://127.0.0.1:{BACKEND_PORT}",
-        f"http://localhost:{BACKEND_PORT}",
-        "http://127.0.0.1:8000",
-        "http://localhost:8000",
-        "http://127.0.0.1:3000",
-        "http://localhost:3000",
-        "http://127.0.0.1:5173",
-        "http://localhost:5173",
-    ],
+    allow_origins=local_origins(BACKEND_PORT),
     allow_credentials=False,
-    allow_methods=["GET", "POST", "OPTIONS"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "DELETE", "OPTIONS"],
+    allow_headers=["Content-Type", "Authorization"],
 )
+app.add_middleware(LocalApiSecurity, auth=LOCAL_API_AUTH, port=BACKEND_PORT)
 
 FRONTEND_DIR = RESOURCE_ROOT / "frontend"
-_DEMO_OVERLAY_RESPONSE: dict[str, object] | None = None
-_DEMO_OVERLAY_EXPIRES_AT: datetime | None = None
 _DEMO_CACHE_SECONDS = 8
+_DEMO_OVERLAY_CACHE = DemoOverlayCache(ttl_seconds=_DEMO_CACHE_SECONDS)
 
 if FRONTEND_DIR.exists():
     app.mount("/frontend", StaticFiles(directory=FRONTEND_DIR, html=True), name="frontend")
@@ -109,7 +141,7 @@ if FRONTEND_DIR.exists():
 @app.get("/", summary="Health check")
 def root():
     """Simple health-check endpoint."""
-    return {"status": "ok", "service": "Wardly", "version": "0.53.3"}
+    return {"status": "ok", "service": "Wardly", "version": "0.53.46"}
 
 
 @app.get("/health", summary="Health check")
@@ -247,42 +279,60 @@ def recommend(request: GameSituationRequest):
 @app.post("/gsi", summary="Receive Dota 2 Game State Integration data")
 async def receive_gsi(request: Request):
     """Accept raw Dota 2 GSI JSON and keep the latest normalized state in memory."""
-    try:
-        payload = await request.json()
-    except Exception:
-        return JSONResponse(
-            status_code=400,
-            content={"status": "error", "detail": "Request body must be valid JSON."},
-        )
+    payload = request.scope["wardly.gsi_payload"]
+    # Role history/cache can read SQLite. Prepare it before the GSI writer and
+    # core memory owners; the callback uses the lane read after observation.
+    return await run_in_threadpool(_process_gsi, payload)
 
-    if not isinstance(payload, dict):
-        return JSONResponse(
-            status_code=400,
-            content={"status": "error", "detail": "GSI payload must be a JSON object."},
-        )
 
-    result = update_latest_gsi(payload)
-    GSI_CENSUS.observe(payload)
-    GSI_CENSUS.save_due(PLAYER_SERVICE.data_dir / CENSUS_FILE)
-    MATCH_RECORDS.record_gsi(payload)
-    # Whole-match recording + Steam account detection (never breaks the live path).
-    try:
-        PLAYER_SERVICE.observe_gsi(payload)
-    except Exception as error:  # noqa: BLE001
-        print(f"[player] GSI observe failed: {error}")
-        record_error("gsi-player", error)
-    state = result.get("state")
-    if isinstance(state, dict):
-        LIVE_SESSION_RECORDER.record_gsi(payload, state)
-        MATCH_MEMORY.observe_state(state)
-        coverage = _advisor_coverage(state)
-        if coverage:
-            decision_point = _covered_decision_point(detect_decision_point(state), coverage)
-            MATCH_MEMORY.last_advice_type = decision_point
-            ADVICE_SCHEDULER.observe_state(state, decision_point)
-        else:
-            ADVICE_SCHEDULER.observe_state(state, "NO_ADVICE")
+def _process_gsi(payload: dict[str, Any]) -> dict[str, Any]:
+    with LIVE_PATH_METRICS.measure("gsi.total"):
+        return _receive_gsi_payload(payload)
+
+
+def _receive_gsi_payload(payload: dict[str, Any]) -> dict[str, Any]:
+    # This entire path (including census, SQLite and recording) runs off ASGI.
+    with LIVE_PATH_METRICS.measure("gsi.prepare"):
+        prior = _prepare_gsi_prior(payload)
+    with LIVE_PATH_METRICS.measure("gsi.policy"):
+        result = update_latest_gsi(
+            payload, enrich=lambda state: _observe_live_gsi(state, prior=prior)
+        )
+    with LIVE_PATH_METRICS.measure("gsi.persistence"):
+        GSI_CENSUS.observe(payload)
+        GSI_CENSUS.save_due(PLAYER_SERVICE.data_dir / CENSUS_FILE)
+        MATCH_RECORDS.record_gsi(payload)
+        # Whole-match recording + Steam account detection (never breaks the live path).
+        try:
+            PLAYER_SERVICE.observe_gsi(payload)
+        except Exception as error:  # noqa: BLE001
+            print(f"[player] GSI observe failed: {error}")
+            record_error("gsi-player", error)
+        state = result.get("state")
+        if isinstance(state, dict):
+            LIVE_SESSION_RECORDER.record_gsi(payload, state)
     return result
+
+
+def _prepare_gsi_prior(payload: dict[str, Any]) -> dict[str, Any] | None:
+    """Cold timer/profile/role lookups stay off the ASGI loop and state owners."""
+    timers()
+    hero = hero_from_gsi(payload)
+    return PLAYER_SERVICE.role_prior(hero) if hero_coverage(hero) == "full" else None
+
+
+def _observe_live_gsi(state: dict[str, Any], *, prior: dict[str, Any] | None) -> None:
+    """In-memory enrichment completes before the packet/state is published."""
+    MATCH_MEMORY.observe_state(state)
+    coverage = hero_coverage(str(state.get("hero") or ""))
+    if coverage == "full" and _role_is_support(MATCH_MEMORY.role_snapshot(prior)):
+        coverage = "support"
+    if coverage:
+        decision_point = _covered_decision_point(detect_decision_point(state), coverage)
+        MATCH_MEMORY.note_advice(decision_point)
+        ADVICE_SCHEDULER.observe_state(state, decision_point)
+    else:
+        ADVICE_SCHEDULER.observe_state(state, "NO_ADVICE")
 
 
 @app.get("/state/current", summary="Get latest normalized GSI state")
@@ -292,11 +342,17 @@ def current_state():
 
 @app.post("/session/reset", summary="Reset in-memory match session")
 def reset_session():
-    MATCH_MEMORY.reset()
-    ADVICE_SCHEDULER.reset()
-    COACH_SESSION_HISTORY.reset()
-    _clear_demo_overlay_response()
-    return {"status": "ok", "detail": "Match memory, overlay scheduler, and coach summary reset."}
+    def reset_context() -> None:
+        MATCH_MEMORY.reset()
+        ADVICE_SCHEDULER.reset()
+        COACH_SESSION_HISTORY.reset()
+
+    with _DEMO_OVERLAY_CACHE.resetting():
+        reset_latest_gsi(reset_context)
+    return {
+        "status": "ok",
+        "detail": "Live GSI, match memory, overlay scheduler, and coach summary reset.",
+    }
 
 
 @app.get("/session/memory", summary="Inspect safe match memory summary")
@@ -371,29 +427,20 @@ def _advisor_coverage(state: Mapping[str, object]) -> str | None:
     return coverage
 
 
-def _lane_record(extra: dict[str, Any]) -> dict[str, Any] | None:
+def _lane_record(opponents: list[str]) -> dict[str, Any] | None:
     """The player's past lanes against the enemy now in their lane
     (lane_duel.lane_record_for over PlayerService.lane_records)."""
-    x, y = extra.get("xpos"), extra.get("ypos")
-    if not isinstance(x, (int, float)) or not isinstance(y, (int, float)):
-        return None
-    opponents = MATCH_MEMORY.enemy_lanes.opponents(lane_of(float(x), float(y)))
     if not opponents:
         return None
     return lane_record_for(opponents, PLAYER_SERVICE.lane_records())
 
 
-def _missing_enemy(extra: dict[str, Any], clock: Any) -> dict[str, Any] | None:
-    """The enemy to call missing (enemy_lanes.py) for the lane the player stands
-    in; None while dead or without a position."""
+def _player_lane(extra: dict[str, Any]) -> str | None:
+    """The player's observed lane; unknown coordinates stay unknown."""
     x, y = extra.get("xpos"), extra.get("ypos")
-    if (
-        extra.get("alive") is False
-        or not isinstance(x, (int, float))
-        or not isinstance(y, (int, float))
-    ):
+    if not isinstance(x, (int, float)) or not isinstance(y, (int, float)):
         return None
-    return MATCH_MEMORY.enemy_lanes.missing(clock, lane_of(float(x), float(y)))
+    return lane_of(float(x), float(y))
 
 
 def _plays_support(state: Mapping[str, object] | None) -> bool:
@@ -402,7 +449,10 @@ def _plays_support(state: Mapping[str, object] | None) -> bool:
     extra: Mapping[str, object] = raw_extra if isinstance(raw_extra, dict) else {}
     if extra.get("source_type") != "live_gsi":
         return False
-    role = _live_role(state)
+    return _role_is_support(_live_role(state))
+
+
+def _role_is_support(role: dict[str, Any] | None) -> bool:
     return role is not None and role.get("role") == "support" and role.get("source") != "hero"
 
 
@@ -410,7 +460,7 @@ def _live_role(state: Mapping[str, object] | None) -> dict[str, Any] | None:
     state = state or {}
     hero = str(state.get("hero") or "")
     prior = PLAYER_SERVICE.role_prior(hero) if hero else None
-    return MATCH_MEMORY.role.role(prior)
+    return MATCH_MEMORY.role_snapshot(prior)
 
 
 def _live_role_and_hint(response: dict[str, object], lang: str) -> dict[str, object]:
@@ -418,126 +468,59 @@ def _live_role_and_hint(response: dict[str, object], lang: str) -> dict[str, obj
     if response.get("demo_mode") or response.get("status") in {"waiting_for_gsi", "stale_gsi"}:
         return {}
     current = get_current_state()
-    state = current.get("state") if isinstance(current.get("state"), dict) else {}
-    extra = state.get("extra_context") if isinstance(state.get("extra_context"), dict) else {}
+    raw_state = current.get("state")
+    state = raw_state if isinstance(raw_state, dict) else {}
+    raw_extra = state.get("extra_context")
+    extra = raw_extra if isinstance(raw_extra, dict) else {}
     if extra.get("source_type") != "live_gsi":
         return {}
     role = _live_role(state)
-    result: dict[str, object] = {"live_role": role}
-    bar = MATCH_MEMORY.skills.bar_size()
-    if bar:
-        # The launcher sizes the skill arrows' frame by it (skill-arrows.js).
-        result["skill_bar"] = bar
-    gold = _gold_hint(state, extra, role, lang)
-    if _map_hints["enabled"]:
-        clock = extra.get("clock_time")
-        carry_advisor = hero_coverage(str(state.get("hero") or "")) == "full" and not (
-            _plays_support(state)
-        )
-        last_hits = extra.get("last_hits")
-        hint = map_hint(
-            clock if isinstance(clock, int) else None,
-            role.get("role") if role else None,
-            MATCH_MEMORY.tips,
-            alive=extra.get("alive") is not False,
-            has_ward=extra.get("has_observer")
-            if isinstance(extra.get("has_observer"), bool)
-            else None,
-            ward_charges=extra.get("observer_charges")
-            if isinstance(extra.get("observer_charges"), int)
-            else None,
-            lang=lang,
-            tp_missing=MATCH_MEMORY.tp.signal() is not None,
-            carry_advisor=carry_advisor,
-            last_hits=last_hits if isinstance(last_hits, int) else None,
-            level=extra.get("hero_level") if isinstance(extra.get("hero_level"), int) else None,
-            deaths=extra.get("deaths") if isinstance(extra.get("deaths"), int) else None,
-            gold=state.get("gold") if isinstance(state.get("gold"), int) else None,
-            lane=role.get("lane") if role else None,
-            items=extra.get("item_names") if isinstance(extra.get("item_names"), list) else None,
-            key_item=PLAYER_SERVICE.key_item(str(state.get("hero") or ""))
-            if role and role.get("role") != "support"
-            else None,
-            save_item=PLAYER_SERVICE.save_item(
-                str(state.get("hero") or ""),
-                extra.get("item_names") if isinstance(extra.get("item_names"), list) else None,
-                MATCH_MEMORY.enemies.heroes() or None,
-            )
-            if role and role.get("role") == "support"
-            else None,
-            score_gap=score_gap(extra),
-            enemies=MATCH_MEMORY.enemies.heroes() or None,
-            bottle_rune=extra.get("bottle_rune")
-            if isinstance(extra.get("bottle_rune"), str)
-            else None,
-            denies=extra.get("denies") if isinstance(extra.get("denies"), int) else None,
-            hp=state.get("hp_percent") if isinstance(state.get("hp_percent"), int) else None,
-            regen=extra.get("regen_items") if isinstance(extra.get("regen_items"), list) else None,
-            missing=_missing_enemy(extra, clock),
-            lane_record=_lane_record(extra),
-            roshan_open=MATCH_MEMORY.roshan.maybe_up(clock if isinstance(clock, int) else None),
-            objective=MATCH_MEMORY.roshan.hint(clock if isinstance(clock, int) else None, lang),
-            skill=MATCH_MEMORY.skills.tip(
-                clock if isinstance(clock, int) else None,
-                lang,
-                alive=extra.get("alive") is not False,
-                build=PLAYER_SERVICE.skill_build(str(state.get("hero") or "")),
-            ),
-        )
-        hint = _with_role_check(_with_gold_hint(hint, gold), role, clock, lang)
-        if hint is not None:
-            result["map_hint"] = hint
-        # The overlay's strip of the next events (runes, stacks, Roshan, Aegis).
-        strip = timer_strip(
-            clock if isinstance(clock, int) else None,
-            role.get("role") if role else None,
-            lang,
-            MATCH_MEMORY.roshan.strip(clock if isinstance(clock, int) else None, lang),
-        )
-        if strip:
-            result["timer_strip"] = strip
-    else:
-        # «Map timers» off still leaves the skill point tips: they are not timers.
-        clock = extra.get("clock_time")
-        skill = MATCH_MEMORY.skills.tip(
-            clock if isinstance(clock, int) else None,
-            lang,
-            alive=extra.get("alive") is not False,
-            build=PLAYER_SERVICE.skill_build(str(state.get("hero") or "")),
-        )
-        hint = _with_role_check(_with_gold_hint(skill, gold), role, clock, lang)
-        if hint is not None:
-            result["map_hint"] = hint
-    return result
+    clock = extra.get("clock_time")
+    trackers = MATCH_MEMORY.tracker_snapshot(
+        clock=clock if isinstance(clock, int) else None,
+        lane=_player_lane(extra),
+        alive=extra.get("alive") is not False,
+        lang=lang,
+    )
+    gold = _gold_hint_inputs(state, extra, role)
+    map_enabled = _map_hints["enabled"]
+    hero = str(state.get("hero") or "")
+    names = extra.get("item_names") if isinstance(extra.get("item_names"), list) else None
+    carry_advisor = map_enabled and hero_coverage(hero) == "full" and not _plays_support(state)
+    key_item = (
+        PLAYER_SERVICE.key_item(hero)
+        if map_enabled and role and role.get("role") != "support"
+        else None
+    )
+    save_item = (
+        PLAYER_SERVICE.save_item(hero, names, trackers.enemies or None)
+        if map_enabled and role and role.get("role") == "support"
+        else None
+    )
+    lane_record = _lane_record(trackers.opponents) if map_enabled else None
+    inputs = LiveHintInputs(
+        role=role,
+        gold=gold,
+        map_enabled=map_enabled,
+        carry_advisor=carry_advisor,
+        key_item=key_item,
+        save_item=save_item,
+        lane_record=lane_record,
+        skill_build=PLAYER_SERVICE.skill_build(hero),
+    )
+    return MATCH_MEMORY.live_hints(state, extra, trackers, inputs, lang)
 
 
-def _with_role_check(
-    hint: dict[str, Any] | None, role: dict | None, clock: object, lang: str
-) -> dict[str, Any] | None:
-    """A role chosen in the settings that the lane contradicts (live_role.mismatch)
-    is said once, over timers and role tips; a skill point, the start card, a
-    missing call or Roshan/Aegis keep the card and the check waits for them."""
-    seen = role.get("mismatch") if role else None
-    if not seen or not isinstance(clock, int):
-        return hint
-    if hint is not None and (
-        hint.get("over_plan")
-        or str(hint.get("id") or "").startswith(("missing", "roshan", "aegis"))
-    ):
-        return hint
-    tip = MATCH_MEMORY.tips.role_mismatch(clock, lang, str(role["role"]), str(seen))
-    return tip or hint
-
-
-def _gold_hint(
-    state: Mapping[str, object], extra: Mapping[str, object], role: dict | None, lang: str
-) -> dict[str, Any] | None:
-    """An empty bag at the start or gold left unspent (app/gold_tips.py), any role."""
+def _gold_hint_inputs(
+    state: Mapping[str, object], extra: Mapping[str, object], role: dict[str, Any] | None
+) -> GoldHintInputs:
+    """Prepare item metadata before acquiring tip ownership."""
     clock = extra.get("clock_time")
     gold = state.get("gold")
     role_name = role.get("role") if role else None
     hero = str(state.get("hero") or "")
-    names = extra.get("item_names") if isinstance(extra.get("item_names"), list) else None
+    raw_names = extra.get("item_names")
+    names = raw_names if isinstance(raw_names, list) else None
     next_item = None
     part = None
     if role_name != "support" and isinstance(clock, int) and clock >= 3 * 60:
@@ -551,14 +534,7 @@ def _gold_hint(
                 )
         except Exception as error:  # noqa: BLE001 - never breaks the live path
             record_error("gold-hint", error)
-    buyback = extra.get("buyback_cost")
-    return MATCH_MEMORY.gold.tip(
-        clock if isinstance(clock, int) else None,
-        lang,
-        gold=gold if isinstance(gold, int) else None,
-        alive=extra.get("alive") is not False,
-        role=role_name,
-        buyback_cost=buyback if isinstance(buyback, int) else None,
+    return GoldHintInputs(
         next_item=next_item,
         buy_now=part,
         start_items=_start_items(state, role_name)
@@ -575,21 +551,6 @@ def _start_items(state: Mapping[str, object], role: str | None) -> list[dict[str
     except Exception as error:  # noqa: BLE001 - never breaks the live path
         record_error("start-items", error)
         return None
-
-
-def _with_gold_hint(
-    hint: dict[str, Any] | None, gold: dict[str, Any] | None
-) -> dict[str, Any] | None:
-    """The gold card goes before timers and role tips; a skill point, a missing
-    enemy and Roshan/Aegis keep the card."""
-    if gold is None:
-        return hint
-    if hint is not None and (
-        hint.get("over_plan")
-        or str(hint.get("id") or "").startswith(("missing", "roshan", "aegis"))
-    ):
-        return hint
-    return gold
 
 
 GAME_PLAN_STATUSES = {"no_advice", "monitoring", "unsupported_hero"}
@@ -794,8 +755,13 @@ def _overlay_recommendation_payload() -> dict[str, object]:
             **_overlay_live_context(state),
         }
 
-    rag_context = _retrieve_rag_context(request)
-    scheduled = ADVICE_SCHEDULER.evaluate(request, decision_point, rag_context)
+    rag_context: list[str] = []
+
+    def context() -> list[str]:
+        rag_context.extend(_retrieve_rag_context(request))
+        return rag_context
+
+    scheduled = ADVICE_SCHEDULER.evaluate(request, decision_point, context)
 
     log_filename = None
     if scheduled.new_advice and scheduled.recommendation is not None:
@@ -842,6 +808,16 @@ async def demo_replay_state(request: Request):
             content={"status": "error", "detail": "Payload must contain a state object."},
         )
 
+    return await run_in_threadpool(_process_demo, payload)
+
+
+def _process_demo(payload: dict[str, Any]) -> dict[str, Any]:
+    with LIVE_PATH_METRICS.measure("demo.total"):
+        return _demo_replay_payload(payload)
+
+
+def _demo_replay_payload(payload: dict[str, Any]) -> dict[str, Any]:
+    token = _DEMO_OVERLAY_CACHE.reserve()
     timestamp_seconds = _safe_int(payload.get("timestamp_seconds"), 0)
     state = dict(payload["state"])
     extra_context = (
@@ -866,7 +842,7 @@ async def demo_replay_state(request: Request):
         }
     )
     COACH_SESSION_HISTORY.record_overlay_advice(response, state)
-    _set_demo_overlay_response(response)
+    _set_demo_overlay_response(response, token)
     return {"status": "ok", "overlay": response}
 
 
@@ -879,16 +855,19 @@ def demo_session_summary():
 def recent_advice(limit: int = 5, lang: str = "en"):
     """Newest first; used by the launcher's "Recent advice" card."""
     limit = max(1, min(int(limit), 20))
-    records = COACH_SESSION_HISTORY.records()[-limit:]
+    records = COACH_SESSION_HISTORY.records(limit)
     return {
         "items": localize_advice_items(
             [
                 {
+                    "id": record.get("id"),
                     "timestamp": record.get("timestamp"),
                     "game_time": record.get("game_time") or None,
                     "hero": record.get("hero"),
                     "action": record.get("action"),
                     "reason": record.get("reason"),
+                    "action_message": record.get("action_message"),
+                    "reason_message": record.get("reason_message"),
                     "priority": record.get("priority"),
                     "advice_mode": record.get("advice_mode"),
                     "why": why(record.get("decision_point"), normalize_lang(lang)),
@@ -977,6 +956,12 @@ def diagnostics():
     return {
         "generated_at": datetime.now(UTC).isoformat(timespec="seconds"),
         "runtime": runtime_info(),
+        "live_path": LIVE_PATH_METRICS.snapshot(),
+        "recording_health": {
+            "live_session": LIVE_SESSION_RECORDER.health(),
+            "match_records": MATCH_RECORDS.health(),
+        },
+        "knowledge_base": KNOWLEDGE_BASE.health(),
         "config": {
             "use_llm": USE_LLM,
             "llm_provider": LLM_PROVIDER,
@@ -1026,7 +1011,9 @@ def _overlay_response(
     record_history: bool = True,
 ) -> dict[str, object]:
     recommendation = (
-        scheduled.recommendation.model_dump() if scheduled.recommendation is not None else None
+        advice_messages(scheduled.recommendation.model_dump())
+        if scheduled.recommendation is not None
+        else None
     )
     response: dict[str, object] = {
         "status": scheduled.status,
@@ -1041,7 +1028,7 @@ def _overlay_response(
         "suppressed_reason": scheduled.suppressed_reason,
         "message": _overlay_status_message(scheduled),
         "active_advice_until": scheduled.active_advice_until,
-        "last_visible_advice": scheduled.last_visible_advice,
+        "last_visible_advice": advice_messages(scheduled.last_visible_advice),
         "is_pinned": scheduled.is_pinned,
         "new_advice": scheduled.new_advice,
         "game_time_gap_since_previous_advice": scheduled.game_time_gap_since_previous_advice,
@@ -1164,8 +1151,13 @@ def _overlay_response_for_state(
             **_overlay_live_context(state),
         }
 
-    rag_context = _retrieve_rag_context(game_request)
-    scheduled = ADVICE_SCHEDULER.evaluate(game_request, decision_point, rag_context, now=now)
+    rag_context: list[str] = []
+
+    def context() -> list[str]:
+        rag_context.extend(_retrieve_rag_context(game_request))
+        return rag_context
+
+    scheduled = ADVICE_SCHEDULER.evaluate(game_request, decision_point, context, now=now)
     log_filename = None
     if scheduled.new_advice and scheduled.recommendation is not None:
         log_filename = _recommendation_log_filename(
@@ -1239,7 +1231,7 @@ def _with_enemies(state: dict[str, object]) -> dict[str, object]:
     """The enemy heroes seen on the minimap this match (enemy_heroes.py), for the
     counter items; the state unchanged when none is known."""
     raw_extra = state.get("extra_context")
-    enemies = MATCH_MEMORY.enemies.heroes()
+    enemies = MATCH_MEMORY.enemy_heroes()
     if not enemies or not isinstance(raw_extra, dict) or raw_extra.get("source_type") != "live_gsi":
         return state
     return {**state, "extra_context": {**raw_extra, "enemy_heroes": enemies}}
@@ -1317,12 +1309,12 @@ def _gsi_status_response() -> dict[str, object]:
             "current_mode": "demo_replay",
         }
 
-    current = get_current_state()
+    current = get_gsi_status_snapshot()
     timestamp = current.get("timestamp")
     state = current.get("state") if isinstance(current.get("state"), dict) else {}
     seconds_since = _seconds_since_timestamp(timestamp)
     connected = seconds_since is not None and seconds_since <= GSI_STALE_SECONDS
-    fields = get_gsi_debug_fields()
+    fields = current["fields_summary"]
     latest_advice = ADVICE_SCHEDULER.latest_advice_snapshot()
     latest_recommendation = latest_advice.get("recommendation")
     extra_context = (
@@ -1330,7 +1322,7 @@ def _gsi_status_response() -> dict[str, object]:
     )
     return {
         "gsi_connected": connected,
-        "in_match": connected and is_in_match(),
+        "in_match": connected and current["in_match"],
         # The score screen with a fresh review: the overlay shows the summary card.
         "post_game": connected and _post_game_for_overlay({}, "en") is not None,
         "last_gsi_received_at": timestamp,
@@ -1562,22 +1554,13 @@ def _format_game_time(timestamp_seconds: int) -> str:
     return f"{timestamp_seconds // 60:02d}:{timestamp_seconds % 60:02d}"
 
 
-def _set_demo_overlay_response(response: dict[str, object]) -> None:
-    global _DEMO_OVERLAY_RESPONSE, _DEMO_OVERLAY_EXPIRES_AT
-    _DEMO_OVERLAY_RESPONSE = response
-    _DEMO_OVERLAY_EXPIRES_AT = datetime.now(UTC) + timedelta(seconds=_DEMO_CACHE_SECONDS)
+def _set_demo_overlay_response(response: dict[str, object], token: DemoToken) -> bool:
+    return _DEMO_OVERLAY_CACHE.publish(response, token, now=monotonic())
 
 
 def _get_demo_overlay_response() -> dict[str, object] | None:
-    if _DEMO_OVERLAY_RESPONSE is None or _DEMO_OVERLAY_EXPIRES_AT is None:
-        return None
-    if datetime.now(UTC) > _DEMO_OVERLAY_EXPIRES_AT:
-        _clear_demo_overlay_response()
-        return None
-    return _DEMO_OVERLAY_RESPONSE
+    return _DEMO_OVERLAY_CACHE.capture(now=monotonic())
 
 
 def _clear_demo_overlay_response() -> None:
-    global _DEMO_OVERLAY_RESPONSE, _DEMO_OVERLAY_EXPIRES_AT
-    _DEMO_OVERLAY_RESPONSE = None
-    _DEMO_OVERLAY_EXPIRES_AT = None
+    _DEMO_OVERLAY_CACHE.clear()

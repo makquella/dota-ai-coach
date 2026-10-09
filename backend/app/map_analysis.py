@@ -16,6 +16,7 @@ The block itself is drawn by the launcher (schematic map, no game art).
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from typing import Any
 
 from app.advice_context import MAP_CENTER
@@ -102,7 +103,7 @@ def _thin(points: list[dict[str, Any]], limit: int) -> list[dict[str, Any]]:
     return [points[int(i * step)] for i in range(limit)]
 
 
-def analyze_map(facts: dict[str, Any]) -> tuple[dict[str, Any] | None, list[dict[str, Any]]]:
+def analyze_map(facts: Mapping[str, Any]) -> tuple[dict[str, Any] | None, list[dict[str, Any]]]:
     """(block for the review or None, findings)."""
     is_radiant = facts.get("is_radiant")
     deaths = []

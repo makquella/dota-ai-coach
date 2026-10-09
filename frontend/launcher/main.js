@@ -19,10 +19,9 @@ const http = require("node:http");
 const net = require("node:net");
 const os = require("node:os");
 const path = require("node:path");
-const zlib = require("node:zlib");
 
 const { SCHEME: DOTA_ASSET_SCHEME, createAssetHandler } = require("./dota-assets");
-const transferCode = require("./transfer-code");
+const {createHistoryTransfer} = require("./history-transfer");
 const discordPresence = require("./discord-presence");
 const discordWeekly = require("./discord-weekly");
 const adviceStats = require("./advice-stats");
@@ -42,6 +41,8 @@ const {
 } = require("./problem-report");
 const { DOTA_STATUS, dotaStatus, overlayVisibility } = require("./overlay-visibility");
 const { createSettingsStore } = require("./settings");
+const { loadLocalApiAuth, controlHeaders, renderGsiConfig } = require("./local-api");
+const { trustedHandlers, protectWindow } = require("./renderer-security");
 const {
   GSI_LAUNCH_OPTION,
   checkLaunchOptions,
@@ -65,6 +66,12 @@ const IS_PACKAGED = app.isPackaged;
 const RESOURCES_ROOT = IS_PACKAGED ? process.resourcesPath : REPO_ROOT;
 const BACKEND_DIR = path.join(REPO_ROOT, "backend");
 const USER_DATA_DIR = app.getPath("userData");
+let apiAuth = null;
+
+function localApiAuth() {
+  if (!apiAuth) apiAuth = loadLocalApiAuth(path.join(USER_DATA_DIR, "local-api-gsi.json"));
+  return apiAuth;
+}
 // Mirrors WRITABLE_DIR in backend/app/config.py.
 const WRITABLE_DIR = IS_PACKAGED ? USER_DATA_DIR : BACKEND_DIR;
 const LOGS_DIR = path.join(WRITABLE_DIR, "logs");
@@ -88,6 +95,8 @@ const WINDOW_BACKGROUND = "#0b0b0c";
 const START_HIDDEN = process.argv.includes("--hidden");
 const SMOKE_TEST_RESULT = argValue("--smoke-test");
 const IS_SMOKE_TEST = SMOKE_TEST_RESULT !== null;
+// Functional history fixtures must never enter the installed/developer store.
+const SMOKE_PLAYER_DATA_DIR = IS_SMOKE_TEST ? fs.mkdtempSync(path.join(os.tmpdir(), "wardly-player-smoke-")) : null;
 
 const DEMO_PRESETS = {
   plMacro: {
@@ -988,6 +997,16 @@ async function publishProfile({ force = false } = {}) {
 }
 
 async function friendsStatus({ force = false } = {}) {
+  // Profile UI smoke reads a real local card without publishing the fixture or
+  // using the installed player's friend codes or consent settings.
+  if (IS_SMOKE_TEST) {
+    const { card } = await requestBackendJson(`/player/profile/public?lang=${uiLocale()}&mmr=true`, "GET", undefined, 15000);
+    return {
+      ok: true, enabled: false, code: "", url: "", showMmr: true,
+      rows: friends.leaderboard(card ? [{ id: "me", me: true, card }] : []),
+      missing: [], error: ""
+    };
+  }
   let own = friendsProfile();
   let card = null;
   let error = "";
@@ -1578,6 +1597,14 @@ function startBackend() {
 
 async function launchBackend() {
   setBackendStatus("starting");
+  let auth;
+  try {
+    auth = localApiAuth();
+  } catch {
+    appendLog("backend", "Local API credentials could not be initialized. Check the app data folder.", { force: true });
+    setBackendStatus("stopped");
+    return false;
+  }
   const port = await pickBackendPort();
   backend.port = port;
   if (!isValidPort(process.env.DOTA_AI_BACKEND_PORT)) {
@@ -1600,8 +1627,14 @@ async function launchBackend() {
     DOTA_AI_BACKEND_PORT: String(port),
     DOTA_AI_BACKEND_LOG_LEVEL: "info",
     DOTA_AI_BACKEND_STDIN_CONTROL: "1",
+    DOTA_AI_CONTROL_TOKEN: auth.control,
+    DOTA_AI_GSI_TOKEN: auth.gsi,
     SESSION_RECORDS_DIR
   };
+  if (IS_SMOKE_TEST) {
+    env.PLAYER_DATA_DIR = SMOKE_PLAYER_DATA_DIR;
+    env.OPENDOTA_ENABLED = "false";
+  }
   let command = pythonExecutable();
   let args = ["-u", path.join("packaging", "backend_server.py")];
   let cwd = BACKEND_DIR;
@@ -1730,7 +1763,7 @@ function requestBackendJson(endpointPath, method = "GET", body = undefined, time
       {
         method,
         timeout: timeoutMs,
-        headers: { "Content-Type": "application/json" }
+        headers: controlHeaders(url, backendUrl(), localApiAuth().control)
       },
       (response) => {
         let responseBody = "";
@@ -2025,7 +2058,10 @@ async function runDemo(presetName = "plMacro", includeDeepReview = false) {
     env: {
       PYTHONUNBUFFERED: "1",
       SIMULATION_USE_LLM: "false",
-      USE_LLM: "false"
+      USE_LLM: "false",
+      DOTA_AI_CONTROL_TOKEN: localApiAuth().control,
+      DOTA_AI_GSI_TOKEN: localApiAuth().gsi,
+      DOTA_AI_BACKEND_PORT: String(backend.port)
     },
     onExit: () => {
       processStatus.demo = "stopped";
@@ -2098,27 +2134,7 @@ function formatLiveGsiStatus(status) {
 // "heartbeat" keeps a paused match fresh for the backend's staleness check
 // (GSI_STALE_SECONDS=5); otherwise the overlay would hide during pauses.
 function gsiConfigText() {
-  return `"Wardly GSI"
-{
-  "uri"           "${gsiEndpoint()}"
-  "timeout"       "5.0"
-  "buffer"        "0.1"
-  "throttle"      "0.1"
-  "heartbeat"     "2.0"
-  "data"
-  {
-    "provider"    "1"
-    "map"         "1"
-    "player"      "1"
-    "hero"        "1"
-    "abilities"   "1"
-    "items"       "1"
-    "buildings"   "1"
-    "events"      "1"
-    "minimap"     "1"
-  }
-}
-`;
+  return renderGsiConfig(gsiEndpoint(), localApiAuth().gsi);
 }
 
 function refreshLaunchOptions() {
@@ -2216,7 +2232,8 @@ function installGsiConfig(customPath = "") {
   try {
     fs.mkdirSync(dir, { recursive: true });
     const filePath = path.join(dir, GSI_CONFIG_NAME);
-    fs.writeFileSync(filePath, gsiConfigText(), "utf8");
+    fs.writeFileSync(filePath, gsiConfigText(), { encoding: "utf8", mode: 0o600 });
+    fs.chmodSync(filePath, 0o600);
     settings.set("gsiConfigPath", filePath);
     gsiStatus = { status: "installed", path: filePath };
     appendLog("gsi", `Installed config: ${filePath} -> ${gsiEndpoint()}`, { force: true });
@@ -2240,7 +2257,8 @@ function syncGsiConfig() {
     if (fs.readFileSync(status.path, "utf8") === gsiConfigText()) {
       return;
     }
-    fs.writeFileSync(status.path, gsiConfigText(), "utf8");
+    fs.writeFileSync(status.path, gsiConfigText(), { encoding: "utf8", mode: 0o600 });
+    fs.chmodSync(status.path, 0o600);
     appendLog("gsi", `Updated GSI config (${gsiEndpoint()}). Restart Dota 2 if it is already running.`, {
       force: true
     });
@@ -2395,6 +2413,7 @@ async function collectProblemReport() {
       recentAdviceCount: Array.isArray(recentAdvice) ? recentAdvice.length : 0
     },
     settings: settings.all(),
+    settingsHealth: settings.health(),
     watcher: dotaWatcher.getState(),
     diagnostics,
     diagnosticsError,
@@ -2769,168 +2788,22 @@ function shareMatchArg(value) {
   return /^\d{1,20}$/.test(text) || text === "progress" ? text : null;
 }
 
-// ---------------------------------------------------------------------------
-// History backup: the backend's whole history (no keys) in one gzipped file
-// ---------------------------------------------------------------------------
-
-const BACKUP_TIMEOUT_MS = 180000;
-const BACKUP_MAX_BYTES = 512 * 1024 * 1024;
-
-function backupFailure(error) {
-  const payload = error.payload || {};
-  return {
-    ok: false,
-    code: payload.code || (processStatus.backend !== "running" ? "backend_down" : "failed"),
-    error: payload.detail || error.message
-  };
-}
-
-async function exportHistory() {
-  if (!mainWindow || mainWindow.isDestroyed()) {
-    return { ok: false, code: "no_window" };
-  }
-  const stamp = new Date().toISOString().slice(0, 10);
-  const { canceled, filePath } = await dialog.showSaveDialog(mainWindow, {
-    defaultPath: path.join(reportFolder(), `Wardly-backup-${stamp}.json.gz`),
-    filters: [{ name: "Wardly backup", extensions: ["gz", "json"] }]
-  });
-  if (canceled || !filePath) {
-    return { ok: false, canceled: true };
-  }
-  try {
-    const data = await requestBackendJson("/player/backup", "GET", undefined, BACKUP_TIMEOUT_MS);
-    const text = JSON.stringify(data);
-    fs.writeFileSync(filePath, filePath.toLowerCase().endsWith(".json") ? text : zlib.gzipSync(text));
-    appendLog("launcher", `History backup saved: ${filePath}`, { force: true });
-    shell.showItemInFolder(filePath);
-    return { ok: true, path: filePath, matches: (data.counts && data.counts.matches) || 0 };
-  } catch (error) {
-    appendLog("launcher", `History backup failed: ${error.message}`, { force: true });
-    return backupFailure(error);
-  }
-}
-
-async function importHistory() {
-  if (!mainWindow || mainWindow.isDestroyed()) {
-    return { ok: false, code: "no_window" };
-  }
-  const { canceled, filePaths } = await dialog.showOpenDialog(mainWindow, {
-    defaultPath: reportFolder(),
-    properties: ["openFile"],
-    filters: [{ name: "Wardly backup", extensions: ["gz", "json"] }]
-  });
-  if (canceled || !filePaths || !filePaths[0]) {
-    return { ok: false, canceled: true };
-  }
-  let data;
-  try {
-    let raw = fs.readFileSync(filePaths[0]);
-    if (raw[0] === 0x1f && raw[1] === 0x8b) {
-      raw = zlib.gunzipSync(raw, { maxOutputLength: BACKUP_MAX_BYTES });
-    }
-    data = JSON.parse(raw.toString("utf8"));
-  } catch (error) {
-    return { ok: false, code: "not_backup", error: error.message };
-  }
-  try {
-    const result = await requestBackendJson("/player/backup", "POST", data, BACKUP_TIMEOUT_MS);
-    appendLog("launcher", `History backup loaded: ${filePaths[0]}`, { force: true });
-    return { ok: true, ...result };
-  } catch (error) {
-    appendLog("launcher", `Loading the history backup failed: ${error.message}`, { force: true });
-    return backupFailure(error);
-  }
-}
-
-// ---------------------------------------------------------------------------
-// History by code: the backup, gzipped and encrypted with the secret part of a
-// one-time code (transfer-code.js), kept 15 minutes by the API; the other
-// computer downloads it with the code, decrypts, imports and deletes it.
-// ---------------------------------------------------------------------------
-
-const TRANSFER_TIMEOUT_MS = 60_000;
-const TRANSFER_MAX_BYTES = 1_500_000;
-
-async function transferFetch(url, options) {
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), TRANSFER_TIMEOUT_MS);
-  try {
-    return await electronNet.fetch(url, { ...options, signal: controller.signal });
-  } finally {
-    clearTimeout(timer);
-  }
-}
-
-async function sendHistoryByCode() {
-  let data;
-  try {
-    data = await requestBackendJson("/player/backup", "GET", undefined, BACKUP_TIMEOUT_MS);
-  } catch (error) {
-    return backupFailure(error);
-  }
-  const packed = zlib.gzipSync(JSON.stringify(data));
-  try {
-    // A new code when its id is taken (a 4-character id; the API says 409).
-    for (let attempt = 0; attempt < 3; attempt += 1) {
-      const code = transferCode.newTransferCode();
-      const box = transferCode.seal(packed, code);
-      if (box.length > TRANSFER_MAX_BYTES) {
-        return { ok: false, code: "too_big" };
-      }
-      const response = await transferFetch(`${apiUrl()}/v1/transfer/${code.id}`, {
-        method: "PUT",
-        headers: { "content-type": "application/octet-stream", "x-install-id": installId() },
-        body: box
-      });
-      if (response.status === 409) {
-        continue;
-      }
-      const answer = await response.json().catch(() => ({}));
-      if (!response.ok) {
-        return { ok: false, code: answer.code || `http_${response.status}` };
-      }
-      appendLog("launcher", `History sent by code (${(data.counts && data.counts.matches) || 0} matches).`, { force: true });
-      return { ok: true, code: code.code, expiresAt: Number(answer.expires_at) || null, matches: (data.counts && data.counts.matches) || 0 };
-    }
-    return { ok: false, code: "taken" };
-  } catch (error) {
-    return { ok: false, code: "offline", error: error.message };
-  }
-}
-
-async function receiveHistoryByCode(input) {
-  const code = transferCode.parseTransferCode(input);
-  if (!code) {
-    return { ok: false, code: "bad_code" };
-  }
-  let box;
-  try {
-    const response = await transferFetch(`${apiUrl()}/v1/transfer/${code.id}/claim`, { method: "POST" });
-    if (!response.ok) {
-      const answer = await response.json().catch(() => ({}));
-      return { ok: false, code: answer.code || `http_${response.status}` };
-    }
-    box = Buffer.from(await response.arrayBuffer());
-  } catch (error) {
-    return { ok: false, code: "offline", error: error.message };
-  }
-  let data;
-  try {
-    const packed = transferCode.open(box, code);
-    data = JSON.parse(zlib.gunzipSync(packed, { maxOutputLength: BACKUP_MAX_BYTES }).toString("utf8"));
-  } catch (error) {
-    return { ok: false, code: error.code === "bad_code" ? "bad_code" : "not_backup" };
-  }
-  try {
-    const result = await requestBackendJson("/player/backup", "POST", data, BACKUP_TIMEOUT_MS);
-    // Imported: nothing left to keep on the server.
-    transferFetch(`${apiUrl()}/v1/transfer/${code.id}`, { method: "DELETE" }).catch(() => {});
-    appendLog("launcher", "History received by code.", { force: true });
-    return { ok: true, ...result };
-  } catch (error) {
-    return backupFailure(error);
-  }
-}
+// History orchestration owns file/crypto/import steps; IPC remains trusted here.
+const {exportHistory, importHistory, sendHistoryByCode, receiveHistoryByCode} = createHistoryTransfer({
+  getWindow: () => mainWindow,
+  dialog: IS_SMOKE_TEST ? {
+    showSaveDialog: async () => ({canceled:false,filePath:path.join(SMOKE_PLAYER_DATA_DIR, "history-smoke.json.gz")}),
+    showOpenDialog: async () => ({canceled:false,filePaths:[path.join(SMOKE_PLAYER_DATA_DIR, "history-smoke.json.gz")]})
+  } : dialog,
+  reportFolder,
+  requestBackendJson,
+  appendLog,
+  showItemInFolder: file => { if (!IS_SMOKE_TEST) shell.showItemInFolder(file); },
+  backendRunning: () => processStatus.backend === "running",
+  fetch: (...args) => electronNet.fetch(...args),
+  apiUrl,
+  installId
+});
 
 // ---------------------------------------------------------------------------
 // Advice frequency (sent at backend start and on change)
@@ -3056,9 +2929,11 @@ function createMainWindow({ show = true } = {}) {
     webPreferences: {
       preload: path.join(__dirname, "preload.js"),
       contextIsolation: true,
-      nodeIntegration: false
+      nodeIntegration: false,
+      sandbox: true
     }
   });
+  protectWindow(mainWindow);
   mainWindow.setMenuBarVisibility(false);
   if (size.maximized) {
     if (show) {
@@ -3127,6 +3002,7 @@ function createSplash() {
     backgroundColor: WINDOW_BACKGROUND,
     webPreferences: { contextIsolation: true, nodeIntegration: false, sandbox: true }
   });
+  protectWindow(splashWindow);
   splashWindow.setMenuBarVisibility(false);
   splashWindow.loadFile(path.join(__dirname, "splash", "splash.html"), { query: { lang: uiLocale() } });
   splashWindow.once("ready-to-show", () => {
@@ -3372,21 +3248,23 @@ function showTrayBalloon(content, action = null) {
 // ---------------------------------------------------------------------------
 
 function registerIpc() {
-  ipcMain.handle("launcher:get-status", () => publicStatus());
-  ipcMain.handle("launcher:get-logs", () => logs);
-  ipcMain.handle("launcher:clear-logs", () => {
+  const handleLauncher = trustedHandlers(ipcMain, () => mainWindow, path.join(__dirname, "renderer", "index.html"));
+  const handleOverlay = trustedHandlers(ipcMain, () => overlay.window(), path.join(__dirname, "overlay", "index.html"));
+  handleLauncher("launcher:get-status", () => publicStatus());
+  handleLauncher("launcher:get-logs", () => logs);
+  handleLauncher("launcher:clear-logs", () => {
     logs = "";
     hiddenBackendAccessLogs = 0;
     send("launcher:logs", logs);
     return true;
   });
-  ipcMain.handle("launcher:copy-launch-option", () => {
+  handleLauncher("launcher:copy-launch-option", () => {
     clipboard.writeText(GSI_LAUNCH_OPTION);
     return { ok: true, text: GSI_LAUNCH_OPTION };
   });
   // «Watch this moment» in a review: only a replay tick number crosses the
   // bridge, the command text is built here.
-  ipcMain.handle("launcher:copy-replay-tick", (_event, tick) => {
+  handleLauncher("launcher:copy-replay-tick", (_event, tick) => {
     if (!Number.isInteger(tick) || tick < 0 || tick > 10_000_000) {
       return { ok: false };
     }
@@ -3394,86 +3272,86 @@ function registerIpc() {
     clipboard.writeText(text);
     return { ok: true, text };
   });
-  ipcMain.handle("launcher:copy-logs", () => {
+  handleLauncher("launcher:copy-logs", () => {
     clipboard.writeText(logs);
     return true;
   });
-  ipcMain.handle("launcher:start-backend", () => startBackend());
-  ipcMain.handle("launcher:stop-backend", () => stopBackend());
-  ipcMain.handle("launcher:restart-backend", () => restartBackend());
-  ipcMain.handle("launcher:start-overlay", () => overlay.setEnabled(true));
-  ipcMain.handle("launcher:stop-overlay", () => overlay.setEnabled(false));
-  ipcMain.handle("launcher:set-autostart", (_event, enabled) => setAutostart(enabled));
-  ipcMain.handle("launcher:run-demo", (_event, presetName) => runDemo(presetName, false));
-  ipcMain.handle("launcher:run-deep-review", (_event, presetName) => runDemo(presetName, true));
-  ipcMain.handle("launcher:stop-demo", () => stopManaged("demo"));
-  ipcMain.handle("launcher:set-log-mode", (_event, nextMode) => setLogMode(nextMode));
-  ipcMain.handle("launcher:check-live-gsi", () => checkLiveGsiStatus());
-  ipcMain.handle("launcher:start-live-recording", () => setLiveRecording(true));
-  ipcMain.handle("launcher:stop-live-recording", () => setLiveRecording(false));
-  ipcMain.handle("launcher:check-gsi", async (_event, customPath) => {
+  handleLauncher("launcher:start-backend", () => startBackend());
+  handleLauncher("launcher:stop-backend", () => stopBackend());
+  handleLauncher("launcher:restart-backend", () => restartBackend());
+  handleLauncher("launcher:start-overlay", () => overlay.setEnabled(true));
+  handleLauncher("launcher:stop-overlay", () => overlay.setEnabled(false));
+  handleLauncher("launcher:set-autostart", (_event, enabled) => setAutostart(enabled));
+  handleLauncher("launcher:run-demo", (_event, presetName) => runDemo(presetName, false));
+  handleLauncher("launcher:run-deep-review", (_event, presetName) => runDemo(presetName, true));
+  handleLauncher("launcher:stop-demo", () => stopManaged("demo"));
+  handleLauncher("launcher:set-log-mode", (_event, nextMode) => setLogMode(nextMode));
+  handleLauncher("launcher:check-live-gsi", () => checkLiveGsiStatus());
+  handleLauncher("launcher:start-live-recording", () => setLiveRecording(true));
+  handleLauncher("launcher:stop-live-recording", () => setLiveRecording(false));
+  handleLauncher("launcher:check-gsi", async (_event, customPath) => {
     await refreshDotaInstall();
     return checkGsiConfig(customPath);
   });
-  ipcMain.handle("launcher:install-gsi", async (_event, customPath) => {
+  handleLauncher("launcher:install-gsi", async (_event, customPath) => {
     await refreshDotaInstall();
     return installGsiConfig(customPath);
   });
-  ipcMain.handle("launcher:choose-gsi-folder", () => chooseGsiFolder());
-  ipcMain.handle("launcher:choose-dota-folder", () => chooseDotaFolderAndInstall());
-  ipcMain.handle("launcher:set-overlay-position", (_event, preset) => {
+  handleLauncher("launcher:choose-gsi-folder", () => chooseGsiFolder());
+  handleLauncher("launcher:choose-dota-folder", () => chooseDotaFolderAndInstall());
+  handleLauncher("launcher:set-overlay-position", (_event, preset) => {
     overlay.setPosition(String(preset || ""));
     return publicStatus();
   });
-  ipcMain.handle("launcher:set-language", (_event, value) => setLanguage(String(value || "")));
-  ipcMain.handle("launcher:set-ui-scale", (_event, value) => setUiScale(value));
-  ipcMain.handle("launcher:set-advice-frequency", (_event, value) => setAdviceFrequency(String(value || "")));
-  ipcMain.handle("launcher:set-discord-presence", (_event, enabled) => setDiscordPresence(Boolean(enabled)));
-  ipcMain.handle("launcher:set-share-stats", (_event, enabled) => setShareStats(Boolean(enabled)));
-  ipcMain.handle("launcher:stats-preview", () => statsPreview());
-  ipcMain.handle("launcher:match-records", (_event, request) => matchRecordsAction(request));
-  ipcMain.handle("launcher:friends", (_event, request) => friendsAction(request));
-  ipcMain.handle("launcher:delete-server-data", () => deleteServerData());
-  ipcMain.handle("launcher:discord-weekly", (_event, request) => discordWeeklyAction(request));
-  ipcMain.handle("launcher:set-advice-preferences", (_event, patch) =>
+  handleLauncher("launcher:set-language", (_event, value) => setLanguage(String(value || "")));
+  handleLauncher("launcher:set-ui-scale", (_event, value) => setUiScale(value));
+  handleLauncher("launcher:set-advice-frequency", (_event, value) => setAdviceFrequency(String(value || "")));
+  handleLauncher("launcher:set-discord-presence", (_event, enabled) => setDiscordPresence(Boolean(enabled)));
+  handleLauncher("launcher:set-share-stats", (_event, enabled) => setShareStats(Boolean(enabled)));
+  handleLauncher("launcher:stats-preview", () => statsPreview());
+  handleLauncher("launcher:match-records", (_event, request) => matchRecordsAction(request));
+  handleLauncher("launcher:friends", (_event, request) => friendsAction(request));
+  handleLauncher("launcher:delete-server-data", () => deleteServerData());
+  handleLauncher("launcher:discord-weekly", (_event, request) => discordWeeklyAction(request));
+  handleLauncher("launcher:set-advice-preferences", (_event, patch) =>
     setAdvicePreferences(patch && typeof patch === "object" ? patch : {})
   );
-  ipcMain.handle("launcher:set-overlay-size", (_event, name) => {
+  handleLauncher("launcher:set-overlay-size", (_event, name) => {
     overlay.setSize(String(name || ""));
     return publicStatus();
   });
-  ipcMain.handle("launcher:set-overlay-display", (_event, patch) => {
+  handleLauncher("launcher:set-overlay-display", (_event, patch) => {
     overlay.setDisplay(patch && typeof patch === "object" ? patch : {});
     return publicStatus();
   });
-  ipcMain.handle("launcher:set-overlay-voice", (_event, mode, volume) => {
+  handleLauncher("launcher:set-overlay-voice", (_event, mode, volume) => {
     overlay.setVoice(String(mode || ""), volume);
     return publicStatus();
   });
-  ipcMain.handle("launcher:set-overlay-locked", (_event, locked) => {
+  handleLauncher("launcher:set-overlay-locked", (_event, locked) => {
     overlay.setLocked(Boolean(locked));
     return publicStatus();
   });
-  ipcMain.handle("launcher:dismiss-fullscreen-warning", () => {
+  handleLauncher("launcher:dismiss-fullscreen-warning", () => {
     settings.set("fullscreenWarningDismissed", true);
     updateStatus();
     refreshTray();
     return publicStatus();
   });
-  ipcMain.handle("launcher:check-updates", async () => {
+  handleLauncher("launcher:check-updates", async () => {
     await updater.check();
     return publicStatus();
   });
-  ipcMain.handle("launcher:install-update", () => updater.install());
-  ipcMain.handle("launcher:player", (_event, op, args) => playerRequest(String(op || ""), args || {}));
-  ipcMain.handle("launcher:open-logs", () => openPath(LOGS_DIR));
-  ipcMain.handle("launcher:save-problem-report", () => saveProblemReport());
-  ipcMain.handle("launcher:preview-problem-report", () => collectProblemReport());
-  ipcMain.handle("launcher:send-problem-report", (_event, note) => sendProblemReport(String(note || "")));
-  ipcMain.handle("launcher:open-privacy", () => shell.openExternal(`${PRIVACY_URL}?lang=${uiLocale()}`));
+  handleLauncher("launcher:install-update", () => updater.install());
+  handleLauncher("launcher:player", (_event, op, args) => playerRequest(String(op || ""), args || {}));
+  handleLauncher("launcher:open-logs", () => openPath(LOGS_DIR));
+  handleLauncher("launcher:save-problem-report", () => saveProblemReport());
+  handleLauncher("launcher:preview-problem-report", () => collectProblemReport());
+  handleLauncher("launcher:send-problem-report", (_event, note) => sendProblemReport(String(note || "")));
+  handleLauncher("launcher:open-privacy", () => shell.openExternal(`${PRIVACY_URL}?lang=${uiLocale()}`));
   // The invite card: «copy the link» puts the site link (tagged ?ref=invite, in
   // the player's language) on the clipboard; either answer hides the card for good.
-  ipcMain.handle("launcher:invite", (_event, action) => {
+  handleLauncher("launcher:invite", (_event, action) => {
     if (action === "copy") {
       clipboard.writeText(inviteUrl());
     }
@@ -3484,7 +3362,7 @@ function registerIpc() {
   });
   // «Итог вечера»: copy its text (built by the backend, re-read here, never taken
   // from the page) or hide the card of that sitting.
-  ipcMain.handle("launcher:session", async (_event, action) => {
+  handleLauncher("launcher:session", async (_event, action) => {
     if (action === "copy") {
       const result = await playerRequest("session");
       const session = result.ok && result.data ? result.data.session : null;
@@ -3500,53 +3378,53 @@ function registerIpc() {
     }
     return { ok: false };
   });
-  ipcMain.handle("launcher:tour-done", () => {
+  handleLauncher("launcher:tour-done", () => {
     settings.set("tourDone", true);
     return publicStatus();
   });
-  ipcMain.handle("launcher:dismiss-whats-new", () => {
+  handleLauncher("launcher:dismiss-whats-new", () => {
     settings.set("whatsNewPending", "");
     settings.set("whatsNewFrom", "");
     return publicStatus();
   });
-  ipcMain.handle("launcher:dismiss-setup", () => {
+  handleLauncher("launcher:dismiss-setup", () => {
     settings.set("setupDismissed", true);
     return publicStatus();
   });
-  ipcMain.handle("launcher:share-status", (_event, matchId) =>
+  handleLauncher("launcher:share-status", (_event, matchId) =>
     shareMatchArg(matchId) ? shareStatus(shareMatchArg(matchId)) : { ok: false, code: "bad_match" }
   );
-  ipcMain.handle("launcher:share-create", (_event, matchId, withCoach) =>
+  handleLauncher("launcher:share-create", (_event, matchId, withCoach) =>
     shareMatchArg(matchId) ? createShare(shareMatchArg(matchId), Boolean(withCoach)) : { ok: false, code: "bad_match" }
   );
-  ipcMain.handle("launcher:share-delete", (_event, matchId) =>
+  handleLauncher("launcher:share-delete", (_event, matchId) =>
     shareMatchArg(matchId) ? deleteShareLink(shareMatchArg(matchId)) : { ok: false, code: "bad_match" }
   );
-  ipcMain.handle("launcher:share-copy", (_event, matchId) => {
+  handleLauncher("launcher:share-copy", (_event, matchId) => {
     const record = shareMatchArg(matchId) ? shareRecords()[shareMatchArg(matchId)] : null;
     if (record) {
       clipboard.writeText(record.url);
     }
     return Boolean(record);
   });
-  ipcMain.handle("launcher:share-open", (_event, matchId) => {
+  handleLauncher("launcher:share-open", (_event, matchId) => {
     const record = shareMatchArg(matchId) ? shareRecords()[shareMatchArg(matchId)] : null;
     // Only our own share pages: the API's address or the site's (Workers route).
     const ours = record && [`${apiUrl()}/r/`, "https://luhovyimvp.dev/r/"].some((prefix) => record.url.startsWith(prefix));
     return ours ? shell.openExternal(record.url) : false;
   });
-  ipcMain.handle("launcher:backup-export", () => exportHistory());
-  ipcMain.handle("launcher:backup-import", () => importHistory());
-  ipcMain.handle("launcher:transfer-send", () => sendHistoryByCode());
-  ipcMain.handle("launcher:transfer-receive", (_event, code) => receiveHistoryByCode(String(code || "").slice(0, 40)));
-  ipcMain.handle("launcher:export-pdf", (_event, kind, id) =>
+  handleLauncher("launcher:backup-export", () => exportHistory());
+  handleLauncher("launcher:backup-import", () => importHistory());
+  handleLauncher("launcher:transfer-send", () => sendHistoryByCode());
+  handleLauncher("launcher:transfer-receive", (_event, code) => receiveHistoryByCode(String(code || "").slice(0, 40)));
+  handleLauncher("launcher:export-pdf", (_event, kind, id) =>
     exportPdf(kind === "match" ? "match" : "career", String(id || ""))
   );
-  ipcMain.handle("launcher:open-simulation-results", () => openPath(SIMULATION_RESULTS_DIR));
-  ipcMain.handle("launcher:open-session-records", () => openPath(SESSION_RECORDS_DIR));
-  ipcMain.handle("launcher:open-readme", () => shell.openPath(README_PATH));
+  handleLauncher("launcher:open-simulation-results", () => openPath(SIMULATION_RESULTS_DIR));
+  handleLauncher("launcher:open-session-records", () => openPath(SESSION_RECORDS_DIR));
+  handleLauncher("launcher:open-readme", () => shell.openPath(README_PATH));
   // A match on the sites players already use: fixed addresses, a numeric id only.
-  ipcMain.handle("launcher:open-match-site", (_event, site, matchId) => {
+  handleLauncher("launcher:open-match-site", (_event, site, matchId) => {
     const sites = {
       opendota: "https://www.opendota.com/matches/",
       dotabuff: "https://www.dotabuff.com/matches/",
@@ -3555,15 +3433,15 @@ function registerIpc() {
     const id = String(matchId ?? "");
     return Object.hasOwn(sites, String(site)) && /^\d{1,20}$/.test(id) ? shell.openExternal(sites[String(site)] + id) : false;
   });
-  ipcMain.handle("launcher:open-ai-key-page", (_event, provider) => {
+  handleLauncher("launcher:open-ai-key-page", (_event, provider) => {
     const pages = { ...AI_KEY_PAGES, opendota: "https://www.opendota.com/api-keys" };
     const url = pages[String(provider)];
     return url && Object.hasOwn(pages, String(provider)) ? shell.openExternal(url) : false;
   });
 
-  ipcMain.handle("overlay:get-config", () => overlay.publicConfig());
+  handleOverlay("overlay:get-config", () => overlay.publicConfig());
   skillArrows.registerIpc(() => updateStatus());
-  ipcMain.handle("launcher:skill-arrows", (_event, action) => {
+  handleLauncher("launcher:skill-arrows", (_event, action) => {
     if (action === "calibrate") {
       skillArrows.startCalibration();
     } else if (action === "reset") {
@@ -3573,7 +3451,7 @@ function registerIpc() {
     }
     return publicStatus();
   });
-  ipcMain.handle("overlay:fetch-recommendation", () => fetchOverlayRecommendation());
+  handleOverlay("overlay:fetch-recommendation", () => fetchOverlayRecommendation());
 }
 
 // ---------------------------------------------------------------------------
@@ -3715,6 +3593,23 @@ async function runSmokeTest(resultPath) {
 
     const started = await startBackend();
     step("backend /health", started && (await isBackendReady()), backendUrl());
+    const rejected = await fetch(`${backendUrl()}/session/reset`, { method: "POST" });
+    step("unauthorized local mutation rejected", rejected.status === 401);
+    const foreignOrigin = await fetch(`${backendUrl()}/session/reset`, {
+      method: "POST",
+      headers: { ...controlHeaders(backendUrl(), backendUrl(), localApiAuth().control), Origin: "https://audit.invalid" },
+      body: "{}",
+    });
+    step("foreign origin rejected", foreignOrigin.status === 403);
+    const valveToken = gsiConfigText().match(/"token"\s+"([a-f0-9]{64})"/)?.[1];
+    const valve = await fetch(`${backendUrl()}/gsi`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ auth: { token: valveToken }, provider: { name: "Dota 2" }, map: { game_state: "DOTA_GAMERULES_STATE_PRE_GAME" } }),
+    });
+    step("Valve config token accepted", Boolean(valveToken) && valve.status === 200);
+    const gsiControl = await fetch(`${backendUrl()}/player`, { headers: { Authorization: `Bearer ${valveToken}` } });
+    step("GSI token cannot access player data", gsiControl.status === 401);
     // Both renderers must have drawn their UI from live data (catches script
     // errors that a plain "page loaded" check would miss). Only app.js sets
     // these values: the static HTML has data-state="starting", "—" and an empty action.
@@ -3736,6 +3631,7 @@ async function runSmokeTest(resultPath) {
     // Player history (SQLite store, match reviews) must work in the bundled backend.
     const player = await playerRequest("status");
     step("player API", player.ok && typeof player.data.linked === "boolean", JSON.stringify(player.ok ? player.data.sync : player));
+    step("smoke player store is isolated and initially empty", player.ok && !player.data.linked && player.data.matches === 0 && fs.existsSync(path.join(SMOKE_PLAYER_DATA_DIR, "coach.sqlite3")));
 
     const recommendation = await fetchOverlayRecommendation();
     step(
@@ -3744,6 +3640,8 @@ async function runSmokeTest(resultPath) {
       recommendation.ok ? recommendation.data.status : recommendation.error
     );
 
+    await require("./renderer-security-smoke").runRendererSecuritySmoke({ mainWindow, overlayWindow, skillArrows, backendUrl: backendUrl(), requestBackend: requestBackendJson, step });
+
     const outcome = await stopBackend();
     const exit = lastExit.backend || {};
     step("backend graceful shutdown", outcome === "graceful" && exit.code === 0, `${outcome}, code=${exit.code}`);
@@ -3751,6 +3649,9 @@ async function runSmokeTest(resultPath) {
     step("unexpected error", false, error.stack || error.message);
   }
   const ok = steps.length > 0 && steps.every((item) => item.ok);
+  if (!processes.backend && SMOKE_PLAYER_DATA_DIR) {
+    fs.rmSync(SMOKE_PLAYER_DATA_DIR, { recursive: true, force: true });
+  }
   const result = { ok, port: backend.port, packaged: IS_PACKAGED, steps, logs: logs.slice(-20000) };
   if (resultPath) {
     fs.mkdirSync(path.dirname(path.resolve(resultPath)), { recursive: true });
@@ -3800,6 +3701,7 @@ function bootstrap() {
   app.on("second-instance", showMainWindow);
 
   app.whenReady().then(() => {
+    settings.onError(error => appendLog("settings", `Persistence ${error.operation} failed (${error.code}).`, {force:true}));
     registerDotaAssets();
     appendLog("launcher", `${APP_NAME} ${app.getVersion()} started (${IS_PACKAGED ? "packaged" : "dev"}).`, {
       force: true

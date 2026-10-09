@@ -28,7 +28,7 @@ All review texts follow `lang` (ru/en).
 
 from __future__ import annotations
 
-from typing import Annotated
+from typing import Annotated, Any
 
 from fastapi import APIRouter, Body, Path, Query, Request
 from fastapi.responses import JSONResponse
@@ -39,6 +39,14 @@ from app.coach_llm import env_settings
 from app.config import OPENDOTA_API_KEY, OPENDOTA_API_URL, OPENDOTA_ENABLED, PLAYER_DATA_DIR
 from app.history_backup import BackupError
 from app.opendota import OpenDotaClient
+from app.player_contracts import (
+    CareerResponse,
+    MatchDetailResponse,
+    MatchListResponse,
+    MatchNotFoundResponse,
+    PlayerStatusResponse,
+    ProfileResponse,
+)
 from app.player_profile import public_card
 from app.player_service import PlayerService
 from app.player_store import MATCH_SORTS
@@ -80,8 +88,13 @@ class AIRequest(BaseModel):
     model: str | None = None
 
 
-@router.get("", summary="Linked player and sync status")
-def player_status():
+@router.get(
+    "",
+    summary="Linked player and sync status",
+    response_model=PlayerStatusResponse,
+    response_model_exclude_unset=True,
+)
+def player_status() -> dict[str, Any]:
     return PLAYER_SERVICE.status()
 
 
@@ -115,7 +128,12 @@ def sync_player():
     return {"sync": PLAYER_SERVICE.request_sync(), "opendota": PLAYER_SERVICE.client is not None}
 
 
-@router.get("/matches", summary="Match table of the linked player")
+@router.get(
+    "/matches",
+    summary="Match table of the linked player",
+    response_model=MatchListResponse,
+    response_model_exclude_unset=True,
+)
 def player_matches(
     limit: int = 50,
     offset: Offset = 0,
@@ -123,7 +141,7 @@ def player_matches(
     result: str | None = None,
     sort: str | None = None,
     order: str | None = None,
-):
+) -> dict[str, Any]:
     """`hero_id` and `result` (win | loss) filter the table; `sort` (date | score |
     gpm | lh_10 | duration | kda) and `order` (asc | desc) order it."""
     limit = max(1, min(int(limit), 200))
@@ -151,8 +169,14 @@ def add_match_status(match_id: MatchId):
     return PLAYER_SERVICE.add_status(match_id)
 
 
-@router.get("/matches/{match_id}", summary="Post-match review")
-def player_match(match_id: MatchId, lang: str = "en"):
+@router.get(
+    "/matches/{match_id}",
+    summary="Post-match review",
+    response_model=MatchDetailResponse,
+    response_model_exclude_unset=True,
+    responses={404: {"model": MatchNotFoundResponse, "description": "Match is not stored"}},
+)
+def player_match(match_id: MatchId, lang: str = "en") -> dict[str, Any] | JSONResponse:
     detail = PLAYER_SERVICE.match_detail(match_id, normalize_lang(lang))
     if detail is None:
         return JSONResponse(status_code=404, content={"status": "error", "code": "match_not_found"})
@@ -239,7 +263,8 @@ def import_history(data: Annotated[dict, Body()]):
         return PLAYER_SERVICE.import_backup(data)
     except BackupError as error:
         return JSONResponse(
-            status_code=400, content={"status": "error", "code": error.code, "detail": str(error)}
+            status_code=503 if error.code == "restore_failed" else 400,
+            content={"status": "error", "code": error.code, "detail": str(error)},
         )
 
 
@@ -272,8 +297,13 @@ def remove_friend():
     return PLAYER_SERVICE.remove_friend()
 
 
-@router.get("/career", summary="Statistics and advice over recent matches")
-def player_career(lang: str = "en", hero_id: HeroId = None):
+@router.get(
+    "/career",
+    summary="Statistics and advice over recent matches",
+    response_model=CareerResponse,
+    response_model_exclude_unset=True,
+)
+def player_career(lang: str = "en", hero_id: HeroId = None) -> dict[str, Any]:
     """`hero_id` narrows the progress to one hero (no AI review then)."""
     return PLAYER_SERVICE.career(normalize_lang(lang), hero_id=hero_id)
 
@@ -288,8 +318,13 @@ class MmrRequest(BaseModel):
     mmr: int
 
 
-@router.get("/profile", summary="The profile tab: rating graph, level, achievements, sparks")
-def player_profile(lang: str = "en"):
+@router.get(
+    "/profile",
+    response_model=ProfileResponse,
+    response_model_exclude_unset=True,
+    summary="The profile tab: rating graph, level, achievements, sparks",
+)
+def player_profile(lang: str = "en") -> dict[str, Any]:
     return {"profile": PLAYER_SERVICE.profile(normalize_lang(lang))}
 
 
@@ -301,8 +336,13 @@ def player_profile_public(lang: str = "en", mmr: bool = True):
     return {"card": public_card(profile, normalize_lang(lang), show_mmr=mmr)}
 
 
-@router.post("/profile/mmr", summary="The player's MMR now (an anchor of the rating graph)")
-def set_mmr(request: MmrRequest, lang: str = "en"):
+@router.post(
+    "/profile/mmr",
+    response_model=ProfileResponse,
+    response_model_exclude_unset=True,
+    summary="The player's MMR now (an anchor of the rating graph)",
+)
+def set_mmr(request: MmrRequest, lang: str = "en") -> dict[str, Any] | JSONResponse:
     try:
         PLAYER_SERVICE.set_mmr(request.mmr)
     except ValueError as error:
@@ -314,8 +354,13 @@ class ShopRequest(BaseModel):
     id: str
 
 
-@router.post("/shop/buy", summary="Buy a profile look with sparks (and wear it)")
-def shop_buy(request: ShopRequest, lang: str = "en"):
+@router.post(
+    "/shop/buy",
+    response_model=ProfileResponse,
+    response_model_exclude_unset=True,
+    summary="Buy a profile look with sparks (and wear it)",
+)
+def shop_buy(request: ShopRequest, lang: str = "en") -> dict[str, Any] | JSONResponse:
     try:
         profile = PLAYER_SERVICE.shop_action("buy", request.id, normalize_lang(lang))
     except ValueError as error:
@@ -323,8 +368,13 @@ def shop_buy(request: ShopRequest, lang: str = "en"):
     return {"profile": profile}
 
 
-@router.post("/shop/equip", summary="Wear a profile look the player owns")
-def shop_equip(request: ShopRequest, lang: str = "en"):
+@router.post(
+    "/shop/equip",
+    response_model=ProfileResponse,
+    response_model_exclude_unset=True,
+    summary="Wear a profile look the player owns",
+)
+def shop_equip(request: ShopRequest, lang: str = "en") -> dict[str, Any] | JSONResponse:
     try:
         profile = PLAYER_SERVICE.shop_action("equip", request.id, normalize_lang(lang))
     except ValueError as error:
@@ -332,8 +382,13 @@ def shop_equip(request: ShopRequest, lang: str = "en"):
     return {"profile": profile}
 
 
-@router.delete("/profile/mmr", summary="Forget the typed-in MMR (back to the medal estimate)")
-def clear_mmr(lang: str = "en"):
+@router.delete(
+    "/profile/mmr",
+    response_model=ProfileResponse,
+    response_model_exclude_unset=True,
+    summary="Forget the typed-in MMR (back to the medal estimate)",
+)
+def clear_mmr(lang: str = "en") -> dict[str, Any]:
     PLAYER_SERVICE.clear_mmr()
     return {"profile": PLAYER_SERVICE.profile(normalize_lang(lang))}
 

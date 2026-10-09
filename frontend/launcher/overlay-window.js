@@ -2,6 +2,7 @@ const { BrowserWindow, globalShortcut, screen } = require("electron");
 const path = require("node:path");
 
 const { anchorArea, isReachable, presetBounds, sameBounds } = require("./overlay-placement");
+const { protectWindow } = require("./renderer-security");
 
 // Always-on-top advice card. It used to be a separate Electron app
 // (frontend/desktop-overlay); now it is a second window of the launcher so the
@@ -150,10 +151,12 @@ function createOverlayController({
       webPreferences: {
         preload: path.join(__dirname, "overlay-preload.js"),
         contextIsolation: true,
-        nodeIntegration: false
+        nodeIntegration: false,
+        sandbox: true
       }
     });
 
+    protectWindow(overlayWindow);
     overlayWindow.setOpacity(Number(current.opacity) || OVERLAY_DEFAULTS.opacity);
     enforceAlwaysOnTop();
     moveToPreset(current.positionPreset || OVERLAY_DEFAULTS.positionPreset, false);

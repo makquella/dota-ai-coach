@@ -5,28 +5,34 @@ gsi_state.py — in-memory Dota 2 Game State Integration state for MVP overlay u
 from __future__ import annotations
 
 import json
-import math
-from datetime import UTC, datetime
+from collections.abc import Callable
 from typing import Any
 
+from app.ability_normalization import normalize_abilities as _normalize_abilities
 from app.advice_context import MAP_CENTER, build_advice_context
 from app.config import GSI_DEBUG_LOG, GSI_DEBUG_SAMPLES_DIR
+from app.domain_contracts import NormalizedState
 from app.dota_constants import NPC_TO_HERO_ID, hero_name
 from app.enemy_heroes import visible_enemy_heroes, visible_enemy_units
-from app.hero_profiles import evaluate_laning_context
+from app.gsi_snapshot import GSIRegister, GSISnapshot
+from app.gsi_values import MAX_GSI_NUMBER as MAX_GSI_NUMBER
+from app.gsi_values import first_value as _first_value
+from app.gsi_values import optional_bool as _optional_bool
+from app.gsi_values import optional_int as _optional_int
+from app.gsi_values import optional_number as _optional_number
+from app.gsi_values import optional_str as _optional_str
+from app.gsi_values import title_from_token as _title_from_token
+from app.hero_profiles import evaluate_laning_context, load_hero_profile
 from app.hero_safety import evaluate_hero_safety
 from app.item_timing import normalize_item_name
 from app.last_moments import ready_savers
 from app.live_tools import bottle_rune, regen_items, wand_charges
-from app.map_hints import has_observer_ward, item_names, observer_charges
+from app.map_hints import has_observer_ward, item_names, observer_charges, timers
 from app.signal_capabilities import capability_summary, live_gsi_observed_capabilities
-from app.skill_tips import not_hero_ability, read_skills
+from app.skill_tips import read_skills
 from app.tp_tracker import has_teleport
 
-_latest_raw_payload: dict[str, Any] | None = None
-_latest_normalized_state: dict[str, Any] | None = None
-_latest_timestamp: str | None = None
-_previous_extra_context: dict[str, Any] | None = None
+_GSI = GSIRegister()
 
 _DEBUG_TOP_LEVEL_FIELDS = (
     "map",
@@ -103,51 +109,33 @@ _ITEM_NAME_MAP = {
 
 _EMPTY_ITEM_NAMES = {"", "empty", "item_empty", "item_unknown", "item_none"}
 
-_ABILITY_NAME_MAP = {
-    "antimage_blink": "Blink",
-    "anti_mage_blink": "Blink",
-    "juggernaut_blade_fury": "Blade Fury",
-    "life_stealer_rage": "Rage",
-    "lifestealer_rage": "Rage",
-    "medusa_mana_shield": "Mana Shield",
-    "slark_dark_pact": "Dark Pact",
-    "slark_pounce": "Pounce",
-    "morphling_morph_agi": "Attribute Shift",
-    "morphling_morph_str": "Attribute Shift",
-    "morphling_attribute_shift": "Attribute Shift",
-    "phantom_assassin_blur": "Blur",
-    "drow_ranger_wave_of_silence": "Gust",
-    "drow_ranger_gust": "Gust",
-    "luna_lucent_beam": "Lucent Beam",
-    "sven_warcry": "Warcry",
-    "kez_grappling_claw": "Grappling Claw",
-    "kez_raptor_dance": "Raptor Dance",
-    "kez_echo_slash": "Echo Slash",
-    "kez_talon_toss": "Talon Toss",
-    "kez_falcon_rush": "Falcon Rush",
-    "kez_ravens_veil": "Raven's Veil",
-    "kez_kazurai_katana": "Kazurai Katana",
-    "kez_switch_weapons": "Switch Weapons",
-    "slardar_sprint": "Guardian Sprint",
-    "bounty_hunter_wind_walk": "Shadow Walk",
-}
+
+def update_latest_gsi(
+    payload: dict[str, Any], *, enrich: Callable[[dict[str, Any]], None] | None = None
+) -> dict[str, Any]:
+    # Warm the lazy profile file/alias cache before acquiring writer ownership.
+    # The normalizer and live-memory callback subsequently use in-memory data.
+    load_hero_profile("")
+    timers()
+    snapshot = _GSI.update(payload, normalize_gsi_payload, enrich=enrich)
+    _write_debug_payload_sample(snapshot.raw, snapshot.timestamp)
+    return _current(snapshot)
 
 
-def update_latest_gsi(payload: dict[str, Any]) -> dict[str, Any]:
-    global _latest_raw_payload, _latest_normalized_state, _latest_timestamp, _previous_extra_context
+def reset_latest_gsi(reset_context: Callable[[], None] | None = None) -> None:
+    _GSI.reset(reset_context)
 
-    _latest_raw_payload = payload
-    _latest_normalized_state = normalize_gsi_payload(
-        payload, previous_extra_context=_previous_extra_context
+
+def hero_from_gsi(payload: dict[str, Any]) -> str:
+    """Select the canonical hero before any register ownership or metadata I/O."""
+    hero_block = _dict_value(payload.get("hero"))
+    return _normalize_hero_name(
+        _first_value(
+            payload.get("hero_name"),
+            payload.get("hero") if isinstance(payload.get("hero"), str) else None,
+            hero_block.get("name"),
+        )
     )
-    _previous_extra_context = dict(_latest_normalized_state.get("extra_context") or {})
-    _latest_timestamp = datetime.now(UTC).isoformat()
-    _write_debug_payload_sample(payload, _latest_timestamp)
-    return {
-        "status": "ok",
-        "timestamp": _latest_timestamp,
-        "state": _latest_normalized_state,
-    }
 
 
 # Game rules states before the heroes are on the map.
@@ -180,12 +168,16 @@ def is_in_match() -> bool:
     Main-menu heartbeats and hero selection also post to /gsi, so freshness alone
     does not mean the player is in a game.
     """
-    if not _latest_raw_payload or not _latest_normalized_state:
+    return _is_in_match(_GSI.capture())
+
+
+def _is_in_match(snapshot: GSISnapshot | None) -> bool:
+    if snapshot is None:
         return False
-    hero = str(_latest_normalized_state.get("hero") or "")
+    hero = str(snapshot.state.get("hero") or "")
     if not hero or hero == "Unknown":
         return False
-    map_block = _latest_raw_payload.get("map")
+    map_block = snapshot.raw.get("map")
     game_state = map_block.get("game_state") if isinstance(map_block, dict) else None
     # The GSI config enables "map", so real match payloads always carry it.
     return str(game_state) in _IN_MATCH_GAME_STATES
@@ -193,9 +185,10 @@ def is_in_match() -> bool:
 
 def post_game_match_id() -> int | None:
     """The match id while Dota shows the score screen after a match (POST_GAME)."""
-    if not _latest_raw_payload:
+    snapshot = _GSI.capture()
+    if snapshot is None:
         return None
-    map_block = _latest_raw_payload.get("map")
+    map_block = snapshot.raw.get("map")
     if not isinstance(map_block, dict):
         return None
     if map_block.get("game_state") != "DOTA_GAMERULES_STATE_POST_GAME":
@@ -207,7 +200,11 @@ def post_game_match_id() -> int | None:
 
 
 def get_current_state() -> dict[str, Any]:
-    if _latest_normalized_state is None:
+    return _current(_GSI.capture())
+
+
+def _current(snapshot: GSISnapshot | None) -> dict[str, Any]:
+    if snapshot is None:
         return {
             "status": "waiting_for_gsi",
             "timestamp": None,
@@ -216,14 +213,15 @@ def get_current_state() -> dict[str, Any]:
 
     return {
         "status": "ok",
-        "timestamp": _latest_timestamp,
-        "state": _latest_normalized_state,
+        "timestamp": snapshot.timestamp,
+        "state": snapshot.state,
     }
 
 
 def get_gsi_debug_latest() -> dict[str, Any]:
-    fields = get_gsi_debug_fields()
-    if _latest_raw_payload is None:
+    snapshot = _GSI.capture()
+    fields = _debug_fields(snapshot.raw if snapshot else {})
+    if snapshot is None:
         return {
             "status": "waiting_for_gsi",
             "timestamp": None,
@@ -236,17 +234,30 @@ def get_gsi_debug_latest() -> dict[str, Any]:
 
     return {
         "status": "ok",
-        "timestamp": _latest_timestamp,
-        "latest_raw_payload": _latest_raw_payload,
-        "latest_normalized_state": _latest_normalized_state,
-        "top_level_keys": sorted(_latest_raw_payload.keys()),
-        "detected_available_fields": _detected_available_fields(_latest_raw_payload),
+        "timestamp": snapshot.timestamp,
+        "latest_raw_payload": snapshot.raw,
+        "latest_normalized_state": snapshot.state,
+        "top_level_keys": sorted(snapshot.raw.keys()),
+        "detected_available_fields": _detected_available_fields(snapshot.raw),
         "fields_summary": fields,
     }
 
 
 def get_gsi_debug_fields() -> dict[str, Any]:
-    payload = _latest_raw_payload or {}
+    snapshot = _GSI.capture()
+    return _debug_fields(snapshot.raw if snapshot else {})
+
+
+def get_gsi_status_snapshot() -> dict[str, Any]:
+    snapshot = _GSI.capture()
+    return {
+        **_current(snapshot),
+        "fields_summary": _debug_fields(snapshot.raw if snapshot else {}),
+        "in_match": _is_in_match(snapshot),
+    }
+
+
+def _debug_fields(payload: dict[str, Any]) -> dict[str, Any]:
     hero_block = _dict_value(payload.get("hero"))
     player_block = _dict_value(payload.get("player"))
     map_block = _dict_value(payload.get("map"))
@@ -291,7 +302,7 @@ def _write_debug_payload_sample(payload: dict[str, Any], timestamp: str) -> None
 def normalize_gsi_payload(
     payload: dict[str, Any],
     previous_extra_context: dict[str, Any] | None = None,
-) -> dict[str, Any]:
+) -> NormalizedState:
     hero_block = _dict_value(payload.get("hero"))
     player_block = _dict_value(payload.get("player"))
     map_block = _dict_value(payload.get("map"))
@@ -305,13 +316,7 @@ def normalize_gsi_payload(
         hero_block = {**hero_block, "alive": True}
         payload = {**payload, "hero": hero_block}
 
-    hero = _normalize_hero_name(
-        _first_value(
-            payload.get("hero_name"),
-            payload.get("hero") if isinstance(payload.get("hero"), str) else None,
-            hero_block.get("name"),
-        )
-    )
+    hero = hero_from_gsi(payload)
     if payload.get("minute") is not None:
         minute = _clamp_int(payload.get("minute"), 0, 90, default=0)
     else:
@@ -336,7 +341,7 @@ def normalize_gsi_payload(
         previous_extra_context=previous_extra_context,
     )
 
-    state = {
+    state: NormalizedState = {
         "hero": hero,
         "role": "carry",
         "minute": minute,
@@ -650,58 +655,6 @@ def _value_increased(previous: dict[str, Any] | None, current: dict[str, Any], k
     return now > before
 
 
-# No real GSI number (gold, experience, clock, coordinates, cooldowns) comes
-# near this; anything larger, and inf/nan, is garbage and counts as missing.
-MAX_GSI_NUMBER = 10_000_000
-
-
-def _optional_int(value: Any) -> int | None:
-    number = _optional_number(value)
-    return None if number is None else int(number)
-
-
-def _optional_number(value: Any) -> float | int | None:
-    if value is None:
-        return None
-    try:
-        number = float(value)
-    except (TypeError, ValueError, OverflowError):
-        return None
-    if not math.isfinite(number) or abs(number) > MAX_GSI_NUMBER:
-        return None
-    return int(number) if number.is_integer() else number
-
-
-def _optional_bool(value: Any) -> bool | None:
-    if value is None:
-        return None
-    if isinstance(value, bool):
-        return value
-    if isinstance(value, str):
-        lowered = value.strip().lower()
-        if lowered in {"1", "true", "yes", "on"}:
-            return True
-        if lowered in {"0", "false", "no", "off"}:
-            return False
-    if isinstance(value, (int, float)):
-        return bool(value)
-    return None
-
-
-def _optional_str(value: Any) -> str | None:
-    if value is None:
-        return None
-    text = str(value).strip()
-    return text or None
-
-
-def _first_value(*values: Any) -> Any:
-    for value in values:
-        if value is not None:
-            return value
-    return None
-
-
 def _clamp_int(value: Any, minimum: int, maximum: int | None, default: int) -> int:
     try:
         number = int(value)
@@ -762,7 +715,7 @@ def _normalize_items(value: Any) -> list[str]:
     if not isinstance(value, dict):
         return []
 
-    items: list[str] = []
+    items = []
     for slot_name in sorted(value):
         slot = value[slot_name]
         item_name = slot.get("name") if isinstance(slot, dict) else slot
@@ -787,68 +740,6 @@ def normalize_abilities(value: Any) -> list[dict[str, Any]]:
     return _normalize_abilities(value)
 
 
-def _normalize_abilities(value: Any) -> list[dict[str, Any]]:
-    if isinstance(value, list):
-        raw_abilities = value
-    elif isinstance(value, dict):
-        raw_abilities = [value[key] for key in sorted(value)]
-    else:
-        raw_abilities = []
-
-    abilities: list[dict[str, Any]] = []
-    seen_names: set[str] = set()
-    for raw_ability in raw_abilities:
-        if isinstance(raw_ability, dict) and not_hero_ability(raw_ability.get("name")):
-            continue
-        ability = _normalize_ability(raw_ability)
-        if not ability:
-            continue
-        dedupe_key = str(ability.get("name") or ability.get("raw_name") or "").lower()
-        if dedupe_key in seen_names:
-            continue
-        seen_names.add(dedupe_key)
-        abilities.append(ability)
-    return abilities
-
-
-def _normalize_ability(value: Any) -> dict[str, Any] | None:
-    if isinstance(value, dict):
-        raw_name = _optional_str(value.get("name"))
-        level = _optional_int(value.get("level"))
-        cooldown = _optional_number(
-            _first_value(
-                value.get("cooldown"), value.get("cooldown_remaining"), value.get("cooldown_time")
-            )
-        )
-        can_cast = _optional_bool(value.get("can_cast"))
-        if can_cast is None:
-            can_cast = _optional_bool(value.get("ability_active"))
-    else:
-        raw_name = _optional_str(value)
-        level = None
-        cooldown = None
-        can_cast = None
-
-    if not raw_name:
-        return None
-
-    return {
-        "name": _normalize_ability_name(raw_name),
-        "raw_name": raw_name,
-        "level": level,
-        "cooldown": cooldown,
-        "can_cast": can_cast,
-    }
-
-
-def _normalize_ability_name(value: Any) -> str:
-    raw_name = str(value or "").strip()
-    key = raw_name.lower().removeprefix("ability_")
-    if key in _ABILITY_NAME_MAP:
-        return _ABILITY_NAME_MAP[key]
-    return _title_from_token(key)
-
-
 def _normalize_game_state(payload: dict[str, Any], map_block: dict[str, Any]) -> str:
     state = _first_value(
         payload.get("game_state"),
@@ -865,7 +756,3 @@ def _normalize_team_status(payload: dict[str, Any], hero_block: dict[str, Any]) 
     if hero_block.get("alive") is False:
         return "hero_dead"
     return "unknown"
-
-
-def _title_from_token(value: str) -> str:
-    return value.replace("_", " ").replace("-", " ").title()
