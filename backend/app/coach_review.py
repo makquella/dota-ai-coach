@@ -21,6 +21,7 @@ from __future__ import annotations
 import hashlib
 import json
 import re
+import time
 from typing import Any
 
 from app.analysis_texts import clock
@@ -440,9 +441,11 @@ def answer_question(
     *,
     known_items: list[str] | None = None,
     about: str = "match",
+    deadline: float | None = None,
 ) -> dict[str, Any]:
     """A free question about one match (or, about="career", the recent matches); the
-    answer goes through the same fact check."""
+    answer goes through the same fact check. Past `deadline` (time.monotonic) the
+    second attempt is not started: the player is already waiting too long."""
     question = " ".join(str(question or "").split())[:QUESTION_LIMIT]
     if not question:
         raise CoachLLMError("empty_question", "no question")
@@ -455,6 +458,7 @@ def answer_question(
         known_items,
         question=question,
         valid=lambda review: bool(review.get("answer")),
+        deadline=deadline,
     )
 
 
@@ -468,6 +472,7 @@ def _generate(
     *,
     question: str | None = None,
     valid: Any = None,
+    deadline: float | None = None,
 ) -> dict[str, Any]:
     facts_text = json.dumps(facts, ensure_ascii=False)
     checker = FactChecker(facts_text, known_items or [])
@@ -520,6 +525,8 @@ def _generate(
     is_valid = valid or normalize_ok
     last_problems: list[str] = []
     for attempt in range(2):
+        if attempt and deadline is not None and time.monotonic() >= deadline:
+            raise CoachLLMError("timeout", "no time left for a second attempt")
         content = llm.complete(messages)
         try:
             review = normalize(parse_json_object(content))

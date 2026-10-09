@@ -3127,6 +3127,24 @@
     return h("div", { class: "coach-card" }, card(title, "graduation-cap", body, head));
   }
 
+  // An id per question (backend ask_runs.py): a lost answer is read by it later.
+  const ASK_STATUS_TRIES = 30;
+  const ASK_STATUS_EVERY_MS = 3000;
+
+  function askRequestId() {
+    const random = typeof crypto !== "undefined" && crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`;
+    return `ask-${random}`.replace(/[^A-Za-z0-9_-]/g, "").slice(0, 64);
+  }
+
+  // Still worth waiting for: the launcher gave up (timeout) or the backend says
+  // the same question is being answered.
+  function askStillRunning(result) {
+    if (result.ok) {
+      return Boolean(result.data && result.data.code === "pending");
+    }
+    return result.code === "request_failed" && /time/i.test(result.detail || "");
+  }
+
   // "Ask the coach": a free question about this match, answered from its facts.
   // «Спросить тренера» about one match (op "ask") or, with `career`, the recent matches.
   function askCard(detail, career = false) {
@@ -3168,7 +3186,22 @@
       note.textContent = "";
       pending.classList.remove("hidden");
       state.askBusy = true;
-      const result = career ? await call("askCareer", { question: text }) : await call("ask", { matchId: detail.match_id, question: text });
+      const requestId = askRequestId();
+      let result = career
+        ? await call("askCareer", { question: text, requestId })
+        : await call("ask", { matchId: detail.match_id, question: text, requestId });
+      // The answer may still come after the launcher stopped waiting (or another
+      // request is already asking the same): read it by the request id while this
+      // card is on screen, without asking the model again.
+      for (let tries = 0; tries < ASK_STATUS_TRIES && section.isConnected && askStillRunning(result); tries += 1) {
+        await new Promise((resolve) => setTimeout(resolve, ASK_STATUS_EVERY_MS));
+        const status = await call("askStatus", { requestId });
+        if (status.ok && status.data && status.data.state === "done") {
+          result = { ok: true, data: status.data.result };
+        } else if (!status.ok || !status.data || status.data.state !== "running") {
+          break;
+        }
+      }
       state.askBusy = false;
       pending.classList.add("hidden");
       button.disabled = false;

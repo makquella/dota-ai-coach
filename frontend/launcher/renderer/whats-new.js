@@ -9,6 +9,9 @@
 
   const TEXT = {
     en: {
+      "0.53.52": [
+        "Ask the coach is sturdier: a question costs one AI request even after a lost answer or a double click, the wait is bounded, and an answer that arrives late still shows up."
+      ],
       "0.53.51": [
         "For developers: Settings → For developers now shows operations health — background queues, whether the finished match was saved, live GSI timings and how fresh the data are, with plain warnings when something is off."
       ],
@@ -472,6 +475,9 @@
       ]
     },
     ru: {
+      "0.53.52": [
+        "«Спросить тренера» надёжнее: вопрос тратит один запрос к ИИ даже после потерянного ответа или двойного нажатия, ожидание ограничено, а ответ, пришедший позже, всё равно появится."
+      ],
       "0.53.51": [
         "Для разработчика: в «Настройки → Для разработчиков» появилось «Состояние операций» — фоновые очереди, сохранился ли сыгранный матч, задержки живого GSI и свежесть данных, с понятными предупреждениями, если что-то не так."
       ],

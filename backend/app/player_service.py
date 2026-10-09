@@ -38,6 +38,7 @@ from typing import Any
 
 from app import cosmetics, rank_history, stratz_builds
 from app.analysis_texts import rank_label, render_analysis
+from app.ask_runs import AskRuns
 from app.career_analysis import NOT_RECURRING, analyze_career
 from app.coach_llm import PROVIDERS, AISettings, CoachLLM, CoachLLMError, settings_from
 from app.coach_review import (
@@ -142,6 +143,11 @@ REPEATS_LOOKUP = 25
 ASK_CACHE_KEY = "coach:ask"
 ASK_HISTORY = 5
 ASK_TIMEOUT_SECONDS = 60.0
+# The whole question, both attempts: past this the second attempt is not started,
+# so the answer (or an error) comes within this plus one call, under the
+# launcher's 150-second wait. A second request with the same id waits as long.
+ASK_DEADLINE_SECONDS = 75.0
+ASK_JOIN_WAIT_SECONDS = ASK_DEADLINE_SECONDS + ASK_TIMEOUT_SECONDS
 # AI coach.
 AI_SETTINGS_KEY = "ai_settings"
 # The replay is still being parsed: wait for the full data before asking the model.
@@ -277,6 +283,10 @@ class PlayerService:
         self._shop_lock = threading.Lock()
         self._sync_lock = threading.Lock()
         self._coach_jobs: dict[str, dict[str, Any]] = {}
+        # AI questions: one provider run per request id (ask_runs.py), and the
+        # stored Q&A history is read and written under one lock.
+        self.asks = AskRuns()
+        self._ask_history_lock = threading.Lock()
         self.tracker = MatchTracker(
             self.data_dir / "live_match.json", on_finished=self._on_match_finished
         )
@@ -1344,12 +1354,23 @@ class PlayerService:
         ]
         return result, recent
 
-    def ask_career(self, question: str, lang: str) -> dict[str, Any]:
+    def ask_career(
+        self, question: str, lang: str, *, request_id: str | None = None
+    ) -> dict[str, Any]:
         """A free question about the recent matches (heroes, enemies, habits), answered
         from the career facts with the same fact check; nothing else is generated."""
         primary = self.store.primary_account_id()
         if primary is None:
             return {"ok": False, "code": "not_linked"}
+        return self.asks.run(
+            f"career:{primary}:{lang}",
+            question,
+            request_id,
+            lambda: self._ask_career(primary, question, lang),
+            wait_s=ASK_JOIN_WAIT_SECONDS,
+        )
+
+    def _ask_career(self, primary: int, question: str, lang: str) -> dict[str, Any]:
         if not self.ai_configured():
             return {"ok": False, "code": "off"}
         result, recent = self._career_result(primary, lang)
@@ -1361,7 +1382,13 @@ class PlayerService:
             return {"ok": False, "code": "off"}
         try:
             answer = answer_question(
-                client, facts, question, lang, known_items=self._known_items(), about="career"
+                client,
+                facts,
+                question,
+                lang,
+                known_items=self._known_items(),
+                about="career",
+                deadline=time.monotonic() + ASK_DEADLINE_SECONDS,
             )
         except CoachLLMError as error:
             if error.code not in {"empty_question", "unverified"}:
@@ -1377,8 +1404,9 @@ class PlayerService:
             "lang": lang,
         }
         key = f"{ASK_CACHE_KEY}:{primary}:career"
-        history = [entry, *(self.store.cache_get(key) or [])][:ASK_HISTORY]
-        self.store.cache_set(key, history)
+        with self._ask_history_lock:
+            history = [entry, *(self.store.cache_get(key) or [])][:ASK_HISTORY]
+            self.store.cache_set(key, history)
         return {"ok": True, "answer": entry, "history": history}
 
     # --- OpenDota key --------------------------------------------------------------
@@ -1483,12 +1511,27 @@ class PlayerService:
             return None
         return CoachLLM(settings, timeout=30.0) if check else CoachLLM(settings)
 
-    def ask_match(self, match_id: int, question: str, lang: str) -> dict[str, Any]:
+    def ask_match(
+        self, match_id: int, question: str, lang: str, *, request_id: str | None = None
+    ) -> dict[str, Any]:
         """A free question about one reviewed match, answered by the AI coach with the
         same fact check as the reviews (synchronous: the player waits for it)."""
         primary = self.store.primary_account_id()
         if primary is None:
             return {"ok": False, "code": "not_linked"}
+        return self.asks.run(
+            f"match:{primary}:{match_id}:{lang}",
+            question,
+            request_id,
+            lambda: self._ask_match(primary, match_id, question, lang),
+            wait_s=ASK_JOIN_WAIT_SECONDS,
+        )
+
+    def ask_status(self, request_id: str) -> dict[str, Any]:
+        """A question's run by its id: unknown, running or done with its result."""
+        return self.asks.status(request_id)
+
+    def _ask_match(self, primary: int, match_id: int, question: str, lang: str) -> dict[str, Any]:
         if not self.ai_configured():
             return {"ok": False, "code": "off"}
         detail = self.match_detail(match_id, lang)
@@ -1499,7 +1542,14 @@ class PlayerService:
         if client is None:
             return {"ok": False, "code": "off"}
         try:
-            result = answer_question(client, facts, question, lang, known_items=self._known_items())
+            result = answer_question(
+                client,
+                facts,
+                question,
+                lang,
+                known_items=self._known_items(),
+                deadline=time.monotonic() + ASK_DEADLINE_SECONDS,
+            )
         except CoachLLMError as error:
             if error.code not in {"empty_question", "unverified"}:
                 record_error("coach-ai", f"question: {error.code}", with_trace=False)
@@ -1519,8 +1569,9 @@ class PlayerService:
             "lang": lang,
         }
         key = f"{ASK_CACHE_KEY}:{primary}:{match_id}"
-        history = [entry, *self._questions(primary, match_id, facts=facts)][:ASK_HISTORY]
-        self.store.cache_set(key, history)
+        with self._ask_history_lock:
+            history = [entry, *self._questions(primary, match_id, facts=facts)][:ASK_HISTORY]
+            self.store.cache_set(key, history)
         return {"ok": True, "answer": entry, "history": history}
 
     def _questions(

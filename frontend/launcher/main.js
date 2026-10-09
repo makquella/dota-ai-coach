@@ -1848,18 +1848,21 @@ const PLAYER_OPS = {
   coachMatch: (args) => ["POST", `/player/matches/${matchIdArg(args)}/coach?lang=${uiLocale()}`],
   // A free question about a match: the model answers synchronously, and a failed fact
   // check asks once more (2 x 60 s in the backend): allow two and a half minutes.
+  // The renderer's request id lets a retry after a lost answer join the same run
+  // (backend ask_runs.py) instead of paying for a second one; askStatus reads it.
   ask: (args) => [
     "POST",
     `/player/matches/${matchIdArg(args)}/ask?lang=${uiLocale()}`,
-    { question: String(args.question || "").slice(0, 300) },
+    askBody(args),
     150000
   ],
+  askStatus: (args) => ["GET", `/player/asks/${askRequestIdArg(args)}`, undefined, 10000],
   coachCareer: () => ["POST", `/player/career/coach?lang=${uiLocale()}`],
   // A free question about the recent matches (same fact check, one retry).
   askCareer: (args) => [
     "POST",
     `/player/career/ask?lang=${uiLocale()}`,
-    { question: String(args.question || "").slice(0, 300) },
+    askBody(args),
     150000
   ],
   aiStatus: () => ["GET", "/player/ai"],
@@ -1916,6 +1919,24 @@ function shopIdArg(args) {
 function clampInt(value, min, max, fallback) {
   const number = Number.parseInt(value, 10);
   return Number.isFinite(number) ? Math.min(max, Math.max(min, number)) : fallback;
+}
+
+const ASK_REQUEST_ID = /^[A-Za-z0-9_-]{8,64}$/;
+
+function askRequestIdArg(args) {
+  const id = String(args.requestId || "");
+  if (!ASK_REQUEST_ID.test(id)) {
+    throw new Error("Invalid request id.");
+  }
+  return id;
+}
+
+function askBody(args) {
+  const body = { question: String(args.question || "").slice(0, 300) };
+  if (ASK_REQUEST_ID.test(String(args.requestId || ""))) {
+    body.request_id = String(args.requestId);
+  }
+  return body;
 }
 
 function matchIdArg(args) {

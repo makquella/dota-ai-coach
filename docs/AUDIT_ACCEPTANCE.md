@@ -64,8 +64,10 @@ These are acceptance tasks too. They are not included in the 17-finding percenta
 - [x] Measure GSI phase p50/p95 and persistence time, move synchronous GSI/demo work off the ASGI event loop (0.53.41, LIVE_EVENT_LOOP.md; real same-loop requests).
 - [x] Bound remaining census/recorder/settings I/O failures and retain diagnostics
   (0.53.44, LOCAL_IO_HEALTH.md; bounded retry/disable, not a filesystem timeout).
-- [ ] Async AI questions with request IDs/status, total deadline/attempt cap,
-  duplicate retry protection, stale/cancel guards and atomic history append.
+- [x] Async AI questions with request IDs/status, total deadline/attempt cap,
+  duplicate retry protection, stale/cancel guards and atomic history append
+  (0.53.52, AI_QUESTIONS.md; the request stays synchronous, bounded under the
+  launcher's wait, with `GET /player/asks/{id}` for a lost answer).
 - [x] Local operations health: job age/running/pending, persistence ack/error,
   queue depth, bounded latency observations and source freshness in developer UI
   (0.53.51, OPERATIONS_HEALTH.md; `/operations/health`, «Состояние операций»).

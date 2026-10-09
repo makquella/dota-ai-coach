@@ -32,7 +32,7 @@ from typing import Annotated, Any
 
 from fastapi import APIRouter, Body, Path, Query, Request
 from fastapi.responses import JSONResponse
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from app.advice_i18n import normalize_lang
 from app.coach_llm import env_settings
@@ -62,6 +62,8 @@ router = APIRouter(prefix="/player", tags=["player"])
 
 # Match ids are stored as SQLite INTEGER (64-bit): bigger ids are a 422, not a 500.
 MatchId = Annotated[int, Path(ge=0, le=2**63 - 1)]
+# The launcher's id for one AI question (ask_runs.py).
+ASK_REQUEST_ID_PATTERN = r"^[A-Za-z0-9_-]{8,64}$"
 HeroId = Annotated[int | None, Query(ge=0, le=100_000)]
 Offset = Annotated[int, Query(ge=0, le=10_000_000)]
 
@@ -76,6 +78,9 @@ class OpenDotaKeyRequest(BaseModel):
 
 class AskRequest(BaseModel):
     question: str
+    # The launcher's id for this question: asking again with it (after a lost
+    # response) returns the same run instead of a second provider call.
+    request_id: str | None = Field(None, pattern=ASK_REQUEST_ID_PATTERN)
 
 
 class FocusRequest(BaseModel):
@@ -310,8 +315,16 @@ def player_career(lang: str = "en", hero_id: HeroId = None) -> dict[str, Any]:
 
 @router.post("/matches/{match_id}/ask", summary="Ask the AI coach a question about a match")
 def ask_match(match_id: MatchId, request: AskRequest, lang: str = "en"):
-    """Answered synchronously (up to about a minute); the answer is fact-checked."""
-    return PLAYER_SERVICE.ask_match(match_id, request.question, normalize_lang(lang))
+    """Answered synchronously (up to about two minutes); the answer is fact-checked."""
+    return PLAYER_SERVICE.ask_match(
+        match_id, request.question, normalize_lang(lang), request_id=request.request_id
+    )
+
+
+@router.get("/asks/{request_id}", summary="A question's run by the launcher's request id")
+def ask_status(request_id: Annotated[str, Path(pattern=ASK_REQUEST_ID_PATTERN)]):
+    """unknown / running / done (with the same result the question returned)."""
+    return PLAYER_SERVICE.ask_status(request_id)
 
 
 class MmrRequest(BaseModel):
@@ -418,7 +431,9 @@ def coach_match(match_id: MatchId, lang: str = "en"):
 
 @router.post("/career/ask", summary="Ask the AI coach a question about the recent matches")
 def ask_career(request: AskRequest, lang: str = "en"):
-    return PLAYER_SERVICE.ask_career(request.question, normalize_lang(lang))
+    return PLAYER_SERVICE.ask_career(
+        request.question, normalize_lang(lang), request_id=request.request_id
+    )
 
 
 @router.post("/career/coach", summary="(Re)generate the AI coach review of recent matches")
