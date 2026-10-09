@@ -29,6 +29,7 @@ from __future__ import annotations
 
 import threading
 import time
+from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from typing import Any
@@ -890,7 +891,7 @@ class AdviceScheduler:
         self,
         request: GameSituationRequest,
         decision_point: str,
-        rag_context: list[str],
+        rag_context: list[str] | Callable[[], list[str]],
         now: datetime | None = None,
     ) -> ScheduledAdvice:
         current_time, state, state_hash, policy, tactical_hash = self._evaluate_normalize_input(
@@ -952,6 +953,10 @@ class AdviceScheduler:
             if _low_hp is not None:
                 return _low_hp
 
+        # Retrieval is unnecessary for early suppression and executes outside
+        # the scheduler owner. Existing direct-list callers remain compatible.
+        if callable(rag_context):
+            rag_context = rag_context()
         fallback = self._evaluate_fallback_recommendation(
             request, rag_context, policy, decision_point
         )

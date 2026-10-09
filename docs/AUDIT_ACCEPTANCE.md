@@ -40,8 +40,8 @@ These are acceptance tasks too. They are not included in the 17-finding percenta
   remove the global lint exemption (0.53.43).
 - [x] Pure abilities normalization helper to break the documented GSI/skills cycle,
   with compatibility re-export (0.53.43, PURE_ABILITIES.md).
-- [ ] Cache Markdown knowledge-base parsing at startup with dev mtime invalidation;
-  defer retrieval until scheduler needs a candidate.
+- [x] Cache Markdown knowledge-base parsing at startup with dev mtime invalidation;
+  defer retrieval until scheduler needs a candidate (0.53.45, KNOWLEDGE_BASE_CACHE.md).
 - [ ] Profile large-history read models and EXPLAIN QUERY PLAN; avoid repeated
   analysis JSON parsing with revision-invalidated projections/caches.
 - [ ] Protect local secrets with OS-backed storage and migrate existing keys without

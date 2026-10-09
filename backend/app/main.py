@@ -67,7 +67,7 @@ from app.match_memory import MATCH_MEMORY
 from app.match_records import KEEP_DAYS, MATCH_RECORDS
 from app.player_api import PLAYER_SERVICE
 from app.player_api import router as player_router
-from app.rag import retrieve_context
+from app.rag import KNOWLEDGE_BASE, retrieve_context
 from app.recommender import generate_recommendation
 from app.scheduler.frequency import FREQUENCIES
 from app.schemas import GameSituationRequest, RecommendationResponse, hero_coverage
@@ -76,6 +76,7 @@ from app.schemas import GameSituationRequest, RecommendationResponse, hero_cover
 @asynccontextmanager
 async def _lifespan(_app: FastAPI) -> AsyncIterator[None]:
     prune_logs()
+    await run_in_threadpool(KNOWLEDGE_BASE.paragraphs)
     yield
     # Keeps an in-progress match timeline across a restart of the app.
     PLAYER_SERVICE.shutdown()
@@ -110,7 +111,7 @@ app = LocalApiApp(
     lifespan=_lifespan,
     title="Wardly",
     description="MVP-1: rule-based carry coach with local knowledge-base RAG.",
-    version="0.53.44",
+    version="0.53.45",
 )
 app.include_router(player_router)
 
@@ -135,7 +136,7 @@ if FRONTEND_DIR.exists():
 @app.get("/", summary="Health check")
 def root():
     """Simple health-check endpoint."""
-    return {"status": "ok", "service": "Wardly", "version": "0.53.44"}
+    return {"status": "ok", "service": "Wardly", "version": "0.53.45"}
 
 
 @app.get("/health", summary="Health check")
@@ -749,8 +750,13 @@ def _overlay_recommendation_payload() -> dict[str, object]:
             **_overlay_live_context(state),
         }
 
-    rag_context = _retrieve_rag_context(request)
-    scheduled = ADVICE_SCHEDULER.evaluate(request, decision_point, rag_context)
+    rag_context: list[str] = []
+
+    def context() -> list[str]:
+        rag_context.extend(_retrieve_rag_context(request))
+        return rag_context
+
+    scheduled = ADVICE_SCHEDULER.evaluate(request, decision_point, context)
 
     log_filename = None
     if scheduled.new_advice and scheduled.recommendation is not None:
@@ -947,6 +953,7 @@ def diagnostics():
             "live_session": LIVE_SESSION_RECORDER.health(),
             "match_records": MATCH_RECORDS.health(),
         },
+        "knowledge_base": KNOWLEDGE_BASE.health(),
         "config": {
             "use_llm": USE_LLM,
             "llm_provider": LLM_PROVIDER,
@@ -1134,8 +1141,13 @@ def _overlay_response_for_state(
             **_overlay_live_context(state),
         }
 
-    rag_context = _retrieve_rag_context(game_request)
-    scheduled = ADVICE_SCHEDULER.evaluate(game_request, decision_point, rag_context, now=now)
+    rag_context: list[str] = []
+
+    def context() -> list[str]:
+        rag_context.extend(_retrieve_rag_context(game_request))
+        return rag_context
+
+    scheduled = ADVICE_SCHEDULER.evaluate(game_request, decision_point, context, now=now)
     log_filename = None
     if scheduled.new_advice and scheduled.recommendation is not None:
         log_filename = _recommendation_log_filename(

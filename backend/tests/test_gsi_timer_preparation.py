@@ -92,8 +92,7 @@ def test_cold_timer_file_is_read_outside_both_state_owners(client: TestClient, s
 def test_blocked_cold_timer_read_does_not_block_reset_on_one_asgi_loop(
     client: TestClient,
 ) -> None:
-    with client:
-        _reset_during_cold_read(client)
+    _reset_during_cold_read(client)
 
 
 def _reset_during_cold_read(client: TestClient) -> None:
@@ -130,20 +129,22 @@ def _reset_during_cold_read(client: TestClient) -> None:
     workers = [threading.Thread(target=write), threading.Thread(target=reset)]
     map_hints.timers.cache_clear()
     threading.settrace(trace)
-    try:
-        workers[0].start()
-        assert entered.wait(5)
-        workers[1].start()
-        assert reset_done.wait(2) and responses["reset"].status_code == 200
-        assert client.get("/session/memory").json()["hero"] is None
-        assert client.get("/state/current").json()["state"] is None
-    finally:
-        threading.settrace(original)
-        release.set()
-        for worker in workers:
-            if worker.ident is not None:
-                worker.join(5)
-        map_hints.timers.cache_clear()
+    # Startup now warms KB on a worker; trace before entering lifespan.
+    with client:
+        try:
+            workers[0].start()
+            assert entered.wait(5)
+            workers[1].start()
+            assert reset_done.wait(2) and responses["reset"].status_code == 200
+            assert client.get("/session/memory").json()["hero"] is None
+            assert client.get("/state/current").json()["state"] is None
+        finally:
+            threading.settrace(original)
+            release.set()
+            for worker in workers:
+                if worker.ident is not None:
+                    worker.join(5)
+            map_hints.timers.cache_clear()
     assert not any(worker.is_alive() for worker in workers) and not errors
     assert responses["writer"].status_code == 200
     assert MATCH_MEMORY.roshan.aegis_at == 1200

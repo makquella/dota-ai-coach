@@ -60,8 +60,7 @@ def test_real_sqlite_metadata_runs_outside_gsi_and_memory_owners(
 def test_reset_can_finish_while_actual_role_metadata_lookup_is_paused(client: TestClient) -> None:
     # Keep one ASGI event loop for concurrent requests, as in the real server.
     # A sync SQLite lookup on that loop would block reset even without a lock.
-    with client:
-        _reset_during_role_lookup(client)
+    _reset_during_role_lookup(client)
 
 
 def _reset_during_role_lookup(client: TestClient) -> None:
@@ -97,24 +96,26 @@ def _reset_during_role_lookup(client: TestClient) -> None:
 
     workers = [threading.Thread(target=write), threading.Thread(target=reset)]
     threading.settrace(trace)
-    try:
-        # Install tracing before the first request creates its reusable worker.
-        assert client.post("/gsi", json=_packet()).status_code == 200
-        workers[0].start()
-        assert entered.wait(5)
-        assert client.get("/state/current").json()["state"]["hero"] == "Juggernaut"
-        assert client.get("/session/memory").json()["hero"] == "Juggernaut"
-        workers[1].start()
-        assert reset_done.wait(2)
-        assert responses["reset"].status_code == 200
-        assert client.get("/state/current").json()["state"] is None
-        assert client.get("/session/memory").json()["hero"] is None
-    finally:
-        threading.settrace(original)
-        release.set()
-        for worker in workers:
-            if worker.ident is not None:
-                worker.join(5)
+    # Startup now warms KB on a worker; trace before entering lifespan.
+    with client:
+        try:
+            # Install tracing before the first request creates its reusable worker.
+            assert client.post("/gsi", json=_packet()).status_code == 200
+            workers[0].start()
+            assert entered.wait(5)
+            assert client.get("/state/current").json()["state"]["hero"] == "Juggernaut"
+            assert client.get("/session/memory").json()["hero"] == "Juggernaut"
+            workers[1].start()
+            assert reset_done.wait(2)
+            assert responses["reset"].status_code == 200
+            assert client.get("/state/current").json()["state"] is None
+            assert client.get("/session/memory").json()["hero"] is None
+        finally:
+            threading.settrace(original)
+            release.set()
+            for worker in workers:
+                if worker.ident is not None:
+                    worker.join(5)
     assert not any(worker.is_alive() for worker in workers) and not errors
     assert responses["writer"].status_code == 200
     # The packet commits after reset once preparation finishes; arrival time

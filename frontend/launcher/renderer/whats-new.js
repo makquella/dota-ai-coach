@@ -9,6 +9,9 @@
 
   const TEXT = {
     en: {
+      "0.53.45": [
+        "Local Markdown knowledge is cached at startup and refreshed on file changes during development. Repeated advice skips context retrieval after early scheduler checks, preserving advice rules and owned-item filtering."
+      ],
       "0.53.44": [
         "Failed local writes now retain diagnostics and remain unacknowledged. Optional debug recording stops on write failure, while live advice and settings in memory keep working."
       ],
@@ -451,6 +454,9 @@
       ]
     },
     ru: {
+      "0.53.45": [
+        "Локальная Markdown-база кэшируется при запуске и обновляется при изменении файлов в разработке. Повторные советы пропускают поиск контекста после ранних проверок scheduler; правила и фильтрация купленных предметов сохранены."
+      ],
       "0.53.44": [
         "Сбои локальной записи сохраняются в диагностике и не подтверждаются как успешное сохранение. Отладочная запись останавливается при ошибке, а live-советы и настройки в памяти продолжают работать."
       ],
