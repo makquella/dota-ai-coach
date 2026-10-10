@@ -21,7 +21,7 @@ Additional engineering/product work is tracked separately, not silently dropped.
 | F07 | Locked Python runtime/dev/build with shared installation path | Merged #103, 0.53.3 |
 | F08 | Advisory triage, compatible upgrades, clean install and Windows checks | Merged #102, 0.53.2; DEPENDENCIES.md lists residual build-only advisory |
 | F09 | Short AGENTS/CLAUDE adapter, scoped explicit checks, preserve useful docs | Merged #101 |
-| F10 | One coherent published runtime revision and ownership/reset, no I/O under locks; concurrent endpoints | Partial in main through 0.53.46: GSI/demo off the ASGI loop, bounded timings and generation-guarded owned history; finish whole-overlay/demo execution/history boundary |
+| F10 | One coherent published runtime revision and ownership/reset, no I/O under locks; concurrent endpoints | Done in 0.53.60: on top of 0.53.41–0.53.46 (off the ASGI loop, timings, generation-guarded history), `live_operation.py` makes a GSI packet, an overlay decision, a demo state and a reset whole operations; advice log and recordings run outside; LIVE_EVENT_LOOP.md, test_live_operation.py |
 | F11 | Atomic transfer claims/inserts and real local D1 concurrency | Merged through #146, 0.53.11; TRANSFER_ATOMICITY.md |
 | F12 | Typed NormalizedState, MatchFacts, Finding + important I/O/detail DTO and consumers | Merged through #146, 0.53.39: actual NormalizedState/MatchFacts producers, Finding core and evidence/coverage/detail DTOs; DOMAIN_CONTRACTS.md and test_domain_contracts.py. Open tracker/event/params extensions are explicit. |
 | F13 | Extract locales, JobQueue, transfer orchestration and match-detail slice; preserve exports/behavior and 2 actual UI scenarios | Merged through #146, 0.53.40: history-transfer, app-texts and match-detail modules plus prior JobQueue/match-locales extraction; real RU/EN file/full-review/missing-review scenarios, DESKTOP_BOUNDARIES.md |
@@ -66,7 +66,7 @@ These are acceptance tasks too. They are not included in the 17-finding percenta
 - [ ] Optional parser wrapper/build guidance where its maintained use warrants it.
 - [x] Incremental live-message translation by ID/params rather than retranslating
   full historical copies (0.53.46, LIVE_MESSAGE_HISTORY.md; bounded selection/render
-  caches and generation-guarded history; F10 whole-operation ownership remains).
+  caches and generation-guarded history; F10 whole-operation ownership done in 0.53.60).
 - [x] Measure GSI phase p50/p95 and persistence time, move synchronous GSI/demo work off the ASGI event loop (0.53.41, LIVE_EVENT_LOOP.md; real same-loop requests).
 - [x] Bound remaining census/recorder/settings I/O failures and retain diagnostics
   (0.53.44, LOCAL_IO_HEALTH.md; bounded retry/disable, not a filesystem timeout).

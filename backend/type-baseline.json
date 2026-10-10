@@ -242,7 +242,7 @@
       "path": "app/main.py",
       "message": "\"object\" has no attribute \"get\"",
       "code": "attr-defined",
-      "count": 34
+      "count": 33
     },
     {
       "path": "app/main.py",
