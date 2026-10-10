@@ -9,7 +9,7 @@ Wardly (formerly Dota AI Coach) is a Dota 2 coach for Windows that watches your 
 [![License](https://img.shields.io/github/license/makquella/dota-ai-coach?color=2f3542)](LICENSE)
 [![Windows 10 / 11](https://img.shields.io/badge/Windows-10%20%7C%2011-2f3542)](https://luhovyimvp.dev/en/?ref=github)
 
-**[Download for Windows](https://github.com/makquella/dota-ai-coach/releases/latest)** · [Website](https://luhovyimvp.dev/en/?ref=github) ([на русском](https://luhovyimvp.dev/?ref=github)) · [The 64 heroes with full advice](https://luhovyimvp.dev/en/heroes.html?ref=github) · [What's new](https://luhovyimvp.dev/changelog.html) · [Privacy](https://luhovyimvp.dev/privacy.html)
+**[Download for Windows](https://github.com/makquella/dota-ai-coach/releases/latest)** · [Website](https://luhovyimvp.dev/en/?ref=github) ([українською](https://luhovyimvp.dev/?ref=github)) · [The 64 heroes with full advice](https://luhovyimvp.dev/en/heroes.html?ref=github) · [What's new](https://luhovyimvp.dev/changelog.html) · [Privacy](https://luhovyimvp.dev/privacy.html)
 
 Free, no ads, no subscription, no Overwolf. The installer is not code-signed yet: [VirusTotal report](https://www.virustotal.com/gui/file/e91036b9220b954b5f42c9c42a282a3038bb11aae9ed43d94bc1565802cc0a7d) of 0.18.0 (0 of 67 engines); each release links its own report in its notes.
 
@@ -49,7 +49,7 @@ App
 - Finds Dota and installs the GSI config itself; checks Steam's saved launch options for `-gamestateintegration` (Dota sends no game data without it) and says how to add it; a first-run checklist shows what is left.
 - Match history from the app's own recording plus OpenDota (optional API key for faster sync).
 - One-click problem report for bug reports (keys removed).
-- Russian and English.
+- Ukrainian and English.
 - Hero portraits and item icons (Valve's pictures from Valve's CDN, downloaded once at first use and kept on disk).
 
 ## Current Status
@@ -180,13 +180,13 @@ Because the launcher runs its own backend, you do not need the manual `uvicorn` 
 
 On Windows, install the app with the NSIS installer built by `scripts\build-windows.ps1` (see [Windows Packaging](docs/PACKAGING_WINDOWS.md)).
 
-![Wardly status screen](docs/screenshots/ui-v3/after-launcher-in-game.png)
+![Wardly home screen during a match](site/assets/app/en/home.jpg)
 
 ### Overlay
 
-![In-game advice card](docs/screenshots/ui-v3/after-overlay-urgent.png)
+![In-game advice card](site/assets/overlay/en/lowhp.webp)
 
-The overlay is a transparent, click-through window of the launcher. It is on screen only while Dota 2 is running, is the active window, and a match is sending fresh GSI data; alt-tab, minimizing Dota or going back to the menu hides it (replay demo and unlocked positioning mode show it anyway). The tray shows the state: *Dota not found* / *Waiting for game* / *In game* (Russian on a Russian system). On first run the app finds Dota through Steam (registry + `libraryfolders.vdf`, any drive) and installs the GSI config itself. It polls `/overlay/recommendation` on the backend port chosen by the launcher. Hotkeys: `Ctrl+Alt+O` toggle, `Ctrl+Alt+M` mute 5 min, `Ctrl+Alt+R` repeat the last advice (shown and spoken again), `Ctrl+Alt+L` lock/unlock dragging, `Ctrl+Alt+1/2/3` left / right / bottom position (all clear of the minimap and hero panel), `Ctrl+Alt+D` debug line.
+The overlay is a transparent, click-through window of the launcher. It is on screen only while Dota 2 is running, is the active window, and a match is sending fresh GSI data; alt-tab, minimizing Dota or going back to the menu hides it (replay demo and unlocked positioning mode show it anyway). The tray shows the state: *Dota not found* / *Waiting for game* / *In game* (in the app language: Ukrainian or English). On first run the app finds Dota through Steam (registry + `libraryfolders.vdf`, any drive) and installs the GSI config itself. It polls `/overlay/recommendation` on the backend port chosen by the launcher. Hotkeys: `Ctrl+Alt+O` toggle, `Ctrl+Alt+M` mute 5 min, `Ctrl+Alt+R` repeat the last advice (shown and spoken again), `Ctrl+Alt+L` lock/unlock dragging, `Ctrl+Alt+1/2/3` left / right / bottom position (all clear of the minimap and hero panel), `Ctrl+Alt+D` debug line.
 
 ### Defense Demo Without Dota 2
 

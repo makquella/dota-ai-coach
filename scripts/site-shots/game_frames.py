@@ -68,7 +68,7 @@ def main() -> None:
         tile.save(SITE / "game" / f"{name}.jpg", quality=78, optimize=True, progressive=True)
     # The in-game view: Juggernaut at 1:12 with the plan card where the overlay
     # sits (top right inside Dota's window), at the "large" card size.
-    for lang in ("ru", "en"):
+    for lang in ("uk", "en"):
         frame = frames["base"].convert("RGBA")
         card = Image.open(raw / f"{lang}-plan.png").convert("RGBA")
         width = int(404 * 1.25)

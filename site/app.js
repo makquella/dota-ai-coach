@@ -1,4 +1,4 @@
-// Wardly website: language switch (the HTML is Russian, English lives
+// Wardly website: language switch (the HTML is Ukrainian, English lives
 // here), screenshots per language, the download button (latest GitHub release),
 // where the visitor came from (below) and small scroll effects. No dependencies.
 (() => {
@@ -6,14 +6,14 @@
   const LANG_KEY = "dac.lang";
   const API = "https://api.luhovyimvp.dev";
   // Bump with every reshoot of the pictures (scripts/site-shots) and in index.html.
-  const SHOTS_VERSION = "21";
+  const SHOTS_VERSION = "22";
 
   const EN = Object.assign({}, window.WARDLY_EN || {}, {
     version: (v, mb) => `Version ${v} · Windows 10 and 11 · ${mb} MB`
   });
-  const RU = {};
+  const UK = {};
 
-  let lang = "ru";
+  let lang = "uk";
   let release = null;
 
   document.documentElement.classList.add("js");
@@ -21,24 +21,24 @@
   // --- language ------------------------------------------------------------------
 
   function remember(key, value) {
-    if (!(key in RU)) {
-      RU[key] = value;
+    if (!(key in UK)) {
+      UK[key] = value;
     }
   }
 
-  // Pages written in one language (<html data-static="ru|en">: every page now —
+  // Pages written in one language (<html data-static="uk|en">: every page now —
   // the English copies are built by scripts/build_site.py) switch by opening their
-  // counterpart (data-alt-ru / data-alt-en); only a page without one translates in
+  // counterpart (data-alt-uk / data-alt-en); only a page without one translates in
   // place. The browser language is never used to switch a static page: search
   // engines render with an English browser and would index the wrong language.
   const PAGE = document.documentElement;
-  const STATIC_LANG = PAGE.dataset.static === "en" ? "en" : PAGE.dataset.static === "ru" ? "ru" : "";
-  const ALT = { ru: PAGE.dataset.altRu || "", en: PAGE.dataset.altEn || "" };
+  const STATIC_LANG = PAGE.dataset.static === "en" ? "en" : PAGE.dataset.static === "uk" ? "uk" : "";
+  const ALT = { uk: PAGE.dataset.altUk || "", en: PAGE.dataset.altEn || "" };
 
   function savedLanguage() {
     try {
       const saved = localStorage.getItem(LANG_KEY);
-      return saved === "ru" || saved === "en" ? saved : "";
+      return saved === "uk" || saved === "en" ? saved : "";
     } catch {
       return "";
     }
@@ -61,8 +61,8 @@
       renderRelease();
       return;
     }
-    lang = next === "en" ? "en" : "ru";
-    const table = lang === "en" ? EN : RU;
+    lang = next === "en" ? "en" : "uk";
+    const table = lang === "en" ? EN : UK;
     document.documentElement.lang = lang;
     document.querySelectorAll("[data-i18n]").forEach((el) => {
       const key = el.dataset.i18n;
@@ -93,7 +93,7 @@
     // Each page names its own title key (<body data-title>), the landing uses "title".
     const titleKey = document.body.dataset.title || "title";
     remember(titleKey, document.title);
-    document.title = table[titleKey] || RU[titleKey];
+    document.title = table[titleKey] || UK[titleKey];
     // Screenshots exist in both languages. SHOTS_VERSION (also in index.html) is
     // bumped with every reshoot, so browsers do not keep the old pictures.
     document.querySelectorAll("img[data-img]").forEach((img) => {
@@ -122,13 +122,13 @@
     if (saved) {
       return saved;
     }
-    const preferred = (navigator.languages || [navigator.language || "ru"]).map((l) => String(l).toLowerCase());
-    return preferred.some((l) => /^(ru|uk|be|kk)/.test(l)) ? "ru" : "en";
+    const preferred = (navigator.languages || [navigator.language || "uk"]).map((l) => String(l).toLowerCase());
+    return preferred.some((l) => /^(uk|ru|be|kk)/.test(l)) ? "uk" : "en";
   }
 
   document.querySelectorAll(".lang [data-lang]").forEach((button) => {
     button.addEventListener("click", () => {
-      const next = button.dataset.lang === "en" ? "en" : "ru";
+      const next = button.dataset.lang === "en" ? "en" : "uk";
       try {
         localStorage.setItem(LANG_KEY, next);
       } catch {
@@ -235,7 +235,7 @@
       return;
     }
     const mb = Math.round(release.size / 1024 / 1024);
-    const text = lang === "en" ? EN.version(release.version, mb) : `Версия ${release.version} · Windows 10 и 11 · ${mb} МБ`;
+    const text = lang === "en" ? EN.version(release.version, mb) : `Версія ${release.version} · Windows 10 і 11 · ${mb} МБ`;
     document.querySelectorAll(".js-release-meta").forEach((el) => (el.textContent = text));
     // The installer's VirusTotal report: shown only when the release notes carry
     // the report link for this very installer (the SHA-256 GitHub keeps for the
@@ -322,7 +322,7 @@
       const open = () => {
         picture.src = img.currentSrc || img.src;
         picture.alt = img.alt;
-        close.setAttribute("aria-label", document.documentElement.lang === "ru" ? "Закрыть" : "Close");
+        close.setAttribute("aria-label", document.documentElement.lang === "uk" ? "Закрити" : "Close");
         dialog.showModal();
       };
       img.addEventListener("click", open);

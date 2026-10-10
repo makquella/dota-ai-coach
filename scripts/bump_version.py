@@ -50,12 +50,12 @@ def check(root: Path) -> str:
         raise ValueError("Version mismatch: " + "; ".join(mismatched))
     node_executable = shutil.which("node")
     if node_executable is None:
-        raise ValueError("Node is required to check the actual RU/EN catalog module")
+        raise ValueError("Node is required to check the actual UK/EN catalog module")
     result = subprocess.run(
         [
             node_executable,
             "-e",
-            "const m=require(process.argv[1]);process.stdout.write(JSON.stringify({en:m.texts('en'),ru:m.texts('ru')}));",
+            "const m=require(process.argv[1]);process.stdout.write(JSON.stringify({en:m.texts('en'),uk:m.texts('uk')}));",
             str(launcher / "renderer/whats-new.js"),
         ],
         cwd=root,
@@ -66,7 +66,7 @@ def check(root: Path) -> str:
         timeout=10,
     )
     tables = json.loads(result.stdout)
-    for language in ("ru", "en"):
+    for language in ("uk", "en"):
         table = tables[language]
         bullets = table.get(current)
         if (
@@ -84,7 +84,7 @@ def check(root: Path) -> str:
     copy = notes.read_text(encoding="utf-8")
     sections = copy.split("**In English:**", 1)
     if len(sections) != 2 or not sections[0].strip() or not sections[1].strip():
-        raise ValueError("Release notes need Russian and English sections")
+        raise ValueError("Release notes need Ukrainian and English sections")
     latest_notes = max(
         (p.stem[1:] for p in notes.parent.glob("v*.md")),
         key=lambda v: tuple(map(int, v.split("."))),
@@ -106,7 +106,7 @@ def main() -> int:
     try:
         if args.check:
             print(
-                f"Version {check(ROOT)} is consistent across backend, package, lock, RU/EN copy and notes"
+                f"Version {check(ROOT)} is consistent across backend, package, lock, UK/EN copy and notes"
             )
         return 0
     except (

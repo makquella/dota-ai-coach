@@ -36,7 +36,9 @@ const cases = JSON.parse(fs.readFileSync(path.join(__dirname, "overlay_cases.jso
   const browser = await chromium.launch(process.env.CHROMIUM ? { executablePath: process.env.CHROMIUM } : {});
   for (const [lang, entries] of Object.entries(cases)) {
     for (const [name, data] of Object.entries(entries)) {
-      const page = await browser.newPage({ viewport: { width: 420, height: 320 }, deviceScaleFactor: 2 });
+      // The overlay's CSP allows dota-asset: images only; the icons come from
+      // the rewritten https://dota-asset.local/ address here.
+      const page = await browser.newPage({ viewport: { width: 420, height: 320 }, deviceScaleFactor: 2, bypassCSP: true });
       page.on("pageerror", (error) => console.error(`${lang}/${name}:`, error.message));
       await serveDotaAssets(page);
       await page.addInitScript(([locale, answer]) => {

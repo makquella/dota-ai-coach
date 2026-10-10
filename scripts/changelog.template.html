@@ -1,10 +1,10 @@
 <!doctype html>
-<html lang="ru">
+<html lang="uk">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Что нового — Wardly</title>
-    <meta name="description" content="Что появилось и что исправлено в каждой версии Wardly." />
+    <title>Що нового — Wardly</title>
+    <meta name="description" content="Що з'явилося й що виправлено в кожній версії Wardly." />
     <meta name="theme-color" content="#0c0d0f" />
     <link rel="canonical" href="https://luhovyimvp.dev/changelog.html" />
     <link rel="icon" href="assets/favicon.png" type="image/png" />
@@ -86,8 +86,8 @@
           <span class="brand-name">Wardly</span>
         </a>
         <div class="nav-actions">
-          <div class="lang" role="group" aria-label="Язык / Language">
-            <button type="button" data-lang="ru" aria-pressed="true">RU</button>
+          <div class="lang" role="group" aria-label="Мова / Language">
+            <button type="button" data-lang="uk" aria-pressed="true">UK</button>
             <button type="button" data-lang="en" aria-pressed="false">EN</button>
           </div>
         </div>
@@ -95,10 +95,10 @@
     </header>
 
     <main class="wrap doc">
-      <article data-doc="ru" lang="ru">
-        <h1>Что нового</h1>
-        <p class="doc-updated">Все версии Wardly. Установленное приложение обновляется само, когда Дота закрыта.</p>
-<!-- RU -->
+      <article data-doc="uk" lang="uk">
+        <h1>Що нового</h1>
+        <p class="doc-updated">Усі версії Wardly. Встановлений застосунок оновлюється сам, коли Дота закрита.</p>
+<!-- UK -->
       </article>
       <article data-doc="en" lang="en" hidden>
         <h1>What's new</h1>
@@ -113,7 +113,7 @@
         var KEY = "dac.lang";
         function apply(lang) {
           document.documentElement.lang = lang;
-          document.title = lang === "en" ? "What's new — Wardly" : "Что нового — Wardly";
+          document.title = lang === "en" ? "What's new — Wardly" : "Що нового — Wardly";
           document.querySelectorAll("[data-doc]").forEach(function (el) {
             el.hidden = el.dataset.doc !== lang;
           });
@@ -123,16 +123,16 @@
         }
         // The app opens this page with ?lang= of its own language.
         var lang = new URLSearchParams(location.search).get("lang") || "";
-        if (lang !== "ru" && lang !== "en") {
+        if (lang !== "uk" && lang !== "en") {
           try {
             lang = localStorage.getItem(KEY) || "";
           } catch (error) {}
         }
-        if (lang !== "ru" && lang !== "en") {
-          var preferred = (navigator.languages || [navigator.language || "ru"]).map(function (l) {
+        if (lang !== "uk" && lang !== "en") {
+          var preferred = (navigator.languages || [navigator.language || "uk"]).map(function (l) {
             return String(l).toLowerCase();
           });
-          lang = preferred.some(function (l) { return /^(ru|uk|be|kk)/.test(l); }) ? "ru" : "en";
+          lang = preferred.some(function (l) { return /^(uk|uk|be|kk)/.test(l); }) ? "uk" : "en";
         }
         apply(lang);
         document.querySelectorAll(".lang [data-lang]").forEach(function (button) {

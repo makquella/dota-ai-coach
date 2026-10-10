@@ -1,12 +1,12 @@
 """Build the generated parts of the site from the coach's own data.
 
 - the hero lists on site/heroes.html (from data/heroes/hero_profiles.json);
-- one page per full-advisor hero: site/heroes/<slug>.html (ru) and
+- one page per full-advisor hero: site/heroes/<slug>.html (uk) and
   site/en/heroes/<slug>.html (en) — last-hit pace, when to back off, the saves
   the coach names, the key fight ability and the profile's note: the numbers
   the live coach itself uses (hero_profiles, advice_context, live_tools);
 - the static English pages site/en/index.html and site/en/heroes.html, made
-  from the Russian HTML and the English texts in site/i18n-en.js;
+  from the Ukrainian HTML and the English texts in site/i18n-en.js;
 - site/sitemap.xml.
 
     python scripts/build_site.py          # write the files
@@ -37,93 +37,93 @@ from app.live_tools import USABLE_SAFETY
 ASSET_VERSION = "9"
 POSITIONS = ("carry", "mid", "offlane", "support")
 POSITION_NAMES = {
-    "ru": {"carry": "Керри", "mid": "Мид", "offlane": "Хардлайн", "support": "Саппорт"},
+    "uk": {"carry": "Керрі", "mid": "Мід", "offlane": "Хардлайн", "support": "Саппорт"},
     "en": {"carry": "Carry", "mid": "Mid", "offlane": "Offlane", "support": "Support"},
 }
 ARCHETYPES = {
-    "hard_scaling_farmer": ("фармящий керри, который раскрывается к поздней игре", "a farming carry who comes online late"),
-    "tempo_fighting_carry": ("керри, который рано начинает драться", "a carry who starts fighting early"),
-    "ranged_carry": ("керри дальнего боя, которому важна позиция", "a ranged carry who lives by positioning"),
-    "durable_tempo_core": ("живучий кор, который задаёт темп", "a durable core who sets the tempo"),
-    "mobile_tempo_mid": ("подвижный мидер, который играет от темпа", "a mobile mid who plays for tempo"),
-    "ranged_tempo_mid": ("мидер дальнего боя, который играет от темпа", "a ranged mid who plays for tempo"),
-    "frontline_initiator": ("хардлайнер, который начинает драки", "an offlaner who starts the fights"),
-    "fragile_hard_support": ("хрупкий саппорт пятой позиции, которому важнее всего позиция", "a fragile hard support who lives by positioning"),
-    "disable_support": ("саппорт с контролем, который решает, кого поймать", "a support with disables who decides who gets caught"),
-    "save_support": ("саппорт, который спасает своих", "a support who saves the team"),
-    "fight_support": ("саппорт, который выигрывает драки одним заклинанием", "a support whose one spell wins fights"),
-    "durable_support": ("живучий саппорт, который может стоять впереди", "a durable support who can stand in front"),
-    "roaming_support": ("саппорт четвёртой позиции, который ходит по карте", "a roaming soft support"),
-    "roaming_initiator": ("саппорт четвёртой позиции, который начинает драки", "a soft support who starts the fights"),
-    "fragile_nuker": ("хрупкий саппорт, который наносит много урона издалека", "a fragile support who deals damage from range"),
+    "hard_scaling_farmer": ("керрі, що фармить і розкривається в пізній грі", "a farming carry who comes online late"),
+    "tempo_fighting_carry": ("керрі, який рано починає битися", "a carry who starts fighting early"),
+    "ranged_carry": ("керрі далекого бою, якому важлива позиція", "a ranged carry who lives by positioning"),
+    "durable_tempo_core": ("живучий кор, який задає темп", "a durable core who sets the tempo"),
+    "mobile_tempo_mid": ("рухливий мідер, який грає від темпу", "a mobile mid who plays for tempo"),
+    "ranged_tempo_mid": ("мідер далекого бою, який грає від темпу", "a ranged mid who plays for tempo"),
+    "frontline_initiator": ("хардлайнер, який починає бійки", "an offlaner who starts the fights"),
+    "fragile_hard_support": ("крихкий саппорт п'ятої позиції, якому найважливіша позиція", "a fragile hard support who lives by positioning"),
+    "disable_support": ("саппорт із контролем, який вирішує, кого спіймати", "a support with disables who decides who gets caught"),
+    "save_support": ("саппорт, який рятує своїх", "a support who saves the team"),
+    "fight_support": ("саппорт, який виграє бійки одним закляттям", "a support whose one spell wins fights"),
+    "durable_support": ("живучий саппорт, який може стояти попереду", "a durable support who can stand in front"),
+    "roaming_support": ("саппорт четвертої позиції, який ходить мапою", "a roaming soft support"),
+    "roaming_initiator": ("саппорт четвертої позиції, який починає бійки", "a soft support who starts the fights"),
+    "fragile_nuker": ("крихкий саппорт, який завдає багато шкоди здалеку", "a fragile support who deals damage from range"),
 }
-# The profile's note in Russian (the profile keeps it in English); a few English
+# The profile's note in Ukrainian (the profile keeps it in English); a few English
 # notes written for the coach are reworded for players here.
-NOTES_RU = {
-    "Anti-Mage": "Не лезь вперёд, пока Blink на перезарядке.",
-    "Juggernaut": "Не навязывай размены, пока Blade Fury на перезарядке.",
-    "Lifestealer": "Не прыгай под контроль, пока Rage на перезарядке.",
-    "Medusa": "Мана — это твоя живучесть, а не только ресурс на заклинания.",
-    "Slark": "Не затягивай размены, когда нечем уйти или сбросить с себя эффекты.",
-    "Morphling": "Не рискуй в разменах, пока Waveform на перезарядке или нечем перелить силу (Attribute Shift).",
-    "Phantom Assassin": "Не прыгай вперёд, когда уйти почти нечем.",
-    "Drow Ranger": "Держи дистанцию, когда нечем защититься.",
-    "Luna": "Не заходи далеко без поддержки команды.",
-    "Sven": "Не навязывай размены, пока Warcry на перезарядке и нечем уйти.",
-    "Kez": "Трать рывки осторожно и не ныряй за невыгодными убийствами.",
-    "Ursa": "Не лезь под контроль, пока Enrage не готов.",
-    "Monkey King": "Не вступай в драку, если из неё нечем выпрыгнуть.",
-    "Spectre": "Фарми безопасно и не трать время на невыгодные ранние драки.",
-    "Terrorblade": "Не начинай драки без Metamorphosis и без команды.",
-    "Phantom Lancer": "Не вступай в драку, пока Doppelganger на перезарядке.",
-    "Naga Siren": "Не фарми опасные места, когда нечем уйти.",
-    "Sniper": "Стой дальше, когда нечем защититься.",
-    "Muerta": "Не стой впереди без прикрытия команды.",
-    "Gyrocopter": "Ровный фарм важнее драк: не ныряй без поддержки.",
-    "Ember Spirit": "Не лезь в невыгодные драки: держи Sleight of Fist и Flame Guard, чтобы уйти.",
-    "Shadow Fiend": "Своего спасения нет: думай о Blink или Black King Bar и дерись за спинами команды.",
-    "Storm Spirit": "Ball Lightning спасает, только пока на него хватает маны.",
-    "Queen of Pain": "Не прыгай в драку, пока Blink на перезарядке.",
-    "Puck": "Phase Shift спасает от одного удара: береги его от оглушения, а не от мелкого урона.",
-    "Templar Assassin": "Без зарядов Refraction она хрупкая: отойди и дождись их.",
-    "Void Spirit": "Держи Dissimilate или Astral Step, чтобы уйти.",
-    "Outworld Destroyer": "Своего спасения нет: держи дистанцию и Force Staff или Blink.",
-    "Dragon Knight": "Живучий, но медленный: не гонись далеко от команды без Elder Dragon Form.",
-    "Axe": "Начинай драку, когда команда рядом; не прыгай в одиночку с малым HP.",
-    "Mars": "Береги Arena of Blood для драки, в которую команда успеет.",
-    "Legion Commander": "Бери Duel, только когда выигрываешь его: сначала проверь HP и Blink.",
-    "Bristleback": "Поворачивайся спиной к урону и не стой лицом в проигранной драке.",
-    "Centaur Warrunner": "Stampede спасает и команду: оставь его на отход, если драка пошла не так.",
-    "Tidehunter": "Ravage выигрывает драки: не умирай, пока команда не подошла.",
-    "Slardar": "Guardian Sprint — и зайти, и уйти: с малым HP не трать его на заход.",
-    "Timbersaw": "Timber Chain нужны деревья: дерись рядом с ними и держи его на отход.",
-    "Pangolier": "Держи Swashbuckle или Rolling Thunder на отход.",
-    "Primal Beast": "Onslaught — это заход: не несись в одиночку с малым HP.",
-    "Crystal Maiden": "Стой за корами: Freezing Field нужна безопасная точка, а позже — Black King Bar или Glimmer Cape.",
-    "Lion": "Держи Hex на рывок врага или его главного героя; с Blink Dagger каждая драка начинается с тебя.",
-    "Shadow Shaman": "Shackles держит тебя на месте: кастуй его, только когда враг не может ответить.",
-    "Witch Doctor": "Death Ward не даёт двигаться: ставь его из-за деревьев или с готовым Glimmer Cape.",
-    "Lich": "Frost Shield — на кора, которого бьют; Chain Frost лучше всего, когда враги стоят рядом.",
-    "Dazzle": "Shallow Grave спасёт кора, только если ты рядом: но не будь первым, кого видит враг.",
-    "Oracle": "Держи False Promise для кора в беде — или для себя, когда цель ты.",
-    "Warlock": "Chaotic Offering выигрывает драки: держи его на момент, когда враг уже вошёл.",
-    "Jakiro": "Ice Path и Macropyre выигрывают линию и вышки: дави, когда коры рядом.",
-    "Vengeful Spirit": "Nether Swap спасает пойманного кора, но ставит на его место тебя: меняйся, только если переживёшь.",
-    "Disruptor": "Glimpse — на героя, который прыгнул; Kinetic Field и Static Storm запирают драку.",
-    "Ogre Magi": "Огр может стоять впереди, но Bloodlust на коре стоит больше твоих разменов.",
-    "Treant Protector": "Living Armor спасает вышки и коров с любой точки карты; Overgrowth начинает драку.",
-    "Rubick": "Не показывайся, пока враг не потратил своё главное заклинание, — и забери его.",
-    "Earthshaker": "Echo Slam нужны Blink Dagger и враги рядом друг с другом: дождись, пока они соберутся.",
-    "Tusk": "Ice Shards отрезает путь отхода; Snowball берёт союзника с собой на убийство.",
-    "Earth Spirit": "Rolling Boulder — ещё и твой отход: держи его, когда уходишь далеко вперёд.",
-    "Mirana": "Держи Leap на отход; Moonlight Shadow переворачивает драку или спасает всю команду.",
-    "Skywrath Mage": "Тебя убьёт любой, кто дотянется: кастуй сзади и держи Force Staff или Glimmer Cape.",
-    "Snapfire": "Firesnap Cookie на себя выпрыгивает из опасности; Mortimer Kisses отрезает место драки.",
-    "Hoodwink": "Scurry рядом с деревьями держит тебя в живых; для Bushwhack нужно дерево за врагом.",
-    "Spirit Breaker": "Бей Charge по тому, до кого команда успеет; Bulldoze выведет, если пошло не так.",
-    "Nyx Assassin": "Vendetta ещё и прячет: держи её или Spiked Carapace на случай, если поймали.",
-    "Bounty Hunter": "Track на главного героя врага — это золото и обзор; Shadow Walk — твой отход.",
-    "Clockwerk": "Hookshot начинает драку: лети, когда команда достаточно близко, чтобы успеть.",
+NOTES_UK = {
+    "Anti-Mage": "Не лізь уперед, поки Blink на перезарядці.",
+    "Juggernaut": "Не нав'язуй розміни, поки Blade Fury на перезарядці.",
+    "Lifestealer": "Не стрибай під контроль, поки Rage на перезарядці.",
+    "Medusa": "Мана — це твоя живучість, а не лише ресурс на закляття.",
+    "Slark": "Не затягуй розміни, коли нічим піти чи скинути із себе ефекти.",
+    "Morphling": "Не ризикуй у розмінах, поки Waveform на перезарядці або нічим перелити силу (Attribute Shift).",
+    "Phantom Assassin": "Не стрибай уперед, коли піти майже нічим.",
+    "Drow Ranger": "Тримай дистанцію, коли нічим захиститися.",
+    "Luna": "Не заходь далеко без підтримки команди.",
+    "Sven": "Не нав'язуй розміни, поки Warcry на перезарядці й нічим піти.",
+    "Kez": "Витрачай ривки обережно й не пірнай за невигідними вбивствами.",
+    "Ursa": "Не лізь під контроль, поки Enrage не готовий.",
+    "Monkey King": "Не вступай у бійку, якщо з неї нічим вистрибнути.",
+    "Spectre": "Фарми безпечно й не витрачай час на невигідні ранні бійки.",
+    "Terrorblade": "Не починай бійки без Metamorphosis і без команди.",
+    "Phantom Lancer": "Не вступай у бійку, поки Doppelganger на перезарядці.",
+    "Naga Siren": "Не фарми небезпечні місця, коли нічим піти.",
+    "Sniper": "Стій далі, коли нічим захиститися.",
+    "Muerta": "Не стій попереду без прикриття команди.",
+    "Gyrocopter": "Рівний фарм важливіший за бійки: не пірнай без підтримки.",
+    "Ember Spirit": "Не лізь у невигідні бійки: тримай Sleight of Fist і Flame Guard, щоб піти.",
+    "Shadow Fiend": "Власного порятунку немає: думай про Blink чи Black King Bar і бийся за спинами команди.",
+    "Storm Spirit": "Ball Lightning рятує, лише поки на нього вистачає мани.",
+    "Queen of Pain": "Не стрибай у бійку, поки Blink на перезарядці.",
+    "Puck": "Phase Shift рятує від одного удару: бережи його від оглушення, а не від дрібної шкоди.",
+    "Templar Assassin": "Без зарядів Refraction вона крихка: відійди й дочекайся їх.",
+    "Void Spirit": "Тримай Dissimilate або Astral Step, щоб піти.",
+    "Outworld Destroyer": "Власного порятунку немає: тримай дистанцію й Force Staff або Blink.",
+    "Dragon Knight": "Живучий, але повільний: не женися далеко від команди без Elder Dragon Form.",
+    "Axe": "Починай бійку, коли команда поруч; не стрибай наодинці з малим HP.",
+    "Mars": "Бережи Arena of Blood для бійки, у яку команда встигне.",
+    "Legion Commander": "Бери Duel, лише коли виграєш його: спершу перевір HP і Blink.",
+    "Bristleback": "Повертайся спиною до шкоди й не стій обличчям у програній бійці.",
+    "Centaur Warrunner": "Stampede рятує й команду: залиш його на відхід, якщо бійка пішла не так.",
+    "Tidehunter": "Ravage виграє бійки: не помирай, поки команда не підійшла.",
+    "Slardar": "Guardian Sprint — і зайти, і піти: з малим HP не витрачай його на захід.",
+    "Timbersaw": "Timber Chain потрібні дерева: бийся поруч із ними й тримай його на відхід.",
+    "Pangolier": "Тримай Swashbuckle або Rolling Thunder на відхід.",
+    "Primal Beast": "Onslaught — це захід: не мчи наодинці з малим HP.",
+    "Crystal Maiden": "Стій за корами: Freezing Field потрібна безпечна точка, а пізніше — Black King Bar або Glimmer Cape.",
+    "Lion": "Тримай Hex на ривок ворога чи його головного героя; з Blink Dagger кожна бійка починається з тебе.",
+    "Shadow Shaman": "Shackles тримає тебе на місці: кастуй його, лише коли ворог не може відповісти.",
+    "Witch Doctor": "Death Ward не дає рухатися: став його з-за дерев або з готовим Glimmer Cape.",
+    "Lich": "Frost Shield — на кора, якого б'ють; Chain Frost найкращий, коли вороги стоять поруч.",
+    "Dazzle": "Shallow Grave врятує кора, лише якщо ти поруч: але не будь першим, кого бачить ворог.",
+    "Oracle": "Тримай False Promise для кора в біді — або для себе, коли ціль ти.",
+    "Warlock": "Chaotic Offering виграє бійки: тримай його на момент, коли ворог уже зайшов.",
+    "Jakiro": "Ice Path і Macropyre виграють лінію й вежі: тисни, коли кори поруч.",
+    "Vengeful Spirit": "Nether Swap рятує спійманого кора, але ставить на його місце тебе: обмінюйся, лише якщо переживеш.",
+    "Disruptor": "Glimpse — на героя, що стрибнув; Kinetic Field і Static Storm замикають бійку.",
+    "Ogre Magi": "Огр може стояти попереду, але Bloodlust на корі вартий більше за твої розміни.",
+    "Treant Protector": "Living Armor рятує вежі й корів з будь-якої точки мапи; Overgrowth починає бійку.",
+    "Rubick": "Не показуйся, поки ворог не витратив своє головне закляття, — і забери його.",
+    "Earthshaker": "Echo Slam потрібні Blink Dagger і вороги поруч одне з одним: дочекайся, поки вони зберуться.",
+    "Tusk": "Ice Shards відрізає шлях відходу; Snowball бере союзника із собою на вбивство.",
+    "Earth Spirit": "Rolling Boulder — ще й твій відхід: тримай його, коли йдеш далеко вперед.",
+    "Mirana": "Тримай Leap на відхід; Moonlight Shadow перевертає бійку або рятує всю команду.",
+    "Skywrath Mage": "Тебе вб'є будь-хто, хто дотягнеться: кастуй ззаду й тримай Force Staff або Glimmer Cape.",
+    "Snapfire": "Firesnap Cookie на себе вистрибує з небезпеки; Mortimer Kisses відрізає місце бійки.",
+    "Hoodwink": "Scurry поруч із деревами тримає тебе живим; для Bushwhack потрібне дерево за ворогом.",
+    "Spirit Breaker": "Бий Charge по тому, до кого команда встигне; Bulldoze виведе, якщо пішло не так.",
+    "Nyx Assassin": "Vendetta ще й ховає: тримай її або Spiked Carapace на випадок, якщо спіймали.",
+    "Bounty Hunter": "Track на головного героя ворога — це золото й огляд; Shadow Walk — твій відхід.",
+    "Clockwerk": "Hookshot починає бійку: лети, коли команда достатньо близько, щоб устигнути.",
 }
 NOTES_EN = {
     "Ember Spirit": "Avoid low-value fights: keep Sleight of Fist and Flame Guard for the way out.",
@@ -175,8 +175,8 @@ def heroes() -> list[dict]:
         position = profile.get("position", "carry")
         if name not in keys:
             raise SystemExit(f"no portrait key for {name} in dota-data.js")
-        if name not in NOTES_RU:
-            raise SystemExit(f"no Russian note for {name} in scripts/build_site.py")
+        if name not in NOTES_UK:
+            raise SystemExit(f"no Ukrainian note for {name} in scripts/build_site.py")
         out.append(
             {
                 "name": name,
@@ -221,13 +221,13 @@ def with_hero_lists(page: str, all_heroes: list[dict]) -> str:
     return page
 
 
-# --- Russian HTML → static English page --------------------------------------------
+# --- Ukrainian HTML → static English page --------------------------------------------
 
 VOID = {"area", "base", "br", "col", "embed", "hr", "img", "input", "link", "meta", "source", "track", "wbr"}
 
 
 def _english_url(url: str, depth: int) -> str:
-    """A relative URL of a Russian page as seen from its English copy `depth` levels down."""
+    """A relative URL of a Ukrainian page as seen from its English copy `depth` levels down."""
     if not url or re.match(r"^(#|/|[a-z]+:|//)", url):
         return url
     # Pages with an English copy stay inside /en/; everything else is shared.
@@ -242,7 +242,7 @@ class _Translator(HTMLParser):
         self.en = en
         self.page = page
         self.out: list[str] = []
-        self.skip: list = []  # [tag, depth] while an element's Russian content is replaced
+        self.skip: list = []  # [tag, depth] while an element's Ukrainian content is replaced
         self.in_title = False
         self.in_ld = False
         self.missing: list[str] = []
@@ -274,7 +274,7 @@ class _Translator(HTMLParser):
             new.append((name, value))
         if tag == "html":
             new = [(n, v) for n, v in new if n not in ("lang", "data-static", "data-alt-en")]
-            new = [("lang", "en"), ("data-static", "en"), ("data-alt-ru", self.page["alt_ru"])] + new
+            new = [("lang", "en"), ("data-static", "en"), ("data-alt-uk", self.page["alt_uk"])] + new
         if tag == "meta":
             if a.get("name") == "description" or a.get("property") in ("og:description",):
                 key = self.page["description"] if a.get("name") == "description" else self.page["og_description"]
@@ -381,64 +381,64 @@ def english_page(source: str, en: dict[str, str], page: dict) -> str:
 # --- hero pages --------------------------------------------------------------------
 
 T = {
-    "ru": {
-        "skip": "Перейти к содержанию",
-        "nav": [("#ingame", "В игре"), ("#how", "Как это работает"), ("#review", "Разбор"), ("#profile", "Профиль")],
-        "heroes": "Герои",
-        "faq": "Вопросы",
-        "download": "Скачать",
-        "download_long": "Скачать для Windows",
-        "lang": "Язык",
-        "title": "{name} в Dota 2: сколько добивать и когда уходить — Wardly",
-        "description": "{name} ({position}): темп добиваний по минутам, когда уходить и чем спасаться — цифры, по которым бесплатный тренер Wardly подсказывает прямо в матче.",
-        "lead": "{name} — {archetype}. Ниже цифры, по которым Wardly подсказывает на этом герое прямо в матче: сколько добивать, когда уходить и чем спасаться.",
-        "pace_title": "Темп добиваний",
-        "pace_minute": "Минута",
-        "pace_lh": "Добивания",
-        "pace_note": "Отстаёшь от нижней цифры — тренер скажет об этом прямо в матче и покажет, какой темп хороший на этой минуте.",
-        "pace_note_support": "Саппорту не нужно много добивать: цифры — ориентир, а не цель. Если начнёшь забирать крипов у керри, тренер напомнит.",
-        "survive_title": "Когда уходить",
-        "hp": "При HP ниже {low} % тренер подскажет уйти, ниже {critical} % — срочно, сразу, без паузы.",
-        "saves": "Спасение: {saves} — тренер назовёт его, когда оно готово, и напомнит, если ты умер, не нажав его.",
-        "no_saves": "Своего спасения нет: тренер назовёт готовый предмет — {items}.",
-        "mana": "Мана здесь — это спасение: тренер предупредит, когда её меньше {mana} %.",
-        "fight_title": "В драке",
-        "fight": "Главное в драке: {abilities}.",
-        "note": "Совет тренера: {note}",
-        "more_title": "Что ещё подскажет Wardly",
+    "uk": {
+        "skip": "Перейти до вмісту",
+        "nav": [("#ingame", "У грі"), ("#how", "Як це працює"), ("#review", "Розбір"), ("#profile", "Профіль")],
+        "heroes": "Герої",
+        "faq": "Запитання",
+        "download": "Завантажити",
+        "download_long": "Завантажити для Windows",
+        "lang": "Мова",
+        "title": "{name} у Dota 2: скільки добивати й коли відходити — Wardly",
+        "description": "{name} ({position}): темп добивань по хвилинах, коли відходити й чим рятуватися — цифри, за якими безкоштовний тренер Wardly підказує просто в матчі.",
+        "lead": "{name} — {archetype}. Нижче цифри, за якими Wardly підказує на цьому герої просто в матчі: скільки добивати, коли відходити й чим рятуватися.",
+        "pace_title": "Темп добивань",
+        "pace_minute": "Хвилина",
+        "pace_lh": "Добивання",
+        "pace_note": "Відстаєш від нижньої цифри — тренер скаже про це просто в матчі й покаже, який темп добрий на цій хвилині.",
+        "pace_note_support": "Саппортові не потрібно багато добивати: цифри — орієнтир, а не мета. Якщо почнеш забирати кріпів у керрі, тренер нагадає.",
+        "survive_title": "Коли відходити",
+        "hp": "Коли HP нижче {low} %, тренер підкаже відійти, нижче {critical} % — терміново, одразу, без паузи.",
+        "saves": "Порятунок: {saves} — тренер назве його, коли він готовий, і нагадає, якщо ти загинув, не натиснувши його.",
+        "no_saves": "Власного порятунку немає: тренер назве готовий предмет — {items}.",
+        "mana": "Мана тут — це порятунок: тренер попередить, коли її менше {mana} %.",
+        "fight_title": "У бійці",
+        "fight": "Головне в бійці: {abilities}.",
+        "note": "Порада тренера: {note}",
+        "more_title": "Що ще підкаже Wardly",
         "more": {
             "carry": [
-                "План на игру с пика: цель по добиваниям к 10:00 и ключевой предмет.",
-                "Следующий предмет сборки и сколько золота до него.",
-                "Нет ТП больше минуты — напомнит. После 30-й минуты оставит золото на байбэк.",
+                "План на гру з піку: мета за добиваннями до 10:00 і ключовий предмет.",
+                "Наступний предмет збірки й скільки золота до нього.",
+                "Немає ТП понад хвилину — нагадає. Після 30-ї хвилини залишить золото на байбек.",
             ],
             "mid": [
-                "Проверки добиваний на 5:00 и 8:00 и напоминание про Bottle.",
-                "Руны за 20 секунд, а с 6-го уровня — когда идти на другую линию.",
-                "Следующий предмет сборки и сколько золота до него.",
+                "Перевірки добивань на 5:00 і 8:00 і нагадування про Bottle.",
+                "Руни за 20 секунд, а з 6-го рівня — коли йти на іншу лінію.",
+                "Наступний предмет збірки й скільки золота до нього.",
             ],
             "offlane": [
-                "Проигранная линия — подскажет стянуть большой лагерь.",
-                "Темп фарма хардлайнера, а не керри: цели ниже на 30 %.",
-                "Ключевой предмет вовремя или поздно — и когда твоё окно для драки.",
+                "Програна лінія — підкаже стягнути великий табір.",
+                "Темп фарму хардлайнера, а не керрі: цілі нижчі на 30 %.",
+                "Ключовий предмет вчасно чи пізно — і коли твоє вікно для бійки.",
             ],
             "support": [
-                "Стаки на :53 и пулы малого лагеря на лёгкой линии — за 10 секунд до времени.",
-                "Нет вардов или вард слишком долго лежит в сумке — напомнит поставить.",
-                "Нет спасающего предмета к 12-й минуте — подскажет Glimmer Cape или Force Staff.",
+                "Стаки на :53 і пули малого табору на легкій лінії — за 10 секунд до часу.",
+                "Немає вардів або вард надто довго лежить у сумці — нагадає поставити.",
+                "Немає рятівного предмета до 12-ї хвилини — підкаже Glimmer Cape або Force Staff.",
             ],
         },
-        "after": "После матча — разбор: оценка, карта смертей, сборка против статистики OpenDota.",
-        "cta_title": "Попробуй на следующей игре",
-        "cta_text": "Бесплатно, для Windows 10 и 11. Официальная интеграция Valve — без риска для аккаунта.",
-        "others": "Другие герои · {position}",
-        "all": "Все герои",
-        "footer_label": "Ссылки",
-        "releases": "Версии",
-        "issues": "Сообщить о проблеме",
-        "changelog": "Что нового",
-        "privacy": "Конфиденциальность",
-        "legal": "Dota 2 — товарный знак Valve Corporation. Проект не связан с Valve и не одобрен ею. Портреты героев — Valve.",
+        "after": "Після матчу — розбір: оцінка, мапа смертей, збірка проти статистики OpenDota.",
+        "cta_title": "Спробуй у наступній грі",
+        "cta_text": "Безкоштовно, для Windows 10 і 11. Офіційна інтеграція Valve — без ризику для акаунта.",
+        "others": "Інші герої · {position}",
+        "all": "Усі герої",
+        "footer_label": "Посилання",
+        "releases": "Версії",
+        "issues": "Повідомити про проблему",
+        "changelog": "Що нового",
+        "privacy": "Конфіденційність",
+        "legal": "Dota 2 — товарний знак Valve Corporation. Проєкт не пов'язаний із Valve і не схвалений нею. Портрети героїв — Valve.",
     },
     "en": {
         "skip": "Skip to content",
@@ -513,19 +513,19 @@ def hero_page(hero: dict, all_heroes: list[dict], lang: str) -> str:
     t = T[lang]
     e = html.escape
     name, position, profile = hero["name"], hero["position"], hero["profile"]
-    up = "../" if lang == "ru" else "../../"  # to the site root
+    up = "../" if lang == "uk" else "../../"  # to the site root
     home = "../"  # to this language's home page
-    ru_url = f"{BASE}/heroes/{hero['slug']}.html"
+    uk_url = f"{BASE}/heroes/{hero['slug']}.html"
     en_url = f"{BASE}/en/heroes/{hero['slug']}.html"
-    url = ru_url if lang == "ru" else en_url
-    alt = f'data-alt-en="../en/heroes/{hero["slug"]}.html"' if lang == "ru" else f'data-alt-ru="../../heroes/{hero["slug"]}.html"'
+    url = uk_url if lang == "uk" else en_url
+    alt = f'data-alt-en="../en/heroes/{hero["slug"]}.html"' if lang == "uk" else f'data-alt-uk="../../heroes/{hero["slug"]}.html"'
     position_name = POSITION_NAMES[lang][position]
-    archetype = ARCHETYPES[profile["archetype"]][0 if lang == "ru" else 1]
+    archetype = ARCHETYPES[profile["archetype"]][0 if lang == "uk" else 1]
     title = t["title"].format(name=name)
     description = t["description"].format(name=name, position=position_name.lower())
-    note = NOTES_RU[name] if lang == "ru" else NOTES_EN.get(name, profile["notes"])
-    if lang == "ru" and re.match(r"[А-ЯЁ][а-яё]", note):
-        note = note[0].lower() + note[1:]  # after «Совет тренера:», unless it starts with a name
+    note = NOTES_UK[name] if lang == "uk" else NOTES_EN.get(name, profile["notes"])
+    if lang == "uk" and re.match(r"[А-ЯІЇЄҐ][а-яіїєґ]", note):
+        note = note[0].lower() + note[1:]  # after «Порада тренера:», unless it starts with a name
 
     rows = "\n".join(
         f"                  <tr><td>{minute}:00</td><td>{low}–{high}</td></tr>" for minute, low, high in hero["pace"]
@@ -561,11 +561,11 @@ def hero_page(hero: dict, all_heroes: list[dict], lang: str) -> str:
     <meta property="og:title" content="{e(title)}" />
     <meta property="og:description" content="{e(description)}" />
     <link rel="canonical" href="{url}" />
-    <link rel="alternate" hreflang="ru" href="{ru_url}" />
+    <link rel="alternate" hreflang="uk" href="{uk_url}" />
     <link rel="alternate" hreflang="en" href="{en_url}" />
-    <link rel="alternate" hreflang="x-default" href="{ru_url}" />
+    <link rel="alternate" hreflang="x-default" href="{uk_url}" />
     <meta property="og:url" content="{url}" />
-    <meta property="og:image" content="{BASE}/assets/og.jpg?v=6" />
+    <meta property="og:image" content="{BASE}/assets/og.jpg?v=7" />
     <meta name="twitter:card" content="summary_large_image" />
     <link rel="icon" href="{up}assets/favicon.png" type="image/png" />
     <link rel="stylesheet" href="{up}styles.css?v={ASSET_VERSION}" />
@@ -586,7 +586,7 @@ def hero_page(hero: dict, all_heroes: list[dict], lang: str) -> str:
         </nav>
         <div class="nav-actions">
           <div class="lang" role="group" aria-label="{e(t["lang"])}">
-            <button type="button" data-lang="ru" aria-pressed="{str(lang == "ru").lower()}">RU</button>
+            <button type="button" data-lang="uk" aria-pressed="{str(lang == "uk").lower()}">UK</button>
             <button type="button" data-lang="en" aria-pressed="{str(lang == "en").lower()}">EN</button>
           </div>
           <a class="btn btn-primary btn-sm js-download" href="{download}">
@@ -705,11 +705,11 @@ def sitemap(all_heroes: list[dict]) -> str:
         '<?xml version="1.0" encoding="UTF-8"?>',
         '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">',
     ]
-    for ru, en in pairs:
-        for loc in (ru, en):
+    for uk, en in pairs:
+        for loc in (uk, en):
             lines.append(
                 f"  <url><loc>{BASE}{loc}</loc>"
-                f'<xhtml:link rel="alternate" hreflang="ru" href="{BASE}{ru}" />'
+                f'<xhtml:link rel="alternate" hreflang="uk" href="{BASE}{uk}" />'
                 f'<xhtml:link rel="alternate" hreflang="en" href="{BASE}{en}" /></url>'
             )
     for page in ("/changelog.html", "/privacy.html"):
@@ -730,23 +730,23 @@ def build() -> dict[Path, str]:
     all_heroes = heroes()
     en = english_texts()
     files: dict[Path, str] = {}
-    heroes_ru = with_hero_lists((SITE / "heroes.html").read_text(encoding="utf-8"), all_heroes)
-    files[SITE / "heroes.html"] = heroes_ru
+    heroes_uk = with_hero_lists((SITE / "heroes.html").read_text(encoding="utf-8"), all_heroes)
+    files[SITE / "heroes.html"] = heroes_uk
     shots = shots_version()
     files[SITE / "en" / "index.html"] = english_page(
         (SITE / "index.html").read_text(encoding="utf-8"),
         en,
-        {"depth": 1, "alt_ru": "../", "url": f"{BASE}/en/", "title": "title", "description": "metaDescription",
+        {"depth": 1, "alt_uk": "../", "url": f"{BASE}/en/", "title": "title", "description": "metaDescription",
          "og_description": "ogDescription", "shots": shots},
     )
     files[SITE / "en" / "heroes.html"] = english_page(
-        heroes_ru,
+        heroes_uk,
         en,
-        {"depth": 1, "alt_ru": "../heroes.html", "url": f"{BASE}/en/heroes.html", "title": "heroesPageTitle",
+        {"depth": 1, "alt_uk": "../heroes.html", "url": f"{BASE}/en/heroes.html", "title": "heroesPageTitle",
          "description": "heroesMetaDescription", "og_description": "heroesOgDescription", "shots": shots},
     )
     for hero in all_heroes:
-        files[SITE / "heroes" / f"{hero['slug']}.html"] = hero_page(hero, all_heroes, "ru")
+        files[SITE / "heroes" / f"{hero['slug']}.html"] = hero_page(hero, all_heroes, "uk")
         files[SITE / "en" / "heroes" / f"{hero['slug']}.html"] = hero_page(hero, all_heroes, "en")
     files[SITE / "sitemap.xml"] = sitemap(all_heroes)
     return files
