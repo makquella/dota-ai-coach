@@ -37,7 +37,14 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
-from app import advice_feedback, auto_backup, cosmetics, rank_history, stratz_builds
+from app import (
+    advice_feedback,
+    auto_backup,
+    cosmetics,
+    rank_history,
+    review_basis,
+    stratz_builds,
+)
 from app.analysis_texts import rank_label, render_analysis
 from app.ask_runs import AskRuns
 from app.auto_backup import AutoBackups
@@ -1436,6 +1443,10 @@ class PlayerService:
             rank_tier=player.get("rank_tier"),
             hero_stats=self.store.cache_get(HERO_STATS_KEY),
         )
+        # Whether the averages compare like with like (review_basis.py).
+        result["basis"] = review_basis.career_basis(
+            [m.get("analysis") for m in matches], ANALYSIS_VERSION
+        )
         result["linked"] = True
         result["hero_filter"] = hero_id
         focus = self._focus(primary)
@@ -2226,6 +2237,16 @@ class PlayerService:
             meta=self._hero_meta(facts.get("hero_id")),
             opendota=record.get("opendota"),
             draft=self._draft_meta(account_id, facts.get("hero_id")),
+        )
+        # «На чём основан разбор?»: rules, patch, data and why it was (re)built.
+        analysis["basis"] = review_basis.stamp(
+            rules=ANALYSIS_VERSION,
+            trim=TRIM_VERSION,
+            opendota=record.get("opendota"),
+            sources=record.get("sources"),
+            parsed=bool(facts.get("parsed")),
+            has_timeline=bool(record.get("timeline")),
+            previous=record.get("analysis") if isinstance(record.get("analysis"), dict) else None,
         )
         lh_t = facts.get("lh_t") or []
         items = self._inventory_keys(facts)

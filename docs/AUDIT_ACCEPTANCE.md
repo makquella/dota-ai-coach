@@ -79,8 +79,9 @@ These are acceptance tasks too. They are not included in the 17-finding percenta
   container regression (0.53.48); preserve unknown signals and normal phases.
 - [ ] More sanitized support/mid role replay acceptance cases and a fixed-clock
   compact regression runner over the existing simulation tools.
-- [ ] Patch/source/rules/input versions, as-of/sample count where relevant, rebuild
-  reason and comparable Progress metrics across changed rules.
+- [x] Patch/source/rules/input versions, as-of/sample count where relevant, rebuild
+  reason and comparable Progress metrics across changed rules (0.53.57, REVIEW_BASIS.md:
+  `analysis.basis`, «На чём основан разбор?», `career.basis` note over the score chart).
 - [x] Automatic bounded rotating local backups, opt-in configuration/disk budget,
   migration/import backup and restore preview → validated atomic apply (0.53.55,
   HISTORY_BACKUP.md: on by default with a switch, 4 copies/200 MB, update copies and
