@@ -1,0 +1,16 @@
+{
+ "case": "carry_juggernaut",
+ "note": "a carry who dies twice in a row after laning",
+ "role": "carry",
+ "hero": "npc_dota_hero_juggernaut",
+ "cards": [
+  "03:00 MAP_HINT hint",
+  "07:01 DEATH_REVIEW status",
+  "12:01 SAFE_FARMING coaching",
+  "14:01 REPEATED_DEATH_PATTERN coaching",
+  "14:40 MAP_HINT hint",
+  "15:01 REPEATED_DEATH_PATTERN coaching",
+  "17:32 SAFE_FARMING coaching",
+  "19:40 MAP_HINT hint"
+ ]
+}

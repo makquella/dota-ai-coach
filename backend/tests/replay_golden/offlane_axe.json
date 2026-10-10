@@ -1,0 +1,22 @@
+{
+ "case": "offlane_axe",
+ "note": "an offlaner on a slow farm",
+ "role": "offlane",
+ "hero": "npc_dota_hero_axe",
+ "cards": [
+  "02:40 MAP_HINT hint",
+  "03:00 MAP_HINT hint",
+  "05:40 MAP_HINT hint",
+  "06:01 DEATH_REVIEW status",
+  "06:40 MAP_HINT hint",
+  "07:30 MAP_HINT hint",
+  "08:40 MAP_HINT hint",
+  "11:40 MAP_HINT hint",
+  "12:01 SAFE_FARMING coaching",
+  "13:40 MAP_HINT hint",
+  "14:40 MAP_HINT hint",
+  "16:01 REPEATED_DEATH_PATTERN coaching",
+  "18:32 SAFE_FARMING coaching",
+  "19:40 MAP_HINT hint"
+ ]
+}

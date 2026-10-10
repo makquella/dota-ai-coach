@@ -79,3 +79,16 @@ xvfb-run -a ./node_modules/.bin/electron . --no-sandbox --smoke-test=/tmp/wardly
 Windows packaging: из корня `scripts/build-windows.ps1`, затем `scripts/smoke-windows.ps1`. `-SkipBackend` подходит только frontend-изменениям при наличии валидного backend build; release требует полного build. Linux Electron smoke не заменяет Windows installer, watcher и реальную Dota GSI проверку.
 
 После проверки: `git diff --check`, просмотр финального diff и untracked files. Логи, SQLite, записи матчей и локальные результаты не коммитить. Отчёт должен отличать passed, failed, skipped и unrun проверки. Portable runner и version gate: [DEV_RUNNER.md](DEV_RUNNER.md); `python scripts/dev.py check --changed --dry-run` показывает текущие пути, profiles, argv и cwd. Actual Electron smoke и local D1 harness уже существуют; их границы описаны выше.
+
+## Проверить исправление на записи (0.53.58)
+
+`backend/scripts/replay_check.py` прогоняет четыре очищенных синтетических матча — керри (Juggernaut), мид (Shadow Fiend), оффлейн (Axe), саппорт (Crystal Maiden) — через весь живой путь (`/gsi` → `/overlay/recommendation`, часы планировщика = часы игры) и сравнивает показанные советы и подсказки карты с принятыми результатами в `backend/tests/replay_golden/<case>.json`. Строка результата — `MM:SS DECISION_POINT mode`: что и когда показано, без формулировки, поэтому правка текста не считается изменением поведения. Перед каждым кейсом состояние приложения сбрасывается как в `tests/conftest.py`, результат не зависит от порядка.
+
+```
+cd backend
+python scripts/replay_check.py                      # все кейсы, разница с принятыми
+python scripts/replay_check.py --case offlane_axe --text   # с текстом карточек
+python scripts/replay_check.py --update             # принять новое поведение (дифф — в PR)
+```
+
+`tests/test_replay_golden.py` запускает все кейсы (~35 с) и при расхождении печатает добавленные и пропавшие строки и команду для воспроизведения. Изменение live-правил, планировщика, decision points или подсказок карты требует этого теста; намеренное изменение поведения обновляет эталоны в том же PR.
