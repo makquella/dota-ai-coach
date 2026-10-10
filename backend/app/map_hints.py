@@ -680,6 +680,8 @@ def next_timer(clock: int, role: str | None, lang: str) -> dict[str, Any] | None
         "title": event["uk" if uk else "en"],
         "hint": event.get("hint_uk" if uk else "hint_en") or "",
         "speak": bool(event.get("speak")),
+        # Spoken in English when Windows has no Ukrainian voice (overlay/voice.js).
+        "title_en": event["en"],
         "minor": bool(event.get("minor")),
         "patch": data.get("patch"),
     }
@@ -791,6 +793,7 @@ class RoleTips:
             seconds=self._shown[f"{key}:seconds"],
         )
         tip["speak"] = True
+        tip["title_en"] = TIPS[f"missing_{missing['kind']}"]["en"][0].format(hero=missing["hero"])
         return tip
 
     def tip(

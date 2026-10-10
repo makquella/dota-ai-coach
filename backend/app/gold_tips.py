@@ -236,5 +236,7 @@ def _hint(
         "title": title.format(**params),
         "hint": text.format(**params),
         "speak": True,
+        # Spoken in English when Windows has no Ukrainian voice (overlay/voice.js).
+        "title_en": TEXTS[key]["en"][0].format(**params),
         "over_plan": over_plan,
     }

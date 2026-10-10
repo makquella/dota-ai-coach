@@ -123,6 +123,9 @@ def test_overlay_shows_the_plan_only_early_and_while_the_card_is_free(client, tm
     early = client.get("/overlay/recommendation?lang=uk").json()
     assert early["recommendation"] is None
     assert early["game_plan"]["title"] == "План на гру"
+    # Read in English on a Windows without a Ukrainian voice.
+    english = client.get("/overlay/recommendation?lang=en").json()["game_plan"]
+    assert early["game_plan"]["lines_en"] == english["lines"] and "lines_en" not in english
 
     client.post("/gsi", json=_gsi_at(80))
     assert "game_plan" in client.get("/overlay/recommendation").json()

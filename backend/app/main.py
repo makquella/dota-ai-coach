@@ -587,9 +587,14 @@ def _game_plan_for_overlay(response: dict[str, object], lang: str) -> dict[str, 
         return None
     try:
         role = _live_role(state)
-        return PLAYER_SERVICE.game_plan(
-            str(state.get("hero") or ""), lang, role.get("role") if role else None
-        )
+        hero, role_name = str(state.get("hero") or ""), role.get("role") if role else None
+        plan = PLAYER_SERVICE.game_plan(hero, lang, role_name)
+        if plan is not None and lang != "en":
+            # Spoken in English when Windows has no Ukrainian voice (overlay/voice.js).
+            english = PLAYER_SERVICE.game_plan(hero, "en", role_name)
+            if english is not None:
+                plan = {**plan, "lines_en": english["lines"]}
+        return plan
     except Exception as error:  # noqa: BLE001 - never breaks the live path
         record_error("game-plan", error)
         return None

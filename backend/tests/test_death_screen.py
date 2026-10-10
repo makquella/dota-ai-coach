@@ -72,6 +72,10 @@ def test_the_live_card_while_dead(client):
     card = body["death_screen"]
     assert card["title"] == "Відродження через 20 с"
     assert "Готово, але не натиснуто: Black King Bar" in card["lines"][0]
+    # The same card in English for a Windows without a Ukrainian voice.
+    assert "Black King Bar" in card["lines_en"][0] and len(card["lines_en"]) == len(card["lines"])
+    english = client.get("/overlay/recommendation?lang=en").json()["death_screen"]
+    assert english["lines"] == card["lines_en"] and "lines_en" not in english
 
 
 def _dead_client(client):

@@ -118,15 +118,20 @@ class RoshanTimer:
             expires = self.aegis_at + cfg["aegis"]
             if expires - cfg["warn"] <= clock <= expires:
                 title, hint = TEXT["aegis"][lang]
-                return _timer(
+                timer = _timer(
                     "aegis", expires, clock, title.format(left=expires - clock), hint, speak=True
                 )
+                timer["title_en"] = TEXT["aegis"]["en"][0].format(left=expires - clock)
+                return timer
         if self.killed_at is not None:
             opens, closes = self.killed_at + cfg["min"], self.killed_at + cfg["max"]
             if opens - cfg["lead"] <= clock <= opens + cfg["grace"]:
                 title, hint = TEXT["window"][lang]
                 text = hint.format(at=clock_label(opens), until=clock_label(closes))
-                return _timer("roshan_window", opens, clock, title, text, speak=True)
+                timer = _timer("roshan_window", opens, clock, title, text, speak=True)
+                # Spoken in English when Windows has no Ukrainian voice (overlay/voice.js).
+                timer["title_en"] = TEXT["window"]["en"][0]
+                return timer
             if closes <= clock <= closes + cfg["grace"]:
                 title, hint = TEXT["alive"][lang]
                 return _timer("roshan_up", closes, clock, title, hint, speak=False)

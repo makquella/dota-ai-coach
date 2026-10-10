@@ -325,6 +325,8 @@ def _hint(key: str, hint_id: str, lang: str, **params: Any) -> dict[str, Any]:
         "title": title.format(**params),
         "hint": text.format(**params),
         "speak": True,
+        # Spoken in English when Windows has no Ukrainian voice (overlay/voice.js).
+        "title_en": TEXTS[key]["en"][0].format(**params),
         # Kept on the overlay over the game plan (overlay/app.js).
         "over_plan": True,
     }
