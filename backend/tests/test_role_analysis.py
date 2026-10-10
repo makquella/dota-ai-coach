@@ -99,7 +99,7 @@ def test_offlane_building_damage_against_the_enemy_offlaner():
     assert block["tower_damage"] == 800 and block["enemy_tower_damage"] == 5200
     assert [f["id"] for f in findings] == ["towers_behind"]
     assert render_finding(findings[0], "uk")["text"].startswith(
-        "800 шкоди по будівлях у вас проти 5200 у Mars"
+        "800 шкоди будівлям у вас проти 5200 у Mars"
     )
     lineup["players"][7]["tower_damage"] = 2400  # 2× but a small gap: nothing
     assert analyze_role(_facts(stuns=30, tower_damage=800), lineup, "offlane")[1] == []

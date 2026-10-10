@@ -30,9 +30,9 @@ SITE = ROOT / "site"
 BASE = "https://luhovyimvp.dev"
 sys.path.insert(0, str(ROOT / "backend"))
 
-from app.advice_context import LH_RANGE_POINTS
-from app.hero_profiles import POSITION_PACE
-from app.live_tools import USABLE_SAFETY
+from app.advice_context import LH_RANGE_POINTS  # noqa: E402 - after the backend path
+from app.hero_profiles import POSITION_PACE  # noqa: E402
+from app.live_tools import USABLE_SAFETY  # noqa: E402
 
 ASSET_VERSION = "9"
 POSITIONS = ("carry", "mid", "offlane", "support")
@@ -41,21 +41,51 @@ POSITION_NAMES = {
     "en": {"carry": "Carry", "mid": "Mid", "offlane": "Offlane", "support": "Support"},
 }
 ARCHETYPES = {
-    "hard_scaling_farmer": ("керрі, що фармить і розкривається в пізній грі", "a farming carry who comes online late"),
-    "tempo_fighting_carry": ("керрі, який рано починає битися", "a carry who starts fighting early"),
-    "ranged_carry": ("керрі далекого бою, якому важлива позиція", "a ranged carry who lives by positioning"),
+    "hard_scaling_farmer": (
+        "керрі, що фармить і розкривається в пізній грі",
+        "a farming carry who comes online late",
+    ),
+    "tempo_fighting_carry": (
+        "керрі, який рано починає битися",
+        "a carry who starts fighting early",
+    ),
+    "ranged_carry": (
+        "керрі далекого бою, якому важлива позиція",
+        "a ranged carry who lives by positioning",
+    ),
     "durable_tempo_core": ("живучий кор, який задає темп", "a durable core who sets the tempo"),
     "mobile_tempo_mid": ("рухливий мідер, який грає від темпу", "a mobile mid who plays for tempo"),
-    "ranged_tempo_mid": ("мідер далекого бою, який грає від темпу", "a ranged mid who plays for tempo"),
+    "ranged_tempo_mid": (
+        "мідер далекого бою, який грає від темпу",
+        "a ranged mid who plays for tempo",
+    ),
     "frontline_initiator": ("хардлайнер, який починає бійки", "an offlaner who starts the fights"),
-    "fragile_hard_support": ("крихкий саппорт п'ятої позиції, якому найважливіша позиція", "a fragile hard support who lives by positioning"),
-    "disable_support": ("саппорт із контролем, який вирішує, кого спіймати", "a support with disables who decides who gets caught"),
+    "fragile_hard_support": (
+        "крихкий саппорт п'ятої позиції, якому найважливіша позиція",
+        "a fragile hard support who lives by positioning",
+    ),
+    "disable_support": (
+        "саппорт із контролем, який вирішує, кого спіймати",
+        "a support with disables who decides who gets caught",
+    ),
     "save_support": ("саппорт, який рятує своїх", "a support who saves the team"),
-    "fight_support": ("саппорт, який виграє бійки одним закляттям", "a support whose one spell wins fights"),
-    "durable_support": ("живучий саппорт, який може стояти попереду", "a durable support who can stand in front"),
+    "fight_support": (
+        "саппорт, який виграє бійки одним закляттям",
+        "a support whose one spell wins fights",
+    ),
+    "durable_support": (
+        "живучий саппорт, який може стояти попереду",
+        "a durable support who can stand in front",
+    ),
     "roaming_support": ("саппорт четвертої позиції, який ходить мапою", "a roaming soft support"),
-    "roaming_initiator": ("саппорт четвертої позиції, який починає бійки", "a soft support who starts the fights"),
-    "fragile_nuker": ("крихкий саппорт, який завдає багато шкоди здалеку", "a fragile support who deals damage from range"),
+    "roaming_initiator": (
+        "саппорт четвертої позиції, який починає бійки",
+        "a soft support who starts the fights",
+    ),
+    "fragile_nuker": (
+        "крихкий саппорт, який завдає багато шкоди здалеку",
+        "a fragile support who deals damage from range",
+    ),
 }
 # The profile's note in Ukrainian (the profile keeps it in English); a few English
 # notes written for the coach are reworded for players here.
@@ -144,7 +174,9 @@ def load_profiles() -> list[dict]:
 
 
 def portrait_keys() -> dict[str, str]:
-    text = (ROOT / "frontend" / "launcher" / "renderer" / "dota-data.js").read_text(encoding="utf-8")
+    text = (ROOT / "frontend" / "launcher" / "renderer" / "dota-data.js").read_text(
+        encoding="utf-8"
+    )
     data = json.loads(text[text.index("=") + 1 : text.rindex(";")])
     return {name: key for name, key in data["heroes"].values()}
 
@@ -161,9 +193,18 @@ def saves(profile: dict) -> list[str]:
 
 def pace_rows(profile: dict, position: str) -> list[tuple[int, int, int]]:
     """Last hits by minute: the profile's lane targets, then the carry pace scaled by position."""
-    rows = [(int(m), low, high) for m, (low, high) in sorted(profile["laning_expected_lh"].items(), key=lambda kv: int(kv[0]))]
+    rows = [
+        (int(m), low, high)
+        for m, (low, high) in sorted(
+            profile["laning_expected_lh"].items(), key=lambda kv: int(kv[0])
+        )
+    ]
     factor = POSITION_PACE.get(position, 1.0)
-    rows += [(m, round(low * factor), round(high * factor)) for m, low, high in LH_RANGE_POINTS if m > rows[-1][0]]
+    rows += [
+        (m, round(low * factor), round(high * factor))
+        for m, low, high in LH_RANGE_POINTS
+        if m > rows[-1][0]
+    ]
     return rows
 
 
@@ -216,14 +257,32 @@ def with_hero_lists(page: str, all_heroes: list[dict]) -> str:
         if not count:
             raise SystemExit(f"heroes.html: no list for {position}")
         page = re.sub(
-            rf'(id="heroes-{position}">.*?</span> · )\d+(</h3>)', rf"\g<1>{len(group)}\2", page, count=1, flags=re.DOTALL
+            rf'(id="heroes-{position}">.*?</span> · )\d+(</h3>)',
+            rf"\g<1>{len(group)}\2",
+            page,
+            count=1,
+            flags=re.DOTALL,
         )
     return page
 
 
 # --- Ukrainian HTML → static English page --------------------------------------------
 
-VOID = {"area", "base", "br", "col", "embed", "hr", "img", "input", "link", "meta", "source", "track", "wbr"}
+VOID = {
+    "area",
+    "base",
+    "br",
+    "col",
+    "embed",
+    "hr",
+    "img",
+    "input",
+    "link",
+    "meta",
+    "source",
+    "track",
+    "wbr",
+}
 
 
 def _english_url(url: str, depth: int) -> str:
@@ -259,7 +318,9 @@ class _Translator(HTMLParser):
             parts.append(name if value is None else f'{name}="{html.escape(value, quote=True)}"')
         return "<" + " ".join(parts) + (" />" if close else ">")
 
-    def _rewrite(self, tag: str, attrs: list[tuple[str, str | None]]) -> tuple[list, str | None, bool]:
+    def _rewrite(
+        self, tag: str, attrs: list[tuple[str, str | None]]
+    ) -> tuple[list, str | None, bool]:
         """(attributes, replacement content, is html) for one start tag."""
         a = dict(attrs)
         depth = self.page["depth"]
@@ -274,10 +335,18 @@ class _Translator(HTMLParser):
             new.append((name, value))
         if tag == "html":
             new = [(n, v) for n, v in new if n not in ("lang", "data-static", "data-alt-en")]
-            new = [("lang", "en"), ("data-static", "en"), ("data-alt-uk", self.page["alt_uk"])] + new
+            new = [
+                ("lang", "en"),
+                ("data-static", "en"),
+                ("data-alt-uk", self.page["alt_uk"]),
+            ] + new
         if tag == "meta":
             if a.get("name") == "description" or a.get("property") in ("og:description",):
-                key = self.page["description"] if a.get("name") == "description" else self.page["og_description"]
+                key = (
+                    self.page["description"]
+                    if a.get("name") == "description"
+                    else self.page["og_description"]
+                )
                 new = [(n, self.text(key) if n == "content" else v) for n, v in new]
             elif a.get("property") == "og:title":
                 new = [(n, self.text(self.page["title"]) if n == "content" else v) for n, v in new]
@@ -350,7 +419,11 @@ class _Translator(HTMLParser):
             ld["url"] = self.page["url"]
             ld["inLanguage"] = "en"
             ld["alternateName"] = "Wardly — a Dota 2 coach"
-            data = "\n    " + json.dumps(ld, ensure_ascii=False, indent=2).replace("\n", "\n    ") + "\n    "
+            data = (
+                "\n    "
+                + json.dumps(ld, ensure_ascii=False, indent=2).replace("\n", "\n    ")
+                + "\n    "
+            )
         self.out.append(data)
 
     def handle_entityref(self, name):
@@ -383,14 +456,19 @@ def english_page(source: str, en: dict[str, str], page: dict) -> str:
 T = {
     "uk": {
         "skip": "Перейти до вмісту",
-        "nav": [("#ingame", "У грі"), ("#how", "Як це працює"), ("#review", "Розбір"), ("#profile", "Профіль")],
+        "nav": [
+            ("#ingame", "У грі"),
+            ("#how", "Як це працює"),
+            ("#review", "Розбір"),
+            ("#profile", "Профіль"),
+        ],
         "heroes": "Герої",
         "faq": "Запитання",
         "download": "Завантажити",
         "download_long": "Завантажити для Windows",
         "lang": "Мова",
         "title": "{name} у Dota 2: скільки добивати й коли відходити — Wardly",
-        "description": "{name} ({position}): темп добивань по хвилинах, коли відходити й чим рятуватися — цифри, за якими безкоштовний тренер Wardly підказує просто в матчі.",
+        "description": "{name} ({position}): темп добивань за хвилинами, коли відходити й чим рятуватися — цифри, за якими безкоштовний тренер Wardly підказує просто в матчі.",
         "lead": "{name} — {archetype}. Нижче цифри, за якими Wardly підказує на цьому герої просто в матчі: скільки добивати, коли відходити й чим рятуватися.",
         "pace_title": "Темп добивань",
         "pace_minute": "Хвилина",
@@ -442,7 +520,12 @@ T = {
     },
     "en": {
         "skip": "Skip to content",
-        "nav": [("#ingame", "In game"), ("#how", "How it works"), ("#review", "Review"), ("#profile", "Profile")],
+        "nav": [
+            ("#ingame", "In game"),
+            ("#how", "How it works"),
+            ("#review", "Review"),
+            ("#profile", "Profile"),
+        ],
         "heroes": "Heroes",
         "faq": "FAQ",
         "download": "Download",
@@ -518,7 +601,11 @@ def hero_page(hero: dict, all_heroes: list[dict], lang: str) -> str:
     uk_url = f"{BASE}/heroes/{hero['slug']}.html"
     en_url = f"{BASE}/en/heroes/{hero['slug']}.html"
     url = uk_url if lang == "uk" else en_url
-    alt = f'data-alt-en="../en/heroes/{hero["slug"]}.html"' if lang == "uk" else f'data-alt-uk="../../heroes/{hero["slug"]}.html"'
+    alt = (
+        f'data-alt-en="../en/heroes/{hero["slug"]}.html"'
+        if lang == "uk"
+        else f'data-alt-uk="../../heroes/{hero["slug"]}.html"'
+    )
     position_name = POSITION_NAMES[lang][position]
     archetype = ARCHETYPES[profile["archetype"]][0 if lang == "uk" else 1]
     title = t["title"].format(name=name)
@@ -528,26 +615,41 @@ def hero_page(hero: dict, all_heroes: list[dict], lang: str) -> str:
         note = note[0].lower() + note[1:]  # after «Порада тренера:», unless it starts with a name
 
     rows = "\n".join(
-        f"                  <tr><td>{minute}:00</td><td>{low}–{high}</td></tr>" for minute, low, high in hero["pace"]
+        f"                  <tr><td>{minute}:00</td><td>{low}–{high}</td></tr>"
+        for minute, low, high in hero["pace"]
     )
-    survive = [t["hp"].format(low=profile["low_hp_warning_threshold"], critical=profile["critical_hp_threshold"])]
+    survive = [
+        t["hp"].format(
+            low=profile["low_hp_warning_threshold"], critical=profile["critical_hp_threshold"]
+        )
+    ]
     survive.append(
-        t["saves"].format(saves=", ".join(hero["saves"])) if hero["saves"] else t["no_saves"].format(items=FALLBACK_SAVES)
+        t["saves"].format(saves=", ".join(hero["saves"]))
+        if hero["saves"]
+        else t["no_saves"].format(items=FALLBACK_SAVES)
     )
     if profile.get("survival_resource") == "mana":
         survive.append(t["mana"].format(mana=profile["mana_warning_threshold"]))
-    checks = lambda items: "\n".join(
-        f'                  <li><svg class="i" aria-hidden="true"><use href="#i-check" /></svg><span>{e(item)}</span></li>'
-        for item in items
-    )
-    fight = [t["fight"].format(abilities=", ".join(profile["key_fight_abilities"])), t["note"].format(note=note)]
+
+    def checks(items: list[str]) -> str:
+        return "\n".join(
+            f'                  <li><svg class="i" aria-hidden="true"><use href="#i-check" /></svg><span>{e(item)}</span></li>'
+            for item in items
+        )
+
+    fight = [
+        t["fight"].format(abilities=", ".join(profile["key_fight_abilities"])),
+        t["note"].format(note=note),
+    ]
     more = t["more"][position] + [t["after"]]
     others = "\n".join(
         f'            <a class="chip" href="{h["slug"]}.html"><img src="{up}assets/heroes/{h["key"]}.webp" alt="" width="256" height="144" loading="lazy" />{e(h["name"])}</a>'
         for h in all_heroes
         if h["position"] == position and h is not hero
     )
-    nav = "\n".join(f'          <a href="{home}{anchor}">{e(label)}</a>' for anchor, label in t["nav"])
+    nav = "\n".join(
+        f'          <a href="{home}{anchor}">{e(label)}</a>' for anchor, label in t["nav"]
+    )
     download = "https://github.com/makquella/dota-ai-coach/releases/latest"
     return f"""<!doctype html>
 <html lang="{lang}" data-static="{lang}" {alt}>
@@ -722,7 +824,9 @@ def sitemap(all_heroes: list[dict]) -> str:
 
 
 def shots_version() -> str:
-    match = re.search(r'const SHOTS_VERSION = "(\d+)"', (SITE / "app.js").read_text(encoding="utf-8"))
+    match = re.search(
+        r'const SHOTS_VERSION = "(\d+)"', (SITE / "app.js").read_text(encoding="utf-8")
+    )
     return match.group(1) if match else "1"
 
 
@@ -736,14 +840,28 @@ def build() -> dict[Path, str]:
     files[SITE / "en" / "index.html"] = english_page(
         (SITE / "index.html").read_text(encoding="utf-8"),
         en,
-        {"depth": 1, "alt_uk": "../", "url": f"{BASE}/en/", "title": "title", "description": "metaDescription",
-         "og_description": "ogDescription", "shots": shots},
+        {
+            "depth": 1,
+            "alt_uk": "../",
+            "url": f"{BASE}/en/",
+            "title": "title",
+            "description": "metaDescription",
+            "og_description": "ogDescription",
+            "shots": shots,
+        },
     )
     files[SITE / "en" / "heroes.html"] = english_page(
         heroes_uk,
         en,
-        {"depth": 1, "alt_uk": "../heroes.html", "url": f"{BASE}/en/heroes.html", "title": "heroesPageTitle",
-         "description": "heroesMetaDescription", "og_description": "heroesOgDescription", "shots": shots},
+        {
+            "depth": 1,
+            "alt_uk": "../heroes.html",
+            "url": f"{BASE}/en/heroes.html",
+            "title": "heroesPageTitle",
+            "description": "heroesMetaDescription",
+            "og_description": "heroesOgDescription",
+            "shots": shots,
+        },
     )
     for hero in all_heroes:
         files[SITE / "heroes" / f"{hero['slug']}.html"] = hero_page(hero, all_heroes, "uk")
@@ -754,13 +872,19 @@ def build() -> dict[Path, str]:
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
-    parser.add_argument("--check", action="store_true", help="fail when a generated file is out of date")
+    parser.add_argument(
+        "--check", action="store_true", help="fail when a generated file is out of date"
+    )
     args = parser.parse_args()
     files = build()
     generated_dirs = [SITE / "heroes", SITE / "en" / "heroes"]
     stray = [p for d in generated_dirs if d.exists() for p in d.glob("*.html") if p not in files]
     if args.check:
-        stale = [p for p, text in files.items() if not p.exists() or p.read_text(encoding="utf-8") != text]
+        stale = [
+            p
+            for p, text in files.items()
+            if not p.exists() or p.read_text(encoding="utf-8") != text
+        ]
         if stale or stray:
             for path in stale:
                 print(f"out of date: {path.relative_to(ROOT)}")

@@ -46,7 +46,7 @@ const OVERLAY_TEXT = {
     waitingBackend: "Запускаємо тренера…",
     backendStopped: "Тренера зупинено: відкрийте Wardly, щоб запустити.",
     waitingGsi: "Чекаємо, поки Dota 2 підключиться…",
-    waitingGsiShort: "Чекаємо дані гри…",
+    waitingGsiShort: "Чекаємо на дані гри…",
     monitoring: "Стежимо за лінією — термінових порад немає.",
     unsupportedHero: "Цей герой поки не підтримується.",
     invalidState: "Чекаємо коректні дані гри…",
@@ -123,6 +123,7 @@ async function init() {
     speaker?.say({
       key: lastAdviceKey,
       text: data.recommendation.action,
+      fallbackText: data.recommendation.action_en,
       adviceMode: data.advice_mode,
       mode: config.voice,
       locale: config.locale,
@@ -369,6 +370,7 @@ function renderAdvice(data, options = { refreshTimer: true }) {
     speaker.say({
       key,
       text: recommendation.action,
+      fallbackText: recommendation.action_en,
       adviceMode,
       mode: config.voice,
       locale: config.locale,

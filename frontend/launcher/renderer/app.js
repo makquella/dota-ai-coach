@@ -51,6 +51,7 @@ const els = {
   voiceButtons: [...document.querySelectorAll("#voice-group [data-voice]")],
   voiceHint: $("#voice-hint"),
   voiceTest: $("#voice-test"),
+  voiceSettings: $("#voice-settings"),
   moveToggle: $("#move-toggle"),
   moveLabel: $("#move-label"),
   moveHint: $("#move-hint"),
@@ -400,6 +401,7 @@ async function init() {
     );
   }
   els.voiceTest.addEventListener("click", () => run(testVoice));
+  els.voiceSettings.addEventListener("click", () => run(() => window.launcherApi.openSpeechSettings()));
   window.speechSynthesis?.addEventListener?.("voiceschanged", () => renderVoiceHint(lastVoice));
   els.moveToggle.addEventListener("click", () =>
     run(async () => {
@@ -1636,22 +1638,30 @@ function renderOverlaySettings(status) {
   renderUpdate(status);
 }
 
-// The overlay speaks with the system voices; the panel only checks that one
-// exists for the UI language and plays a sample.
-function systemVoice() {
+// The overlay speaks with the system voices; the panel checks which one it
+// will use (the UI language, else English with the English original) and
+// plays a sample.
+function systemSpeech() {
   return window.OverlayVoice && window.speechSynthesis
-    ? window.OverlayVoice.pickVoice(window.speechSynthesis.getVoices(), locale)
+    ? window.OverlayVoice.speechChoice(
+        window.speechSynthesis.getVoices(),
+        locale,
+        tr("voiceSample"),
+        lookup(I18N.en, "voiceSample")
+      )
     : null;
 }
 
 function renderVoiceHint(voice) {
   const mode = voice?.mode || "off";
-  const found = systemVoice();
-  if (mode !== "off" && !found && voiceListLoaded()) {
-    els.voiceHint.textContent = tr("voiceNoVoice");
+  const choice = systemSpeech();
+  const missing = mode !== "off" && voiceListLoaded() && (!choice || choice.fallback);
+  els.voiceSettings.classList.toggle("hidden", !missing);
+  if (missing) {
+    els.voiceHint.textContent = choice ? tr("voiceEnglishFallback", choice.voice.name) : tr("voiceNoVoice");
     return;
   }
-  els.voiceHint.textContent = [tr(`voiceHint.${mode}`), mode !== "off" && found ? found.name : ""]
+  els.voiceHint.textContent = [tr(`voiceHint.${mode}`), mode !== "off" && choice ? choice.voice.name : ""]
     .filter(Boolean)
     .join(" · ");
 }
@@ -1663,13 +1673,15 @@ function voiceListLoaded() {
 }
 
 function testVoice() {
-  const voice = systemVoice();
-  if (!voice) {
+  const choice = systemSpeech();
+  if (!choice) {
     voiceListChecked = true;
     els.voiceHint.textContent = tr("voiceNoVoice");
+    els.voiceSettings.classList.remove("hidden");
     return;
   }
-  const utterance = new window.SpeechSynthesisUtterance(tr("voiceSample"));
+  const { voice } = choice;
+  const utterance = new window.SpeechSynthesisUtterance(choice.text);
   utterance.voice = voice;
   utterance.lang = voice.lang;
   utterance.volume = Number(lastVoice.volume ?? 1);

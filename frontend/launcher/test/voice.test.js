@@ -1,7 +1,7 @@
 const assert = require("node:assert/strict");
 const test = require("node:test");
 
-const { createSpeaker, pickVoice, speechText, wantsSpeech } = require("../overlay/voice");
+const { createSpeaker, pickVoice, speechChoice, speechText, wantsSpeech } = require("../overlay/voice");
 
 const VOICES = [
   { name: "Microsoft David", lang: "en-US", localService: true },
@@ -84,6 +84,27 @@ test("urgent-only mode ignores tips; no voice for the language is reported", () 
   synth.getVoices = () => VOICES.slice(0, 1);
   assert.equal(voice.say({ key: "b", text: "Відходьте", adviceMode: "urgent", mode: "urgent", locale: "uk" }), "no_voice");
   assert.equal(synth.spoken.length, 0);
+});
+
+test("without a Ukrainian voice the English original is read by an English voice", () => {
+  const synth = fakeSynth();
+  synth.getVoices = () => VOICES.slice(0, 1);
+  const voice = speaker(synth, { t: 0 });
+  const said = voice.say({
+    key: "a",
+    text: "Відходьте зараз",
+    fallbackText: "Back off now",
+    adviceMode: "urgent",
+    mode: "urgent",
+    locale: "uk"
+  });
+  assert.equal(said, "spoken_en");
+  assert.equal(synth.spoken[0].text, "Back off now");
+  assert.equal(synth.spoken[0].lang, "en-US");
+  // With a Ukrainian voice the Ukrainian text wins; English never falls back.
+  assert.deepEqual(speechChoice(VOICES, "uk", "Відходьте", "Back off").text, "Відходьте");
+  assert.equal(speechChoice(VOICES.slice(1), "en", "Back off", "Back off"), null);
+  assert.equal(speechChoice(VOICES.slice(0, 1), "uk", "Відходьте", ""), null);
 });
 
 test("a repeat asked by the player is spoken again at once, but never when the voice is off", () => {

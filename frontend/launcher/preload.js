@@ -78,6 +78,7 @@ contextBridge.exposeInMainWorld("launcherApi", {
   previewProblemReport: () => ipcRenderer.invoke("launcher:preview-problem-report"),
   sendProblemReport: (note) => ipcRenderer.invoke("launcher:send-problem-report", note),
   openPrivacy: () => ipcRenderer.invoke("launcher:open-privacy"),
+  openSpeechSettings: () => ipcRenderer.invoke("launcher:open-speech-settings"),
   openSimulationResults: () => ipcRenderer.invoke("launcher:open-simulation-results"),
   openSessionRecords: () => ipcRenderer.invoke("launcher:open-session-records"),
   openReadme: () => ipcRenderer.invoke("launcher:open-readme"),
