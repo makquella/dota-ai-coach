@@ -12,8 +12,7 @@ from typing import Any
 import pytest
 from fastapi.testclient import TestClient
 
-from app import gsi_state
-from app.gsi_snapshot import GSIRegister
+from app import gsi_state, main
 
 
 def _packet(hero: str = "juggernaut", last_hits: int = 40) -> dict[str, Any]:
@@ -171,7 +170,8 @@ def test_concurrent_http_reset_waits_for_writer_and_then_clears_complete_context
             sys.settrace(None)
             entered.set()
             assert release.wait(5)
-        elif event == "call" and frame.f_code is GSIRegister.reset.__code__:
+        elif event == "call" and frame.f_code is main.reset_session.__code__:
+            # The reset then waits on the outer live operation (live_operation.py).
             sys.settrace(None)
             reset_entered.set()
         return None

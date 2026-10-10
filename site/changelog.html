@@ -98,6 +98,15 @@
       <article data-doc="ru" lang="ru">
         <h1>Что нового</h1>
         <p class="doc-updated">Все версии Wardly. Установленное приложение обновляется само, когда Дота закрыта.</p>
+<section class="release" id="v0.53.60">
+<h2><a href="#v0.53.60">Версия 0.53.60</a></h2>
+<ul>
+  <li><strong>Целые живые операции.</strong> Обработка пакета игры, выбор совета для оверлея и сброс сессии теперь выполняются целиком, по одной за раз: опрос оверлея ждёт, пока пакет закончит обновлять память матча, а сброс не попадёт в середину выбора совета.</li>
+  <li><strong>Запись не тормозит игру.</strong> Журнал советов и запись матча пишутся на диск уже после выбора совета, вне общей блокировки, поэтому медленный диск не задерживает следующий пакет.</li>
+  <li><strong>Проверено тестами.</strong> Новые тесты останавливают пакет посреди обработки и проверяют, что опрос и сброс дожидаются его, а журнал пишется без блокировки.</li>
+</ul>
+<p class="release-link"><a href="https://github.com/makquella/dota-ai-coach/releases/tag/v0.53.60" rel="noopener">Скачать и подробности</a></p>
+</section>
 <section class="release" id="v0.53.59">
 <h2><a href="#v0.53.59">Версия 0.53.59</a></h2>
 <ul>
@@ -1363,6 +1372,15 @@
       <article data-doc="en" lang="en" hidden>
         <h1>What's new</h1>
         <p class="doc-updated">Every Wardly version. The installed app updates itself while Dota is closed.</p>
+<section class="release" id="v0.53.60">
+<h2><a href="#v0.53.60">Version 0.53.60</a></h2>
+<ul>
+  <li><strong>Whole live operations:</strong> processing a game packet, choosing overlay advice and resetting the session now run whole, one at a time: an overlay poll waits until a packet finishes updating match memory, and a reset can no longer land in the middle of choosing advice.</li>
+  <li><strong>Recording does not slow the game:</strong> the advice log and the match recording are written to disk after the advice is chosen, outside the shared lock, so a slow disk does not delay the next packet.</li>
+  <li><strong>Tested:</strong> new tests pause a packet mid-processing and check that a poll and a reset wait for it, and that the log is written without the lock.</li>
+</ul>
+<p class="release-link"><a href="https://github.com/makquella/dota-ai-coach/releases/tag/v0.53.60" rel="noopener">Download and details</a></p>
+</section>
 <section class="release" id="v0.53.59">
 <h2><a href="#v0.53.59">Version 0.53.59</a></h2>
 <ul>

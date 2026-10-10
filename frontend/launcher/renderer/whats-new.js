@@ -9,6 +9,9 @@
 
   const TEXT = {
     en: {
+      "0.53.60": [
+        "Live advice is steadier: a game packet, an overlay poll and a session reset no longer interleave, so the overlay never shows advice built from half-updated match state."
+      ],
       "0.53.59": [
         "A long match history opens faster: the match table, filters and Progress read through new indexes, and the Profile reads only what it needs."
       ],
@@ -496,6 +499,9 @@
       ]
     },
     ru: {
+      "0.53.60": [
+        "Живые советы стабильнее: пакет игры, опрос оверлея и сброс сессии больше не перемешиваются, и оверлей не покажет совет, собранный из наполовину обновлённого состояния матча."
+      ],
       "0.53.59": [
         "Большая история матчей открывается быстрее: таблица матчей, фильтры и «Прогресс» читаются по новым индексам, а «Профиль» читает только нужное."
       ],

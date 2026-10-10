@@ -61,6 +61,7 @@ from app.gsi_state import (
 )
 from app.lane_duel import lane_record_for
 from app.live_hints import GoldHintInputs, LiveHintInputs
+from app.live_operation import live_operation
 from app.live_path_metrics import LIVE_PATH_METRICS
 from app.live_role import SETTINGS as ROLE_SETTINGS
 from app.live_role import lane_of, role_setting, set_role_setting
@@ -119,7 +120,7 @@ app = LocalApiApp(
     lifespan=_lifespan,
     title="Wardly",
     description="MVP-1: rule-based carry coach with local knowledge-base RAG.",
-    version="0.53.59",
+    version="0.53.60",
 )
 app.include_router(player_router)
 
@@ -155,7 +156,7 @@ if _DEBUG_PAGES is not None:
 @app.get("/", summary="Health check")
 def root():
     """Simple health-check endpoint."""
-    return {"status": "ok", "service": "Wardly", "version": "0.53.59"}
+    return {"status": "ok", "service": "Wardly", "version": "0.53.60"}
 
 
 @app.get("/health", summary="Health check")
@@ -308,7 +309,7 @@ def _receive_gsi_payload(payload: dict[str, Any]) -> dict[str, Any]:
     # This entire path (including census, SQLite and recording) runs off ASGI.
     with LIVE_PATH_METRICS.measure("gsi.prepare"):
         prior = _prepare_gsi_prior(payload)
-    with LIVE_PATH_METRICS.measure("gsi.policy"):
+    with LIVE_PATH_METRICS.measure("gsi.policy"), live_operation():
         result = update_latest_gsi(
             payload, enrich=lambda state: _observe_live_gsi(state, prior=prior)
         )
@@ -361,7 +362,7 @@ def reset_session():
         ADVICE_SCHEDULER.reset()
         COACH_SESSION_HISTORY.reset()
 
-    with _DEMO_OVERLAY_CACHE.resetting():
+    with live_operation(), _DEMO_OVERLAY_CACHE.resetting():
         reset_latest_gsi(reset_context)
     return {
         "status": "ok",
@@ -624,6 +625,58 @@ def _post_game_for_overlay(response: dict[str, object], lang: str) -> dict[str, 
 
 
 def _overlay_recommendation_payload() -> dict[str, object]:
+    # The decision runs whole against one snapshot and its MatchMemory/scheduler
+    # (live_operation.py); the advice log and the review note are written after.
+    with live_operation():
+        decided = _overlay_decision()
+        if isinstance(decided, dict):
+            return decided
+        current, state, request, decision_point, scheduled, rag_context = decided
+        response = _overlay_response(
+            scheduled, current["timestamp"], None, state, record_history=False
+        )
+        COACH_SESSION_HISTORY.record_overlay_advice(response, state)
+    if scheduled.new_advice and scheduled.recommendation is not None:
+        log_filename = _recommendation_log_filename(
+            request=request,
+            rag_context=rag_context,
+            response=scheduled.recommendation,
+            decision_point=decision_point,
+            provider=scheduled.source,
+            fallback_reason="overlay_fallback_first" if scheduled.source == "fallback" else None,
+        )
+        # The post-match review lists the advice given in this match.
+        try:
+            extra = (
+                state.get("extra_context") if isinstance(state.get("extra_context"), dict) else {}
+            )
+            PLAYER_SERVICE.note_live_advice(
+                extra.get("clock_time"),
+                decision_point,
+                scheduled.recommendation.action,
+                scheduled.recommendation.reason,
+                scheduled.advice_mode,
+            )
+        except Exception as error:  # noqa: BLE001 - never breaks the live path
+            record_error("advice-note", error)
+        if log_filename:
+            response["log_file"] = log_filename
+    _record_advice_files(response, state)
+    return response
+
+
+def _record_advice_files(response: dict[str, object], state: dict[str, object]) -> None:
+    """The debug session recording and the match recording (disk; outside the
+    live operation)."""
+    LIVE_SESSION_RECORDER.record_advice(response, state)
+    extra = state.get("extra_context")
+    MATCH_RECORDS.record_advice(
+        {**response, "clock_time": extra.get("clock_time") if isinstance(extra, dict) else None}
+    )
+
+
+def _overlay_decision() -> dict[str, object] | tuple[Any, ...]:
+    """An early status response, or what the scheduler decided and its inputs."""
     demo_response = _get_demo_overlay_response()
     if demo_response is not None:
         return demo_response
@@ -776,33 +829,7 @@ def _overlay_recommendation_payload() -> dict[str, object]:
         return rag_context
 
     scheduled = ADVICE_SCHEDULER.evaluate(request, decision_point, context)
-
-    log_filename = None
-    if scheduled.new_advice and scheduled.recommendation is not None:
-        log_filename = _recommendation_log_filename(
-            request=request,
-            rag_context=rag_context,
-            response=scheduled.recommendation,
-            decision_point=decision_point,
-            provider=scheduled.source,
-            fallback_reason="overlay_fallback_first" if scheduled.source == "fallback" else None,
-        )
-        # The post-match review lists the advice given in this match.
-        try:
-            extra = (
-                state.get("extra_context") if isinstance(state.get("extra_context"), dict) else {}
-            )
-            PLAYER_SERVICE.note_live_advice(
-                extra.get("clock_time"),
-                decision_point,
-                scheduled.recommendation.action,
-                scheduled.recommendation.reason,
-                scheduled.advice_mode,
-            )
-        except Exception as error:  # noqa: BLE001 - never breaks the live path
-            record_error("advice-note", error)
-
-    return _overlay_response(scheduled, current["timestamp"], log_filename, state)
+    return current, state, request, decision_point, scheduled, rag_context
 
 
 @app.post("/demo/replay-state", summary="Inject one replay-derived state for overlay demo")
@@ -846,8 +873,9 @@ def _demo_replay_payload(payload: dict[str, Any]) -> dict[str, Any]:
     demo_now = datetime(2026, 1, 1, tzinfo=UTC) + timedelta(seconds=timestamp_seconds)
     timestamp = demo_now.isoformat()
 
-    MATCH_MEMORY.observe_state(state)
-    response = _overlay_response_for_state(state, timestamp=timestamp, now=demo_now)
+    with live_operation():
+        MATCH_MEMORY.observe_state(state)
+        response = _overlay_response_for_state(state, timestamp=timestamp, now=demo_now)
     response.update(
         {
             "demo_mode": True,
@@ -1073,11 +1101,7 @@ def _overlay_response(
         response["log_file"] = log_filename
     if record_history:
         COACH_SESSION_HISTORY.record_overlay_advice(response, state or {})
-        LIVE_SESSION_RECORDER.record_advice(response, state or {})
-        extra = (state or {}).get("extra_context")
-        MATCH_RECORDS.record_advice(
-            {**response, "clock_time": extra.get("clock_time") if isinstance(extra, dict) else None}
-        )
+        _record_advice_files(response, state or {})
     return {
         **response,
     }
