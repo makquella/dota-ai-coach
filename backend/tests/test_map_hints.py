@@ -90,8 +90,8 @@ def test_timers_follow_the_patch_data_and_the_role():
         "wisdom_shrine",
         "tormentor",
     }
-    rune = next_timer(6 * 60 - 15, "mid", "ru")
-    assert rune["title"] == "Руна силы" and rune["in_seconds"] == 15 and rune["at_label"] == "6:00"
+    rune = next_timer(6 * 60 - 15, "mid", "uk")
+    assert rune["title"] == "Руна сили" and rune["in_seconds"] == 15 and rune["at_label"] == "6:00"
     assert next_timer(6 * 60 - 15, "carry", "en") is None  # not a carry's business
     assert next_timer(6 * 60 - 25, "mid", "en") is None  # 20 s lead
     shrine = next_timer(14 * 60 - 10, "offlane", "en")
@@ -107,14 +107,14 @@ def test_timers_follow_the_patch_data_and_the_role():
 
 def test_every_event_has_both_languages():
     for event in timers()["events"]:
-        assert event["en"] and event["ru"] and event["hint_en"] and event["hint_ru"], event["id"]
+        assert event["en"] and event["uk"] and event["hint_en"] and event["hint_uk"], event["id"]
         assert set(event["roles"]) <= {"carry", "mid", "offlane", "support"}
 
 
 def test_support_tips_stack_and_wards():
     tips = RoleTips()
-    stack = tips.tip(7 * 60 + 45, "support", alive=True, has_ward=True, lang="ru")
-    assert stack["title"] == "Застакайте лагерь" and stack["at_label"] == "7:53"
+    stack = tips.tip(7 * 60 + 45, "support", alive=True, has_ward=True, lang="uk")
+    assert stack["title"] == "Застакайте табір" and stack["at_label"] == "7:53"
     assert stack["in_seconds"] == 8
     assert tips.tip(7 * 60 + 45, "carry", alive=True, has_ward=False, lang="en") is None
     assert tips.tip(7 * 60 + 45, "support", alive=False, has_ward=False, lang="en") is None
@@ -150,7 +150,7 @@ def _play_until(client, payloads, clock):
         if payload["map"]["clock_time"] > clock:
             break
         client.post("/gsi", json=payload)
-        last = client.get("/overlay/recommendation?lang=ru").json()
+        last = client.get("/overlay/recommendation?lang=uk").json()
     return last
 
 
@@ -167,12 +167,12 @@ def test_live_support_gets_timers_and_tips_through_the_api(client):
     # 6:45: the wisdom shrine is 15 s away.
     rest = [p for p in stream if p["map"]["clock_time"] > 6 * 60 + 30]
     answer = _play_until(client, rest, 6 * 60 + 45)
-    assert answer["map_hint"]["title"] == "Святилище мудрости"
+    assert answer["map_hint"]["title"] == "Святилище мудрості"
     assert answer["map_hint"]["in_seconds"] == 15
     # 7:45: stack the camp (wins over the 8:00 power rune).
     rest = [p for p in stream if p["map"]["clock_time"] > 6 * 60 + 45]
     answer = _play_until(client, rest, 7 * 60 + 45)
-    assert answer["map_hint"]["title"] == "Застакайте лагерь"
+    assert answer["map_hint"]["title"] == "Застакайте табір"
     status = client.get("/gsi/status").json()
     assert status["live_role"]["role"] == "support"
     # Hints off in the launcher: no hint, the role is still there.
@@ -210,8 +210,8 @@ def test_a_carry_hero_played_as_support_gets_no_farm_advice(client):
 def test_tp_and_last_hit_tips():
     tips = RoleTips()
     # Without the carry advisor (a support, a hero outside it) the TP tip shows...
-    tp = tips.tip(900, "offlane", alive=True, has_ward=None, lang="ru", tp_missing=True)
-    assert tp["title"] == "Нет свитка телепортации"
+    tp = tips.tip(900, "offlane", alive=True, has_ward=None, lang="uk", tp_missing=True)
+    assert tp["title"] == "Немає сувою телепортації"
     # ...but the carry advisor has its own TP advice.
     assert (
         RoleTips().tip(
@@ -229,12 +229,12 @@ def test_level_six_tip_for_mid_and_offlane_once_before_minute_twelve():
     tips = RoleTips()
 
     def hint(clock, role="mid", level=6):
-        return map_hint(clock, role, tips, alive=True, has_ward=None, lang="ru", level=level)
+        return map_hint(clock, role, tips, alive=True, has_ward=None, lang="uk", level=level)
 
     # Level 5: nothing yet (the minute is chosen away from any timer).
     assert hint(7 * 60 + 30, level=5) is None
     first = hint(7 * 60 + 31)
-    assert first["id"] == "mid_six@451" and first["title"] == "6-й уровень: время ротации"
+    assert first["id"] == "mid_six@451" and first["title"] == "6-й рівень: час ротації"
     assert hint(7 * 60 + 50)["id"] == "mid_six@451"  # shown for 25 s
     # Then never again this match (a rune timer may still show).
     for clock in (7 * 60 + 58, 9 * 60 + 30):
@@ -260,20 +260,20 @@ def test_level_six_tip_for_mid_and_offlane_once_before_minute_twelve():
 
 def test_mid_last_hit_pace_and_bottle():
     tips = RoleTips()
-    slow = tips.tip(300, "mid", alive=True, has_ward=None, lang="ru", last_hits=14)
-    assert slow["title"] == "14 добиваний к 5:00" and "25+" in slow["hint"]
+    slow = tips.tip(300, "mid", alive=True, has_ward=None, lang="uk", last_hits=14)
+    assert slow["title"] == "14 добивань до 5:00" and "25+" in slow["hint"]
     # The count of the first second stays on the card while it is shown.
-    assert tips.tip(310, "mid", alive=True, has_ward=None, lang="ru", last_hits=16)["title"] == (
-        "14 добиваний к 5:00"
+    assert tips.tip(310, "mid", alive=True, has_ward=None, lang="uk", last_hits=16)["title"] == (
+        "14 добивань до 5:00"
     )
-    assert tips.tip(330, "mid", alive=True, has_ward=None, lang="ru", last_hits=16) is None
+    assert tips.tip(330, "mid", alive=True, has_ward=None, lang="uk", last_hits=16) is None
     assert RoleTips().tip(300, "mid", alive=True, has_ward=None, lang="en", last_hits=28) is None
     late = RoleTips().tip(480, "mid", alive=True, has_ward=None, lang="en", last_hits=30)
     assert late["title"] == "30 last hits by 8:00"
-    few = RoleTips().tip(480, "mid", alive=True, has_ward=None, lang="ru", last_hits=24)
-    assert few["title"] == "24 добивания к 8:00"
-    one = RoleTips().tip(300, "mid", alive=True, has_ward=None, lang="ru", last_hits=21)
-    assert one["title"] == "21 добивание к 5:00"
+    few = RoleTips().tip(480, "mid", alive=True, has_ward=None, lang="uk", last_hits=24)
+    assert few["title"] == "24 добивання до 8:00"
+    one = RoleTips().tip(300, "mid", alive=True, has_ward=None, lang="uk", last_hits=21)
+    assert one["title"] == "21 добивання до 5:00"
     # No Bottle between 3:30 and 6:00: once per match.
     bottle = RoleTips()
     first = bottle.tip(220, "mid", alive=True, has_ward=None, lang="en", items=["item_tango"])
@@ -289,7 +289,7 @@ def test_mid_last_hit_pace_and_bottle():
 
 
 def test_a_mid_with_a_power_rune_still_bottled_is_told_to_use_it_first():
-    for lang, text in (("en", "still holds a Haste rune"), ("ru", "лежит руна ускорения")):
+    for lang, text in (("en", "still holds a Haste rune"), ("uk", "лежить руна прискорення")):
         rune = map_hint(
             8 * 60 - 10,
             "mid",
@@ -323,8 +323,8 @@ def test_the_power_rune_is_a_rotation_for_a_mid_with_level_six():
     tips = RoleTips()
     tips.observe_level(5)
     tips._shown["mid_six"] = 0  # the level-6 tip was already shown
-    rune = map_hint(8 * 60 - 10, "mid", tips, alive=True, has_ward=None, lang="ru", level=6)
-    assert rune["title"] == "Руна силы" and "боковую линию" in rune["hint"]
+    rune = map_hint(8 * 60 - 10, "mid", tips, alive=True, has_ward=None, lang="uk", level=6)
+    assert rune["title"] == "Руна сили" and "бокову лінію" in rune["hint"]
     # Before level 6 with a Bottle: keep the rune in it.
     bottled = map_hint(
         8 * 60 - 10,
@@ -332,11 +332,11 @@ def test_the_power_rune_is_a_rotation_for_a_mid_with_level_six():
         RoleTips(),
         alive=True,
         has_ward=None,
-        lang="ru",
+        lang="uk",
         level=5,
         items=["item_bottle"],
     )
-    assert bottled["title"] == "Руна силы" and "бутылку" in bottled["hint"]
+    assert bottled["title"] == "Руна сили" and "пляшку" in bottled["hint"]
     # No level in GSI: the plain rune hint, never the pre-six Bottle one.
     unknown = map_hint(
         8 * 60 - 10,
@@ -344,11 +344,11 @@ def test_the_power_rune_is_a_rotation_for_a_mid_with_level_six():
         RoleTips(),
         alive=True,
         has_ward=None,
-        lang="ru",
+        lang="uk",
         level=None,
         items=["item_bottle"],
     )
-    assert unknown["hint"] == "На одной из точек рун в реке."
+    assert unknown["hint"] == "На одній із точок рун у річці."
     # A Bottle at level 6 does not undo the rotation.
     rotate = map_hint(
         8 * 60 - 10,
@@ -368,12 +368,12 @@ def test_offlane_hard_lane_once():
 
     def hint(clock, deaths=0, level=5):
         return tips.tip(
-            clock, "offlane", alive=True, has_ward=None, lang="ru", deaths=deaths, level=level
+            clock, "offlane", alive=True, has_ward=None, lang="uk", deaths=deaths, level=level
         )
 
     assert hint(4 * 60 + 30, deaths=1) is None
     first = hint(4 * 60 + 40, deaths=2)
-    assert first["title"] == "Тяжёлая линия" and first["id"] == "offlane_hard_lane@280"
+    assert first["title"] == "Важка лінія" and first["id"] == "offlane_hard_lane@280"
     assert hint(4 * 60 + 60, deaths=2) is not None  # 25 s on screen
     assert hint(5 * 60 + 30, deaths=3) is None  # once per match
     # Level 4 at 6:00 without deaths is a lost lane too; level 5 is not.
@@ -395,11 +395,11 @@ def test_offlane_hard_lane_once():
 
 def test_support_pull_in_the_safe_lane_and_unspent_gold():
     tips = RoleTips()
-    pull = tips.tip(3 * 60 + 36, "support", alive=True, has_ward=True, lang="ru", lane="safe")
-    assert pull["title"] == "Пулл в 3:45" and pull["in_seconds"] == 9
+    pull = tips.tip(3 * 60 + 36, "support", alive=True, has_ward=True, lang="uk", lane="safe")
+    assert pull["title"] == "Пул о 3:45" and pull["in_seconds"] == 9
     # At most every two minutes, and only in the safe lane.
     assert (
-        tips.tip(4 * 60 + 6, "support", alive=True, has_ward=True, lang="ru", lane="safe") is None
+        tips.tip(4 * 60 + 6, "support", alive=True, has_ward=True, lang="uk", lane="safe") is None
     )
     assert (
         RoleTips().tip(3 * 60 + 36, "support", alive=True, has_ward=True, lang="en", lane="off")
@@ -433,12 +433,12 @@ def test_the_key_item_late_or_early_once():
 
     def hint(clock, items, role="carry"):
         return tips.tip(
-            clock, role, alive=True, has_ward=None, lang="ru", items=items, key_item=MAELSTROM
+            clock, role, alive=True, has_ward=None, lang="uk", items=items, key_item=MAELSTROM
         )
 
     assert hint(21 * 60, ["item_power_treads"]) is None  # within the 2 minutes
     late = hint(22 * 60, ["item_power_treads"])
-    assert late["title"] == "Maelstrom опаздывает" and "к 20:00" in late["hint"]
+    assert late["title"] == "Maelstrom запізнюється" and "до 20:00" in late["hint"]
     assert hint(22 * 60 + 20, ["item_power_treads"]) is not None  # 25 s on screen
     assert hint(23 * 60, ["item_power_treads"]) is None  # once per match
     # Two minutes ahead: "your window", once.
@@ -518,11 +518,11 @@ def test_a_chosen_support_knows_its_lane_before_three_minutes():
 def test_the_timer_strip_shows_the_next_events_of_the_position():
     from app.map_hints import timer_strip
 
-    support = timer_strip(5 * 60 + 10, "support", "ru")
+    support = timer_strip(5 * 60 + 10, "support", "uk")
     assert [(row["label"], row["in_seconds"]) for row in support] == [
         ("Руна", 50),
         ("Лотос", 50),
-        ("Мудрость", 110),
+        ("Мудрість", 110),
     ]
     # A carry has only the shared timers; a stack is a support's.
     assert [row["kind"] for row in timer_strip(19 * 60, "carry", "en")] == ["tormentor"]

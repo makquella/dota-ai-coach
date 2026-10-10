@@ -23,7 +23,7 @@ POST   /player/ai                {"provider": "groq"|"openrouter", "api_key": ".
 DELETE /player/ai                forget the key
 POST   /player/ai/check          one small request to validate the key
 
-All review texts follow `lang` (ru/en).
+All review texts follow `lang` (uk/en).
 """
 
 from __future__ import annotations
@@ -242,7 +242,7 @@ def player_summary(lang: str = "en"):
     return {"summary": PLAYER_SERVICE.summary(normalize_lang(lang))}
 
 
-@router.get("/session", summary="The games of the latest sitting («итог вечера»)")
+@router.get("/session", summary="The games of the latest sitting («підсумок вечора»)")
 def player_session(lang: str = "en"):
     return {"session": PLAYER_SERVICE.session(normalize_lang(lang))}
 

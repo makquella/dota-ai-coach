@@ -8,7 +8,7 @@ import copy
 
 from match_fixtures import gsi_match_stream
 
-from app.advice_i18n import translate_ru
+from app.advice_i18n import translate_uk
 from app.advice_text import clean_reason_text
 from app.gsi_census import GsiCensus
 from app.gsi_state import normalize_gsi_payload
@@ -84,9 +84,9 @@ def test_the_rune_texts_have_russian_and_keep_their_reason():
         "use it where enemies cannot reach you.",
     ]
     for text in texts:
-        russian = translate_ru(text)
-        assert russian and "Bottle" not in russian and "rune" not in russian, text
-    assert translate_ru(texts[0]) == "Используйте руну ускорения из бутылки и уходите."
+        ukrainian = translate_uk(text)
+        assert ukrainian and "Bottle" not in ukrainian and "rune" not in ukrainian, text
+    assert translate_uk(texts[0]) == "Використайте руну прискорення із пляшки й ідіть."
     for reason in (texts[1], texts[4], texts[6]):
         assert clean_reason_text(reason, "LOW_HP") == reason
 
@@ -97,8 +97,8 @@ def test_the_live_card_names_the_bottled_haste(client):
     payload["hero"]["health"] = 200
     payload["items"] = {"slot0": _bottle("haste")}
     client.post("/gsi", json=payload)
-    body = client.get("/overlay/recommendation?lang=ru").json()
-    assert body["recommendation"]["action"] == "Используйте руну ускорения из бутылки и уходите."
+    body = client.get("/overlay/recommendation?lang=uk").json()
+    assert body["recommendation"]["action"] == "Використайте руну прискорення із пляшки й ідіть."
 
 
 def _hint(tips, clock, rune, lang="en", alive=True):
@@ -122,8 +122,8 @@ def test_a_power_rune_kept_in_the_bottle_is_a_kill_to_make():
     # Used, then a new rune bottled: counted again from then.
     assert _hint(tips, 680, None) is None
     assert _hint(tips, 735, "Arcane") is None
-    again = _hint(tips, 735 + BOTTLE_RUNE_HELD, "Arcane", lang="ru")
-    assert again["title"] == "Руна волшебства в бутылке"
+    again = _hint(tips, 735 + BOTTLE_RUNE_HELD, "Arcane", lang="uk")
+    assert again["title"] == "Руна чарів у пляшці"
 
 
 def test_no_kill_tip_for_a_regeneration_rune_or_a_dead_hero():
@@ -152,7 +152,7 @@ def test_an_escape_rune_in_the_bottle_is_a_saver():
     assert ready_savers({"slot8": _bottle("haste")}) == []  # the backpack
     assert ready_savers({"slot0": {**_bottle("invis"), "can_cast": False}}) == []
     assert saver_label("rune:Haste", "en") == "Bottle (Haste rune)"
-    assert saver_label("rune:Haste", "ru") == "Bottle (руна ускорения)"
+    assert saver_label("rune:Haste", "uk") == "Bottle (руна прискорення)"
 
 
 def test_a_death_with_the_rune_unpressed_is_named():
@@ -169,24 +169,23 @@ def test_a_death_with_the_rune_unpressed_is_named():
     assert (
         reason == "You died with Bottle (Haste rune) ready: next time use it at the first big hit."
     )
-    assert translate_ru(reason) == (
-        "Вы погибли, когда в бутылке была руна ускорения: в следующий раз используйте её "
-        "при первом сильном ударе."
+    assert translate_uk(reason) == (
+        "Ви загинули, коли в пляшці була руна прискорення: наступного разу використайте її при першому сильному ударі."
     )
 
 
 def test_the_review_names_an_ability_or_a_rune_left_unpressed():
-    """The finding used to read «когда — был готов» for anything but an item."""
+    """The finding used to read «коли — був готовий» for anything but an item."""
     from app.analysis_texts import render_finding
 
-    for item, ru, en in (
+    for item, uk, en in (
         ("ability:Blade Fury", "Blade Fury", "Blade Fury"),
-        ("rune:Haste", "Bottle (руна ускорения)", "Bottle (Haste rune)"),
+        ("rune:Haste", "Bottle (руна прискорення)", "Bottle (Haste rune)"),
         ("item_black_king_bar", "Black King Bar", "Black King Bar"),
     ):
         finding = {
             "id": "died_with_saver_ready",
             "params": {"count": 2, "item": item, "times": [720, 1080]},
         }
-        assert f"успевали нажать {ru} (" in render_finding(finding, "ru")["text"]
+        assert f"встигали натиснути {uk} (" in render_finding(finding, "uk")["text"]
         assert f"died with {en} ready" in render_finding(finding, "en")["text"]

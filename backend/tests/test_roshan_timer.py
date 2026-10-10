@@ -30,9 +30,9 @@ def test_a_kill_opens_the_respawn_window_eight_to_eleven_minutes_later():
     timer = RoshanTimer()
     timer.observe(_extra(20 * 60, [_kill(20 * 60)]))
     assert timer.hint(27 * 60, "en") is None
-    hint = timer.hint(28 * 60 - 20, "ru")
-    assert hint["title"] == "Рошан может появиться"
-    assert hint["hint"] == "Окно появления открывается в 28:00, до 31:00."
+    hint = timer.hint(28 * 60 - 20, "uk")
+    assert hint["title"] == "Рошан може з'явитися"
+    assert hint["hint"] == "Вікно появи відкривається о 28:00, до 31:00."
     assert hint["in_seconds"] == 20 and hint["speak"] is True and hint["minor"] is False
     assert timer.hint(29 * 60, "en") is None  # inside the window: nothing to repeat
     assert timer.hint(31 * 60, "en")["title"] == "Roshan is up for sure"
@@ -48,8 +48,8 @@ def test_the_aegis_warns_a_minute_before_it_expires():
     timer.observe(_extra(20 * 60 - 1, aegis=False))
     timer.observe(_extra(20 * 60, aegis=True))
     assert timer.hint(23 * 60 + 59, "en") is None
-    hint = timer.hint(24 * 60, "ru")
-    assert hint["title"] == "Аегис сгорит через 60 с"
+    hint = timer.hint(24 * 60, "uk")
+    assert hint["title"] == "Аегіс згорить через 60 с"
     # Used (a death) or expired: gone.
     timer.observe(_extra(24 * 60 + 10, aegis=False))
     assert timer.hint(24 * 60 + 20, "en") is None
@@ -106,6 +106,6 @@ def test_the_roshan_window_reaches_the_overlay(client):
     client.post("/gsi", json=_payload(20 * 60 + 5, [kill]))
     assert MATCH_MEMORY.roshan.killed_at == 20 * 60
     client.post("/gsi", json=_payload(28 * 60 - 15, [kill]))
-    answer = client.get("/overlay/recommendation?lang=ru").json()
+    answer = client.get("/overlay/recommendation?lang=uk").json()
     assert answer["map_hint"]["id"] == "roshan_window@1680"
-    assert answer["map_hint"]["title"] == "Рошан может появиться"
+    assert answer["map_hint"]["title"] == "Рошан може з'явитися"

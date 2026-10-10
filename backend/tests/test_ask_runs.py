@@ -12,9 +12,9 @@ from app import player_service
 from app.ask_runs import KEEP_FINISHED, AskRuns
 from app.player_api import PLAYER_SERVICE
 
-GOOD = {"answer": "Главное — смерти: их было 9, и каждая отодвигала ваш тайминг."}
-OTHER = {"answer": "Смертей было 9: начните с них."}
-ASK = f"/player/matches/{MATCH_ID}/ask?lang=ru"
+GOOD = {"answer": "Головне — смерті: їх було 9, і кожна відсувала ваш таймінг."}
+OTHER = {"answer": "Смертей було 9: почніть із них."}
+ASK = f"/player/matches/{MATCH_ID}/ask?lang=uk"
 
 
 class BlockingLLM(FakeLLM):
@@ -41,15 +41,15 @@ def _post(client, question: str, request_id: str | None = None) -> dict[str, Any
 def test_the_same_request_id_never_calls_the_provider_twice(client, tmp_path):
     llm = FakeLLM(GOOD)
     _reviewed_match(client, tmp_path, llm)
-    first = _post(client, "Почему я проиграл?", "req-0001-aaaa")
-    again = _post(client, "Почему я проиграл?", "req-0001-aaaa")
+    first = _post(client, "Чому я програв?", "req-0001-aaaa")
+    again = _post(client, "Чому я програв?", "req-0001-aaaa")
     assert first["ok"] is True and again == first
     assert len(llm.calls) == 1
     status = client.get("/player/asks/req-0001-aaaa").json()
     assert status == {"state": "done", "result": first}
     assert client.get("/player/asks/req-unknown-1").json() == {"state": "unknown"}
-    detail = client.get(f"/player/matches/{MATCH_ID}?lang=ru").json()
-    assert [q["question"] for q in detail["questions"]] == ["Почему я проиграл?"]
+    detail = client.get(f"/player/matches/{MATCH_ID}?lang=uk").json()
+    assert [q["question"] for q in detail["questions"]] == ["Чому я програв?"]
 
 
 def test_a_retry_while_running_joins_the_run(client, tmp_path):
@@ -57,9 +57,9 @@ def test_a_retry_while_running_joins_the_run(client, tmp_path):
     _reviewed_match(client, tmp_path, llm)
     results: list[dict[str, Any]] = []
     threads = [
-        threading.Thread(target=lambda: results.append(_post(client, "Почему?", "req-0002-bbbb"))),
+        threading.Thread(target=lambda: results.append(_post(client, "Чому?", "req-0002-bbbb"))),
         # A double click without an id: same match, same question.
-        threading.Thread(target=lambda: results.append(_post(client, "  почему? "))),
+        threading.Thread(target=lambda: results.append(_post(client, "  чому? "))),
     ]
     threads[0].start()
     assert llm.entered.wait(5)
@@ -78,27 +78,27 @@ def test_a_retry_while_running_joins_the_run(client, tmp_path):
 def test_a_request_id_belongs_to_one_question_scope(client, tmp_path):
     llm = FakeLLM(GOOD)
     _reviewed_match(client, tmp_path, llm)
-    assert _post(client, "Почему?", "req-0003-cccc")["ok"] is True
+    assert _post(client, "Чому?", "req-0003-cccc")["ok"] is True
     other = client.post(
-        "/player/career/ask?lang=ru", json={"question": "Почему?", "request_id": "req-0003-cccc"}
+        "/player/career/ask?lang=uk", json={"question": "Чому?", "request_id": "req-0003-cccc"}
     ).json()
     assert other == {"ok": False, "code": "bad_request"}
-    bad = client.post(ASK, json={"question": "Почему?", "request_id": "short"})
+    bad = client.post(ASK, json={"question": "Чому?", "request_id": "short"})
     assert bad.status_code == 422
     assert client.get("/player/asks/bad id!").status_code in {404, 422}
 
 
 def test_no_second_attempt_after_the_deadline(client, tmp_path, monkeypatch):
-    invented = {"answer": "Invoker убил вас на 17:43, когда у вас было 4321 золота."}
+    invented = {"answer": "Invoker убив вас на 17:43, коли у вас було 4321 золота."}
     llm = FakeLLM(invented, GOOD)
     _reviewed_match(client, tmp_path, llm)
     monkeypatch.setattr(player_service, "ASK_DEADLINE_SECONDS", 0.0)
-    assert _post(client, "Кто меня убил?") == {"ok": False, "code": "timeout"}
+    assert _post(client, "Хто мене вбив?") == {"ok": False, "code": "timeout"}
     assert len(llm.calls) == 1
     monkeypatch.setattr(player_service, "ASK_DEADLINE_SECONDS", 75.0)
     # With time left, an unverified first answer gets its second attempt.
     llm.answers = [invented, GOOD]
-    assert _post(client, "Кто меня убил?")["ok"] is True
+    assert _post(client, "Хто мене вбив?")["ok"] is True
     assert len(llm.calls) == 3
 
 
@@ -112,17 +112,17 @@ def test_concurrent_questions_both_stay_in_the_history(client, tmp_path):
         assert _post(client, question, request_id)["ok"] is True
 
     threads = [
-        threading.Thread(target=ask, args=("Почему я проиграл?", "req-0004-dddd")),
-        threading.Thread(target=ask, args=("Что купить раньше?", "req-0005-eeee")),
+        threading.Thread(target=ask, args=("Чому я програв?", "req-0004-dddd")),
+        threading.Thread(target=ask, args=("Що купити раніше?", "req-0005-eeee")),
     ]
     for thread in threads:
         thread.start()
     for thread in threads:
         thread.join(10)
-    detail = client.get(f"/player/matches/{MATCH_ID}?lang=ru").json()
+    detail = client.get(f"/player/matches/{MATCH_ID}?lang=uk").json()
     assert sorted(q["question"] for q in detail["questions"]) == [
-        "Почему я проиграл?",
-        "Что купить раньше?",
+        "Чому я програв?",
+        "Що купити раніше?",
     ]
     assert PLAYER_SERVICE.asks.running() == 0
 

@@ -165,9 +165,9 @@ def test_the_site_heroes_page_lists_exactly_the_full_advisor(repo_root):
             listed[name] = position
     assert sorted(listed) == sorted(SUPPORTED_HEROES)
     count = str(len(SUPPORTED_HEROES))
-    assert f"для {count} героев" in page
+    assert f"для {count} героїв" in page
     landing = (repo_root / "site" / "index.html").read_text(encoding="utf-8")
-    assert f"для {count} героев" in landing and 'href="heroes.html"' in landing
+    assert f"для {count} героїв" in landing and 'href="heroes.html"' in landing
 
 
 _VOID_TAGS = {

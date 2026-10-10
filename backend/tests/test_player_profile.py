@@ -1,4 +1,4 @@
-"""The «Профиль» tab: rating graph, app level, achievements, sparks (app/player_profile.py)."""
+"""The «Профіль» tab: rating graph, app level, achievements, sparks (app/player_profile.py)."""
 
 from __future__ import annotations
 
@@ -92,18 +92,18 @@ def test_achievements_count_matches_with_the_app_only():
     rows = [_row(i, win=i % 4 != 3, score=75 if i < 3 else None) for i in range(12)]
     rows.append(_row(20, app=False))  # fetched from OpenDota only
     profile = build_profile(
-        list(reversed(rows)), player={"rank_tier": 54}, mmr_raw=None, lang="ru", now=T0
+        list(reversed(rows)), player={"rank_tier": 54}, mmr_raw=None, lang="uk", now=T0
     )
     stats = profile["stats"]
     assert stats["app_games"] == 12 and stats["all_games"] == 13
     badges = {b["id"]: b for b in profile["achievements"]}
     games = badges["app_games"]
-    assert games["tier"] == 2 and games["tier_name"] == "Серебро" and games["target"] == 50
-    assert games["text"] == "Сыграйте 50 матчей с Wardly"
-    assert badges["app_wins"]["text"] == "Выиграйте 10 матчей с Wardly"
-    assert badges["win_streak"]["text"] == "Выиграйте 5 матчей подряд с Wardly"
-    assert badges["few_deaths"]["text"].startswith("Сыграйте 1 матч от 20 минут")
-    assert badges["weeks"]["text"] == "Хотя бы матч в неделю с Wardly: 4 недели"
+    assert games["tier"] == 2 and games["tier_name"] == "Срібло" and games["target"] == 50
+    assert games["text"] == "Зіграйте 50 матчів з Wardly"
+    assert badges["app_wins"]["text"] == "Виграйте 10 матчів з Wardly"
+    assert badges["win_streak"]["text"] == "Виграйте 5 матчів поспіль з Wardly"
+    assert badges["few_deaths"]["text"].startswith("Зіграйте 1 матч від 20 хвилин")
+    assert badges["weeks"]["text"] == "Хоча б матч на тиждень з Wardly: 4 тижні"
     assert games["unlocked"][1]["at"] == T0 + 9 * DAY  # the tenth match
     assert badges["win_streak"]["value"] == 3 and badges["win_streak"]["tier"] == 1
     assert badges["good_games"]["value"] == 3
@@ -138,26 +138,26 @@ def test_the_profile_through_the_api(client):
     assert client.get("/player/profile").json() == {"profile": None}
     PLAYER_SERVICE.configure(PLAYER_SERVICE.data_dir, client=FakeOpenDota(), auto_start=False)
     client.post("/player/link", json={"steam": str(ME)})
-    body = client.get("/player/profile?lang=ru").json()["profile"]
+    body = client.get("/player/profile?lang=uk").json()["profile"]
     assert body["level"]["level"] == 1 and len(body["achievements"]) >= 8
     assert client.post("/player/profile/mmr", json={"mmr": 99999}).status_code == 400
-    body = client.post("/player/profile/mmr?lang=ru", json={"mmr": 3200}).json()["profile"]
+    body = client.post("/player/profile/mmr?lang=uk", json={"mmr": 3200}).json()["profile"]
     assert body["rating"]["source"] == "manual" and body["rating"]["current"] >= 0
     body = client.delete("/player/profile/mmr").json()["profile"]
     assert body["rating"] is None or body["rating"]["source"] == "medal"
 
 
 def test_plurals():
-    from app.player_profile import MATCH_EN, MATCH_RU, plural
+    from app.player_profile import MATCH_EN, MATCH_UK, plural
 
-    assert [plural(n, MATCH_RU, "ru") for n in (1, 2, 5, 11, 21, 22, 112)] == [
+    assert [plural(n, MATCH_UK, "uk") for n in (1, 2, 5, 11, 21, 22, 112)] == [
         "матч",
-        "матча",
-        "матчей",
-        "матчей",
+        "матчі",
+        "матчів",
+        "матчів",
         "матч",
-        "матча",
-        "матчей",
+        "матчі",
+        "матчів",
     ]
     assert plural(1, MATCH_EN, "en") == "match" and plural(3, MATCH_EN, "en") == "matches"
 
@@ -167,8 +167,8 @@ def test_the_public_card_shows_no_account_and_the_mmr_only_when_typed_in():
 
     rows = [_row(i) for i in range(4)]
     player = {"persona_name": "farm_or_die", "rank_tier": 54, "avatar_url": "https://x"}
-    medal = build_profile(rows, player=player, mmr_raw=None, lang="ru", now=T0 + 5 * DAY)
-    card = public_card(medal, "ru")
+    medal = build_profile(rows, player=player, mmr_raw=None, lang="uk", now=T0 + 5 * DAY)
+    card = public_card(medal, "uk")
     assert card["name"] == "farm_or_die" and card["mmr"] is None  # a medal guess is not shown
     assert card["avatar"] is None  # not a Steam avatar address
     assert card["level"] == medal["level"]["level"] and card["stats"]["app_games"] == 4
@@ -187,19 +187,19 @@ def test_the_public_card_shows_no_account_and_the_mmr_only_when_typed_in():
         "stats",
     }
     typed = build_profile(
-        rows, player=player, mmr_raw=add_anchor(None, 3000, T0 - DAY), lang="ru", now=T0 + 5 * DAY
+        rows, player=player, mmr_raw=add_anchor(None, 3000, T0 - DAY), lang="uk", now=T0 + 5 * DAY
     )
-    assert public_card(typed, "ru")["mmr"] == 3000 + 4 * MMR_STEP
-    assert public_card(typed, "ru", show_mmr=False)["mmr"] is None
+    assert public_card(typed, "uk")["mmr"] == 3000 + 4 * MMR_STEP
+    assert public_card(typed, "uk", show_mmr=False)["mmr"] is None
     worn = build_profile(
         rows,
         player=player,
         mmr_raw=None,
         cosmetics_raw='{"owned": ["title_farmer"], "equipped": {"title": "title_farmer"}}',
-        lang="ru",
+        lang="uk",
         now=T0,
     )
-    assert public_card(worn, "ru")["title"] == "Фармила"
+    assert public_card(worn, "uk")["title"] == "Фармило"
 
 
 def test_the_public_card_keeps_only_the_steam_avatar_hash():

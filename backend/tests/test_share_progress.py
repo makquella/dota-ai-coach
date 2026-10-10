@@ -28,11 +28,11 @@ def _synced(client, tmp_path, count=14):
 
 def test_progress_payload_has_the_numbers_and_nothing_personal(client, tmp_path):
     recent = _synced(client, tmp_path)
-    answer = client.get("/player/career/share?lang=ru")
+    answer = client.get("/player/career/share?lang=uk")
     assert answer.status_code == 200
     progress = answer.json()["progress"]
-    career = client.get("/player/career?lang=ru").json()
-    assert progress["kind"] == "progress" and progress["lang"] == "ru"
+    career = client.get("/player/career?lang=uk").json()
+    assert progress["kind"] == "progress" and progress["lang"] == "uk"
     assert progress["matches"] == career["matches"] == 14
     assert (progress["wins"], progress["losses"]) == (career["wins"], career["losses"])
     assert progress["rank"] == "Легенда"

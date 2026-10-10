@@ -237,7 +237,7 @@ def test_actual_hint_metadata_store_and_files_run_outside_memory_ownership(
     map_hints.timers.cache_clear()
     threading.settrace(trace)
     try:
-        response = client.get("/overlay/recommendation?lang=ru")
+        response = client.get("/overlay/recommendation?lang=uk")
     finally:
         threading.settrace(original)
         map_hints.timers.cache_clear()

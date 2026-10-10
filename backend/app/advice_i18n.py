@@ -1,10 +1,10 @@
 """
-advice_i18n.py - Russian wording for the advice text the player sees.
+advice_i18n.py - Ukrainian wording for the advice text the player sees.
 
 The advice pipeline (decision points, recommender, scheduler, UX policy) stays
 English: logs, session history, recordings and tests keep the canonical text.
 Translation happens only at the API edge, when the overlay or the launcher asks
-for ``lang=ru`` (``/overlay/recommendation``, ``/advice/recent``).
+for ``lang=uk`` (``/overlay/recommendation``, ``/advice/recent``).
 
 Only the visible fields are translated: ``recommendation.action``,
 ``recommendation.reason``, ``message`` and ``last_visible_advice``. A text with
@@ -12,7 +12,7 @@ no known translation is returned unchanged (English), never half-translated.
 Ability and hero names stay as the backend sends them.
 
 When you add or change a visible advice string anywhere in the pipeline, add
-its Russian here too; ``tests/test_advice_i18n.py`` replays the fixtures and
+its Ukrainian here too; ``tests/test_advice_i18n.py`` replays the fixtures and
 fails on any visible text without a translation.
 """
 
@@ -25,445 +25,439 @@ from functools import lru_cache, partial
 from hashlib import sha256
 from typing import Any
 
-from app.last_moments import RUNES_RU
+from app.last_moments import RUNES_UK
 
 DEFAULT_LANG = "en"
 
 _RU_EXACT: dict[str, str] = {
     "Your bounty grows with the streak: farm near your team and skip dark, unwarded areas.": (
-        "За вас дают всё больше золота: фармите рядом с командой и не ходите в тёмные места "
-        "без вардов."
+        "За вас дають дедалі більше золота: фарміть поруч із командою й не ходіть у темні місця без вардів."
     ),
     "The enemy has items first now; trade risky farm for safe farm until your key item.": (
-        "У врагов предметы раньше: меняйте рискованный фарм на безопасный до вашего ключевого "
-        "предмета."
+        "У ворогів предмети раніше: міняйте ризикований фарм на безпечний до вашого ключового предмета."
     ),
     "A kill lead fades unless it turns into towers and map control.": (
-        "Преимущество по убийствам тает, если не превратить его в башни и контроль карты."
+        "Перевага за вбивствами тане, якщо не перетворити її на вежі й контроль мапи."
     ),
     # --- actions -------------------------------------------------------------
     "After respawn, avoid committing forward until your escape is ready.": (
-        "После возрождения не лезьте вперёд, пока не готова способность для побега."
+        "Після відродження не лізьте вперед, доки не готова здібність для втечі."
     ),
     "After respawn, reset earlier when HP or key resources get low.": (
-        "После возрождения уходите раньше, когда HP или ключевые ресурсы на исходе."
+        "Після відродження відходьте раніше, коли HP або ключові ресурси закінчуються."
     ),
     "After respawn, reset your route and avoid repeating the same risky path.": (
-        "После возрождения смените маршрут и не повторяйте тот же опасный путь."
+        "Після відродження змініть маршрут і не повторюйте той самий небезпечний шлях."
     ),
     "After this item pickup, reassess whether to farm safely or pressure with your team.": (
-        "С новым предметом решите заново: фармить безопасно или давить вместе с командой."
+        "З новим предметом вирішіть заново: фармити безпечно чи тиснути разом із командою."
     ),
     "Avoid risky trades until your defensive tool is ready.": (
-        "Избегайте рискованных разменов, пока не готова защитная способность."
+        "Уникайте ризикованих розмінів, доки не готова захисна здібність."
     ),
     "Avoid the pressured lane and farm a safer wave or nearby camp.": (
-        "Уйдите с линии, где давят, и фармите более безопасную волну или ближний лагерь."
+        "Підіть з лінії, де тиснуть, і фарміть безпечнішу хвилю або ближній табір."
     ),
     "Avoid this fight and reset to safer farm.": (
-        "Не идите в эту драку, вернитесь к безопасному фарму."
+        "Не йдіть у цю бійку, поверніться до безпечного фарму."
     ),
     "Avoid this fight and move to safer farm.": (
-        "Не идите в эту драку, перейдите на более безопасный фарм."
+        "Не йдіть у цю бійку, перейдіть на безпечніший фарм."
     ),
-    "Avoid the fight and keep farming safely.": "Пропустите драку и продолжайте спокойно фармить.",
+    "Avoid the fight and keep farming safely.": "Пропустіть бійку й продовжуйте спокійно фармити.",
     "Avoid contesting pressure and move to safer farm.": (
-        "Не спорьте с давлением, перейдите на более безопасный фарм."
+        "Не сперечайтеся з тиском, перейдіть на безпечніший фарм."
     ),
     "Back up and stabilize before trading again.": (
-        "Отойдите и восстановитесь, прежде чем снова размениваться."
+        "Відійдіть і відновіться, перш ніж знову розмінюватися."
     ),
     "Back up slightly, secure safe last hits, then reset your HP.": (
-        "Отойдите немного, заберите безопасные добивания, потом восстановите HP."
+        "Відійдіть трохи, заберіть безпечні добивання, потім відновіть HP."
     ),
     "Back up, stabilize HP, then return to the wave.": (
-        "Отойдите, восстановите HP и возвращайтесь к волне."
+        "Відійдіть, відновіть HP і повертайтеся до хвилі."
     ),
     "Buyback is available. Only consider it for critical defense.": (
-        "Байбэк доступен. Используйте его только для критической защиты."
+        "Байбек доступний. Використовуйте його лише для критичного захисту."
     ),
     "Check buyback value only for base defense or a major objective.": (
-        "Байбэк оправдан только для защиты базы или важной цели."
+        "Байбек виправданий лише для захисту бази або важливої цілі."
     ),
     "Conserve mana or reset before taking a fight.": (
-        "Берегите ману или восстановитесь перед дракой."
+        "Бережіть ману або відновіться перед бійкою."
     ),
     "Consider joining only if your team is ready and the fight is near the objective.": (
-        "Присоединяйтесь, только если команда готова и драка идёт у ключевой цели."
+        "Приєднуйтеся, лише якщо команда готова й бійка йде біля ключової цілі."
     ),
     "Consider joining only if the fight is near the objective.": (
-        "Присоединяйтесь, только если драка идёт у ключевой цели."
+        "Приєднуйтеся, лише якщо бійка йде біля ключової цілі."
     ),
     "Consider joining only if your team is ready around the objective.": (
-        "Присоединяйтесь, только если команда уже собралась у ключевой цели."
+        "Приєднуйтеся, лише якщо команда вже зібралася біля ключової цілі."
     ),
-    "Consider a safer, lower-risk play.": "Выберите более безопасный вариант с меньшим риском.",
-    "Consider playing safely.": "Играйте осторожнее.",
-    "Consider monitoring lane — no urgent advice.": "Следим за линией — срочных советов нет.",
+    "Consider a safer, lower-risk play.": "Оберіть безпечніший варіант із меншим ризиком.",
+    "Consider playing safely.": "Грайте обережніше.",
+    "Consider monitoring lane — no urgent advice.": "Стежимо за лінією — термінових порад немає.",
     "Do not overstay on low HP; reset or play behind creeps.": (
-        "Не задерживайтесь на низком HP: отойдите или играйте за крипами."
+        "Не затримуйтеся з низьким HP: відійдіть або грайте за кріпами."
     ),
     "Do not show deep until enemy positions are clearer.": (
-        "Не заходите вглубь карты, пока не ясно, где враги."
+        "Не заходьте вглиб мапи, доки не ясно, де вороги."
     ),
     "Farm the safer part of the lane and avoid long trades.": (
-        "Фармите на безопасной части линии и избегайте долгих разменов."
+        "Фарміть на безпечній частині лінії й уникайте довгих розмінів."
     ),
     "Farm closer to a safer zone until enemy positions are clearer.": (
-        "Фармите ближе к безопасной зоне, пока не ясно, где враги."
+        "Фарміть ближче до безпечної зони, доки не ясно, де вороги."
     ),
     "Focus on safe last hits before forcing trades.": (
-        "Сначала безопасные добивания, размены — потом."
+        "Спершу безпечні добивання, розміни — потім."
     ),
     "Focus on safe last hits before moving to nearby camps.": (
-        "Заберите безопасные добивания, потом идите на ближние лагеря."
+        "Заберіть безпечні добивання, потім ідіть на ближні табори."
     ),
     "Focus on safe last hits in the next wave.": (
-        "В следующей волне сосредоточьтесь на безопасных добиваниях."
+        "У наступній хвилі зосередьтеся на безпечних добиваннях."
     ),
-    "Focus on safe last hits.": "Сосредоточьтесь на безопасных добиваниях.",
+    "Focus on safe last hits.": "Зосередьтеся на безпечних добиваннях.",
     "Keep farming safely and reassess in 60 seconds.": (
-        "Продолжайте спокойно фармить, через минуту оцените ситуацию снова."
+        "Продовжуйте спокійно фармити, за хвилину оцініть ситуацію знову."
     ),
     "Keep farming safely in lane and focus on last hits.": (
-        "Спокойно фармите на линии и следите за добиваниями."
+        "Спокійно фарміть на лінії й стежте за добиваннями."
     ),
-    "Keep farming safely in lane.": "Спокойно фармите на линии.",
-    "Keep farming safely until the next wave.": "Спокойно фармите до следующей волны.",
-    "Keep farming safely.": "Продолжайте спокойно фармить.",
+    "Keep farming safely in lane.": "Спокійно фарміть на лінії.",
+    "Keep farming safely until the next wave.": "Спокійно фарміть до наступної хвилі.",
+    "Keep farming safely.": "Продовжуйте спокійно фармити.",
     "Keep farming the safest wave-and-camp route and reassess soon.": (
-        "Фармите по самому безопасному маршруту из волн и лагерей, скоро оцените ситуацию снова."
+        "Фарміть найбезпечнішим маршрутом із хвиль і таборів, незабаром оцініть ситуацію знову."
     ),
     "Keep your farm rhythm and avoid low-value trades.": (
-        "Держите темп фарма и избегайте бесполезных разменов."
+        "Тримайте темп фарму й уникайте марних розмінів."
     ),
     "Leave the wave now and reset HP before rejoining.": (
-        "Уходите с волны сейчас и восстановите HP, прежде чем вернуться."
+        "Ідіть із хвилі зараз і відновіть HP, перш ніж повернутися."
     ),
-    "Maintain steady farm.": "Держите ровный темп фарма.",
-    "Monitoring lane — no urgent advice.": "Следим за линией — срочных советов нет.",
+    "Maintain steady farm.": "Тримайте рівний темп фарму.",
+    "Monitoring lane — no urgent advice.": "Стежимо за лінією — термінових порад немає.",
     "Move closer to a safer farming zone before showing on the wave.": (
-        "Перед выходом на волну сместитесь ближе к безопасной зоне фарма."
+        "Перед виходом на хвилю зміститеся ближче до безпечної зони фарму."
     ),
     "Move closer to a safer lane area before contesting the next wave.": (
-        "Перед следующей волной сместитесь в более безопасную часть линии."
+        "Перед наступною хвилею зміститеся в безпечнішу частину лінії."
     ),
-    "No urgent action.": "Срочных действий не нужно.",
-    "No urgent decision is needed.": "Срочных решений не нужно.",
+    "No urgent action.": "Термінових дій не потрібно.",
+    "No urgent decision is needed.": "Термінових рішень не потрібно.",
     "Only consider the objective if your team is already grouped nearby.": (
-        "Идите к цели, только если команда уже собралась рядом."
+        "Ідіть до цілі, лише якщо команда вже зібралася поруч."
     ),
     "Go back to farming: take the nearest safe wave or camp now.": (
-        "Вернитесь к фарму: заберите ближайшую безопасную волну или лагерь."
+        "Поверніться до фарму: заберіть найближчу безпечну хвилю або табір."
     ),
     "You have taken almost no last hits lately; every minute without farm delays your next item.": (
-        "В последнее время почти нет добиваний: каждая минута без фарма отодвигает следующий предмет."
+        "Останнім часом майже немає добивань: кожна хвилина без фарму відсуває наступний предмет."
     ),
     "Medium risk if you keep walking around without farming.": (
-        "Средний риск, если продолжать ходить по карте без фарма."
+        "Середній ризик, якщо й далі ходити мапою без фарму."
     ),
     "Farm back your buyback gold before the next purchase.": (
-        "Нафармите золото на байбэк, прежде чем покупать дальше."
+        "Нафарміть золото на байбек, перш ніж купувати далі."
     ),
     "After minute 30 one death without buyback can decide the game.": (
-        "После 30-й минуты одна смерть без байбэка может решить игру."
+        "Після 30-ї хвилини одна смерть без байбеку може вирішити гру."
     ),
     "High risk if you die before the buyback gold is back.": (
-        "Высокий риск, если умрёте раньше, чем вернёте золото на байбэк."
+        "Високий ризик, якщо помрете раніше, ніж повернете золото на байбек."
     ),
     "Recover farm through the safest wave-and-camp route.": (
-        "Навёрстывайте фарм по самому безопасному маршруту из волн и лагерей."
+        "Надолужуйте фарм найбезпечнішим маршрутом із хвиль і таборів."
     ),
     "A silence does not stop items: get rid of it before the next spell lands.": (
-        "Немота не мешает предметам: снимите её до следующего заклинания."
+        "Німота не заважає предметам: зніміть її до наступного закляття."
     ),
     "Reset HP before showing on another lane.": (
-        "Восстановите HP, прежде чем появляться на другой линии."
+        "Відновіть HP, перш ніж з'являтися на іншій лінії."
     ),
-    "Reset mana before taking an extended fight.": "Восстановите ману перед затяжной дракой.",
+    "Reset mana before taking an extended fight.": "Відновіть ману перед затяжною бійкою.",
     "Reset resources before showing on another lane.": (
-        "Восстановите ресурсы, прежде чем появляться на другой линии."
+        "Відновіть ресурси, перш ніж з'являтися на іншій лінії."
     ),
     "Respect your hero's safety window before forcing a fight.": (
-        "Не навязывайте драку, пока защитные способности героя не готовы."
+        "Не нав'язуйте бійку, доки захисні здібності героя не готові."
     ),
-    "Retreat and reset before rejoining.": "Отступите и восстановитесь, прежде чем вернуться.",
+    "Retreat and reset before rejoining.": "Відступіть і відновіться, перш ніж повернутися.",
     "Secure the next wave first and avoid trading unless it protects last hits.": (
-        "Сначала заберите следующую волну; размениваться — только чтобы защитить добивания."
+        "Спершу заберіть наступну хвилю; розмінюйтеся лише щоб захистити добивання."
     ),
     "Stay hidden until your team is ready to make a move.": (
-        "Не показывайтесь, пока команда не готова действовать."
+        "Не показуйтеся, доки команда не готова діяти."
     ),
     "Stop re-contesting the pressured lane until you reset HP.": (
-        "Не возвращайтесь на линию, где давят, пока не восстановите HP."
+        "Не повертайтеся на лінію, де тиснуть, доки не відновите HP."
     ),
     "Take only the safe creeps and avoid extending the trade.": (
-        "Добивайте только безопасных крипов и не затягивайте размен."
+        "Добивайте лише безпечних кріпів і не затягуйте розмін."
     ),
     "Take safe creeps, then rotate to safer farm if pressure continues.": (
-        "Заберите безопасных крипов; если давят дальше — уходите на более безопасный фарм."
+        "Заберіть безпечних кріпів; якщо тиснуть далі — ідіть на безпечніший фарм."
     ),
     "Use regen or play back until your HP is safer.": (
-        "Используйте реген или отойдите, пока HP не восстановится."
+        "Використайте реген або відійдіть, доки HP не відновиться."
     ),
     "Unspent gold is partly lost on the next death; "
     "then choose a safer route than the one you died on.": (
-        "Непотраченное золото частично теряется при следующей смерти. Потом выберите "
-        "маршрут безопаснее того, где вас поймали."
+        "Невитрачене золото частково втрачається при наступній смерті. Потім оберіть маршрут безпечніший за той, де вас спіймали."
     ),
     "Keep a TP scroll in its slot: buy one now, the courier can bring it.": (
-        "Держите свиток телепортации в слоте: купите его сейчас, курьер принесёт."
+        "Тримайте сувій телепортації в слоті: купіть його зараз, кур'єр принесе."
     ),
     "Without a TP scroll you cannot join a fight or save a tower in time.": (
-        "Без свитка телепортации не успеете ни в драку, ни спасти башню."
+        "Без сувою телепортації не встигнете ні в бійку, ні врятувати вежу."
     ),
     "Medium risk if a fight starts across the map while you have no TP.": (
-        "Средний риск, если драка начнётся на другом конце карты, а свитка телепортации нет."
+        "Середній ризик, якщо бійка почнеться на іншому кінці мапи, а сувою телепортації немає."
     ),
     "Use the respawn time to choose a safer farming route.": (
-        "Пока ждёте возрождения, выберите более безопасный маршрут фарма."
+        "Поки чекаєте відродження, оберіть безпечніший маршрут фарму."
     ),
     "Use the respawn time to plan a safer next route.": (
-        "Пока ждёте возрождения, продумайте более безопасный маршрут."
+        "Поки чекаєте відродження, продумайте безпечніший маршрут."
     ),
     "Use the respawn time to plan your next safe farming route.": (
-        "Пока ждёте возрождения, продумайте следующий безопасный маршрут фарма."
+        "Поки чекаєте відродження, продумайте наступний безпечний маршрут фарму."
     ),
     "Wait out the disable and avoid forcing actions.": (
-        "Переждите контроль и не делайте резких действий."
+        "Перечекайте контроль і не робіть різких дій."
     ),
     "You reached a timing; reassess whether to pressure or keep farming safely.": (
-        "Вы вышли на тайминг: решите заново, давить или спокойно фармить дальше."
+        "Ви вийшли на таймінг: вирішіть заново, тиснути чи спокійно фармити далі."
     ),
     "You reached a damage timing; consider objective fights, not low-value skirmishes.": (
-        "Тайминг по урону: ищите драки за ключевые цели, а не случайные стычки."
+        "Таймінг за шкодою: шукайте бійки за ключові цілі, а не випадкові сутички."
     ),
     "You reached a defensive timing; consider fighting only around objectives or with team support.": (
-        "Защитный тайминг: деритесь только у ключевых целей или вместе с командой."
+        "Захисний таймінг: бийтеся лише біля ключових цілей або разом із командою."
     ),
     "You reached a farming timing; increase farm speed and avoid unnecessary deaths.": (
-        "Тайминг по фарму: ускорьте фарм и не умирайте зря."
+        "Таймінг за фармом: пришвидште фарм і не помирайте даремно."
     ),
     "You reached a late-game timing; prioritize high-value objectives and safe positioning.": (
-        "Тайминг поздней игры: в приоритете важные цели и безопасная позиция."
+        "Таймінг пізньої гри: у пріоритеті важливі цілі й безпечна позиція."
     ),
     "You reached a mobility timing; look for safer map movement, not random fights.": (
-        "Тайминг мобильности: перемещайтесь по карте безопаснее, не ищите случайных драк."
+        "Таймінг мобільності: пересувайтеся мапою безпечніше, не шукайте випадкових бійок."
     ),
     "Your farm pace is behind; move to safer, higher-value farm.": (
-        "Вы отстаёте по фарму: переходите на более безопасный и выгодный фарм."
+        "Ви відстаєте за фармом: переходьте на безпечніший і вигідніший фарм."
     ),
     # --- reasons -------------------------------------------------------------
     "A short reset keeps the next farming route safer without forcing a fight.": (
-        "Короткий отход делает следующий маршрут фарма безопаснее без лишней драки."
+        "Короткий відхід робить наступний маршрут фарму безпечнішим без зайвої бійки."
     ),
     "A meaningful item can change your next decision, but avoid forcing low-value fights.": (
-        "Важный предмет может изменить план, но не навязывайте бесполезные драки."
+        "Важливий предмет може змінити план, але не нав'язуйте марних бійок."
     ),
     "At this HP, one more spell or rotation can turn into a death.": (
-        "С таким HP ещё одна способность или ганг могут закончиться смертью."
+        "З таким HP ще одна здібність або ганк можуть закінчитися смертю."
     ),
     "At this HP, one more trade or spell can kill you.": (
-        "С таким HP ещё один размен или способность могут вас убить."
+        "З таким HP ще один розмін або здібність можуть вас убити."
     ),
     "Avoid returning to the same risky area without vision or team support.": (
-        "Не возвращайтесь в ту же опасную зону без обзора или поддержки команды."
+        "Не повертайтеся в ту саму небезпечну зону без огляду чи підтримки команди."
     ),
     "Avoid rushing back into the same risky area.": (
-        "Не бегите сразу обратно в ту же опасную зону."
+        "Не біжіть одразу назад у ту саму небезпечну зону."
     ),
     "Current lane state does not need a full coaching card.": (
-        "Ситуация на линии не требует отдельной подсказки."
+        "Ситуація на лінії не потребує окремої підказки."
     ),
     "Enemy pressure is active, and a low-value fight can delay your next timing.": (
-        "Враги давят, и бесполезная драка отодвинет ваш следующий тайминг."
+        "Вороги тиснуть, і марна бійка відсуне ваш наступний таймінг."
     ),
     "Enemy pressure is active. A low-value fight or death delays your next timing.": (
-        "Враги давят. Бесполезная драка или смерть отодвинет ваш следующий тайминг."
+        "Вороги тиснуть. Марна бійка або смерть відсуне ваш наступний таймінг."
     ),
     "Enemy locations are not confirmed, so exposed farming is unnecessary risk.": (
-        "Где враги — неизвестно, поэтому фарм на открытом месте — лишний риск."
+        "Де вороги — невідомо, тому фарм на відкритому місці — зайвий ризик."
     ),
     "HP is critical; one more trade or spell can kill you.": (
-        "HP критически низкое: ещё один размен или способность могут вас убить."
+        "HP критично низьке: ще один розмін або здібність можуть вас убити."
     ),
     "HP is low enough that another trade can become dangerous.": (
-        "HP так мало, что следующий размен может быть опасен."
+        "HP так мало, що наступний розмін може бути небезпечним."
     ),
-    "HP is stable and no pressure signal is active.": "HP в норме, признаков давления нет.",
+    "HP is stable and no pressure signal is active.": "HP у нормі, ознак тиску немає.",
     "Improving farm rate is safer than forcing a low-value fight.": (
-        "Ускорить фарм безопаснее, чем навязывать бесполезную драку."
+        "Пришвидшити фарм безпечніше, ніж нав'язувати марну бійку."
     ),
-    "Low health makes extra action too risky.": "С низким HP лишние действия слишком рискованны.",
+    "Low health makes extra action too risky.": "З низьким HP зайві дії надто ризиковані.",
     "Low lane HP makes trades and last hits risky.": (
-        "С низким HP на линии размены и добивания рискованны."
+        "З низьким HP на лінії розміни й добивання ризиковані."
     ),
     "Low mana limits escape, spell usage, and fight impact.": (
-        "Мало маны: хуже с побегом, способностями и пользой в драке."
+        "Мало мани: гірше з утечею, здібностями й користю в бійці."
     ),
     "Multiple recent deaths can delay your next timing more than missing one wave or camp.": (
-        "Несколько смертей подряд отодвинут тайминг сильнее, чем пропущенная волна или лагерь."
+        "Кілька смертей поспіль відсунуть таймінг сильніше, ніж пропущена хвиля чи табір."
     ),
     "Objective fights can be valuable, but the replay does not confirm team readiness.": (
-        "Драки за цели бывают выгодны, но по реплею не видно, готова ли команда."
+        "Бійки за цілі бувають вигідні, але з реплею не видно, чи готова команда."
     ),
     "Objective fights can be valuable, but avoid forcing them without team support.": (
-        "Драки за цели бывают выгодны, но не навязывайте их без поддержки команды."
+        "Бійки за цілі бувають вигідні, але не нав'язуйте їх без підтримки команди."
     ),
     "Objectives can be worth joining, but random skirmishes are not.": (
-        "За ключевые цели драться стоит, за случайные стычки — нет."
+        "За ключові цілі битися варто, за випадкові сутички — ні."
     ),
     "Objectives can be worth joining, but avoid forcing a fight without team support.": (
-        "За ключевые цели драться стоит, но не навязывайте драку без поддержки команды."
+        "За ключові цілі битися варто, але не нав'язуйте бійку без підтримки команди."
     ),
-    "Pressure is active while HP is not comfortable.": "Враги давят, а запаса HP уже нет.",
+    "Pressure is active while HP is not comfortable.": "Вороги тиснуть, а запасу HP уже немає.",
     "Pressure is active, but HP is still high enough for conservative farming.": (
-        "Враги давят, но HP хватает для осторожного фарма."
+        "Вороги тиснуть, але HP вистачає для обережного фарму."
     ),
     "Pressure plus reduced HP can turn the next trade into a death.": (
-        "Давление и неполное HP: следующий размен может закончиться смертью."
+        "Тиск і неповне HP: наступний розмін може закінчитися смертю."
     ),
     "Reduced HP plus lane pressure can turn one more trade into a death.": (
-        "Неполное HP и давление на линии: ещё один размен может закончиться смертью."
+        "Неповне HP і тиск на лінії: ще один розмін може закінчитися смертю."
     ),
     "Repeated low-HP returns can cost more than missing one wave.": (
-        "Раз за разом возвращаться с низким HP дороже, чем пропустить одну волну."
+        "Раз у раз повертатися з низьким HP дорожче, ніж пропустити одну хвилю."
     ),
     "Returning to the same pressured area can repeat the same death pattern.": (
-        "Вернувшись в ту же опасную зону, можно умереть так же, как в прошлый раз."
+        "Повернувшись у ту саму небезпечну зону, можна померти так само, як минулого разу."
     ),
     "Revealing on a wave can waste the smoke timing.": (
-        "Если показаться на волне, смок пропадёт зря."
+        "Якщо показатися на хвилі, смок зникне даремно."
     ),
     "Staying exposed after a bad trade often leads to a preventable death.": (
-        "Если остаться на виду после неудачного размена, легко умереть зря."
+        "Якщо залишитися на виду після невдалого розміну, легко померти даремно."
     ),
     "Staying in pressure can cost HP and slow your recovery.": (
-        "Под давлением вы теряете HP и дольше восстанавливаетесь."
+        "Під тиском ви втрачаєте HP і довше відновлюєтеся."
     ),
     "Stabilizing farm is safer than taking low-value damage.": (
-        "Выровнять фарм безопаснее, чем получать урон впустую."
+        "Вирівняти фарм безпечніше, ніж отримувати шкоду даремно."
     ),
     "The fight looks risky and may delay your next timing.": (
-        "Драка выглядит рискованной и может отодвинуть ваш тайминг."
+        "Бійка виглядає ризикованою й може відсунути ваш таймінг."
     ),
     "The item improves your options, but missing cooldown and team context means the safer choice still depends on nearby pressure.": (
-        "Предмет даёт больше вариантов, но без данных о кулдаунах и команде "
-        "безопасный выбор зависит от давления рядом."
+        "Предмет дає більше варіантів, але без даних про кулдауни й команду безпечний вибір залежить від тиску поруч."
     ),
     "The previous fight became risky because your survivability resource was low.": (
-        "Прошлая драка стала опасной: ресурсы для выживания были на исходе."
+        "Минула бійка стала небезпечною: ресурси для виживання закінчувалися."
     ),
     "There is no clear threat, objective, or timing decision right now.": (
-        "Сейчас нет явной угрозы, цели или тайминга."
+        "Зараз немає явної загрози, цілі чи таймінгу."
     ),
     "No urgent threat or objective is forcing action. Build resources safely.": (
-        "Ни угроз, ни целей, требующих действий. Спокойно набирайте ресурсы."
+        "Ні загроз, ні цілей, що потребують дій. Спокійно набирайте ресурси."
     ),
     "This reduces risk while keeping your carry game stable.": (
-        "Так меньше риска, а игра остаётся стабильной."
+        "Так менше ризику, а гра залишається стабільною."
     ),
     "Use it only if your team is defending a critical objective or the game could be decided now.": (
-        "Только если команда защищает важную цель или игра решается прямо сейчас."
+        "Лише якщо команда захищає важливу ціль або гра вирішується просто зараз."
     ),
     "You are behind on farm and under lane pressure; forcing a trade can cost both HP and last hits.": (
-        "Вы отстаёте по фарму и на линии давят: размен может стоить и HP, и добиваний."
+        "Ви відстаєте за фармом, і на лінії тиснуть: розмін може коштувати і HP, і добивань."
     ),
     "You are behind on farm, so forcing fights before stabilizing can delay your next timing.": (
-        "Вы отстаёте по фарму: драки до того, как выровняетесь, отодвинут тайминг."
+        "Ви відстаєте за фармом: бійки до того, як вирівняєтеся, відсунуть таймінг."
     ),
     "You are still behind on farm, and staying in pressure can cost both HP and timing.": (
-        "Вы всё ещё отстаёте по фарму, а под давлением теряете и HP, и тайминг."
+        "Ви все ще відстаєте за фармом, а під тиском втрачаєте і HP, і таймінг."
     ),
     "You are controlled; surviving the next seconds matters more than dealing damage.": (
-        "Вы под контролем: выжить в ближайшие секунды важнее, чем нанести урон."
+        "Ви під контролем: вижити найближчі секунди важливіше, ніж завдати шкоди."
     ),
     "You are under pressure but still have enough HP to keep farming if you stay conservative.": (
-        "На вас давят, но HP хватает, чтобы осторожно фармить дальше."
+        "На вас тиснуть, але HP вистачає, щоб обережно фармити далі."
     ),
     "You died after your key escape or defensive tool was unavailable.": (
-        "Вы умерли, когда способность для побега или защиты была недоступна."
+        "Ви померли, коли здібність для втечі чи захисту була недоступна."
     ),
     "You took heavy damage recently, so another trade can turn into a death.": (
-        "Вы недавно получили много урона: следующий размен может закончиться смертью."
+        "Ви нещодавно отримали багато шкоди: наступний розмін може закінчитися смертю."
     ),
     "Your farm pace is behind for this minute, but HP is stable, so the fastest recovery is clean last hitting.": (
-        "Для этой минуты фарма мало, но HP в норме — быстрее всего догнать чистыми добиваниями."
+        "Для цієї хвилини фарму мало, але HP у нормі — найшвидше наздогнати чистими добиваннями."
     ),
     "Your farm pace is stable now, so keep using safe routes instead of forcing uncertain fights.": (
-        "Темп фарма выровнялся: держитесь безопасных маршрутов и не лезьте в сомнительные драки."
+        "Темп фарму вирівнявся: тримайтеся безпечних маршрутів і не лізьте в сумнівні бійки."
     ),
     "Your farm route is the safest low-risk choice while enemy locations are uncertain.": (
-        "Пока неизвестно, где враги, ваш маршрут фарма — самый безопасный вариант."
+        "Поки невідомо, де вороги, ваш маршрут фарму — найбезпечніший варіант."
     ),
     "Your position is exposed and the replay does not confirm where enemies are.": (
-        "Вы на открытой позиции, а по реплею не видно, где враги."
+        "Ви на відкритій позиції, а з реплею не видно, де вороги."
     ),
     "Your position is exposed and enemy locations are not confirmed.": (
-        "Вы на открытой позиции, а где враги — неизвестно."
+        "Ви на відкритій позиції, а де вороги — невідомо."
     ),
     "Your position is risky and enemy locations are not confirmed.": (
-        "Позиция опасная, а где враги — неизвестно."
+        "Позиція небезпечна, а де вороги — невідомо."
     ),
     "Your hero is easier to punish while this safety tool is unavailable.": (
-        "Пока защитная способность недоступна, вашего героя легче наказать."
+        "Поки захисна здібність недоступна, вашого героя легше покарати."
     ),
     "Your key defensive resource is unavailable, so a bad fight is harder to escape.": (
-        "Ключевой защитный ресурс недоступен: из неудачной драки будет трудно уйти."
+        "Ключовий захисний ресурс недоступний: з невдалої бійки буде важко вийти."
     ),
     "Your lane progress is stable, so do not break it by taking unnecessary damage.": (
-        "На линии всё ровно — не портите это лишним уроном."
+        "На лінії все рівно — не псуйте це зайвою шкодою."
     ),
-    "Death detected, but context is limited.": "Смерть зафиксирована, но данных мало.",
+    "Death detected, but context is limited.": "Смерть зафіксовано, але даних мало.",
     "Death followed a low HP or key resource state.": (
-        "Смерть случилась при низком HP или нехватке ключевых ресурсов."
+        "Смерть сталася з низьким HP або браком ключових ресурсів."
     ),
     "Death followed a state where a key escape or defensive tool was unavailable.": (
-        "Смерть случилась, когда способность для побега или защиты была недоступна."
+        "Смерть сталася, коли здібність для втечі чи захисту була недоступна."
     ),
     "Death followed farming with limited team context; avoid repeating the same route.": (
-        "Смерть случилась во время фарма вдали от команды; не повторяйте тот же маршрут."
+        "Смерть сталася під час фарму далеко від команди; не повторюйте той самий маршрут."
     ),
-    "Death happened around an objective context.": "Смерть случилась в драке у ключевой цели.",
+    "Death happened around an objective context.": "Смерть сталася в бійці біля ключової цілі.",
     "Multiple recent deaths detected; reset the next route after respawn.": (
-        "Несколько смертей подряд: после возрождения смените маршрут."
+        "Кілька смертей поспіль: після відродження змініть маршрут."
     ),
     "Position is far from your safe side, and enemy locations are not confirmed.": (
-        "Вы далеко от своей безопасной стороны, а где враги — неизвестно."
+        "Ви далеко від своєї безпечної сторони, а де вороги — невідомо."
     ),
     "Position is known, but team side is unknown; avoid assuming the area is safe.": (
-        "Позиция известна, но сторона команды — нет; не считайте зону безопасной."
+        "Позиція відома, але сторона команди — ні; не вважайте зону безпечною."
     ),
     "Position is lane-side, but enemy locations are not confirmed.": (
-        "Вы у линии, но где враги — неизвестно."
+        "Ви біля лінії, але де вороги — невідомо."
     ),
     "Position is near central map areas; avoid assuming the area is safe.": (
-        "Вы в центре карты — не считайте зону безопасной."
+        "Ви в центрі мапи — не вважайте зону безпечною."
     ),
     "Position is on your side of the map; still avoid assuming enemies are absent.": (
-        "Вы на своей половине карты, но враги всё равно могут быть рядом."
+        "Ви на своїй половині мапи, але вороги все одно можуть бути поруч."
     ),
-    "Position is unavailable.": "Позиция неизвестна.",
+    "Position is unavailable.": "Позиція невідома.",
     # --- status messages -----------------------------------------------------
-    "Monitoring...": "Следим за игрой…",
-    "Waiting for live GSI...": "Ждём данные из игры…",
+    "Monitoring...": "Стежимо за грою…",
+    "Waiting for live GSI...": "Чекаємо дані з гри…",
     "Take the side lanes your team leaves and a camp between waves; "
     "join fights only for a tower or Roshan.": (
-        "Забирайте боковые линии, которые оставляет команда, и лагерь между волнами; "
-        "в драки идите только за вышку или Рошана."
+        "Забирайте бокові лінії, які залишає команда, і табір між хвилями; у бійки йдіть лише за вежу або Рошана."
     ),
     "Your HP is fine: last-hit every creep of the next waves and trade only to protect them.": (
-        "Здоровья хватает: добивайте каждого крипа следующих волн, "
-        "а размены — только чтобы их защитить."
+        "Здоров'я вистачає: добивайте кожного кріпа наступних хвиль, а розміни — лише щоб їх захистити."
     ),
     "Take the safest waves and camps first: fights before that delay your next item.": (
-        "Сначала самые безопасные волны и лагеря: драки до этого отложат следующий предмет."
+        "Спершу найбезпечніші хвилі й табори: бійки до цього відкладуть наступний предмет."
     ),
     "Keep taking the safest waves and camps: this pace grows without risky fights.": (
-        "Берите самые безопасные волны и лагеря: темп растёт и без рискованных драк."
+        "Беріть найбезпечніші хвилі й табори: темп росте й без ризикованих бійок."
     ),
     "Current hero is not supported by carry advisor yet.": (
-        "Для этого героя советов пока нет: поддерживаются только керри."
+        "Для цього героя порад поки немає: підтримуються лише керрі."
     ),
 }
 
@@ -474,192 +468,190 @@ _RU_PATTERNS: tuple[tuple[re.Pattern[str], str], ...] = (
             r"^Keep farming: (?P<gpm>\d+) gold per minute, (?P<lh>\d+) last hits at minute "
             r"(?P<m>\d+)\.$"
         ),
-        "Фармите дальше: {gpm} золота в минуту, добиваний к {m}-й минуте — {lh}.",
+        "Фарміть далі: {gpm} золота за хвилину, добивань до {m}-ї хвилини — {lh}.",
     ),
     (
         re.compile(
             r"^No TP scroll for (?P<minutes>\d+) minutes?: without it you cannot join a fight "
             r"or save a tower in time\.$"
         ),
-        "Без свитка телепортации уже {minutes} мин — не успеете ни в драку, ни спасти башню.",
+        "Без сувою телепортації вже {minutes} хв — не встигнете ні в бійку, ні врятувати вежу.",
     ),
     (
         re.compile(
             r"^Buy parts of your next item now with your (?P<gold>\d+) gold: "
             r"they wait for you at the fountain\.$"
         ),
-        "Купите части следующего предмета на {gold} золота сейчас — заберёте их у фонтана.",
+        "Купіть частини наступного предмета на {gold} золота зараз — заберете їх біля фонтана.",
     ),
     (
         re.compile(
             r"^Buy parts of your next item with (?P<spare>\d+) gold "
             r"and keep (?P<cost>\d+) for buyback\.$"
         ),
-        "Купите части следующего предмета на {spare} золота, а {cost} оставьте на байбэк.",
+        "Купіть частини наступного предмета на {spare} золота, а {cost} залиште на байбек.",
     ),
     (
         re.compile(r"^Avoid committing forward until (?P<name>.+) is ready\.$"),
-        "Не лезьте вперёд до готовности {name}.",
+        "Не лізьте вперед, доки не готовий {name}.",
     ),
     (
         re.compile(r"^Avoid risky trades until (?P<name>.+) is ready\.$"),
-        "Избегайте рискованных разменов до готовности {name}.",
+        "Уникайте ризикованих розмінів, доки не готовий {name}.",
     ),
     (
         re.compile(r"^Without (?P<name>.+), disables and slows are harder to avoid\.$"),
-        "Без {name} труднее избежать контроля и замедлений.",
+        "Без {name} важче уникнути контролю й сповільнень.",
     ),
     (
         re.compile(r"^Without (?P<name>.+), escaping a bad trade or fight is harder\.$"),
-        "Без {name} сложнее выйти из неудачного размена или драки.",
+        "Без {name} складніше вийти з невдалого розміну чи бійки.",
     ),
     (
         re.compile(r"^(?P<name>.+) is unavailable, so committing forward is risky\.$"),
-        "Без {name} идти вперёд рискованно.",
+        "Без {name} іти вперед ризиковано.",
     ),
     (
         re.compile(r"^(?P<name>.+) is unavailable, so your hero is easier to punish\.$"),
-        "Без {name} вашего героя легче наказать.",
+        "Без {name} вашого героя легше покарати.",
     ),
     (
         re.compile(
             r"^Only (?P<lh>\d+) last hits? in the last (?P<m>\d+) minutes; "
             r"every minute without farm delays your next item\.$"
         ),
-        "Добиваний за последние {m} мин: {lh}. Каждая минута без фарма отодвигает следующий предмет.",
+        "Добивань за останні {m} хв: {lh}. Кожна хвилина без фарму відсуває наступний предмет.",
     ),
     (
         re.compile(
             r"^You have (?P<gold>\d+) gold and buyback costs (?P<cost>\d+); "
             r"after minute 30 one death without buyback can decide the game\.$"
         ),
-        "Золота {gold}, байбэк стоит {cost}. После 30-й минуты одна смерть без байбэка "
-        "может решить игру.",
+        "Золота {gold}, байбек коштує {cost}. Після 30-ї хвилини одна смерть без байбеку може вирішити гру.",
     ),
     (
         re.compile(
             r"^Recover farm: (?P<lh>\d+) last hits at minute (?P<m>\d+), a good pace is "
             r"(?P<low>\d+)\+\.$"
         ),
-        "Навёрстывайте фарм: добиваний к {m}-й минуте — {lh}, хороший темп — {low}+.",
+        "Надолужуйте фарм: добивань до {m}-ї хвилини — {lh}, добрий темп — {low}+.",
     ),
     # live_tools.py: the hero's own abilities and their cooldowns.
     (
         re.compile(r"^Use (?P<name>.+) now: a mute blocks items, not spells\.$"),
-        "Используйте {name} сейчас: немота мешает предметам, а не способностям.",
+        "Використайте {name} зараз: німота заважає предметам, а не здібностям.",
     ),
     (
         re.compile(r"^Use (?P<name>.+) now and walk out of the fight\.$"),
-        "Используйте {name} сейчас и выходите из драки.",
+        "Використайте {name} зараз і виходьте з бійки.",
     ),
     (
         re.compile(r"^(?P<name>.+) is ready: it buys you the seconds to get away\.$"),
-        "{name} уже можно нажать: это даст секунды, чтобы уйти.",
+        "{name} уже можна натиснути: це дасть секунди, щоб піти.",
     ),
     (
         re.compile(
             r"^(?P<name>.+) is back in (?P<n>\d+) s: without it, escaping a bad trade "
             r"or fight is harder\.$"
         ),
-        "{name} откатится через {n} с: без него сложнее уйти из неудачного размена или драки.",
+        "{name} відновиться через {n} с: без нього складніше вийти з невдалого розміну чи бійки.",
     ),
     (
         re.compile(
             r"^(?P<name>.+) is back in (?P<n>\d+) s: until then, disables and slows "
             r"are harder to avoid\.$"
         ),
-        "{name} откатится через {n} с: до этого сложнее избежать контроля и замедлений.",
+        "{name} відновиться через {n} с: до того складніше уникнути контролю й сповільнень.",
     ),
     # live_tools.py: a rune kept in the Bottle (before the generic tool texts).
     *(
         entry
-        for rune, ru in RUNES_RU.items()
+        for rune, uk in RUNES_UK.items()
         for entry in (
             (
                 re.compile(rf"^Use the {rune} rune from your Bottle and run\.$"),
-                f"Используйте руну {ru} из бутылки и уходите.",
+                f"Використайте руну {uk} із пляшки й ідіть.",
             ),
             (
                 re.compile(
                     rf"^The {rune} rune in your Bottle is ready: use it before the next hit, "
                     r"not after\.$"
                 ),
-                f"Руна {ru} в бутылке готова: используйте её до следующего удара, а не после.",
+                f"Руна {uk} у пляшці готова: використайте її до наступного удару, а не після.",
             ),
         )
     ),
     (
         re.compile(r"^Use the Water rune from your Bottle now, then step back\.$"),
-        "Используйте руну воды из бутылки сейчас и отойдите.",
+        "Використайте руну води з пляшки зараз і відійдіть.",
     ),
     (
         re.compile(r"^The Water rune in your Bottle heals you at once\.$"),
-        "Руна воды в бутылке лечит сразу.",
+        "Руна води в пляшці лікує одразу.",
     ),
     (
         re.compile(r"^Step out of enemy range and use the Regeneration rune from your Bottle\.$"),
-        "Отойдите туда, где враг не достанет, и используйте руну регенерации из бутылки.",
+        "Відійдіть туди, де ворог не дістане, і використайте руну регенерації з пляшки.",
     ),
     (
         re.compile(
             r"^The Regeneration rune heals fast but stops at the first hit: use it where "
             r"enemies cannot reach you\.$"
         ),
-        "Руна регенерации лечит быстро, но сбивается первым же ударом: "
-        "используйте её там, где вас не достанут.",
+        "Руна регенерації лікує швидко, але збивається першим же ударом: використайте її там, де вас не дістануть.",
     ),
     # live_tools.py: the tool that is ready right now.
     (
         re.compile(r"^Use (?P<name>.+) now to get out, then reset HP\.$"),
-        "Используйте {name} сейчас, чтобы уйти, потом восстановите HP.",
+        "Використайте {name} зараз, щоб піти, потім відновіть HP.",
     ),
     (
         re.compile(
             r"^Your HP is low and (?P<name>.+) is ready: use it before the next hit, not after\.$"
         ),
-        "HP мало, а {name} готов: нажмите его до следующего удара, а не после.",
+        "HP мало, а {name} готовий: натисніть його до наступного удару, а не після.",
     ),
     (
         re.compile(r"^Use (?P<name>.+) now, then step back\.$"),
-        "Нажмите {name} сейчас и отойдите.",
+        "Натисніть {name} зараз і відійдіть.",
     ),
     (
         re.compile(r"^Magic Wand has (?P<n>\d+) charges: that HP is yours right now\.$"),
-        "В Magic Wand {n} зарядов: это HP можно получить прямо сейчас.",
+        "У Magic Wand {n} зарядів: це HP можна отримати просто зараз.",
     ),
     (
         re.compile(r"^(?P<name>Magic Wand) is charged: that HP is yours right now\.$"),
-        "{name} заряжен: это HP можно получить прямо сейчас.",
+        "{name} заряджений: це HP можна отримати просто зараз.",
     ),
     (
         re.compile(r"^(?P<name>.+) is ready and heals you at once\.$"),
-        "{name} готов и лечит сразу.",
+        "{name} готовий і лікує одразу.",
     ),
     (
         re.compile(r"^(?P<name>.+) heals you at once\.$"),
-        "{name} лечит сразу.",
+        "{name} лікує одразу.",
     ),
     (
         re.compile(r"^Step out of enemy range and use (?P<name>.+)\.$"),
-        "Отойдите туда, где враг не достанет, и используйте {name}.",
+        "Відійдіть туди, де ворог не дістане, і використайте {name}.",
     ),
     (
         re.compile(r"^(?P<name>.+) heals over time: use it where enemies cannot hit you\.$"),
-        "{name} лечит постепенно: используйте там, где вас не достанут.",
+        "{name} лікує поступово: використовуйте там, де вас не дістануть.",
     ),
     (
         re.compile(r"^Use (?P<name>.+) now: it removes the silence\.$"),
-        "Нажмите {name} сейчас: он снимает немоту.",
+        "Натисніть {name} зараз: він знімає німоту.",
     ),
     (
         re.compile(r"^The moment the disable ends, use (?P<name>.+)\.$"),
-        "Как только контроль закончится, сразу нажмите {name}.",
+        "Щойно контроль закінчиться, одразу натисніть {name}.",
     ),
     (
         re.compile(
             r"^(?P<name>.+) is ready: the second after a disable is when most kills finish\.$"
         ),
-        "{name} готов: чаще всего добивают в первую секунду после контроля.",
+        "{name} готовий: найчастіше добивають у першу секунду після контролю.",
     ),
     *(
         (
@@ -667,80 +659,78 @@ _RU_PATTERNS: tuple[tuple[re.Pattern[str], str], ...] = (
                 rf"^You died with Bottle \({rune} rune\) ready: next time use it at the first "
                 r"big hit\.$"
             ),
-            f"Вы погибли, когда в бутылке была руна {ru}: в следующий раз используйте её "
-            "при первом сильном ударе.",
+            f"Ви загинули, коли в пляшці була руна {uk}: наступного разу використайте її при першому сильному ударі.",
         )
-        for rune, ru in RUNES_RU.items()
+        for rune, uk in RUNES_UK.items()
     ),
     (
         re.compile(r"^You died with (?P<name>.+) ready: next time use it at the first big hit\.$"),
-        "Вы погибли с готовым {name}: в следующий раз нажмите его при первом сильном ударе.",
+        "Ви загинули з готовим {name}: наступного разу натисніть його при першому сильному ударі.",
     ),
     (
         re.compile(r"^Use your gold: (?P<name>.+) can be bought now\.$"),
-        "Потратьте золото: {name} уже можно купить.",
+        "Витратьте золото: {name} уже можна купити.",
     ),
     (
         re.compile(
             r"^Its missing parts cost (?P<left>\d+) gold and you have (?P<spare>\d+) "
             r"beyond your buyback\.$"
         ),
-        "Недостающие части стоят {left} золота, у вас {spare} сверх байбэка.",
+        "Відсутні частини коштують {left} золота, у вас {spare} понад байбек.",
     ),
     (
         re.compile(r"^Its missing parts cost (?P<left>\d+) gold and you have (?P<spare>\d+)\.$"),
-        "Недостающие части стоят {left} золота, у вас {spare}.",
+        "Відсутні частини коштують {left} золота, у вас {spare}.",
     ),
     (
         re.compile(r"^Keep farming toward (?P<name>.+) on the safest waves and camps\.$"),
-        "Фармите на {name} на самых безопасных волнах и лагерях.",
+        "Фарміть на {name} на найбезпечніших хвилях і таборах.",
     ),
     (
         re.compile(
             r"^(?P<name>.+) is next in most builds: (?P<need>\d+) gold to go, "
             r"about (?P<m>\d+) minutes? at your (?P<gpm>\d+) gold per minute\.$"
         ),
-        "{name} — следующий предмет в большинстве сборок: не хватает {need} золота, "
-        "это около {m} мин при {gpm} золота в минуту.",
+        "{name} — наступний предмет у більшості збірок: бракує {need} золота, це близько {m} хв при {gpm} золота за хвилину.",
     ),
     (
         re.compile(r"^(?P<name>.+) is next in most builds: (?P<need>\d+) gold to go\.$"),
-        "{name} — следующий предмет в большинстве сборок: не хватает {need} золота.",
+        "{name} — наступний предмет у більшості збірок: бракує {need} золота.",
     ),
     (
         re.compile(r"^Low mana reduces (?P<name>.+)'s effective survivability\.$"),
-        "У {name} мало маны — выживаемость заметно ниже.",
+        "У {name} мало мани — виживаність помітно нижча.",
     ),
     (
         re.compile(r"^(?P<name>.+) is low on mana, so effective survivability is reduced\.$"),
-        "У {name} мало маны — выживаемость заметно ниже.",
+        "У {name} мало мани — виживаність помітно нижча.",
     ),
 )
 
-# Death places (live_tools.death_copy): Russian needs the zone in a case, so
+# Death places (live_tools.death_copy): Ukrainian needs the zone in a case, so
 # these render with a function instead of a format template.
 _ZONE_FROM = {
-    "top lane": "от верхней линии",
-    "mid lane": "от центральной линии",
-    "bottom lane": "от нижней линии",
-    "jungle": "от леса",
+    "top lane": "від верхньої лінії",
+    "mid lane": "від центральної лінії",
+    "bottom lane": "від нижньої лінії",
+    "jungle": "від лісу",
 }
 _ZONE_IN = {
-    "top lane": "на верхней линии",
-    "mid lane": "на центральной линии",
-    "bottom lane": "на нижней линии",
-    "jungle": "в лесу",
+    "top lane": "на верхній лінії",
+    "mid lane": "на центральній лінії",
+    "bottom lane": "на нижній лінії",
+    "jungle": "у лісі",
 }
 _ZONE_TO = {
-    "top lane": "на верхнюю линию",
-    "mid lane": "на центральную линию",
-    "bottom lane": "на нижнюю линию",
-    "jungle": "в лес",
+    "top lane": "на верхню лінію",
+    "mid lane": "на центральну лінію",
+    "bottom lane": "на нижню лінію",
+    "jungle": "до лісу",
 }
 _SIDE = {
-    "on your side": "на своей половине",
-    "by the river": "у реки",
-    "on the enemy side": "на половине врага",
+    "on your side": "на своїй половині",
+    "by the river": "біля річки",
+    "on the enemy side": "на половині ворога",
 }
 _ZONE_RE = "(?P<zone>top lane|mid lane|bottom lane|jungle)"
 _SIDE_RE = "(?P<side>on your side|by the river|on the enemy side)"
@@ -750,7 +740,7 @@ def _deaths_word(count: int) -> str:
     if count % 10 == 1 and count % 100 != 11:
         return "смерть"
     if 2 <= count % 10 <= 4 and not 12 <= count % 100 <= 14:
-        return "смерти"
+        return "смерті"
     return "смертей"
 
 
@@ -758,34 +748,34 @@ def _deaths_word(count: int) -> str:
 # the gold tail after it.
 _SITUATIONAL_TAILS: tuple[tuple[re.Pattern[str], str], ...] = (
     (re.compile(r"^\.$"), "."),
-    (re.compile(r"^: (?P<need>\d+) gold to go\.$"), ": не хватает {need} золота."),
+    (re.compile(r"^: (?P<need>\d+) gold to go\.$"), ": бракує {need} золота."),
     (
         re.compile(
             r"^: (?P<need>\d+) gold to go, about (?P<m>\d+) minutes? at your (?P<gpm>\d+) "
             r"gold per minute\.$"
         ),
-        ": не хватает {need} золота, это около {m} мин при {gpm} золота в минуту.",
+        ": бракує {need} золота, це близько {m} хв при {gpm} золота за хвилину.",
     ),
     (
         re.compile(
             r"^; its missing parts cost (?P<left>\d+) gold and you have (?P<spare>\d+) "
             r"beyond your buyback\.$"
         ),
-        "; недостающие части стоят {left} золота, у вас {spare} сверх байбэка.",
+        "; відсутні частини коштують {left} золота, у вас {spare} понад байбек.",
     ),
     (
         re.compile(r"^; its missing parts cost (?P<left>\d+) gold and you have (?P<spare>\d+)\.$"),
-        "; недостающие части стоят {left} золота, у вас {spare}.",
+        "; відсутні частини коштують {left} золота, у вас {spare}.",
     ),
 )
 
 
 def _kills_word(count: int) -> str:
     if count % 10 == 1 and count % 100 != 11:
-        return "убийство"
+        return "вбивство"
     if 2 <= count % 10 <= 4 and not 12 <= count % 100 <= 14:
-        return "убийства"
-    return "убийств"
+        return "вбивства"
+    return "вбивств"
 
 
 def _situational_tail(tail: str) -> str | None:
@@ -805,9 +795,9 @@ def _magic_reason(groups: dict[str, str]) -> str:
     word = (
         "герой"
         if count % 10 == 1 and count % 100 != 11
-        else ("героя" if 2 <= count % 10 <= 4 and not 12 <= count % 100 <= 14 else "героев")
+        else ("герої" if 2 <= count % 10 <= 4 and not 12 <= count % 100 <= 14 else "героїв")
     )
-    head = f"{count} {word} врага бьют магией — {groups['name']} защитит от неё"
+    head = f"{count} {word} ворога б'ють магією — {groups['name']} захистить від неї"
     tail = _situational_tail(groups["tail"])
     return head + tail if tail is not None else ""
 
@@ -816,16 +806,13 @@ def _counter_reason(groups: dict[str, str]) -> str:
     """The counter-item reasons (situational_items: an enemy hero seen)."""
     if groups.get("spell"):
         count = int(groups["count"])
-        head = (
-            f"{count} {_deaths_word(count)} под контролем против {groups['enemy']} — "
-            f"{groups['name']} блокирует {groups['spell']}"
-        )
+        head = f"{count} {_deaths_word(count)} під контролем проти {groups['enemy']} — {groups['name']} блокує {groups['spell']}"
     elif groups.get("kind") == "dodges your attacks":
-        head = f"{groups['enemy']} уклоняется от атак — {groups['name']} бьёт без промаха"
+        head = f"{groups['enemy']} ухиляється від атак — {groups['name']} б'є без промаху"
     elif groups.get("kind") == "fights with illusions":
-        head = f"{groups['enemy']} дерётся иллюзиями — {groups['name']} бьёт их всех сразу"
+        head = f"{groups['enemy']} б'ється ілюзіями — {groups['name']} б'є їх усіх одразу"
     else:
-        head = f"{groups['enemy']} много лечится — {groups['name']} режет лечение"
+        head = f"{groups['enemy']} багато лікується — {groups['name']} ріже лікування"
     tail = _situational_tail(groups["tail"])
     return head + tail if tail is not None else ""
 
@@ -833,16 +820,14 @@ def _counter_reason(groups: dict[str, str]) -> str:
 def _situational_reason(groups: dict[str, str]) -> str:
     count = int(groups["count"])
     if groups["kind"].strip().startswith("under stuns"):
-        head = (
-            f"{count} {_deaths_word(count)} под контролем без единой свободной секунды — "
-            f"{groups['name']} это исправит"
-        )
+        head = f"{count} {_deaths_word(count)} під контролем без жодної вільної секунди — {groups['name']} це виправить"
     else:
-        times = "раза" if 2 <= count % 10 <= 4 and not 12 <= count % 100 <= 14 else "раз"
-        head = (
-            f"{count} {times} вас убили с высокого здоровья быстрее, чем за 3 секунды — "
-            f"{groups['name']} даст время это пережить"
+        times = (
+            "раз"
+            if count % 10 == 1 and count % 100 != 11
+            else ("рази" if 2 <= count % 10 <= 4 and not 12 <= count % 100 <= 14 else "разів")
         )
+        head = f"{count} {times} вас убили з високого здоров'я швидше, ніж за 3 секунди — {groups['name']} дасть час це пережити"
     for pattern, tail in _SITUATIONAL_TAILS:
         match = pattern.match(groups["tail"])
         if match:
@@ -854,7 +839,7 @@ _RU_FUNCTIONS: tuple[tuple[re.Pattern[str], Callable[[dict[str, str]], str]], ..
     (
         re.compile(r"^After respawn, change your route: (?P<n>\d+) deaths this game\.$"),
         lambda g: (
-            f"После возрождения смените маршрут: {g['n']} {_deaths_word(int(g['n']))} за игру."
+            f"Після відродження змініть маршрут: {g['n']} {_deaths_word(int(g['n']))} за гру."
         ),
     ),
     (
@@ -863,8 +848,7 @@ _RU_FUNCTIONS: tuple[tuple[re.Pattern[str], Callable[[dict[str, str]], str]], ..
             r"minutes?\.$"
         ),
         lambda g: (
-            f"После возрождения смените маршрут: {g['n']} {_deaths_word(int(g['n']))} "
-            f"за {g['m']} мин."
+            f"Після відродження змініть маршрут: {g['n']} {_deaths_word(int(g['n']))} за {g['m']} хв."
         ),
     ),
     (
@@ -873,8 +857,7 @@ _RU_FUNCTIONS: tuple[tuple[re.Pattern[str], Callable[[dict[str, str]], str]], ..
             r"towers\.$"
         ),
         lambda g: (
-            f"Команда отстаёт на {g['n']} {_kills_word(int(g['n']))}: фармите на своей половине "
-            "и деритесь только у своих башен."
+            f"Команда відстає на {g['n']} {_kills_word(int(g['n']))}: фарміть на своїй половині й бийтеся лише біля своїх веж."
         ),
     ),
     (
@@ -883,13 +866,12 @@ _RU_FUNCTIONS: tuple[tuple[re.Pattern[str], Callable[[dict[str, str]], str]], ..
             r"farming alone\.$"
         ),
         lambda g: (
-            f"Команда впереди на {g['n']} {_kills_word(int(g['n']))}: соберитесь и снесите "
-            "башню, а не фармите в одиночку."
+            f"Команда попереду на {g['n']} {_kills_word(int(g['n']))}: зберіться й знесіть вежу, а не фарміть поодинці."
         ),
     ),
     (
         re.compile(r"^Stay alive: you are on a (?P<n>\d+)-kill streak\.$"),
-        lambda g: f"Берегите себя: у вас серия из {g['n']} убийств подряд.",
+        lambda g: f"Бережіть себе: у вас серія з {g['n']} вбивств поспіль.",
     ),
     (
         re.compile(
@@ -927,7 +909,7 @@ _RU_FUNCTIONS: tuple[tuple[re.Pattern[str], Callable[[dict[str, str]], str]], ..
             r"leave now\.$"
         ),
         lambda g: (
-            f"За 5 секунд ушло {g['n']}% HP: в таком темпе у вас считаные секунды, уходите сейчас."
+            f"За 5 секунд пішло {g['n']}% HP: у такому темпі у вас лічені секунди, ідіть зараз."
         ),
     ),
     (
@@ -937,10 +919,9 @@ _RU_FUNCTIONS: tuple[tuple[re.Pattern[str], Callable[[dict[str, str]], str]], ..
             r"have the courier bring a Healing Salve\.)?$"
         ),
         lambda g: (
-            f"HP падает так низко уже {g['n']}-й раз за игру: "
-            "прежде чем возвращаться, восстановитесь полностью."
+            f"HP падає так низько вже {g['n']}-й раз за гру: перш ніж повертатися, відновіться повністю."
             + (
-                " Регенерации в сумке нет: пусть курьер привезёт Healing Salve."
+                " Регенерації в сумці немає: нехай кур'єр привезе Healing Salve."
                 if g["regen"]
                 else ""
             )
@@ -949,7 +930,7 @@ _RU_FUNCTIONS: tuple[tuple[re.Pattern[str], Callable[[dict[str, str]], str]], ..
     (
         re.compile(rf"^After respawn, stay away from the {_ZONE_RE} {_SIDE_RE}\.$"),
         lambda g: (
-            f"После возрождения держитесь подальше {_ZONE_FROM[g['zone']]} {_SIDE[g['side']]}."
+            f"Після відродження тримайтеся подалі {_ZONE_FROM[g['zone']]} {_SIDE[g['side']]}."
         ),
     ),
     (
@@ -958,8 +939,7 @@ _RU_FUNCTIONS: tuple[tuple[re.Pattern[str], Callable[[dict[str, str]], str]], ..
             r"farm somewhere safer until your team is there\.$"
         ),
         lambda g: (
-            f"{g['count']} {_deaths_word(int(g['count']))} {_ZONE_IN[g['zone']]} "
-            f"{_SIDE[g['side']]} за {g['m']} мин: фармите в другом месте, пока там нет вашей команды."
+            f"{g['count']} {_deaths_word(int(g['count']))} {_ZONE_IN[g['zone']]} {_SIDE[g['side']]} за {g['m']} хв: фарміть в іншому місці, доки там немає вашої команди."
         ),
     ),
     (
@@ -968,8 +948,7 @@ _RU_FUNCTIONS: tuple[tuple[re.Pattern[str], Callable[[dict[str, str]], str]], ..
             r"farm somewhere safer until your team is there\.$"
         ),
         lambda g: (
-            f"{g['count']} {_deaths_word(int(g['count']))} {_ZONE_IN[g['zone']]} "
-            f"{_SIDE[g['side']]} за игру: фармите в другом месте, пока там нет вашей команды."
+            f"{g['count']} {_deaths_word(int(g['count']))} {_ZONE_IN[g['zone']]} {_SIDE[g['side']]} за гру: фарміть в іншому місці, доки там немає вашої команди."
         ),
     ),
     (
@@ -978,8 +957,7 @@ _RU_FUNCTIONS: tuple[tuple[re.Pattern[str], Callable[[dict[str, str]], str]], ..
             r"farm your own half until your team is with you\.$"
         ),
         lambda g: (
-            f"Вы погибли {_ZONE_IN[g['zone']]} на половине врага: "
-            "фармите на своей половине, пока команда не рядом."
+            f"Ви загинули {_ZONE_IN[g['zone']]} на половині ворога: фарміть на своїй половині, доки команда не поруч."
         ),
     ),
     (
@@ -987,8 +965,7 @@ _RU_FUNCTIONS: tuple[tuple[re.Pattern[str], Callable[[dict[str, str]], str]], ..
             rf"^After respawn, farm your own half: you died in the {_ZONE_RE} on the enemy side\.$"
         ),
         lambda g: (
-            "После возрождения фармите на своей половине: "
-            f"вы погибли {_ZONE_IN[g['zone']]} на половине врага."
+            f"Після відродження фарміть на своїй половині: ви загинули {_ZONE_IN[g['zone']]} на половині ворога."
         ),
     ),
     (
@@ -997,8 +974,7 @@ _RU_FUNCTIONS: tuple[tuple[re.Pattern[str], Callable[[dict[str, str]], str]], ..
             r"tower until you see the enemy heroes\.$"
         ),
         lambda g: (
-            f"После возрождения играйте {_ZONE_IN[g['zone']]} ближе к своей башне, "
-            "пока не увидите вражеских героев."
+            f"Після відродження грайте {_ZONE_IN[g['zone']]} ближче до своєї вежі, доки не побачите ворожих героїв."
         ),
     ),
     (
@@ -1006,8 +982,7 @@ _RU_FUNCTIONS: tuple[tuple[re.Pattern[str], Callable[[dict[str, str]], str]], ..
             rf"^After respawn, avoid the {_ZONE_RE} {_SIDE_RE} without your team: you died there\.$"
         ),
         lambda g: (
-            f"После возрождения не ходите {_ZONE_TO[g['zone']]} {_SIDE[g['side']]} без команды: "
-            "вы погибли там."
+            f"Після відродження не ходіть {_ZONE_TO[g['zone']]} {_SIDE[g['side']]} без команди: ви загинули там."
         ),
     ),
     (
@@ -1016,8 +991,7 @@ _RU_FUNCTIONS: tuple[tuple[re.Pattern[str], Callable[[dict[str, str]], str]], ..
             r"you went down in (?P<s>\d+) seconds? from high HP\.$"
         ),
         lambda g: (
-            "После возрождения держитесь у своих башен или рядом с командой: "
-            f"вас убили за {g['s']} с с высокого здоровья."
+            f"Після відродження тримайтеся біля своїх веж або поруч із командою: вас убили за {g['s']} с з високого здоров'я."
         ),
     ),
 )
@@ -1030,8 +1004,8 @@ _TRUNCATION = "..."
 
 
 def normalize_lang(value: object) -> str:
-    """Map "ru", "ru-RU", "RU" to "ru"; anything else is English."""
-    return "ru" if str(value or "").strip().lower().startswith("ru") else DEFAULT_LANG
+    """Map "uk", "uk-UA", "UK" (and the country code "ua") to "uk"; anything else is English."""
+    return "uk" if str(value or "").strip().lower()[:2] in {"uk", "ua"} else DEFAULT_LANG
 
 
 def _normalize(text: str) -> str:
@@ -1070,7 +1044,7 @@ def _translate_consider(text: str) -> str | None:
 
 def _translate_truncated(text: str) -> str | None:
     # scheduler.text truncates long lines to "<prefix>..."; show the full
-    # Russian line instead (the UI clamps long text itself).
+    # Ukrainian line instead (the UI clamps long text itself).
     prefix = text[: -len(_TRUNCATION)].rstrip()
     if len(prefix) < 20:
         return None
@@ -1078,8 +1052,8 @@ def _translate_truncated(text: str) -> str | None:
     return _RU_EXACT[candidates[0]] if len(candidates) == 1 else None
 
 
-def translate_ru(text: str) -> str | None:
-    """Russian for one visible advice text, or None when it is not known."""
+def translate_uk(text: str) -> str | None:
+    """Ukrainian for one visible advice text, or None when it is not known."""
     normalized = _normalize(text)
     if not normalized:
         return None
@@ -1102,7 +1076,7 @@ def translate_ru(text: str) -> str | None:
 
 def translate_text(text: Any, lang: str) -> Any:
     """Translate one visible text; unknown text and non-strings pass through."""
-    if lang != "ru" or not isinstance(text, str):
+    if lang != "uk" or not isinstance(text, str):
         return text
     return _render_message(_message_for_text(text)) or text
 
@@ -1137,10 +1111,10 @@ def _render_pattern(params: dict[str, Any], *, template: str) -> str:
     return template.format(**params)
 
 
-for _source, _russian in _RU_EXACT.items():
+for _source, _ukrainian in _RU_EXACT.items():
     _id = _message_id("exact", _source)
     _EXACT_MESSAGE_IDS[_source] = _id
-    _MESSAGE_RENDERERS[_id] = partial(_render_exact, text=_russian)
+    _MESSAGE_RENDERERS[_id] = partial(_render_exact, text=_ukrainian)
 
 _PATTERN_MESSAGE_IDS: list[tuple[re.Pattern[str], str]] = []
 for _pattern, _template in _RU_PATTERNS:
@@ -1251,7 +1225,7 @@ def _localize_advice_fields(item: Any, lang: str) -> Any:
 
 def localize_overlay_response(response: dict[str, Any], lang: str) -> dict[str, Any]:
     """Copy of an /overlay/recommendation payload with visible text localized."""
-    if lang != "ru":
+    if lang != "uk":
         return response
     localized = dict(response)
     for key in ("recommendation", "last_visible_advice"):
@@ -1265,6 +1239,6 @@ def localize_overlay_response(response: dict[str, Any], lang: str) -> dict[str, 
 
 def localize_advice_items(items: list[dict[str, Any]], lang: str) -> list[dict[str, Any]]:
     """Localize the action/reason of /advice/recent items."""
-    if lang != "ru":
+    if lang != "uk":
         return items
     return [_localize_advice_fields(item, lang) for item in items]

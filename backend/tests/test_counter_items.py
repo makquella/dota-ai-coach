@@ -6,7 +6,7 @@ from __future__ import annotations
 from match_fixtures import gsi_match_stream
 from test_situational_items import META, _stunned
 
-from app.advice_i18n import translate_ru
+from app.advice_i18n import translate_uk
 from app.enemy_heroes import EnemyHeroes, visible_enemy_heroes
 from app.gsi_state import _normalize_hero_name
 from app.map_hints import RoleTips
@@ -107,8 +107,8 @@ def test_the_card_and_the_death_screen_say_why():
     assert reason.startswith(
         "3 deaths under stuns against Beastmaster, and Linken's Sphere blocks Primal Roar"
     )
-    assert translate_ru(reason).startswith(
-        "3 смерти под контролем против Beastmaster — Linken's Sphere блокирует Primal Roar: не хватает 1900 золота"
+    assert translate_uk(reason).startswith(
+        "3 смерті під контролем проти Beastmaster — Linken's Sphere блокує Primal Roar: бракує 1900 золота"
     )
     mkb = {
         **item,
@@ -121,8 +121,8 @@ def test_the_card_and_the_death_screen_say_why():
     }
     state = {"minute": 20, "gold": 900, "extra_context": {"next_item": mkb, "gpm": 520}}
     _, reason = _next_item_copy(state, state["extra_context"])
-    assert translate_ru(reason).startswith(
-        "Phantom Assassin уклоняется от атак — Monkey King Bar бьёт без промаха"
+    assert translate_uk(reason).startswith(
+        "Phantom Assassin ухиляється від атак — Monkey King Bar б'є без промаху"
     )
     card = build_death_screen(
         death={"t": 1200, "usable": []},
@@ -132,9 +132,9 @@ def test_the_card_and_the_death_screen_say_why():
         buyback_cost=None,
         minute=20,
         next_item=item,
-        lang="ru",
+        lang="uk",
     )
-    assert any("против Beastmaster" in line and "Primal Roar" in line for line in card["lines"])
+    assert any("проти Beastmaster" in line and "Primal Roar" in line for line in card["lines"])
 
 
 def test_a_support_is_told_to_carry_dust_against_an_invisible_hero():
@@ -144,11 +144,11 @@ def test_a_support_is_told_to_carry_dust_against_an_invisible_hero():
         "support",
         alive=True,
         has_ward=True,
-        lang="ru",
+        lang="uk",
         items=["item_tango"],
         enemies=["Riki"],
     )
-    assert tip["title"] == "Riki уходит в невидимость"
+    assert tip["title"] == "Riki іде в невидимість"
     assert "Dust of Appearance" in tip["hint"]
     # Dust or a sentry carried, before 6:00, or no invisible hero: nothing.
     assert (
@@ -157,7 +157,7 @@ def test_a_support_is_told_to_carry_dust_against_an_invisible_hero():
             "support",
             alive=True,
             has_ward=True,
-            lang="ru",
+            lang="uk",
             items=["item_dust"],
             enemies=["Riki"],
         )
@@ -165,13 +165,13 @@ def test_a_support_is_told_to_carry_dust_against_an_invisible_hero():
     )
     assert (
         RoleTips().tip(
-            5 * 60 + 30, "support", alive=True, has_ward=True, lang="ru", items=[], enemies=["Riki"]
+            5 * 60 + 30, "support", alive=True, has_ward=True, lang="uk", items=[], enemies=["Riki"]
         )
         is None
     )
     assert (
         RoleTips().tip(
-            7 * 60, "support", alive=True, has_ward=True, lang="ru", items=[], enemies=["Axe"]
+            7 * 60, "support", alive=True, has_ward=True, lang="uk", items=[], enemies=["Axe"]
         )
         is None
     )
@@ -191,8 +191,8 @@ def test_illusion_heroes_ask_a_carry_for_maelstrom():
     state = {"minute": 13, "gold": 400, "extra_context": {"next_item": item, "gpm": 480}}
     _, reason = _next_item_copy(state, state["extra_context"])
     assert reason.startswith("Phantom Lancer fights with illusions, and Maelstrom hits them all")
-    assert translate_ru(reason).startswith(
-        "Phantom Lancer дерётся иллюзиями — Maelstrom бьёт их всех сразу"
+    assert translate_uk(reason).startswith(
+        "Phantom Lancer б'ється ілюзіями — Maelstrom б'є їх усіх одразу"
     )
     card = build_death_screen(
         death={"t": 800, "usable": []},
@@ -202,9 +202,9 @@ def test_illusion_heroes_ask_a_carry_for_maelstrom():
         buyback_cost=None,
         minute=13,
         next_item=item,
-        lang="ru",
+        lang="uk",
     )
-    assert any("дерётся иллюзиями" in line for line in card["lines"])
+    assert any("б'ється ілюзіями" in line for line in card["lines"])
 
 
 def test_more_single_target_disables_are_known():

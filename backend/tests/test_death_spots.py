@@ -44,13 +44,12 @@ def test_three_deaths_by_the_river_get_a_route_drill():
         "of": 4,
         "times": [700, 820, 1060],
     }
-    ru = render_finding(finding, "ru")
-    assert ru["title"] == "Смерти в одном месте: центральная линия у реки"
-    assert ru["text"] == (
-        "3 из 4 смертей — на центральной линии у реки (11:40, 13:40, 17:40). "
-        "Здесь вас ловят раз за разом."
+    uk = render_finding(finding, "uk")
+    assert uk["title"] == "Смерті в одному місці: центральна лінія біля річки"
+    assert uk["text"] == (
+        "3 з 4 смертей — на центральній лінії біля річки (11:40, 13:40, 17:40). Тут вас ловлять раз у раз."
     )
-    assert ru["drill"].startswith("Реку переходите, только когда на карте видно хотя бы троих")
+    assert uk["drill"].startswith("Річку переходьте, лише коли на мапі видно хоча б трьох")
     en = render_finding(finding, "en")
     assert en["title"] == "Deaths in one place: mid lane by the river"
     assert en["drill"].startswith("Cross the river only when")
@@ -59,7 +58,7 @@ def test_three_deaths_by_the_river_get_a_route_drill():
 def test_own_half_spot_gets_the_ward_drill_and_two_deaths_are_not_a_finding():
     _, findings = analyze_map(_facts(OWN_JUNGLE, OWN_JUNGLE, OWN_JUNGLE))
     finding = _finding(findings, "deaths_same_place")
-    assert render_finding(finding, "ru")["drill"].startswith("Это ваша половина")
+    assert render_finding(finding, "uk")["drill"].startswith("Це ваша половина")
     _, findings = analyze_map(_facts(OWN_JUNGLE, OWN_JUNGLE))
     assert _finding(findings, "deaths_same_place") is None
 
@@ -69,7 +68,7 @@ def test_the_enemy_half_finding_names_the_spot_instead():
     assert _finding(findings, "deaths_same_place") is None
     enemy = _finding(findings, "deaths_enemy_half")
     assert enemy["params"]["spot_zone"] == "jungle"
-    assert render_finding(enemy, "ru")["text"].endswith("Чаще всего — в лесу.")
+    assert render_finding(enemy, "uk")["text"].endswith("Найчастіше — у лісі.")
     assert render_finding(enemy, "en")["text"].endswith("Most often in the jungle.")
     # Scattered deaths: the old text, no suffix.
     _, findings = analyze_map(
@@ -85,5 +84,5 @@ def test_the_enemy_half_finding_names_the_spot_instead():
 
 def test_the_rendered_map_names_its_spots():
     block, findings = analyze_map(_facts(RIVER_MID, RIVER_MID))
-    rendered = render_analysis({"map": block, "improvements": findings, "strengths": []}, "ru")
-    assert rendered["map"]["spots"][0]["label"] == "центральная линия у реки"
+    rendered = render_analysis({"map": block, "improvements": findings, "strengths": []}, "uk")
+    assert rendered["map"]["spots"][0]["label"] == "центральна лінія біля річки"

@@ -134,6 +134,6 @@ def _fmt(key: str, value: float, lang: str = "en") -> str:
         return f"{round(value)}%"
     if key in {"deaths", "lane_deaths"}:
         text = f"{value:.1f}".rstrip("0").rstrip(".")
-        # «0,5» in Russian, as the launcher writes its own numbers.
-        return text.replace(".", ",") if lang == "ru" else text
+        # «0,5» in Ukrainian, as the launcher writes its own numbers.
+        return text.replace(".", ",") if lang == "uk" else text
     return str(round(value))

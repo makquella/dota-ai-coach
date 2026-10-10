@@ -22,14 +22,14 @@ def _history(client, tmp_path, name="old"):
     PLAYER_SERVICE.jobs.run_pending(until=float("inf"))
     client.post("/player/opendota", json={"api_key": SECRET})
     client.post("/player/ai", json={"provider": "gemini", "api_key": "AIza" + SECRET})
-    PLAYER_SERVICE.store.cache_set("coach:match:1:ru:x", {"review": {"summary": "text"}})
+    PLAYER_SERVICE.store.cache_set("coach:match:1:uk:x", {"review": {"summary": "text"}})
     PLAYER_SERVICE.store.cache_set("opendota:items", {"by_id": {}})
     return PLAYER_SERVICE
 
 
 def test_backup_moves_the_history_to_a_new_computer(client, tmp_path):
     _history(client, tmp_path)
-    before = client.get(f"/player/matches/{MATCH_ID}?lang=ru").json()
+    before = client.get(f"/player/matches/{MATCH_ID}?lang=uk").json()
     backup = client.get("/player/backup").json()
     text = json.dumps(backup)
     assert backup["format"] == "wardly-backup" and backup["account_id"] == ME
@@ -38,7 +38,7 @@ def test_backup_moves_the_history_to_a_new_computer(client, tmp_path):
     assert SECRET not in text and "AIza" not in text
     meta_keys = {row["key"] for row in backup["tables"]["meta"]}
     assert not meta_keys & {"opendota_api_key", "ai_settings", "primary_account_id"}
-    assert [row["key"] for row in backup["tables"]["cache"]] == ["coach:match:1:ru:x"]
+    assert [row["key"] for row in backup["tables"]["cache"]] == ["coach:match:1:uk:x"]
 
     # A fresh install, offline: nothing linked, then the backup.
     PLAYER_SERVICE.configure(tmp_path / "new", client=None, auto_start=False)
@@ -46,9 +46,9 @@ def test_backup_moves_the_history_to_a_new_computer(client, tmp_path):
     result = client.post("/player/backup", json=backup).json()
     assert result["linked"] is True and result["account_id"] == ME
     assert result["imported"]["matches"] == {"added": 6, "filled": 0}
-    after = client.get(f"/player/matches/{MATCH_ID}?lang=ru").json()
+    after = client.get(f"/player/matches/{MATCH_ID}?lang=uk").json()
     assert after["analysis"]["headline"] == before["analysis"]["headline"]
-    assert PLAYER_SERVICE.store.cache_get("coach:match:1:ru:x") == {"review": {"summary": "text"}}
+    assert PLAYER_SERVICE.store.cache_get("coach:match:1:uk:x") == {"review": {"summary": "text"}}
     assert client.get("/player/opendota").json().get("configured") is not True
 
     # The same file again adds nothing.

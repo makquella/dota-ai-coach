@@ -15,7 +15,7 @@ For each death (facts.deaths_log, merged from OpenDota and the GSI timeline):
   mute — `usable`, the same sample).
 
 Only facts, no guesses: a missing value stays out. The launcher renders the
-zone and note ids in the review language («Смерти» card).
+zone and note ids in the review language («Смерті» card).
 """
 
 from __future__ import annotations

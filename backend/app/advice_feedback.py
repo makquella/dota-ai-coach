@@ -1,4 +1,4 @@
-"""«Полезно / не к месту / повторялось»: the player's own verdict on the live
+"""«Корисно / не до речі / повторювалося»: the player's own verdict on the live
 advice of a match, given after it in the review (audit D, a local experiment).
 
 The overlay never asks during a game. A verdict is kept per advice card, keyed

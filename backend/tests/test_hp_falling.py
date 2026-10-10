@@ -29,9 +29,9 @@ def test_hp_falling_fast_raises_the_urgent_card_before_it_is_critical(client):
     assert body["recommendation"]["reason"] == (
         "You lost 40% HP in 5 seconds: at this rate you have seconds left, leave now."
     )
-    russian = client.get("/overlay/recommendation?lang=ru").json()["recommendation"]
-    assert russian["reason"] == (
-        "За 5 секунд ушло 40% HP: в таком темпе у вас считаные секунды, уходите сейчас."
+    ukrainian = client.get("/overlay/recommendation?lang=uk").json()["recommendation"]
+    assert ukrainian["reason"] == (
+        "За 5 секунд пішло 40% HP: у такому темпі у вас лічені секунди, ідіть зараз."
     )
 
 
@@ -92,8 +92,8 @@ def test_deaths_in_one_place_spread_over_the_match_are_named(client):
         "3 deaths in the jungle on your side this game: "
         "farm somewhere safer until your team is there."
     )
-    russian = client.get("/overlay/recommendation?lang=ru").json()
-    assert "за игру: фармите в другом месте" in russian["recommendation"]["reason"]
+    ukrainian = client.get("/overlay/recommendation?lang=uk").json()
+    assert "за гру: фарміть в іншому місці" in ukrainian["recommendation"]["reason"]
     assert any(
-        "3-я смерть" in line and "за игру" in line for line in russian["death_screen"]["lines"]
+        "3-та смерть" in line and "за гру" in line for line in ukrainian["death_screen"]["lines"]
     )

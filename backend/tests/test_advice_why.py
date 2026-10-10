@@ -1,4 +1,4 @@
-"""«Почему этот совет?»: a plain sentence for every decision point that can
+"""«Чому ця порада?»: a plain sentence for every decision point that can
 reach the player, in both languages, on Home and in the review."""
 
 from __future__ import annotations
@@ -15,14 +15,14 @@ def test_every_decision_point_that_shows_advice_has_a_reason_in_both_languages()
     shown = set(get_args(DecisionPoint)) - {"NO_ADVICE"}
     assert shown <= set(WHY), sorted(shown - set(WHY))
     for texts in WHY.values():
-        assert texts["ru"] and texts["en"]
-        assert texts["ru"] != texts["en"]
+        assert texts["uk"] and texts["en"]
+        assert texts["uk"] != texts["en"]
 
 
 def test_unknown_or_missing_decision_points_say_nothing():
-    assert why("NO_ADVICE", "ru") is None
+    assert why("NO_ADVICE", "uk") is None
     assert why(None, "en") is None
-    assert why("SOMETHING_NEW", "ru") is None
+    assert why("SOMETHING_NEW", "uk") is None
     assert why("LOW_HP", "de") == WHY["LOW_HP"]["en"]
 
 
@@ -33,7 +33,7 @@ def test_recent_advice_says_why(client, repo_root):
     expected = WHY[shown["decision_point"]]
 
     assert client.get("/advice/recent").json()["items"][0]["why"] == expected["en"]
-    assert client.get("/advice/recent?lang=ru").json()["items"][0]["why"] == expected["ru"]
+    assert client.get("/advice/recent?lang=uk").json()["items"][0]["why"] == expected["uk"]
 
 
 def test_the_review_advice_log_says_why():
@@ -42,15 +42,15 @@ def test_the_review_advice_log_says_why():
             {"t": 300, "dp": "LOW_HP", "action": "Back off now.", "reason": "", "mode": "urgent"}
         ]
     }
-    assert render_analysis(analysis, "ru")["advice"][0]["why"] == WHY["LOW_HP"]["ru"]
+    assert render_analysis(analysis, "uk")["advice"][0]["why"] == WHY["LOW_HP"]["uk"]
     assert render_analysis(analysis, "en")["advice"][0]["why"] == WHY["LOW_HP"]["en"]
 
 
 def test_the_disabled_reason_fits_every_status_that_triggers_it():
     # has_disabled_status: stunned, silenced, hexed, disarmed, muted, break.
-    ru, en = WHY["DISABLED_STATUS"]["ru"], WHY["DISABLED_STATUS"]["en"]
-    for word in ("оглуш", "безмолв", "немот", "разоруж"):
-        assert word in ru, word
+    uk, en = WHY["DISABLED_STATUS"]["uk"], WHY["DISABLED_STATUS"]["en"]
+    for word in ("оглуш", "безмов", "німот", "роззбро"):
+        assert word in uk, word
     for word in ("stun", "silence", "mute", "disarm"):
         assert word in en, word
 
@@ -59,6 +59,6 @@ def test_fight_reasons_claim_nothing_a_branch_does_not_guarantee():
     # BAD_FIGHT_RISK also fires on a nearby fight alone, OBJECTIVE_FIGHT_CHECK
     # on an objective alone: neither may promise a lost or a winnable fight.
     assert "likely to lose" not in WHY["BAD_FIGHT_RISK"]["en"]
-    assert "слабее" not in WHY["BAD_FIGHT_RISK"]["ru"]
+    assert "слабш" not in WHY["BAD_FIGHT_RISK"]["uk"]
     assert "chance to take" not in WHY["OBJECTIVE_FIGHT_CHECK"]["en"]
-    assert "есть шанс" not in WHY["OBJECTIVE_FIGHT_CHECK"]["ru"]
+    assert "є шанс" not in WHY["OBJECTIVE_FIGHT_CHECK"]["uk"]

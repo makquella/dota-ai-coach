@@ -57,7 +57,7 @@ def test_background_errors_end_up_in_the_report(client, tmp_path):
     client.post("/player/link", json={"steam": str(ME)})
     PLAYER_SERVICE.fetch_match(MATCH_ID, request_parse=False)
     PLAYER_SERVICE.jobs.run_pending(until=float("inf"))
-    client.get(f"/player/matches/{MATCH_ID}?lang=ru")
+    client.get(f"/player/matches/{MATCH_ID}?lang=uk")
     PLAYER_SERVICE.ai_jobs.run_pending(until=float("inf"))
 
     report = client.get("/diagnostics").json()

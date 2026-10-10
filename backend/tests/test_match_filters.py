@@ -101,12 +101,12 @@ def test_progress_for_one_hero(client, tmp_path):
     )
     client.post("/player/link", json={"steam": str(ME)})
     PLAYER_SERVICE.jobs.run_pending(until=float("inf"))
-    everything = client.get("/player/career?lang=ru").json()
+    everything = client.get("/player/career?lang=uk").json()
     heroes = everything["hero_choices"]
     assert everything["hero_filter"] is None and len(heroes) >= 2
     assert "bracket_winrate" in everything["heroes"][0]  # the career's own hero table stays
     other = heroes[-1]
-    one = client.get(f"/player/career?lang=ru&hero_id={other['hero_id']}").json()
+    one = client.get(f"/player/career?lang=uk&hero_id={other['hero_id']}").json()
     assert one["hero_filter"] == other["hero_id"]
     assert one["matches"] == other["games"] < everything["matches"]
     assert one["coach"] == {"state": "none"}

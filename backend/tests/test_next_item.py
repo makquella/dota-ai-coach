@@ -6,7 +6,7 @@ from collections import Counter
 
 from match_fixtures import ME, FakeOpenDota, gsi_match_stream, opendota_match, recent_matches
 
-from app.advice_i18n import translate_ru
+from app.advice_i18n import translate_uk
 from app.next_item import gold_left, has_components, next_build_item
 from app.player_api import PLAYER_SERVICE
 from app.post_laning_coach import build_post_laning_advice
@@ -137,7 +137,7 @@ def test_a_slow_or_unknown_pace_gives_no_minutes():
     assert advice.reason == "Black King Bar is next in most builds: 1850 gold to go."
 
 
-def test_every_variant_has_russian():
+def test_every_variant_has_ukrainian():
     texts = [
         "Keep farming toward Black King Bar on the safest waves and camps.",
         "Consider: keep farming toward Black King Bar on the safest waves and camps.",
@@ -151,7 +151,7 @@ def test_every_variant_has_russian():
         "Its missing parts cost 3050 gold and you have 3500 beyond your buyback.",
     ]
     for text in texts:
-        assert translate_ru(text), text
+        assert translate_uk(text), text
 
 
 def _synced(client, tmp_path):
@@ -185,8 +185,8 @@ def test_the_live_card_names_the_next_item_of_the_heros_build(client, tmp_path):
     english = client.get("/overlay/recommendation").json()["recommendation"]
     assert english["action"] == "Keep farming toward Manta Style on the safest waves and camps."
     assert english["reason"].startswith("Manta Style is next in most builds: 3150 gold to go")
-    russian = client.get("/overlay/recommendation?lang=ru").json()["recommendation"]
-    assert russian["action"] == "Фармите на Manta Style на самых безопасных волнах и лагерях."
+    ukrainian = client.get("/overlay/recommendation?lang=uk").json()["recommendation"]
+    assert ukrainian["action"] == "Фарміть на Manta Style на найбезпечніших хвилях і таборах."
 
 
 def test_a_hero_with_nothing_cached_gets_its_build_fetched(client, tmp_path):

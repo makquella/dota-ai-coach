@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from match_fixtures import gsi_match_stream
 
-from app.advice_i18n import translate_ru
+from app.advice_i18n import translate_uk
 from app.buyback_tracker import BuybackTracker
 from app.match_memory import MATCH_MEMORY
 from app.post_laning_coach import build_post_laning_advice
@@ -66,8 +66,8 @@ def test_coach_turns_the_signal_into_advice_with_numbers():
     )
     assert advice.category == "post_laning_buyback_reserve"
     assert advice.reason.startswith("You have 900 gold and buyback costs 2410")
-    assert translate_ru(advice.action).startswith("Нафармите золото на байбэк")
-    assert translate_ru(advice.reason).startswith("Золота 900, байбэк стоит 2410")
+    assert translate_uk(advice.action).startswith("Нафарміть золото на байбек")
+    assert translate_uk(advice.reason).startswith("Золота 900, байбек коштує 2410")
 
 
 def test_live_purchase_reaches_the_overlay(client):
@@ -79,8 +79,8 @@ def test_live_purchase_reaches_the_overlay(client):
         payload["player"]["gold"] = 5000 if clock < 31 * 60 else 900
         client.post("/gsi", json=payload)
         if 31 * 60 <= clock <= 32 * 60 and clock % 5 == 0:
-            response = client.get("/overlay/recommendation?lang=ru").json()
+            response = client.get("/overlay/recommendation?lang=uk").json()
             shown.append((response.get("recommendation") or {}).get("action") or "")
     # Coaching tips get the UX policy's "Consider:" prefix.
-    assert any("нафармите золото на байбэк" in text.lower() for text in shown), shown
+    assert any("нафарміть золото на байбек" in text.lower() for text in shown), shown
     assert MATCH_MEMORY.buyback.signal() is None  # held for a minute, then gone

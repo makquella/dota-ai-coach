@@ -40,7 +40,7 @@ def test_the_last_reviewed_match_with_its_top_tip_and_strength():
         _match(2, 2, 58, False, improvements=["death_streak"], strengths=["wards_high"]),
         _match(1, 30, 70, True),
     ]
-    last = last_match(matches, "ru")
+    last = last_match(matches, "uk")
     assert last["match_id"] == 2 and last["hero"] == "Lion" and last["win"] is False
     assert (last["kills"], last["deaths"], last["assists"]) == (2, 7, 15)
     assert last["role"] == "support"
@@ -71,4 +71,4 @@ def test_the_summary_carries_the_day_goals_tilt_and_focus():
 
 
 def test_summary_endpoint(client):
-    assert client.get("/player/summary?lang=ru").json() == {"summary": None}
+    assert client.get("/player/summary?lang=uk").json() == {"summary": None}

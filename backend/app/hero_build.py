@@ -24,7 +24,7 @@ from collections import Counter
 from statistics import median
 from typing import Any
 
-from app.analysis_texts import HERO_BUILD, _plural_ru, clock
+from app.analysis_texts import HERO_BUILD, _plural_uk, clock
 
 MIN_MATCHES = 6
 MIN_ITEM_GAMES = 3
@@ -56,7 +56,7 @@ def _winrate(games: list[dict[str, Any]]) -> int | None:
 
 def hero_build(matches: list[dict[str, Any]], lang: str) -> dict[str, Any] | None:
     """`matches`: career rows (newest first) with their stored analyses."""
-    lang = "ru" if lang == "ru" else "en"
+    lang = "uk" if lang == "uk" else "en"
     usable = [m for m in matches if m.get("win") is not None and m.get("hero") and _items(m)]
     by_hero = Counter(m["hero"] for m in usable)
     if not by_hero:
@@ -186,6 +186,6 @@ def _highlights(
 
 
 def _games(count: int, lang: str) -> str:
-    if lang == "ru":
-        return f"{count} {_plural_ru(count, 'игра', 'игры', 'игр')}"
+    if lang == "uk":
+        return f"{count} {_plural_uk(count, 'гра', 'гри', 'ігор')}"
     return f"{count} game{'' if count == 1 else 's'}"

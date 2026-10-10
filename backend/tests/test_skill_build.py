@@ -90,10 +90,10 @@ def test_the_skill_tip_names_the_ability():
     tips = SkillTips()
     tips.observe(100, read_skills(_payload(2, 1, 1, 0)))
     tips.observe(110, read_skills(_payload(3, 1, 1, 0)))
-    hint = tips.tip(110 + UNSPENT_WAIT, "ru", alive=True, build=build)
-    assert hint["title"] == "Вложите очко в Blade Fury"
+    hint = tips.tip(110 + UNSPENT_WAIT, "uk", alive=True, build=build)
+    assert hint["title"] == "Вкладіть очко в Blade Fury"
     assert hint["hint"] == (
-        "Порядок прокачки у про-игроков на этом герое: Blade Fury → Blade Dance → Healing Ward."
+        "Порядок прокачки в про-гравців на цьому герої: Blade Fury → Blade Dance → Healing Ward."
     )
     # 0.49: the card draws the ability's icon and the order as icons.
     assert hint["icon"] == FURY
@@ -115,9 +115,9 @@ def test_the_ultimate_takes_its_in_game_name_from_the_build():
 
 def test_the_game_plan_names_the_pro_order():
     plan = build_game_plan(
-        hero="Juggernaut", history=[], all_recent=[], meta=None, lang="ru", skills=skill_order(DATA)
+        hero="Juggernaut", history=[], all_recent=[], meta=None, lang="uk", skills=skill_order(DATA)
     )
-    assert "Прокачка у про: сначала Blade Fury, потом Blade Dance" in plan["lines"]
+    assert "Прокачка в про: спершу Blade Fury, потім Blade Dance" in plan["lines"]
     plan = build_game_plan(
         hero="Juggernaut", history=[], all_recent=[], meta=None, lang="en", skills=None
     )
@@ -242,9 +242,9 @@ def test_the_review_finding_and_its_texts():
     assert analysis["skills"]["yours"] == "Healing Ward"
     assert "skill_first_max" in analysis["problems"]
     finding = next(f for f in analysis["improvements"] if f["id"] == "skill_first_max")
-    text = render_finding(finding, "ru")
-    assert text["title"] == "Другой порядок прокачки"
-    assert "Healing Ward" in text["text"] and "Blade Fury (3 из 3" in text["text"]
+    text = render_finding(finding, "uk")
+    assert text["title"] == "Інший порядок прокачки"
+    assert "Healing Ward" in text["text"] and "Blade Fury (3 з 3" in text["text"]
     assert "Blade Fury" in render_finding(finding, "en")["drill"]
     # Without the pro data: no block, no finding.
     plain = analyze_match(facts, meta=None)
@@ -313,10 +313,10 @@ def test_the_talent_tip_names_the_pros_pick():
     payload = _payload(10, 4, 4, 0, ult=1)
     payload["hero"].update({f"talent_{i}": False for i in range(1, 9)})
     tips.observe(910, read_skills(payload))
-    hint = tips.tip(910 + UNSPENT_WAIT, "ru", alive=True, build=build)
-    assert hint["title"] == "Выберите талант"
+    hint = tips.tip(910 + UNSPENT_WAIT, "uk", alive=True, build=build)
+    assert hint["title"] == "Оберіть талант"
     assert hint["hint"] == (
-        "Талант 10-го уровня: про-игроки на этом герое берут «Blade Dance Lifesteal» (3 из 3)."
+        "Талант 10-го рівня: про-гравці на цьому герої беруть «Blade Dance Lifesteal» (3 з 3)."
     )
 
 
@@ -380,9 +380,9 @@ def test_the_first_point_names_the_pros_opening_skill():
     assert skill_order(split)["opening"] is None  # no 60 % agreement
     tips = SkillTips()
     tips.observe(-80, read_skills(_payload(1, 0, 0, 0)))  # level 1, nothing learned
-    hint = tips.tip(-80 + UNSPENT_WAIT, "ru", alive=True, build=build)
-    assert hint["title"] == "Первое очко: Blade Fury"
-    assert hint["hint"] == "Про-игроки на этом герое начинают с Blade Fury (3 из 3 игр)."
+    hint = tips.tip(-80 + UNSPENT_WAIT, "uk", alive=True, build=build)
+    assert hint["title"] == "Перше очко: Blade Fury"
+    assert hint["hint"] == "Про-гравці на цьому герої починають з Blade Fury (3 з 3 ігор)."
     assert hint["icon"] == FURY
     # Without pro data: the plain unspent-point line.
     assert tips.tip(-80 + UNSPENT_WAIT, "en", alive=True)["title"] == "Unspent skill point"

@@ -28,7 +28,7 @@ def _history() -> list[dict]:
 
 
 def test_items_with_timings_and_win_rates_on_the_most_played_hero():
-    build = hero_build(_history(), "ru")
+    build = hero_build(_history(), "uk")
     assert build["hero"] == "Juggernaut" and build["matches"] == 7 and build["wins"] == 4
     rows = {row["item"]: row for row in build["items"]}
     fury = rows["Battle Fury"]
@@ -38,10 +38,9 @@ def test_items_with_timings_and_win_rates_on_the_most_played_hero():
     bkb = rows["Black King Bar"]
     assert bkb["winrate"] == 100 and bkb["winrate_without"] == 0 and bkb["without_games"] == 3
     assert build["first_items"] == {"win": "Battle Fury", "loss": "Battle Fury"}
-    assert "Battle Fury в победах у вас к 15:45, в поражениях — к 20:30." in build["highlights"]
+    assert "Battle Fury у перемогах у вас до 15:45, у поразках — до 20:30." in build["highlights"]
     assert (
-        "С Black King Bar вы выигрываете 100% (4 игры), без него — 0% (3 игры)."
-        in build["highlights"]
+        "З Black King Bar ви виграєте 100% (4 гри), без нього — 0% (3 гри)." in build["highlights"]
     )
 
 

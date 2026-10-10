@@ -58,9 +58,9 @@ def test_matching_or_auto_or_a_lost_lane_is_no_mismatch():
 
 def test_the_tip_is_said_once_after_the_lane_decision():
     tips = RoleTips()
-    assert tips.role_mismatch(ROLE_CHECK_FROM - 1, "ru", "support", "mid") is None
-    hint = tips.role_mismatch(ROLE_CHECK_FROM, "ru", "support", "mid")
-    assert hint["title"] == "Роль в настройках: саппорт" and "как мид" in hint["hint"]
+    assert tips.role_mismatch(ROLE_CHECK_FROM - 1, "uk", "support", "mid") is None
+    hint = tips.role_mismatch(ROLE_CHECK_FROM, "uk", "support", "mid")
+    assert hint["title"] == "Роль у налаштуваннях: саппорт" and "як мід" in hint["hint"]
     assert tips.role_mismatch(ROLE_CHECK_FROM + ROLE_CHECK_SHOW, "en", "support", "mid")
     assert tips.role_mismatch(ROLE_CHECK_FROM + ROLE_CHECK_SHOW + 1, "en", "support", "mid") is None
 

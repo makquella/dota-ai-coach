@@ -19,19 +19,19 @@ from app.player_service import ASK_CACHE_KEY
     "text",
     [
         "You had 3 last hits.",
-        "У вас 160 денаев.",
+        "У вас 160 денаїв.",
         "LH: 390.",
         "Denies were 2.",
         "You had -160 last hits.",
         "DN: 3.5.",
         "Anti-Mage had 160 last hits.",
         "Your team had 160 last hits.",
-        "У союзника 160 добиваний.",
+        "У союзника 160 добивань.",
         "160 last hits at 10:00.",
         "160 last hits in lane.",
         "160 last hits in the last 10 minutes.",
         "160 last hits per minute.",
-        "У вас 160 добиваний за первые 10 минут.",
+        "У вас 160 добивань за перші 10 хвилин.",
     ],
 )
 def test_other_metrics_nested_data_and_scopes_cannot_prove_farm_totals(text: str) -> None:
@@ -53,9 +53,9 @@ def test_other_metrics_nested_data_and_scopes_cannot_prove_farm_totals(text: str
         "Last hits were 160.",
         "Last-hits: 160.",
         "LH: 160, DN: 3.",
-        "У вас 160 добиваний и 3 деная.",
-        "Добивания: 160, денаев было 3.",
-        "160 добитых крипов.",
+        "У вас 160 добивань і 3 денаї.",
+        "Добивання: 160, денаїв було 3.",
+        "160 добитих кріпів.",
         "0.16k last hits.",
     ],
 )
@@ -96,12 +96,12 @@ def test_zero_direct_callers_and_empty_ledger_preserve_the_evidence_boundary() -
     assert FactChecker(json.dumps(unknown), []).problems("160 last hits.")
 
 
-@pytest.mark.parametrize("language", ["ru", "en"])
+@pytest.mark.parametrize("language", ["uk", "en"])
 def test_review_scrubs_farm_swaps_attaches_own_evidence_and_preserves_future_goals(
     client: TestClient, tmp_path: Path, language: str
 ) -> None:
     review = copy.deepcopy(GOOD_MATCH_REVIEW)
-    review["summary"] += " You had 3 last hits. У вас 160 денаев."
+    review["summary"] += " You had 3 last hits. У вас 160 денаїв."
     review["strengths"] = ["LH: 160, DN: 3."]
     review["next_game"] = ["Aim for 390 last hits."]
     provider = FakeLLM(review)
@@ -205,8 +205,8 @@ def _slice_facts() -> dict[str, object]:
     [
         "You had 36 last hits at 10:00.",
         "LH: 36, DN: 2 by minute 10.",
-        "К 10:00 у вас 36 добиваний против 65 у Anti-Mage.",
-        "36 добиваний к 10:00 против 65 у Anti-Mage.",
+        "До 10:00 у вас 36 добивань проти 65 у Anti-Mage.",
+        "36 добивань до 10:00 проти 65 у Anti-Mage.",
         "36 last hits versus 65 for Anti-Mage at 10:00.",
         "By 10:00 you had 36 last hits against 65 for Anti-Mage.",
     ],
@@ -224,9 +224,9 @@ def test_supported_10_minute_samples_bind_player_and_named_opponent(text: str) -
         "160 last hits at 10:00.",
         "36 denies at 10:00.",
         "3 denies at 10:00.",
-        "65 добиваний к 10:00 против 36 у Anti-Mage.",
-        "36 добиваний к 10:00 против 36 у Anti-Mage.",
-        "36 добиваний к 10:00 против 65 у Axe.",
+        "65 добивань до 10:00 проти 36 у Anti-Mage.",
+        "36 добивань до 10:00 проти 36 у Anti-Mage.",
+        "36 добивань до 10:00 проти 65 у Axe.",
         "By 10:00 you had 36 last hits against 36 for Anti-Mage.",
         "By 10:00 you had 36 last hits against Anti-Mage.",
         "36 last hits at 5:00.",
@@ -293,12 +293,12 @@ def test_question_retries_a_named_10_minute_comparison_swap_and_saves_sample_ref
     tmp_path: Path,
 ) -> None:
     provider = FakeLLM(
-        {"answer": "К 10:00 у вас 65 добиваний против 36 у Anti-Mage."},
-        {"answer": "К 10:00 у вас 36 добиваний против 65 у Anti-Mage."},
+        {"answer": "До 10:00 у вас 65 добивань проти 36 у Anti-Mage."},
+        {"answer": "До 10:00 у вас 36 добивань проти 65 у Anti-Mage."},
     )
     service = _reviewed_match(client, tmp_path, provider)
     result = client.post(
-        f"/player/matches/{MATCH_ID}/ask?lang=ru", json={"question": "Фарм к 10:00?"}
+        f"/player/matches/{MATCH_ID}/ask?lang=uk", json={"question": "Фарм до 10:00?"}
     ).json()
     assert result["ok"] and len(provider.calls) == 2
     refs = result["answer"]["farm_slice_evidence"]

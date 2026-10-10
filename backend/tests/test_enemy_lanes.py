@@ -64,11 +64,11 @@ def test_the_enemy_mid_and_the_lane_opponent_go_missing():
 def test_the_call_shows_once_per_disappearance():
     tips = RoleTips()
     call = {"hero": "Lina", "lane": "mid", "kind": "mid", "since": 200, "seconds": 22}
-    tip = tips.missing(222, "ru", call)
-    assert tip["title"] == "Не видно мида: Lina" and "22 с" in tip["hint"] and tip["speak"]
-    later = tips.missing(230, "ru", {**call, "seconds": 30})
+    tip = tips.missing(222, "uk", call)
+    assert tip["title"] == "Не видно міда: Lina" and "22 с" in tip["hint"] and tip["speak"]
+    later = tips.missing(230, "uk", {**call, "seconds": 30})
     assert later["hint"] == tip["hint"]  # the first second's number stays
-    assert tips.missing(222 + MISSING_SHOW + 1, "ru", call) is None
+    assert tips.missing(222 + MISSING_SHOW + 1, "uk", call) is None
     # Another enemy inside the gap waits; after it, it is called.
     other = {"hero": "Axe", "lane": "bot", "kind": "lane", "since": 210, "seconds": 25}
     assert tips.missing(235, "en", other) is None

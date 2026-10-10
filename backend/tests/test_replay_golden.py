@@ -1,4 +1,4 @@
-"""«Проверить исправление на записи»: every role case of scripts/replay_check.py
+"""«Перевірити виправлення на записі»: every role case of scripts/replay_check.py
 replays a sanitized match through the whole live path and must show the same
 advice at the same moments as its accepted result in tests/replay_golden/.
 

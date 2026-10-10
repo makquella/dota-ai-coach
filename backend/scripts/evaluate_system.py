@@ -129,7 +129,7 @@ def evaluate_latency(client: TestClient) -> dict[str, Any]:
     # (POST_GAME) builds the post-match review: both are reported apart.
     for payload in stream[:WARM_UP_TICKS]:
         client.post("/gsi", json=payload)
-        client.get("/overlay/recommendation?lang=ru")
+        client.get("/overlay/recommendation?lang=uk")
     final = stream[-1]
     stream = stream[WARM_UP_TICKS:-1]
     gsi_ms: list[float] = []
@@ -138,7 +138,7 @@ def evaluate_latency(client: TestClient) -> dict[str, Any]:
         started = time.perf_counter()
         client.post("/gsi", json=payload)
         middle = time.perf_counter()
-        client.get("/overlay/recommendation?lang=ru")
+        client.get("/overlay/recommendation?lang=uk")
         done = time.perf_counter()
         gsi_ms.append((middle - started) * 1000)
         overlay_ms.append((done - middle) * 1000)
@@ -277,7 +277,7 @@ def evaluate_reviews(client: TestClient) -> dict[str, Any]:
     PLAYER_SERVICE.request_sync()
     PLAYER_SERVICE.jobs.run_pending(until=float("inf"))
     started = time.perf_counter()
-    career = client.get("/player/career?lang=ru").json()
+    career = client.get("/player/career?lang=uk").json()
     career_ms = (time.perf_counter() - started) * 1000
     return {
         "rows": rows,
@@ -306,17 +306,16 @@ def _sentences_from_facts(facts: dict[str, Any]) -> list[str]:
         sentences += [s.strip() for s in re.split(r"(?<=[.!?])\s+", finding["text"]) if s.strip()]
     for point in facts.get("every_5_minutes") or []:
         sentences.append(
-            f"К {point['time']} у вас было {point['last_hits']} добиваний "
-            f"при хорошем темпе {point['last_hits_good_pace']}."
+            f"До {point['time']} у вас було {point['last_hits']} добивань при доброму темпі {point['last_hits_good_pace']}."
         )
-    sentences.append(f"На {facts['hero']} вы сделали {facts['gpm']} золота в минуту.")
+    sentences.append(f"На {facts['hero']} ви мали {facts['gpm']} золота за хвилину.")
     for section in (facts.get("sections") or {}).values():
         first = section.get("first_big_item") if isinstance(section, dict) else None
         if first:
-            sentences.append(f"Первый большой предмет — {first['item']} к {first['time']}.")
+            sentences.append(f"Перший великий предмет — {first['item']} до {first['time']}.")
     for item in facts.get("final_items") or facts.get("items") or []:
         if isinstance(item, str):
-            sentences.append(f"В конце матча у вас был {item}.")
+            sentences.append(f"Наприкінці матчу у вас був {item}.")
     return sentences
 
 
@@ -364,7 +363,7 @@ def evaluate_fact_check(client: TestClient, seed: int = 7) -> dict[str, Any]:
     sentences: list[str] = []
     false_positives: list[str] = []
     mutated: list[tuple[str, str]] = []
-    for good, lang in ((False, "ru"), (True, "ru"), (False, "en"), (True, "en")):
+    for good, lang in ((False, "uk"), (True, "uk"), (False, "en"), (True, "en")):
         _service(client, {MATCH_ID: opendota_match(good=good)})
         PLAYER_SERVICE.fetch_match(MATCH_ID, request_parse=False)
         PLAYER_SERVICE.jobs.run_pending(until=float("inf"))

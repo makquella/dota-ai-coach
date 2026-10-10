@@ -55,7 +55,7 @@ def test_match_review_carries_the_baseline(client, tmp_path):
     PLAYER_SERVICE.configure(tmp_path / "svc", client=fake, auto_start=False)
     client.post("/player/link", json={"steam": str(ME)})
     PLAYER_SERVICE.jobs.run_pending(until=float("inf"))
-    detail = client.get(f"/player/matches/{MATCH_ID}?lang=ru").json()
+    detail = client.get(f"/player/matches/{MATCH_ID}?lang=uk").json()
     baseline = detail["baseline"]
     assert baseline["hero"] == "Juggernaut" and baseline["games"] >= 3
     assert {m["key"] for m in baseline["metrics"]} >= {"score", "gpm", "deaths"}

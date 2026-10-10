@@ -122,13 +122,13 @@ def test_real_recent_http_reuses_ids_params_and_does_not_rescan_unchanged_text(
     shown = client.get("/overlay/recommendation").json()
     assert shown["recommendation"]["action_message"]["id"].startswith("live.")
     english = client.get("/advice/recent").json()["items"]
-    first = client.get("/advice/recent?lang=ru").json()["items"]
+    first = client.get("/advice/recent?lang=uk").json()["items"]
     assert first[0]["id"] == english[0]["id"]
-    assert first[0]["action"] == advice_i18n.translate_ru(english[0]["action"])
+    assert first[0]["action"] == advice_i18n.translate_uk(english[0]["action"])
     calls = []
     previous = threading.gettrace()
     watched = {
-        advice_i18n.translate_ru.__code__,
+        advice_i18n.translate_uk.__code__,
         advice_i18n._message_for_text.__wrapped__.__code__,
         advice_i18n._render_message.__wrapped__.__code__,
     }
@@ -140,13 +140,13 @@ def test_real_recent_http_reuses_ids_params_and_does_not_rescan_unchanged_text(
 
     threading.settrace(trace)
     try:
-        second = client.get("/advice/recent?lang=ru").json()["items"]
+        second = client.get("/advice/recent?lang=uk").json()["items"]
         again = client.get("/advice/recent").json()["items"]
     finally:
         threading.settrace(previous)
     assert second == first and again == english and calls == []
     assert client.post("/session/reset").status_code == 200
-    assert client.get("/advice/recent?lang=ru").json()["items"] == []
+    assert client.get("/advice/recent?lang=uk").json()["items"] == []
 
 
 def test_message_ids_params_preserve_legacy_translation_semantics_and_fallbacks() -> None:
@@ -161,8 +161,8 @@ def test_message_ids_params_preserve_legacy_translation_semantics_and_fallbacks(
     ]
     for canonical in cases:
         entry = advice_i18n.advice_messages({"action": canonical})
-        localized = advice_i18n.localize_advice_items([entry], "ru")[0]
-        assert localized["action"] == (advice_i18n.translate_ru(canonical) or canonical), canonical
+        localized = advice_i18n.localize_advice_items([entry], "uk")[0]
+        assert localized["action"] == (advice_i18n.translate_uk(canonical) or canonical), canonical
         assert entry["action"] == canonical
         assert advice_i18n.localize_advice_items([entry], "en")[0]["action"] == canonical
     first = advice_i18n.advice_messages({"action": "Avoid risky trades until Blade Fury is ready."})
@@ -170,9 +170,9 @@ def test_message_ids_params_preserve_legacy_translation_semantics_and_fallbacks(
     assert first["action_message"]["id"] == other["action_message"]["id"]
     assert first["action_message"]["params"] != other["action_message"]["params"]
     first["action_message"]["params"] = {}  # Invalid descriptor keeps legacy fallback.
-    assert advice_i18n.localize_advice_items([first], "ru")[0][
+    assert advice_i18n.localize_advice_items([first], "uk")[0][
         "action"
-    ] == advice_i18n.translate_ru(first["action"])
+    ] == advice_i18n.translate_uk(first["action"])
 
 
 def test_message_and_render_caches_are_bounded() -> None:
@@ -180,7 +180,7 @@ def test_message_and_render_caches_are_bounded() -> None:
         entry = advice_i18n.advice_messages(
             {"action": f"Avoid risky trades until Skill {count} is ready."}
         )
-        localized = advice_i18n.localize_advice_items([entry], "ru")[0]
+        localized = advice_i18n.localize_advice_items([entry], "uk")[0]
         assert str(count) in localized["action"]
     assert advice_i18n._message_for_text.cache_info().currsize <= 512
     assert advice_i18n._render_message.cache_info().currsize <= 512

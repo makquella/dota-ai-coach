@@ -1,4 +1,4 @@
-"""«Полезно / не к месту / повторялось» on the live advice cards of a review:
+"""«Корисно / не до речі / повторювалося» on the live advice cards of a review:
 kept per card on this computer, carried by a history backup, counted per
 decision point without any advice text (advice_feedback.py)."""
 
@@ -15,8 +15,8 @@ from app.player_api import PLAYER_SERVICE
 def _recorded_match(client) -> list[dict]:
     for payload in gsi_match_stream(death_minutes=(7, 18), win=False, step_seconds=5):
         client.post("/gsi", json=payload)
-        client.get("/overlay/recommendation?lang=ru")
-    advice = client.get(f"/player/matches/{MATCH_ID}?lang=ru").json()["analysis"]["advice"]
+        client.get("/overlay/recommendation?lang=uk")
+    advice = client.get(f"/player/matches/{MATCH_ID}?lang=uk").json()["analysis"]["advice"]
     assert len(advice) >= 2
     return advice
 

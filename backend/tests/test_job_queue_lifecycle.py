@@ -478,7 +478,7 @@ def test_inflight_http_question_can_save_after_queue_shutdown(tmp_path: Path) ->
         def complete(self, _messages: list[dict[str, str]], **_kwargs: Any) -> str:
             entered.set()
             assert release.wait(5)
-            return json.dumps({"answer": "Сосредоточьтесь на безопасной игре."})
+            return json.dumps({"answer": "Зосередьтеся на безпечній грі."})
 
     service.configure(
         tmp_path,
@@ -498,8 +498,8 @@ def test_inflight_http_question_can_save_after_queue_shutdown(tmp_path: Path) ->
             try:
                 responses.append(
                     client.post(
-                        f"/player/matches/{MATCH_ID}/ask?lang=ru",
-                        json={"question": "Как играть безопаснее?"},
+                        f"/player/matches/{MATCH_ID}/ask?lang=uk",
+                        json={"question": "Як грати безпечніше?"},
                     )
                 )
             except Exception as error:  # noqa: BLE001 - assert request-thread outcome
@@ -516,8 +516,8 @@ def test_inflight_http_question_can_save_after_queue_shutdown(tmp_path: Path) ->
             assert not request.is_alive() and not errors
             assert len(responses) == 1 and responses[0].status_code == 200
             assert responses[0].json()["ok"] is True
-            questions = client.get(f"/player/matches/{MATCH_ID}?lang=ru").json()["questions"]
-            assert len(questions) == 1 and questions[0]["question"] == "Как играть безопаснее?"
+            questions = client.get(f"/player/matches/{MATCH_ID}?lang=uk").json()["questions"]
+            assert len(questions) == 1 and questions[0]["question"] == "Як грати безпечніше?"
         finally:
             release.set()
             request.join(timeout=5)

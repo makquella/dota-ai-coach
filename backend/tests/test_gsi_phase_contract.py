@@ -26,7 +26,7 @@ def test_invalid_dead_hero_phase_remains_unknown_through_actual_launcher_request
     assert state["extra_context"]["alive"] is False
     for path in (
         "/overlay/recommendation",
-        "/overlay/recommendation?lang=ru",
+        "/overlay/recommendation?lang=uk",
         "/gsi/status",
         "/player",
     ):

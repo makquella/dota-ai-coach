@@ -6,7 +6,7 @@ from typing import Any
 
 from match_fixtures import gsi_match_stream
 
-from app.advice_i18n import translate_ru
+from app.advice_i18n import translate_uk
 from app.farm_tracker import FarmTracker
 from app.match_memory import MATCH_MEMORY
 from app.post_laning_coach import build_post_laning_advice
@@ -84,11 +84,11 @@ def test_post_laning_farm_stall_advice_with_numbers():
     assert advice.reason == (
         "Only 2 last hits in the last 4 minutes; every minute without farm delays your next item."
     )
-    assert translate_ru(advice.reason) == (
-        "Добиваний за последние 4 мин: 2. Каждая минута без фарма отодвигает следующий предмет."
+    assert translate_uk(advice.reason) == (
+        "Добивань за останні 4 хв: 2. Кожна хвилина без фарму відсуває наступний предмет."
     )
-    assert translate_ru(advice.action) == (
-        "Вернитесь к фарму: заберите ближайшую безопасную волну или лагерь."
+    assert translate_uk(advice.action) == (
+        "Поверніться до фарму: заберіть найближчу безпечну хвилю або табір."
     )
     # Under pressure, safety first.
     pressured = build_post_laning_advice(
@@ -102,11 +102,11 @@ def test_farm_recovery_names_the_pace():
     advice = build_post_laning_advice(state, "SAFE_FARMING")
     assert advice is not None and advice.category == "post_laning_farm_recovery"
     assert advice.action == "Recover farm: 38 last hits at minute 18, a good pace is 98+."
-    assert translate_ru(advice.action) == (
-        "Навёрстывайте фарм: добиваний к 18-й минуте — 38, хороший темп — 98+."
+    assert translate_uk(advice.action) == (
+        "Надолужуйте фарм: добивань до 18-ї хвилини — 38, добрий темп — 98+."
     )
-    assert translate_ru(advice.reason) == (
-        "Сначала самые безопасные волны и лагеря: драки до этого отложат следующий предмет."
+    assert translate_uk(advice.reason) == (
+        "Спершу найбезпечніші хвилі й табори: бійки до цього відкладуть наступний предмет."
     )
 
 
@@ -117,7 +117,7 @@ def test_half_the_pace_late_says_how_to_catch_up():
     advice = build_post_laning_advice(late, "SAFE_FARMING")
     assert advice is not None
     assert advice.reason.startswith("Take the side lanes your team leaves")
-    assert translate_ru(advice.reason).startswith("Забирайте боковые линии")
+    assert translate_uk(advice.reason).startswith("Забирайте бокові лінії")
     # Before minute 20, or under the pace but not by half: the usual reason.
     early = build_post_laning_advice({**state, "minute": 18}, "SAFE_FARMING")
     assert early is not None and early.reason.startswith("Take the safest waves")
@@ -134,8 +134,8 @@ def test_live_gsi_stall_reaches_the_overlay(client):
             payload["player"]["last_hits"] = 84  # farm stops at 14:00
         client.post("/gsi", json=payload)
         if clock >= 18 * 60 and clock % 15 == 0:
-            response = client.get("/overlay/recommendation?lang=ru").json()
+            response = client.get("/overlay/recommendation?lang=uk").json()
             reason = (response.get("recommendation") or {}).get("reason") or ""
             shown.append(reason)
     assert MATCH_MEMORY.farm.stall() is not None
-    assert any(text.startswith("Добиваний за последние") for text in shown), shown[-5:]
+    assert any(text.startswith("Добивань за останні") for text in shown), shown[-5:]

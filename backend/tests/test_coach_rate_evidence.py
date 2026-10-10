@@ -21,7 +21,7 @@ from app.player_service import ASK_CACHE_KEY
         "You had 430 GPM.",
         "У вас 390 XPM.",
         "Gold per minute: 430.",
-        "430 золота в минуту.",
+        "430 золота за хвилину.",
         "GPM was 160.",
         "XPM: 2.",
         "You had -390 GPM.",
@@ -29,7 +29,7 @@ from app.player_service import ASK_CACHE_KEY
         "Your team had 390 GPM.",
         "You had 390 GPM at 10:00.",
         "390 GPM in lane.",
-        "У вас 390 GPM за первые 10 минут.",
+        "У вас 390 GPM за перші 10 хвилин.",
     ],
 )
 def test_another_metric_or_subject_time_scope_never_licenses_a_match_rate(text: str) -> None:
@@ -51,8 +51,8 @@ def test_another_metric_or_subject_time_scope_never_licenses_a_match_rate(text: 
         "Ваш GPM: 390, XPM: 430.",
         "Gold per minute was 390.",
         "430 experience per minute.",
-        "Золота в минуту: 390.",
-        "430 опыта в минуту.",
+        "Золота за хвилину: 390.",
+        "430 досвіду за хвилину.",
     ],
 )
 def test_rates_match_their_own_fields_without_treating_the_unit_as_a_time_slice(text: str) -> None:
@@ -78,7 +78,7 @@ def test_zero_and_fractional_rates_remain_measured_values() -> None:
     assert facts["match_rates_evidence"]["gpm"]["observed_at"] is None
 
 
-@pytest.mark.parametrize("language", ["ru", "en"])
+@pytest.mark.parametrize("language", ["uk", "en"])
 def test_review_drops_swapped_rates_and_attaches_backend_evidence(
     client: TestClient, tmp_path: Path, language: str
 ) -> None:

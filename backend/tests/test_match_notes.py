@@ -1,4 +1,4 @@
-"""«Заметка»: the player's own note on a match (store column, service, API)."""
+"""«Нотатка»: the player's own note on a match (store column, service, API)."""
 
 from __future__ import annotations
 
@@ -20,13 +20,13 @@ def _stored(service, match_id=7001):
 
 def test_a_note_is_kept_trimmed_and_shown(client):
     match_id = _stored(PLAYER_SERVICE)
-    answer = client.post(f"/player/matches/{match_id}/note", json={"note": "  лагал\n интернет  "})
-    assert answer.status_code == 200 and answer.json()["note"] == "лагал интернет"
+    answer = client.post(f"/player/matches/{match_id}/note", json={"note": "  лагав\n інтернет  "})
+    assert answer.status_code == 200 and answer.json()["note"] == "лагав інтернет"
     rows = client.get("/player/matches").json()["items"]
-    assert rows[0]["note"] == "лагал интернет"
+    assert rows[0]["note"] == "лагав інтернет"
     # A sync of the same match never erases it.
     PLAYER_SERVICE.store.upsert_match(ACCOUNT, match_id, source="opendota", fields={"kills": 5})
-    assert PLAYER_SERVICE.store.get_match(ACCOUNT, match_id)["note"] == "лагал интернет"
+    assert PLAYER_SERVICE.store.get_match(ACCOUNT, match_id)["note"] == "лагав інтернет"
     # Long text is cut; empty removes it.
     long = client.post(f"/player/matches/{match_id}/note", json={"note": "x" * 500}).json()
     assert len(long["note"]) == 200
@@ -52,15 +52,15 @@ def test_an_old_database_gets_the_column(tmp_path):
         conn.execute("INSERT INTO matches (account_id, match_id) VALUES (1, 2)")
     store = PlayerStore(path)
     assert store.list_matches(1)[0]["note"] is None
-    assert store.set_note(1, 2, "новый билд")
-    assert store.get_match(1, 2)["note"] == "новый билд"
-    assert not store.set_note(1, 3, "нет такого матча")
+    assert store.set_note(1, 2, "новий білд")
+    assert store.get_match(1, 2)["note"] == "новий білд"
+    assert not store.set_note(1, 3, "немає такого матчу")
     store.close()
 
 
 def test_the_backup_carries_the_note(client):
     match_id = _stored(PLAYER_SERVICE)
-    PLAYER_SERVICE.set_note(match_id, "с другом")
+    PLAYER_SERVICE.set_note(match_id, "з другом")
     backup = client.get("/player/backup").json()
     rows = [row for row in backup["tables"]["matches"] if row["match_id"] == match_id]
-    assert rows[0]["note"] == "с другом"
+    assert rows[0]["note"] == "з другом"

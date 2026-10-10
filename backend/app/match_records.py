@@ -1,8 +1,8 @@
 """
 match_records.py - a week of match recordings on the player's own computer.
 
-Switched on in the launcher («Хранить записи матчей», Settings → «Ещё
-настройки»): every live match is written to its own gzip JSON-lines file —
+Switched on in the launcher («Зберігати записи матчів», Settings → «Ще
+налаштування»): every live match is written to its own gzip JSON-lines file —
 what the game sent (at most RECORD_EVERY seconds apart, plus every change of
 the game state or of life and death) and every advice card the coach showed —
 so a player can save any match of the last week as a file and send it to the

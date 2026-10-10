@@ -156,7 +156,7 @@ def test_snapshot_is_detached_and_preserves_missing_and_observed_objectives(
     assert again.objective["id"] == "aegis@530" and again.roshan_strip[0]["at"] == 530
     assert MATCH_MEMORY.enemy_heroes() == ["Axe"]
     assert (
-        MATCH_MEMORY.tracker_snapshot(clock=230, lane="bot", alive=False, lang="ru").missing is None
+        MATCH_MEMORY.tracker_snapshot(clock=230, lane="bot", alive=False, lang="uk").missing is None
     )
     assert client.post("/session/reset").status_code == 200
     empty = MATCH_MEMORY.tracker_snapshot(clock=None, lane=None, alive=True, lang="en")

@@ -41,28 +41,28 @@ WAND_CHARGES = 10
 # Items that save a life when pressed in time (escape, dispel, spell immunity,
 # a big heal or a save). Names as Dota's GSI reports them.
 SAVERS: dict[str, dict[str, str]] = {
-    "item_black_king_bar": {"ru": "Black King Bar", "en": "Black King Bar"},
-    "item_blink": {"ru": "Blink Dagger", "en": "Blink Dagger"},
-    "item_overwhelming_blink": {"ru": "Overwhelming Blink", "en": "Overwhelming Blink"},
-    "item_swift_blink": {"ru": "Swift Blink", "en": "Swift Blink"},
-    "item_arcane_blink": {"ru": "Arcane Blink", "en": "Arcane Blink"},
-    "item_force_staff": {"ru": "Force Staff", "en": "Force Staff"},
-    "item_hurricane_pike": {"ru": "Hurricane Pike", "en": "Hurricane Pike"},
-    "item_glimmer_cape": {"ru": "Glimmer Cape", "en": "Glimmer Cape"},
-    "item_ghost": {"ru": "Ghost Scepter", "en": "Ghost Scepter"},
-    "item_ethereal_blade": {"ru": "Ethereal Blade", "en": "Ethereal Blade"},
-    "item_cyclone": {"ru": "Eul's Scepter", "en": "Eul's Scepter"},
-    "item_wind_waker": {"ru": "Wind Waker", "en": "Wind Waker"},
-    "item_manta": {"ru": "Manta Style", "en": "Manta Style"},
-    "item_satanic": {"ru": "Satanic", "en": "Satanic"},
-    "item_lotus_orb": {"ru": "Lotus Orb", "en": "Lotus Orb"},
-    "item_invis_sword": {"ru": "Shadow Blade", "en": "Shadow Blade"},
-    "item_silver_edge": {"ru": "Silver Edge", "en": "Silver Edge"},
-    "item_sphere": {"ru": "Linken's Sphere", "en": "Linken's Sphere"},
-    "item_bloodstone": {"ru": "Bloodstone", "en": "Bloodstone"},
-    "item_guardian_greaves": {"ru": "Guardian Greaves", "en": "Guardian Greaves"},
-    "item_disperser": {"ru": "Disperser", "en": "Disperser"},
-    "item_magic_wand": {"ru": "Magic Wand", "en": "Magic Wand"},
+    "item_black_king_bar": {"uk": "Black King Bar", "en": "Black King Bar"},
+    "item_blink": {"uk": "Blink Dagger", "en": "Blink Dagger"},
+    "item_overwhelming_blink": {"uk": "Overwhelming Blink", "en": "Overwhelming Blink"},
+    "item_swift_blink": {"uk": "Swift Blink", "en": "Swift Blink"},
+    "item_arcane_blink": {"uk": "Arcane Blink", "en": "Arcane Blink"},
+    "item_force_staff": {"uk": "Force Staff", "en": "Force Staff"},
+    "item_hurricane_pike": {"uk": "Hurricane Pike", "en": "Hurricane Pike"},
+    "item_glimmer_cape": {"uk": "Glimmer Cape", "en": "Glimmer Cape"},
+    "item_ghost": {"uk": "Ghost Scepter", "en": "Ghost Scepter"},
+    "item_ethereal_blade": {"uk": "Ethereal Blade", "en": "Ethereal Blade"},
+    "item_cyclone": {"uk": "Eul's Scepter", "en": "Eul's Scepter"},
+    "item_wind_waker": {"uk": "Wind Waker", "en": "Wind Waker"},
+    "item_manta": {"uk": "Manta Style", "en": "Manta Style"},
+    "item_satanic": {"uk": "Satanic", "en": "Satanic"},
+    "item_lotus_orb": {"uk": "Lotus Orb", "en": "Lotus Orb"},
+    "item_invis_sword": {"uk": "Shadow Blade", "en": "Shadow Blade"},
+    "item_silver_edge": {"uk": "Silver Edge", "en": "Silver Edge"},
+    "item_sphere": {"uk": "Linken's Sphere", "en": "Linken's Sphere"},
+    "item_bloodstone": {"uk": "Bloodstone", "en": "Bloodstone"},
+    "item_guardian_greaves": {"uk": "Guardian Greaves", "en": "Guardian Greaves"},
+    "item_disperser": {"uk": "Disperser", "en": "Disperser"},
+    "item_magic_wand": {"uk": "Magic Wand", "en": "Magic Wand"},
 }
 # The hero's own safety abilities in `ready` (live_tools.ready_abilities):
 # "ability:Blade Fury". Labels are the ability names.
@@ -85,17 +85,17 @@ BOTTLE_RUNES = {
 }
 # Bottled runes that get a hero out at low HP, best first.
 RUNE_ESCAPES = ("Haste", "Invisibility", "Shield", "Illusion")
-# Rune names in the genitive: «руна ускорения».
-RUNES_RU = {
-    "Haste": "ускорения",
-    "Invisibility": "невидимости",
+# Rune names in the genitive: «руна прискорення».
+RUNES_UK = {
+    "Haste": "прискорення",
+    "Invisibility": "невидимості",
     "Shield": "щита",
-    "Illusion": "иллюзий",
-    "Double Damage": "двойного урона",
-    "Arcane": "волшебства",
-    "Regeneration": "регенерации",
-    "Water": "воды",
-    "Bounty": "богатства",
+    "Illusion": "ілюзій",
+    "Double Damage": "подвійної шкоди",
+    "Arcane": "чарів",
+    "Regeneration": "регенерації",
+    "Water": "води",
+    "Bounty": "багатства",
 }
 # Passive or needing a target: never "not used" from GSI alone.
 _NOT_PRESSED = {"item_sphere"}
@@ -250,8 +250,8 @@ def saver_label(name: str, lang: str) -> str:
         return name[len(ABILITY_PREFIX) :]
     if name.startswith(RUNE_PREFIX):
         rune = name[len(RUNE_PREFIX) :]
-        if lang == "ru":
-            return f"Bottle (руна {RUNES_RU.get(rune, rune)})"
+        if lang == "uk":
+            return f"Bottle (руна {RUNES_UK.get(rune, rune)})"
         return f"Bottle ({rune} rune)"
     names = SAVERS.get(name)
-    return names["ru" if lang == "ru" else "en"] if names else name
+    return names["uk" if lang == "uk" else "en"] if names else name

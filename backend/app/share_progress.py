@@ -1,5 +1,5 @@
 """
-share_progress.py - the public part of Progress, for «Поделиться прогрессом».
+share_progress.py - the public part of Progress, for «Поділитися прогресом».
 
 Like share_review.py, only what a page for other people needs, picked field by
 field from the rendered career (never passed through as a whole): the number
@@ -60,7 +60,7 @@ def public_progress(
     trend = career.get("trend") or {}
     result: dict[str, Any] = {
         "kind": "progress",
-        "lang": "ru" if lang == "ru" else "en",
+        "lang": "uk" if lang == "uk" else "en",
         "matches": _int(career.get("matches")),
         "analyzed": _int(career.get("analyzed")),
         "wins": _int(career.get("wins")),

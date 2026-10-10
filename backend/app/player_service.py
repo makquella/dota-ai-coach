@@ -695,7 +695,7 @@ class PlayerService:
         return summary
 
     def profile(self, lang: str) -> dict[str, Any] | None:
-        """The «Профиль» tab (app/player_profile.py): rating graph, level,
+        """The «Профіль» tab (app/player_profile.py): rating graph, level,
         achievements and sparks, from the whole match table."""
         primary = self.store.primary_account_id()
         if primary is None:
@@ -1065,7 +1065,7 @@ class PlayerService:
             for finding_id in (analysis or {}).get("focus") or []
             if can_focus(finding_id)
         ]
-        # «Полезно / не к месту / повторялось» on the live advice cards (local).
+        # «Корисно / не до речі / повторювалося» on the live advice cards (local).
         verdicts = advice_feedback.load(self.store, primary, match_id)
         detail["advice_feedback"] = verdicts
         rendered = detail["analysis"] if isinstance(detail["analysis"], dict) else {}
@@ -1199,7 +1199,7 @@ class PlayerService:
         return self.backups_status()
 
     def make_backup(self, app_version: str, kind: str = "manual") -> dict[str, Any]:
-        """A copy now (the launcher's «Сделать копию сейчас», or a due automatic one)."""
+        """A copy now (the launcher's «Зробити копію зараз», or a due automatic one)."""
         item = self.backups.write(self.export_backup(app_version), kind)
         self.store.set_meta(AUTO_BACKUP_VERSION_META, app_version)
         return item
@@ -2100,7 +2100,7 @@ class PlayerService:
         return {"state": "pending"}
 
     def set_note(self, match_id: int, text: Any) -> dict[str, Any]:
-        """«Заметка»: the player's own words on a match (lag, a new build, played
+        """«Нотатка»: the player's own words on a match (lag, a new build, played
         with a friend…), shown in the table and the review. Plain text, one line,
         NOTE_MAX characters; empty removes it. Never sent anywhere (not to the AI
         coach, not in a shared review); a history backup carries it."""
@@ -2238,7 +2238,7 @@ class PlayerService:
             opendota=record.get("opendota"),
             draft=self._draft_meta(account_id, facts.get("hero_id")),
         )
-        # «На чём основан разбор?»: rules, patch, data and why it was (re)built.
+        # «На чому ґрунтується розбір?»: rules, patch, data and why it was (re)built.
         analysis["basis"] = review_basis.stamp(
             rules=ANALYSIS_VERSION,
             trim=TRIM_VERSION,

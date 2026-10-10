@@ -6,7 +6,7 @@ from __future__ import annotations
 
 from test_next_item import CONSTANTS, META
 
-from app.advice_i18n import translate_ru
+from app.advice_i18n import translate_uk
 from app.death_screen import build_death_screen
 from app.player_api import PLAYER_SERVICE
 from app.post_laning_coach import build_post_laning_advice
@@ -103,19 +103,19 @@ def test_the_farm_advice_says_why_this_item():
         "2 deaths under stuns with no free second, and Black King Bar stops that: "
         "3150 gold to go, about 7 minutes at your 520 gold per minute."
     )
-    assert translate_ru(advice.reason).startswith(
-        "2 смерти под контролем без единой свободной секунды — Black King Bar это исправит"
+    assert translate_uk(advice.reason).startswith(
+        "2 смерті під контролем без жодної вільної секунди — Black King Bar це виправить"
     )
     now = _advice(item, gold=4500)
     assert now.action == "Use your gold: Black King Bar can be bought now."
     assert now.reason.endswith("; its missing parts cost 4050 gold and you have 4500.")
-    assert translate_ru(now.reason).endswith("недостающие части стоят 4050 золота, у вас 4500.")
+    assert translate_uk(now.reason).endswith("відсутні частини коштують 4050 золота, у вас 4500.")
     unpriced = _advice(situational_item([_burst(1), _burst(2)], [], None))
     assert unpriced.reason == (
         "2 deaths, each from high health in 3 seconds or less, and Aeon Disk gives you time against that."
     )
-    assert translate_ru(unpriced.reason) == (
-        "2 раза вас убили с высокого здоровья быстрее, чем за 3 секунды — Aeon Disk даст время это пережить."
+    assert translate_uk(unpriced.reason) == (
+        "2 рази вас убили з високого здоров'я швидше, ніж за 3 секунди — Aeon Disk дасть час це пережити."
     )
 
 
@@ -129,10 +129,10 @@ def test_the_death_screen_says_why(monkeypatch):
         buyback_cost=None,
         minute=18,
         next_item=item,
-        lang="ru",
+        lang="uk",
     )
-    assert any(line.startswith("Купите части Black King Bar") for line in card["lines"])
-    assert "Почему Black King Bar: смертей под контролем — 2" in card["lines"][-1]
+    assert any(line.startswith("Купіть частини Black King Bar") for line in card["lines"])
+    assert "Чому Black King Bar: смертей під контролем — 2" in card["lines"][-1]
 
 
 def test_the_service_puts_the_situational_item_first(monkeypatch):

@@ -414,7 +414,7 @@ def session_recording_status():
 
 @app.get("/overlay/recommendation", summary="Get overlay-friendly recommendation")
 def overlay_recommendation(lang: str = "en"):
-    """`lang=ru` returns the visible text in Russian (see app/advice_i18n.py)."""
+    """`lang=uk` returns the visible text in Ukrainian (see app/advice_i18n.py)."""
     lang = normalize_lang(lang)
     response = localize_overlay_response(_overlay_recommendation_payload(), lang)
     plan = _game_plan_for_overlay(response, lang)

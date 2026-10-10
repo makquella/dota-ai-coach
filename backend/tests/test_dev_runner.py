@@ -35,7 +35,7 @@ def _git(root: Path, *args: str) -> str:
 
 @pytest.fixture
 def tree(tmp_path: Path) -> Path:
-    root = tmp_path / "Репозиторий с пробелами"
+    root = tmp_path / "Репозиторій з пробілами"
     root.mkdir()
     _git(root, "init")
     _git(root, "config", "user.name", "Local test")

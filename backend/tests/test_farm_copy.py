@@ -3,7 +3,7 @@ score, the pace — instead of the same generic line every time."""
 
 from __future__ import annotations
 
-from app.advice_i18n import translate_ru
+from app.advice_i18n import translate_uk
 from app.post_laning_coach import build_post_laning_advice
 
 
@@ -21,18 +21,18 @@ def _advice(minute=20, **extra):
 def test_a_kill_streak_comes_first():
     advice = _advice(kill_streak=4, team_name="radiant", radiant_score=5, dire_score=20)
     assert advice.action == "Stay alive: you are on a 4-kill streak."
-    assert translate_ru(advice.action) == "Берегите себя: у вас серия из 4 убийств подряд."
-    assert translate_ru(advice.reason) != advice.reason
+    assert translate_uk(advice.action) == "Бережіть себе: у вас серія з 4 вбивств поспіль."
+    assert translate_uk(advice.reason) != advice.reason
 
 
 def test_the_kill_score_gap_changes_the_advice():
     behind = _advice(team_name="dire", radiant_score=21, dire_score=10)
     assert behind.action.startswith("Your team is 11 kills behind")
-    assert translate_ru(behind.action).startswith("Команда отстаёт на 11 убийств")
+    assert translate_uk(behind.action).startswith("Команда відстає на 11 вбивств")
     ahead = _advice(team_name="radiant", radiant_score=18, dire_score=9)
     assert ahead.action.startswith("Your team is 9 kills ahead")
-    assert translate_ru(ahead.action).startswith("Команда впереди на 9 убийств")
-    assert translate_ru(ahead.reason) != ahead.reason
+    assert translate_uk(ahead.action).startswith("Команда попереду на 9 вбивств")
+    assert translate_uk(ahead.reason) != ahead.reason
     # A small gap, early in the game or without the team: not this line.
     assert "kills" not in _advice(team_name="radiant", radiant_score=12, dire_score=9).action
     assert (
@@ -46,11 +46,11 @@ def test_else_the_pace_in_numbers():
     advice = _advice(gpm=512, last_hits=140, minute=21)
     assert advice.action == "Keep farming: 512 gold per minute, 140 last hits at minute 21."
     assert (
-        translate_ru(advice.action)
-        == "Фармите дальше: 512 золота в минуту, добиваний к 21-й минуте — 140."
+        translate_uk(advice.action)
+        == "Фарміть далі: 512 золота за хвилину, добивань до 21-ї хвилини — 140."
     )
-    assert translate_ru(advice.reason) == (
-        "Берите самые безопасные волны и лагеря: темп растёт и без рискованных драк."
+    assert translate_uk(advice.reason) == (
+        "Беріть найбезпечніші хвилі й табори: темп росте й без ризикованих бійок."
     )
 
 

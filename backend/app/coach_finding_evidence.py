@@ -9,8 +9,8 @@ from app.coach_evidence import COUNTERS, NUMBER, _value
 from app.finding_evidence import FindingEvidence, FindingField, validated_evidence
 
 WARD_LABELS: dict[FindingField, str] = {
-    "obs_placed": r"observer\s+wards?|observers?|обсервер(?:-?вард)?\w*|наблюдательн\w*\s+вард\w*",
-    "sen_placed": r"sentry\s+wards?|sentries|сентри(?:-?вард)?\w*",
+    "obs_placed": r"observer\s+wards?|observers?|обсервер(?:-?вард)?\w*|спостережн\w*\s+вард\w*",
+    "sen_placed": r"sentry\s+wards?|sentries|сентрі(?:-?вард)?\w*",
 }
 WARD_PATTERNS = {
     field: re.compile(
@@ -22,21 +22,22 @@ WARD_PATTERNS = {
 }
 GENERIC_WARDS = re.compile(rf"(?<![\w:.,]){NUMBER}\s+(?:wards?|вард\w*)(?!\w)", re.IGNORECASE)
 ESTIMATE = re.compile(
-    r"\b(?:estimated?|approximately|approx|inventory)\b|оцен\w*|примерно|инвентар\w*", re.IGNORECASE
+    r"\b(?:estimated?|approximately|approx|inventory)\b|оцін\w*|приблизно|інвентар\w*",
+    re.IGNORECASE,
 )
 RECORDED = re.compile(
-    r"\b(?:recorded|logged|observed)\b|зафиксирован\w*|запис\w*|зарегистрирован\w*", re.IGNORECASE
+    r"\b(?:recorded|logged|observed)\b|зафіксован\w*|запис\w*|зареєстрован\w*", re.IGNORECASE
 )
 EARLY = re.compile(
     r"\b(?:before|by)\s+(?:minute\s+10|10(?:th)?\s+minutes?|10:00)(?![\w:])"
     r"|\bfirst\s+10\s+minutes?\b"
-    r"|(?<!\w)(?:до|к)\s+10(?:-?(?:й|ю|ой))?\s+(?:минут\w*)(?!\w)"
-    r"|(?<!\w)(?:до|к)\s+10:00(?![\d:])|первые\s+10\s+минут\w*",
+    r"|(?<!\w)(?:до|на)\s+10(?:-?(?:й|ї|у|ту))?\s+(?:хвилин\w*)(?!\w)"
+    r"|(?<!\w)до\s+10:00(?![\d:])|перші\s+10\s+хвилин\w*",
     re.IGNORECASE,
 )
 OTHER_SCOPE = re.compile(
     r"\d{1,2}:\d{2}|\b(?:minutes?|per|first|last|teammate|enemy|opponent|team)\b"
-    r"|минут\w*|союзник\w*|противник\w*|враг\w*|команд\w*",
+    r"|хвилин\w*|союзник\w*|супротивник\w*|противник\w*|суперник\w*|ворог\w*|ворож\w*|команд\w*",
     re.IGNORECASE,
 )
 

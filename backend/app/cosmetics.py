@@ -1,5 +1,5 @@
 """
-cosmetics.py - profile looks bought with sparks (the «Профиль» tab's shop).
+cosmetics.py - profile looks bought with sparks (the «Профіль» tab's shop).
 
 Four kinds, one item of each equipped at a time: an avatar frame, a banner,
 the name's colour and a title under the name. An item has a price in sparks
@@ -19,21 +19,28 @@ from typing import Any
 
 KINDS = ("frame", "banner", "name", "title")
 
-# id, kind, price, level needed, (achievement id, tier) needed, ru / en name.
+# id, kind, price, level needed, (achievement id, tier) needed, uk / en name.
 CATALOG: list[dict[str, Any]] = [
     # Avatar frames.
-    {"id": "frame_plain", "kind": "frame", "price": 0, "ru": "Обычная", "en": "Plain"},
-    {"id": "frame_bronze", "kind": "frame", "price": 150, "ru": "Бронза", "en": "Bronze"},
-    {"id": "frame_silver", "kind": "frame", "price": 300, "ru": "Серебро", "en": "Silver"},
-    {"id": "frame_gold", "kind": "frame", "price": 600, "level": 5, "ru": "Золото", "en": "Gold"},
-    {"id": "frame_ice", "kind": "frame", "price": 800, "level": 8, "ru": "Лёд", "en": "Ice"},
-    {"id": "frame_fire", "kind": "frame", "price": 1200, "level": 12, "ru": "Пламя", "en": "Flame"},
+    {"id": "frame_plain", "kind": "frame", "price": 0, "uk": "Звичайна", "en": "Plain"},
+    {"id": "frame_bronze", "kind": "frame", "price": 150, "uk": "Бронза", "en": "Bronze"},
+    {"id": "frame_silver", "kind": "frame", "price": 300, "uk": "Срібло", "en": "Silver"},
+    {"id": "frame_gold", "kind": "frame", "price": 600, "level": 5, "uk": "Золото", "en": "Gold"},
+    {"id": "frame_ice", "kind": "frame", "price": 800, "level": 8, "uk": "Лід", "en": "Ice"},
+    {
+        "id": "frame_fire",
+        "kind": "frame",
+        "price": 1200,
+        "level": 12,
+        "uk": "Полум'я",
+        "en": "Flame",
+    },
     {
         "id": "frame_arcana",
         "kind": "frame",
         "price": 2500,
         "level": 20,
-        "ru": "Аркана",
+        "uk": "Аркана",
         "en": "Arcana",
     },
     {
@@ -41,20 +48,20 @@ CATALOG: list[dict[str, Any]] = [
         "kind": "frame",
         "price": 0,
         "achievement": ("app_wins", 3),
-        "ru": "Чемпион",
+        "uk": "Чемпіон",
         "en": "Champion",
     },
     # Banners.
-    {"id": "banner_plain", "kind": "banner", "price": 0, "ru": "Штрихи", "en": "Strokes"},
-    {"id": "banner_dusk", "kind": "banner", "price": 200, "ru": "Сумерки", "en": "Dusk"},
-    {"id": "banner_radiant", "kind": "banner", "price": 350, "ru": "Свет", "en": "Radiant"},
-    {"id": "banner_dire", "kind": "banner", "price": 350, "ru": "Тьма", "en": "Dire"},
+    {"id": "banner_plain", "kind": "banner", "price": 0, "uk": "Штрихи", "en": "Strokes"},
+    {"id": "banner_dusk", "kind": "banner", "price": 200, "uk": "Сутінки", "en": "Dusk"},
+    {"id": "banner_radiant", "kind": "banner", "price": 350, "uk": "Світло", "en": "Radiant"},
+    {"id": "banner_dire", "kind": "banner", "price": 350, "uk": "Темрява", "en": "Dire"},
     {
         "id": "banner_aurora",
         "kind": "banner",
         "price": 900,
         "level": 8,
-        "ru": "Северное сияние",
+        "uk": "Північне сяйво",
         "en": "Aurora",
     },
     {
@@ -62,7 +69,7 @@ CATALOG: list[dict[str, Any]] = [
         "kind": "banner",
         "price": 1400,
         "level": 15,
-        "ru": "Угли",
+        "uk": "Жарини",
         "en": "Embers",
     },
     {
@@ -70,39 +77,39 @@ CATALOG: list[dict[str, Any]] = [
         "kind": "banner",
         "price": 0,
         "achievement": ("mmr_gain", 3),
-        "ru": "Восхождение",
+        "uk": "Сходження",
         "en": "Ascent",
     },
     # Name colours.
-    {"id": "name_plain", "kind": "name", "price": 0, "ru": "Обычный", "en": "Plain"},
-    {"id": "name_gold", "kind": "name", "price": 250, "ru": "Золотой", "en": "Gold"},
-    {"id": "name_ice", "kind": "name", "price": 250, "ru": "Ледяной", "en": "Ice"},
-    {"id": "name_toxic", "kind": "name", "price": 250, "ru": "Ядовитый", "en": "Toxic"},
+    {"id": "name_plain", "kind": "name", "price": 0, "uk": "Звичайний", "en": "Plain"},
+    {"id": "name_gold", "kind": "name", "price": 250, "uk": "Золотий", "en": "Gold"},
+    {"id": "name_ice", "kind": "name", "price": 250, "uk": "Крижаний", "en": "Ice"},
+    {"id": "name_toxic", "kind": "name", "price": 250, "uk": "Отруйний", "en": "Toxic"},
     {
         "id": "name_prism",
         "kind": "name",
         "price": 1500,
         "level": 15,
-        "ru": "Призма",
+        "uk": "Призма",
         "en": "Prism",
     },
     # Titles under the name.
-    {"id": "title_none", "kind": "title", "price": 0, "ru": "Без титула", "en": "No title"},
-    {"id": "title_farmer", "kind": "title", "price": 120, "ru": "Фармила", "en": "Farmer"},
+    {"id": "title_none", "kind": "title", "price": 0, "uk": "Без титулу", "en": "No title"},
+    {"id": "title_farmer", "kind": "title", "price": 120, "uk": "Фармило", "en": "Farmer"},
     {
         "id": "title_support",
         "kind": "title",
         "price": 120,
-        "ru": "Саппорт от бога",
+        "uk": "Саппорт від бога",
         "en": "Born support",
     },
-    {"id": "title_tryhard", "kind": "title", "price": 120, "ru": "Трайхардер", "en": "Tryhard"},
+    {"id": "title_tryhard", "kind": "title", "price": 120, "uk": "Трайхардер", "en": "Tryhard"},
     {
         "id": "title_immortal",
         "kind": "title",
         "price": 0,
         "achievement": ("few_deaths", 2),
-        "ru": "Неубиваемый",
+        "uk": "Невбиваний",
         "en": "Unkillable",
     },
     {
@@ -110,7 +117,7 @@ CATALOG: list[dict[str, Any]] = [
         "kind": "title",
         "price": 0,
         "achievement": ("app_games", 3),
-        "ru": "Ученик тренера",
+        "uk": "Учень тренера",
         "en": "Coached",
     },
     {
@@ -118,7 +125,7 @@ CATALOG: list[dict[str, Any]] = [
         "kind": "title",
         "price": 3000,
         "level": 25,
-        "ru": "Легенда Wardly",
+        "uk": "Легенда Wardly",
         "en": "Wardly legend",
     },
 ]
@@ -188,7 +195,7 @@ def equipped(state: dict[str, Any], level: int, tiers: dict[str, int]) -> dict[s
 def shop(
     state: dict[str, Any], *, balance: int, level: int, tiers: dict[str, int], lang: str
 ) -> list[dict[str, Any]]:
-    lang = "ru" if lang == "ru" else "en"
+    lang = "uk" if lang == "uk" else "en"
     worn = equipped(state, level, tiers)
     rows = []
     for item in CATALOG:

@@ -52,7 +52,7 @@ def test_progress_lists_the_hardest_opponents(client, tmp_path):
     PLAYER_SERVICE.configure(tmp_path / "svc", client=fake, auto_start=False)
     client.post("/player/link", json={"steam": str(ME)})
     PLAYER_SERVICE.jobs.run_pending(until=float("inf"))
-    career = client.get("/player/career?lang=ru").json()
+    career = client.get("/player/career?lang=uk").json()
     record = career["opponents"]
     # Every fixture match has the same enemy lineup: 12 games against each hero.
     assert record["matches"] == 12

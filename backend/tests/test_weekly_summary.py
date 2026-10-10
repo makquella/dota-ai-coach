@@ -33,7 +33,7 @@ def test_week_against_the_week_before():
         _match(2, 10, 54, True),
         _match(1, 30, 90, True),
     ]
-    week = weekly_summary(matches, NOW, "ru")
+    week = weekly_summary(matches, NOW, "uk")
     assert (week["games"], week["wins"], week["losses"]) == (3, 2, 1)
     assert week["avg_score"] == 65 and week["prev_avg_score"] == 52 and week["score_change"] == 13
     assert week["best"]["match_id"] == 6 and week["best"]["score"] == 72
@@ -66,7 +66,7 @@ def test_the_focus_as_a_three_match_plan():
 
 
 def test_week_endpoint(client):
-    assert client.get("/player/week?lang=ru").json() == {"week": None}
+    assert client.get("/player/week?lang=uk").json() == {"week": None}
     assert client.get("/player/week?until=1790000000").json() == {"week": None}
     assert client.get("/player/week?until=-5").status_code == 422
     assert client.get("/player/week?until=1790000000&since=1789395200").json() == {"week": None}

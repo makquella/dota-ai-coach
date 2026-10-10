@@ -52,10 +52,10 @@ def test_summary_counts_matches_after_the_focus_was_set():
         {"match_id": 2, "start_time": since + 100, "analysis": _analysis(["death_streak"])},
         {"match_id": 1, "start_time": since - 100, "analysis": _analysis([])},
     ]
-    summary = focus_summary(focus, matches, "ru")
+    summary = focus_summary(focus, matches, "uk")
     assert [r["match_id"] for r in summary["results"]] == [2, 3, 4]
     assert (summary["met"], summary["total"], summary["streak"]) == (2, 3, 2)
-    assert summary["title"] == "Серия смертей"
+    assert summary["title"] == "Серія смертей"
 
 
 def _next_second():
@@ -72,19 +72,19 @@ def _play(client, match_id, death_minutes):
 def test_focus_end_to_end(client, tmp_path):
     PLAYER_SERVICE.configure(tmp_path / "svc", client=None, auto_start=False)
     _play(client, MATCH_ID, (7, 18, 19, 20))
-    career = client.get("/player/career?lang=ru").json()
+    career = client.get("/player/career?lang=uk").json()
     assert career["focus"] is None
 
     _next_second()
     bad = client.post("/player/focus", json={"finding_id": "nope"})
     assert bad.status_code == 400 and bad.json()["code"] == "bad_focus"
-    focus = client.post("/player/focus?lang=ru", json={"finding_id": "death_streak"}).json()
-    assert focus["title"] == "Серия смертей" and focus["total"] == 0
+    focus = client.post("/player/focus?lang=uk", json={"finding_id": "death_streak"}).json()
+    assert focus["title"] == "Серія смертей" and focus["total"] == 0
 
     # Played after the focus was set: one with the death streak, one clean.
     _play(client, MATCH_ID + 1, (7, 18, 19, 20))
     _play(client, MATCH_ID + 2, ())
-    focus = client.get("/player/career?lang=ru").json()["focus"]
+    focus = client.get("/player/career?lang=uk").json()["focus"]
     assert [r["met"] for r in focus["results"]] == [False, True]
     assert (focus["met"], focus["total"], focus["streak"]) == (1, 2, 1)
 
@@ -101,8 +101,8 @@ def test_focus_end_to_end(client, tmp_path):
     payload = copy.deepcopy(gsi_match_stream(match_id=MATCH_ID + 3, minutes=1)[0])
     payload["map"]["clock_time"] = -15
     client.post("/gsi", json=payload)
-    plan = client.get("/overlay/recommendation?lang=ru").json()["game_plan"]
-    assert plan["lines"][-1] == "Ваш фокус: серия смертей"
+    plan = client.get("/overlay/recommendation?lang=uk").json()["game_plan"]
+    assert plan["lines"][-1] == "Ваш фокус: серія смертей"
 
     assert client.delete("/player/focus").json() == {"status": "ok"}
     assert client.get("/player/career").json()["focus"] is None
@@ -124,8 +124,8 @@ def test_today_summary_on_the_home_screen(client, tmp_path):
 
 def test_item_and_hero_findings_get_a_general_focus_title():
     focus = new_focus("build_timing_late", "items", {"item": "Battle Fury", "t": 1500})
-    summary = focus_summary(focus, [], "ru")
-    assert summary["title"] == "Поздние ключевые предметы" and summary["drill"] is None
+    summary = focus_summary(focus, [], "uk")
+    assert summary["title"] == "Пізні ключові предмети" and summary["drill"] is None
     assert focus_summary(new_focus("killed_by_one", "survival", {}), [], "en")["title"] == (
         "The same enemy keeps killing you"
     )

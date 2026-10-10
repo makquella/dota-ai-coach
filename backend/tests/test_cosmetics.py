@@ -18,7 +18,7 @@ def test_free_items_are_owned_and_worn_by_default():
     worn = cosmetics.equipped(state, 1, NO_TIERS)
     assert worn == cosmetics.DEFAULTS
     rows = {
-        r["id"]: r for r in cosmetics.shop(state, balance=0, level=1, tiers=NO_TIERS, lang="ru")
+        r["id"]: r for r in cosmetics.shop(state, balance=0, level=1, tiers=NO_TIERS, lang="uk")
     }
     assert rows["frame_plain"]["owned"] and rows["frame_plain"]["equipped"]
     assert rows["frame_gold"]["locked"] == "level" and not rows["frame_gold"]["affordable"]

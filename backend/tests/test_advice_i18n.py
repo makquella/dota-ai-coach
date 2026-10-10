@@ -1,4 +1,4 @@
-"""Russian advice text: translation rules and coverage of every visible text."""
+"""Ukrainian advice text: translation rules and coverage of every visible text."""
 
 from __future__ import annotations
 
@@ -12,7 +12,7 @@ from app.advice_i18n import (
     _RU_EXACT,
     localize_overlay_response,
     normalize_lang,
-    translate_ru,
+    translate_uk,
     translate_text,
 )
 from app.advice_scheduler import ADVICE_SCHEDULER
@@ -41,9 +41,9 @@ def _visible_texts(response: dict) -> list[str]:
 
 
 def test_normalize_lang():
-    assert normalize_lang("ru") == "ru"
-    assert normalize_lang("ru-RU") == "ru"
-    assert normalize_lang("RU") == "ru"
+    assert normalize_lang("uk") == "uk"
+    assert normalize_lang("uk-UA") == "uk"
+    assert normalize_lang("UK") == "uk"
     assert normalize_lang("en") == "en"
     assert normalize_lang("de") == "en"
     assert normalize_lang(None) == "en"
@@ -56,28 +56,28 @@ def test_translations_are_russian_apart_from_hp():
 
 
 def test_exact_and_patterned_texts():
-    assert translate_ru("Leave the wave now and reset HP before rejoining.") == (
-        "Уходите с волны сейчас и восстановите HP, прежде чем вернуться."
+    assert translate_uk("Leave the wave now and reset HP before rejoining.") == (
+        "Ідіть із хвилі зараз і відновіть HP, перш ніж повернутися."
     )
-    assert translate_ru("Avoid risky trades until Blade Fury is ready.") == (
-        "Избегайте рискованных разменов до готовности Blade Fury."
+    assert translate_uk("Avoid risky trades until Blade Fury is ready.") == (
+        "Уникайте ризикованих розмінів, доки не готовий Blade Fury."
     )
-    assert translate_ru("Without Blink, escaping a bad trade or fight is harder.") == (
-        "Без Blink сложнее выйти из неудачного размена или драки."
+    assert translate_uk("Without Blink, escaping a bad trade or fight is harder.") == (
+        "Без Blink складніше вийти з невдалого розміну чи бійки."
     )
-    assert translate_ru("Low mana reduces Medusa's effective survivability.") == (
-        "У Medusa мало маны — выживаемость заметно ниже."
+    assert translate_uk("Low mana reduces Medusa's effective survivability.") == (
+        "У Medusa мало мани — виживаність помітно нижча."
     )
 
 
 def test_consider_prefix_dash_and_whitespace_variants():
-    assert translate_ru("Consider leave the wave now and reset HP before rejoining.") == (
-        "Подумайте: уходите с волны сейчас и восстановите HP, прежде чем вернуться."
+    assert translate_uk("Consider leave the wave now and reset HP before rejoining.") == (
+        "Подумайте: ідіть із хвилі зараз і відновіть HP, перш ніж повернутися."
     )
-    assert translate_ru("Monitoring lane - no urgent advice.") == (
-        "Следим за линией — срочных советов нет."
+    assert translate_uk("Monitoring lane - no urgent advice.") == (
+        "Стежимо за лінією — термінових порад немає."
     )
-    assert translate_ru("  Keep farming   safely. ") == "Продолжайте спокойно фармить."
+    assert translate_uk("  Keep farming   safely. ") == "Продовжуйте спокійно фармити."
 
 
 def test_truncated_text_uses_full_translation():
@@ -86,17 +86,17 @@ def test_truncated_text_uses_full_translation():
         "so the fastest recovery is clean last hitting."
     )
     truncated = source[:80].rstrip() + "..."
-    assert translate_ru(truncated) == _RU_EXACT[source]
+    assert translate_uk(truncated) == _RU_EXACT[source]
 
 
 def test_unknown_text_stays_english():
-    assert translate_ru("Something the table does not know.") is None
-    assert translate_text("Something the table does not know.", "ru") == (
+    assert translate_uk("Something the table does not know.") is None
+    assert translate_text("Something the table does not know.", "uk") == (
         "Something the table does not know."
     )
     # Never half-translated: one unknown sentence keeps the whole text English.
     mixed = "Keep farming safely. Something the table does not know."
-    assert translate_text(mixed, "ru") == mixed
+    assert translate_text(mixed, "uk") == mixed
 
 
 def test_english_is_unchanged():
@@ -116,13 +116,13 @@ def test_localize_overlay_response_translates_visible_fields_only():
         "last_visible_advice": {"action": "Focus on safe last hits."},
         "message": "Monitoring...",
     }
-    localized = localize_overlay_response(response, "ru")
-    assert localized["recommendation"]["action"] == "Продолжайте спокойно фармить."
-    assert localized["recommendation"]["reason"] == "HP в норме, признаков давления нет."
+    localized = localize_overlay_response(response, "uk")
+    assert localized["recommendation"]["action"] == "Продовжуйте спокійно фармити."
+    assert localized["recommendation"]["reason"] == "HP у нормі, ознак тиску немає."
     assert localized["recommendation"]["risk"] == "Low risk if you keep playing safely."
     assert localized["recommendation"]["priority"] == "low"
-    assert localized["last_visible_advice"]["action"] == "Сосредоточьтесь на безопасных добиваниях."
-    assert localized["message"] == "Следим за игрой…"
+    assert localized["last_visible_advice"]["action"] == "Зосередьтеся на безпечних добиваннях."
+    assert localized["message"] == "Стежимо за грою…"
     # The original payload (also kept in history) is not modified.
     assert response["recommendation"]["action"] == "Keep farming safely."
 
@@ -130,15 +130,19 @@ def test_localize_overlay_response_translates_visible_fields_only():
 def test_overlay_endpoint_lang_param(client, repo_root):
     sample = repo_root / "data" / "gsi_samples" / "low_hp_juggernaut.json"
     client.post("/gsi", json=json.loads(sample.read_text(encoding="utf-8")))
-    russian = client.get("/overlay/recommendation?lang=ru").json()
+    ukrainian = client.get("/overlay/recommendation?lang=uk").json()
     english = client.get("/overlay/recommendation").json()
 
-    assert russian["lang"] == "ru"
+    assert ukrainian["lang"] == "uk"
     assert "lang" not in english
     # First call creates the advice ("advice"), the second shows it ("active_advice").
-    assert russian["recommendation"] and english["recommendation"]
-    assert russian["recommendation"]["action"] == translate_ru(english["recommendation"]["action"])
-    assert russian["recommendation"]["reason"] == translate_ru(english["recommendation"]["reason"])
+    assert ukrainian["recommendation"] and english["recommendation"]
+    assert ukrainian["recommendation"]["action"] == translate_uk(
+        english["recommendation"]["action"]
+    )
+    assert ukrainian["recommendation"]["reason"] == translate_uk(
+        english["recommendation"]["reason"]
+    )
     # History keeps the canonical English text.
     assert COACH_SESSION_HISTORY.records()[-1]["action"] == english["recommendation"]["action"]
 
@@ -149,12 +153,12 @@ def test_recent_advice_lang_param(client, repo_root):
     shown = client.get("/overlay/recommendation").json()["recommendation"]
 
     english = client.get("/advice/recent").json()["items"]
-    russian = client.get("/advice/recent?lang=ru").json()["items"]
+    ukrainian = client.get("/advice/recent?lang=uk").json()["items"]
 
     assert english[0]["action"] == shown["action"]
-    assert russian[0]["action"] == translate_ru(shown["action"])
-    assert russian[0]["reason"] == translate_ru(shown["reason"])
-    assert russian[0]["priority"] == english[0]["priority"]
+    assert ukrainian[0]["action"] == translate_uk(shown["action"])
+    assert ukrainian[0]["reason"] == translate_uk(shown["reason"])
+    assert ukrainian[0]["priority"] == english[0]["priority"]
 
 
 def _mutate(payload: dict, clock: int, rng: random.Random) -> dict:
@@ -183,13 +187,13 @@ def _mutate(payload: dict, clock: int, rng: random.Random) -> dict:
     return payload
 
 
-def test_every_visible_text_from_fixtures_has_russian(client, repo_root):
-    """Replays and live GSI samples (plus mutations) must never show English in ru."""
+def test_every_visible_text_from_fixtures_has_ukrainian(client, repo_root):
+    """Replays and live GSI samples (plus mutations) must never show English in uk."""
     untranslated: set[str] = set()
 
     def check(response: dict) -> None:
         for text in _visible_texts(response):
-            if translate_ru(text) is None:
+            if translate_uk(text) is None:
                 untranslated.add(text)
 
     for path in sorted((repo_root / "data/match_simulations").glob("*.jsonl")):
@@ -234,4 +238,4 @@ def test_coaching_rewording_keeps_english_grammatical():
         "Consider: farm back your buyback gold before the next purchase.",
         "Consider farm back your buyback gold before the next purchase.",
     ):
-        assert translate_ru(text).startswith("Подумайте: нафармите")
+        assert translate_uk(text).startswith("Подумайте: нафарміть")

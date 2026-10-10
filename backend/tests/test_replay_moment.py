@@ -48,9 +48,9 @@ def test_the_review_compares_with_the_best_match_on_the_hero(client, tmp_path):
     scores = {r["match_id"]: r["analysis"]["headline"]["score"] for r in rows}
     worst = min(scores, key=scores.get)
     best = max(scores, key=scores.get)
-    detail = client.get(f"/player/matches/{worst}?lang=ru").json()
+    detail = client.get(f"/player/matches/{worst}?lang=uk").json()
     compare = detail["best_on_hero"]
     assert compare["score"] == scores[best] and compare["match_id"] == best
     assert len(compare["series"]["last_hits"]) > 2
-    top = client.get(f"/player/matches/{best}?lang=ru").json()["best_on_hero"]
+    top = client.get(f"/player/matches/{best}?lang=uk").json()["best_on_hero"]
     assert top["self_best"] is True and top["of"] == len(rows)

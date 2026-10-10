@@ -38,34 +38,34 @@ FIXED_ULTIMATES = frozenset({"invoker_invoke"})
 TEXTS = {
     "ultimate": {
         "en": ("Learn your ultimate", "{name} is ready to learn: level {level} opens it."),
-        "ru": ("Изучите ультимейт", "{name} можно изучить: его открывает {level}-й уровень."),
+        "uk": ("Вивчіть ультимейт", "{name} можна вивчити: його відкриває {level}-й рівень."),
     },
     "talent": {
         "en": ("Pick a talent", "The level-{tier} talent is waiting: open the talent tree."),
-        "ru": ("Выберите талант", "Талант {tier}-го уровня ждёт: откройте дерево талантов."),
+        "uk": ("Оберіть талант", "Талант {tier}-го рівня чекає: відкрийте дерево талантів."),
     },
     "talent_pro": {
         "en": (
             "Pick a talent",
             "Level {tier}: pros on this hero take “{name}” ({picked} of {games}).",
         ),
-        "ru": (
-            "Выберите талант",
-            "Талант {tier}-го уровня: про-игроки на этом герое берут «{name}» ({picked} из {games}).",
+        "uk": (
+            "Оберіть талант",
+            "Талант {tier}-го рівня: про-гравці на цьому герої беруть «{name}» ({picked} з {games}).",
         ),
     },
     "skill": {
         "en": ("Put the point in {name}", "The pro order on this hero: {order}."),
-        "ru": ("Вложите очко в {name}", "Порядок прокачки у про-игроков на этом герое: {order}."),
+        "uk": ("Вкладіть очко в {name}", "Порядок прокачки в про-гравців на цьому герої: {order}."),
     },
     "opening": {
         "en": (
             "First point: {name}",
             "Pros on this hero start with {name} ({agree} of {games} games).",
         ),
-        "ru": (
-            "Первое очко: {name}",
-            "Про-игроки на этом герое начинают с {name} ({agree} из {games} игр).",
+        "uk": (
+            "Перше очко: {name}",
+            "Про-гравці на цьому герої починають з {name} ({agree} з {games} ігор).",
         ),
     },
     "point": {
@@ -73,9 +73,9 @@ TEXTS = {
             "Unspent skill point",
             "A level without the point spent is a weaker hero in the next fight.",
         ),
-        "ru": (
-            "Не вложено очко навыков",
-            "Уровень без вложенного очка — герой слабее в следующей драке.",
+        "uk": (
+            "Не вкладено очко навичок",
+            "Рівень без вкладеного очка — герой слабший у наступній бійці.",
         ),
     },
 }
@@ -313,11 +313,11 @@ class SkillTips:
 
 
 def _hint(key: str, hint_id: str, lang: str, **params: Any) -> dict[str, Any]:
-    title, text = TEXTS[key]["ru" if lang == "ru" else "en"]
+    title, text = TEXTS[key]["uk" if lang == "uk" else "en"]
     return {
         "kind": "tip",
         # The overlay card's label (instead of «Map»).
-        "label": "Прокачка" if lang == "ru" else "Skills",
+        "label": "Прокачка" if lang == "uk" else "Skills",
         "id": hint_id,
         "at": None,
         "at_label": None,

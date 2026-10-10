@@ -89,7 +89,7 @@ def test_invalid_demo_and_reader_changes_do_not_change_cached_http_response(
     response["recent_death_patterns"].append("changed")
     assert client.post("/demo/replay-state", json={"state": []}).status_code == 400
     assert client.get("/overlay/recommendation").json() == before
-    assert client.get("/overlay/recommendation?lang=ru").status_code == 200
+    assert client.get("/overlay/recommendation?lang=uk").status_code == 200
     assert client.get("/overlay/recommendation").json() == before
 
 

@@ -35,10 +35,10 @@ def _add(client, match_id):
 
 def test_an_older_match_is_fetched_and_reviewed(client, tmp_path):
     _service(client, tmp_path)
-    assert client.get(f"/player/matches/{OLD}?lang=ru").status_code == 404
+    assert client.get(f"/player/matches/{OLD}?lang=uk").status_code == 404
     first, after = _add(client, OLD)
     assert first == {"state": "pending"} and after == {"state": "ready"}
-    detail = client.get(f"/player/matches/{OLD}?lang=ru").json()
+    detail = client.get(f"/player/matches/{OLD}?lang=uk").json()
     assert detail["analysis"] and detail["summary"]["hero"] == "Juggernaut"
     # Asked again: it is there, nothing fetched twice.
     assert client.post(f"/player/matches/{OLD}/add").json() == {"state": "ready"}

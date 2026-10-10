@@ -40,10 +40,9 @@ TEXTS = {
             "{gold} gold and an empty bag: take regen (Tango, Healing Salve) "
             "and stat items before the lane.",
         ),
-        "ru": (
-            "Купите стартовые предметы",
-            "{gold} золота и пустой инвентарь: возьмите реген (Tango, Healing Salve) "
-            "и предметы на характеристики до выхода на линию.",
+        "uk": (
+            "Купіть стартові предмети",
+            "{gold} золота й порожній інвентар: візьміть реген (Tango, Healing Salve) і предмети на характеристики до виходу на лінію.",
         ),
     },
     "start_items": {
@@ -51,9 +50,9 @@ TEXTS = {
             "Buy your starting items",
             "{gold} gold and an empty bag. The usual start on this hero: {items}.",
         ),
-        "ru": (
-            "Купите стартовые предметы",
-            "{gold} золота и пустой инвентарь. Обычный старт на этом герое: {items}.",
+        "uk": (
+            "Купіть стартові предмети",
+            "{gold} золота й порожній інвентар. Звичайний старт на цьому герої: {items}.",
         ),
     },
     "stall_support": {
@@ -61,9 +60,9 @@ TEXTS = {
             "{gold} gold unspent",
             "Spend it now: wards, dust, a smoke or a save item such as Force Staff or Glimmer Cape.",
         ),
-        "ru": (
-            "{gold} золота не потрачено",
-            "Потратьте сейчас: варды, дасты, смок или спасающий предмет — Force Staff, Glimmer Cape.",
+        "uk": (
+            "{gold} золота не витрачено",
+            "Витратьте зараз: варди, дасти, смок або рятівний предмет — Force Staff, Glimmer Cape.",
         ),
     },
     "stall": {
@@ -72,10 +71,9 @@ TEXTS = {
             "Buy parts of your next item: gold in the pocket does nothing, "
             "and you lose some of it when you die.",
         ),
-        "ru": (
-            "{gold} золота не потрачено",
-            "Купите части следующего предмета: золото в кармане ничего не даёт, "
-            "а при смерти часть теряется.",
+        "uk": (
+            "{gold} золота не витрачено",
+            "Купіть частини наступного предмета: золото в кишені нічого не дає, а під час смерті частина втрачається.",
         ),
     },
     "stall_part": {
@@ -83,9 +81,9 @@ TEXTS = {
             "{gold} gold unspent",
             "{item} is next in your build: {part} ({cost}) fits your gold now — buy it.",
         ),
-        "ru": (
-            "{gold} золота не потрачено",
-            "Следующий по сборке — {item}: на {part} ({cost}) золота уже хватает, купите сейчас.",
+        "uk": (
+            "{gold} золота не витрачено",
+            "Наступний за збіркою — {item}: на {part} ({cost}) золота вже вистачає, купіть зараз.",
         ),
     },
     "stall_item": {
@@ -93,9 +91,9 @@ TEXTS = {
             "{gold} gold unspent",
             "{item} is next in your build: buy its parts now, gold in the pocket does nothing.",
         ),
-        "ru": (
-            "{gold} золота не потрачено",
-            "Следующий по сборке — {item}: купите части сейчас, золото в кармане ничего не даёт.",
+        "uk": (
+            "{gold} золота не витрачено",
+            "Наступний за збіркою — {item}: купіть частини зараз, золото в кишені нічого не дає.",
         ),
     },
 }
@@ -146,7 +144,7 @@ class GoldTips:
         so the start card shows at once (no START_WAIT)."""
         if clock is None or gold is None or not alive or self._bag is None:
             return None
-        lang = "ru" if lang == "ru" else "en"
+        lang = "uk" if lang == "uk" else "en"
         if clock < START_UNTIL:
             empty = self._empty_since
             if empty is None or gold < START_GOLD:
@@ -230,7 +228,7 @@ def _hint(
     return {
         "kind": "tip",
         # The overlay card's label (instead of «Map»).
-        "label": "Покупки" if lang == "ru" else "Shop",
+        "label": "Покупки" if lang == "uk" else "Shop",
         "id": hint_id,
         "at": None,
         "at_label": None,
