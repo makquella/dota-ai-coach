@@ -23,6 +23,7 @@ from urllib.parse import urlencode
 ROOT = Path(__file__).resolve().parents[1]
 POSTS = ROOT / "data" / "news" / "posts"
 BASE = "https://luhovyimvp.dev"
+CHANNEL = "https://t.me/wardlydota"
 # A hero picked in fewer matches is left out of the lists (a few lucky games).
 MIN_PICK_RATE = 0.02
 TOP = 5
@@ -80,7 +81,8 @@ TEXT = {
         "share_tg": "Надіслати в Telegram",
         "share_text": "Скиньте мету друзям перед вечором у Доті: з одного допису видно, кого брати й кого банити.",
         "list_title": "Новини",
-        "list_lead": "Мета тижня щопонеділка: хто виграє, кого беруть і хто змінився. Ті самі дописи — у нашому Telegram-каналі.",
+        "list_lead": "Мета тижня щопонеділка: хто виграє, кого беруть і хто змінився. Ті самі дописи й нові версії — у нашому Telegram-каналі.",
+        "channel": "Підписатися на канал @wardlydota",
         "list_meta": "Огляд тижня за даними OpenDota.",
         "read": "Читати",
         "changelog": "Що нового в застосунку →",
@@ -112,7 +114,8 @@ TEXT = {
         "share_tg": "Send in Telegram",
         "share_text": "Send the meta to your friends before tonight's games: one post shows whom to pick and whom to ban.",
         "list_title": "News",
-        "list_lead": "The meta of the week every Monday: who wins, who is picked and who changed. The same posts go to our Telegram channel.",
+        "list_lead": "The meta of the week every Monday: who wins, who is picked and who changed. The same posts and new versions go to our Telegram channel.",
+        "channel": "Follow @wardlydota on Telegram",
         "list_meta": "A weekly overview from OpenDota data.",
         "read": "Read",
         "changelog": "What's new in the app →",
@@ -320,6 +323,7 @@ def post_main(
             <h2>{e(t["share_title"])}</h2>
             <p>{e(t["share_text"])}</p>
             <a class="btn btn-outline btn-lg" href="{share}" rel="noopener">{e(t["share_tg"])}</a>
+            <p class="note"><a href="{CHANNEL}" rel="noopener">{e(t["channel"])} →</a></p>
           </div>
           <div class="hero-cta">
             <h2>{e(t["cta_title"])}</h2>
@@ -350,6 +354,7 @@ def list_main(posts: list[dict[str, Any]], lang: str, home: str, up: str) -> str
         <div class="wrap">
           <h1>{e(t["list_title"])}</h1>
           <p class="lead">{e(t["list_lead"])}</p>
+          <p class="cta-row"><a class="btn btn-primary btn-lg" href="{CHANNEL}" rel="noopener">{e(t["channel"])}</a></p>
         </div>
       </section>
 

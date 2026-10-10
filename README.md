@@ -63,42 +63,6 @@ The latest version and its changes: [releases](https://github.com/makquella/dota
 - Replay demo playback works without launching Dota 2; live GSI session recording for validation.
 - Backend tests, Node checks and unit tests run in CI; Windows packaging (PyInstaller backend + NSIS installer) is built and smoke-tested on `windows-latest`, and releases publish the auto-update feed.
 
-## What Is Implemented
-
-Backend:
-
-- FastAPI app and local-only endpoints.
-- Live Dota 2 GSI endpoint.
-- GSI state normalization.
-- Demo replay-state endpoint.
-- Deterministic decision points and fallback wording.
-- Advice scheduler with duplicate suppression, game-time spacing, active-card handling, and heartbeat long-silence nudges.
-- Data-driven hero profiles and hero safety checks.
-- Laning Coach v1.
-- Post-Laning Farming Coach v1.
-- Signal capability metadata for live GSI, replay-derived states, OpenDota imports, and synthetic samples.
-- Live GSI session recorder.
-- Coach session summary builder.
-- Offline replay conversion and simulation scripts.
-- Optional LLM providers for wording/review flows.
-- Optional post-match AI coach (free Google Gemini, Groq or OpenRouter key entered in the launcher), fact-checked against the rule-based review.
-
-Frontend:
-
-- Electron launcher for coursework defense.
-- Electron desktop overlay for compact advice.
-- Legacy browser pages (`frontend/debug/`: a scenario form and a plain overlay) are developer-only: served at `/debug/` from a source checkout, never by the installed app.
-- Replay demo presets for Phantom Lancer and Juggernaut.
-- Clean/verbose launcher logs for defense and debugging.
-
-Evaluation:
-
-- Offline replay-derived GSI-like simulations.
-- Replay evaluation summaries for laning, post-laning, and macro/farming windows.
-- LLM-vs-fallback comparison utilities.
-- Pytest coverage for core backend behavior.
-- Windows live GSI test evidence from Dota 2 Demo Hero mode.
-
 ## Safety Boundaries
 
 The project does not:
@@ -188,127 +152,26 @@ On Windows, install the app with the NSIS installer built by `scripts\build-wind
 
 The overlay is a transparent, click-through window of the launcher. It is on screen only while Dota 2 is running, is the active window, and a match is sending fresh GSI data; alt-tab, minimizing Dota or going back to the menu hides it (replay demo and unlocked positioning mode show it anyway). The tray shows the state: *Dota not found* / *Waiting for game* / *In game* (in the app language: Ukrainian or English). On first run the app finds Dota through Steam (registry + `libraryfolders.vdf`, any drive) and installs the GSI config itself. It polls `/overlay/recommendation` on the backend port chosen by the launcher. Hotkeys: `Ctrl+Alt+O` toggle, `Ctrl+Alt+M` mute 5 min, `Ctrl+Alt+R` repeat the last advice (shown and spoken again), `Ctrl+Alt+L` lock/unlock dragging, `Ctrl+Alt+1/2/3` left / right / bottom position (all clear of the minimap and hero panel), `Ctrl+Alt+D` debug line.
 
-### Defense Demo Without Dota 2
+### Replay demo without Dota 2
 
-Recommended stable demo:
-
-```bash
-cd backend
-source .venv/bin/activate
-SIMULATION_USE_LLM=false \
-python3 scripts/run_overlay_demo.py \
-  --simulation-file ../data/match_simulations/replay_gsi_like_match_8843382732_pl_20_30.jsonl \
-  --speed 5 \
-  --advice-hold-seconds 8 \
-  --export-summary simulation_results/demo_session_summary_pl_20_30.md \
-  --export-summary-json simulation_results/demo_session_summary_pl_20_30.json
-```
-
-This replays a Phantom Lancer 20-30 minute macro/farming slice into the normal backend and overlay path. It is not fake UI text; the backend still produces the advice.
-
-More commands:
-
-- [Quickstart](docs/QUICKSTART.md)
-- [Replay Demo](docs/REPLAY_DEMO.md)
-- [Reference Commands](docs/REFERENCE_COMMANDS.md)
-
-## Live GSI Test Summary
-
-A live Windows validation was completed in Dota 2 Demo Hero mode.
-
-Summary:
-
-- Environment: Windows 11, Dota 2 Demo Hero
-- Mode: `live_gsi`
-- Hero: Juggernaut
-- Session: `live_session_20260610T090212_534960_0000`
-- Raw GSI states: `165`
-- Shown advice cards: `6`
-- Approximate game-time range: `299-488` seconds
-- Advice categories:
-  - `LOW_HP`
-  - `LOW_MANA`
-  - `HERO_SURVIVABILITY_RISK`
-  - `ABILITY_SAFETY_COOLDOWN`
-
-Validated pipeline:
-
-```text
-Dota 2 -> GSI config -> FastAPI backend -> state parser -> recommender/scheduler -> recorder -> shown_advice.jsonl
-```
-
-Full sanitized report:
-
-- [Live GSI Test Report](docs/LIVE_GSI_TEST_REPORT.md)
-
-## Replay Demo Summary
-
-Replay demos use existing GSI-like JSONL files in:
-
-```text
-data/match_simulations/
-```
-
-Primary launcher demo files:
-
-- `replay_gsi_like_match_8843382732_pl_20_30.jsonl`
-- `replay_gsi_like_match_8843471434_jugg_10_20.jsonl`
-
-These demos are useful for coursework defense because they do not require Dota 2 to be running. They still exercise the backend, scheduler, overlay polling, and session summary path.
-
-Details:
-
-- [Replay Demo](docs/REPLAY_DEMO.md)
-- [Replay Evaluation Summary](backend/simulation_results/replay_evaluation_summary_20260608.md)
+The launcher's demo mode replays a recorded match through the normal backend and overlay path (the backend still produces the advice). Commands: [Replay Demo](docs/REPLAY_DEMO.md), [Quickstart](docs/QUICKSTART.md), [Reference Commands](docs/REFERENCE_COMMANDS.md).
 
 ## Testing
 
-Backend:
-
 ```bash
-cd backend
-source .venv/bin/activate
-pytest -q
-python3 -m compileall -q app scripts packaging tests
+# from the repository root, with the backend venv
+python scripts/dev.py check --changed --dry-run   # what would run for your changes
+python scripts/dev.py check --full                # backend, launcher, Worker, site and version checks
 ```
 
-Frontend syntax checks:
-
-```bash
-# from repository root
-node --check frontend/launcher/main.js
-node --check frontend/launcher/preload.js
-node --check frontend/launcher/settings.js
-node --check frontend/launcher/overlay-window.js
-node --check frontend/launcher/overlay-placement.js
-node --check frontend/launcher/overlay-preload.js
-node --check frontend/launcher/overlay-visibility.js
-node --check frontend/launcher/dota-watcher.js
-node --check frontend/launcher/steam-locator.js
-node --check frontend/launcher/updater.js
-node --check frontend/launcher/problem-report.js
-node --check frontend/launcher/renderer/app.js
-node --check frontend/launcher/renderer/charts.js
-node --check frontend/launcher/renderer/matches.js
-node --check frontend/launcher/overlay/app.js
-node --check frontend/launcher/overlay/voice.js
-node --check frontend/launcher/assets/icons/lucide.js
-(cd frontend/launcher && npm test)   # node --test, no dependencies
-```
-
-Repository hygiene:
-
-```bash
-git diff --check
-```
+Per part: `cd backend && python -m pytest`; `cd frontend/launcher && npm run check && npm test`;
+`cd services/api && npm test`. Details: [Testing](docs/TESTING.md), [Dev runner](docs/DEV_RUNNER.md).
 
 ## Documentation Links
 
 - [Quickstart](docs/QUICKSTART.md)
 - [Architecture](docs/ARCHITECTURE.md)
 - [Replay Demo](docs/REPLAY_DEMO.md)
-- [Analogues and Differentiation](docs/ANALOGS.md)
-- [Live GSI Test Report](docs/LIVE_GSI_TEST_REPORT.md)
 - [Reference Commands](docs/REFERENCE_COMMANDS.md)
 - [Roadmap](docs/ROADMAP.md)
 - [Advice Scheduler](docs/ADVICE_SCHEDULER.md)
@@ -328,41 +191,7 @@ Diagrams:
 - The minimal replay parser does not currently extract exact spendable gold or ability cooldowns.
 - Advice is intentionally conservative when required signals are missing.
 - Optional LLM usage is not required for live mode and is best treated as wording/review support.
-- The Windows build is unsigned (SmartScreen may warn on first run).
-
-## Roadmap / Future Work
-
-Current status:
-
-- Coursework MVP / v0.1.0.
-
-Implemented:
-
-- FastAPI backend.
-- Dota 2 GSI endpoint.
-- Rule-based recommender.
-- Advice scheduler / anti-spam.
-- Game-time spacing.
-- Heartbeat long-silence nudge.
-- Electron launcher.
-- Electron overlay.
-- Replay demo playback.
-- Live GSI recorder.
-- Windows live GSI validation.
-- Tests.
-
-Future work:
-
-- Code-sign the Windows installer.
-- Run longer real-match validation beyond demo-hero testing.
-- Expand hero-specific safety rules and profiles.
-- Add optional semantic review/RAG mode for post-session analysis.
-- Add optional offline OpenDota/OpenDota-like replay enrichment.
-- Polish launcher and overlay UI.
-
-See the detailed roadmap:
-
-- [Roadmap](docs/ROADMAP.md)
+- The Windows build is unsigned until SignPath Foundation approves it (SmartScreen may warn on first run).
 
 ## Code signing policy
 
@@ -382,8 +211,7 @@ The same policy on the website: [luhovyimvp.dev/code-signing.html](https://luhov
 ## License / Authorship
 
 - Author: Artem / makquella
-- Project: Wardly coursework MVP
 - Year: 2026
 - License: MIT, see [LICENSE](LICENSE)
 
-Dota 2 is a Valve game. This educational project is not affiliated with Valve.
+Dota 2 is a Valve game. This project is not affiliated with Valve.

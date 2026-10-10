@@ -1,6 +1,6 @@
 # Replay Demo
 
-Replay demo mode lets the coursework defense show the overlay without launching Dota 2.
+Replay demo mode shows the overlay without launching Dota 2.
 
 The demo reads an existing GSI-like JSONL file, sends states to the backend through the normal demo endpoint, and lets the backend produce real advice through the recommender and scheduler.
 
@@ -13,7 +13,7 @@ data/match_simulations/replay_gsi_like_match_8843382732_pl_20_30.jsonl
 data/match_simulations/replay_gsi_like_match_8843471434_jugg_10_20.jsonl
 ```
 
-Recommended defense demo:
+Recommended demo:
 
 - Phantom Lancer 20-30 macro/farming.
 - Speed `5`.
@@ -72,16 +72,7 @@ The Electron launcher includes demo buttons for:
 - Phantom Lancer 20-30 macro
 - Juggernaut 10-20 safety
 
-Clean logs are intended for defense. Verbose logs are for debugging.
-
-## Evaluation Artifacts
-
-The final replay evaluation summary is stored at:
-
-```text
-backend/simulation_results/replay_evaluation_summary_20260608.md
-backend/simulation_results/replay_evaluation_summary_20260608.csv
-```
+Clean logs are for showing the app. Verbose logs are for debugging.
 
 ## Limits
 

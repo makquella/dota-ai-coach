@@ -46,7 +46,7 @@ Key files:
 - `backend/app/personal_baseline.py` - a match against the player's usual numbers on the same hero.
 - `backend/app/scheduler/frequency.py` - advice frequency preference (calm / normal / active) scaling the coaching gaps.
 - `backend/app/diagnostics.py` - recent errors and runtime info for the problem report, with keys redacted.
-- `backend/scripts/simulate_live_gsi.py` - raw GSI through the live endpoints on game time, printing every advice card; `backend/scripts/evaluate_system.py` - latency, replay advice, review coverage and fact-check numbers.
+- `backend/scripts/simulate_live_gsi.py` - raw GSI through the live endpoints on game time, printing every advice card.
 - `backend/app/coach_llm.py`, `coach_review.py` - optional AI coach: explains a match or recent matches using rule-based facts (Google Gemini Flash by default, or Groq / OpenRouter). The checker validates allowed numbers, times, heroes and items; it does not yet bind each number to its metric/source (audit F04). `backend/scripts/compare_coach_models.py` compares models on the same match.
 - `backend/app/advice_i18n.py` - Ukrainian wording of the visible advice text, applied only at the API edge (`lang=uk` on `/overlay/recommendation` and `/advice/recent`); the pipeline, logs and history stay English.
 

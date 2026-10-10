@@ -83,8 +83,8 @@ The build needs JDK 17 (Gradle toolchain) and Maven Central; the generated
 
 ### When this is maintained
 
-The `.dem` path is optional developer tooling for offline evaluation (thesis
-data, new replay acceptance cases). It is not part of the app, the installer or
+The `.dem` path is optional developer tooling for offline evaluation (new
+replay acceptance cases). It is not part of the app, the installer or
 CI builds, and the app never runs Java. What stays maintained:
 
 - the wrapper contract — placeholders, flat → canonical normalization, the

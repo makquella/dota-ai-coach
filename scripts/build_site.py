@@ -645,6 +645,7 @@ def site_footer(lang: str, up: str, home: str) -> str:
         </a>
         <nav class="footer-links" aria-label="{e(t["footer_label"])}">
           <a href="https://github.com/makquella/dota-ai-coach" rel="noopener">GitHub</a>
+          <a href="https://t.me/wardlydota" rel="noopener">Telegram</a>
           <a href="https://github.com/makquella/dota-ai-coach/releases" rel="noopener">{e(t["releases"])}</a>
           <a href="https://github.com/makquella/dota-ai-coach/issues" rel="noopener">{e(t["issues"])}</a>
           <a href="{home}heroes.html">{e(t["heroes"])}</a>

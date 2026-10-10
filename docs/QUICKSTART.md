@@ -46,7 +46,7 @@ npm install
 npm run dev
 ```
 
-The launcher is the preferred defense entry point. It can:
+The launcher is the preferred entry point. It can:
 
 - start the backend automatically (hidden, on a free local port; 8000 when free);
 - show/hide the always-on-top overlay (a second window of the same app);
@@ -81,7 +81,7 @@ http://127.0.0.1:8000/gsi
 
 In the launcher, use `Install / Check Dota GSI`. The launcher reuses the last port between launches and rewrites an installed config if it ever has to move to another port (restart Dota 2 afterwards).
 
-## Defense Demo Without Dota 2
+## Demo Without Dota 2
 
 Start backend and overlay, then run:
 
@@ -97,7 +97,7 @@ python3 scripts/run_overlay_demo.py \
   --export-summary-json simulation_results/demo_session_summary_pl_20_30.json
 ```
 
-Use `--speed 5` for live defense. Use `--speed 10` for quick testing.
+Use `--speed 5` for a live demo. Use `--speed 10` for quick testing.
 
 ## Optional LLM
 

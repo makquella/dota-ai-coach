@@ -37,7 +37,7 @@ flowchart TD
 - Let urgent safety advice interrupt normal coaching spacing when appropriate.
 - Pin death review advice while dead/respawning.
 - Suppress repeated low-HP, objective, and post-laning macro messages.
-- Record metrics for simulation reports and defense review.
+- Record metrics for simulation reports.
 
 ## Game-Time Vs Wall-Clock
 
@@ -70,4 +70,4 @@ Display hold is separate from advice generation. The backend may return `active_
 - The scheduler only uses signals available in the normalized state.
 - It cannot know exact enemy positions, nearby allies/enemies, or team readiness unless those signals are provided.
 - Replay-derived GSI-like states may miss cooldowns, spendable gold, and exact objective context.
-- The scheduler is intentionally in-memory for the coursework MVP.
+- The scheduler is intentionally in-memory.

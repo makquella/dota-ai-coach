@@ -204,14 +204,14 @@ jobs:
         run: ./scripts/virustotal-release.ps1 -Tag $env:TAG -Installer "frontend/launcher/dist/Wardly-Setup-$($env:TAG.Substring(1)).exe"
 
       - name: Post the release to the Telegram channel
-        # Optional (repository variable TELEGRAM_CHANNEL, secret TELEGRAM_BOT_TOKEN;
-        # the bot must be an admin of the channel): the Ukrainian notes, shortened
-        # to one message, with links to «Що нового» and the download. Never fails the release.
-        if: vars.TELEGRAM_CHANNEL != ''
+        # To https://t.me/wardlydota (variable TELEGRAM_CHANNEL overrides it; secret
+        # TELEGRAM_BOT_TOKEN, the bot an admin of the channel): the Ukrainian notes,
+        # shortened to one message, with links to «Що нового» and the download.
+        # Never fails the release.
         continue-on-error: true
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
-          TELEGRAM_CHANNEL: ${{ vars.TELEGRAM_CHANNEL }}
+          TELEGRAM_CHANNEL: ${{ vars.TELEGRAM_CHANNEL || '@wardlydota' }}
         run: python scripts/build_news.py telegram-release $env:TAG.Substring(1) --send
 
       - name: Upload logs on failure

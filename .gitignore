@@ -98,8 +98,6 @@ backend/simulation_results/demo_session_summary_*.md
 backend/simulation_results/demo_session_summary_*.json
 backend/simulation_results/deep_review_*.md
 backend/simulation_results/deep_review_*.json
-!backend/simulation_results/replay_evaluation_summary_20260608.md
-!backend/simulation_results/replay_evaluation_summary_20260608.csv
 
 # Generated match simulations
 data/match_simulations/*.jsonl

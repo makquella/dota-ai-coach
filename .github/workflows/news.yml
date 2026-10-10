@@ -5,9 +5,9 @@ name: News
 # scripts/build_site.py writes its pages under site/news/, the commit goes to
 # main, the site is published and the post goes to the Telegram channel.
 #
-# Telegram: repository variable TELEGRAM_CHANNEL (@channel or its numeric id) and
-# the secret TELEGRAM_BOT_TOKEN; the bot must be an admin of the channel. Without
-# the variable the post only appears on the site.
+# Telegram: the channel https://t.me/wardlydota (repository variable
+# TELEGRAM_CHANNEL overrides it) and the secret TELEGRAM_BOT_TOKEN; the bot must be
+# an admin of the channel. Without the token the post only appears on the site.
 on:
   schedule:
     - cron: "17 7 * * 1"
@@ -80,7 +80,7 @@ jobs:
 
   telegram:
     needs: [post, site]
-    if: vars.TELEGRAM_CHANNEL != '' && (github.event_name == 'schedule' || inputs.telegram)
+    if: github.event_name == 'schedule' || inputs.telegram
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -93,5 +93,5 @@ jobs:
       - name: Send the post
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
-          TELEGRAM_CHANNEL: ${{ vars.TELEGRAM_CHANNEL }}
+          TELEGRAM_CHANNEL: ${{ vars.TELEGRAM_CHANNEL || '@wardlydota' }}
         run: python scripts/build_news.py telegram-meta "${{ needs.post.outputs.date }}" --send
