@@ -44,8 +44,10 @@ These are acceptance tasks too. They are not included in the 17-finding percenta
   with compatibility re-export (0.53.43, PURE_ABILITIES.md).
 - [x] Cache Markdown knowledge-base parsing at startup with dev mtime invalidation;
   defer retrieval until scheduler needs a candidate (0.53.45, KNOWLEDGE_BASE_CACHE.md).
-- [ ] Profile large-history read models and EXPLAIN QUERY PLAN; avoid repeated
-  analysis JSON parsing with revision-invalidated projections/caches.
+- [x] Profile large-history read models and EXPLAIN QUERY PLAN; avoid repeated
+  analysis JSON parsing with revision-invalidated projections/caches (0.53.59,
+  LARGE_HISTORY.md: order indexes, profile projection, measured; an analysis cache
+  measured as not yet worth it).
 - [x] Protect local secrets with OS-backed storage and migrate existing keys without
   logs/backups; backend receives credentials in memory (0.53.53, SECRETS_AT_REST.md:
   the backend seals its keys itself with DPAPI for the same Windows user instead of

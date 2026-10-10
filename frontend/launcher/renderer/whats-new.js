@@ -9,6 +9,9 @@
 
   const TEXT = {
     en: {
+      "0.53.59": [
+        "A long match history opens faster: the match table, filters and Progress read through new indexes, and the Profile reads only what it needs."
+      ],
       "0.53.58": [
         "For developers: a one-command check that replays a carry, a mid, an offlaner and a support match through the live coach and shows exactly which advice changed."
       ],
@@ -493,6 +496,9 @@
       ]
     },
     ru: {
+      "0.53.59": [
+        "Большая история матчей открывается быстрее: таблица матчей, фильтры и «Прогресс» читаются по новым индексам, а «Профиль» читает только нужное."
+      ],
       "0.53.58": [
         "Для разработчика: одна команда прогоняет матчи керри, мида, оффлейнера и саппорта через живого тренера и показывает, какие именно советы изменились."
       ],
