@@ -74,8 +74,33 @@ cd backend/replay_tools/clarity
 ```
 
 The script uses system `gradle` when available. If Gradle is not installed, it
-downloads Gradle into the user cache, not into the repository. The generated
+downloads Gradle 8.10.2 into the user cache, not into the repository, and checks
+its pinned SHA-256 before unpacking (a mismatched download is deleted). Another
+`GRADLE_VERSION` also needs `GRADLE_SHA256` from
+`https://services.gradle.org/distributions/gradle-<version>-bin.zip.sha256`.
+The build needs JDK 17 (Gradle toolchain) and Maven Central; the generated
 `dota-replay-events.jar` is ignored by git.
+
+### When this is maintained
+
+The `.dem` path is optional developer tooling for offline evaluation (thesis
+data, new replay acceptance cases). It is not part of the app, the installer or
+CI builds, and the app never runs Java. What stays maintained:
+
+- the wrapper contract — placeholders, flat → canonical normalization, the
+  selected player/time filter, and refusing to write data without a parser or
+  after a failing one — is tested without Java in
+  `backend/tests/test_demo_parser_wrapper.py`;
+- the Gradle download is checksum-pinned and the Clarity version is pinned in
+  `build.gradle`; bump them together and re-run one real replay through
+  `scripts/parse_dota_demo_to_replay_events.py` before relying on new output;
+- committed regression cases use converted GSI-like JSONL
+  (`scripts/replay_check.py`, `tests/replay_golden/`), so a missing parser
+  never blocks the normal checks.
+
+Rebuild the jar only when you need new replay-derived states; if Clarity stops
+reading current replays, keep the event JSONL format and swap the parser command
+(for example a Manta-based tool) rather than changing the converter.
 
 Configure a parser command with `DOTA_DEMO_PARSER_COMMAND` or
 `--parser-command`. The command must write JSONL/JSON events to `{output}` or

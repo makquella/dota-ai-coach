@@ -318,12 +318,6 @@
     },
     {
       "path": "app/main.py",
-      "message": "Argument 1 to \"_overlay_live_context\" has incompatible type \"Any | dict[Any, Any] | None\"; expected \"dict[str, object]\"",
-      "code": "arg-type",
-      "count": 1
-    },
-    {
-      "path": "app/main.py",
       "message": "Argument 1 to \"_with_enemies\" has incompatible type \"Any | dict[Any, Any] | None\"; expected \"dict[str, object]\"",
       "code": "arg-type",
       "count": 1

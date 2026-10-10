@@ -63,7 +63,9 @@ These are acceptance tasks too. They are not included in the 17-finding percenta
   (0.53.47, immutable SHA validation and published functional check).
 - [x] Canonical Node 22/Python 3.11 tooling version files consumed by workflows
   (0.53.47).
-- [ ] Optional parser wrapper/build guidance where its maintained use warrants it.
+- [x] Optional parser wrapper/build guidance where its maintained use warrants it
+  (0.53.61, `backend/replay_tools/README.md` «When this is maintained»: checksum-pinned
+  Gradle download, JDK 17, Java-free wrapper contract test `test_demo_parser_wrapper.py`).
 - [x] Incremental live-message translation by ID/params rather than retranslating
   full historical copies (0.53.46, LIVE_MESSAGE_HISTORY.md; bounded selection/render
   caches and generation-guarded history; F10 whole-operation ownership done in 0.53.60).
@@ -96,8 +98,12 @@ These are acceptance tasks too. They are not included in the 17-finding percenta
   profile appearance catalog/styles (0.53.50: `dota_constants.HEROES` + `hero_id_from_any`
   / `hero_key` for every spelling, `tests/test_hero_identity.py`; the Worker test
   compares every `cos-` rule of the public profile with the launcher's).
-- [ ] Review repeated main response builders and remaining AI/detail orchestration
-  after concrete boundaries; retain distinct status semantics.
+- [x] Review repeated main response builders and remaining AI/detail orchestration
+  after concrete boundaries; retain distinct status semantics (0.53.61: the ten
+  non-advice overlay answers share `_overlay_status`, each keeping its status,
+  reason, message and extras, `tests/test_overlay_status.py`; the AI question, coach
+  and match detail routes in `player_api.py` stay thin over `ask_runs.py` and
+  `player_service.py`, so no further split was warranted).
 - [x] Mark retained browser entrypoints debug-only and fix routing/docs; deletion
   requires evidence that they have no remaining users (0.53.49: `frontend/debug/`,
   `/debug/` from a source checkout only, the rest of `frontend/` no longer served or public).

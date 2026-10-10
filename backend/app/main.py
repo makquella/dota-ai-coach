@@ -120,7 +120,7 @@ app = LocalApiApp(
     lifespan=_lifespan,
     title="Wardly",
     description="MVP-1: rule-based carry coach with local knowledge-base RAG.",
-    version="0.53.60",
+    version="0.53.61",
 )
 app.include_router(player_router)
 
@@ -156,7 +156,7 @@ if _DEBUG_PAGES is not None:
 @app.get("/", summary="Health check")
 def root():
     """Simple health-check endpoint."""
-    return {"status": "ok", "service": "Wardly", "version": "0.53.60"}
+    return {"status": "ok", "service": "Wardly", "version": "0.53.61"}
 
 
 @app.get("/health", summary="Health check")
@@ -683,66 +683,37 @@ def _overlay_decision() -> dict[str, object] | tuple[Any, ...]:
 
     current = get_current_state()
     if current["status"] == "waiting_for_gsi":
-        return {
-            "status": "waiting_for_gsi",
-            "decision_point": "NO_ADVICE",
-            "recommendation": None,
-            "advice_count": ADVICE_SCHEDULER.stats()["advice_count"],
-            "llm_used": False,
-            "source": "none",
-            "last_updated": None,
-            "next_allowed_advice_in_seconds": 0,
-            "advice_mode": "status",
-            "suppressed_reason": "no_advice",
-            "active_advice_until": None,
-            "last_visible_advice": None,
-            "is_pinned": False,
-            **_overlay_live_context({}),
-        }
+        return _overlay_status(
+            "waiting_for_gsi",
+            {},
+            last_updated=None,
+            suppressed_reason="no_advice",
+        )
 
     if _is_live_gsi_stale(current):
-        state = current.get("state") if isinstance(current.get("state"), dict) else {}
-        return {
-            "status": "stale_gsi",
-            "decision_point": "NO_ADVICE",
-            "recommendation": None,
-            "message": "Waiting for live GSI...",
-            "advice_count": ADVICE_SCHEDULER.stats()["advice_count"],
-            "llm_used": False,
-            "source": "none",
-            "last_updated": current.get("timestamp"),
-            "next_allowed_advice_in_seconds": 0,
-            "advice_mode": "status",
-            "suppressed_reason": "stale_gsi",
-            "active_advice_until": None,
-            "last_visible_advice": None,
-            "is_pinned": False,
-            "gsi_stale": True,
-            "seconds_since_last_gsi": _seconds_since_timestamp(current.get("timestamp")),
-            **_overlay_live_context(state),
-        }
+        stale_state = current.get("state")
+        state = stale_state if isinstance(stale_state, dict) else {}
+        return _overlay_status(
+            "stale_gsi",
+            state,
+            last_updated=current.get("timestamp"),
+            suppressed_reason="stale_gsi",
+            message="Waiting for live GSI...",
+            gsi_stale=True,
+            seconds_since_last_gsi=_seconds_since_timestamp(current.get("timestamp")),
+        )
 
     state = current["state"] or {}
     coverage = _advisor_coverage(state)
     if not coverage:
         ADVICE_SCHEDULER.observe_state(state, "NO_ADVICE")
-        return {
-            "status": "unsupported_hero",
-            "decision_point": "NO_ADVICE",
-            "recommendation": None,
-            "message": "Current hero is not supported by carry advisor yet.",
-            "advice_count": ADVICE_SCHEDULER.stats()["advice_count"],
-            "llm_used": False,
-            "source": "none",
-            "last_updated": current["timestamp"],
-            "next_allowed_advice_in_seconds": 0,
-            "advice_mode": "status",
-            "suppressed_reason": "unsupported_hero",
-            "active_advice_until": None,
-            "last_visible_advice": None,
-            "is_pinned": False,
-            **_overlay_live_context(state),
-        }
+        return _overlay_status(
+            "unsupported_hero",
+            state,
+            last_updated=current["timestamp"],
+            suppressed_reason="unsupported_hero",
+            message="Current hero is not supported by carry advisor yet.",
+        )
 
     decision_point = _covered_decision_point(
         _useful_disable(
@@ -756,45 +727,27 @@ def _overlay_decision() -> dict[str, object] | tuple[Any, ...]:
         active = ADVICE_SCHEDULER.active_advice_for_state(state, decision_point)
         if active is not None:
             return _overlay_response(active, current["timestamp"], state=state)
-        return {
-            "status": "no_advice",
-            "decision_point": decision_point,
-            "recommendation": None,
-            "advice_count": ADVICE_SCHEDULER.stats()["advice_count"],
-            "llm_used": False,
-            "source": "none",
-            "last_updated": current["timestamp"],
-            "next_allowed_advice_in_seconds": 0,
-            "advice_mode": "status",
-            "suppressed_reason": "no_advice",
-            "active_advice_until": None,
-            "last_visible_advice": None,
-            "is_pinned": False,
-            **_overlay_live_context(state),
-        }
+        return _overlay_status(
+            "no_advice",
+            state,
+            last_updated=current["timestamp"],
+            suppressed_reason="no_advice",
+            decision_point=decision_point,
+        )
 
     if decision_point == "SOFT_STATUS":
         ADVICE_SCHEDULER.observe_state(state, decision_point)
         active = ADVICE_SCHEDULER.active_advice_for_state(state, decision_point)
         if active is not None:
             return _overlay_response(active, current["timestamp"], state=state)
-        return {
-            "status": "monitoring",
-            "decision_point": decision_point,
-            "recommendation": None,
-            "message": "Monitoring lane — no urgent advice.",
-            "advice_count": ADVICE_SCHEDULER.stats()["advice_count"],
-            "llm_used": False,
-            "source": "none",
-            "last_updated": current["timestamp"],
-            "next_allowed_advice_in_seconds": 0,
-            "advice_mode": "status",
-            "suppressed_reason": None,
-            "active_advice_until": None,
-            "last_visible_advice": None,
-            "is_pinned": False,
-            **_overlay_live_context(state),
-        }
+        return _overlay_status(
+            "monitoring",
+            state,
+            last_updated=current["timestamp"],
+            suppressed_reason=None,
+            decision_point=decision_point,
+            message="Monitoring lane — no urgent advice.",
+        )
 
     state = _with_enemies(state)
     state = _with_next_item(state, coverage, decision_point)
@@ -804,23 +757,14 @@ def _overlay_decision() -> dict[str, object] | tuple[Any, ...]:
     try:
         request = GameSituationRequest(**state)
     except ValidationError as exc:
-        return {
-            "status": "invalid_state",
-            "decision_point": decision_point,
-            "recommendation": None,
-            "advice_count": ADVICE_SCHEDULER.stats()["advice_count"],
-            "llm_used": False,
-            "source": "none",
-            "last_updated": current["timestamp"],
-            "next_allowed_advice_in_seconds": 0,
-            "advice_mode": "status",
-            "suppressed_reason": None,
-            "detail": exc.errors(include_context=False),
-            "active_advice_until": None,
-            "last_visible_advice": None,
-            "is_pinned": False,
-            **_overlay_live_context(state),
-        }
+        return _overlay_status(
+            "invalid_state",
+            state,
+            last_updated=current["timestamp"],
+            suppressed_reason=None,
+            decision_point=decision_point,
+            detail=exc.errors(include_context=False),
+        )
 
     rag_context: list[str] = []
 
@@ -1116,23 +1060,14 @@ def _overlay_response_for_state(
     coverage = hero_coverage(str(state.get("hero") or ""))
     if not coverage:
         ADVICE_SCHEDULER.observe_state(state, "NO_ADVICE", now=now)
-        return {
-            "status": "unsupported_hero",
-            "decision_point": "NO_ADVICE",
-            "recommendation": None,
-            "message": "Current hero is not supported by carry advisor yet.",
-            "advice_count": ADVICE_SCHEDULER.stats(now=now)["advice_count"],
-            "llm_used": False,
-            "source": "none",
-            "last_updated": timestamp,
-            "next_allowed_advice_in_seconds": 0,
-            "advice_mode": "status",
-            "suppressed_reason": "unsupported_hero",
-            "active_advice_until": None,
-            "last_visible_advice": None,
-            "is_pinned": False,
-            **_overlay_live_context(state),
-        }
+        return _overlay_status(
+            "unsupported_hero",
+            state,
+            last_updated=timestamp,
+            suppressed_reason="unsupported_hero",
+            message="Current hero is not supported by carry advisor yet.",
+            now=now,
+        )
 
     decision_point = _covered_decision_point(detect_decision_point(state), coverage)
 
@@ -1141,45 +1076,29 @@ def _overlay_response_for_state(
         active = ADVICE_SCHEDULER.active_advice_for_state(state, decision_point, now=now)
         if active is not None:
             return _overlay_response(active, timestamp, state=state, record_history=False)
-        return {
-            "status": "no_advice",
-            "decision_point": decision_point,
-            "recommendation": None,
-            "advice_count": ADVICE_SCHEDULER.stats(now=now)["advice_count"],
-            "llm_used": False,
-            "source": "none",
-            "last_updated": timestamp,
-            "next_allowed_advice_in_seconds": 0,
-            "advice_mode": "status",
-            "suppressed_reason": "no_advice",
-            "active_advice_until": None,
-            "last_visible_advice": None,
-            "is_pinned": False,
-            **_overlay_live_context(state),
-        }
+        return _overlay_status(
+            "no_advice",
+            state,
+            last_updated=timestamp,
+            suppressed_reason="no_advice",
+            decision_point=decision_point,
+            now=now,
+        )
 
     if decision_point == "SOFT_STATUS":
         ADVICE_SCHEDULER.observe_state(state, decision_point, now=now)
         active = ADVICE_SCHEDULER.active_advice_for_state(state, decision_point, now=now)
         if active is not None:
             return _overlay_response(active, timestamp, state=state, record_history=False)
-        return {
-            "status": "monitoring",
-            "decision_point": decision_point,
-            "recommendation": None,
-            "message": "Monitoring lane — no urgent advice.",
-            "advice_count": ADVICE_SCHEDULER.stats(now=now)["advice_count"],
-            "llm_used": False,
-            "source": "none",
-            "last_updated": timestamp,
-            "next_allowed_advice_in_seconds": 0,
-            "advice_mode": "status",
-            "suppressed_reason": None,
-            "active_advice_until": None,
-            "last_visible_advice": None,
-            "is_pinned": False,
-            **_overlay_live_context(state),
-        }
+        return _overlay_status(
+            "monitoring",
+            state,
+            last_updated=timestamp,
+            suppressed_reason=None,
+            decision_point=decision_point,
+            message="Monitoring lane — no urgent advice.",
+            now=now,
+        )
 
     state = _with_enemies(state)
     state = _with_next_item(state, coverage, decision_point)
@@ -1189,23 +1108,15 @@ def _overlay_response_for_state(
     try:
         game_request = GameSituationRequest(**state)
     except ValidationError as exc:
-        return {
-            "status": "invalid_state",
-            "decision_point": decision_point,
-            "recommendation": None,
-            "advice_count": ADVICE_SCHEDULER.stats(now=now)["advice_count"],
-            "llm_used": False,
-            "source": "none",
-            "last_updated": timestamp,
-            "next_allowed_advice_in_seconds": 0,
-            "advice_mode": "status",
-            "suppressed_reason": None,
-            "detail": exc.errors(include_context=False),
-            "active_advice_until": None,
-            "last_visible_advice": None,
-            "is_pinned": False,
-            **_overlay_live_context(state),
-        }
+        return _overlay_status(
+            "invalid_state",
+            state,
+            last_updated=timestamp,
+            suppressed_reason=None,
+            decision_point=decision_point,
+            now=now,
+            detail=exc.errors(include_context=False),
+        )
 
     rag_context: list[str] = []
 
@@ -1540,6 +1451,42 @@ def _covered_decision_point(decision_point: str, coverage: str | None) -> str:
     if coverage == "support" and decision_point not in SUPPORT_DECISIONS:
         return "NO_ADVICE"
     return decision_point
+
+
+def _overlay_status(
+    status: str,
+    state: dict[str, object],
+    *,
+    last_updated: str | None,
+    suppressed_reason: str | None,
+    decision_point: str = "NO_ADVICE",
+    message: str | None = None,
+    now: datetime | None = None,
+    **extra: object,
+) -> dict[str, object]:
+    """An overlay answer without advice; each caller keeps its own status and reason."""
+    response: dict[str, object] = {
+        "status": status,
+        "decision_point": decision_point,
+        "recommendation": None,
+    }
+    if message is not None:
+        response["message"] = message
+    response.update(
+        {
+            "advice_count": ADVICE_SCHEDULER.stats(now=now)["advice_count"],
+            "llm_used": False,
+            "source": "none",
+            "last_updated": last_updated,
+            "next_allowed_advice_in_seconds": 0,
+            "advice_mode": "status",
+            "suppressed_reason": suppressed_reason,
+            "active_advice_until": None,
+            "last_visible_advice": None,
+            "is_pinned": False,
+        }
+    )
+    return {**response, **extra, **_overlay_live_context(state)}
 
 
 def _overlay_live_context(state: dict[str, object]) -> dict[str, object]:
