@@ -37,7 +37,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
-from app import auto_backup, cosmetics, rank_history, stratz_builds
+from app import advice_feedback, auto_backup, cosmetics, rank_history, stratz_builds
 from app.analysis_texts import rank_label, render_analysis
 from app.ask_runs import AskRuns
 from app.auto_backup import AutoBackups
@@ -849,6 +849,8 @@ class PlayerService:
             },
             "analysis_version": ANALYSIS_VERSION,
             "secrets": self.secrets_status(),
+            # Verdict counts per decision point only, never the advice text.
+            "advice_feedback": self.advice_feedback_summary(),
         }
 
     def operations(self) -> dict[str, Any]:
@@ -1056,7 +1058,34 @@ class PlayerService:
             for finding_id in (analysis or {}).get("focus") or []
             if can_focus(finding_id)
         ]
+        # «Полезно / не к месту / повторялось» on the live advice cards (local).
+        verdicts = advice_feedback.load(self.store, primary, match_id)
+        detail["advice_feedback"] = verdicts
+        rendered = detail["analysis"] if isinstance(detail["analysis"], dict) else {}
+        for item in rendered.get("advice") or []:
+            if isinstance(item, dict):
+                item["key"] = advice_feedback.advice_key(item)
+                item["feedback"] = verdicts.get(item["key"] or "")
         return detail
+
+    def set_advice_feedback(self, match_id: int, key: str, verdict: str | None) -> dict[str, Any]:
+        """The player's verdict on one live advice card of a match (advice_feedback.py)."""
+        primary = self.store.primary_account_id()
+        if primary is None:
+            return {"status": "error", "code": "unlinked"}
+        if self.store.get_match(primary, int(match_id)) is None:
+            return {"status": "error", "code": "match_not_found"}
+        try:
+            feedback = advice_feedback.set_verdict(self.store, primary, int(match_id), key, verdict)
+        except ValueError:
+            return {"status": "error", "code": "bad_feedback"}
+        return {"status": "ok", "feedback": feedback}
+
+    def advice_feedback_summary(self) -> dict[str, Any]:
+        primary = self.store.primary_account_id()
+        if primary is None:
+            return {"matches": 0, "totals": {}, "by_decision_point": {}}
+        return advice_feedback.summary(self.store, primary)
 
     def _repeats(
         self, account_id: int, record: dict[str, Any], analysis: dict[str, Any] | None

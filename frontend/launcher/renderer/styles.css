@@ -1353,7 +1353,7 @@ span.setup-mark {
   border: 1px solid var(--border);
   border-radius: var(--r-md);
   background: var(--surface-1);
-  color: var(--text-1);
+  color: var(--text);
   font-size: var(--fs-13);
 }
 
@@ -1376,11 +1376,11 @@ span.setup-mark {
 
 .goal-chip[data-met="true"] {
   border-color: var(--ok);
-  color: var(--text-1);
+  color: var(--text);
 }
 
 .goal-chip .goal-count {
-  color: var(--text-1);
+  color: var(--text);
 }
 
 
@@ -6593,4 +6593,32 @@ tr.row-link[data-result="loss"] > td:first-child {
 .auto-backup-actions {
   display: inline-flex;
   gap: var(--sp-2);
+}
+
+/* «Полезно / не к месту / повторялось» under a live advice card (adviceVerdicts). */
+.advice-verdicts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.advice-verdict {
+  background: transparent;
+  cursor: pointer;
+}
+
+.advice-verdict:hover {
+  color: var(--text);
+}
+
+.advice-verdict[aria-pressed="true"] {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--text);
+}
+
+.advice-verdict:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }

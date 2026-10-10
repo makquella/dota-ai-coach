@@ -204,6 +204,15 @@ class PlayerStore:
         with self._lock:
             return self._get_meta(key)
 
+    def meta_with_prefix(self, prefix: str) -> list[tuple[str, str]]:
+        """Every (key, value) whose key starts with `prefix`, in key order."""
+        with self._lock:
+            rows = self._conn.execute(
+                "SELECT key, value FROM meta WHERE substr(key, 1, ?) = ? ORDER BY key",
+                (len(prefix), prefix),
+            ).fetchall()
+        return [(row["key"], row["value"]) for row in rows if row["value"] is not None]
+
     def set_meta(self, key: str, value: str | None) -> None:
         with self._lock:
             self._set_meta(key, value)

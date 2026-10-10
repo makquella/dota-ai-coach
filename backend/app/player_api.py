@@ -334,6 +334,26 @@ def restore_backup(backup_id: BackupId):
         return _backup_error(error)
 
 
+class AdviceFeedbackRequest(BaseModel):
+    key: str
+    # useful | irrelevant | repeated; null clears the verdict.
+    verdict: str | None = None
+
+
+@router.post("/matches/{match_id}/advice-feedback", summary="Rate one live advice card")
+def advice_feedback(match_id: MatchId, request: AdviceFeedbackRequest):
+    result = PLAYER_SERVICE.set_advice_feedback(match_id, request.key, request.verdict)
+    if result.get("status") == "error":
+        status = 404 if result["code"] == "match_not_found" else 400
+        return JSONResponse(status_code=status, content=result)
+    return result
+
+
+@router.get("/advice-feedback", summary="Verdict counts per decision point (local)")
+def advice_feedback_summary():
+    return PLAYER_SERVICE.advice_feedback_summary()
+
+
 class FriendRequest(BaseModel):
     steam: str
 
