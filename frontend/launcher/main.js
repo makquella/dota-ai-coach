@@ -135,6 +135,9 @@ const settings = createSettingsStore(path.join(USER_DATA_DIR, "settings.json"), 
   inviteDone: false,
   // The first-run tour of the panel was shown (finished or skipped).
   tourDone: false,
+  // The Home card asking to share anonymous statistics was answered (yes or no);
+  // the answer itself is `shareStats`, changeable in Settings → App.
+  statsAsked: false,
   // «Підсумок вечора»: the sitting whose card was closed, and the one the tray told about.
   sessionSeen: "",
   sessionNotified: "",
@@ -651,6 +654,7 @@ function publicStatus() {
     whatsNewFrom: settings.get("whatsNewFrom") || "",
     invite: inviteDue() ? inviteUrl() : "",
     tour: tourDue(),
+    statsAsk: !settings.get("statsAsked") && !settings.get("shareStats") && !IS_SMOKE_TEST,
     sessionSeen: settings.get("sessionSeen") || "",
     overlayReasonCode: presence.code,
     backend: processStatus.backend,
@@ -3489,6 +3493,15 @@ function registerIpc() {
       settings.set("inviteDone", true);
     }
     return publicStatus();
+  });
+  // The Home card «help improve the advice»: «yes» turns the anonymous
+  // statistics on (as the switch in Settings does), either answer hides the card.
+  handleLauncher("launcher:stats-answer", (_event, answer) => {
+    if (answer !== "yes" && answer !== "no") {
+      return publicStatus();
+    }
+    settings.set("statsAsked", true);
+    return answer === "yes" ? setShareStats(true) : publicStatus();
   });
   // «Підсумок вечора»: copy its text (built by the backend, re-read here, never taken
   // from the page) or hide the card of that sitting.

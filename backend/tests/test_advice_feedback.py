@@ -86,3 +86,47 @@ def test_stored_garbage_reads_as_no_feedback(client):
     assert advice_feedback.load(PLAYER_SERVICE.store, account, MATCH_ID) == {"1:x": "useful"}
     assert advice_feedback.advice_key({"t": True, "dp": "x"}) is None
     assert advice_feedback.advice_key({"t": 5}) is None
+
+
+def test_mostly_unwanted_advice_is_made_quieter_but_never_safety():
+    counts = {
+        "SAFE_FARMING": {"useful": 1, "irrelevant": 2, "repeated": 1},
+        "ITEM_TIMING": {"useful": 2, "irrelevant": 1, "repeated": 0},
+        "LANING_FARM_CHECK": {"useful": 0, "irrelevant": 1, "repeated": 1},  # too few marks
+        "LOW_HP": {"useful": 0, "irrelevant": 5, "repeated": 0},
+        "DEATH_REVIEW": {"useful": 0, "irrelevant": 0, "repeated": 4},
+        "LOW_MANA": {"useful": 0, "irrelevant": 3, "repeated": 0},
+    }
+    assert advice_feedback.quieter_decisions(counts) == ["SAFE_FARMING"]
+
+
+def test_the_scheduler_follows_the_marks(client):
+    from app.advice_scheduler import ADVICE_SCHEDULER
+
+    advice = _recorded_match(client)
+    account = PLAYER_SERVICE.store.primary_account_id()
+    marks = {f"{60 * i}:SAFE_FARMING": "irrelevant" for i in range(1, 4)}
+    PLAYER_SERVICE.store.set_meta(f"advice_feedback:{account}:1", json.dumps(marks))
+    assert client.get("/player/advice-feedback").json()["quieter"] == ["SAFE_FARMING"]
+    # Rating any card refreshes the live scheduler.
+    _rate(client, advice[0]["key"], "useful")
+    assert "SAFE_FARMING" in ADVICE_SCHEDULER.quieter
+    career = client.get("/player/career?lang=uk").json()
+    assert career["advice_feedback"]["quieter"] == ["SAFE_FARMING"]
+    PLAYER_SERVICE.store.set_meta(f"advice_feedback:{account}:1", None)
+    _rate(client, advice[0]["key"], None)
+    assert ADVICE_SCHEDULER.quieter == frozenset()
+
+
+def test_a_restored_backup_refreshes_the_quieter_advice(client, tmp_path):
+    from app.advice_scheduler import ADVICE_SCHEDULER
+
+    _recorded_match(client)
+    account = PLAYER_SERVICE.store.primary_account_id()
+    marks = {f"{60 * i}:SAFE_FARMING": "repeated" for i in range(1, 4)}
+    PLAYER_SERVICE.store.set_meta(f"advice_feedback:{account}:{MATCH_ID}", json.dumps(marks))
+    backup = client.get("/player/backup").json()
+    PLAYER_SERVICE.configure(tmp_path / "other", client=None, auto_start=False)
+    ADVICE_SCHEDULER.set_quieter(())
+    assert client.post("/player/backup", json=backup).status_code == 200
+    assert ADVICE_SCHEDULER.quieter == frozenset({"SAFE_FARMING"})

@@ -1,0 +1,213 @@
+<!doctype html>
+<html lang="uk">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Політика підпису коду — Wardly</title>
+    <meta name="description" content="Code signing policy Wardly: хто збирає, перевіряє й підписує інсталятор для Windows і з якого коду." />
+    <meta name="theme-color" content="#0c0d0f" />
+    <link rel="canonical" href="https://luhovyimvp.dev/code-signing.html" />
+    <link rel="icon" href="assets/favicon.png" type="image/png" />
+    <link rel="stylesheet" href="styles.css" />
+    <style>
+      .doc {
+        max-width: 760px;
+        padding-top: 120px;
+        padding-bottom: 80px;
+      }
+      .doc h1 {
+        margin: 0 0 8px;
+        font-size: clamp(32px, 5vw, 44px);
+      }
+      .doc h2 {
+        margin: 40px 0 12px;
+        font-size: 22px;
+      }
+      .doc p,
+      .doc li {
+        color: var(--muted);
+      }
+      .doc strong {
+        color: var(--text);
+        font-weight: 600;
+      }
+      .doc ul {
+        padding-left: 20px;
+      }
+      .doc li + li {
+        margin-top: 6px;
+      }
+      .doc code {
+        padding: 1px 6px;
+        border: 1px solid var(--line-strong);
+        border-radius: 6px;
+        color: var(--text);
+        font-size: 0.9em;
+        overflow-wrap: anywhere;
+      }
+      .doc a {
+        color: var(--text);
+      }
+      .doc-updated {
+        margin: 0 0 28px;
+        color: var(--faint);
+        font-size: 14px;
+      }
+      [data-doc][hidden] {
+        display: none;
+      }
+    </style>
+  </head>
+  <body>
+    <header class="nav scrolled">
+      <div class="wrap nav-inner">
+        <a class="brand" href="./" aria-label="Wardly">
+          <img class="brand-mark" src="assets/logo-mark.png" alt="" width="28" height="28" />
+          <span class="brand-name">Wardly</span>
+        </a>
+        <div class="nav-actions">
+          <div class="lang" role="group" aria-label="Мова / Language">
+            <button type="button" data-lang="uk" aria-pressed="true">UK</button>
+            <button type="button" data-lang="en" aria-pressed="false">EN</button>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <main class="wrap doc">
+      <article data-doc="uk" lang="uk">
+        <h1>Політика підпису коду</h1>
+        <p class="doc-updated">Code signing policy · оновлено 10 жовтня 2026 року</p>
+
+        <p><strong>Free code signing provided by <a href="https://signpath.io" rel="noopener">SignPath.io</a>, certificate by <a href="https://signpath.org" rel="noopener">SignPath Foundation</a>.</strong></p>
+        <p>
+          Заявку до SignPath Foundation подано. Доки її не схвалено, інсталятор Wardly для Windows без цифрового
+          підпису: Windows може показати «Windows захистив ваш комп'ютер». Кожен інсталятор має звіт VirusTotal в описі релізу.
+        </p>
+
+        <h2>Що підписується</h2>
+        <ul>
+          <li>Лише інсталятор Wardly для Windows і програма в ньому, зібрані з
+            <a href="https://github.com/makquella/dota-ai-coach" rel="noopener">відкритого коду цього репозиторію</a> (ліцензія MIT).</li>
+          <li>Збірка автоматична: GitHub Actions (<code>.github/workflows/release.yml</code>) збирає інсталятор з коду релізного коміту.
+            Скрипти збірки й налаштування CI — частина того самого відкритого коду.</li>
+          <li>Назва продукту в метаданих файлів — Wardly, версія однакова для всіх файлів одного релізу.</li>
+          <li>Кожен підпис потребує ручного схвалення відповідальної особи (approver). Сторонні бінарні файли не підписуються від імені проєкту.</li>
+        </ul>
+
+        <h2>Ролі</h2>
+        <ul>
+          <li><strong>Автори й рецензенти (committers and reviewers):</strong>
+            <a href="https://github.com/makquella" rel="noopener">makquella</a>. Зміни від інших людей (pull requests) потрапляють у код лише після перевірки.</li>
+          <li><strong>Схвалення підпису (approvers):</strong>
+            <a href="https://github.com/makquella" rel="noopener">makquella</a> — власник репозиторію.</li>
+          <li>Для доступу до репозиторію й SignPath використовується двофакторна автентифікація.</li>
+        </ul>
+
+        <h2>Конфіденційність</h2>
+        <p>
+          Що Wardly зберігає на комп'ютері, що й коли надсилає (OpenDota, Valve CDN, GitHub, необов'язкові ШІ-сервіси, звіти й
+          анонімна статистика лише за вашою згодою) і як це вимкнути — на сторінці
+          <a href="privacy.html">Конфіденційність</a>.
+        </p>
+
+        <h2>Видалення</h2>
+        <p>Wardly видаляється як звичайна програма: «Параметри Windows → Програми → Wardly → Видалити».</p>
+      </article>
+
+      <article data-doc="en" lang="en" hidden>
+        <h1>Code signing policy</h1>
+        <p class="doc-updated">Updated 10 October 2026</p>
+
+        <p><strong>Free code signing provided by <a href="https://signpath.io" rel="noopener">SignPath.io</a>, certificate by <a href="https://signpath.org" rel="noopener">SignPath Foundation</a>.</strong></p>
+        <p>
+          The application to SignPath Foundation has been submitted. Until it is approved, the Wardly installer for Windows is
+          unsigned and Windows may show “Windows protected your PC”. Every installer has a VirusTotal report in its release notes.
+        </p>
+
+        <h2>What is signed</h2>
+        <ul>
+          <li>Only the Wardly installer for Windows and the app inside it, built from
+            <a href="https://github.com/makquella/dota-ai-coach" rel="noopener">the open source code of this repository</a> (MIT licence).</li>
+          <li>Builds are automated: GitHub Actions (<code>.github/workflows/release.yml</code>) builds the installer from the release
+            commit. Build scripts and CI configuration are part of the same open source code.</li>
+          <li>The product name in the file metadata is Wardly, and the version is the same for every file of a release.</li>
+          <li>Every signing request is approved manually by an approver. Third-party binaries are never signed in the project's name.</li>
+        </ul>
+
+        <h2>Team roles</h2>
+        <ul>
+          <li><strong>Committers and reviewers:</strong>
+            <a href="https://github.com/makquella" rel="noopener">makquella</a>. Changes from anyone else (pull requests) are reviewed before they are merged.</li>
+          <li><strong>Approvers:</strong>
+            <a href="https://github.com/makquella" rel="noopener">makquella</a>, the repository owner.</li>
+          <li>Multi-factor authentication is used for access to the repository and to SignPath.</li>
+        </ul>
+
+        <h2>Privacy policy</h2>
+        <p>
+          What Wardly keeps on your computer, what it sends and when (OpenDota, Valve CDN, GitHub, optional AI services, problem
+          reports and anonymous statistics only with your consent) and how to turn it off is described in the
+          <a href="privacy.html">privacy policy</a>.
+        </p>
+
+        <h2>Uninstalling</h2>
+        <p>Wardly is removed like any Windows app: Settings → Apps → Wardly → Uninstall.</p>
+      </article>
+    </main>
+
+    <footer class="footer">
+      <div class="wrap footer-inner">
+        <a class="brand" href="./" aria-label="Wardly">
+          <img class="brand-mark" src="assets/logo-mark.png" alt="" width="24" height="24" />
+          <span class="brand-name">Wardly</span>
+        </a>
+        <nav class="footer-links" aria-label="Links">
+          <a href="https://github.com/makquella/dota-ai-coach" rel="noopener">GitHub</a>
+          <a href="https://github.com/makquella/dota-ai-coach/issues" rel="noopener">Issues</a>
+          <a href="privacy.html">Privacy</a>
+        </nav>
+      </div>
+    </footer>
+
+    <script>
+      // Same language choice as the landing page (app.js keeps it under "dac.lang").
+      (function () {
+        var KEY = "dac.lang";
+        function apply(lang) {
+          document.documentElement.lang = lang;
+          document.title = lang === "en" ? "Code signing policy — Wardly" : "Політика підпису коду — Wardly";
+          document.querySelectorAll("[data-doc]").forEach(function (el) {
+            el.hidden = el.dataset.doc !== lang;
+          });
+          document.querySelectorAll(".lang [data-lang]").forEach(function (button) {
+            button.setAttribute("aria-pressed", String(button.dataset.lang === lang));
+          });
+        }
+        // The app opens this page with ?lang= of its own language.
+        var lang = new URLSearchParams(location.search).get("lang") || "";
+        if (lang !== "uk" && lang !== "en") {
+          try {
+            lang = localStorage.getItem(KEY) || "";
+          } catch (error) {}
+        }
+        if (lang === "ru") lang = "uk"; // apps and choices from before 0.54
+        if (lang !== "uk" && lang !== "en") {
+          var preferred = (navigator.languages || [navigator.language || "uk"]).map(function (l) {
+            return String(l).toLowerCase();
+          });
+          lang = preferred.some(function (l) { return /^(uk|ru|be|kk)/.test(l); }) ? "uk" : "en";
+        }
+        apply(lang);
+        document.querySelectorAll(".lang [data-lang]").forEach(function (button) {
+          button.addEventListener("click", function () {
+            apply(button.dataset.lang);
+            try {
+              localStorage.setItem(KEY, button.dataset.lang);
+            } catch (error) {}
+          });
+        });
+      })();
+    </script>
+  </body>
+</html>

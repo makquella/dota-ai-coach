@@ -13,6 +13,9 @@ The live recording already knows the last seconds of every death
   Bar — magic immunity, no stun holds you;
 - burst down: Aeon Disk — the next burst triggers it instead of killing.
 
+`draft_item` is the same counter to the enemy lineup, read early (DRAFT_MIN_ENEMIES
+heroes seen) as an item to plan for, without the minute gates.
+
 Cores only (the carry advisor): a support's item advice is the save item tip.
 Nothing when the item (or something built from it) is already owned.
 """
@@ -60,7 +63,19 @@ ILLUSION_MINUTE = 12
 # A lineup of magic damage (draft_analysis.MAGIC_DAMAGE, 3+ seen): Pipe of
 # Insight for an offlaner, Black King Bar for a carry or a mid.
 MAGIC_MINUTE = 14
+# Heroes whose strength is a passive that break (Silver Edge) turns off; for a
+# carry or a mid from this minute on.
+BREAK_PASSIVES = {
+    "Bristleback": "Bristleback",
+    "Spectre": "Dispersion",
+    "Huskar": "Berserker's Blood",
+}
+BREAK_MINUTE = 18
 CORE_POSITIONS = {"carry", "mid", "offlane"}
+# The early read of the enemy draft: once this many enemy heroes are seen.
+DRAFT_MIN_ENEMIES = 4
+# Past every minute gate above: the draft read names the item to plan for.
+_ANY_MINUTE = 60
 
 
 def _candidates(
@@ -106,6 +121,9 @@ def _candidates(
     healer = next((e for e in enemies if e in COUNTERS["healing"][0]), None)
     if healer and position == "offlane" and (minute or 0) >= HEALING_MINUTE:
         rows.append(("healing", "spirit_vessel", "Spirit Vessel", 0, healer, None))
+    passive = next((e for e in enemies if e in BREAK_PASSIVES), None)
+    if passive and position in ("carry", "mid") and (minute or 0) >= BREAK_MINUTE:
+        rows.append(("break", "silver_edge", "Silver Edge", 0, passive, BREAK_PASSIVES[passive]))
     magic = [e for e in enemies if e in MAGIC_DAMAGE]
     if len(magic) >= MAGIC_LINEUP_MIN and (minute or 0) >= MAGIC_MINUTE:
         if position == "offlane":
@@ -153,6 +171,23 @@ def situational_item(
             "spell": spell,
         }
     return None
+
+
+def draft_item(
+    enemies: list[str] | None,
+    owned_names: list[str] | None,
+    meta: dict[str, Any] | None,
+    position: str | None,
+) -> dict[str, Any] | None:
+    """The counter item to plan for against the enemy lineup (situational_item's
+    enemy counters, no deaths and no minute gates) once DRAFT_MIN_ENEMIES enemy
+    heroes are seen; cores only. None otherwise or when it is already owned."""
+    seen = [e for e in enemies or [] if isinstance(e, str)]
+    if position not in CORE_POSITIONS or len(seen) < DRAFT_MIN_ENEMIES:
+        return None
+    return situational_item(
+        [], owned_names, meta, enemies=seen, position=position, minute=_ANY_MINUTE
+    )
 
 
 def lineup_save_item(

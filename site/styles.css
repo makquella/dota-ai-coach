@@ -176,6 +176,14 @@ p {
 .btn-primary:active {
   transform: translateY(1px);
 }
+.btn-outline {
+  border: 1px solid var(--line-strong);
+  background: transparent;
+  color: var(--text);
+}
+.btn-outline:hover {
+  background: var(--card);
+}
 .btn-sm {
   padding: 10px 16px;
   font-size: 14px;

@@ -811,6 +811,8 @@ def _counter_reason(groups: dict[str, str]) -> str:
         head = f"{groups['enemy']} ухиляється від атак — {groups['name']} б'є без промаху"
     elif groups.get("kind") == "fights with illusions":
         head = f"{groups['enemy']} б'ється ілюзіями — {groups['name']} б'є їх усіх одразу"
+    elif groups.get("passive"):
+        head = f"{groups['enemy']} тримається на {groups['passive']} — {groups['name']} це вимикає"
     else:
         head = f"{groups['enemy']} багато лікується — {groups['name']} ріже лікування"
     tail = _situational_tail(groups["tail"])
@@ -892,6 +894,13 @@ _UK_FUNCTIONS: tuple[tuple[re.Pattern[str], Callable[[dict[str, str]], str]], ..
         re.compile(
             r"^(?P<enemy>.+?) (?P<kind>dodges your attacks|heals a lot|fights with illusions), "
             r"and (?P<name>.+?) (?:never misses|cuts the healing|hits them all)"
+            + _SITUATIONAL_TAIL_RE
+        ),
+        _counter_reason,
+    ),
+    (
+        re.compile(
+            r"^(?P<enemy>.+?) relies on (?P<passive>.+?), and (?P<name>.+?) turns it off"
             + _SITUATIONAL_TAIL_RE
         ),
         _counter_reason,

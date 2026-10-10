@@ -32,3 +32,17 @@ test("formatters can follow locale switches without recreating the tables", () =
   locale = "uk";
   assert.ok(text.uk.sectionFacts.fights({ stuns: 2.5 }).filter(Boolean).join(" ").includes("uk:2.5"));
 });
+
+test("every live decision point has a UK and EN label for the advice marks card", () => {
+  const fs = require("node:fs");
+  const path = require("node:path");
+  const source = fs.readFileSync(path.join(__dirname, "../../../backend/app/decision_points.py"), "utf8");
+  const points = new Set(source.match(/"[A-Z][A-Z_]{4,}"/g).map((quoted) => quoted.slice(1, -1)));
+  const text = create({});
+  assert.ok(points.size > 10);
+  for (const lang of ["uk", "en"]) {
+    for (const point of points) {
+      assert.ok(text[lang].adviceKinds[point], `${lang} ${point}`);
+    }
+  }
+});

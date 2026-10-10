@@ -6596,6 +6596,10 @@ tr.row-link[data-result="loss"] > td:first-child {
 }
 
 /* «Корисно / не до речі / повторювалося» under a live advice card (adviceVerdicts). */
+.advice-quieter {
+  margin-left: 8px;
+}
+
 .advice-verdicts {
   display: flex;
   flex-wrap: wrap;

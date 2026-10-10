@@ -130,6 +130,14 @@ STICK_SHOW = 20
 DENY_AT = 4 * 60
 DENY_SHOW = 20
 DENY_MIN = 3
+# Behind the lane opponent's usual last hits (lane_duel.lane_pace_for): checked at
+# each of its minutes, shown once for PACE_SHOW seconds when PACE_MARGIN+ short.
+PACE_SHOW = 20
+PACE_MARGIN = 3
+# The enemy draft read (situational_items.draft_item): once per match for a core,
+# in this window, for DRAFT_SHOW seconds.
+DRAFT_FROM, DRAFT_UNTIL = 3 * 60, 10 * 60
+DRAFT_SHOW = 20
 DENY_MIN_LAST_HITS = 8
 # A power rune kept in the Bottle this long (clock seconds, alive) → use it.
 BOTTLE_RUNE_HELD = 30
@@ -427,6 +435,69 @@ TIPS = {
             "Добивайте своїх кріпів із низьким HP: денай забирає у ворога золото й половину досвіду.",
         ),
     },
+    # The enemy draft read: the counter item to plan for (situational_items.draft_item).
+    "draft_evasion": {
+        "en": (
+            "Against their draft: {item}",
+            "{enemy} dodges attacks: plan {item} after your first big item, it never misses.",
+        ),
+        "uk": (
+            "Проти їхнього драфту: {item}",
+            "{enemy} ухиляється від атак: заплануйте {item} після першого великого предмета, він б'є без промаху.",
+        ),
+    },
+    "draft_illusions": {
+        "en": (
+            "Against their draft: {item}",
+            "{enemy} fights with illusions: plan {item} early, it hits them all at once.",
+        ),
+        "uk": (
+            "Проти їхнього драфту: {item}",
+            "{enemy} б'ється ілюзіями: заплануйте {item} рано, він б'є їх усіх одразу.",
+        ),
+    },
+    "draft_healing": {
+        "en": (
+            "Against their draft: {item}",
+            "{enemy} heals a lot: plan {item}, it cuts the healing in fights.",
+        ),
+        "uk": (
+            "Проти їхнього драфту: {item}",
+            "{enemy} багато лікується: заплануйте {item}, він ріже лікування в бійках.",
+        ),
+    },
+    "draft_magic": {
+        "en": (
+            "Against their draft: {item}",
+            "{count} enemy heroes deal magic damage: plan {item} after your first big item.",
+        ),
+        "uk": (
+            "Проти їхнього драфту: {item}",
+            "Героїв ворога з магічною шкодою — {count}: заплануйте {item} після першого великого предмета.",
+        ),
+    },
+    "draft_break": {
+        "en": (
+            "Against their draft: {item}",
+            "{enemy} relies on {spell}: plan {item}, its break turns that off.",
+        ),
+        "uk": (
+            "Проти їхнього драфту: {item}",
+            "{enemy} тримається на {spell}: заплануйте {item}, він це вимикає.",
+        ),
+    },
+    "lane_pace": {
+        "en": (
+            "Behind {hero}'s pace: {mine} last hits",
+            "In your past lanes against {hero} they had about {theirs} last hits by {minute}:00. "
+            "Take every creep you can reach safely and deny when they go for one.",
+        ),
+        "uk": (
+            "Відстаєте від темпу {hero}: {mine} добивань",
+            "У ваших минулих лініях проти {hero} суперник мав близько {theirs} добивань до {minute}:00. "
+            "Добивайте кожного крипа, до якого безпечно дотягнетеся, і денайте, коли суперник іде добивати.",
+        ),
+    },
     "bottle_rune": {
         "en": (
             "{rune} rune in your Bottle",
@@ -696,6 +767,7 @@ class RoleTips:
     def reset(self) -> None:
         self._shown: dict[str, int] = {}
         self._shown_record: dict[str, Any] = {}
+        self._shown_draft: dict[str, Any] = {}
         # (observer wards carried, the clock since when none was placed).
         self._ward_held: tuple[int, int] | None = None
         # The clock of the last observer ward placed (the carried count went down).
@@ -822,6 +894,7 @@ class RoleTips:
         hp: int | None = None,
         regen: list[str] | None = None,
         lane_record: dict[str, Any] | None = None,
+        draft_item: dict[str, Any] | None = None,
     ) -> dict[str, Any] | None:
         held_for = self._observe_wards(ward_charges, clock)
         if not alive or role is None:
@@ -847,6 +920,15 @@ class RoleTips:
             lane = self._lane(clock, role, lang, items, gold, last_hits, denies, hp, regen)
             if lane is not None:
                 return lane
+            if draft_item is not None:
+                planned = self._draft_item(clock, lang, draft_item)
+                if planned is not None:
+                    return planned
+            pace = (lane_record or {}).get("pace")
+            if role in ("carry", "mid") and pace is not None:
+                behind = self._lane_pace(clock, lang, pace, last_hits)
+                if behind is not None:
+                    return behind
         if role in CORE_ROLES and key_item and items is not None:
             timing = self._key_item(clock, lang, key_item, items)
             if timing is not None:
@@ -963,6 +1045,49 @@ class RoleTips:
         ):
             shown = self._shown.setdefault("lane_denies@value", denies)
             return _tip("lane_denies", f"lane_denies@{DENY_AT}", lang, denies=shown)
+        return None
+
+    def _draft_item(self, clock: int, lang: str, item: dict[str, Any]) -> dict[str, Any] | None:
+        """Once per match in the draft window: the item first named against the
+        enemy lineup, kept while the card is up."""
+        if "draft_item" not in self._shown:
+            if not DRAFT_FROM <= clock <= DRAFT_UNTIL or f"draft_{item.get('why')}" not in TIPS:
+                return None
+            self._shown_draft = dict(item)
+        start = self._once("draft_item", clock, DRAFT_SHOW)
+        if start is None:
+            return None
+        shown = self._shown_draft
+        tip = _tip(
+            f"draft_{shown['why']}",
+            f"draft_item@{start}",
+            lang,
+            item=shown["name"],
+            enemy=shown.get("enemy") or "",
+            spell=shown.get("spell") or "",
+            count=shown.get("count") or 0,
+        )
+        tip["items"] = [{"key": shown["key"], "name": shown["name"]}]
+        return tip
+
+    def _lane_pace(
+        self, clock: int, lang: str, pace: dict[str, Any], last_hits: int | None
+    ) -> dict[str, Any] | None:
+        """At each pace minute: last hits PACE_MARGIN+ under the lane opponent's
+        average in the player's past lanes against them; once per minute."""
+        if last_hits is None:
+            return None
+        for minute, theirs in pace["lh"].items():
+            at = minute * 60
+            if not at <= clock <= at + PACE_SHOW:
+                continue
+            key = f"lane_pace@{at}"
+            mine = self._shown.setdefault(f"{key}:mine", last_hits)
+            if theirs - mine < PACE_MARGIN:
+                return None
+            return _tip(
+                "lane_pace", key, lang, hero=pace["hero"], mine=mine, theirs=theirs, minute=minute
+            )
         return None
 
     def _observe_wards(self, charges: int | None, clock: int) -> int | None:
@@ -1196,6 +1321,7 @@ def map_hint(
     regen: list[str] | None = None,
     missing: dict[str, Any] | None = None,
     lane_record: dict[str, Any] | None = None,
+    draft_item: dict[str, Any] | None = None,
 ) -> dict[str, Any] | None:
     """A timer, but a role tip over a minor one (runes, lotus); None before the
     horn or without a role. `objective`: a Roshan / Aegis timer (roshan_timer.py),
@@ -1268,5 +1394,6 @@ def map_hint(
         hp=hp,
         regen=regen,
         lane_record=lane_record,
+        draft_item=draft_item,
     )
     return tip or timer

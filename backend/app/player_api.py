@@ -35,6 +35,7 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 
 from app.advice_i18n import normalize_lang
+from app.advice_scheduler import ADVICE_SCHEDULER
 from app.coach_llm import env_settings
 from app.config import OPENDOTA_API_KEY, OPENDOTA_API_URL, OPENDOTA_ENABLED, PLAYER_DATA_DIR
 from app.history_backup import BackupError
@@ -106,11 +107,13 @@ def player_status() -> dict[str, Any]:
 @router.post("/link", summary="Link a Steam account")
 def link_player(request: LinkRequest):
     try:
-        return PLAYER_SERVICE.link(request.steam)
+        result = PLAYER_SERVICE.link(request.steam)
     except SteamIdError as error:
         return JSONResponse(
             status_code=400, content={"status": "error", "code": error.code, "detail": str(error)}
         )
+    refresh_quieter_advice()
+    return result
 
 
 @router.post("/link-detected", summary="Link the account currently playing (from GSI)")
@@ -120,12 +123,22 @@ def link_detected():
         return JSONResponse(
             status_code=404, content={"status": "error", "code": "no_detected_account"}
         )
-    return PLAYER_SERVICE.link(str(detected["account_id"]))
+    result = PLAYER_SERVICE.link(str(detected["account_id"]))
+    refresh_quieter_advice()
+    return result
 
 
 @router.delete("", summary="Forget the linked account")
 def unlink_player():
-    return PLAYER_SERVICE.unlink()
+    result = PLAYER_SERVICE.unlink()
+    refresh_quieter_advice()
+    return result
+
+
+def refresh_quieter_advice() -> None:
+    """Live advice the linked player mostly marks as not to the point or repeated
+    waits longer (advice_feedback.quieter_decisions); at startup and on changes."""
+    ADVICE_SCHEDULER.set_quieter(PLAYER_SERVICE.advice_feedback_summary().get("quieter") or [])
 
 
 @router.post("/sync", summary="Pull profile and recent matches from OpenDota")
@@ -265,12 +278,15 @@ def export_history(request: Request):
 @router.post("/backup", summary="Merge a history backup (adds, never overwrites)")
 def import_history(data: Annotated[dict, Body()]):
     try:
-        return PLAYER_SERVICE.import_backup(data)
+        result = PLAYER_SERVICE.import_backup(data)
     except BackupError as error:
         return JSONResponse(
             status_code=503 if error.code == "restore_failed" else 400,
             content={"status": "error", "code": error.code, "detail": str(error)},
         )
+    # The backup may bring advice marks (or the linked account).
+    refresh_quieter_advice()
+    return result
 
 
 # Automatic local copies (auto_backup.py): list, make, preview, restore.
@@ -327,11 +343,13 @@ def preview_backup(backup_id: BackupId):
 @router.post("/backups/{backup_id}/restore", summary="Merge a local copy back (adds only)")
 def restore_backup(backup_id: BackupId):
     try:
-        return PLAYER_SERVICE.restore_backup_copy(backup_id)
+        result = PLAYER_SERVICE.restore_backup_copy(backup_id)
     except KeyError:
         return _backup_missing()
     except BackupError as error:
         return _backup_error(error)
+    refresh_quieter_advice()
+    return result
 
 
 class AdviceFeedbackRequest(BaseModel):
@@ -346,6 +364,7 @@ def advice_feedback(match_id: MatchId, request: AdviceFeedbackRequest):
     if result.get("status") == "error":
         status = 404 if result["code"] == "match_not_found" else 400
         return JSONResponse(status_code=status, content=result)
+    refresh_quieter_advice()
     return result
 
 

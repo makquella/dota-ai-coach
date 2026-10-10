@@ -27,6 +27,9 @@ DEATH_REVIEW_DECISIONS = {
 COACHING_GAME_TIME_GAP_SECONDS = 45
 POST_LANING_GAME_TIME_GAP_SECONDS = 60
 SAME_ACTION_GAME_TIME_GAP_SECONDS = 120
+# Coaching advice the player keeps marking as not to the point waits this many
+# times longer (advice_feedback.quieter_decisions).
+QUIETER_GAP_FACTOR = 2
 # The farm pace cards (post_laning_coach: the pace, the farm to recover) change
 # only their numbers: the same line comes back at most this often.
 FARM_PACE_REPEAT_SECONDS = 240

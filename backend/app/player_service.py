@@ -108,6 +108,7 @@ from app.secret_box import SecretBox
 from app.session_summary import session_summary
 from app.share_progress import public_progress
 from app.share_review import public_review
+from app.situational_items import draft_item as draft_counter_item
 from app.situational_items import lineup_save_item, situational_item
 from app.skill_build import skill_order
 from app.steam_ids import parse_account_id, steam64_from_account_id
@@ -626,6 +627,22 @@ class PlayerService:
             return None
         return buy_now(item_key, owned, constants, gold)
 
+    def draft_item(
+        self,
+        hero: str,
+        owned: list[str] | None,
+        enemies: list[str] | None,
+        position: str | None = None,
+    ) -> dict[str, Any] | None:
+        """The counter item to plan for against the enemy heroes seen, for a core
+        early in the match (situational_items.draft_item); `position` is the live
+        role, else the hero's usual one."""
+        hero_id = hero_id_from_name(hero)
+        if hero_id is None or owned is None:
+            return None
+        position = position or get_hero_position(hero)
+        return draft_counter_item(enemies, owned, self._live_meta(hero_id), position)
+
     def save_item(
         self, hero: str, owned: list[str] | None, enemies: list[str] | None = None
     ) -> dict[str, Any] | None:
@@ -1102,7 +1119,7 @@ class PlayerService:
     def advice_feedback_summary(self) -> dict[str, Any]:
         primary = self.store.primary_account_id()
         if primary is None:
-            return {"matches": 0, "totals": {}, "by_decision_point": {}}
+            return {"matches": 0, "totals": {}, "by_decision_point": {}, "quieter": []}
         return advice_feedback.summary(self.store, primary)
 
     def _repeats(
@@ -1431,6 +1448,8 @@ class PlayerService:
             result["coach"] = {"state": "none"}
             return result
         result["coach"] = self._career_coach(primary, result, recent, lang, force=force_coach)
+        # The player's marks on live advice and what they made quieter (Progress).
+        result["advice_feedback"] = advice_feedback.summary(self.store, primary)
         result["questions"] = _shown_questions(
             self.store.cache_get(f"{ASK_CACHE_KEY}:{primary}:career") or []
         )

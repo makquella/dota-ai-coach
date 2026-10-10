@@ -7,7 +7,12 @@ import json
 import pytest
 
 from app.advice_scheduler import ADVICE_SCHEDULER
-from app.scheduler.frequency import heartbeat_enabled, normalize_frequency, scaled_seconds
+from app.scheduler.frequency import (
+    UNSCALED_DECISIONS,
+    heartbeat_enabled,
+    normalize_frequency,
+    scaled_seconds,
+)
 
 REPLAY = "data/match_simulations/replay_gsi_like_match_8843382732_pl_20_30.jsonl"
 
@@ -72,3 +77,30 @@ def test_frequency_changes_coaching_only(client, repo_root, frequency):
     shown, urgent = _run(client, repo_root, frequency)
     assert urgent == normal_urgent
     assert (shown < normal) if frequency == "calm" else (shown > normal)
+
+
+def _shown_decisions(client, repo_root) -> tuple[list[str], int]:
+    ADVICE_SCHEDULER.reset()
+    shown, urgent = [], 0
+    for line in (repo_root / REPLAY).read_text(encoding="utf-8").splitlines():
+        item = json.loads(line)
+        overlay = client.post(
+            "/demo/replay-state",
+            json={"timestamp_seconds": item["timestamp_seconds"], "state": item["state"]},
+        ).json()["overlay"]
+        if overlay.get("new_advice") and overlay.get("recommendation"):
+            shown.append(overlay.get("decision_point") or "")
+            urgent += overlay.get("advice_mode") == "urgent"
+    return shown, urgent
+
+
+def test_advice_marked_not_to_the_point_waits_longer_and_survives_a_new_match(client, repo_root):
+    normal, normal_urgent = _shown_decisions(client, repo_root)
+    coaching = {dp for dp in normal if dp and dp not in UNSCALED_DECISIONS and dp != "LOW_HP"}
+    assert coaching
+    ADVICE_SCHEDULER.set_quieter(coaching)
+    ADVICE_SCHEDULER.reset()
+    assert ADVICE_SCHEDULER.quieter == frozenset(coaching)
+    quieter, urgent = _shown_decisions(client, repo_root)
+    assert urgent == normal_urgent
+    assert len(quieter) < len(normal)

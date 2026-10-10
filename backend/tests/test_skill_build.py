@@ -397,3 +397,69 @@ def test_the_skill_tip_shows_before_the_horn():
     assert map_hint(-60, None, tips, skill=skill, **base) is skill
     assert map_hint(-60, "carry", tips, **base) is None
     assert map_hint(None, "carry", tips, skill=skill, **base) is None
+
+
+def test_a_hard_lane_puts_an_early_point_in_the_escape():
+    strike, blink, scream, wave = (
+        "queenofpain_shadow_strike",
+        "queenofpain_blink",
+        "queenofpain_scream_of_pain",
+        "queenofpain_sonic_wave",
+    )
+    game = [strike, scream, scream, strike, scream, wave, scream, strike, strike, blink]
+    names = {strike: "Shadow Strike", blink: "Blink", scream: "Scream Of Pain", wave: "Sonic Wave"}
+    build = skill_order({"orders": [game] * 3, "names": names, "talents": {}})
+
+    def payload(level, blink_level):
+        abilities = {
+            "ability0": {"name": strike, "level": 1, "ultimate": False},
+            "ability1": {"name": blink, "level": blink_level, "ultimate": False},
+            "ability2": {"name": scream, "level": 1, "ultimate": False},
+            "ability3": {"name": wave, "level": 0, "ultimate": True},
+        }
+        return {
+            "hero": {"level": level, "name": "npc_dota_hero_queenofpain"},
+            "abilities": abilities,
+        }
+
+    tips = SkillTips()
+    tips.observe(100, read_skills(payload(2, 0)))
+    tips.observe(110, read_skills(payload(3, 0)))
+    at = 110 + UNSPENT_WAIT
+    calm = tips.tip(at, "en", alive=True, build=build, hero="Queen of Pain")
+    assert calm["title"] == "Put the point in Scream Of Pain"  # the pro order
+    hint = tips.tip(at, "uk", alive=True, build=build, hero="Queen of Pain", lane_pressure=True)
+    assert hint["title"] == "Вкладіть очко в Blink"
+    assert hint["hint"].startswith("Важка лінія: перше очко в Blink допоможе вижити.")
+    assert hint["icon"] == blink
+    # Blink already learned, or past level 7: the pro order again.
+    learned = SkillTips()
+    learned.observe(100, read_skills(payload(2, 1)))
+    learned.observe(110, read_skills(payload(3, 1)))
+    assert (
+        learned.tip(at, "en", alive=True, build=build, hero="Queen of Pain", lane_pressure=True)[
+            "title"
+        ]
+        != "Put the point in Blink"
+    )
+    late = SkillTips()
+    late.observe(100, read_skills(payload(7, 0)))
+    late.observe(110, read_skills(payload(8, 0)))
+    assert (
+        late.tip(at, "en", alive=True, build=build, hero="Queen of Pain", lane_pressure=True)[
+            "title"
+        ]
+        != "Put the point in Blink"
+    )
+
+
+def test_lane_pressure_signals():
+    from app.live_hints import lane_pressure
+
+    calm = ({"hp_percent": 90}, {"clock_time": 300, "deaths": 0})
+    assert lane_pressure(*calm, None) is False
+    assert lane_pressure({"hp_percent": 45}, {"clock_time": 300, "deaths": 0}, None) is True
+    assert lane_pressure({"hp_percent": 90}, {"clock_time": 300, "deaths": 1}, None) is True
+    assert lane_pressure(*calm, {"kind": "hard"}) is True
+    assert lane_pressure(*calm, {"kind": None, "pace": {}}) is False
+    assert lane_pressure({"hp_percent": 20}, {"clock_time": 700, "deaths": 2}, None) is False

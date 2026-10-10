@@ -190,6 +190,21 @@
             </div>
           </section>
           <!-- After a few matches played with the app: send the site to a friend. -->
+          <!-- Asked once (main.js statsAsked): the opt-in anonymous statistics of Settings → App. -->
+          <section class="card invite-card hidden" id="stats-ask-card" aria-labelledby="stats-ask-heading">
+            <header class="card-head">
+              <i data-icon="chart-line"></i>
+              <h2 id="stats-ask-heading" data-i18n="statsAskTitle">Help improve the advice</h2>
+            </header>
+            <div class="card-body">
+              <p class="muted" data-i18n="statsAskText">Share anonymous statistics: once a day, counts of which tips were shown and which warnings came before a death. No heroes, matches, nickname, Steam ID or keys. You can turn it off any time in Settings → App.</p>
+              <p class="report-terms"><button id="stats-ask-privacy" class="report-link" type="button" data-i18n="statsAskWhat">What exactly is sent</button></p>
+              <div class="report-actions">
+                <button id="stats-ask-yes" class="btn btn-primary btn-sm" type="button" data-i18n="statsAskYes">Share statistics</button>
+                <button id="stats-ask-no" class="btn btn-ghost btn-sm" type="button" data-i18n="statsAskNo">No, thanks</button>
+              </div>
+            </div>
+          </section>
           <section class="card invite-card hidden" id="invite-card" aria-labelledby="invite-heading">
             <header class="card-head">
               <i data-icon="users"></i>

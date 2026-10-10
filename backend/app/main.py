@@ -71,10 +71,10 @@ from app.llm_provider import generate_llm_recommendation, is_llm_provider_enable
 from app.local_api_auth import LOCAL_API_AUTH
 from app.local_api_security import LocalApiSecurity, local_origins
 from app.logger import log_recommendation, prune_logs
-from app.map_hints import timers
+from app.map_hints import DRAFT_UNTIL, timers
 from app.match_memory import MATCH_MEMORY
 from app.match_records import KEEP_DAYS, MATCH_RECORDS
-from app.player_api import PLAYER_SERVICE
+from app.player_api import PLAYER_SERVICE, refresh_quieter_advice
 from app.player_api import router as player_router
 from app.rag import KNOWLEDGE_BASE, retrieve_context
 from app.recommender import generate_recommendation
@@ -86,6 +86,10 @@ from app.schemas import GameSituationRequest, RecommendationResponse, hero_cover
 async def _lifespan(_app: FastAPI) -> AsyncIterator[None]:
     prune_logs()
     await run_in_threadpool(KNOWLEDGE_BASE.paragraphs)
+    try:
+        await run_in_threadpool(refresh_quieter_advice)
+    except Exception as error:  # noqa: BLE001 - feedback never blocks startup
+        record_error("advice-feedback", error)
     yield
     # Keeps an in-progress match timeline across a restart of the app.
     PLAYER_SERVICE.shutdown()
@@ -120,7 +124,7 @@ app = LocalApiApp(
     lifespan=_lifespan,
     title="Wardly",
     description="MVP-1: rule-based carry coach with local knowledge-base RAG.",
-    version="0.54.1",
+    version="0.55.0",
 )
 app.include_router(player_router)
 
@@ -156,7 +160,7 @@ if _DEBUG_PAGES is not None:
 @app.get("/", summary="Health check")
 def root():
     """Simple health-check endpoint."""
-    return {"status": "ok", "service": "Wardly", "version": "0.54.1"}
+    return {"status": "ok", "service": "Wardly", "version": "0.55.0"}
 
 
 @app.get("/health", summary="Health check")
@@ -513,6 +517,15 @@ def _live_role_and_hint(response: dict[str, object], lang: str) -> dict[str, obj
         else None
     )
     lane_record = _lane_record(trackers.opponents) if map_enabled else None
+    draft = (
+        PLAYER_SERVICE.draft_item(hero, names, trackers.enemies or None, role.get("role"))
+        if map_enabled
+        and role
+        and role.get("role") != "support"
+        and isinstance(clock, int)
+        and clock <= DRAFT_UNTIL
+        else None
+    )
     inputs = LiveHintInputs(
         role=role,
         gold=gold,
@@ -521,6 +534,7 @@ def _live_role_and_hint(response: dict[str, object], lang: str) -> dict[str, obj
         key_item=key_item,
         save_item=save_item,
         lane_record=lane_record,
+        draft_item=draft,
         skill_build=PLAYER_SERVICE.skill_build(hero),
     )
     return MATCH_MEMORY.live_hints(state, extra, trackers, inputs, lang)

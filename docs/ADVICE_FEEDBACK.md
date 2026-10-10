@@ -7,4 +7,11 @@
 - Зберігається в meta `advice_feedback:<account>:<match>` (JSON-об'єкт, не більше 200 позначок на матч), потрапляє в резервну копію історії й повертається під час відновлення (перевірка форми через `META_JSON`). Нікуди не надсилається.
 - `GET /player/advice-feedback` і `/diagnostics` `player.advice_feedback`: лічильники за decision point, без тексту порад. Хмарна агрегація — лише в майбутньому, окремим opt-in з allowlist і правкою політики конфіденційності.
 
-Тести: `backend/tests/test_advice_feedback.py` (справжній матч із GSI, зміна й зняття позначки, помилки, зведення без тексту, перенесення через резервну копію, пошкоджені дані).
+## Тихіші поради (0.55.0)
+
+- `advice_feedback.quieter_decisions`: decision point із 3+ відмітками, з яких 60%+ — «Не до речі» або «Повторювалося», стає «тихішим». Ніколи: `LOW_HP`, `DISABLED_STATUS`, `NO_ADVICE`, `SOFT_STATUS`, розбори смертей і `UNSCALED_DECISIONS` (безпека).
+- Зведення (`GET /player/advice-feedback`, `career.advice_feedback`) містить `quieter`. `player_api.refresh_quieter_advice` передає його в `ADVICE_SCHEDULER.set_quieter` під час запуску, після кожної відмітки й після зміни акаунта; список переживає `reset()` (новий матч).
+- У планувальнику (`_game_time_spacing_remaining_locked`) для тихішої coaching-поради мінімальна пауза множиться на `QUIETER_GAP_FACTOR` (2). Термінові поради не змінюються.
+- «Прогрес»: картка «Ваші відмітки на порадах» (`adviceMarksCard`, підписи видів порад — `adviceKinds` у `match-texts.js`), лише для всіх героїв.
+
+Тести: `backend/tests/test_advice_feedback.py`, `test_advice_frequency.py` (тихіші поради на реплеї) (справжній матч із GSI, зміна й зняття позначки, помилки, зведення без тексту, перенесення через резервну копію, пошкоджені дані).

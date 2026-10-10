@@ -3087,6 +3087,46 @@
     );
   }
 
+  // What the player's marks say per kind of advice (backend advice_feedback.summary),
+  // the most unwanted first; «quieter» ones now wait twice as long in a game.
+  function adviceMarksCard(feedback) {
+    const byKind = feedback && feedback.by_decision_point ? Object.entries(feedback.by_decision_point) : [];
+    if (!feedback || !feedback.matches || !byKind.length) {
+      return null;
+    }
+    const quieter = new Set(feedback.quieter || []);
+    const unwanted = (counts) => (counts.irrelevant || 0) + (counts.repeated || 0);
+    const total = (counts) => unwanted(counts) + (counts.useful || 0);
+    byKind.sort(([, a], [, b]) => unwanted(b) / total(b) - unwanted(a) / total(a) || total(b) - total(a));
+    const rows = byKind.map(([kind, counts]) =>
+      h(
+        "tr",
+        {},
+        h("td", {}, h("span", { text: tOptional(`adviceKinds.${kind}`) || kind }), quieter.has(kind) ? h("span", { class: "chip advice-quieter", text: t("adviceMarksQuieter") }) : null),
+        ...["useful", "irrelevant", "repeated"].map((verdict) => h("td", { class: "num-col num", text: String(counts[verdict] || 0) }))
+      )
+    );
+    return card(
+      t("adviceMarksTitle"),
+      "lightbulb",
+      h(
+        "div",
+        {},
+        h("p", { class: "muted small", text: t("adviceMarksHint", feedback.matches) }),
+        h(
+          "div",
+          { class: "table-wrap table-wrap-tight" },
+          h(
+            "table",
+            { class: "table" },
+            h("thead", {}, h("tr", {}, h("th", { text: t("adviceMarksKind") }), ...["useful", "irrelevant", "repeated"].map((verdict) => h("th", { class: "num-col", text: t(`adviceVerdicts.${verdict}`) })))),
+            h("tbody", {}, rows)
+          )
+        )
+      )
+    );
+  }
+
   // «Корисно / не до речі / повторювалося» under a card (backend advice_feedback.py);
   // pressing the chosen one again clears it. Local only, never during a game.
   function adviceVerdicts(item) {
@@ -4560,7 +4600,8 @@
             coachCard(career.coach, "career"),
             planCard,
             // Asking needs at least one review (the backend answers not_enough without one).
-            state.careerHero === null && career.analyzed ? askCard(career, true) : null
+            state.careerHero === null && career.analyzed ? askCard(career, true) : null,
+            state.careerHero === null ? adviceMarksCard(career.advice_feedback) : null
           ], { id: "coach", label: t("navCoach") }),
           zone(t("zoneGames"), t("zoneGamesHint"), [
             scoreCard,
