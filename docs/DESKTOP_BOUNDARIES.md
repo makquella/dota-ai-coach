@@ -9,7 +9,7 @@ catalogs were extracted earlier; this patch completes the concrete desktop moves
   claim/import/delete). `main.js` supplies window/dialog/backend/cloud/log ports
   and retains trusted IPC handlers and code input bounds. The installer explicitly
   includes the new main-process module. Existing result shapes remain intact.
-- `renderer/app-texts.js` creates independent RU/EN control-panel catalogs, with
+- `renderer/app-texts.js` creates independent UK/EN control-panel catalogs, with
   the update-history provider supplied explicitly. `app.js` consumes the catalog;
   locale tests import the actual desktop catalogs rather than evaluating copied
   source literals. The small overlay catalog remains a separate future slice.
@@ -25,7 +25,7 @@ missing window, backend failure, code collision cap/size limit, encrypted roundt
 claim/import/delete and invalid/expired codes. Catalog tests verify functional copy
 and detached nested/update tables. Existing installer module checks apply.
 
-Source/Windows Electron smoke drives RU/EN settings, backup buttons through trusted
+Source/Windows Electron smoke drives UK/EN settings, backup buttons through trusted
 IPC, actual temporary file export/import and an isolated real SQLite backend.
 Only the OS chooser/reveal ports select the dedicated smoke file; production uses
 Electron dialogs/shell normally. No transfer is published during GUI smoke.

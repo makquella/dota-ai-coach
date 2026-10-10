@@ -1,6 +1,6 @@
 # Acceptance against the audit of 7 October 2026
 
-Source: the user's “Глубокий аудит Wardly / dota-ai-coach”, audited `dd5a83c`.
+Source: the user's “Глибокий аудит Wardly / dota-ai-coach”, audited `dd5a83c`.
 “Prepared” means implementation plus relevant checks in patch PRs; “merged” is
 reserved for main. The 0.53.4–0.53.46 stack was integrated through #146, merge
 `0d7ef29c7475b9b984921b969fdbda7fc31cc9ba`; individual stacked reviews were
@@ -24,7 +24,7 @@ Additional engineering/product work is tracked separately, not silently dropped.
 | F10 | One coherent published runtime revision and ownership/reset, no I/O under locks; concurrent endpoints | Done in 0.53.60: on top of 0.53.41–0.53.46 (off the ASGI loop, timings, generation-guarded history), `live_operation.py` makes a GSI packet, an overlay decision, a demo state and a reset whole operations; advice log and recordings run outside; LIVE_EVENT_LOOP.md, test_live_operation.py |
 | F11 | Atomic transfer claims/inserts and real local D1 concurrency | Merged through #146, 0.53.11; TRANSFER_ATOMICITY.md |
 | F12 | Typed NormalizedState, MatchFacts, Finding + important I/O/detail DTO and consumers | Merged through #146, 0.53.39: actual NormalizedState/MatchFacts producers, Finding core and evidence/coverage/detail DTOs; DOMAIN_CONTRACTS.md and test_domain_contracts.py. Open tracker/event/params extensions are explicit. |
-| F13 | Extract locales, JobQueue, transfer orchestration and match-detail slice; preserve exports/behavior and 2 actual UI scenarios | Merged through #146, 0.53.40: history-transfer, app-texts and match-detail modules plus prior JobQueue/match-locales extraction; real RU/EN file/full-review/missing-review scenarios, DESKTOP_BOUNDARIES.md |
+| F13 | Extract locales, JobQueue, transfer orchestration and match-detail slice; preserve exports/behavior and 2 actual UI scenarios | Merged through #146, 0.53.40: history-transfer, app-texts and match-detail modules plus prior JobQueue/match-locales extraction; real UK/EN file/full-review/missing-review scenarios, DESKTOP_BOUNDARIES.md |
 | F14 | Pinned mypy, reviewed debt cannot grow, clean-module blocking gate | Merged through #146, 0.53.9, baseline pruned later; TYPE_CHECKING.md |
 | F15 | Release validation on the same tag SHA before publication | Merged through #146, 0.53.10; RELEASE_VALIDATION.md |
 | F16 | Canonical npm check, CI concurrency, meaningful Windows scope/stable required summary | Merged through #146, 0.53.12; WINDOWS_CI_SCOPE.md |
@@ -78,7 +78,7 @@ These are acceptance tasks too. They are not included in the 17-finding percenta
   launcher's wait, with `GET /player/asks/{id}` for a lost answer).
 - [x] Local operations health: job age/running/pending, persistence ack/error,
   queue depth, bounded latency observations and source freshness in developer UI
-  (0.53.51, OPERATIONS_HEALTH.md; `/operations/health`, «Состояние операций»).
+  (0.53.51, OPERATIONS_HEALTH.md; `/operations/health`, «Стан операцій»).
 - [x] Investigate and fix the observed nightly fuzz seed-12 dead-hero phase
   container regression (0.53.48); preserve unknown signals and normal phases.
 - [x] More sanitized support/mid role replay acceptance cases and a fixed-clock
@@ -86,7 +86,7 @@ These are acceptance tasks too. They are not included in the 17-finding percenta
   `scripts/replay_check.py`, four role cases, `tests/replay_golden/`).
 - [x] Patch/source/rules/input versions, as-of/sample count where relevant, rebuild
   reason and comparable Progress metrics across changed rules (0.53.57, REVIEW_BASIS.md:
-  `analysis.basis`, «На чём основан разбор?», `career.basis` note over the score chart).
+  `analysis.basis`, «На чому ґрунтується розбір?», `career.basis` note over the score chart).
 - [x] Automatic bounded rotating local backups, opt-in configuration/disk budget,
   migration/import backup and restore preview → validated atomic apply (0.53.55,
   HISTORY_BACKUP.md: on by default with a switch, 4 copies/200 MB, update copies and

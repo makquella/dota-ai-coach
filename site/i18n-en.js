@@ -1,4 +1,4 @@
-// English texts of the site (the HTML itself is Russian). Strict JSON inside:
+// English texts of the site (the HTML itself is Ukrainian). Strict JSON inside:
 // site/app.js reads it at runtime, scripts/build_site.py builds the static
 // English pages (/en/) from it. Keep keys in sync with the data-i18n* attributes.
 window.WARDLY_EN = {

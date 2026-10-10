@@ -151,6 +151,10 @@ GOAL_MATCHES = 30  # rows read for the streak goals and the tilt warning
 REPEATS_LOOKUP = 25
 # "Ask the coach": the last questions per match, and how long the player waits.
 ASK_CACHE_KEY = "coach:ask"
+# Before 0.54 the coach also answered in Russian. Reviews are cached per language
+# (`…:ru` is simply never asked for again); questions share one history, so the
+# Russian answers stay stored (backups, restores) but are no longer shown.
+RETIRED_COACH_LANG = "ru"
 ASK_HISTORY = 5
 ASK_TIMEOUT_SECONDS = 60.0
 # Automatic local copies (auto_backup.py): meta "auto_backup" = "off" turns
@@ -1056,7 +1060,9 @@ class PlayerService:
         detail["coach"] = self._match_coach(primary, match_id, detail, lang, force=force_coach)
         detail["baseline"] = self._baseline(primary, record, analysis)
         detail["best_on_hero"] = self._best_on_hero(primary, record, analysis)
-        detail["questions"] = self._questions(primary, match_id, facts=match_facts(detail))
+        detail["questions"] = _shown_questions(
+            self._questions(primary, match_id, facts=match_facts(detail))
+        )
         current = self._focus(primary)
         detail["focus_id"] = current["id"] if current else None
         # The review's top problems that can become the player's focus.
@@ -1420,7 +1426,9 @@ class PlayerService:
             result["coach"] = {"state": "none"}
             return result
         result["coach"] = self._career_coach(primary, result, recent, lang, force=force_coach)
-        result["questions"] = self.store.cache_get(f"{ASK_CACHE_KEY}:{primary}:career") or []
+        result["questions"] = _shown_questions(
+            self.store.cache_get(f"{ASK_CACHE_KEY}:{primary}:career") or []
+        )
         return result
 
     def _career_result(
@@ -1525,7 +1533,7 @@ class PlayerService:
         with self._ask_history_lock:
             history = [entry, *(self.store.cache_get(key) or [])][:ASK_HISTORY]
             self.store.cache_set(key, history)
-        return {"ok": True, "answer": entry, "history": history}
+        return {"ok": True, "answer": entry, "history": _shown_questions(history)}
 
     # --- OpenDota key --------------------------------------------------------------
 
@@ -1721,7 +1729,7 @@ class PlayerService:
         with self._ask_history_lock:
             history = [entry, *self._questions(primary, match_id, facts=facts)][:ASK_HISTORY]
             self.store.cache_set(key, history)
-        return {"ok": True, "answer": entry, "history": history}
+        return {"ok": True, "answer": entry, "history": _shown_questions(history)}
 
     def _questions(
         self, account_id: int, match_id: int, *, facts: dict[str, Any] | None
@@ -2500,6 +2508,10 @@ def _public_player(player: dict[str, Any] | None, account_id: int | None) -> dic
         "avatar_url": player.get("avatar_url"),
         "rank_tier": player.get("rank_tier"),
     }
+
+
+def _shown_questions(questions: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    return [q for q in questions if q.get("lang") != RETIRED_COACH_LANG]
 
 
 def _coach_public(cached: dict[str, Any] | None, *, stale: bool) -> dict[str, Any]:

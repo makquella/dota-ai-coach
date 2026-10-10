@@ -195,7 +195,7 @@ jobs:
       - name: Send the installer to VirusTotal
         # Optional (secret VT_API_KEY, the key of a free VirusTotal account).
         # After a successful upload the report's link is added to the release
-        # notes; the site shows «Проверка VirusTotal» only when the notes carry
+        # notes; the site shows «Перевірка VirusTotal» only when the notes carry
         # the link for this installer's SHA-256. Never fails the release.
         continue-on-error: true
         env:

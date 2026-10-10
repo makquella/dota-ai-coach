@@ -9,7 +9,7 @@ Use the isolated cloud checkout; create a worktree only when requested.
 - Live: `backend/app/gsi_state.py` (atomic publication: `gsi_snapshot.py`) → `match_memory.py` / `decision_points.py` → `recommender.py` / `advice_policy.py` → `advice_scheduler.py`; helpers in `backend/app/scheduler/`.
 - Live hint mutations use the owned `MatchMemory.live_hints` facade (`live_hints.py`); prepare PlayerService metadata before ownership and avoid direct child-tracker access.
 - History: `backend/app/player_api.py` (status/list/detail/progress/profile DTOs: `player_contracts.py`) → `player_service.py` → `player_store.py` (SQLite), `match_tracker.py`, `opendota.py`, `match_facts.py`, `post_match_analysis.py`. Queue execution/retries/shutdown: `backend/app/job_queue.py`.
-- Desktop: `frontend/launcher/main.js`, `preload.js`; file/code transfer: `history-transfer.js`; panel: `renderer/app.js`/`app-texts.js`; history: `renderer/matches.js`, detail composition: `renderer/match-detail.js` (RU/EN copy: `renderer/match-texts.js`); overlay in `overlay/` and `overlay-window.js`.
+- Desktop: `frontend/launcher/main.js`, `preload.js`; file/code transfer: `history-transfer.js`; panel: `renderer/app.js`/`app-texts.js`; history: `renderer/matches.js`, detail composition: `renderer/match-detail.js` (UK/EN copy: `renderer/match-texts.js`); overlay in `overlay/` and `overlay-window.js`.
 - What's New history/selection is in `renderer/whats-new.js`; add both locale entries there when bumping versions.
 - Match back/forward history is private to `renderer/match-navigation.js`; view/scroll/DOM and IPC stay in `renderer/matches.js`.
 - Review loads/quiet refreshes use `renderer/match-requests.js`; table loads/pages use `renderer/match-list-requests.js`. Progress loads/polls use `renderer/career-requests.js`. Leaving each view invalidates its pending results. Shared status reads use `renderer/player-status-requests.js`; account mutations invalidate them. Profile/MMR/shop and friends responses use independent `renderer/profile-requests.js` owners; account changes clear their view caches.
@@ -20,12 +20,12 @@ Use the isolated cloud checkout; create a worktree only when requested.
 - Local rules own decisions, priorities, timing and safety. Missing signals stay unknown. Live defaults: `USE_LLM=false`, `LIVE_CONSERVATIVE_MODE=true`.
 - GSI may report visible enemy coordinates and observed objective events; never infer hidden enemies or team readiness. Check `signal_capabilities.py`.
 - Post-match AI (`coach_llm.py`, `coach_review.py`) is independent of `USE_LLM`; deterministic analysis supplies its facts.
-- Live advice stays English internally; `advice_i18n.py` translates at the API edge. Changed visible copy needs Russian coverage. Post-match findings use IDs + params and `analysis_texts.py`.
+- Live advice stays English internally; `advice_i18n.py` translates at the API edge. Changed visible copy needs Ukrainian coverage. Post-match findings use IDs + params and `analysis_texts.py`.
 - Launcher owns one backend on a chosen port. Use one backend worker; globals hold cross-request live state. Do not start another uvicorn for launcher debugging.
 - Frozen paths come from `config.py`: `RESOURCE_ROOT`, `DATA_DIR`, `WRITABLE_DIR`. Include new launcher modules in `package.json` `build.files`.
 - Review `ANALYSIS_VERSION` / `TRIM_VERSION`, cache invalidation and old data when changing rules or formats. Preserve notes, history, account selection and consent.
 - New uploads need matching privacy/redaction/retention checks and `site/privacy.html`. No keys or deletion tokens in logs/backups; never commit local DBs, recordings, secrets or build outputs.
-- Audit fixes use `0.53.1`, `0.53.2`, etc., not a new minor per PR. Sync launcher package/lock and both backend versions; add RU/EN release notes and regenerate changelog.
+- Fixes are patch versions of the current minor (`0.54.1`, `0.54.2`, …), not a new minor per PR; a new feature starts the next minor. Sync launcher package/lock and both backend versions; add UK/EN release notes and regenerate changelog.
 
 ## Checks and workflow
 

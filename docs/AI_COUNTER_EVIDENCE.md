@@ -1,65 +1,65 @@
-# Проверка счётчиков в AI-разборе
+# Перевірка лічильників в AI-розборі
 
-F04, первый slice в 0.53.13. Раньше число могло быть разрешено из любого поля JSON: 160 last hits разрешали «160 kills», а числа 0–12 всегда проходили проверку. Теперь количественные утверждения о kills/deaths/assists игрока привязаны к собственным итоговым счётчикам в `analysis.headline`.
+F04, перший slice у 0.53.13. Раніше число могло бути дозволене з будь-якого поля JSON: 160 last hits дозволяли «160 kills», а числа 0–12 завжди проходили перевірку. Тепер кількісні твердження про kills/deaths/assists гравця прив'язано до власних підсумкових лічильників в `analysis.headline`.
 
-## Данные и граница
+## Дані й межа
 
-`coach_evidence.py` строит `CounterEvidence` для трёх неотрицательных integer totals. Bool, отсутствующий/невалидный счётчик не превращаются в ноль. Compact match facts содержат `match_totals` и refs `{source: analysis.headline, field, observed_at: null, precision: reported_total, value}`. Источник указывает на детерминированный разбор, а не приписывает отдельному upstream поставщику точность, которую merged analysis не хранит. Время фактического наблюдения в headline неизвестно: `observed_at` остаётся null, не выдаётся за timestamp конца матча.
+`coach_evidence.py` будує `CounterEvidence` для трьох невід'ємних integer totals. Bool, відсутній/невалідний лічильник не перетворюються на нуль. Compact match facts містять `match_totals` і refs `{source: analysis.headline, field, observed_at: null, precision: reported_total, value}`. Джерело вказує на детермінований розбір, а не приписує окремому upstream-постачальнику точність, якої merged analysis не зберігає. Час фактичного спостереження в headline невідомий: `observed_at` залишається null, не видається за timestamp кінця матчу.
 
-`FactChecker` проверяет RU/EN числовые noun phrases «200 убийств», «kills: 200», «смерти: их было 2» и K/D/A triples по конкретным полям. Значения nested scoreboard, lane, findings, last hits или других метрик не разрешают total игрока. Неверное предложение удаляется; пустой/слишком повреждённый ответ получает обычный один retry, затем `unverified`. Модель не выбирает значение evidence: metadata формирует backend после проверки.
+`FactChecker` перевіряє UK/EN числові noun phrases «200 вбивств», «kills: 200», «смерті: їх було 2» і K/D/A triples за конкретними полями. Значення nested scoreboard, lane, findings, last hits чи інших метрик не дозволяють total гравця. Хибне речення видаляється; порожня/надто пошкоджена відповідь отримує звичайний один retry, потім `unverified`. Модель не вибирає значення evidence: metadata формує backend після перевірки.
 
-Эти refs подтверждают reported match totals. Числовые combat assertions с другим named hero, time/minute/lane/rate scope отклоняются консервативно: итоговый счётчик не доказывает такое утверждение. Это может убрать корректную формулировку, пока не появится ledger с отдельными subject/time slices. Prompt описывает эту границу.
+Ці refs підтверджують reported match totals. Числові combat assertions з іншим named hero, time/minute/lane/rate scope відхиляються консервативно: підсумковий лічильник не доводить такого твердження. Це може прибрати коректне формулювання, доки не з'явиться ledger з окремими subject/time slices. Prompt описує цю межу.
 
-`next_game`, `plan` и block `fix` остаются goal slots: будущая цель «не больше 2 смертей» не должна совпадать с прошлым total. Там сохраняется прежняя общая проверка numbers/times/names. В свободных match Q&A quantified combat statements проходят строгую проверку; numerical future targets следует оставлять в goal slots, Q&A может дать качественный совет.
+`next_game`, `plan` і block `fix` залишаються goal slots: майбутня ціль «не більше 2 смертей» не мусить збігатися з минулим total. Там зберігається попередня загальна перевірка numbers/times/names. У вільних match Q&A quantified combat statements проходять сувору перевірку; числові майбутні цілі слід залишати в goal slots, Q&A може дати якісну пораду.
 
-## Cache и UI
+## Cache і UI
 
-`COACH_VERSION` повышен с 1 до 2. Новые cache entries записывают verification version. Legacy match review не показывается при pending, error, waiting или AI off; stored copy сохраняется до обычной регенерации. Современный stale review сохраняет прежнее поведение при приходе новых данных и отмечается stale. Career verification policy не изменена.
+`COACH_VERSION` підвищено з 1 до 2. Нові cache entries записують verification version. Legacy match review не показується при pending, error, waiting чи AI off; stored copy зберігається до звичайної регенерації. Сучасний stale review зберігає попередню поведінку, коли надходять нові дані, і позначається stale. Career verification policy не змінено.
 
-Сохранённые match questions проходят sentence-by-sentence проверку при чтении без provider call: ответ с неверным предложением возвращается с очищенным текстом, полностью непроверяемый ответ не показывается. Исходный cache при чтении не удаляется. Новые ответы сохраняют refs; возвращаемый view получает refs текущего разбора. При следующем ask новая история собирается из проверенного view.
+Збережені match questions проходять перевірку речення за реченням під час читання без provider call: відповідь із хибним реченням повертається з очищеним текстом, повністю неперевірювана відповідь не показується. Вихідний cache під час читання не видаляється. Нові відповіді зберігають refs; повернений view отримує refs поточного розбору. Під час наступного ask нова історія збирається з перевіреного view.
 
-В match review и answers раскрываемый элемент «Данные для проверки K/D/A» показывает totals и границу их точности на RU/EN. Он использует DOM/textContent, поддерживает legacy отсутствие metadata и отвергает malformed rows. Public share payload остаётся прежним field-by-field: refs, вопросы и source internals не публикуются.
+У match review та answers елемент, що розгортається, «Дані для перевірки K/D/A» показує totals і межу їхньої точності обома мовами. Він використовує DOM/textContent, підтримує legacy відсутність metadata й відкидає malformed rows. Public share payload лишається попереднім field-by-field: refs, запитання та source internals не публікуються.
 
-## Проверки и следующий slice
+## Перевірки й наступний slice
 
-`test_coach_evidence.py`: metric swap при разрешённом числе, small-count bypass, comma punctuation, RU/EN, K/D/A reorder, unknown vs zero, unsupported subjects/scopes, real HTTP/SQLite generation/retry/history, legacy cache upgrade/offline view. Scripted provider является внешним fixture; внутренний checker/service/storage работают реально. Новый evidence module проходит strict mypy и объявлен clean в blocking baseline; старые 226 errors не расширены.
+`test_coach_evidence.py`: metric swap за дозволеного числа, small-count bypass, comma punctuation, UK/EN, K/D/A reorder, unknown vs zero, unsupported subjects/scopes, real HTTP/SQLite generation/retry/history, legacy cache upgrade/offline view. Scripted provider є зовнішнім fixture; внутрішні checker/service/storage працюють реально. Новий evidence module проходить strict mypy й оголошений clean у blocking baseline; старі 226 errors не розширено.
 
-Electron smoke создаёт настоящий disclosure DOM из bundled renderer script, открывает его на RU/EN и проверяет zero, malformed values/source и legacy отсутствие refs. Общая source/Windows smoke проверяет приложение, preload и IPC.
+Electron smoke створює справжній disclosure DOM із bundled renderer script, відкриває його обома мовами й перевіряє zero, malformed values/source і legacy відсутність refs. Загальний source/Windows smoke перевіряє застосунок, preload та IPC.
 
-## GPM/XPM в 0.53.26
+## GPM/XPM у 0.53.26
 
-`MatchRateBindings` отдельно проверяет match-wide GPM и XPM игрока.
-`match_rates` и `match_rates_evidence` формируются только из `analysis.headline`;
-пустой ledger сохраняется в compact facts. Rate evidence имеет тот же source,
-свой field, `observed_at: null`, `precision: reported_match_rate` и исходное
-число. Поддерживаются finite nonnegative integer/float до JS safe-integer
-границы; bool, строки и отсутствующие значения остаются unknown. Ноль остаётся
-измерением. Quantified noun phrases GPM/XPM, gold/experience per minute и
-«золота/опыта в минуту» должны точно совпадать со своим полем, включая дробную
-часть. Округлённая, другая или nested метрика не подтверждает такое утверждение.
+`MatchRateBindings` окремо перевіряє match-wide GPM і XPM гравця.
+`match_rates` і `match_rates_evidence` формуються лише з `analysis.headline`;
+порожній ledger зберігається в compact facts. Rate evidence має той самий source,
+своє field, `observed_at: null`, `precision: reported_match_rate` і вихідне
+число. Підтримуються finite nonnegative integer/float до JS safe-integer
+межі; bool, рядки й відсутні значення залишаються unknown. Нуль залишається
+вимірюванням. Quantified noun phrases GPM/XPM, gold/experience per minute і
+«золота/досвіду за хвилину» мають точно збігатися зі своїм полем, зокрема дробова
+частина. Округлена, інша чи nested метрика не підтверджує такого твердження.
 
-Названия единиц «per minute» / «в минуту» не считаются временным отрезком.
-Другие time/lane/team/hero scopes требуют отдельного evidence и отклоняются.
-Future goal slots сохраняют прежнюю общую проверку. Модель не формирует refs:
-после deterministic проверки backend добавляет `rate_evidence` к review/answer;
-UI disclosure показывает только validated rows на RU/EN, включая zero и decimal.
-Combat-only legacy disclosure сохраняет прежний текст.
+Назви одиниць «per minute» / «за хвилину» не вважаються часовим відрізком.
+Інші time/lane/team/hero scopes потребують окремого evidence й відхиляються.
+Future goal slots зберігають попередню загальну перевірку. Модель не формує refs:
+після deterministic перевірки backend додає `rate_evidence` до review/answer;
+UI disclosure показує лише validated rows обома мовами, зокрема zero й decimal.
+Combat-only legacy disclosure зберігає попередній текст.
 
-`COACH_VERSION` теперь 3. Match review с verification version 2 скрывается до
-обычной регенерации, включая offline/AI-off view; исходный cache сохраняется.
-Policy version участвует в общем digest и может вызвать обычное обновление
-career cache, но career field binding здесь не добавлен. Saved Q&A при чтении
-перепроверяется sentence-by-sentence без provider call и без удаления хранения;
-returned refs соответствуют текущему разбору. Share payload по-прежнему не
-публикует вопросы или внутренний evidence.
+`COACH_VERSION` тепер 3. Match review з verification version 2 приховується до
+звичайної регенерації, зокрема offline/AI-off view; вихідний cache зберігається.
+Policy version бере участь у загальному digest і може спричинити звичайне оновлення
+career cache, але career field binding тут не додано. Saved Q&A під час читання
+перевіряється наново речення за реченням без provider call і без видалення збереженого;
+returned refs відповідають поточному розбору. Share payload, як і раніше, не
+публікує запитань чи внутрішнього evidence.
 
-Новые functional checks используют настоящий HTTP, SQLite, generation/retry и
-cache upgrade с внешним scripted provider. Parser checks покрывают metric swap,
-small-number bypass, unsupported subject/time scope, RU/EN units и decimal,
-unknown/zero/invalid rate. Source/Windows Electron smoke открывает настоящий
-disclosure DOM на двух языках, проверяет combined/legacy UI и malformed rates.
+Нові functional checks використовують справжні HTTP, SQLite, generation/retry і
+cache upgrade із зовнішнім scripted provider. Parser checks покривають metric swap,
+small-number bypass, unsupported subject/time scope, UK/EN units і decimal,
+unknown/zero/invalid rate. Source/Windows Electron smoke відкриває справжній
+disclosure DOM двома мовами, перевіряє combined/legacy UI та malformed rates.
 
-Это ограниченный детерминированный parser, не полная семантическая проверка AI. Spelled-out counts, произвольные глагольные/coreference конструкции и противоречия без поддержанной числовой noun phrase здесь не доказываются. Farm/item/findings refs, временные claims, другие метрики и career ещё требуют собственных bindings. F04 остаётся открытым до следующих slices; нет заявления, что каждое AI утверждение теперь доказано.
+Це обмежений детермінований parser, не повна семантична перевірка AI. Spelled-out counts, довільні дієслівні/coreference конструкції та суперечності без підтримуваної числової noun phrase тут не доводяться. Farm/item/findings refs, часові claims, інші метрики й career ще потребують власних bindings. F04 залишається відкритим до наступних slices; немає твердження, що кожне AI-твердження тепер доведено.
 
 ## Match farm totals in 0.53.31
 
@@ -70,8 +70,8 @@ Only nonnegative integer totals through JS MAX_SAFE_INTEGER are evidence. Bool,
 strings, fractional values and missing/invalid counters stay unknown; zero is
 known. Refs have `precision: reported_total` and `observed_at: null`.
 
-Supported RU/EN numeric noun phrases include last hits, LH, denies/DN,
-добивания/добитые крипы and денаи. Each count must match its own total exactly.
+Supported UK/EN numeric noun phrases include last hits, LH, denies/DN,
+добивання/добиті кріпи and денаї. Each count must match its own total exactly.
 Nested lane/team values cannot license a match total. Removing the metric
 name "last hits" before scope checks avoids treating "last" in the name as a
 time slice. At exactly 10:00, a separate `match_farm_at_10` ledger licenses
@@ -83,7 +83,7 @@ same-role enemy comparison; this does not invent a physical lane or DN sample.
 Integral float peer counts are retained exactly as integers. Duplicate/invalid
 sample times stay unknown. Total/10-minute and player/opponent swaps are
 rejected. Supported comparison forms include “36 last hits versus 65 for
-Anti-Mage at 10:00” and the Russian equivalents already used in review text.
+Anti-Mage at 10:00” and the Ukrainian equivalents already used in review text.
 Other timestamps, lane-exclusive counts, last-N-minutes, unnamed/different
 subjects, standalone enemy claims and per-minute scopes remain rejected.
 Future goal slots keep the existing generic number policy. This small parser
@@ -100,13 +100,13 @@ is 4: v3 match reviews are hidden through pending/offline/AI-off states until
 normal regeneration; storage is retained. The shared digest also invalidates
 career cache normally, without changing its verification policy. Analysis/trim
 versions and live behavior are unchanged. Share payload keeps excluding refs
-and questions. RU/EN disclosure validates field/source/precision/value and uses
+and questions. UK/EN disclosure validates field/source/precision/value and uses
 textContent; older combat-only and rate-only disclosures retain their copy.
 
 Functional tests exercise real HTTP/service/SQLite review generation, question
 retry/rejection, future goals and offline cache upgrades with external scripted
 providers. Parser cases include metric swaps, small numbers, unsupported scope,
-RU/EN labels, unknown/zero, total/sample/subject/field swaps and invalid values.
+UK/EN labels, unknown/zero, total/sample/subject/field swaps and invalid values.
 Source/Windows Electron smoke opens actual farm/sample/combined disclosure DOM and rejects malformed rows in both
 languages. No live or paid AI calls are made.
 
@@ -133,7 +133,7 @@ versions and live behavior stay the same.
 ## First three finding groups in 0.53.38
 
 Vision, LH10 and early-death findings now have source measurements and recording
-coverage, plus semantic checks and RU/EN disclosure. See [FINDING_EVIDENCE.md](FINDING_EVIDENCE.md).
+coverage, plus semantic checks and UK/EN disclosure. See [FINDING_EVIDENCE.md](FINDING_EVIDENCE.md).
 ANALYSIS_VERSION is 21 and COACH_VERSION is 5; the older version descriptions above
 record their original patch behavior. F04's first-three-findings acceptance is
 prepared. This does not claim arbitrary prose, causality or career verification.

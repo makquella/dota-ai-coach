@@ -20,7 +20,7 @@ and multi-sentence messages reference structured child messages in `params.parts
 Unknown text has an explicit fallback descriptor and stays English; mixed
 known/unknown sentences are never partly translated.
 
-Selection and RU rendering use separate bounded 512-entry caches. Rendering looks
+Selection and UK rendering use separate bounded 512-entry caches. Rendering looks
 up the message ID and formats parameters instead of rescanning historical English
 through regexes. Legacy callers and records lacking descriptors retain translation
 fallback. DTO shape/depth/parameter limits and invalid descriptors cannot break
@@ -29,7 +29,7 @@ the same bounded message cache internally; no new external translation service.
 
 Real thread tests prove deduplication, private records and reset during a paused
 prepared append. A deepcopy trace verifies only the selected suffix is copied.
-Actual GSI → overlay → RU/EN recent HTTP requests prove stable IDs and zero parser
+Actual GSI → overlay → UK/EN recent HTTP requests prove stable IDs and zero parser
 or renderer cache misses on unchanged repeat reads. Catalog equivalence, unknown
 fallback, dynamic params and cache bounds supplement existing replay translation
 coverage. All existing review and advice text policies remain unchanged.

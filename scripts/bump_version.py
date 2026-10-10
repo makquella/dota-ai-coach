@@ -12,7 +12,7 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-VERSION = re.compile(r"0\.53\.(0|[1-9][0-9]*)\Z")
+VERSION = re.compile(r"0\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\Z")
 
 
 def check(root: Path) -> str:
@@ -21,7 +21,7 @@ def check(root: Path) -> str:
     lock = json.loads((launcher / "package-lock.json").read_text(encoding="utf-8"))
     current = package["version"]
     if not isinstance(current, str) or not VERSION.fullmatch(current):
-        raise ValueError("Audit patches require version 0.53.N in launcher package.json")
+        raise ValueError("Launcher package.json needs a 0.MINOR.PATCH version")
     versions = {
         "package": current,
         "lock": lock.get("version"),

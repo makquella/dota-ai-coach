@@ -28,7 +28,7 @@ equal places and forward branching, the 30-place limit, detached/independent
 history, and movement-guard recovery/disabled notes. Source and Windows Electron
 smoke opens a real stored match row through preload/IPC, uses Alt+Left/Right and
 the actual return button, and verifies the tab and keyboard focus after the real
-API response replaces the old row in RU/EN. The
+API response replaces the old row in UK/EN. The
 fixture uses the dedicated temporary player DB from 0.53.27; it is a linked
 review navigation scenario with no analysis, not a complete analysis-rendering
 test. Other review/actions/state boundaries remain F13 work.

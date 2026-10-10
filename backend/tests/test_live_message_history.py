@@ -150,7 +150,7 @@ def test_real_recent_http_reuses_ids_params_and_does_not_rescan_unchanged_text(
 
 
 def test_message_ids_params_preserve_legacy_translation_semantics_and_fallbacks() -> None:
-    cases = list(advice_i18n._RU_EXACT) + [
+    cases = list(advice_i18n._UK_EXACT) + [
         "Avoid risky trades until Blade Fury is ready.",
         "After respawn, change your route: 3 deaths in the last 5 minutes.",
         "Consider leave the wave now and reset HP before rejoining.",

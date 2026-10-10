@@ -9,6 +9,10 @@
 
   const TEXT = {
     en: {
+      "0.54.0": [
+        "Wardly now speaks Ukrainian instead of Russian: the panel, the overlay, the voice, reviews, the AI coach, the website and shared pages. If you had picked Russian, the app switches to Ukrainian by itself; a Ukrainian, Russian or Belarusian Windows starts in Ukrainian.",
+        "Old AI coach answers written in Russian are kept in your history but no longer shown; ask again to get them in Ukrainian."
+      ],
       "0.53.62": [
         "Wardly 0.53 in short: Ctrl+K finds anything, keys are encrypted on disk, history is copied automatically, you can rate the coach's advice, and every review says what it is based on. Restart Dota once after updating.",
         "Rate the coach's advice under each card in a review, and open «What is this review based on?» for the rules and data behind it.",
@@ -507,6 +511,10 @@
       ]
     },
     uk: {
+      "0.54.0": [
+        "Wardly тепер українською замість російської: панель, оверлей, голос, розбори, ШІ-тренер, сайт і сторінки «Поділитися». Якщо ви вибирали російську, застосунок сам перейде на українську; на українській, російській чи білоруській Windows він одразу запускається українською.",
+        "Старі відповіді ШІ-тренера російською зберігаються в історії, але більше не показуються; запитайте ще раз, щоб отримати їх українською."
+      ],
       "0.53.62": [
         "Wardly 0.53 коротко: Ctrl+K знаходить будь-що, ключі зашифровано на диску, історія копіюється сама, поради тренера можна оцінювати, а кожен розбір показує, на чому він ґрунтується. Після оновлення один раз перезапустіть Доту.",
         "Оцінюйте поради тренера під кожною карткою розбору й відкривайте «На чому ґрунтується розбір?», щоб побачити правила й дані.",

@@ -20,7 +20,7 @@ Five public module scenarios use controlled asynchronous external requests to
 verify out-of-order completion, same-ID leave/return, changed match/locale/view,
 skipped hidden loads and error recovery. Source and packaged Windows Electron
 smoke starts actual A/B/A review requests through preload/IPC with a tab change,
-awaits all of them and verifies that only the latest applies, on RU/EN. It uses
+awaits all of them and verifies that only the latest applies, on UK/EN. It uses
 the isolated history fixture from 0.53.27. Navigation/focus, table and security
 checks continue. No new renderer privileges, API routes or dependencies are added.
 
@@ -47,7 +47,7 @@ Ten module scenarios exercise controlled external completion order, preparation,
 filter/sort/account changes, replacement/page races, duplicate clicks, tab
 return, offset and error recovery. Source/Windows smoke double-clicks More,
 starts a page then switches filters A/B/A, and checks leave/return generations
-through actual preload/IPC in RU/EN using the isolated SQLite fixture. F13
+through actual preload/IPC in UK/EN using the isolated SQLite fixture. F13
 remains partial: career/profile/status/question/action controllers remain.
 
 ## Progress in 0.53.33
@@ -71,7 +71,7 @@ locale/view/account/link changes, canceled preparation, same-hero return,
 first linking/unlinked/hidden states, shared quiet/foreground ownership and
 transport/normalized errors. Source/Windows smoke starts genuine IPC with
 microtask yields between hero selections and before leaving a pending load,
-then verifies the final filtered UI and canceled/accepted load results in RU/EN.
+then verifies the final filtered UI and canceled/accepted load results in UK/EN.
 The isolated SQLite history fixture and existing security checks remain active.
 
 ## Shared player status in 0.53.34
@@ -97,7 +97,7 @@ old/new completion, normalized errors and synchronous/asynchronous failure
 recovery. Source/Windows smoke begins two actual shared IPC status reads, then
 uses the genuine Change/link form to unlink/relink the fixture account. Both
 old consumers return false, unlinked UI appears, and all history returns after
-relink in RU/EN. Only the dedicated temporary smoke DB is mutated; OpenDota
+relink in UK/EN. Only the dedicated temporary smoke DB is mutated; OpenDota
 is disabled, no AI question/generation is requested, and history remains stored.
 
 ## Profile and friends in 0.53.36
@@ -125,7 +125,7 @@ view/locale/account/link changes, canceled preparation, first/unlinked loads,
 independent owners and error recovery. Source and Windows smoke use genuine
 profile/friends IPC, MMR save/clear, pending leave/return, visible locale changes
 and two account links from Profile. The empty second account cannot show the
-first profile, and relinking restores its 32 stored matches in RU/EN.
+first profile, and relinking restores its 32 stored matches in UK/EN.
 
 Smoke friends status builds the actual public card through the local backend
 without external publication or reading installed friend codes/consent. It does

@@ -54,7 +54,7 @@ Source and packaged Windows Electron smoke restores 32 fixture matches through
 the actual backup API into a dedicated temporary `PLAYER_DATA_DIR`, with
 OpenDota disabled. The genuine preload/IPC and table render load the next page,
 toggle GPM sorting, select/clear a hero filter and preserve partial K/D/A,
-unknown results and literal notes in RU/EN. The smoke restores the saved sort
+unknown results and literal notes in UK/EN. The smoke restores the saved sort
 and language, and removes its fixture DB after backend exit; it never imports
 fixture history into the user's/developer's normal store. This covers the linked
 table flow; full linked-review/analysis consumer scenarios remain future work.
@@ -91,13 +91,13 @@ summary, recent cards and command-palette results use the same function. Text
 still enters DOM via textContent. No new renderer network/IPC privileges are
 introduced; the helper loads before matches.js and ships through renderer/**/*.
 
-HTTP/SQLite checks cover parsed/unparsed reviews in RU/EN, notes, GSI-only
+HTTP/SQLite checks cover parsed/unparsed reviews in UK/EN, notes, GSI-only
 partial/zero counts, loading/missing responses, and cached coach/question
 evidence. Complete decoded responses are compared with the actual service
 output to detect dropped extension fields. Contract checks reject coercion and
 inspect the published OpenAPI schema. Node checks exercise unknown, partial,
 zero and malformed inputs; real source/Windows Electron smoke loads the module,
-checks partial-counter DOM text and navigates the actual RU/EN Matches screen.
+checks partial-counter DOM text and navigates the actual UK/EN Matches screen.
 The counter smoke checks the shared formatter, not a full linked-match UI flow.
 
 Remaining F12 work: type the other analysis/facts/career/player mutations/overlay
@@ -126,11 +126,11 @@ unchanged; this does not close F12. Malformed core output is a server validation
 failure, not numeric coercion. JS JSDoc mirrors the core.
 
 Functional cases compare complete decoded HTTP output with the actual service
-for unlinked/empty and filtered SQLite history plus parsed reviews in RU/EN,
+for unlinked/empty and filtered SQLite history plus parsed reviews in UK/EN,
 unknown results, zero/partial averages and nested extension retention. Schema
 and malformed values are checked. Source/Windows Electron smoke opens genuine
 Progress for the isolated 32-match fixture, checks unknown KDA and 52% from
-16 wins/15 losses/one unknown, filters Juggernaut and clears it in RU/EN.
+16 wins/15 losses/one unknown, filters Juggernaut and clears it in UK/EN.
 
 ## Profile in 0.53.37
 
@@ -154,7 +154,7 @@ Match IDs keep the existing stored int64 format.
 Malformed core output raises server validation failure instead of numeric
 coercion. Complete HTTP responses are compared with actual SQLite/service
 output for unlinked/empty, unknown results, manual zero/positive MMR, medal
-estimates, signed graphs and RU/EN. Real MMR save/clear and funded cosmetic
+estimates, signed graphs and UK/EN. Real MMR save/clear and funded cosmetic
 purchase/equip exercise every success endpoint; normal error responses remain.
 Validation checks cover invalid nested numbers/booleans/strings, nonfinite
 hours, extension retention and the five published OpenAPI schemas. JS JSDoc

@@ -72,7 +72,7 @@ def test_low_hp_with_a_regeneration_or_water_rune():
     assert action == "Step out of enemy range and use Bottle."
 
 
-def test_the_rune_texts_have_russian_and_keep_their_reason():
+def test_the_rune_texts_have_ukrainian_and_keep_their_reason():
     texts = [
         "Use the Haste rune from your Bottle and run.",
         "The Haste rune in your Bottle is ready: use it before the next hit, not after.",

@@ -11,7 +11,7 @@ preparation phase before ownership. `GoldHintInputs` and `LiveHintInputs`
 describe these prepared values. `live_hints.py` consumes them and observed
 state without SQLite, provider, filesystem or network work. Timer settings
 are warmed before ownership, including direct facade use. This extraction
-keeps the existing tip priority, availability, timing, RU/EN copy and map-off
+keeps the existing tip priority, availability, timing, UK/EN copy and map-off
 skill/gold/role behavior; it does not add a new advice rule or cache format.
 
 Each core observation and reset advances an internal generation under its

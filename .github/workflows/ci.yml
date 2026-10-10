@@ -115,7 +115,7 @@ jobs:
           python -m mypy --strict app/player_contracts.py
           python -m mypy --strict --follow-imports=silent app/live_hints.py
 
-      - name: Check backend, package, lock and RU/EN release versions
+      - name: Check backend, package, lock and UK/EN release versions
         run: python ../scripts/bump_version.py --check
 
       - name: Tests (pytest)

@@ -1,38 +1,38 @@
-# Desktop: IPC и окна
+# Desktop: IPC і вікна
 
-F17 в 0.53.8 ограничивает полномочия renderer на границе Electron. Все privileged `ipcMain.handle` регистрируются через общий `trustedHandlers` из `renderer-security.js`.
+F17 у 0.53.8 обмежує повноваження renderer на межі Electron. Усі privileged `ipcMain.handle` реєструються через спільний `trustedHandlers` з `renderer-security.js`.
 
-## Кто может вызвать IPC
+## Хто може викликати IPC
 
-Обработчик запускается только если совпадают одновременно:
+Обробник запускається, лише якщо водночас збігаються:
 
-1. Текущее владеющее окно существует и не уничтожено.
-2. `event.sender` — именно его `webContents`, который тоже ещё существует.
-3. `event.senderFrame` — текущий `webContents.mainFrame`, а не вложенный frame.
-4. Frame загрузил ожидаемый локальный `file:` URL с точной query string. Fragment допускается для переходов внутри того же документа.
+1. Поточне вікно-власник існує й не знищене.
+2. `event.sender` — саме його `webContents`, який теж іще існує.
+3. `event.senderFrame` — поточний `webContents.mainFrame`, а не вкладений frame.
+4. Frame завантажив очікуваний локальний `file:` URL з точним query string. Fragment допускається для переходів усередині того самого документа.
 
-`launcher:*` разрешены только главному окну с `renderer/index.html`. `overlay:*` — только текущему overlay с `overlay/index.html`. `skill-arrow:save/auto/cancel` — только окну калибровки с `skill-arrows/index.html?mode=calibrate`; окно стрелки с `mode=arrow` этих прав не имеет. Getter текущего окна проверяется при каждом invoke, поэтому старое окно после пересоздания не сохраняет доступ. Отсутствующий, уничтоженный или недоступный frame даёт generic `Untrusted IPC sender` без выполнения callback. URL страницы сам по себе не предоставляет полномочий: другое окно с тем же файлом и настоящим preload всё равно получает отказ.
+`launcher:*` дозволені лише головному вікну з `renderer/index.html`. `overlay:*` — лише поточному overlay з `overlay/index.html`. `skill-arrow:save/auto/cancel` — лише вікну калібрування з `skill-arrows/index.html?mode=calibrate`; вікно стрілки з `mode=arrow` цих прав не має. Getter поточного вікна перевіряється під час кожного invoke, тому старе вікно після перестворення не зберігає доступу. Відсутній, знищений чи недоступний frame дає generic `Untrusted IPC sender` без виконання callback. URL сторінки сам собою не надає повноважень: інше вікно з тим самим файлом і справжнім preload усе одно отримує відмову.
 
-Preload остаётся узким API с `contextIsolation=true`, `nodeIntegration=false`, `sandbox=true`. Проверка sender дополняет существующий whitelist player operations и валидацию аргументов. Данные пользователя и настройки меняются только после проверки отправителя. Токены локального backend остаются в main process; HTTP-граница описана в [LOCAL_API_SECURITY.md](LOCAL_API_SECURITY.md).
+Preload залишається вузьким API з `contextIsolation=true`, `nodeIntegration=false`, `sandbox=true`. Перевірка sender доповнює наявний whitelist player operations і валідацію аргументів. Дані користувача й налаштування змінюються лише після перевірки відправника. Токени локального backend залишаються в main process; HTTP-межу описано в [LOCAL_API_SECURITY.md](LOCAL_API_SECURITY.md).
 
-## Навигация и CSP
+## Навігація і CSP
 
-Главное окно, overlay, splash, окно стрелки и калибровка запрещают renderer-initiated navigation, frame navigation, redirects, attach webview и `window.open`. Main process продолжает загружать их локальные страницы через `loadFile`. Внешние ссылки приложения используют существующие явные IPC-действия и проверенные адреса через `shell.openExternal`.
+Головне вікно, overlay, splash, вікно стрілки й калібрування забороняють renderer-initiated navigation, frame navigation, redirects, attach webview і `window.open`. Main process і далі завантажує їхні локальні сторінки через `loadFile`. Зовнішні посилання застосунку використовують наявні явні IPC-дії та перевірені адреси через `shell.openExternal`.
 
-Главная страница и overlay теперь задают CSP до загрузки ресурсов: default deny, scripts только `self`, fonts/local CSS только `self`, запрет direct connections, frames, objects, forms и base URL. Изображения главной страницы допускают локальные ресурсы, `dota-asset:`, data URLs и HTTPS (аватары Steam); overlay использует локальные картинки, `dota-asset:` и data URLs. Main process продолжает обслуживать assets и HTTP, renderer получает DTO через IPC.
+Головна сторінка й overlay тепер задають CSP до завантаження ресурсів: default deny, scripts лише `self`, fonts/local CSS лише `self`, заборона direct connections, frames, objects, forms і base URL. Зображення головної сторінки допускають локальні ресурси, `dota-asset:`, data URLs і HTTPS (аватари Steam); overlay використовує локальні картинки, `dota-asset:` і data URLs. Main process і далі обслуговує assets та HTTP, renderer отримує DTO через IPC.
 
-Inline styles остаются разрешёнными в этих двух страницах: текущие компоненты задают размеры, CSS variables, графики и динамические стили. Inline/eval scripts не разрешены. Splash и skill-arrows сохраняют свой существующий CSP. Эта граница не устраняет произвольный XSS внутри уже доверенного главного документа и не защищает от программ с полномочиями того же OS-пользователя; точные permissions и argument validation по-прежнему обязательны.
+Inline styles залишаються дозволеними на цих двох сторінках: поточні компоненти задають розміри, CSS variables, графіки й динамічні стилі. Inline/eval scripts не дозволено. Splash і skill-arrows зберігають свій наявний CSP. Ця межа не усуває довільного XSS усередині вже довіреного головного документа й не захищає від програм із повноваженнями того самого OS-користувача; точні permissions і argument validation, як і раніше, обов'язкові.
 
-## Проверки
+## Перевірки
 
-Node-проверки используют наблюдаемые эффекты callback: чужой webContents, subframe, неверный URL/query, исчезнувший frame и старое окно не выполняют действие. Window guards отменяют navigation/redirect/webview events и всегда отказывают popup.
+Node-перевірки використовують спостережувані ефекти callback: чужий webContents, subframe, хибний URL/query, зниклий frame і старе вікно не виконують дії. Window guards скасовують navigation/redirect/webview events і завжди відмовляють popup.
 
-`--smoke-test=<file>` выполняет общий `renderer-security-smoke.js` в настоящем Electron, также в Windows packaged app и установленной NSIS-версии:
+`--smoke-test=<file>` виконує спільний `renderer-security-smoke.js` у справжньому Electron, також у Windows packaged app і встановленій NSIS-версії:
 
-- Settings переключаются через DOM-кнопки RU/EN; проверяются язык, видимый текст и выбранная кнопка. Исходная настройка языка восстанавливается.
-- В main/overlay проверяются CSP violations при внедрении inline script и direct HTTP fetch, реальный переход на здоровый локальный backend и попытка popup.
-- Другие окна загружают те же локальные HTML и настоящие preloads, но их IPC получает отказ.
-- Штатная калибровка открывается через main IPC и закрывается своей DOM-кнопкой Cancel через calibration IPC без изменения frame settings.
-- Сохраняются предыдущие smoke-проверки backend, токенов, GSI config и graceful shutdown.
+- Settings перемикаються через DOM-кнопки UK/EN; перевіряються мова, видимий текст і вибрана кнопка. Вихідне налаштування мови відновлюється.
+- У main/overlay перевіряються CSP violations під час впровадження inline script і direct HTTP fetch, реальний перехід на здоровий локальний backend і спроба popup.
+- Інші вікна завантажують ті самі локальні HTML і справжні preloads, але їхній IPC отримує відмову.
+- Штатне калібрування відкривається через main IPC і закривається своєю DOM-кнопкою Cancel через calibration IPC без зміни frame settings.
+- Зберігаються попередні smoke-перевірки backend, токенів, GSI config і graceful shutdown.
 
-Новые smoke-модули входят в installer `build.files`, и packaging check проверяет локальные require dependencies. Skill arrow geometry, live advice и match analysis в этом исправлении не меняются.
+Нові smoke-модулі входять до installer `build.files`, і packaging check перевіряє локальні require dependencies. Skill arrow geometry, live advice та match analysis у цьому виправленні не змінюються.

@@ -24,11 +24,11 @@ recovery checkpoint newer than the last good one, any failed GSI persistence,
 GSI p95 at 250 ms or more, a failed sync, builds older than 21 days. A later
 success clears a save warning.
 
-The launcher's developer section shows it as «Состояние операций» / «Operations
+The launcher's developer section shows it as «Стан операцій» / «Operations
 health» (`renderer/ops-health.js`, copy `ops*` in `app-texts.js`): read when the
-section opens, on «Обновить» and every 10 s while it stays open and the window
+section opens, on «Оновити» and every 10 s while it stays open and the window
 is visible. Unknown codes from a newer backend show as the code.
 
 Tests: `backend/tests/test_operations_health.py` (fake-clock queue, every
 warning, a real refused SQLite finish through `/gsi`, the token),
-`frontend/launcher/test/ops-health.test.js` (RU/EN lines and every code).
+`frontend/launcher/test/ops-health.test.js` (UK/EN lines and every code).

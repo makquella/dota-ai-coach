@@ -1,6 +1,6 @@
 # AI coach questions: one run per request (0.53.52)
 
-«Спросить тренера» stays a synchronous request, but its lifetime is bounded
+«Запитати тренера» stays a synchronous request, but its lifetime is bounded
 and a lost response no longer costs a second provider call.
 
 - **Request id.** The renderer sends `request_id` (`ask-<uuid>`, pattern

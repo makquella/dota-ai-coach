@@ -29,7 +29,7 @@ from app.last_moments import RUNES_UK
 
 DEFAULT_LANG = "en"
 
-_RU_EXACT: dict[str, str] = {
+_UK_EXACT: dict[str, str] = {
     "Your bounty grows with the streak: farm near your team and skip dark, unwarded areas.": (
         "За вас дають дедалі більше золота: фарміть поруч із командою й не ходіть у темні місця без вардів."
     ),
@@ -462,7 +462,7 @@ _RU_EXACT: dict[str, str] = {
 }
 
 # Texts with a hero or ability name inside. The name is kept as sent.
-_RU_PATTERNS: tuple[tuple[re.Pattern[str], str], ...] = (
+_UK_PATTERNS: tuple[tuple[re.Pattern[str], str], ...] = (
     (
         re.compile(
             r"^Keep farming: (?P<gpm>\d+) gold per minute, (?P<lh>\d+) last hits at minute "
@@ -835,7 +835,7 @@ def _situational_reason(groups: dict[str, str]) -> str:
     return ""
 
 
-_RU_FUNCTIONS: tuple[tuple[re.Pattern[str], Callable[[dict[str, str]], str]], ...] = (
+_UK_FUNCTIONS: tuple[tuple[re.Pattern[str], Callable[[dict[str, str]], str]], ...] = (
     (
         re.compile(r"^After respawn, change your route: (?P<n>\d+) deaths this game\.$"),
         lambda g: (
@@ -1019,14 +1019,14 @@ def _lower_first(text: str) -> str:
 
 
 def _translate_sentence(text: str) -> str | None:
-    exact = _RU_EXACT.get(text)
+    exact = _UK_EXACT.get(text)
     if exact is not None:
         return exact
-    for pattern, template in _RU_PATTERNS:
+    for pattern, template in _UK_PATTERNS:
         match = pattern.match(text)
         if match:
             return template.format(**match.groupdict())
-    for pattern, render in _RU_FUNCTIONS:
+    for pattern, render in _UK_FUNCTIONS:
         match = pattern.match(text)
         if match:
             return render(match.groupdict())
@@ -1048,8 +1048,8 @@ def _translate_truncated(text: str) -> str | None:
     prefix = text[: -len(_TRUNCATION)].rstrip()
     if len(prefix) < 20:
         return None
-    candidates = [source for source in _RU_EXACT if source.startswith(prefix)]
-    return _RU_EXACT[candidates[0]] if len(candidates) == 1 else None
+    candidates = [source for source in _UK_EXACT if source.startswith(prefix)]
+    return _UK_EXACT[candidates[0]] if len(candidates) == 1 else None
 
 
 def translate_uk(text: str) -> str | None:
@@ -1111,17 +1111,17 @@ def _render_pattern(params: dict[str, Any], *, template: str) -> str:
     return template.format(**params)
 
 
-for _source, _ukrainian in _RU_EXACT.items():
+for _source, _ukrainian in _UK_EXACT.items():
     _id = _message_id("exact", _source)
     _EXACT_MESSAGE_IDS[_source] = _id
     _MESSAGE_RENDERERS[_id] = partial(_render_exact, text=_ukrainian)
 
 _PATTERN_MESSAGE_IDS: list[tuple[re.Pattern[str], str]] = []
-for _pattern, _template in _RU_PATTERNS:
+for _pattern, _template in _UK_PATTERNS:
     _id = _message_id("pattern", f"{_pattern.flags}:{_pattern.pattern}")
     _PATTERN_MESSAGE_IDS.append((_pattern, _id))
     _MESSAGE_RENDERERS[_id] = partial(_render_pattern, template=_template)
-for _pattern, _render in _RU_FUNCTIONS:
+for _pattern, _render in _UK_FUNCTIONS:
     _id = _message_id("function", f"{_pattern.flags}:{_pattern.pattern}")
     _PATTERN_MESSAGE_IDS.append((_pattern, _id))
     _MESSAGE_RENDERERS[_id] = _render

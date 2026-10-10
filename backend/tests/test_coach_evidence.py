@@ -163,3 +163,19 @@ def test_legacy_questions_are_rechecked_on_read_without_provider_or_storage_dele
     assert len(returned) == 1 and returned[0]["answer"] == history[1]["answer"]
     assert returned[0]["counter_evidence"][0]["field"] == "kills"
     assert service.store.cache_get(key) == history
+
+
+def test_russian_answers_from_before_0_54_stay_stored_but_are_not_shown(
+    client: TestClient, tmp_path: Path
+) -> None:
+    service = _reviewed_match(client, tmp_path, None)
+    key = f"{ASK_CACHE_KEY}:{ME}:{MATCH_ID}"
+    history = [
+        {"question": "How many deaths?", "answer": "You had 9 deaths.", "lang": "en"},
+        {"question": "Сколько смертей?", "answer": "У вас 9 смертей.", "lang": "ru"},
+    ]
+    service.store.cache_set(key, history)
+    for lang in ("uk", "en"):
+        returned = client.get(f"/player/matches/{MATCH_ID}?lang={lang}").json()["questions"]
+        assert [q["lang"] for q in returned] == ["en"]
+    assert service.store.cache_get(key) == history

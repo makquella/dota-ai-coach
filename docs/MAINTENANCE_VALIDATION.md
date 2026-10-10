@@ -2,7 +2,7 @@
 
 `.node-version` (Node 22) and `.python-version` (Python 3.11) are the CI/build/tooling
 version sources. Workflows read them after checkout; the backend CI explicitly
-installs Node for actual RU/EN catalog validation. Electron's embedded runtime
+installs Node for actual UK/EN catalog validation. Electron's embedded runtime
 remains its own packaged dependency. Local newer Node versions may work, but
 validation on the declared CI version remains required. Workflow syntax and
 expressions are checked by pinned actionlint 1.7.9 (the release binary with its

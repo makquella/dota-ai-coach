@@ -9,7 +9,7 @@ import re
 
 from app import gsi_state
 from app.advice_i18n import (
-    _RU_EXACT,
+    _UK_EXACT,
     localize_overlay_response,
     normalize_lang,
     translate_text,
@@ -49,8 +49,8 @@ def test_normalize_lang():
     assert normalize_lang(None) == "en"
 
 
-def test_translations_are_russian_apart_from_hp():
-    for source, text in _RU_EXACT.items():
+def test_translations_are_ukrainian_apart_from_hp():
+    for source, text in _UK_EXACT.items():
         leftovers = [word for word in LATIN_WORD.findall(text) if word != "HP"]
         assert not leftovers, (source, text)
 
@@ -86,7 +86,7 @@ def test_truncated_text_uses_full_translation():
         "so the fastest recovery is clean last hitting."
     )
     truncated = source[:80].rstrip() + "..."
-    assert translate_uk(truncated) == _RU_EXACT[source]
+    assert translate_uk(truncated) == _UK_EXACT[source]
 
 
 def test_unknown_text_stays_english():
