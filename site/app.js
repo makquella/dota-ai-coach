@@ -38,6 +38,7 @@
   function savedLanguage() {
     try {
       const saved = localStorage.getItem(LANG_KEY);
+      if (saved === "ru") return "uk"; // the choice from before 0.54
       return saved === "uk" || saved === "en" ? saved : "";
     } catch {
       return "";

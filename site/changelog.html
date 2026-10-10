@@ -2512,11 +2512,12 @@
             lang = localStorage.getItem(KEY) || "";
           } catch (error) {}
         }
+        if (lang === "ru") lang = "uk"; // apps and choices from before 0.54
         if (lang !== "uk" && lang !== "en") {
           var preferred = (navigator.languages || [navigator.language || "uk"]).map(function (l) {
             return String(l).toLowerCase();
           });
-          lang = preferred.some(function (l) { return /^(uk|uk|be|kk)/.test(l); }) ? "uk" : "en";
+          lang = preferred.some(function (l) { return /^(uk|ru|be|kk)/.test(l); }) ? "uk" : "en";
         }
         apply(lang);
         document.querySelectorAll(".lang [data-lang]").forEach(function (button) {
