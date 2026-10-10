@@ -1322,6 +1322,7 @@ async function pollGsiStatus() {
   live.polls += 1;
   if (processStatus.backend === "running" && live.polls % 5 === 2) {
     pollPlayerStatus().catch(() => {});
+    maybeAutoBackup();
   }
   let recentChanged = false;
   if (processStatus.backend === "running" && live.polls % 3 === 1) {
@@ -1864,6 +1865,13 @@ const PLAYER_OPS = {
     150000
   ],
   askStatus: (args) => ["GET", `/player/asks/${askRequestIdArg(args)}`, undefined, 10000],
+  // Automatic local copies (backend auto_backup.py); a copy of a long history
+  // takes a few seconds, a preview reads it whole.
+  backups: () => ["GET", "/player/backups"],
+  backupMake: () => ["POST", "/player/backups", undefined, 120000],
+  backupSettings: (args) => ["POST", "/player/backups/settings", { enabled: Boolean(args.enabled) }],
+  backupPreview: (args) => ["GET", `/player/backups/${backupIdArg(args)}/preview`, undefined, 120000],
+  backupRestore: (args) => ["POST", `/player/backups/${backupIdArg(args)}/restore`, undefined, 180000],
   coachCareer: () => ["POST", `/player/career/coach?lang=${uiLocale()}`],
   // A free question about the recent matches (same fact check, one retry).
   askCareer: (args) => [
@@ -1928,6 +1936,16 @@ function clampInt(value, min, max, fallback) {
   return Number.isFinite(number) ? Math.min(max, Math.max(min, number)) : fallback;
 }
 
+const BACKUP_ID = /^wardly-backup-\d{8}T\d{6}Z-(weekly|update|manual)\.json\.gz$/;
+
+function backupIdArg(args) {
+  const id = String(args.backupId || "");
+  if (!BACKUP_ID.test(id)) {
+    throw new Error("Invalid backup id.");
+  }
+  return id;
+}
+
 const ASK_REQUEST_ID = /^[A-Za-z0-9_-]{8,64}$/;
 
 function askRequestIdArg(args) {
@@ -1974,6 +1992,39 @@ async function playerRequest(op, args = {}) {
 }
 
 // Every ~5 s: account + "a new post-match review is ready" (tray balloon).
+// «Автоматические копии»: ask the backend two minutes after it starts and then
+// once a day; it decides whether a weekly or an update copy is due. Never
+// during a match (a long history takes a few seconds to pack).
+const AUTO_BACKUP_FIRST_MS = 2 * 60_000;
+const AUTO_BACKUP_EVERY_MS = 24 * 3_600_000;
+let autoBackupAt = 0;
+let autoBackupBusy = false;
+
+function maybeAutoBackup(now = Date.now()) {
+  if (IS_SMOKE_TEST || autoBackupBusy || processStatus.backend !== "running" || live.inMatch) {
+    return;
+  }
+  if (!autoBackupAt) {
+    autoBackupAt = now + AUTO_BACKUP_FIRST_MS;
+    return;
+  }
+  if (now < autoBackupAt) {
+    return;
+  }
+  autoBackupBusy = true;
+  autoBackupAt = now + AUTO_BACKUP_EVERY_MS;
+  requestBackendJson("/player/backups/auto", "POST", undefined, 120000)
+    .then((result) => {
+      if (result && result.made) {
+        appendLog("launcher", `History copy saved (${result.reason}).`, { force: true });
+      }
+    })
+    .catch((error) => appendLog("launcher", `History copy failed: ${error.message}`, { force: true }))
+    .finally(() => {
+      autoBackupBusy = false;
+    });
+}
+
 async function pollPlayerStatus() {
   const result = await playerRequest("status");
   if (!result.ok) {

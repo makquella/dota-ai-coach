@@ -500,6 +500,20 @@
                 <button id="backup-import" class="btn btn-ghost" type="button"><i data-icon="upload"></i><span data-i18n="backupImport">Open a file</span></button>
               </div>
             </div>
+            <div class="setting setting-wrap auto-backup-row" data-search="автоматические копии резервная копия восстановить еженедельно automatic copies backup restore weekly">
+              <span class="setting-text">
+                <label class="setting-title" for="auto-backup" data-i18n="autoBackupTitle">Automatic copies</label>
+                <span class="setting-hint" data-i18n="autoBackupHint">Once a week and before each update Wardly keeps a copy of your history on this computer: the last 4, up to 200 MB. Restoring only adds what is missing and never removes anything.</span>
+                <span class="setting-hint" id="auto-backup-status" aria-live="polite"></span>
+              </span>
+              <input id="auto-backup" type="checkbox" class="switch" role="switch" />
+              <div class="auto-backup-body">
+                <div class="row">
+                  <button id="auto-backup-now" class="btn btn-sm" type="button"><i data-icon="history"></i><span data-i18n="autoBackupNow">Make a copy now</span></button>
+                </div>
+                <ul class="auto-backup-list" id="auto-backup-list"></ul>
+              </div>
+            </div>
           </div>
         </section>
       </section>

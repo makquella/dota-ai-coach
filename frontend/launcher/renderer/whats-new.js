@@ -9,6 +9,9 @@
 
   const TEXT = {
     en: {
+      "0.53.55": [
+        "Automatic copies of your history: once a week and before each update Wardly keeps a copy on this computer, and you can check exactly what a copy would add before restoring it."
+      ],
       "0.53.54": [
         "Only you can delete your data on the server: uploads now carry a device key whose hash the server keeps, and a history transfer can be cancelled only by someone who has the whole code."
       ],
@@ -481,6 +484,9 @@
       ]
     },
     ru: {
+      "0.53.55": [
+        "Автоматические копии истории: раз в неделю и перед каждым обновлением Wardly сохраняет копию на этом компьютере, а перед восстановлением можно точно проверить, что копия добавит."
+      ],
       "0.53.54": [
         "Удалить ваши данные на сервере можете только вы: отправки теперь несут ключ устройства, а сервер хранит лишь его хеш; перенос истории по коду может отменить только тот, у кого есть весь код."
       ],

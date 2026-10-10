@@ -81,8 +81,10 @@ These are acceptance tasks too. They are not included in the 17-finding percenta
   compact regression runner over the existing simulation tools.
 - [ ] Patch/source/rules/input versions, as-of/sample count where relevant, rebuild
   reason and comparable Progress metrics across changed rules.
-- [ ] Automatic bounded rotating local backups, opt-in configuration/disk budget,
-  migration/import backup and restore preview → validated atomic apply.
+- [x] Automatic bounded rotating local backups, opt-in configuration/disk budget,
+  migration/import backup and restore preview → validated atomic apply (0.53.55,
+  HISTORY_BACKUP.md: on by default with a switch, 4 copies/200 MB, update copies and
+  a pre-schema SQLite snapshot, rolled-back preview, atomic merge).
 - [ ] Local post-match advice feedback (useful/irrelevant/repeated), keyed by advice
   ID; begin with a local experiment. Any future cloud aggregation remains opt-in
   with explicit allowlist/privacy changes.

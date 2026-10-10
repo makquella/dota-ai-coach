@@ -259,6 +259,21 @@ class PlayerStore:
         # The connection context commits before the caller can invalidate caches/queue sync.
         return result
 
+    def preview_backup(
+        self, tables: dict[str, list[dict[str, Any]]], account: int | None
+    ) -> dict[str, Any]:
+        """What merge_backup would do, counted by running it and rolling back."""
+        with self._lock:
+            self._conn.execute("BEGIN IMMEDIATE")
+            try:
+                imported = {
+                    table: self._import_rows(table, tables[table]) for table in self.BACKUP_KEYS
+                }
+                linked = self.primary_account_id() is None and account is not None
+            finally:
+                self._conn.rollback()
+        return {"imported": imported, "linked": linked, "account_id": self.primary_account_id()}
+
     def import_rows(self, table: str, rows: list[dict[str, Any]]) -> dict[str, int]:
         """Merge rows: a missing row is added; a stored one only gets the values it
         lacks (never overwritten). Unknown columns are ignored."""

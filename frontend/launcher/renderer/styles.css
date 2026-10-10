@@ -6562,3 +6562,35 @@ tr.row-link[data-result="loss"] > td:first-child {
   overflow: hidden;
   text-overflow: ellipsis;
 }
+
+/* «Автоматические копии»: the list of copies under the switch (renderBackups). */
+.auto-backup-body {
+  flex-basis: 100%;
+  display: grid;
+  gap: var(--sp-2);
+}
+
+.auto-backup-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: var(--sp-2);
+}
+
+.auto-backup-item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: var(--sp-1) var(--sp-3);
+  align-items: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.auto-backup-item > .setting-hint {
+  grid-column: 1 / -1;
+}
+
+.auto-backup-actions {
+  display: inline-flex;
+  gap: var(--sp-2);
+}
