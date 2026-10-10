@@ -6,7 +6,7 @@
   const LANG_KEY = "dac.lang";
   const API = "https://api.luhovyimvp.dev";
   // Bump with every reshoot of the pictures (scripts/site-shots) and in index.html.
-  const SHOTS_VERSION = "20";
+  const SHOTS_VERSION = "21";
 
   const EN = Object.assign({}, window.WARDLY_EN || {}, {
     version: (v, mb) => `Version ${v} · Windows 10 and 11 · ${mb} MB`

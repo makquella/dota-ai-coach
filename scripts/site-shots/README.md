@@ -37,6 +37,9 @@ backend/.venv/bin/python scripts/site-shots/game_frames.py /tmp/site-shots/raw
   Its Node bridge reads the demo backend's private `backend/local-api-auth.json`
   or the shared `DOTA_AI_CONTROL_TOKEN` environment variable. Credentials stay
   outside the browser; the demo backend still enforces normal local API checks.
+- The scripted coach texts in `demo_data.py` must pass the real fact check: the demo
+  backend prints `WARNING … the fact check cut the scripted coach text` when it
+  dropped a sentence, so fix the script before shooting.
 - Profile pictures (`profile`, `profile-shop`, `profile-friends`): run the demo
   backend with `DEMO_LOOKS=frame_gold,title_immortal` (looks a profile of its
   level can own — every demo match then counts as played with the app, so the

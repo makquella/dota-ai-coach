@@ -22,7 +22,17 @@ os.environ["OPENDOTA_ENABLED"] = "false"
 os.environ["DOTA_AI_BACKEND_PORT"] = sys.argv[1] if len(sys.argv) > 1 else "8777"
 
 import uvicorn  # noqa: E402
-from demo_data import PRO_SKILLS, DemoLLM, friend_row, vary, with_route  # noqa: E402
+from demo_data import (  # noqa: E402
+    CAREER_EN,
+    CAREER_RU,
+    EN,
+    PRO_SKILLS,
+    RU,
+    DemoLLM,
+    friend_row,
+    vary,
+    with_route,
+)
 from fastapi.testclient import TestClient  # noqa: E402
 from match_fixtures import ME, FakeOpenDota, gsi_match_stream, recent_matches  # noqa: E402
 
@@ -99,8 +109,17 @@ def main() -> None:
             ):
                 client.get(path)
                 PLAYER_SERVICE.ai_jobs.run_pending(until=float("inf"))
-                state = client.get(path).json()["coach"]["state"]
-                print(f"{path}: AI review {state}", flush=True)
+                coach = client.get(path).json()["coach"]
+                print(f"{path}: AI review {coach['state']}", flush=True)
+                script = {
+                    "ru": (RU, CAREER_RU),
+                    "en": (EN, CAREER_EN),
+                }[lang][0 if "/matches/" in path else 1]
+                review = coach.get("review") or {}
+                if any(review.get(key) != value for key, value in script.items()):
+                    # The real fact check dropped scripted sentences: the pictures
+                    # would show a shorter coach card than demo_data.py intends.
+                    print(f"WARNING {path}: the fact check cut the scripted coach text", flush=True)
     print("ready", flush=True)
     uvicorn.run(app, host="127.0.0.1", port=port, log_level="warning")
 

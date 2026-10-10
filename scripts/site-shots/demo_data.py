@@ -9,7 +9,7 @@ from typing import Any
 from match_fixtures import opendota_match
 
 RU = {
-    "summary": "Матч проигран на линии: к 10:00 у вас 36 добиваний против 65 у Anti-Mage, а две смерти от Shadow Fiend (4:00 и 7:00) отдали ему темп. Дальше отставание росло: с 15:00 по 22:00 почти нет фарма, и Maelstrom пришёл к 26:00 вместо обычных 20:00.",
+    "summary": "Матч решила линия. К 10:00 у вас 36 добиваний против 65 у Anti-Mage. Две смерти от Shadow Fiend (4:00 и 7:00) отдали ему темп, а дальше отставание росло: с 15:00 по 22:00 почти нет фарма, и Maelstrom пришёл к 26:00 вместо обычных 20:00.",
     "turning_points": [
         {
             "time": "4:00",
@@ -17,7 +17,7 @@ RU = {
         },
         {
             "time": "15:00",
-            "text": "Начался провал в фарме до 22:00: за это время всего 3 добивания.",
+            "text": "Начался провал в фарме до 22:00: золото почти не росло, а враги забрали центр карты.",
         },
         {
             "time": "26:00",
@@ -27,7 +27,7 @@ RU = {
     "mistakes": [
         {
             "title": "Линия против Shadow Fiend и Anti-Mage",
-            "detail": "Две смерти на линии и 36 добиваний к 10:00 при хорошем темпе 55. Anti-Mage за то же время добил 65.",
+            "detail": "Две смерти на линии отдали темп. К 10:00 у вас 36 добиваний, а хороший темп для керри — заметно больше.",
             "fix": "Против Shadow Fiend стойте за крипами и отходите, когда он подходит на удар. Если линия проиграна, раньше уходите в лес: сохраните и добивания, и жизнь.",
         },
     ],
@@ -35,7 +35,7 @@ RU = {
     "next_game": ["Maelstrom к 20:00.", "Не больше 2 смертей на линии."],
 }
 EN = {
-    "summary": "The lane decided the match: 36 last hits by 10:00 against 65 for Anti-Mage, and two deaths to Shadow Fiend (4:00 and 7:00) handed him the tempo. Then the gap grew: almost no farm from 15:00 to 22:00, and Maelstrom came at 26:00 instead of the usual 20:00.",
+    "summary": "The lane decided the match. By 10:00 you had 36 last hits against 65 for Anti-Mage. Two deaths to Shadow Fiend (4:00 and 7:00) handed him the tempo, and then the gap grew: almost no farm from 15:00 to 22:00, and Maelstrom came at 26:00 instead of the usual 20:00.",
     "turning_points": [
         {
             "time": "4:00",
@@ -43,7 +43,7 @@ EN = {
         },
         {
             "time": "15:00",
-            "text": "A farm gap until 22:00: only 3 last hits in that time.",
+            "text": "A farm gap until 22:00: gold barely grew while the enemies took the middle of the map.",
         },
         {
             "time": "26:00",
@@ -53,7 +53,7 @@ EN = {
     "mistakes": [
         {
             "title": "The lane against Shadow Fiend and Anti-Mage",
-            "detail": "Two lane deaths and 36 last hits by 10:00 where a good pace is 55. Anti-Mage had 65 by then.",
+            "detail": "Two lane deaths handed over the tempo. By 10:00 you had 36 last hits, well below a good carry pace.",
             "fix": "Against Shadow Fiend stay behind your creeps and step back when he walks up to hit. If the lane is lost, go to the jungle earlier: keep both the last hits and your life.",
         },
     ],
@@ -95,7 +95,7 @@ class DemoLLM:
     def complete(self, messages: list[dict[str, str]], **kwargs: Any) -> str:
         system = messages[0]["content"]
         ru = "Write in Russian" in system
-        if "patterns" in system:
+        if "patterns" in system:  # noqa: SIM108 - match vs career reads clearer
             answer = CAREER_RU if ru else CAREER_EN
         else:
             answer = RU if ru else EN
@@ -146,7 +146,14 @@ INVENTORIES = {
 
 # The other nine players of the fixture's lineup (the scoreboard's icons).
 LINEUP_ITEMS = {
-    74: ["hand_of_midas", "travel_boots", "ultimate_scepter", "octarine_core", "black_king_bar", "blink"],
+    74: [
+        "hand_of_midas",
+        "travel_boots",
+        "ultimate_scepter",
+        "octarine_core",
+        "black_king_bar",
+        "blink",
+    ],
     129: ["phase_boots", "blink", "black_king_bar", "desolator", "assault", "magic_wand"],
     26: ["tranquil_boots", "blink", "aether_lens", "force_staff", "ghost", "magic_wand"],
     5: ["tranquil_boots", "glimmer_cape", "force_staff", "blink", "ward_observer", "magic_wand"],
@@ -154,7 +161,14 @@ LINEUP_ITEMS = {
     11: ["power_treads", "black_king_bar", "desolator", "satanic", "blink", "ultimate_scepter"],
     2: ["phase_boots", "blink", "blade_mail", "black_king_bar", "heart", "magic_wand"],
     86: ["arcane_boots", "blink", "aether_lens", "force_staff", "glimmer_cape", "magic_wand"],
-    30: ["arcane_boots", "glimmer_cape", "ultimate_scepter", "force_staff", "magic_wand", "ward_observer"],
+    30: [
+        "arcane_boots",
+        "glimmer_cape",
+        "ultimate_scepter",
+        "force_staff",
+        "magic_wand",
+        "ward_observer",
+    ],
 }
 
 
@@ -169,6 +183,8 @@ def _lineup_items(match: dict[str, Any]) -> None:
     for player in match["players"][1:]:
         for slot, key in enumerate(LINEUP_ITEMS.get(player.get("hero_id"), [])):
             player[f"item_{slot}"] = key
+
+
 TOTALS = ("last_hits", "net_worth", "hero_damage", "tower_damage")
 
 

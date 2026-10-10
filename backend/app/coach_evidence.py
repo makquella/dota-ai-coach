@@ -469,7 +469,7 @@ class MatchFarmBindings:
             for field, label in FARM_LABELS.items():
                 pattern = re.compile(
                     rf"(?<![\w:.,]){NUMBER}\s+(?:{label})"
-                    rf"(?:\s+(?:к|на|at|by)\s+10:00)?\s+(?:против|versus|vs\.?)\s+"
+                    rf"(?:\s+(?:к|на|at|by)\s+10:00)?\s+(?:против|against|versus|vs\.?)\s+"
                     rf"(?P<count>{NUMBER})\s+(?:(?:у|for|on)\s+)?{re.escape(enemy_hero)}(?!\w)",
                     re.IGNORECASE,
                 )
