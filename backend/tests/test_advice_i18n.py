@@ -12,8 +12,8 @@ from app.advice_i18n import (
     _RU_EXACT,
     localize_overlay_response,
     normalize_lang,
-    translate_uk,
     translate_text,
+    translate_uk,
 )
 from app.advice_scheduler import ADVICE_SCHEDULER
 from app.coach_summary import COACH_SESSION_HISTORY
