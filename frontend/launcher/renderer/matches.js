@@ -1413,6 +1413,55 @@
     );
   }
 
+  // «На чём основан разбор?» (backend review_basis.py): the rules version, the
+  // data it read and why it was built; a review from before 0.53.57 says so.
+  function reviewBasis(analysis, sources) {
+    if (!analysis) {
+      return null;
+    }
+    const basis = analysis.basis || null;
+    const data = [];
+    if (basis ? basis.sources.includes("opendota") : sources.includes("opendota")) {
+      data.push(t(analysis.parsed ? "basisDataParsed" : "basisDataOpenDota"));
+    }
+    if (basis ? basis.recorded : sources.includes("gsi")) {
+      data.push(t("basisDataRecorded"));
+    }
+    const lines = [
+      t("basisRules", basis ? basis.rules : analysis.version),
+      t("basisData", data.length ? data.join(", ") : "—"),
+      basis
+        ? t(
+            `basisReason.${basis.reason}`,
+            new Date(basis.built_at).toLocaleString(state.locale === "ru" ? "ru-RU" : "en-GB", { day: "numeric", month: "long", hour: "2-digit", minute: "2-digit" }),
+            basis.previous_rules
+          )
+        : t("basisOld")
+    ];
+    return h(
+      "details",
+      { class: "review-basis no-print" },
+      h("summary", { text: t("basisTitle") }),
+      h("ul", { class: "muted small" }, lines.map((line) => h("li", { text: line }))),
+      h("p", { class: "muted small", text: t("basisHint") })
+    );
+  }
+
+  // Progress: whether the averages compare like with like (backend career_basis).
+  function careerBasisNote(basis) {
+    if (!basis || !basis.matches) {
+      return null;
+    }
+    const notes = [t("basisCareerRules", basis.matches, basis.rules)];
+    if (basis.mixed_patches) {
+      notes.push(t("basisCareerPatches", Object.keys(basis.patches).length));
+    }
+    if (basis.mixed_data) {
+      notes.push(t("basisCareerParsed", basis.parsed, basis.matches));
+    }
+    return h("p", { class: "muted small career-basis", text: notes.join(" ") });
+  }
+
   function reviewHeader(detail, analysis, summary) {
     const headline = (analysis && analysis.headline) || {};
     const win = headline.win ?? summary.win;
@@ -1480,6 +1529,7 @@
           h("h2", { class: "review-hero", text: headline.hero || summary.hero || "—" }),
           h("p", { class: "review-meta" }, resultBadge(win), h("span", { class: "muted", text: `· ${relativeTime(summary.start_time)} · #${detail.match_id}` }), matchSiteLinks(detail.match_id)),
           h("p", { class: "review-source" }, icon(analysis && analysis.parsed ? "circle-check" : "info"), h("span", { text: sourceText })),
+          reviewBasis(analysis, sources),
           window.WardlyFindingEvidence.renderCoverage(analysis?.recording_coverage, state.locale),
           statusText ? h("p", { class: "muted small", text: statusText }) : null,
           baselineLine(detail.baseline),
@@ -4386,6 +4436,7 @@
         "div",
         {},
         h("p", { class: "muted small chart-note", text: t("scoreChartHint") }),
+        careerBasisNote(career.basis),
         chartHost,
         h(
           "ul",

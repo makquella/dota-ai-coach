@@ -9,6 +9,9 @@
 
   const TEXT = {
     en: {
+      "0.53.57": [
+        "«What is this review based on?»: every review shows its rules version, the data it read and when and why it was rebuilt, and Progress says whether its averages compare like with like."
+      ],
       "0.53.56": [
         "Rate the coach's advice after a match: under each card of «Advice during the match» mark it «Useful», «Not to the point» or «Repeated». The marks stay on your computer."
       ],
@@ -487,6 +490,9 @@
       ]
     },
     ru: {
+      "0.53.57": [
+        "«На чём основан разбор?»: каждый разбор показывает версию правил, данные, на которых построен, и когда и почему пересчитан, а «Прогресс» подсказывает, можно ли напрямую сравнивать средние."
+      ],
       "0.53.56": [
         "Оценка советов после матча: под каждой карточкой «Подсказок во время матча» можно отметить «Полезно», «Не к месту» или «Повторялось». Отметки остаются на вашем компьютере."
       ],

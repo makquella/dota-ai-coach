@@ -6622,3 +6622,23 @@ tr.row-link[data-result="loss"] > td:first-child {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
+
+/* «На чём основан разбор?» under the review's source line (reviewBasis). */
+.review-basis {
+  margin: 2px 0 0;
+}
+
+.review-basis > summary {
+  cursor: pointer;
+  color: var(--text-2);
+  font-size: var(--fs-12);
+}
+
+.review-basis ul {
+  margin: 4px 0 0;
+  padding-left: 18px;
+}
+
+.review-basis p {
+  margin: 4px 0 0;
+}
