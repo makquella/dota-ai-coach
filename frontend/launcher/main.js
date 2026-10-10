@@ -1865,6 +1865,15 @@ const PLAYER_OPS = {
     150000
   ],
   askStatus: (args) => ["GET", `/player/asks/${askRequestIdArg(args)}`, undefined, 10000],
+  // The player's verdict on one live advice card (backend advice_feedback.py).
+  adviceFeedback: (args) => [
+    "POST",
+    `/player/matches/${matchIdArg(args)}/advice-feedback`,
+    {
+      key: String(args.key || "").slice(0, 80),
+      verdict: ["useful", "irrelevant", "repeated"].includes(args.verdict) ? args.verdict : null
+    }
+  ],
   // Automatic local copies (backend auto_backup.py); a copy of a long history
   // takes a few seconds, a preview reads it whole.
   backups: () => ["GET", "/player/backups"],

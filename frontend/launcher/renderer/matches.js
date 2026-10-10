@@ -3004,7 +3004,8 @@
             item.why ? h("details", { class: "advice-why" }, h("summary", { text: t("adviceWhy") }), h("p", { text: item.why })) : null,
             deathAfter.has(item.t)
               ? h("span", { class: "advice-log-death" }, icon("skull"), h("span", { text: t("adviceLogDeath", clock(deathAfter.get(item.t))) }))
-              : null
+              : null,
+            item.key ? adviceVerdicts(item) : null
           )
         )
       )
@@ -3027,8 +3028,44 @@
     return card(
       t("adviceLogTitle"),
       "lightbulb",
-      [h("p", { class: "muted small chart-note", text: t("adviceLogHint", advice.length, urgent) }), list, more].filter(Boolean)
+      [
+        h("p", { class: "muted small chart-note", text: t("adviceLogHint", advice.length, urgent) }),
+        h("p", { class: "muted small no-print", text: t("adviceRateHint") }),
+        list,
+        more
+      ].filter(Boolean)
     );
+  }
+
+  // «Полезно / не к месту / повторялось» under a card (backend advice_feedback.py);
+  // pressing the chosen one again clears it. Local only, never during a game.
+  function adviceVerdicts(item) {
+    const matchId = state.matchId;
+    const group = h("span", { class: "advice-verdicts no-print", role: "group", "aria-label": t("adviceRate") });
+    const draw = () =>
+      group.replaceChildren(
+        ...["useful", "irrelevant", "repeated"].map((verdict) =>
+          h("button", {
+            class: "chip advice-verdict",
+            type: "button",
+            "aria-pressed": String(item.feedback === verdict),
+            text: t(`adviceVerdicts.${verdict}`),
+            onclick: async () => {
+              const next = item.feedback === verdict ? null : verdict;
+              const previous = item.feedback;
+              item.feedback = next;
+              draw();
+              const result = await call("adviceFeedback", { matchId, key: item.key, verdict: next });
+              if (!result.ok || state.matchId !== matchId) {
+                item.feedback = result.ok ? next : previous;
+                draw();
+              }
+            }
+          })
+        )
+      );
+    draw();
+    return group;
   }
 
   function scoreboardCard(rows) {

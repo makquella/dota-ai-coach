@@ -79,6 +79,7 @@ META_JSON = {
     "rank_history": list,
     "mmr": list,
     "skipped_modes": dict,
+    "advice_feedback": dict,
 }
 
 

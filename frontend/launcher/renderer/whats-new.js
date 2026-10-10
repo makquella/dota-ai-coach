@@ -9,6 +9,9 @@
 
   const TEXT = {
     en: {
+      "0.53.56": [
+        "Rate the coach's advice after a match: under each card of «Advice during the match» mark it «Useful», «Not to the point» or «Repeated». The marks stay on your computer."
+      ],
       "0.53.55": [
         "Automatic copies of your history: once a week and before each update Wardly keeps a copy on this computer, and you can check exactly what a copy would add before restoring it."
       ],
@@ -484,6 +487,9 @@
       ]
     },
     ru: {
+      "0.53.56": [
+        "Оценка советов после матча: под каждой карточкой «Подсказок во время матча» можно отметить «Полезно», «Не к месту» или «Повторялось». Отметки остаются на вашем компьютере."
+      ],
       "0.53.55": [
         "Автоматические копии истории: раз в неделю и перед каждым обновлением Wardly сохраняет копию на этом компьютере, а перед восстановлением можно точно проверить, что копия добавит."
       ],
