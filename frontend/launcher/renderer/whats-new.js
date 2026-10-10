@@ -9,6 +9,11 @@
 
   const TEXT = {
     en: {
+      "0.53.62": [
+        "Wardly 0.53 in short: Ctrl+K finds anything, keys are encrypted on disk, history is copied automatically, you can rate the coach's advice, and every review says what it is based on. Restart Dota once after updating.",
+        "Rate the coach's advice under each card in a review, and open «What is this review based on?» for the rules and data behind it.",
+        "The AI coach checks K/D/A, GPM/XPM and last hits against the match data; websites can no longer reach the coach's settings."
+      ],
       "0.53.61": [
         "Under the hood: overlay status answers come from one builder, and the optional replay parser build checks what it downloads."
       ],
@@ -502,6 +507,11 @@
       ]
     },
     ru: {
+      "0.53.62": [
+        "Wardly 0.53 коротко: Ctrl+K находит что угодно, ключи зашифрованы на диске, история копируется сама, советы тренера можно оценивать, а каждый разбор показывает, на чём он основан. После обновления один раз перезапустите Доту.",
+        "Оценивайте советы тренера под каждой карточкой разбора и открывайте «На чём основан разбор?», чтобы увидеть правила и данные.",
+        "ИИ-тренер сверяет У/С/П, золото и опыт в минуту и добивания с данными матча; сайты больше не могут добраться до настроек тренера."
+      ],
       "0.53.61": [
         "Под капотом: служебные ответы оверлея собираются в одном месте, а сборка необязательного парсера записей проверяет то, что скачивает."
       ],

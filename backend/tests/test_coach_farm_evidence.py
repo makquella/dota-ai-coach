@@ -208,6 +208,7 @@ def _slice_facts() -> dict[str, object]:
         "К 10:00 у вас 36 добиваний против 65 у Anti-Mage.",
         "36 добиваний к 10:00 против 65 у Anti-Mage.",
         "36 last hits versus 65 for Anti-Mage at 10:00.",
+        "By 10:00 you had 36 last hits against 65 for Anti-Mage.",
     ],
 )
 def test_supported_10_minute_samples_bind_player_and_named_opponent(text: str) -> None:
@@ -226,6 +227,8 @@ def test_supported_10_minute_samples_bind_player_and_named_opponent(text: str) -
         "65 добиваний к 10:00 против 36 у Anti-Mage.",
         "36 добиваний к 10:00 против 36 у Anti-Mage.",
         "36 добиваний к 10:00 против 65 у Axe.",
+        "By 10:00 you had 36 last hits against 36 for Anti-Mage.",
+        "By 10:00 you had 36 last hits against Anti-Mage.",
         "36 last hits at 5:00.",
         "36 last hits at 5:00 and 10:00.",
         "36 last hits in lane at 10:00.",

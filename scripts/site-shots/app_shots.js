@@ -140,7 +140,8 @@ function playerRequest(lang, op, args = {}) {
   }
 }
 
-const scrollTo = (selector) => `(() => { const el = document.querySelector(${JSON.stringify(selector)}); if (el) window.scrollTo(0, el.getBoundingClientRect().top + window.scrollY - 16); })()`;
+// The card stops under the review's / Progress's sticky bar, not behind it.
+const scrollTo = (selector) => `(() => { const el = document.querySelector(${JSON.stringify(selector)}); const bar = document.querySelector(".review-toolbar, .page-toolbar"); const top = bar ? bar.getBoundingClientRect().height : 0; if (el) window.scrollTo(0, el.getBoundingClientRect().top + window.scrollY - top - 16); })()`;
 
 // name -> steps; every step list starts on the Home tab.
 const SHOTS = {
