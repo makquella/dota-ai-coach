@@ -36,7 +36,7 @@ test("leaving and returning to the same review rejects the old generation", asyn
 });
 
 test("another review or locale cannot receive a pending result", async () => {
-  for (const patch of [{matchId:"2"},{locale:"ru"},{view:"matches"}]) {
+  for (const patch of [{matchId:"2"},{locale:"uk"},{view:"matches"}]) {
     const f = fixture();
     const work = f.load("1");
     Object.assign(f.context, patch);

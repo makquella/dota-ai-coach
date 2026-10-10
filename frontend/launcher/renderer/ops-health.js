@@ -1,4 +1,4 @@
-// «Состояние операций» in the developer section: GET /operations/health
+// «Стан операцій» in the developer section: GET /operations/health
 // (backend/app/operations_health.py) as a few lines — background queues, saving
 // the finished match, the live GSI path and how fresh the data are — plus the
 // warnings it names. The pure part is UMD so test/ops-health.test.js runs it;

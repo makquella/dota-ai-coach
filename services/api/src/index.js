@@ -330,7 +330,8 @@ export async function deleteShare(request, id, env) {
 
 export async function sharePage(request, id, env, now = Date.now()) {
   const shared = isShareId(id) ? await readShare(env, id, now) : null;
-  const lang = (request.headers.get("accept-language") || "").toLowerCase().startsWith("ru") ? "ru" : "en";
+  // Ukrainian for a Ukrainian, Russian or Belarusian browser, as in the launcher.
+  const lang = /^(uk|ru|be)(-|,|;|$)/i.test(request.headers.get("accept-language") || "") ? "uk" : "en";
   if (!shared) {
     return new Response(renderMissingPage(lang), { status: 404, headers: { ...HTML_HEADERS, "cache-control": "no-store" } });
   }
@@ -443,7 +444,7 @@ export async function deleteProfile(request, id, env) {
 }
 
 export async function profilePage(request, id, env) {
-  const lang = (request.headers.get("accept-language") || "").toLowerCase().startsWith("en") ? "en" : "ru";
+  const lang = (request.headers.get("accept-language") || "").toLowerCase().startsWith("en") ? "en" : "uk";
   const row = isProfileId(id) ? await env.DB.prepare("SELECT body FROM profiles WHERE id = ?1").bind(id).first() : null;
   if (!row) {
     return new Response(renderMissingProfile(lang), { status: 404, headers: { ...HTML_HEADERS, "cache-control": "no-store" } });
@@ -703,7 +704,7 @@ export async function sendWeeklyStats(env, now = Date.now()) {
   return response.ok;
 }
 
-// «Удалить мои данные с сервера». With the device key: everything that key
+// «Видалити мої дані на сервері». With the device key: everything that key
 // uploaded plus this installation's rows from before device keys. Without it
 // (older launchers): only the rows without an owner, as before.
 const OWNED = "(owner_hash = ?2 OR (install_id = ?1 AND owner_hash IS NULL))";

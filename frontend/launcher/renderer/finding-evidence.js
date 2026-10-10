@@ -29,22 +29,22 @@
   }
   const clock = seconds => `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}`;
   function coverageNode(c, language) {
-    const ru = language === "ru";
+    const uk = language === "uk";
     const node = document.createElement("p");
-    node.textContent = `${ru ? "Запись" : "Recording"}: ${clock(c.start)}–${clock(c.end)} · ${c.complete ? (ru ? "покрытие полного матча" : "full match coverage") : (ru ? "неполные данные" : "partial data")}`;
-    if (c.gaps.length) node.textContent += ` · ${ru ? "пропуски" : "gaps"}: ${c.gaps.map(g => g.map(clock).join("–")).join(", ")}`;
+    node.textContent = `${uk ? "Запис" : "Recording"}: ${clock(c.start)}–${clock(c.end)} · ${c.complete ? (uk ? "покриття повного матчу" : "full match coverage") : (uk ? "неповні дані" : "partial data")}`;
+    if (c.gaps.length) node.textContent += ` · ${uk ? "пропуски" : "gaps"}: ${c.gaps.map(g => g.map(clock).join("–")).join(", ")}`;
     return node;
   }
   function renderRows(values, language) {
     const rows = (Array.isArray(values) ? values : []).filter(valid);
     if (!rows.length) return null;
-    const ru = language === "ru";
-    const labels = ru ? {obs_placed: "Обсервер-варды", sen_placed: "Сентри", lh10: "Добивания", lane_deaths: "Смерти до 10:00"} : {obs_placed: "Observer wards", sen_placed: "Sentry wards", lh10: "Last hits", lane_deaths: "Deaths before 10:00"};
-    const methods = ru ? {log_count: "зафиксированные события", reported_total: "итог OpenDota", inventory_estimate: "оценка по изменениям инвентаря", sample: "образец", carried_sample: "последний доступный образец"} : {log_count: "recorded events", reported_total: "OpenDota total", inventory_estimate: "estimate from inventory changes", sample: "sample", carried_sample: "last available sample"};
+    const uk = language === "uk";
+    const labels = uk ? {obs_placed: "Обсервер-варди", sen_placed: "Сентрі", lh10: "Добивання", lane_deaths: "Смерті до 10:00"} : {obs_placed: "Observer wards", sen_placed: "Sentry wards", lh10: "Last hits", lane_deaths: "Deaths before 10:00"};
+    const methods = uk ? {log_count: "зафіксовані події", reported_total: "підсумок OpenDota", inventory_estimate: "оцінка за змінами інвентарю", sample: "зразок", carried_sample: "останній доступний зразок"} : {log_count: "recorded events", reported_total: "OpenDota total", inventory_estimate: "estimate from inventory changes", sample: "sample", carried_sample: "last available sample"};
     const details = document.createElement("details");
     details.className = "finding-evidence muted small";
     const summary = document.createElement("summary");
-    summary.textContent = ru ? "Источник и покрытие данных" : "Source and data coverage";
+    summary.textContent = uk ? "Джерело й покриття даних" : "Source and data coverage";
     details.append(summary);
     for (const row of rows) {
       const value = document.createElement("p");
@@ -53,7 +53,7 @@
       if (row.coverage) details.append(coverageNode(row.coverage, language));
     }
     const scope = document.createElement("p");
-    scope.textContent = ru ? "Неизвестные интервалы не равны нулю. Эти данные не доказывают причины событий." : "Unknown intervals do not mean zero. These measurements do not prove event causes.";
+    scope.textContent = uk ? "Невідомі інтервали не дорівнюють нулю. Ці дані не доводять причин подій." : "Unknown intervals do not mean zero. These measurements do not prove event causes.";
     details.append(scope);
     return details;
   }

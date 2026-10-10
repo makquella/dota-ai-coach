@@ -1,4 +1,4 @@
--- «Поделиться разбором» (docs/DATA_PLAN.md, stage 4): reviews the player chose to
+-- «Поділитися розбором» (docs/DATA_PLAN.md, stage 4): reviews the player chose to
 -- publish. The review is the validated public part (src/share.js), gzipped JSON.
 CREATE TABLE IF NOT EXISTS shares (
   id TEXT PRIMARY KEY,           -- 10 characters, part of the link /r/<id>

@@ -52,24 +52,24 @@ const WEEK = {
     { hero: "Lina", hero_id: 25, games: 2, wins: 1 }
   ],
   best: { match_id: 8123456789, hero: "Juggernaut", hero_id: 8, score: 82, win: true },
-  top_problem: { id: "death_streak", title: "Смерти подряд", count: 3, of: 5 },
-  focus: { id: "death_streak", title: "Меньше смертей", drill: "…", results: [{ met: true }, { met: false }, { met: true }], met: 2, plan: 3 }
+  top_problem: { id: "death_streak", title: "Смерті поспіль", count: 3, of: 5 },
+  focus: { id: "death_streak", title: "Менше смертей", drill: "…", results: [{ met: true }, { met: false }, { met: true }], met: 2, plan: 3 }
 };
 
 test("the message: numbers and heroes, no match ids, no pings", () => {
   const period = { start: new Date(2026, 8, 21).getTime(), end: new Date(2026, 8, 28).getTime() };
-  const message = buildWeeklyMessage(WEEK, { lang: "ru", period });
+  const message = buildWeeklyMessage(WEEK, { lang: "uk", period });
   const [embed] = message.embeds;
   assert.deepEqual(message.allowed_mentions, { parse: [] });
   assert.equal(message.username, "Wardly");
-  assert.match(embed.title, /^Неделя в Dota 2 · 21 сент\.? – 27 сент/);
-  assert.equal(embed.description, "**5 матчей** · 3 победы · 2 поражения");
+  assert.match(embed.title, /^Тиждень у Dota 2 · 21 вер\.? – 27 вер/);
+  assert.equal(embed.description, "**5 матчів** · 3 перемоги · 2 поразки");
   const fields = Object.fromEntries(embed.fields.map((f) => [f.name, f.value]));
-  assert.equal(fields["Средняя оценка"], "64/100 (+6 к прошлой неделе)");
-  assert.equal(fields["Герои"], "Juggernaut — 3 матча, 2 победы\nLina — 2 матча, 1 победа");
-  assert.equal(fields["Лучший матч"], "Juggernaut · 82/100 · победа");
-  assert.equal(fields["Чаще всего повторялось"], "Смерти подряд (3 из 5)");
-  assert.equal(fields["Фокус"], "Меньше смертей: 2 из 3 матчей");
+  assert.equal(fields["Середня оцінка"], "64/100 (+6 до минулого тижня)");
+  assert.equal(fields["Герої"], "Juggernaut — 3 матчі, 2 перемоги\nLina — 2 матчі, 1 перемога");
+  assert.equal(fields["Найкращий матч"], "Juggernaut · 82/100 · перемога");
+  assert.equal(fields["Найчастіше повторювалося"], "Смерті поспіль (3 з 5)");
+  assert.equal(fields["Фокус"], "Менше смертей: 2 з 3 матчів");
   assert.ok(!JSON.stringify(message).includes("8123456789"), "no match id");
 
   const en = buildWeeklyMessage({ games: 1, wins: 0, losses: 1, avg_score: null, heroes: [] }, { lang: "en", period });
@@ -85,7 +85,7 @@ test("the message: numbers and heroes, no match ids, no pings", () => {
 test("the query names both ends of a local week, 169 hours long across a clock change", () => {
   // Europe: clocks go back on Sunday 25 Oct 2026, so that week is an hour longer.
   const period = { start: Date.UTC(2026, 9, 18, 22), end: Date.UTC(2026, 9, 25, 23) };
-  assert.equal(weekQuery(period, "ru"), "/player/week?lang=ru&since=1792360800&until=1792969200");
+  assert.equal(weekQuery(period, "uk"), "/player/week?lang=uk&since=1792360800&until=1792969200");
   assert.equal((period.end - period.start) / 3600000, 169);
   assert.match(weekQuery(period, "de"), /lang=en/);
 });

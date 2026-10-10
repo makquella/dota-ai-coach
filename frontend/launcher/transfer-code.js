@@ -1,4 +1,4 @@
-// «Перенос истории по коду»: a one-time code and the encryption around it.
+// «Перенесення історії за кодом»: a one-time code and the encryption around it.
 // Pure Node (no Electron), tested in test/transfer-code.test.js.
 //
 // The code is ABCD-EFGH-JKLM. "ABCD" is the id the API keeps the upload under;

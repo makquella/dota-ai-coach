@@ -1,4 +1,4 @@
-// Opt-in anonymous statistics («Анонимная статистика» in Settings → App, off by
+// Opt-in anonymous statistics («Анонімна статистика» in Settings → App, off by
 // default): once a day the launcher sends yesterday's counts to the project API
 // (services/api `POST /v1/stats`): which advice was shown per decision point,
 // which urgent warnings were followed by a death (backend GET /player/usage),
@@ -73,7 +73,7 @@ function buildStats({ installId, day, version, platform, lang, usage, settings, 
     day,
     version: String(version || ""),
     os: ["win32", "linux", "darwin"].includes(platform) ? platform : "other",
-    lang: lang === "ru" ? "ru" : "en",
+    lang: lang === "uk" ? "uk" : "en",
     usage: {
       matches: Number.isInteger(u.matches) ? u.matches : 0,
       with_advice: Number.isInteger(u.with_advice) ? u.with_advice : 0,

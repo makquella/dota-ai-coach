@@ -1,6 +1,6 @@
-// «Друзья»: the profile card a player chose to show (0.35).
+// «Друзі»: the profile card a player chose to show (0.35).
 //
-// The launcher publishes the public part of its «Профиль» tab under a random
+// The launcher publishes the public part of its «Профіль» tab under a random
 // 8-character id — the friend code — with a secret token only it holds
 // (PUT /v1/profile/<id>, header x-profile-token). Friends read cards by code
 // (POST /v1/profiles {ids}), and /p/<id> is the same card as a page to send
@@ -74,7 +74,7 @@ export function validateProfile(body) {
     .map((a) => ({ id: a.id, tier: int(a.tier, 0, 6) ?? 0, title: text(a.title, 40) }));
   const stats = input.stats && typeof input.stats === "object" ? input.stats : {};
   const profile = {
-    lang: input.lang === "en" ? "en" : "ru",
+    lang: input.lang === "en" ? "en" : "uk",
     name,
     avatar: AVATAR.test(String(input.avatar || "")) ? input.avatar : null,
     title: text(input.title, 40) || null,
@@ -97,16 +97,16 @@ export function validateProfile(body) {
 // --- the page -----------------------------------------------------------------
 
 const TEXTS = {
-  ru: {
-    level: (n) => `Уровень ${n}`,
-    games: "Матчей с Wardly",
-    winrate: "Побед",
-    rating: "Рейтинг (оценка)",
-    achievements: "Награды",
-    title: (p) => `${p.name} · уровень ${p.level} в Wardly`,
-    description: (p) => `Профиль игрока Dota 2 в Wardly: уровень ${p.level}, ${p.stats.app_games} матчей с тренером.`,
-    add: (code) => `Код друга: ${code} — добавьте в Wardly на вкладке «Профиль».`,
-    missing: "Профиль не найден или скрыт."
+  uk: {
+    level: (n) => `Рівень ${n}`,
+    games: "Матчів з Wardly",
+    winrate: "Перемог",
+    rating: "Рейтинг (оцінка)",
+    achievements: "Нагороди",
+    title: (p) => `${p.name} · рівень ${p.level} у Wardly`,
+    description: (p) => `Профіль гравця Dota 2 у Wardly: рівень ${p.level}, ${p.stats.app_games} матчів із тренером.`,
+    add: (code) => `Код друга: ${code} — додайте у Wardly на вкладці «Профіль».`,
+    missing: "Профіль не знайдено або приховано."
   },
   en: {
     level: (n) => `Level ${n}`,
@@ -181,7 +181,7 @@ export function friendCode(id) {
 }
 
 export function renderProfilePage(profile, { id, url }) {
-  const lang = profile.lang === "en" ? "en" : "ru";
+  const lang = profile.lang === "en" ? "en" : "uk";
   const t = TEXTS[lang];
   const worn = profile.equipped || {};
   const initials = escapeHtml(profile.name.slice(0, 2).toUpperCase());
@@ -226,10 +226,10 @@ ${badges ? `<h2>${escapeHtml(t.achievements)}</h2><ul class="badges">${badges}</
   });
 }
 
-export function renderMissingProfile(lang = "ru") {
-  const t = TEXTS[lang === "en" ? "en" : "ru"];
+export function renderMissingProfile(lang = "uk") {
+  const t = TEXTS[lang === "en" ? "en" : "uk"];
   return page({
-    lang: lang === "en" ? "en" : "ru",
+    lang: lang === "en" ? "en" : "uk",
     title: t.missing,
     description: t.missing,
     image: `${SITE_URL}/assets/og.jpg`,

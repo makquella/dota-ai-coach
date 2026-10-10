@@ -21,12 +21,12 @@ test("first installation shows only its current notes and missing notes stay hid
 
 test("language tables are detached, include the same versions and fall back to English", () => {
   const en = texts("en");
-  const ru = texts("ru");
-  assert.deepEqual(Object.keys(en), Object.keys(ru));
+  const uk = texts("uk");
+  assert.deepEqual(Object.keys(en), Object.keys(uk));
   assert.deepEqual(texts("unknown"), en);
   const current = require("../package.json").version;
-  assert.ok(en[current].length && ru[current].length);
-  assert.notDeepEqual(en[current], ru[current]);
+  assert.ok(en[current].length && uk[current].length);
+  assert.notDeepEqual(en[current], uk[current]);
   en[current][0] = "Changed by caller";
   en["999.0.0"] = ["Extra"];
   assert.notEqual(texts("en")[current][0], "Changed by caller");
@@ -43,5 +43,5 @@ test("current update notes agree with launcher lock, backend versions and biling
   assert.ok(backend.includes(`version="${current}"`), "FastAPI version");
   assert.ok(backend.includes(`"version": "${current}"`), "health version");
   const notes = fs.readFileSync(path.join(root, `docs/release-notes/v${current}.md`), "utf8");
-  assert.ok(notes.includes("Что нового") && notes.includes("**In English:**"));
+  assert.ok(notes.includes("Що нового") && notes.includes("**In English:**"));
 });

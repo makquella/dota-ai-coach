@@ -2,7 +2,7 @@
 // cards (current match, recent advice, overlay settings) and a collapsed
 // "For developers" section with every other tool (service, GSI config, live
 // GSI, recordings, replay demos, Deep Review, logs). Texts follow the system
-// language (ru/en) sent by the main process as status.locale.
+// language (uk/en) sent by the main process as status.locale.
 
 const I18N = window.WardlyAppTexts.create(window.WardlyWhatsNew);
 
@@ -134,7 +134,7 @@ const factEls = {
   mode: $("#mode-status"),
   llm: $("#llm-status")
 };
-// «Автоматические копии» (renderBackups below; init() binds them before the end of this file).
+// «Автоматичні копії» (renderBackups below; init() binds them before the end of this file).
 const autoBackupEls = {
   toggle: $("#auto-backup"),
   status: $("#auto-backup-status"),
@@ -230,7 +230,7 @@ function renderWeekly(state) {
     return;
   }
   const last = state.last;
-  const date = last && last.at ? new Date(last.at).toLocaleDateString(locale === "ru" ? "ru-RU" : "en-GB", { day: "numeric", month: "long" }) : "";
+  const date = last && last.at ? new Date(last.at).toLocaleDateString(locale === "uk" ? "uk-UA" : "en-GB", { day: "numeric", month: "long" }) : "";
   if (last && !last.ok) {
     els.weeklyHint.textContent = trOr(`weeklyErrors.${last.code}`, tr("weeklyErrors.fallback"));
   } else if (last && last.sent) {
@@ -335,8 +335,8 @@ async function init() {
   // Ctrl + plus / minus / 0 (main.js): the new size for a moment.
   window.launcherApi.onUiScale?.((scale) => showToast(tr("uiScaleToast", percent(scale))));
 
-  // «Найти настройку» (settings-search.js); Ctrl+F on Settings goes to it (the
-  // key, not the letter: «а» on a Russian layout), and leaving Settings clears
+  // «Знайти налаштування» (settings-search.js); Ctrl+F on Settings goes to it (the
+  // key, not the letter: «а» on a Cyrillic layout), and leaving Settings clears
   // it, so every row is back the next time.
   const settingsView = $("#view-settings");
   const settingsSearch = window.SettingsSearch?.attach({
@@ -511,7 +511,7 @@ async function init() {
       transferRun(els.transferSend, tr("transferSending"), async () => {
         const result = await window.launcherApi.sendHistoryByCode();
         if (result && result.ok) {
-          const time = result.expiresAt ? new Date(result.expiresAt).toLocaleTimeString(locale === "ru" ? "ru-RU" : "en-GB", { hour: "2-digit", minute: "2-digit" }) : "—";
+          const time = result.expiresAt ? new Date(result.expiresAt).toLocaleTimeString(locale === "uk" ? "uk-UA" : "en-GB", { hour: "2-digit", minute: "2-digit" }) : "—";
           els.transferCode.textContent = result.code;
           els.transferCode.hidden = false;
           els.transferHint.textContent = tr("transferReady", result.matches, time);
@@ -809,7 +809,7 @@ function startTour() {
       ...step,
       title: tr(`tour.steps.${step.id}.title`),
       text: tr(`tour.steps.${step.id}.text`),
-      image: step.image ? `../assets/tour/${locale === "ru" ? "ru" : "en"}/${step.image}.webp` : undefined
+      image: step.image ? `../assets/tour/${locale === "uk" ? "uk" : "en"}/${step.image}.webp` : undefined
     })),
     labels: {
       next: tr("tour.next"),
@@ -828,9 +828,9 @@ function startTour() {
   });
 }
 
-// 1.1 → «110 %» (ru) / “110%” (en).
+// 1.1 → «110 %» (uk) / “110%” (en).
 function percent(value) {
-  return new Intl.NumberFormat(locale === "ru" ? "ru-RU" : "en-US", { style: "percent", maximumFractionDigits: 0 }).format(value);
+  return new Intl.NumberFormat(locale === "uk" ? "uk-UA" : "en-US", { style: "percent", maximumFractionDigits: 0 }).format(value);
 }
 
 // A short note at the bottom of the window, gone in 2 s (the interface size
@@ -908,7 +908,7 @@ async function stopLiveRecording() {
 // Rendering
 // ---------------------------------------------------------------------------
 
-// «Хранить записи матчей»: the recordings of the last week, newest first,
+// «Зберігати записи матчів»: the recordings of the last week, newest first,
 // each with a button that saves its file to Downloads.
 function refreshRecords() {
   if (!els.matchRecords.checked) {
@@ -929,7 +929,7 @@ function renderRecords(records) {
       const item = document.createElement("li");
       item.className = "records-item";
       const when = record.started_at
-        ? new Date(record.started_at).toLocaleString(locale === "ru" ? "ru-RU" : "en-GB", {
+        ? new Date(record.started_at).toLocaleString(locale === "uk" ? "uk-UA" : "en-GB", {
             day: "numeric",
             month: "short",
             hour: "2-digit",
@@ -1146,7 +1146,7 @@ function renderSetup(status) {
   }
   els.setupCount.textContent = tr("setupCount", doneCount, required.length);
   els.setupBar.style.width = `${Math.round((doneCount / Math.max(1, required.length)) * 100)}%`;
-  const preview = `../assets/tour/${locale === "ru" ? "ru" : "en"}/lowhp.webp`;
+  const preview = `../assets/tour/${locale === "uk" ? "uk" : "en"}/lowhp.webp`;
   if (!els.setupPreviewImg.src.endsWith(preview.slice(2))) {
     els.setupPreviewImg.src = preview;
   }
@@ -1217,7 +1217,7 @@ function isOffline(status) {
 function renderService(status) {
   const state = status.backend || "stopped";
   els.service.dataset.state = state;
-  // The port is a developer's detail (also under «Для разработчика»): a tooltip here.
+  // The port is a developer's detail (also under «Для розробника»): a tooltip here.
   els.serviceText.textContent = `${tr("service")} ${tr(`serviceStates.${state}`)}`;
   els.service.title = status.backendPort && state === "running" ? `127.0.0.1:${status.backendPort}` : "";
   renderSidePlayer(status.player);
@@ -1611,7 +1611,7 @@ function renderOverlaySettings(status) {
   }
   els.shareStats.checked = Boolean(status.shareStats);
   const statsDate = status.statsSentAt
-    ? new Date(status.statsSentAt).toLocaleDateString(locale === "ru" ? "ru-RU" : "en-GB", { day: "numeric", month: "long" })
+    ? new Date(status.statsSentAt).toLocaleDateString(locale === "uk" ? "uk-UA" : "en-GB", { day: "numeric", month: "long" })
     : "";
   els.statsHint.textContent =
     serverDeleteNote || (!status.shareStats ? tr("statsOff") : statsDate ? tr("statsSent", statsDate) : tr("statsOn"));
@@ -1824,9 +1824,9 @@ function renderOps(health) {
   warningsEl.dataset.state = warnings.length ? "bad" : "good";
 }
 
-// «Автоматические копии» (backend auto_backup.py): the switch, «Сделать копию
-// сейчас» and each copy with «Проверить» (a preview that writes nothing), then
-// «Восстановить» when it would add something.
+// «Автоматичні копії» (backend auto_backup.py): the switch, «Зробити копію
+// зараз» and each copy with «Перевірити» (a preview that writes nothing), then
+// «Відновити» when it would add something.
 
 async function refreshBackups() {
   const result = await window.launcherApi.player("backups");
@@ -1836,16 +1836,16 @@ async function refreshBackups() {
 }
 
 function backupSize(bytes) {
-  const ru = locale === "ru";
+  const uk = locale === "uk";
   const mb = Number(bytes || 0) / 1048576;
-  return mb >= 1 ? `${mb.toFixed(1)} ${ru ? "МБ" : "MB"}` : `${Math.max(1, Math.round(Number(bytes || 0) / 1024))} ${ru ? "КБ" : "KB"}`;
+  return mb >= 1 ? `${mb.toFixed(1)} ${uk ? "МБ" : "MB"}` : `${Math.max(1, Math.round(Number(bytes || 0) / 1024))} ${uk ? "КБ" : "KB"}`;
 }
 
 function backupDate(iso) {
   const date = new Date(iso);
   return Number.isNaN(date.getTime())
     ? ""
-    : date.toLocaleString(locale === "ru" ? "ru-RU" : "en-GB", { day: "numeric", month: "long", hour: "2-digit", minute: "2-digit" });
+    : date.toLocaleString(locale === "uk" ? "uk-UA" : "en-GB", { day: "numeric", month: "long", hour: "2-digit", minute: "2-digit" });
 }
 
 function renderBackups(state) {

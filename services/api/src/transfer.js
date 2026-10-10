@@ -1,4 +1,4 @@
-// «Перенос истории по коду»: the launcher encrypts its history backup with a key
+// «Перенесення історії за кодом»: the launcher encrypts its history backup with a key
 // made from the secret part of a one-time code (ABCD-EFGH-JKLM: "ABCD" is the id
 // here, "EFGHJKLM" never leaves the two computers) and uploads the ciphertext.
 // The other computer downloads it with the id and decrypts it locally, then

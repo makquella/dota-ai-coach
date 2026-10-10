@@ -1,4 +1,4 @@
-// «Найти настройку»: a search field over Settings. Every row (`.setting`, the
+// «Знайти налаштування»: a search field over Settings. Every row (`.setting`, the
 // AI coach card, the hotkey list, the developer sections) is matched with its
 // card title, its zone title and the folded section it sits in, plus the
 // row's `data-search` keywords (both languages, so «звук» finds «Голос»).
@@ -16,13 +16,14 @@
     root.SettingsSearch = api;
   }
 })(typeof self !== "undefined" ? self : this, function () {
-  // Lower case, «ё» as «е», quotes and dashes as spaces: the same length as
+  // Lower case, «ґ» as «г», curly apostrophes as «'», quotes and dashes as spaces: the same length as
   // the input for one-to-one highlights (`fold`), then collapsed (`normalize`).
   function fold(text) {
     return String(text == null ? "" : text)
       .toLowerCase()
-      .replace(/ё/g, "е")
-      .replace(/[«»“”"'’‘—–\-_/·.,:;!?()]/g, " ");
+      .replace(/ґ/g, "г")
+      .replace(/[’‘ʼ]/g, "'")
+      .replace(/[«»“”"—–\-_/·.,:;!?()]/g, " ");
   }
 
   function normalize(text) {
@@ -34,8 +35,8 @@
     return [...new Set(normalize(query).split(" ").filter(Boolean))];
   }
 
-  // A word counts from its start: «ключ» finds «ключи» and «ключа», not
-  // «включить» or «подключить» (Russian endings change, beginnings rarely).
+  // A word counts from its start: «ключ» finds «ключі» and «ключа», not
+  // «увімкнути» or «підключити» (Ukrainian endings change, beginnings rarely).
   const LETTER = /[\p{L}\p{N}]/u;
 
   function startsAt(text, word, from) {

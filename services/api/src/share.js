@@ -1,4 +1,4 @@
-// «Поделиться разбором»: a match review the player chose to publish.
+// «Поділитися розбором»: a match review the player chose to publish.
 //
 // The launcher sends the public part of a review (backend/app/share_review.py);
 // validateShare() builds a new object from known fields only, with type and
@@ -69,7 +69,7 @@ export function validateShare(body) {
     stats[key] = int(input.stats?.[key], 0, 1_000_000);
   }
   const review = {
-    lang: input.lang === "ru" ? "ru" : "en",
+    lang: input.lang === "en" ? "en" : "uk",
     hero: text(input.hero, 40),
     hero_key: /^[a-z0-9_]{1,40}$/.test(String(input.hero_key || "")) ? input.hero_key : null,
     win: typeof input.win === "boolean" ? input.win : null,
@@ -114,7 +114,7 @@ function isoDay(value) {
   return /^\d{4}-\d{2}-\d{2}$/.test(String(value || "")) ? value : null;
 }
 
-/** «Поделиться прогрессом» (backend/app/share_progress.py): a new object from known fields. */
+/** «Поділитися прогресом» (backend/app/share_progress.py): a new object from known fields. */
 export function validateProgress(input) {
   if (!input || typeof input !== "object") {
     return null;
@@ -137,7 +137,7 @@ export function validateProgress(input) {
   const trendInput = list(input.trend, TREND_KEYS.length);
   return {
     kind: "progress",
-    lang: input.lang === "ru" ? "ru" : "en",
+    lang: input.lang === "en" ? "en" : "uk",
     matches: int(input.matches, 0, 10_000),
     analyzed,
     wins: int(input.wins, 0, 10_000),
@@ -176,30 +176,30 @@ export function validateProgress(input) {
 // --- the page -----------------------------------------------------------------------
 
 const TEXTS = {
-  ru: {
-    win: "Победа",
-    loss: "Поражение",
-    score: "Оценка разбора",
-    of: "из 100",
-    kda: "У / С / П",
-    gpm: "Золото / опыт в мин",
-    lh: "Добивания / денаи",
-    damage: "Урон по героям",
-    sections: "По разделам",
-    strengths: "Что получилось",
-    improvements: "Что улучшить",
-    drill: "В следующий раз",
-    deaths: (d) => `Смертей: ${d.count}${d.enemy_half ? ` · на половине противника: ${d.enemy_half}` : ""}${d.unspent_gold ? ` · с непотраченным золотом: ${d.unspent_gold}` : ""}`,
-    coach: "Разбор ИИ-тренера",
-    data: (parsed) => (parsed ? "Полный разбор реплея (OpenDota)" : "Данные матча без разбора реплея"),
-    made: "Разбор сделан в Wardly — бесплатном тренере по Dota 2: подсказки во время игры и честный разбор после.",
-    cta: "Скачать Wardly",
-    expires: (date) => `Ссылка работает до ${date}.`,
-    missingTitle: "Разбор не найден",
-    missing: "Ссылка устарела (разборы хранятся 90 дней) или автор её удалил.",
+  uk: {
+    win: "Перемога",
+    loss: "Поразка",
+    score: "Оцінка розбору",
+    of: "зі 100",
+    kda: "В / С / Д",
+    gpm: "Золото / досвід за хв",
+    lh: "Добивання / денаї",
+    damage: "Шкода по героях",
+    sections: "За розділами",
+    strengths: "Що вдалося",
+    improvements: "Що покращити",
+    drill: "Наступного разу",
+    deaths: (d) => `Смертей: ${d.count}${d.enemy_half ? ` · на половині суперника: ${d.enemy_half}` : ""}${d.unspent_gold ? ` · з невитраченим золотом: ${d.unspent_gold}` : ""}`,
+    coach: "Розбір ШІ-тренера",
+    data: (parsed) => (parsed ? "Повний розбір реплею (OpenDota)" : "Дані матчу без розбору реплею"),
+    made: "Розбір зроблено у Wardly — безкоштовному тренері з Dota 2: підказки під час гри й чесний розбір після.",
+    cta: "Завантажити Wardly",
+    expires: (date) => `Посилання працює до ${date}.`,
+    missingTitle: "Розбір не знайдено",
+    missing: "Посилання застаріло (розбори зберігаються 90 днів) або автор його видалив.",
     home: "На сайт Wardly",
-    title: (r) => `${r.hero} · ${r.win === true ? "победа" : r.win === false ? "поражение" : "матч"}${r.score !== null ? ` · оценка ${r.score}` : ""}`,
-    description: "Разбор матча Dota 2 в Wardly: линия, фарм, выживание, драки и что улучшить."
+    title: (r) => `${r.hero} · ${r.win === true ? "перемога" : r.win === false ? "поразка" : "матч"}${r.score !== null ? ` · оцінка ${r.score}` : ""}`,
+    description: "Розбір матчу Dota 2 у Wardly: лінія, фарм, виживання, бійки й що покращити."
   },
   en: {
     win: "Win",
@@ -239,14 +239,14 @@ function clock(seconds) {
   return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}`;
 }
 
-/** "2026-09-21" -> "21.09.2026" (ru) / "21 Sep 2026" (en). */
+/** "2026-09-21" -> "21.09.2026" (uk) / "21 Sep 2026" (en). */
 function day(iso, lang) {
   const [y, m, d] = String(iso || "").split("-").map(Number);
   if (!y || !m || !d) {
     return "";
   }
   const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-  return lang === "ru" ? `${String(d).padStart(2, "0")}.${String(m).padStart(2, "0")}.${y}` : `${d} ${months[m - 1]} ${y}`;
+  return lang === "uk" ? `${String(d).padStart(2, "0")}.${String(m).padStart(2, "0")}.${y}` : `${d} ${months[m - 1]} ${y}`;
 }
 
 function num(value) {
@@ -290,37 +290,37 @@ ${url ? `<meta property="og:url" content="${escapeHtml(url)}" />` : ""}
 <style>${STYLE}</style>
 </head>
 <body><main>
-<header class="top"><a class="brand" href="${siteHome(lang)}"><img src="${SITE_URL}/assets/logo-mark.png" alt="" /><b>Wardly</b></a><a class="try" href="${siteHome(lang)}">${lang === "en" ? "Try it free" : "Попробовать бесплатно"}</a></header>
+<header class="top"><a class="brand" href="${siteHome(lang)}"><img src="${SITE_URL}/assets/logo-mark.png" alt="" /><b>Wardly</b></a><a class="try" href="${siteHome(lang)}">${lang === "en" ? "Try it free" : "Спробувати безкоштовно"}</a></header>
 ${body}
 </main></body>
 </html>`;
 }
 
 const PROGRESS_TEXTS = {
-  ru: {
-    heading: "Прогресс в Dota 2",
-    matches: (p) => `${p.matches ?? p.analyzed} матчей, из них разобрано ${p.analyzed}`,
+  uk: {
+    heading: "Прогрес у Dota 2",
+    matches: (p) => `${p.matches ?? p.analyzed} матчів, з них розібрано ${p.analyzed}`,
     period: (from, to) => `${from} — ${to}`,
-    record: "Победы / поражения",
-    winrate: "Процент побед",
-    score: "Средняя оценка",
+    record: "Перемоги / поразки",
+    winrate: "Відсоток перемог",
+    score: "Середня оцінка",
     kda: "KDA",
-    gpm: "Золото / опыт в мин",
-    lh10: "Добивания к 10:00",
-    deaths: "Смертей за игру",
-    trend: "Последние 10 матчей против 10 до них",
-    trendKeys: { score: "Оценка", winrate: "Победы, %", gpm: "Золото в мин", lh_10: "Добивания к 10:00", deaths: "Смерти" },
-    heroes: "Герои",
-    heroGames: (h) => `${h.matches} матчей · ${h.winrate ?? "—"}% побед`,
-    strengths: "Что получается",
-    problems: "Над чем работать",
-    inMatches: (r) => (r.count !== null && r.of !== null ? `В ${r.count} из ${r.of} разобранных матчей` : ""),
-    drill: "Упражнение",
+    gpm: "Золото / досвід за хв",
+    lh10: "Добивання до 10:00",
+    deaths: "Смертей за гру",
+    trend: "Останні 10 матчів проти 10 до них",
+    trendKeys: { score: "Оцінка", winrate: "Перемоги, %", gpm: "Золото за хв", lh_10: "Добивання до 10:00", deaths: "Смерті" },
+    heroes: "Герої",
+    heroGames: (h) => `${h.matches} матчів · ${h.winrate ?? "—"}% перемог`,
+    strengths: "Що вдається",
+    problems: "Над чим працювати",
+    inMatches: (r) => (r.count !== null && r.of !== null ? `У ${r.count} з ${r.of} розібраних матчів` : ""),
+    drill: "Вправа",
     focus: "Фокус",
-    focusResult: (f) => `Выполнен в ${f.met} из ${f.total} матчей`,
-    coach: "Вывод ИИ-тренера",
-    title: (p) => `Прогресс в Dota 2 · ${p.matches ?? p.analyzed} матчей${p.winrate !== null ? ` · ${p.winrate}% побед` : ""}`,
-    description: "Прогресс игрока Dota 2 в Wardly: цифры, герои, что получается и над чем работать."
+    focusResult: (f) => `Виконано в ${f.met} з ${f.total} матчів`,
+    coach: "Висновок ШІ-тренера",
+    title: (p) => `Прогрес у Dota 2 · ${p.matches ?? p.analyzed} матчів${p.winrate !== null ? ` · ${p.winrate}% перемог` : ""}`,
+    description: "Прогрес гравця Dota 2 у Wardly: цифри, герої, що вдається й над чим працювати."
   },
   en: {
     heading: "Dota 2 progress",
@@ -350,12 +350,14 @@ const PROGRESS_TEXTS = {
 };
 
 function renderProgressPage(p, { url, expiresAt }) {
-  const t = PROGRESS_TEXTS[p.lang] || PROGRESS_TEXTS.en;
-  const base = TEXTS[p.lang] || TEXTS.en;
+  // Shares from before 0.54 were stored as «ru»: everything but English reads in Ukrainian.
+  const lang = p.lang === "en" ? "en" : "uk";
+  const t = PROGRESS_TEXTS[lang];
+  const base = TEXTS[lang];
   const top = p.heroes.find((h) => h.hero_key);
   const image = top ? `${PORTRAIT}/${top.hero_key}.png` : `${SITE_URL}/assets/og.jpg`;
   const a = p.averages || {};
-  const period = p.period && p.period.from && p.period.to ? t.period(day(p.period.from, p.lang), day(p.period.to, p.lang)) : "";
+  const period = p.period && p.period.from && p.period.to ? t.period(day(p.period.from, lang), day(p.period.to, lang)) : "";
   const meta = [escapeHtml(t.matches(p)), escapeHtml(p.rank || ""), escapeHtml(period)].filter(Boolean).join(" · ");
   const trend = p.trend.length
     ? `<section class="card"><h2>${t.trend}</h2>${p.trend
@@ -404,13 +406,14 @@ ${trend}
 ${recurring(t.problems, p.problems)}
 ${recurring(t.strengths, p.strengths)}
 ${heroes}
-<section class="card foot">${base.made}<br /><a class="cta" href="${siteHome(p.lang)}">${base.cta}</a>
-<p class="small">${escapeHtml(base.expires(day(new Date(expiresAt).toISOString().slice(0, 10), p.lang)))}</p></section>`;
-  return page({ lang: p.lang, title: t.title(p), description: p.coach ? p.coach.slice(0, 200) : t.description, image, url, body });
+<section class="card foot">${base.made}<br /><a class="cta" href="${siteHome(lang)}">${base.cta}</a>
+<p class="small">${escapeHtml(base.expires(day(new Date(expiresAt).toISOString().slice(0, 10), lang)))}</p></section>`;
+  return page({ lang: lang, title: t.title(p), description: p.coach ? p.coach.slice(0, 200) : t.description, image, url, body });
 }
 
 export function renderSharePage(review, { url, expiresAt }) {
-  const t = TEXTS[review.lang] || TEXTS.en;
+  const lang = review.lang === "en" ? "en" : "uk";
+  const t = TEXTS[lang];
   if (review.kind === "progress") {
     return renderProgressPage(review, { url, expiresAt });
   }
@@ -422,7 +425,7 @@ export function renderSharePage(review, { url, expiresAt }) {
     result ? `<span class="dot" style="background:${tone}"></span>${escapeHtml(result)}` : "",
     escapeHtml(clock(review.duration)),
     escapeHtml(review.role || ""),
-    escapeHtml(day(review.played_on, review.lang))
+    escapeHtml(day(review.played_on, lang))
   ]
     .filter(Boolean)
     .join(" · ");
@@ -465,10 +468,10 @@ ${review.coach ? `<section class="card"><h2>${t.coach}</h2><p class="coach">${es
 ${sections}
 ${findings(t.improvements, review.improvements, true)}
 ${findings(t.strengths, review.strengths, false)}
-<section class="card foot">${t.made}<br /><a class="cta" href="${siteHome(review.lang)}">${t.cta}</a>
-<p class="small">${escapeHtml(t.expires(day(new Date(expiresAt).toISOString().slice(0, 10), review.lang)))}</p></section>`;
+<section class="card foot">${t.made}<br /><a class="cta" href="${siteHome(lang)}">${t.cta}</a>
+<p class="small">${escapeHtml(t.expires(day(new Date(expiresAt).toISOString().slice(0, 10), lang)))}</p></section>`;
   return page({
-    lang: review.lang,
+    lang: lang,
     title: t.title(review),
     description: review.coach ? review.coach.slice(0, 200) : t.description,
     image: portrait,
@@ -477,8 +480,8 @@ ${findings(t.strengths, review.strengths, false)}
   });
 }
 
-export function renderMissingPage(lang = "ru") {
-  const t = TEXTS[lang] || TEXTS.ru;
+export function renderMissingPage(lang = "uk") {
+  const t = TEXTS[lang] || TEXTS.uk;
   return page({
     lang,
     title: t.missingTitle,

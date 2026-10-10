@@ -15,7 +15,7 @@ function workspace(t) {
 test("settings acknowledge actual replacement and preserve legacy defaults", t => {
   const directory = workspace(t);
   const file = path.join(directory, "settings.json");
-  const defaults = {overlay:{enabled:true, position:"right"}, language:"ru"};
+  const defaults = {overlay:{enabled:true, position:"right"}, language:"uk"};
   const store = createSettingsStore(file, defaults);
   assert.equal(store.health().failures, 0);
   assert.equal(store.health().lastSuccessAt, null);
@@ -32,7 +32,7 @@ test("settings acknowledge actual replacement and preserve legacy defaults", t =
 test("failed replacement retains RAM edits and can acknowledge a later retry", t => {
   const directory = workspace(t);
   const file = path.join(directory, "settings.json");
-  const store = createSettingsStore(file, {language:"ru"});
+  const store = createSettingsStore(file, {language:"uk"});
   const events = [];
   store.onError(error => events.push(error));
   fs.mkdirSync(file); // A directory cannot be replaced by a settings file.
@@ -57,10 +57,10 @@ test("failed replacement retains RAM edits and can acknowledge a later retry", t
 test("corrupt settings retain load diagnosis without leaking content to reports", t => {
   const file = path.join(workspace(t), "settings.json");
   fs.writeFileSync(file, '{"api_key":"private-load-value"');
-  const store = createSettingsStore(file, {language:"ru"});
+  const store = createSettingsStore(file, {language:"uk"});
   const events = [];
   store.onError(error => events.push(error));
-  assert.equal(store.get("language"), "ru");
+  assert.equal(store.get("language"), "uk");
   assert.equal(events.length, 1);
   assert.equal(events[0].operation, "load");
   const report = buildReport({settingsHealth:store.health()});
@@ -75,7 +75,7 @@ test("corrupt settings retain load diagnosis without leaking content to reports"
 test("encoding failure preserves the previous settings file and cleans temporary files", t => {
   const directory = workspace(t);
   const file = path.join(directory, "settings.json");
-  const store = createSettingsStore(file, {language:"ru"});
+  const store = createSettingsStore(file, {language:"uk"});
   store.set("language", "en");
   const previous = fs.readFileSync(file, "utf8");
   const cyclic = {secret:"private-encoding-value"};

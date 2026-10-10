@@ -178,8 +178,8 @@ const REPORT = {
   install_id: "a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d",
   version: "0.2.1",
   os: "win32 10.0.22631",
-  lang: "ru",
-  note: "Оверлей не видно",
+  lang: "uk",
+  note: "Оверлея не видно",
   text: '===== Settings =====\n{"api_key": "gsk_abcdefghijklmnopqrstu"}\nERROR sync failed\n'
 };
 
@@ -217,13 +217,13 @@ test("a report is stored, indexed and answered with its number", async () => {
   const answer = await response.json();
   assert.match(answer.id, /^R-[A-Z0-9]{6}$/);
   assert.equal(reports.length, 1);
-  assert.equal(reports[0].summary, "Оверлей не видно");
+  assert.equal(reports[0].summary, "Оверлея не видно");
   const [key] = objects.keys();
   assert.match(key, /^reports\/\d{4}\/\d{2}\/R-[A-Z0-9]{6}\.txt\.gz$/);
   const stored = await new Response(
     new Blob([objects.get(key).body]).stream().pipeThrough(new DecompressionStream("gzip"))
   ).text();
-  assert.ok(stored.startsWith("Player note:\nОверлей не видно"));
+  assert.ok(stored.startsWith("Player note:\nОверлея не видно"));
   assert.ok(stored.includes('"api_key": "[redacted]"') && !stored.includes("gsk_"));
 });
 
@@ -275,7 +275,7 @@ test("a player can delete their reports; old ones expire", async () => {
 
 test("the admin page script runs, also as the deploy bundles it", () => {
   // wrangler/esbuild add __name(...) calls inside the function's text; without
-  // the helper the script died on its first line and «Показать» did nothing.
+  // the helper the script died on its first line and «Показати» did nothing.
   const bundled = ADMIN_JS.replace('const KEY = ', '__name(() => 0, "probe");\n  const KEY = ');
   assert.notEqual(bundled, ADMIN_JS);
   for (const source of [ADMIN_JS, bundled]) {
@@ -348,7 +348,7 @@ test("without an R2 bucket the report is kept in D1", async () => {
   assert.ok(reports[0].body.length > 0);
   const auth = { headers: { authorization: "Bearer t0ken" } };
   const text = await (await worker.fetch(new Request(`https://api.example/v1/admin/report/${id}`, auth), env, ctx)).text();
-  assert.ok(text.startsWith("Player note:\nОверлей не видно"));
+  assert.ok(text.startsWith("Player note:\nОверлея не видно"));
   assert.equal(await cleanup(env, Date.now() + 181 * 24 * 3_600_000), 1);
   assert.equal(reports.length, 0);
   await worker.fetch(upload(REPORT), env, ctx);
@@ -356,10 +356,10 @@ test("without an R2 bucket the report is kept in D1", async () => {
   assert.deepEqual(await gone.json(), { ok: true, deleted: 1 });
 });
 
-// --- «Поделиться разбором» ------------------------------------------------------------
+// --- «Поділитися розбором» ------------------------------------------------------------
 
 const REVIEW = {
-  lang: "ru",
+  lang: "uk",
   hero: "Juggernaut",
   hero_key: "juggernaut",
   win: false,
@@ -370,11 +370,11 @@ const REVIEW = {
   role: "кор",
   parsed: true,
   stats: { kills: 3, deaths: 9, assists: 6, gpm: 390, xpm: 430, last_hits: 160, denies: 3, net_worth: 11500, hero_damage: 9000 },
-  sections: [{ label: "Линия", score: 20 }],
+  sections: [{ label: "Лінія", score: 20 }],
   strengths: [],
-  improvements: [{ title: "Проиграна линия <script>alert(1)</script>", text: "36 добиваний к 10:00", drill: "Добивайте под вышкой" }],
+  improvements: [{ title: "Програна лінія <script>alert(1)</script>", text: "36 добивань до 10:00", drill: "Добивайте під вежею" }],
   deaths: { count: 9, enemy_half: 5, unspent_gold: 2 },
-  coach: "Матч решила линия. Steam 76561198000000001"
+  coach: "Матч вирішила лінія. Steam 76561198000000001"
 };
 
 function shareRequest(body, ip = "198.51.100.7") {
@@ -419,12 +419,12 @@ test("a shared review is published, shown as a page and deleted by its author", 
   assert.equal(page.status, 200);
   assert.match(page.headers.get("content-security-policy"), /default-src 'none'/);
   const html = await page.text();
-  assert.match(html, /<meta property="og:title" content="Juggernaut · поражение · оценка 31"/);
+  assert.match(html, /<meta property="og:title" content="Juggernaut · поразка · оцінка 31"/);
   assert.match(html, /heroes\/juggernaut\.png/);
   assert.ok(!html.includes("<script>alert(1)</script>"), "texts are escaped");
   assert.ok(html.includes("&lt;script&gt;"));
   // A visible way to try it, leading to the site in the review's language, tagged.
-  assert.match(html, /<a class="try" href="https:\/\/luhovyimvp\.dev\/\?ref=share">Попробовать бесплатно<\/a>/);
+  assert.match(html, /<a class="try" href="https:\/\/luhovyimvp\.dev\/\?ref=share">Спробувати безкоштовно<\/a>/);
   assert.ok(!html.includes('href="https://luhovyimvp.dev/"'), "every site link carries ?ref=share");
 
   const noToken = await worker.fetch(new Request(`https://api.example/v1/share/${answer.id}`, { method: "DELETE" }), env, ctx);
@@ -435,11 +435,11 @@ test("a shared review is published, shown as a page and deleted by its author", 
     ctx
   );
   assert.equal(deleted.status, 200);
-  const gone = await worker.fetch(new Request(`https://api.example/r/${answer.id}`, { headers: { "accept-language": "ru-RU" } }), env, ctx);
+  const gone = await worker.fetch(new Request(`https://api.example/r/${answer.id}`, { headers: { "accept-language": "uk-UA" } }), env, ctx);
   assert.equal(gone.status, 404);
-  assert.match(await gone.text(), /Разбор не найден/);
+  assert.match(await gone.text(), /Розбір не знайдено/);
   assert.equal(siteHome("en"), "https://luhovyimvp.dev/en/?ref=share");
-  assert.equal(siteHome("ru"), "https://luhovyimvp.dev/?ref=share");
+  assert.equal(siteHome("uk"), "https://luhovyimvp.dev/?ref=share");
 });
 
 test("shares are checked, limited, expire and go with the installation", async () => {
@@ -464,11 +464,11 @@ test("shares are checked, limited, expire and go with the installation", async (
   assert.equal((await worker.fetch(new Request("https://api.example/r/not-an-id!"), env, ctx)).status, 404);
 });
 
-// --- «Поделиться прогрессом» ----------------------------------------------------------
+// --- «Поділитися прогресом» ----------------------------------------------------------
 
 const PROGRESS = {
   kind: "progress",
-  lang: "ru",
+  lang: "uk",
   matches: 14,
   analyzed: 12,
   wins: 9,
@@ -482,10 +482,10 @@ const PROGRESS = {
     { key: "hacked", recent: 1, previous: 2, better: true }
   ],
   heroes: [{ hero: "Juggernaut", hero_key: "juggernaut", matches: 13, winrate: 62, match_id: 8012345678 }],
-  strengths: [{ title: "Сильная линия", count: 8, of: 12, drill: "not for strengths" }],
-  problems: [{ title: "Фарм ниже <b>соперника</b>", count: 4, of: 12, drill: "Не отдавайте волны" }],
-  focus: { title: "Смерти на линии", met: 2, total: 3, results: [{ match_id: 1 }] },
-  coach: "Стабильный фарм. Steam 76561198000000001",
+  strengths: [{ title: "Сильна лінія", count: 8, of: 12, drill: "not for strengths" }],
+  problems: [{ title: "Фарм нижчий за <b>суперника</b>", count: 4, of: 12, drill: "Не віддавайте хвилі" }],
+  focus: { title: "Смерті на лінії", met: 2, total: 3, results: [{ match_id: 1 }] },
+  coach: "Стабільний фарм. Steam 76561198000000001",
   series: [{ match_id: 8012345678 }]
 };
 
@@ -501,10 +501,10 @@ test("a shared progress page is checked field by field and rendered", async () =
   assert.ok(!("drill" in review.strengths[0]));
   assert.ok(!review.coach.includes("76561198000000001"));
   const html = await (await worker.fetch(new Request(`https://api.example/r/${answer.id}`), env, ctx)).text();
-  assert.match(html, /<meta property="og:title" content="Прогресс в Dota 2 · 14 матчей · 64% побед"/);
+  assert.match(html, /<meta property="og:title" content="Прогрес у Dota 2 · 14 матчів · 64% перемог"/);
   assert.match(html, /heroes\/juggernaut\.png/);
-  assert.ok(html.includes("Фарм ниже &lt;b&gt;соперника&lt;/b&gt;"), "texts are escaped");
-  assert.ok(html.includes("Выполнен в 2 из 3 матчей"));
+  assert.ok(html.includes("Фарм нижчий за &lt;b&gt;суперника&lt;/b&gt;"), "texts are escaped");
+  assert.ok(html.includes("Виконано в 2 з 3 матчів"));
 
   const bad = await worker.fetch(shareRequest({ install_id: REPORT.install_id, progress: { analyzed: 0 } }), env, ctx);
   assert.equal(bad.status, 400);
@@ -512,7 +512,7 @@ test("a shared progress page is checked field by field and rendered", async () =
 });
 
 
-// --- «Перенос истории по коду» --------------------------------------------------------
+// --- «Перенесення історії за кодом» --------------------------------------------------------
 
 function sealed(size = 64) {
   const bytes = new Uint8Array(size);
@@ -597,12 +597,12 @@ test("version gate for site links", () => {
 });
 
 
-// --- «Друзья»: profile cards by friend code (src/profile.js) ---------------------
+// --- «Друзі»: profile cards by friend code (src/profile.js) ---------------------
 
 const INSTALL = "a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d";
 const TOKEN = "0123456789abcdef0123456789abcdef";
 const CARD = {
-  lang: "ru",
+  lang: "uk",
   name: "farm_or_die 76561198000000000",
   avatar: "0123456789abcdef0123456789abcdef01234567",
   title: "Легенда Wardly",
@@ -611,7 +611,7 @@ const CARD = {
   rank_label: "Легенда 4",
   mmr: 3619,
   equipped: { frame: "frame_arcana", banner: "banner_aurora", name: "name_prism", title: "title_legend", extra: "x" },
-  achievements: [{ id: "app_games", tier: 2, title: "С тренером" }, { id: "Bad Id", tier: 9 }],
+  achievements: [{ id: "app_games", tier: 2, title: "З тренером" }, { id: "Bad Id", tier: 9 }],
   stats: { app_games: 12, app_winrate: 58, week_games: 4 },
   steam_id: "76561198000000000"
 };

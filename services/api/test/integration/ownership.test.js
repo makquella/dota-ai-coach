@@ -46,7 +46,7 @@ function report(mf, install, key) {
   return mf.dispatchFetch("https://local.test/v1/report", {
     method: "POST",
     headers: headers(key),
-    body: JSON.stringify({ install_id: install, version: "0.53.54", os: "win32", lang: "ru", note: "", text: "ERROR sync failed" }),
+    body: JSON.stringify({ install_id: install, version: "0.53.54", os: "win32", lang: "uk", note: "", text: "ERROR sync failed" }),
   });
 }
 
@@ -57,7 +57,7 @@ function share(mf, install, key) {
     body: JSON.stringify({
       install_id: install,
       version: "0.53.54",
-      review: { lang: "ru", hero: "Juggernaut", hero_key: "juggernaut", win: true, duration: 2000, played_on: "2026-10-09", score: 70, grade: "B", role: "кор", parsed: true, stats: {}, sections: [], strengths: [], improvements: [], deaths: { count: 2 } },
+      review: { lang: "uk", hero: "Juggernaut", hero_key: "juggernaut", win: true, duration: 2000, played_on: "2026-10-09", score: 70, grade: "B", role: "кор", parsed: true, stats: {}, sections: [], strengths: [], improvements: [], deaths: { count: 2 } },
     }),
   });
 }
@@ -66,7 +66,7 @@ function profile(mf, id, install, key, token = "0123456789abcdef0123456789abcdef
   return mf.dispatchFetch(`https://local.test/v1/profile/${id}`, {
     method: "PUT",
     headers: headers(key, { "x-profile-token": token }),
-    body: JSON.stringify({ install_id: install, version: "0.53.54", profile: { lang: "ru", name: "player", level: 3, achievements: [], stats: { app_games: 1, app_winrate: null }, equipped: {} } }),
+    body: JSON.stringify({ install_id: install, version: "0.53.54", profile: { lang: "uk", name: "player", level: 3, achievements: [], stats: { app_games: 1, app_winrate: null }, equipped: {} } }),
   });
 }
 
