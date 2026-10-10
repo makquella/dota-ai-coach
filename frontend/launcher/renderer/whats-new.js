@@ -9,6 +9,9 @@
 
   const TEXT = {
     en: {
+      "0.53.58": [
+        "For developers: a one-command check that replays a carry, a mid, an offlaner and a support match through the live coach and shows exactly which advice changed."
+      ],
       "0.53.57": [
         "«What is this review based on?»: every review shows its rules version, the data it read and when and why it was rebuilt, and Progress says whether its averages compare like with like."
       ],
@@ -490,6 +493,9 @@
       ]
     },
     ru: {
+      "0.53.58": [
+        "Для разработчика: одна команда прогоняет матчи керри, мида, оффлейнера и саппорта через живого тренера и показывает, какие именно советы изменились."
+      ],
       "0.53.57": [
         "«На чём основан разбор?»: каждый разбор показывает версию правил, данные, на которых построен, и когда и почему пересчитан, а «Прогресс» подсказывает, можно ли напрямую сравнивать средние."
       ],

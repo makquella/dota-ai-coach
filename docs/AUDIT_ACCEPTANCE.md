@@ -77,8 +77,9 @@ These are acceptance tasks too. They are not included in the 17-finding percenta
   (0.53.51, OPERATIONS_HEALTH.md; `/operations/health`, «Состояние операций»).
 - [x] Investigate and fix the observed nightly fuzz seed-12 dead-hero phase
   container regression (0.53.48); preserve unknown signals and normal phases.
-- [ ] More sanitized support/mid role replay acceptance cases and a fixed-clock
-  compact regression runner over the existing simulation tools.
+- [x] More sanitized support/mid role replay acceptance cases and a fixed-clock
+  compact regression runner over the existing simulation tools (0.53.58, TESTING.md:
+  `scripts/replay_check.py`, four role cases, `tests/replay_golden/`).
 - [x] Patch/source/rules/input versions, as-of/sample count where relevant, rebuild
   reason and comparable Progress metrics across changed rules (0.53.57, REVIEW_BASIS.md:
   `analysis.basis`, «На чём основан разбор?», `career.basis` note over the score chart).
