@@ -39,6 +39,7 @@ def reset_runtime_state(tmp_path):
     MATCH_MEMORY.reset()
     ADVICE_SCHEDULER.reset()
     ADVICE_SCHEDULER.set_frequency("normal")
+    ADVICE_SCHEDULER.set_quieter(())
     set_role_setting("auto")
     _map_hints["enabled"] = True
     COACH_SESSION_HISTORY.reset()
@@ -50,6 +51,7 @@ def reset_runtime_state(tmp_path):
     MATCH_MEMORY.reset()
     ADVICE_SCHEDULER.reset()
     ADVICE_SCHEDULER.set_frequency("normal")
+    ADVICE_SCHEDULER.set_quieter(())
     set_role_setting("auto")
     _map_hints["enabled"] = True
     COACH_SESSION_HISTORY.reset()

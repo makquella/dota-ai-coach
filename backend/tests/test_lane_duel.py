@@ -187,3 +187,65 @@ def test_the_lane_record_tip_shows_once():
     assert (
         RoleTips().tip(100, "mid", lang="en", lane_record=easy, **base)["title"] == "Your lane: Axe"
     )
+
+
+def test_the_opponents_usual_last_hits_from_past_lanes():
+    from app.lane_duel import lane_pace_for, lane_record_for, lane_records
+
+    def match(result, enemy, at5, at7):
+        points = [
+            {"minute": 3, "lh": 10, "enemy_lh": 12},
+            {"minute": 5, "lh": 18, "enemy_lh": at5},
+            {"minute": 7, "lh": 26, "enemy_lh": at7},
+        ]
+        return {
+            "analysis": {
+                "lane": {"judged": True, "result": result, "enemy": enemy, "points": points}
+            }
+        }
+
+    records = lane_records(
+        [
+            match("won", "Axe", 20, 30),
+            match("even", "Axe", 25, 35),
+            match("lost", "Lina", 30, 44),
+            # A review without the minute points counts for the record, not the pace.
+            {"analysis": {"lane": {"judged": True, "result": "won", "enemy": "Lina"}}},
+        ]
+    )
+    assert records["Axe"]["pace_games"] == 2 and records["Axe"]["enemy_lh_5"] == 45
+    assert lane_pace_for(["Axe"], records) == {"hero": "Axe", "games": 2, "lh": {5: 22, 7: 32}}
+    assert lane_pace_for(["Lina"], records) is None  # one lane with points
+    # No clear win/loss record against Axe: the pace still reaches the live tips.
+    assert lane_record_for(["Axe"], records) == {
+        "hero": "Axe",
+        "kind": None,
+        "pace": {"hero": "Axe", "games": 2, "lh": {5: 22, 7: 32}},
+    }
+
+
+def test_the_pace_tip_names_how_far_behind_the_opponent_the_player_is():
+    from app.map_hints import PACE_SHOW, RoleTips
+
+    record = {
+        "hero": "Axe",
+        "kind": None,
+        "pace": {"hero": "Axe", "games": 3, "lh": {5: 22, 7: 32}},
+    }
+    base = {"alive": True, "has_ward": None, "lane_record": record}
+    tips = RoleTips()
+    assert tips.tip(299, "carry", lang="uk", last_hits=10, **base) is None
+    tip = tips.tip(300, "carry", lang="uk", last_hits=15, **base)
+    assert tip["title"] == "Відстаєте від темпу Axe: 15 добивань"
+    assert "близько 22 добивань до 5:00" in tip["hint"]
+    # The number stays while the card is up, then the tip is gone.
+    assert tips.tip(310, "carry", lang="uk", last_hits=17, **base)["title"].endswith(
+        ": 15 добивань"
+    )
+    assert tips.tip(300 + PACE_SHOW + 1, "carry", lang="uk", last_hits=17, **base) is None
+    # On pace at 7:00 (fewer than three behind): nothing.
+    assert tips.tip(420, "carry", lang="en", last_hits=30, **base) is None
+    # Offlaners and supports are not compared with the enemy carry's last hits.
+    assert RoleTips().tip(300, "offlane", lang="en", last_hits=5, **base) is None
+    english = RoleTips().tip(420, "mid", lang="en", last_hits=20, **base)
+    assert english["title"] == "Behind Axe's pace: 20 last hits"

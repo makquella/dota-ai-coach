@@ -212,3 +212,97 @@ def test_more_single_target_disables_are_known():
     deaths = [_stunned(900), _stunned(1500)]
     item = situational_item(deaths, [], META, enemies=["Spirit Breaker"], position="carry")
     assert item["key"] == "sphere" and item["spell"] == "Charge of Darkness"
+
+
+def test_a_passive_hero_asks_a_carry_for_silver_edge():
+    from app.death_screen import build_death_screen
+
+    item = situational_item([], [], META, enemies=["Bristleback"], position="carry", minute=18)
+    assert item["key"] == "silver_edge" and item["why"] == "break"
+    assert item["enemy"] == "Bristleback" and item["spell"] == "Bristleback"
+    # Before minute 18, or an offlaner: the usual build.
+    assert situational_item([], [], META, enemies=["Spectre"], position="mid", minute=17) is None
+    assert (
+        situational_item([], [], META, enemies=["Spectre"], position="offlane", minute=30) is None
+    )
+    state = {"minute": 20, "gold": 400, "extra_context": {"next_item": item, "gpm": 520}}
+    _, reason = _next_item_copy(state, state["extra_context"])
+    assert reason.startswith("Bristleback relies on Bristleback, and Silver Edge turns it off")
+    assert translate_uk(reason).startswith(
+        "Bristleback тримається на Bristleback — Silver Edge це вимикає"
+    )
+    card = build_death_screen(
+        death={"t": 1200, "usable": []},
+        place=None,
+        respawn=20,
+        gold=1500,
+        buyback_cost=None,
+        minute=20,
+        next_item=item,
+        lang="uk",
+    )
+    assert any("тримається на Bristleback" in line for line in card["lines"])
+
+
+def test_the_enemy_draft_names_the_item_to_plan_for():
+    from app.situational_items import draft_item
+
+    lineup = ["Phantom Lancer", "Lion", "Axe", "Crystal Maiden"]
+    item = draft_item(lineup, [], META, "carry")
+    assert item["key"] == "maelstrom" and item["why"] == "illusions"
+    assert draft_item(lineup[:3], [], META, "carry") is None  # three heroes: too early to read
+    assert draft_item(lineup, [], META, "support") is None  # supports get the save item tip
+    assert draft_item(lineup, ["item_maelstrom"], META, "carry") is None  # already bought
+    assert draft_item(lineup, None, META, "carry") is None
+
+
+def test_the_draft_tip_shows_once_with_the_item_icon():
+    from app.map_hints import DRAFT_SHOW, RoleTips
+
+    item = {
+        "key": "monkey_king_bar",
+        "name": "Monkey King Bar",
+        "why": "evasion",
+        "count": 0,
+        "enemy": "Phantom Assassin",
+        "spell": None,
+    }
+    tips = RoleTips()
+    base = {"alive": True, "has_ward": None, "draft_item": item}
+    assert tips.tip(179, "carry", lang="uk", **base) is None
+    tip = tips.tip(200, "carry", lang="uk", **base)
+    assert tip["title"] == "Проти їхнього драфту: Monkey King Bar"
+    assert tip["hint"].startswith("Phantom Assassin ухиляється від атак")
+    assert tip["items"] == [{"key": "monkey_king_bar", "name": "Monkey King Bar"}]
+    assert tips.tip(200 + DRAFT_SHOW, "carry", lang="en", **base)["title"].startswith(
+        "Against their draft"
+    )
+    assert tips.tip(200 + DRAFT_SHOW + 1, "carry", lang="en", **base) is None
+    assert tips.tip(400, "carry", lang="en", **base) is None  # once per match
+    # A counter without a draft text (deaths) is not a draft read.
+    assert (
+        RoleTips().tip(200, "carry", lang="en", **{**base, "draft_item": {**item, "why": "burst"}})
+        is None
+    )
+
+
+def test_the_draft_read_reaches_the_overlay(client):
+    from app.live_role import set_role_setting
+
+    set_role_setting("carry")
+    lineup = _minimap(
+        *(
+            {"unitname": f"npc_dota_hero_{name}", "team": 3}
+            for name in ("phantom_assassin", "lion", "axe", "crystal_maiden")
+        )
+    )
+    titles = []
+    for payload in gsi_match_stream(minutes=5, death_minutes=(), step_seconds=5):
+        payload["hero"]["name"] = "npc_dota_hero_juggernaut"
+        payload["minimap"] = lineup
+        client.post("/gsi", json=payload)
+        if payload["map"]["clock_time"] >= 180:
+            hint = client.get("/overlay/recommendation?lang=en").json().get("map_hint") or {}
+            titles.append(hint.get("title"))
+    # After the lane tips that come first (a Magic Stick), once.
+    assert titles.count("Against their draft: Monkey King Bar") >= 2

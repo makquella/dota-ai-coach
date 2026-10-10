@@ -41,6 +41,7 @@ TEXT = {
         "why_healing": "Чому {item}: {enemy} багато лікується, а він ріже лікування.",
         "why_illusions": "Чому {item}: {enemy} б'ється ілюзіями, а він б'є їх усіх одразу.",
         "why_magic": "Чому {item}: героїв ворога з магічною шкодою — {n}, він захистить від неї.",
+        "why_break": "Чому {item}: {enemy} тримається на {spell}, а він це вимикає.",
     },
     "en": {
         "title": "Respawn in {s} s",
@@ -60,6 +61,7 @@ TEXT = {
         "why_healing": "Why {item}: {enemy} heals a lot, and it cuts the healing.",
         "why_illusions": "Why {item}: {enemy} fights with illusions, and it hits them all.",
         "why_magic": "Why {item}: {n} enemy heroes deal magic damage, and it protects you.",
+        "why_break": "Why {item}: {enemy} relies on {spell}, and it turns that off.",
     },
 }
 
@@ -126,6 +128,12 @@ def build_death_screen(
             )
         elif why in ("evasion", "healing", "illusions") and enemy:
             lines.append(text[f"why_{why}"].format(item=next_item["name"], enemy=enemy))
+        elif why == "break" and enemy and isinstance(next_item, dict) and next_item.get("spell"):
+            lines.append(
+                text["why_break"].format(
+                    item=next_item["name"], enemy=enemy, spell=next_item["spell"]
+                )
+            )
     if not lines:
         return None
     seconds = _int(respawn)

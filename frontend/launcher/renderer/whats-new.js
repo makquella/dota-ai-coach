@@ -9,6 +9,12 @@
 
   const TEXT = {
     en: {
+      "0.55.0": [
+        "Lane: against an opponent you have laned against before, the overlay says when you are behind their usual last hits at 5:00 and 7:00.",
+        "Items for the enemy draft: once four enemy heroes are seen, a core gets the counter item to plan for (Monkey King Bar, Maelstrom, Spirit Vessel, BKB or Pipe, and now Silver Edge against Bristleback, Spectre and Huskar).",
+        "Skills for the lane: in a hard lane (a death, low health, an opponent you usually lose to) the skill tip puts an early point in your escape or defensive ability before the pro order.",
+        "Your marks matter: advice you mostly mark «Not to the point» or «Repeated» now comes half as often, and Progress shows a table of your marks per kind of advice. Safety advice never gets quieter."
+      ],
       "0.54.1": [
         "No Ukrainian voice in Windows? Advice is now read in English instead of staying silent, and Settings → Voice shows «Add a voice» with the way to install the Ukrainian one.",
         "Clearer Ukrainian wording in the in-game tips, reviews and settings."
@@ -515,6 +521,12 @@
       ]
     },
     uk: {
+      "0.55.0": [
+        "Лінія: проти суперника, з яким ви вже стояли на лінії, оверлей скаже, коли ви відстаєте від його звичних добивань на 5:00 і 7:00.",
+        "Предмети під вражеський драфт: щойно видно чотирьох героїв ворога, кор отримує предмет, який варто запланувати (Monkey King Bar, Maelstrom, Spirit Vessel, BKB чи Pipe, а тепер і Silver Edge проти Bristleback, Spectre та Huskar).",
+        "Прокачка під лінію: на важкій лінії (смерть, мало здоров'я, суперник, якому ви зазвичай програєте) підказка радить раннє очко у втечу чи захисну здібність, а вже потім порядок про-гравців.",
+        "Ваші відмітки враховуються: поради, які ви здебільшого позначаєте «Не до речі» або «Повторювалося», тепер з'являються вдвічі рідше, а в «Прогресі» є таблиця ваших відміток за видами порад. Поради про безпеку тихішими не стають."
+      ],
       "0.54.1": [
         "Немає українського голосу в Windows? Тепер поради читаються англійською, а не мовчки, а в «Налаштування → Голос» з'явилася кнопка «Додати голос» з поясненням, як встановити український.",
         "Природніші українські формулювання в підказках, розборах і налаштуваннях."

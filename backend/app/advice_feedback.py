@@ -9,6 +9,11 @@ counts the verdicts per decision point over all matches, for the developer
 section and the problem report (counts only, no advice text), which is what
 separates advice that was irrelevant or repeated from advice that was right
 but ignored (advice_follow.py only sees deaths after urgent cards).
+
+`quieter` lists the decision points the player mostly marks as irrelevant or
+repeated: the scheduler spaces them out more (advice_scheduler.set_quieter) and
+Progress shows the report. Safety advice (low HP, disables, deaths) is never
+made quieter, whatever the marks.
 """
 
 from __future__ import annotations
@@ -18,8 +23,18 @@ import re
 from typing import Any
 
 from app.player_store import PlayerStore
+from app.scheduler.constants import DEATH_REVIEW_DECISIONS
+from app.scheduler.frequency import UNSCALED_DECISIONS
 
 VERDICTS = ("useful", "irrelevant", "repeated")
+# A decision point is made quieter after this many marks, most of them «not to
+# the point» or «repeated».
+QUIET_MIN_MARKS = 3
+QUIET_SHARE = 0.6
+NEVER_QUIET = frozenset(
+    {"LOW_HP", "DISABLED_STATUS", "NO_ADVICE", "SOFT_STATUS", *DEATH_REVIEW_DECISIONS}
+    | UNSCALED_DECISIONS
+)
 PREFIX = "advice_feedback"
 KEY = re.compile(r"^\d{1,5}:[A-Za-z0-9_]{1,64}$")
 MAX_PER_MATCH = 200
@@ -92,4 +107,20 @@ def summary(store: PlayerStore, account_id: int) -> dict[str, Any]:
             counts = by_dp.setdefault(dp, dict.fromkeys(VERDICTS, 0))
             counts[verdict] += 1
             totals[verdict] += 1
-    return {"matches": matches, "totals": totals, "by_decision_point": by_dp}
+    return {
+        "matches": matches,
+        "totals": totals,
+        "by_decision_point": by_dp,
+        "quieter": quieter_decisions(by_dp),
+    }
+
+
+def quieter_decisions(by_dp: dict[str, dict[str, int]]) -> list[str]:
+    """Decision points mostly marked irrelevant or repeated (safety never)."""
+    quiet = []
+    for dp, counts in by_dp.items():
+        marks = sum(counts.get(verdict, 0) for verdict in VERDICTS)
+        unwanted = counts.get("irrelevant", 0) + counts.get("repeated", 0)
+        if dp not in NEVER_QUIET and marks >= QUIET_MIN_MARKS and unwanted >= QUIET_SHARE * marks:
+            quiet.append(dp)
+    return sorted(quiet)

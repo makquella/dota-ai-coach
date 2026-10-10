@@ -22,6 +22,7 @@ from typing import Any
 
 from app.ability_normalization import NOT_HERO_ABILITY_PREFIXES as NOT_HERO_ABILITY_PREFIXES
 from app.ability_normalization import not_hero_ability as not_hero_ability
+from app.hero_profiles import find_ability, get_key_safety_abilities
 from app.skill_build import label, next_skill
 
 ULTIMATE_LEVELS = (6, 12, 18)
@@ -34,6 +35,10 @@ TIP_SHOW = 20  # seconds the tip stays on the card
 # Ultimates that are never levelled at 6/12/18: Invoke has one level from the
 # start, so a point owed at 12 would read as «learn your ultimate».
 FIXED_ULTIMATES = frozenset({"invoker_invoke"})
+# A hard lane (live_hints.lane_pressure): up to this hero level, a point goes to
+# the hero's escape or defensive ability while it is still unlearned, before the
+# pro order (which often maxes a farming or damage skill first).
+LANE_SAFETY_UNTIL_LEVEL = 7
 
 TEXTS = {
     "ultimate": {
@@ -57,6 +62,16 @@ TEXTS = {
     "skill": {
         "en": ("Put the point in {name}", "The pro order on this hero: {order}."),
         "uk": ("Вкладіть очко в {name}", "Порядок прокачки в про-гравців на цьому герої: {order}."),
+    },
+    "skill_lane": {
+        "en": (
+            "Put the point in {name}",
+            "A hard lane: a first point in {name} keeps you alive. After it, the pro order: {order}.",
+        ),
+        "uk": (
+            "Вкладіть очко в {name}",
+            "Важка лінія: перше очко в {name} допоможе вижити. Далі — порядок про-гравців: {order}.",
+        ),
     },
     "opening": {
         "en": (
@@ -226,9 +241,13 @@ class SkillTips:
         *,
         alive: bool,
         build: dict[str, Any] | None = None,
+        hero: str | None = None,
+        lane_pressure: bool = False,
     ) -> dict[str, Any] | None:
         """`build`: the hero's pro skill order (app/skill_build.skill_order), which
-        names the ability for an unspent point and the ultimate."""
+        names the ability for an unspent point and the ultimate. `lane_pressure`
+        (a hard lane, live_hints.lane_pressure) puts an early point in the
+        `hero`'s escape or defensive ability first."""
         skills = self._skills
         if clock is None or not alive or skills is None or not skills["owed"]:
             return None
@@ -254,7 +273,7 @@ class SkillTips:
         if not skills["has_talents"]:
             if level >= TALENT_LEVELS[0]:
                 return None  # a talent taken would look like a point left unspent
-            return self._point(level, lang, build)
+            return self._point(level, lang, build, hero if lane_pressure else None)
         tier = _talent_due(skills)
         if tier is not None:
             pro = ((build or {}).get("talents") or {}).get(tier)
@@ -269,10 +288,17 @@ class SkillTips:
                     games=pro["games"],
                 )
             return _hint("talent", f"skill-talent@{level}", lang, tier=tier)
-        return self._point(level, lang, build)
+        return self._point(level, lang, build, hero if lane_pressure else None)
 
-    def _point(self, level: int, lang: str, build: dict[str, Any] | None) -> dict[str, Any]:
-        """The unspent point: the ability the pro order puts it in, when known."""
+    def _point(
+        self,
+        level: int,
+        lang: str,
+        build: dict[str, Any] | None,
+        pressed_hero: str | None = None,
+    ) -> dict[str, Any]:
+        """The unspent point: the ability the pro order puts it in, when known;
+        in a hard lane (`pressed_hero`) the hero's unlearned escape first."""
         skills = self._skills or {}
         opening = (build or {}).get("opening")
         levels = skills.get("levels") or {}
@@ -289,6 +315,16 @@ class SkillTips:
             )
             return self._arrow(hint, opening["name"], name)
         name = next_skill(build, skills.get("levels"), level)
+        safety = self._safety_skill(pressed_hero, level)
+        if build and safety and safety != name:
+            names = build.get("names") or {}
+            key = skills.get("hero_key")
+            steps = [{"key": n, "name": str(names.get(n) or label(n, key))} for n in build["order"]]
+            shown = names.get(safety) or label(safety, key)
+            order = " → ".join(step["name"] for step in steps)
+            hint = _hint("skill_lane", f"skill-point@{level}", lang, name=shown, order=order)
+            hint["order"] = steps
+            return self._arrow(hint, safety, shown)
         if build and name:
             names = build.get("names") or {}
             key = skills.get("hero_key")
@@ -300,6 +336,25 @@ class SkillTips:
             hint["order"] = steps
             return self._arrow(hint, name, shown)
         return _hint("point", f"skill-point@{level}", lang)
+
+    def _safety_skill(self, hero: str | None, level: int) -> str | None:
+        """The raw name of the hero's escape or defensive ability (hero_profiles)
+        still at level 0, from level 2 to LANE_SAFETY_UNTIL_LEVEL; None otherwise."""
+        skills = self._skills or {}
+        levels = skills.get("levels") or {}
+        ultimate = (skills.get("ultimate") or {}).get("raw_name")
+        if not hero or not 2 <= level <= LANE_SAFETY_UNTIL_LEVEL or not levels:
+            return None
+        key = skills.get("hero_key")
+        abilities = [
+            {"name": label(raw, key), "raw_name": raw} for raw in levels if raw != ultimate
+        ]
+        wanted = get_key_safety_abilities(hero)
+        for display in [*wanted["escape"], *wanted["defensive"]]:
+            found = find_ability(abilities, display)
+            if found is not None and levels.get(str(found["raw_name"])) == 0:
+                return str(found["raw_name"])
+        return None
 
     def _arrow(self, hint: dict[str, Any], raw_name: str, name: str) -> dict[str, Any]:
         """The ability's place on the HUD bar: the launcher draws an arrow over it.

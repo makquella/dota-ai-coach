@@ -485,9 +485,10 @@ SITUATIONAL_BECAUSE = {
     "healing": "{enemy} heals a lot, and {name} cuts the healing",
     "illusions": "{enemy} fights with illusions, and {name} hits them all",
     "magic": "{count} enemy heroes deal magic damage, and {name} protects you from it",
+    "break": "{enemy} relies on {spell}, and {name} turns it off",
 }
 # Counters to an enemy hero seen: no death count, the enemy says why.
-ENEMY_WHYS = {"evasion", "healing", "illusions", "magic"}
+ENEMY_WHYS = {"evasion", "healing", "illusions", "magic", "break"}
 
 
 def _situational_because(item: Mapping[str, Any]) -> str | None:
@@ -498,7 +499,7 @@ def _situational_because(item: Mapping[str, Any]) -> str | None:
     if template is None:
         return None
     if why in ENEMY_WHYS:
-        if not enemy:
+        if not enemy or (why == "break" and not item.get("spell")):
             return None
     elif count < 1 or (why == "targeted" and not (enemy and item.get("spell"))):
         return None

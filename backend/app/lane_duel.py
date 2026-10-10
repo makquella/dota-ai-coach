@@ -229,11 +229,16 @@ def career_lanes(matches: list[dict[str, Any]]) -> dict[str, Any] | None:
 
 
 RECORD_MIN_GAMES = 2
+# The live «behind their pace» tip compares last hits at these minutes with the
+# opponent's average in the player's past lanes against them.
+PACE_MINUTES = (5, 7)
 
 
 def lane_records(matches: list[dict[str, Any]]) -> dict[str, dict[str, int]]:
     """{enemy core: {won, even, lost, games}} over the judged lanes of the
-    analysed `matches` (any hero of the player's), for the live «hard lane» tip."""
+    analysed `matches` (any hero of the player's), for the live «hard lane» tip;
+    with the enemy's last hits at PACE_MINUTES summed over `pace_games` lanes
+    (`enemy_lh_<minute>`) when the reviews have the minute points."""
     records: dict[str, dict[str, int]] = {}
     for match in matches:
         lane = (match.get("analysis") or {}).get("lane")
@@ -245,7 +250,28 @@ def lane_records(matches: list[dict[str, Any]]) -> dict[str, dict[str, int]]:
         row = records.setdefault(enemy, {"won": 0, "even": 0, "lost": 0, "games": 0})
         row[result] += 1
         row["games"] += 1
+        pace = _enemy_pace(lane.get("points"))
+        if pace is not None:
+            row["pace_games"] = row.get("pace_games", 0) + 1
+            for minute, value in pace.items():
+                row[f"enemy_lh_{minute}"] = row.get(f"enemy_lh_{minute}", 0) + value
     return records
+
+
+def _enemy_pace(points: Any) -> dict[int, int] | None:
+    """The enemy's last hits at each of PACE_MINUTES, None when one is missing."""
+    if not isinstance(points, list):
+        return None
+    by_minute = {
+        point.get("minute"): point.get("enemy_lh") for point in points if isinstance(point, dict)
+    }
+    pace = {}
+    for minute in PACE_MINUTES:
+        value = by_minute.get(minute)
+        if not isinstance(value, int) or isinstance(value, bool) or value < 0:
+            return None
+        pace[minute] = value
+    return pace
 
 
 def lane_record_for(
@@ -253,13 +279,35 @@ def lane_record_for(
 ) -> dict[str, Any] | None:
     """The first lane opponent with a clear past record against them
     (RECORD_MIN_GAMES+ lanes lost, or won, and more of those than the other):
-    {hero, kind (hard | easy), won, lost, games}; None otherwise."""
+    {hero, kind (hard | easy), won, even, lost, games}, plus `pace` (lane_pace_for)
+    when known; kind None when only the pace is; None without either."""
+    record: dict[str, Any] | None = None
     for hero in opponents:
         row = records.get(hero)
         if not row:
             continue
+        counts = {key: row[key] for key in ("won", "even", "lost", "games")}
         if row["lost"] >= RECORD_MIN_GAMES and row["lost"] > row["won"]:
-            return {"hero": hero, "kind": "hard", **row}
+            record = {"hero": hero, "kind": "hard", **counts}
+            break
         if row["won"] >= RECORD_MIN_GAMES and row["won"] > row["lost"]:
-            return {"hero": hero, "kind": "easy", **row}
+            record = {"hero": hero, "kind": "easy", **counts}
+            break
+    pace = lane_pace_for(opponents, records)
+    if pace is None:
+        return record
+    return {**(record or {"hero": pace["hero"], "kind": None}), "pace": pace}
+
+
+def lane_pace_for(
+    opponents: list[str], records: dict[str, dict[str, int]]
+) -> dict[str, Any] | None:
+    """The first lane opponent met in RECORD_MIN_GAMES+ reviewed lanes with the
+    minute points: {hero, games, lh: {minute: their average last hits}}."""
+    for hero in opponents:
+        row = records.get(hero) or {}
+        games = row.get("pace_games", 0)
+        if games >= RECORD_MIN_GAMES:
+            lh = {minute: round(row[f"enemy_lh_{minute}"] / games) for minute in PACE_MINUTES}
+            return {"hero": hero, "games": games, "lh": lh}
     return None

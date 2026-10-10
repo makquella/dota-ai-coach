@@ -29,7 +29,7 @@ from __future__ import annotations
 
 import threading
 import time
-from collections.abc import Callable
+from collections.abc import Callable, Iterable
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from typing import Any
@@ -66,6 +66,7 @@ from app.scheduler.constants import (
     HEARTBEAT_NUDGE_SECONDS,
     LLM_REFINEMENT_EVERY_N_ADVICES,
     POST_LANING_GAME_TIME_GAP_SECONDS,
+    QUIETER_GAP_FACTOR,
     RECENT_SAFETY_GAME_TIME_GAP_SECONDS,
     REGULAR_ADVICE_COOLDOWN_SECONDS,
     SAME_ACTION_GAME_TIME_GAP_SECONDS,
@@ -158,6 +159,9 @@ class AdviceScheduler:
         self.enable_llm = enable_llm
         # The player's preference; survives reset() (a new match keeps it).
         self.frequency = normalize_frequency(ADVICE_FREQUENCY)
+        # Decision points the player mostly marks as not to the point or repeated
+        # (advice_feedback.quieter_decisions); also survives reset().
+        self.quieter: frozenset[str] = frozenset()
         self.regular_cooldown_seconds = regular_cooldown_seconds
         self.urgent_cooldown_seconds = urgent_cooldown_seconds
         self._lock = threading.Lock()
@@ -171,6 +175,11 @@ class AdviceScheduler:
         with self._lock:
             self.frequency = normalize_frequency(frequency)
             return self.frequency
+
+    def set_quieter(self, decisions: Iterable[str]) -> frozenset[str]:
+        with self._lock:
+            self.quieter = frozenset(str(decision) for decision in decisions)
+            return self.quieter
 
     def _reset_locked(self) -> None:
         # Phase 4: all 66 game/advice state fields now live in SchedulerState;
@@ -1780,6 +1789,10 @@ class AdviceScheduler:
             min_gap = max(
                 min_gap, scaled_seconds(POST_LANING_GAME_TIME_GAP_SECONDS, self.frequency)
             )
+
+        # Advice the player keeps marking as not to the point waits twice as long.
+        if advice_mode == "coaching" and decision_point in self.quieter:
+            min_gap *= QUIETER_GAP_FACTOR
 
         # A farm pace card keeps its own four minutes, even with other advice
         # shown in between (which moves the last-shown values above).

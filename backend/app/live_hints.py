@@ -29,6 +29,8 @@ class LiveHintInputs:
     key_item: dict[str, Any] | None = None
     save_item: dict[str, Any] | None = None
     lane_record: dict[str, Any] | None = None
+    # The counter item to plan for against the enemy draft (situational_items.draft_item).
+    draft_item: dict[str, Any] | None = None
     skill_build: dict[str, Any] | None = None
 
 
@@ -67,6 +69,8 @@ def render_live_hints(
         lang,
         alive=extra.get("alive") is not False,
         build=inputs.skill_build,
+        hero=str(state.get("hero") or "") or None,
+        lane_pressure=lane_pressure(state, extra, inputs.lane_record),
     )
     if inputs.map_enabled:
         last_hits = extra.get("last_hits")
@@ -102,6 +106,7 @@ def render_live_hints(
             regen=extra.get("regen_items") if isinstance(extra.get("regen_items"), list) else None,
             missing=trackers.missing,
             lane_record=inputs.lane_record,
+            draft_item=inputs.draft_item,
             roshan_open=trackers.roshan_open,
             objective=trackers.objective,
             skill=skill,
@@ -118,6 +123,27 @@ def render_live_hints(
     if hint is not None:
         result["map_hint"] = hint
     return result
+
+
+# A hard lane for the skill tip: in the first LANE_PRESSURE_UNTIL seconds, a death,
+# health at or under LANE_PRESSURE_HP %, or a lane opponent the player usually
+# loses to (lane_duel.lane_record_for).
+LANE_PRESSURE_UNTIL = 10 * 60
+LANE_PRESSURE_HP = 50
+
+
+def lane_pressure(
+    state: Mapping[str, Any], extra: Mapping[str, Any], lane_record: dict[str, Any] | None
+) -> bool:
+    clock = extra.get("clock_time")
+    if not isinstance(clock, int) or not 0 <= clock < LANE_PRESSURE_UNTIL:
+        return False
+    deaths, hp = extra.get("deaths"), state.get("hp_percent")
+    return (
+        (isinstance(deaths, int) and deaths >= 1)
+        or (isinstance(hp, int) and hp <= LANE_PRESSURE_HP)
+        or (lane_record or {}).get("kind") == "hard"
+    )
 
 
 def _keeps_hint(hint: dict[str, Any] | None) -> bool:
