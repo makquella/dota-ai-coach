@@ -170,7 +170,7 @@ def test_a_death_with_the_rune_unpressed_is_named():
         reason == "You died with Bottle (Haste rune) ready: next time use it at the first big hit."
     )
     assert translate_uk(reason) == (
-        "Ви загинули, коли в пляшці була руна прискорення: наступного разу використайте її при першому сильному ударі."
+        "Ви загинули, коли в пляшці була руна прискорення: наступного разу використайте її після першого ж сильного удару."
     )
 
 

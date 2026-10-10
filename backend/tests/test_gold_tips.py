@@ -20,6 +20,7 @@ def test_an_empty_bag_at_the_start_is_called_after_a_short_wait():
     tips.observe(-80 + START_WAIT, [])
     hint = tips.tip(-80 + START_WAIT, "uk", gold=625, alive=True, role="support")
     assert hint["title"] == "Купіть стартові предмети" and "600 золота" in hint["hint"]
+    assert hint["title_en"].isascii() and hint["title_en"]  # spoken without a Ukrainian voice
     # It keeps the card over the game plan.
     assert hint["over_plan"] is True
     # Bought something: no call.

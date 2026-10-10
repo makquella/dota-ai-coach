@@ -66,7 +66,7 @@ def test_exact_and_patterned_texts():
         "Без Blink складніше вийти з невдалого розміну чи бійки."
     )
     assert translate_uk("Low mana reduces Medusa's effective survivability.") == (
-        "У Medusa мало мани — виживаність помітно нижча."
+        "У Medusa мало мани — живучість помітно нижча."
     )
 
 
@@ -123,8 +123,12 @@ def test_localize_overlay_response_translates_visible_fields_only():
     assert localized["recommendation"]["priority"] == "low"
     assert localized["last_visible_advice"]["action"] == "Зосередьтеся на безпечних добиваннях."
     assert localized["message"] == "Стежимо за грою…"
+    # The English action stays for the voice when Windows has no Ukrainian one.
+    assert localized["recommendation"]["action_en"] == "Keep farming safely."
+    assert localized["last_visible_advice"]["action_en"] == "Focus on safe last hits."
     # The original payload (also kept in history) is not modified.
     assert response["recommendation"]["action"] == "Keep farming safely."
+    assert "action_en" not in response["recommendation"]
 
 
 def test_overlay_endpoint_lang_param(client, repo_root):

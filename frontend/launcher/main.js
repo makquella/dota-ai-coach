@@ -370,7 +370,7 @@ const TRAY_TEXT = {
     backend: "Тренер",
     backendStates: { running: "працює", starting: "запускається…", stopping: "зупиняється…", stopped: "зупинено" },
     [DOTA_STATUS.NOT_FOUND]: "Доту не знайдено",
-    [DOTA_STATUS.WAITING]: "Чекаємо гру",
+    [DOTA_STATUS.WAITING]: "Чекаємо на гру",
     [DOTA_STATUS.IN_GAME]: "У грі",
     gsiInstalled: "Wardly підключено до Dota 2.",
     restartDota: "Перезапустіть Dota 2.",
@@ -3475,6 +3475,10 @@ function registerIpc() {
   handleLauncher("launcher:preview-problem-report", () => collectProblemReport());
   handleLauncher("launcher:send-problem-report", (_event, note) => sendProblemReport(String(note || "")));
   handleLauncher("launcher:open-privacy", () => shell.openExternal(`${PRIVACY_URL}?lang=${uiLocale()}`));
+  // Windows Settings → Time & language → Speech, where a Ukrainian voice is added.
+  handleLauncher("launcher:open-speech-settings", () =>
+    process.platform === "win32" ? shell.openExternal("ms-settings:speech") : false
+  );
   // The invite card: «copy the link» puts the site link (tagged ?ref=invite, in
   // the player's language) on the clipboard; either answer hides the card for good.
   handleLauncher("launcher:invite", (_event, action) => {

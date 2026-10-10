@@ -46,7 +46,7 @@ const OVERLAY_TEXT = {
     waitingBackend: "Запускаємо тренера…",
     backendStopped: "Тренера зупинено: відкрийте Wardly, щоб запустити.",
     waitingGsi: "Чекаємо, поки Dota 2 підключиться…",
-    waitingGsiShort: "Чекаємо дані гри…",
+    waitingGsiShort: "Чекаємо на дані гри…",
     monitoring: "Стежимо за лінією — термінових порад немає.",
     unsupportedHero: "Цей герой поки не підтримується.",
     invalidState: "Чекаємо коректні дані гри…",
@@ -123,6 +123,7 @@ async function init() {
     speaker?.say({
       key: lastAdviceKey,
       text: data.recommendation.action,
+      fallbackText: data.recommendation.action_en,
       adviceMode: data.advice_mode,
       mode: config.voice,
       locale: config.locale,
@@ -369,6 +370,7 @@ function renderAdvice(data, options = { refreshTimer: true }) {
     speaker.say({
       key,
       text: recommendation.action,
+      fallbackText: recommendation.action_en,
       adviceMode,
       mode: config.voice,
       locale: config.locale,
@@ -426,8 +428,16 @@ function showDeathScreen(data) {
   if (!speaker || spokenDeaths.has(key)) {
     return;
   }
-  const spoken = speaker.say({ key, text: card.lines.join(". "), adviceMode: "coaching", mode: config.voice, locale: config.locale, volume: config.voiceVolume });
-  if (spoken === "spoken" || spoken === "off") {
+  const spoken = speaker.say({
+    key,
+    text: card.lines.join(". "),
+    fallbackText: Array.isArray(card.lines_en) ? card.lines_en.join(". ") : "",
+    adviceMode: "coaching",
+    mode: config.voice,
+    locale: config.locale,
+    volume: config.voiceVolume
+  });
+  if (spoken === "spoken" || spoken === "spoken_en" || spoken === "off") {
     spokenDeaths.add(key);
   }
 }
@@ -462,13 +472,14 @@ function showPlan(data) {
   const spoken = speaker.say({
     key: planKey,
     text: data.game_plan.lines.join(". "),
+    fallbackText: Array.isArray(data.game_plan.lines_en) ? data.game_plan.lines_en.join(". ") : "",
     adviceMode: "coaching",
     mode: config.voice,
     locale: config.locale,
     volume: config.voiceVolume
   });
   // Once per plan, even when advice was spoken in between.
-  if (spoken === "spoken" || spoken === "off") {
+  if (spoken === "spoken" || spoken === "spoken_en" || spoken === "off") {
     spokenPlans.add(planKey);
   }
 }
@@ -547,12 +558,13 @@ function speakHint(hint) {
   const spoken = speaker.say({
     key: `hint|${hint.id}`,
     text: tr("hintSoon", hint.title),
+    fallbackText: hint.title_en ? OVERLAY_TEXT.en.hintSoon(hint.title_en) : "",
     adviceMode: "coaching",
     mode: config.voice,
     locale: config.locale,
     volume: config.voiceVolume
   });
-  if (spoken === "spoken" || spoken === "off") {
+  if (spoken === "spoken" || spoken === "spoken_en" || spoken === "off") {
     spokenHints.add(hint.id);
   }
 }

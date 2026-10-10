@@ -59,6 +59,7 @@ def test_a_point_left_unspent_is_named_after_a_short_wait():
     assert tips.tip(110 + UNSPENT_WAIT - 1, "en", alive=True) is None
     hint = tips.tip(110 + UNSPENT_WAIT, "uk", alive=True)
     assert hint["title"] == "Не вкладено очко навичок"
+    assert hint["title_en"].isascii() and hint["title_en"]  # spoken without a Ukrainian voice
     assert hint["id"] == "skill-point@4"
     assert tips.tip(110 + UNSPENT_WAIT, "en", alive=False) is None
     # Spent → quiet.

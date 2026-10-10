@@ -169,7 +169,10 @@
     [/(^|\.)twitch\.tv$/, "twitch"],
     [/(^|\.)(discord\.com|discord\.gg|discordapp\.com)$/, "discord"],
     [/(^|\.)github\.com$/, "github"],
-    [/(^|\.)cybersport\.ru$/, "cybersport"]
+    [/(^|\.)cybersport\.ru$/, "cybersport"],
+    [/(^|\.)dou\.ua$/, "dou"],
+    [/(^|\.)(instagram\.com|threads\.net)$/, "social"],
+    [/(^|\.)tiktok\.com$/, "tiktok"]
   ];
 
   function session(key, value) {

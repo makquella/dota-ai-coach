@@ -76,7 +76,7 @@ export const ADMIN_HTML = `<!doctype html>
   </form>
   <section id="view" class="hidden">
     <div class="tiles" id="tiles"></div>
-    <div class="card"><h2>Звідки приходять</h2><table id="channels"></table><p class="muted">Джерело — <code>?ref=</code> у посиланні на сайт (luhovyimvp.dev/?ref=pikabu). Без нього: search — пошуковики, direct — без переходу, other — інші сайти; site — завантаження кнопкою на сайті, коли джерело невідоме.</p></div>
+    <div class="card"><h2>Звідки приходять</h2><table id="channels"></table><p class="muted">Джерело — <code>?ref=</code> у посиланні на сайт (luhovyimvp.dev/?ref=tg). Без нього: search — пошуковики, direct — без переходу, other — інші сайти; site — завантаження кнопкою на сайті, коли джерело невідоме.</p></div>
     <div class="card"><h2>За днями</h2><div class="days" id="days-chart" role="img" aria-label="Пристрої за днями"></div><p class="muted" id="days-note"></p></div>
     <div class="card"><h2>Підказки: показано й смерть протягом 30 с після термінової</h2><table id="advice"></table></div>
     <div class="grid" id="dists"></div>

@@ -34,7 +34,7 @@ _UK_EXACT: dict[str, str] = {
         "За вас дають дедалі більше золота: фарміть поруч із командою й не ходіть у темні місця без вардів."
     ),
     "The enemy has items first now; trade risky farm for safe farm until your key item.": (
-        "У ворогів предмети раніше: міняйте ризикований фарм на безпечний до вашого ключового предмета."
+        "У ворогів предмети раніше: замінюйте ризикований фарм безпечним до вашого ключового предмета."
     ),
     "A kill lead fades unless it turns into towers and map control.": (
         "Перевага за вбивствами тане, якщо не перетворити її на вежі й контроль мапи."
@@ -66,7 +66,7 @@ _UK_EXACT: dict[str, str] = {
     ),
     "Avoid the fight and keep farming safely.": "Пропустіть бійку й продовжуйте спокійно фармити.",
     "Avoid contesting pressure and move to safer farm.": (
-        "Не сперечайтеся з тиском, перейдіть на безпечніший фарм."
+        "Не протистійте тиску, перейдіть на безпечніший фарм."
     ),
     "Back up and stabilize before trading again.": (
         "Відійдіть і відновіться, перш ніж знову розмінюватися."
@@ -141,10 +141,10 @@ _UK_EXACT: dict[str, str] = {
     "Maintain steady farm.": "Тримайте рівний темп фарму.",
     "Monitoring lane — no urgent advice.": "Стежимо за лінією — термінових порад немає.",
     "Move closer to a safer farming zone before showing on the wave.": (
-        "Перед виходом на хвилю зміститеся ближче до безпечної зони фарму."
+        "Перед виходом на хвилю змістіться ближче до безпечної зони фарму."
     ),
     "Move closer to a safer lane area before contesting the next wave.": (
-        "Перед наступною хвилею зміститеся в безпечнішу частину лінії."
+        "Перед наступною хвилею змістіться в безпечнішу частину лінії."
     ),
     "No urgent action.": "Термінових дій не потрібно.",
     "No urgent decision is needed.": "Термінових рішень не потрібно.",
@@ -206,7 +206,7 @@ _UK_EXACT: dict[str, str] = {
     ),
     "Unspent gold is partly lost on the next death; "
     "then choose a safer route than the one you died on.": (
-        "Невитрачене золото частково втрачається при наступній смерті. Потім оберіть маршрут безпечніший за той, де вас спіймали."
+        "Невитрачене золото частково втрачається в разі наступної смерті. Потім оберіть маршрут безпечніший за той, де вас спіймали."
     ),
     "Keep a TP scroll in its slot: buy one now, the courier can bring it.": (
         "Тримайте сувій телепортації в слоті: купіть його зараз, кур'єр принесе."
@@ -239,7 +239,7 @@ _UK_EXACT: dict[str, str] = {
         "Захисний таймінг: бийтеся лише біля ключових цілей або разом із командою."
     ),
     "You reached a farming timing; increase farm speed and avoid unnecessary deaths.": (
-        "Таймінг за фармом: пришвидште фарм і не помирайте даремно."
+        "Таймінг за фармом: пришвидшіть фарм і не помирайте даремно."
     ),
     "You reached a late-game timing; prioritize high-value objectives and safe positioning.": (
         "Таймінг пізньої гри: у пріоритеті важливі цілі й безпечна позиція."
@@ -296,7 +296,7 @@ _UK_EXACT: dict[str, str] = {
         "З низьким HP на лінії розміни й добивання ризиковані."
     ),
     "Low mana limits escape, spell usage, and fight impact.": (
-        "Мало мани: гірше з утечею, здібностями й користю в бійці."
+        "Мало мани: важче втекти, застосувати здібності й допомогти в бійці."
     ),
     "Multiple recent deaths can delay your next timing more than missing one wave or camp.": (
         "Кілька смертей поспіль відсунуть таймінг сильніше, ніж пропущена хвиля чи табір."
@@ -333,7 +333,7 @@ _UK_EXACT: dict[str, str] = {
         "Якщо показатися на хвилі, смок зникне даремно."
     ),
     "Staying exposed after a bad trade often leads to a preventable death.": (
-        "Якщо залишитися на виду після невдалого розміну, легко померти даремно."
+        "Якщо залишитися на видноті після невдалого розміну, легко померти даремно."
     ),
     "Staying in pressure can cost HP and slow your recovery.": (
         "Під тиском ви втрачаєте HP і довше відновлюєтеся."
@@ -442,7 +442,7 @@ _UK_EXACT: dict[str, str] = {
     "Position is unavailable.": "Позиція невідома.",
     # --- status messages -----------------------------------------------------
     "Monitoring...": "Стежимо за грою…",
-    "Waiting for live GSI...": "Чекаємо дані з гри…",
+    "Waiting for live GSI...": "Чекаємо на дані з гри…",
     "Take the side lanes your team leaves and a camp between waves; "
     "join fights only for a tower or Roshan.": (
         "Забирайте бокові лінії, які залишає команда, і табір між хвилями; у бійки йдіть лише за вежу або Рошана."
@@ -659,13 +659,13 @@ _UK_PATTERNS: tuple[tuple[re.Pattern[str], str], ...] = (
                 rf"^You died with Bottle \({rune} rune\) ready: next time use it at the first "
                 r"big hit\.$"
             ),
-            f"Ви загинули, коли в пляшці була руна {uk}: наступного разу використайте її при першому сильному ударі.",
+            f"Ви загинули, коли в пляшці була руна {uk}: наступного разу використайте її після першого ж сильного удару.",
         )
         for rune, uk in RUNES_UK.items()
     ),
     (
         re.compile(r"^You died with (?P<name>.+) ready: next time use it at the first big hit\.$"),
-        "Ви загинули з готовим {name}: наступного разу натисніть його при першому сильному ударі.",
+        "Ви загинули з готовим {name}: наступного разу натисніть його після першого ж сильного удару.",
     ),
     (
         re.compile(r"^Use your gold: (?P<name>.+) can be bought now\.$"),
@@ -691,7 +691,7 @@ _UK_PATTERNS: tuple[tuple[re.Pattern[str], str], ...] = (
             r"^(?P<name>.+) is next in most builds: (?P<need>\d+) gold to go, "
             r"about (?P<m>\d+) minutes? at your (?P<gpm>\d+) gold per minute\.$"
         ),
-        "{name} — наступний предмет у більшості збірок: бракує {need} золота, це близько {m} хв при {gpm} золота за хвилину.",
+        "{name} — наступний предмет у більшості збірок: бракує {need} золота, це близько {m} хв за темпу {gpm} золота за хвилину.",
     ),
     (
         re.compile(r"^(?P<name>.+) is next in most builds: (?P<need>\d+) gold to go\.$"),
@@ -699,11 +699,11 @@ _UK_PATTERNS: tuple[tuple[re.Pattern[str], str], ...] = (
     ),
     (
         re.compile(r"^Low mana reduces (?P<name>.+)'s effective survivability\.$"),
-        "У {name} мало мани — виживаність помітно нижча.",
+        "У {name} мало мани — живучість помітно нижча.",
     ),
     (
         re.compile(r"^(?P<name>.+) is low on mana, so effective survivability is reduced\.$"),
-        "У {name} мало мани — виживаність помітно нижча.",
+        "У {name} мало мани — живучість помітно нижча.",
     ),
 )
 
@@ -754,7 +754,7 @@ _SITUATIONAL_TAILS: tuple[tuple[re.Pattern[str], str], ...] = (
             r"^: (?P<need>\d+) gold to go, about (?P<m>\d+) minutes? at your (?P<gpm>\d+) "
             r"gold per minute\.$"
         ),
-        ": бракує {need} золота, це близько {m} хв при {gpm} золота за хвилину.",
+        ": бракує {need} золота, це близько {m} хв за темпу {gpm} золота за хвилину.",
     ),
     (
         re.compile(
@@ -1210,6 +1210,9 @@ def _localize_advice_fields(item: Any, lang: str) -> Any:
     if not isinstance(item, dict):
         return item
     localized = dict(item)
+    if isinstance(item.get("action"), str):
+        # Spoken in English when Windows has no Ukrainian voice.
+        localized["action_en"] = item["action"]
     for key in ("action", "reason"):
         if key in localized:
             message = _message_from_dto(item.get(key + "_message"))

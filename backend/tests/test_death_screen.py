@@ -28,7 +28,7 @@ def test_the_card_says_how_it_happened_and_what_to_do():
     assert card["title"] == "Відродження через 23 с"
     assert card["lines"] == [
         "Убили за 2 с із високим HP: спіймали, коли ви були самі або на виду.",
-        "Готово, але не натиснуто: Black King Bar — наступного разу тисніть при першому ударі.",
+        "Готово, але не натиснуто: Black King Bar — наступного разу тисніть після першого ж удару.",
         "3-та смерть на центральній лінії біля річки за 6 хв — після відродження йдіть в інше місце.",
         "Купіть Manta Style зараз: золота вистачає, кур'єр принесе.",
     ]
@@ -72,6 +72,10 @@ def test_the_live_card_while_dead(client):
     card = body["death_screen"]
     assert card["title"] == "Відродження через 20 с"
     assert "Готово, але не натиснуто: Black King Bar" in card["lines"][0]
+    # The same card in English for a Windows without a Ukrainian voice.
+    assert "Black King Bar" in card["lines_en"][0] and len(card["lines_en"]) == len(card["lines"])
+    english = client.get("/overlay/recommendation?lang=en").json()["death_screen"]
+    assert english["lines"] == card["lines_en"] and "lines_en" not in english
 
 
 def _dead_client(client):

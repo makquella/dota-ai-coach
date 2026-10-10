@@ -468,16 +468,21 @@ class PlayerService:
             if next_item_for_hero
             else None
         )
-        card = build_death_screen(
-            death=death,
-            place=_death_place(death),
-            respawn=extra.get("respawn_seconds"),
-            gold=extra.get("available_gold", state.get("gold")),
-            buyback_cost=extra.get("buyback_cost"),
-            minute=state.get("minute"),
-            next_item=item,
-            lang=lang,
-        )
+        inputs: dict[str, Any] = {
+            "death": death,
+            "place": _death_place(death),
+            "respawn": extra.get("respawn_seconds"),
+            "gold": extra.get("available_gold", state.get("gold")),
+            "buyback_cost": extra.get("buyback_cost"),
+            "minute": state.get("minute"),
+            "next_item": item,
+        }
+        card = build_death_screen(**inputs, lang=lang)
+        if card is not None and lang != "en":
+            # Spoken in English when Windows has no Ukrainian voice (overlay/voice.js).
+            english = build_death_screen(**inputs, lang="en")
+            if english is not None:
+                card["lines_en"] = english["lines"]
         if card is not None:
             # Stable per death (the lines change with the gold): the overlay reads it once.
             card["id"] = f"{death.get('match_id') or ''}:{death['t']}"

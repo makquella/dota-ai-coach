@@ -92,6 +92,7 @@ def test_timers_follow_the_patch_data_and_the_role():
     }
     rune = next_timer(6 * 60 - 15, "mid", "uk")
     assert rune["title"] == "Руна сили" and rune["in_seconds"] == 15 and rune["at_label"] == "6:00"
+    assert rune["title_en"] == "Power rune"  # spoken without a Ukrainian voice
     assert next_timer(6 * 60 - 15, "carry", "en") is None  # not a carry's business
     assert next_timer(6 * 60 - 25, "mid", "en") is None  # 20 s lead
     shrine = next_timer(14 * 60 - 10, "offlane", "en")

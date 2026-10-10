@@ -32,6 +32,18 @@
     return matching.find((voice) => voice.localService) || matching[0] || null;
   }
 
+  // The voice and the words: in the panel's language, or — when Windows has no
+  // voice for it (a Ukrainian voice needs a language pack) — the English
+  // original with an English voice. null: nothing can be spoken.
+  function speechChoice(voices, locale, text, fallbackText) {
+    const voice = pickVoice(voices, locale);
+    if (voice) {
+      return { voice, text, fallback: false };
+    }
+    const english = String(locale || "en").toLowerCase().startsWith("en") ? null : pickVoice(voices, "en");
+    return english && fallbackText ? { voice: english, text: fallbackText, fallback: true } : null;
+  }
+
   // Only the action is spoken: the reason is for reading.
   function speechText(action) {
     const text = String(action || "").replace(/\s+/g, " ").trim();
@@ -49,10 +61,11 @@
     let lastKey = "";
     let lastAt = -Infinity;
 
-    // Returns what happened: "spoken" | "off" | "same" | "busy" | "too_soon" | "no_voice" | "empty".
+    // Returns what happened: "spoken" | "spoken_en" | "off" | "same" | "busy" | "too_soon" | "no_voice" | "empty".
+    // fallbackText: the English original, read when there is no voice for locale.
     // repeat: asked for by the player (hotkey): spoken whenever the voice is
     // on at all, right away, even if it was just said.
-    function say({ key, text, adviceMode, mode, locale, volume = 1, repeat = false }) {
+    function say({ key, text, fallbackText = "", adviceMode, mode, locale, volume = 1, repeat = false }) {
       if (!synth || !Utterance || !(repeat ? normalizeMode(mode) !== "off" : wantsSpeech(mode, adviceMode))) {
         return "off";
       }
@@ -67,14 +80,15 @@
       if (!urgent && (synth.speaking || now() - lastAt < MIN_GAP_MS)) {
         return synth.speaking ? "busy" : "too_soon";
       }
-      const voice = pickVoice(synth.getVoices(), locale);
-      if (!voice) {
+      const choice = speechChoice(synth.getVoices(), locale, spoken, speechText(fallbackText));
+      if (!choice) {
         return "no_voice";
       }
+      const { voice } = choice;
       if (urgent) {
         synth.cancel();
       }
-      const utterance = new Utterance(spoken);
+      const utterance = new Utterance(choice.text);
       utterance.lang = voice.lang;
       try {
         utterance.voice = voice;
@@ -86,7 +100,7 @@
       synth.speak(utterance);
       lastKey = key || "";
       lastAt = now();
-      return "spoken";
+      return choice.fallback ? "spoken_en" : "spoken";
     }
 
     function reset() {
@@ -100,5 +114,5 @@
     return { say, reset };
   }
 
-  return { MODES, MIN_GAP_MS, createSpeaker, normalizeMode, pickVoice, speechText, wantsSpeech };
+  return { MODES, MIN_GAP_MS, createSpeaker, normalizeMode, pickVoice, speechChoice, speechText, wantsSpeech };
 });

@@ -985,7 +985,7 @@
         parseStatus: {
           waiting_opendota: "Повний розбір реплею буде за кілька хвилин (OpenDota).",
           parsing: "OpenDota вивчає реплей — розбір доповниться сам.",
-          basic: "Реплей не розібрано: немає даних по хвилинах.",
+          basic: "Реплей не розібрано: немає даних за хвилинами.",
           not_parsed: "OpenDota не зміг вивчити реплей, тому розбір коротший.",
           gsi_only: "Є лише запис застосунку (OpenDota вимкнено).",
           private: "Матч приховано в OpenDota. У Доті: Налаштування → Соціальне → увімкніть загальний доступ до даних матчів (Expose Public Match Data) (спрацює для наступних матчів); поки розбір будується за записом застосунку.",
@@ -1127,7 +1127,7 @@
           gpm: "Золото й досвід за хвилину",
           lh: "Добивання / денаї",
           nw: "Вартість героя",
-          dmg: "Шкода по героях",
+          dmg: "Шкода героям",
           duration: "Тривалість",
           items: "Предмети наприкінці"
         },
@@ -1135,7 +1135,7 @@
           laning: (s) => [s.lh10 != null && `${s.lh10} добивань до 10:00`, s.lane_efficiency != null && `ефективність ${Math.round(s.lane_efficiency)}%`, s.lane_deaths ? `смертей на лінії: ${s.lane_deaths}` : null, s.runes != null && `рун: ${s.runes}${s.enemy_runes != null ? ` (у ворожого міда ${s.enemy_runes})` : ""}`],
           farm: (s) => [s.gpm != null && `${s.gpm} золота за хвилину`, s.gpm_pct != null && `краще, ніж у ${Math.round(s.gpm_pct * 100)}% гравців`],
           survival: (s) => [`смертей: ${s.deaths}`, s.deaths_per_10 != null && `${decimal(s.deaths_per_10)} за 10 хв`],
-          fights: (s) => [s.kill_participation != null && `участь у вбивствах ${s.kill_participation}%`, s.stuns != null && `оглушень ${decimal(s.stuns)} с${s.enemy_stuns != null ? ` (у ворожого хардлайнера ${decimal(s.enemy_stuns)} с)` : ""}`, s.enemy_tower_damage != null && s.tower_damage != null && `шкода по будівлях ${number(s.tower_damage)} (у ворожого хардлайнера ${number(s.enemy_tower_damage)})`],
+          fights: (s) => [s.kill_participation != null && `участь у вбивствах ${s.kill_participation}%`, s.stuns != null && `оглушень ${decimal(s.stuns)} с${s.enemy_stuns != null ? ` (у ворожого хардлайнера ${decimal(s.enemy_stuns)} с)` : ""}`, s.enemy_tower_damage != null && s.tower_damage != null && `шкода будівлям ${number(s.tower_damage)} (у ворожого хардлайнера ${number(s.enemy_tower_damage)})`],
           items: (s) => [
             s.first_item && `${s.first_item.item} до ${clock(s.first_item.t)}`,
             s.save_item && `Рятівний предмет: ${s.save_item.item} до ${clock(s.save_item.t)}`,
@@ -1183,7 +1183,7 @@
         buildTitle: "Збірка",
         lanesTitle: "Ваші лінії",
         lanesLine: (won, even, lost, games) => `З останніх ${games} ліній: виграно ${won}, на рівних ${even}, програно ${lost}.`,
-        lanesGold: (diff) => `У середньому ${diff} золота проти суперника по лінії до 10-ї хвилини.`,
+        lanesGold: (diff) => `У середньому ${diff} золота проти суперника на лінії до 10-ї хвилини.`,
         lanesHard: (list) => `Лінії, програні не раз, проти: ${list}.`,
         lanesDot: (hero, enemy, result, diff) => `${hero} проти ${enemy}: ${result.toLowerCase()}, ${diff} золота до 10-ї хвилини`,
         laneTitle: "Лінія",
@@ -1206,8 +1206,8 @@
         skillsNote: (agree, games) => `Так починають ${agree} з ${games} нещодавніх про-матчів. Підказка в грі назве, куди вкласти кожне очко.`,
         buildTimingNote: "Вінрейт героя залежно від часу покупки (публічні матчі OpenDota). Ваш таймінг виділено. Найраніші таймінги — найчастіше ігри, які й так ішли добре, тому мета — звичайний таймінг.",
         buildNoTimings: "Щодо цих предметів поки немає даних про таймінги.",
-        buildItemLine: (wr, t, typicalT, typicalWr) => `${wr}% перемог при покупці до ${t} · зазвичай купують до ${typicalT}: ${typicalWr}%`,
-        buildItemTypical: (wr, t) => `${wr}% перемог при покупці до ${t} · звичайний таймінг для героя`,
+        buildItemLine: (wr, t, typicalT, typicalWr) => `${wr}% перемог, якщо купити до ${t} · зазвичай купують до ${typicalT}: ${typicalWr}%`,
+        buildItemTypical: (wr, t) => `${wr}% перемог, якщо купити до ${t} · звичайний таймінг для героя`,
         buildBy: (t) => `до ${t}`,
         buildPopular: "Часта збірка (про-гравці)",
         buildPhase: { early: "Початок", mid: "Основа", late: "Пізня гра" },
@@ -1312,7 +1312,7 @@
         friendYou: "Ви",
         friendGames: (me, friend) => `ігор: у вас ${me}, у друга ${friend}`,
         friendFew: (n) => `Замало ігор, щоб сказати, хто попереду: потрібно ${n}+ у кожного.`,
-        friendMetrics: { win_rate: "Відсоток перемог", kills: "Вбивства", deaths: "Смерті", assists: "Допомога", gpm: "Золото за хвилину", xpm: "Досвід за хвилину", lh_per_min: "Добивання за хвилину", damage_per_min: "Шкода по героях за хвилину" },
+        friendMetrics: { win_rate: "Відсоток перемог", kills: "Вбивства", deaths: "Смерті", assists: "Допомога", gpm: "Золото за хвилину", xpm: "Досвід за хвилину", lh_per_min: "Добивання за хвилину", damage_per_min: "Шкода героям за хвилину" },
         friendCommon: "Герої, на яких грали обидва",
         friendHeroGames: (g1, w1, g2, w2) => `ви ${g1} · ${w1 ?? "—"}%   друг ${g2} · ${w2 ?? "—"}%`,
         friendTheirHeroes: (name) => `Найчастіше грає ${name}`,
@@ -1428,7 +1428,7 @@
         aiCurrent: (provider, model, hint) => [provider, model, hint ? `ключ ${hint}` : ""].filter(Boolean).join(" · "),
         aiEnvKey: "Ключ уже задано у файлі налаштувань застосунку.",
         aiChangeKey: "Змінити ключ",
-        aiDisable: "Відключити",
+        aiDisable: "Вимкнути",
         aiCancel: "Скасувати"
       }
     };

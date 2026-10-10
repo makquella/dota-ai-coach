@@ -34,6 +34,7 @@ def test_a_kill_opens_the_respawn_window_eight_to_eleven_minutes_later():
     assert hint["title"] == "Рошан може з'явитися"
     assert hint["hint"] == "Вікно появи відкривається о 28:00, до 31:00."
     assert hint["in_seconds"] == 20 and hint["speak"] is True and hint["minor"] is False
+    assert hint["title_en"] == "Roshan can respawn"  # spoken without a Ukrainian voice
     assert timer.hint(29 * 60, "en") is None  # inside the window: nothing to repeat
     assert timer.hint(31 * 60, "en")["title"] == "Roshan is up for sure"
     # The same event again (GSI keeps it for a while) changes nothing; a new kill does.
@@ -50,6 +51,7 @@ def test_the_aegis_warns_a_minute_before_it_expires():
     assert timer.hint(23 * 60 + 59, "en") is None
     hint = timer.hint(24 * 60, "uk")
     assert hint["title"] == "Аегіс згорить через 60 с"
+    assert "60" in hint["title_en"] and hint["title_en"].isascii()
     # Used (a death) or expired: gone.
     timer.observe(_extra(24 * 60 + 10, aegis=False))
     assert timer.hint(24 * 60 + 20, "en") is None

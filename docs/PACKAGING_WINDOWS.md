@@ -172,7 +172,7 @@ The overlay window is shown only when all of these hold:
 
 Alt-tab or minimizing Dota hides it within ~0.3 s; leaving the match or the main menu hides it within ~5 s. Exceptions: while a replay demo runs, and while the overlay is unlocked for dragging (`Ctrl+Alt+L`), it is shown regardless of Dota.
 
-Tray status (in the app language): **Dota not found** / «Доту не знайдено» (no `dota2.exe`), **Waiting for game** / «Чекаємо гру» (Dota running, no match data), **In game** / «У грі».
+Tray status (in the app language): **Dota not found** / «Доту не знайдено» (no `dota2.exe`), **Waiting for game** / «Чекаємо на гру» (Dota running, no match data), **In game** / «У грі».
 
 Focus tracking uses one hidden PowerShell helper that calls `user32.dll` (`GetForegroundWindow`, `GetWindowThreadProcessId`, `IsIconic`, `GetWindowRect`) and `shell32.dll` (`SHQueryUserNotificationState`) and prints a line only when something changes; it polls every 0.3 s while Dota runs and every 1.5 s otherwise, and exits when the app exits. If PowerShell is unavailable, the overlay simply follows the on/off switch.
 
