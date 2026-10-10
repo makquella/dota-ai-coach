@@ -1,35 +1,35 @@
-# Windows CI: scope и стабильный статус
+# Windows CI: scope і стабільний статус
 
-F16 в 0.53.12 сохраняет проверки backend/frontend и отмену superseded PR CI. Дорогая Windows-сборка запускается по изменениям, которые могут затронуть installer, с отдельным стабильным обязательным summary.
+F16 у 0.53.12 зберігає перевірки backend/frontend і скасування superseded PR CI. Дорога Windows-збірка запускається за змінами, що можуть зачепити installer, з окремим стабільним обов'язковим summary.
 
-## Выбор source и paths
+## Вибір source і paths
 
-Read-only `changes` job checkout того же immutable SHA, что остальные jobs, с history для base. Для PR используется frozen `pull_request.base.sha`, для push — `before`. `windows_checks.py` проверяет HEAD/tracked source и сравнивает эти commits через `git diff --name-only --no-renames -z`. Rename показывает и удалённый source, поэтому перемещение packaged файла в docs не скрывает изменение.
+Read-only `changes` job checkout того самого immutable SHA, що й інші jobs, з history для base. Для PR використовується frozen `pull_request.base.sha`, для push — `before`. `windows_checks.py` перевіряє HEAD/tracked source і порівнює ці commits через `git diff --name-only --no-renames -z`. Rename показує й видалений source, тому переміщення packaged файлу в docs не приховує зміни.
 
-Исключаются только известные деревья вне installer: `docs/`, `site/`, `services/api/`, `.agents/`, `.claude/`, root `AGENTS.md`/`CLAUDE.md` и API workflow. Worker имеет собственный API workflow с unit/real D1/bundle checks. Все остальные paths, включая backend, launcher, runtime data, README (он входит в installer), dependencies, Windows scripts, shared CI/release workflows и неизвестные файлы, требуют Windows. Version-only изменения packaged files тоже требуют сборки.
+Виключаються лише відомі дерева поза installer: `docs/`, `site/`, `services/api/`, `.agents/`, `.claude/`, root `AGENTS.md`/`CLAUDE.md` і API workflow. Worker має власний API workflow з unit/real D1/bundle checks. Усі інші paths, зокрема backend, launcher, runtime data, README (він входить до installer), dependencies, Windows scripts, shared CI/release workflows і невідомі файли, потребують Windows. Version-only зміни packaged files теж потребують збирання.
 
-Без usable base, при первом push или недоступном commit выбирается Windows. Неверный source/dirty tracked files и ошибки scope job не превращаются в skip. Pure docs/site/Worker changes продолжают проходить backend/frontend CI; это исправление сокращает только Windows target.
+Без usable base, під час першого push чи за недоступного commit вибирається Windows. Хибний source/dirty tracked files і помилки scope job не перетворюються на skip. Pure docs/site/Worker changes і далі проходять backend/frontend CI; це виправлення скорочує лише Windows target.
 
 ## Required summary
 
-Actual build выполняет `windows-build` job с прежними PyInstaller/Electron/NSIS, smoke, source verification и installer/log artifacts. `windows-package` теперь summary на Ubuntu с **тем же существующим check name**: `Windows package (PyInstaller + NSIS, /health smoke)`.
+Actual build виконує `windows-build` job з попередніми PyInstaller/Electron/NSIS, smoke, source verification й installer/log artifacts. `windows-package` тепер summary на Ubuntu з **тією самою наявною check name**: `Windows package (PyInstaller + NSIS, /health smoke)`.
 
-Summary зависит от `changes` и `windows-build`, выполняется с `always()` и принимает только:
+Summary залежить від `changes` і `windows-build`, виконується з `always()` і приймає лише:
 
-- успешный scope и успешную Windows-сборку;
-- успешный scope и skip, когда desktop paths не менялись;
-- успешный scope и skip от reusable Release caller, который выполняет свою signed Windows-сборку после validation, как предусмотрено F15.
+- успішний scope й успішну Windows-збірку;
+- успішний scope й skip, коли desktop paths не змінювалися;
+- успішний scope й skip від reusable Release caller, який виконує свою signed Windows-збірку після validation, як передбачено F15.
 
-Failure/cancellation/skipped scope, failure/cancellation build или необоснованный skip дают failure стабильного статуса. Backend/frontend check names сохраняются. Existing branch protections не нужно менять на имя внутреннего build job. Новый summary не заменяет отдельно обязательные backend/frontend checks.
+Failure/cancellation/skipped scope, failure/cancellation build чи необґрунтований skip дають failure стабільного статусу. Backend/frontend check names зберігаються. Existing branch protections не треба змінювати на ім'я внутрішнього build job. Новий summary не замінює окремо обов'язкових backend/frontend checks.
 
-## Проверки
+## Перевірки
 
-`tests/test_windows_checks.py` вызывает CLI и настоящие временные Git repositories: Unicode/space filenames, non-desktop paths, unknown input, rename из backend в docs, missing/unavailable base и матрицу success/failure/cancel/skip. Workflow contract проверяет прежний required name, dependency graph и full history; actionlint проверяет expressions. Helper проходит strict mypy без baseline.
+`tests/test_windows_checks.py` викликає CLI і справжні тимчасові Git repositories: Unicode/space filenames, non-desktop paths, unknown input, rename з backend у docs, missing/unavailable base і матрицю success/failure/cancel/skip. Workflow contract перевіряє попереднє required name, dependency graph і full history; actionlint перевіряє expressions. Helper проходить strict mypy без baseline.
 
 ```bash
-# из backend/
+# з backend/
 python -m pytest tests/test_windows_checks.py tests/test_release_validation.py
 python -m mypy --strict ../scripts/windows_checks.py
 ```
 
-PR самого исправления меняет packaged version и shared CI, поэтому обязан выполнить настоящую Windows-сборку. Docs-only skip проверяется CLI/Git cases; release publish не запускается при этой разработке. При добавлении нового packaged дерева пересмотреть exclusions и manifest; unknown paths уже выбираются консервативно.
+PR самого виправлення змінює packaged version і shared CI, тому мусить виконати справжню Windows-збірку. Docs-only skip перевіряється CLI/Git cases; release publish не запускається під час цієї розробки. У разі додавання нового packaged дерева переглянути exclusions і manifest; unknown paths уже вибираються консервативно.

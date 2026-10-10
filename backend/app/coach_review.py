@@ -50,7 +50,7 @@ MAX_SCRUBBED_SHARE = 0.25
 # Minute marks are allowed only as minutes, not as unrelated quantities.
 ALWAYS_ALLOWED_NUMBERS = {float(n) for n in range(13)} | {100.0}
 MINUTE_RE = re.compile(
-    r"(?<![\d:.,])(\d{1,2})(?:-?(?:й|я|ю|ой|ей|th))?\s+(?:минут\w*|мин\b|minutes?\b|min\b)"
+    r"(?<![\d:.,])(\d{1,2})(?:-?(?:й|ї|у|ту|ої|th))?\s+(?:хвилин\w*|хв\b|minutes?\b|min\b)"
     r"|\bminute\s+(\d{1,2})\b",
     re.IGNORECASE,
 )
@@ -58,11 +58,11 @@ MINUTE_RE = re.compile(
 HERO_NAMES = sorted({name for name, _ in HEROES.values()}, key=len, reverse=True)
 
 LANGUAGE_RULES = {
-    "ru": (
-        "Write in Russian. Address the player formally («вы»). Keep hero and item names "
-        "in English exactly as in the data; no other English words (use the Russian words "
-        "players use: фарм, линия, добивания, крипы, лес, тайминг, ценность for net worth; GPM "
-        "and XPM stay). Times as «к 26:00»."
+    "uk": (
+        "Write in Ukrainian. Address the player formally («ви»). Keep hero and item names "
+        "in English exactly as in the data; no other English words (use the Ukrainian words "
+        "players use: фарм, лінія, добивання, кріпи, ліс, таймінг, цінність for net worth; GPM "
+        "and XPM stay). Times as «до 26:00»."
     ),
     "en": "Write in English. Address the player as “you”.",
 }
@@ -628,7 +628,7 @@ class FactChecker:
             if 0 < value < 1:
                 self.allowed.add(float(round(value * 100)))
             if value >= 1000:
-                # Rounded big numbers ("11.5k", "14 тыс") are parsed back to 11500 / 14000.
+                # Rounded big numbers ("11.5k", "14 тис") are parsed back to 11500 / 14000.
                 self.allowed |= {round(value, -2), round(value, -3)}
         names = [n for n in HERO_NAMES] + sorted(
             {i for i in known_items if len(i) >= 4}, key=len, reverse=True
@@ -718,11 +718,11 @@ class FactChecker:
 
 
 TIME_RE = re.compile(r"(?<![\d:])\d{1,2}:\d{2}(?!\d|:\d)")
-THOUSANDS_RE = re.compile(r"(\d+(?:\.\d+)?)\s*(?:k|тыс\.?)(?!\w)", re.IGNORECASE)
+THOUSANDS_RE = re.compile(r"(\d+(?:\.\d+)?)\s*(?:k|тис\.?)(?!\w)", re.IGNORECASE)
 
 
 def _minute_mark(match: re.Match[str]) -> str:
-    """ "15-й минуте" / "by minute 20": a 5-minute mark needs no fact."""
+    """ "15-й хвилині" / "by minute 20": a 5-minute mark needs no fact."""
     minutes = int(match.group(1) or match.group(2))
     return " " if minutes % 5 == 0 and minutes <= 90 else match.group(0)
 
@@ -733,8 +733,8 @@ def _plain_time(value: str) -> str:
 
 
 def _numbers(text: str) -> list[float]:
-    # "11 500" / "11,500" -> 11500; "2,4" -> 2.4; "11.5k" / "11,5 тыс" -> 11500.
-    # Not Cyrillic "к": in Russian it also means "by" ("к 26:00").
+    # "11 500" / "11,500" -> 11500; "2,4" -> 2.4; "11.5k" / "11,5 тис" -> 11500.
+    # Latin "k" only: a Cyrillic "к" starts ordinary Ukrainian words.
     text = re.sub(r"(?<=\d)[ \u00a0\u202f](?=\d{3}(?!\d))", "", text)
     text = re.sub(r"(?<=\d),(?=\d{3}(?!\d))", "", text)
     text = re.sub(r"(?<=\d),(?=\d)", ".", text)

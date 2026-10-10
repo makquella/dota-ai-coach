@@ -1,6 +1,6 @@
 """
-player_profile.py - the «Профиль» tab: rating graph, app level, achievements
-and the «Искры» the player earns by playing with the coach.
+player_profile.py - the «Профіль» tab: rating graph, app level, achievements
+and the «Іскри» the player earns by playing with the coach.
 
 Everything is computed from the match table (and two meta values), so it
 rebuilds from a backup and never drifts:
@@ -14,7 +14,7 @@ rebuilds from a backup and never drifts:
 - Level: XP for every match recorded by the app (GSI in `sources`), more for
   a win and for a good review score.
 - Achievements: tiered goals over the matches played with the app.
-- Sparks («Искры»): earned per recorded match, per win and per achievement tier;
+- Sparks («Іскри»): earned per recorded match, per win and per achievement tier;
   spent in the shop (cosmetics.py: the prices of the owned items).
 """
 
@@ -46,79 +46,83 @@ SPARKS_GAME = 10
 SPARKS_WIN = 5
 TIER_SPARKS = (20, 50, 100, 200, 400, 800)
 TIER_NAMES = {
-    "ru": ("Бронза", "Серебро", "Золото", "Платина", "Алмаз", "Легенда"),
+    "uk": ("Бронза", "Срібло", "Золото", "Платина", "Діамант", "Легенда"),
     "en": ("Bronze", "Silver", "Gold", "Platinum", "Diamond", "Legend"),
 }
 
-# id, targets per tier, ru/en (title, text with {n} and {w}, the noun's forms:
-# one / few / many in Russian, one / other in English).
-MATCH_RU = ("матч", "матча", "матчей")
+# id, targets per tier, uk/en (title, text with {n} and {w}, the noun's forms:
+# one / few / many in Ukrainian, one / other in English).
+MATCH_UK = ("матч", "матчі", "матчів")
 MATCH_EN = ("match", "matches")
 ACHIEVEMENTS: list[dict[str, Any]] = [
     {
         "id": "app_games",
         "targets": (1, 10, 50, 100, 250, 500),
-        "ru": ("С тренером", "Сыграйте {n} {w} с Wardly", MATCH_RU),
+        "uk": ("З тренером", "Зіграйте {n} {w} з Wardly", MATCH_UK),
         "en": ("With the coach", "Play {n} {w} with Wardly", MATCH_EN),
     },
     {
         "id": "app_wins",
         "targets": (1, 10, 50, 100, 250),
-        "ru": ("Победитель", "Выиграйте {n} {w} с Wardly", MATCH_RU),
+        "uk": ("Переможець", "Виграйте {n} {w} з Wardly", MATCH_UK),
         "en": ("Winner", "Win {n} {w} with Wardly", MATCH_EN),
     },
     {
         "id": "win_streak",
         "targets": (3, 5, 7, 10),
-        "ru": ("Серия", "Выиграйте {n} {w} подряд с Wardly", MATCH_RU),
+        "uk": ("Серія", "Виграйте {n} {w} поспіль з Wardly", MATCH_UK),
         "en": ("Streak", "Win {n} {w} in a row with Wardly", MATCH_EN),
     },
     {
         "id": "good_games",
         "targets": (1, 10, 25, 50, 100),
-        "ru": (
-            "Чистая игра",
-            "Получите оценку разбора 70+ в {n} {w}",
-            ("матче", "матчах", "матчах"),
+        "uk": (
+            "Чиста гра",
+            "Отримайте оцінку розбору 70+ у {n} {w}",
+            ("матчі", "матчах", "матчах"),
         ),
         "en": ("Clean game", "Get a review score of 70+ in {n} {w}", MATCH_EN),
     },
     {
         "id": "few_deaths",
         "targets": (1, 5, 15, 30),
-        "ru": ("Неубиваемый", "Сыграйте {n} {w} от 20 минут, умерев не больше 2 раз", MATCH_RU),
+        "uk": (
+            "Невбиваний",
+            "Зіграйте {n} {w} від 20 хвилин, загинувши не більше 2 разів",
+            MATCH_UK,
+        ),
         "en": ("Unkillable", "Play {n} {w} of 20+ minutes dying twice or less", MATCH_EN),
     },
     {
         "id": "hero_master",
         "targets": (10, 25, 50, 100),
-        "ru": ("Мастер героя", "Сыграйте {n} {w} на одном герое с Wardly", MATCH_RU),
+        "uk": ("Майстер героя", "Зіграйте {n} {w} на одному герої з Wardly", MATCH_UK),
         "en": ("Hero master", "Play {n} {w} on one hero with Wardly", MATCH_EN),
     },
     {
         "id": "weeks",
         "targets": (2, 4, 8, 16, 32),
-        "ru": (
-            "Постоянство",
-            "Хотя бы матч в неделю с Wardly: {n} {w}",
-            ("неделя", "недели", "недель"),
+        "uk": (
+            "Сталість",
+            "Хоча б матч на тиждень з Wardly: {n} {w}",
+            ("тиждень", "тижні", "тижнів"),
         ),
         "en": ("Consistency", "At least one match a week with Wardly: {n} {w}", ("week", "weeks")),
     },
     {
         "id": "mmr_gain",
         "targets": (50, 150, 300, 500, 1000),
-        "ru": ("Рост рейтинга", "Поднимите рейтинг на {n} от самой низкой точки графика", ()),
+        "uk": ("Зростання рейтингу", "Підніміть рейтинг на {n} від найнижчої точки графіка", ()),
         "en": ("Climbing", "Raise the rating by {n} from the lowest point of the graph", ()),
     },
 ]
 
 
 def plural(n: int, forms: tuple[str, ...], lang: str) -> str:
-    """The noun for a number: ru one / few / many, en one / other."""
+    """The noun for a number: uk one / few / many, en one / other."""
     if not forms:
         return ""
-    if lang != "ru":
+    if lang != "uk":
         return forms[0] if n == 1 else forms[-1]
     if n % 10 == 1 and n % 100 != 11:
         return forms[0]
@@ -322,7 +326,7 @@ def achievements(
 ) -> tuple[list[dict[str, Any]], int]:
     """Every achievement with its reached tier and progress; and the sparks the
     reached tiers give."""
-    lang = "ru" if lang == "ru" else "en"
+    lang = "uk" if lang == "uk" else "en"
     series = _metrics(app_rows)
     series["mmr_gain"] = [(0, mmr_gain)]
     result, sparks = [], 0
@@ -441,7 +445,7 @@ def public_card(profile: dict[str, Any], lang: str, *, show_mmr: bool = True) ->
     stats = profile.get("stats") or {}
     manual = rating_.get("source") == "manual"
     return {
-        "lang": "en" if lang == "en" else "ru",
+        "lang": "en" if lang == "en" else "uk",
         "name": (player.get("name") or "Wardly")[:32],
         "avatar": avatar_hash(player.get("avatar_url")),
         "title": titles.get(title_id) if title_id and title_id != "title_none" else None,

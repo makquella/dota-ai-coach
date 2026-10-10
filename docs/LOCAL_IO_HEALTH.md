@@ -31,7 +31,7 @@ reach the launcher log; configuration values and parser error text do not.
 
 `/diagnostics.recording_health` and the existing user-requested problem report
 include these bounded counters. The report preview/redaction/consent flow remains;
-RU/EN privacy copy names the aggregates. There is no new automatic upload.
+UK/EN privacy copy names the aggregates. There is no new automatic upload.
 
 Real-file tests cover blocked destinations, corrupt/invalid serialization,
 preservation of previous JSON, temporary cleanup, same-packet census retry,

@@ -27,7 +27,7 @@ def test_sides_follow_the_team():
 def test_gsi_match_records_the_path_and_where_each_death_happened(client):
     for payload in gsi_match_stream(positions=True, win=False):
         client.post("/gsi", json=payload)
-    detail = client.get(f"/player/matches/{MATCH_ID}?lang=ru").json()
+    detail = client.get(f"/player/matches/{MATCH_ID}?lang=uk").json()
     game_map = detail["analysis"]["map"]
     assert [(d["t"], d["side"]) for d in game_map["deaths"]] == [
         (420, "own"),
@@ -54,8 +54,8 @@ def test_most_late_deaths_on_the_enemy_half_is_a_finding():
     assert [(f["id"], f["params"]) for f in findings] == [
         ("deaths_enemy_half", {"count": 3, "total": 4})
     ]
-    text = render_finding(findings[0], "ru")
-    assert text["text"].startswith("3 из 4 смертей после 10-й минуты")
+    text = render_finding(findings[0], "uk")
+    assert text["text"].startswith("3 з 4 смертей після 10-ї хвилини")
     # Dire: the same spots are its own half.
     assert analyze_map({"is_radiant": False, "deaths_log": deaths})[1] == []
 

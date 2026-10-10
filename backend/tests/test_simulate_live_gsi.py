@@ -19,7 +19,7 @@ def _load_script():
 
 def test_live_simulation_runs_the_whole_path_on_game_time():
     script = _load_script()
-    cards = script.simulate(script.synthetic_stream(14, (7,)), "ru")
+    cards = script.simulate(script.synthetic_stream(14, (7,)), "uk")
     points = [card["decision_point"] for card in cards]
     assert points[0] == "DEATH_REVIEW" and cards[0]["clock"] == 7 * 60 + 1
     # Cards follow the game clock (spacing and lifetimes work on it), and the

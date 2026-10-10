@@ -21,7 +21,7 @@ const HEALTHY = {
   freshness: { sync_state: "done", sync_at: "2026-10-09T10:00:00+00:00", builds_generated: "2026-10-06", builds_age_days: 3 }
 };
 
-for (const lang of ["en", "ru"]) {
+for (const lang of ["en", "uk"]) {
   test(`${lang}: every line of a healthy app reads without a warning`, () => {
     const rows = OpsHealth.rows(HEALTHY, tr(lang));
     assert.deepEqual(rows.map((row) => row.key), ["opsJobs", "opsAi", "opsMatch", "opsGsi", "opsData"]);

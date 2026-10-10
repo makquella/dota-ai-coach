@@ -6,7 +6,7 @@ import copy
 
 from match_fixtures import gsi_match_stream
 
-from app.advice_i18n import translate_ru
+from app.advice_i18n import translate_uk
 from app.gsi_state import normalize_gsi_payload
 from app.live_tools import (
     death_items_reason,
@@ -118,11 +118,11 @@ def test_the_live_card_through_gsi(client):
     client.post("/gsi", json=payload)
     body = client.get("/overlay/recommendation").json()
     assert body["recommendation"]["action"] == "Use Magic Wand now, then step back."
-    russian = client.get("/overlay/recommendation?lang=ru").json()["recommendation"]
-    assert russian["action"] == "Нажмите Magic Wand сейчас и отойдите."
+    ukrainian = client.get("/overlay/recommendation?lang=uk").json()["recommendation"]
+    assert ukrainian["action"] == "Натисніть Magic Wand зараз і відійдіть."
 
 
-def test_every_new_text_has_russian():
+def test_every_new_text_has_ukrainian():
     texts = [
         "Use Force Staff now to get out, then reset HP.",
         "Your HP is low and Force Staff is ready: use it before the next hit, not after.",
@@ -141,7 +141,7 @@ def test_every_new_text_has_russian():
         "You died with Eul's Scepter ready: next time use it at the first big hit.",
     ]
     for text in texts:
-        assert translate_ru(text), text
+        assert translate_uk(text), text
 
 
 def _feed_until(client, clock, **stream_args):
@@ -171,12 +171,14 @@ def test_repeated_deaths_in_one_place_are_named(client):
         "2 deaths in the mid lane on the enemy side in 1 minute: "
         "farm somewhere safer until your team is there."
     )
-    russian = client.get("/overlay/recommendation?lang=ru").json()["recommendation"]
+    ukrainian = client.get("/overlay/recommendation?lang=uk").json()["recommendation"]
     assert (
-        russian["action"]
-        == "После возрождения держитесь подальше от центральной линии на половине врага."
+        ukrainian["action"]
+        == "Після відродження тримайтеся подалі від центральної лінії на половині ворога."
     )
-    assert russian["reason"].startswith("2 смерти на центральной линии на половине врага за 1 мин")
+    assert ukrainian["reason"].startswith(
+        "2 смерті на центральній лінії на половині ворога за 1 хв"
+    )
 
 
 def test_one_death_on_the_enemy_half_says_to_farm_your_own():
@@ -209,7 +211,7 @@ def test_one_death_on_the_enemy_half_says_to_farm_your_own():
 def test_the_first_death_says_where_or_how_it_happened():
     """The first death card named nothing («plan a safer route»): now the lane,
     the part of the map or how fast the kill came."""
-    from app.advice_i18n import translate_ru
+    from app.advice_i18n import translate_uk
 
     def action(extra):
         return _fallback_text(_request(_extra() | extra), "plan_safer_respawn_route")["action"]
@@ -219,17 +221,16 @@ def test_the_first_death_says_where_or_how_it_happened():
     assert laning == (
         "After respawn, play the bottom lane closer to your tower until you see the enemy heroes."
     )
-    assert translate_ru(laning) == (
-        "После возрождения играйте на нижней линии ближе к своей башне, "
-        "пока не увидите вражеских героев."
+    assert translate_uk(laning) == (
+        "Після відродження грайте на нижній лінії ближче до своєї вежі, доки не побачите ворожих героїв."
     )
     later = action(lane | {"clock_time": 1500})
     assert (
         later
         == "After respawn, avoid the bottom lane on your side without your team: you died there."
     )
-    assert translate_ru(later) == (
-        "После возрождения не ходите на нижнюю линию на своей половине без команды: вы погибли там."
+    assert translate_uk(later) == (
+        "Після відродження не ходіть на нижню лінію на своїй половині без команди: ви загинули там."
     )
     jungle = action(
         {"death_place": {"zone": "jungle", "side": "river", "count": 1, "minutes": 1}}
@@ -238,19 +239,20 @@ def test_the_first_death_says_where_or_how_it_happened():
     assert (
         jungle == "After respawn, avoid the jungle by the river without your team: you died there."
     )
-    assert translate_ru(jungle).startswith("После возрождения не ходите в лес у реки без команды")
+    assert translate_uk(jungle).startswith(
+        "Після відродження не ходіть до лісу біля річки без команди"
+    )
     enemy = action({"death_place": {"zone": "mid", "side": "enemy", "count": 1, "minutes": 1}})
-    assert translate_ru(enemy) == (
-        "После возрождения фармите на своей половине: вы погибли на центральной линии на половине врага."
+    assert translate_uk(enemy) == (
+        "Після відродження фарміть на своїй половині: ви загинули на центральній лінії на половині ворога."
     )
     # No place known (the base, or no position): how fast it came.
     burst = action({"death_burst": 2})
     assert burst == (
         "After respawn, stay near your towers or your team: you went down in 2 seconds from high HP."
     )
-    assert translate_ru(burst) == (
-        "После возрождения держитесь у своих башен или рядом с командой: "
-        "вас убили за 2 с с высокого здоровья."
+    assert translate_uk(burst) == (
+        "Після відродження тримайтеся біля своїх веж або поруч із командою: вас убили за 2 с з високого здоров'я."
     )
     assert action({"death_burst": 1}).endswith("in 1 second from high HP.")
     # Nothing known: the card as it was.
@@ -273,7 +275,7 @@ def test_recent_death_passes_the_burst(client, monkeypatch):
 
 
 def test_deaths_in_different_places_are_counted():
-    from app.advice_i18n import translate_ru
+    from app.advice_i18n import translate_uk
     from app.player_service import _recent_deaths
 
     assert _recent_deaths([{"t": 600}], 600) is None
@@ -288,12 +290,12 @@ def test_deaths_in_different_places_are_counted():
     }
     text = _fallback_text(_request(extra), "break_repeated_death_pattern")
     assert text["action"] == "After respawn, change your route: 3 deaths in the last 7 minutes."
-    assert translate_ru(text["action"]) == "После возрождения смените маршрут: 3 смерти за 7 мин."
+    assert translate_uk(text["action"]) == "Після відродження змініть маршрут: 3 смерті за 7 хв."
     # Deaths spread over the game: the total.
     spread = _extra() | {"match_deaths": 4}
     text = _fallback_text(_request(spread), "break_repeated_death_pattern")
     assert text["action"] == "After respawn, change your route: 4 deaths this game."
-    assert translate_ru(text["action"]) == "После возрождения смените маршрут: 4 смерти за игру."
+    assert translate_uk(text["action"]) == "Після відродження змініть маршрут: 4 смерті за гру."
     assert (
         "change your route"
         not in _fallback_text(_request(_extra() | {"match_deaths": 1}), "plan_safer_respawn_route")[
@@ -395,7 +397,7 @@ def test_the_escape_cooldown_card_says_when_it_is_back():
     assert text["reason"] == (
         "Blink is back in 6 s: without it, escaping a bad trade or fight is harder."
     )
-    assert translate_ru(text["reason"]).startswith("Blink откатится через 6 с")
+    assert translate_uk(text["reason"]).startswith("Blink відновиться через 6 с")
 
 
 def test_a_death_with_the_heros_ability_ready_is_named(tmp_path):
@@ -416,14 +418,14 @@ def test_a_death_with_the_heros_ability_ready_is_named(tmp_path):
     )
 
 
-def test_the_ability_texts_have_russian():
+def test_the_ability_texts_have_ukrainian():
     for text in (
         "Use Blade Fury now and walk out of the fight.",
         "Blade Fury is ready: it buys you the seconds to get away.",
         "Blink is back in 6 s: without it, escaping a bad trade or fight is harder.",
         "Blade Fury is back in 9 s: until then, disables and slows are harder to avoid.",
     ):
-        assert translate_ru(text), text
+        assert translate_uk(text), text
 
 
 def test_only_abilities_that_can_be_pressed_as_a_save_count():
@@ -457,7 +459,7 @@ def test_a_mute_stops_items_not_the_heros_spells():
     assert low_hp_copy(silenced, "Juggernaut")[0] == (
         "Use Force Staff now to get out, then reset HP."
     )
-    assert translate_ru("Use Blade Fury now: a mute blocks items, not spells.")
+    assert translate_uk("Use Blade Fury now: a mute blocks items, not spells.")
 
 
 def _stunned_payload(*items):
@@ -480,7 +482,7 @@ def test_a_disable_card_only_when_something_can_be_pressed(client):
 
 def test_a_repeated_low_hp_card_says_how_often_it_happens():
     """«Use Blink now to get out» came nine times in one game with the same reason."""
-    from app.advice_i18n import translate_ru
+    from app.advice_i18n import translate_uk
     from app.live_tools import low_hp_repeat_reason
 
     assert low_hp_repeat_reason({"low_hp_before": 1}) is None  # the second card: as it was
@@ -489,7 +491,7 @@ def test_a_repeated_low_hp_card_says_how_often_it_happens():
         "Your HP has dropped this low 3 times this game: heal up fully before you go back. "
         "No regen in your bag: have the courier bring a Healing Salve."
     )
-    assert translate_ru(reason).startswith("HP падает так низко уже 3-й раз за игру")
+    assert translate_uk(reason).startswith("HP падає так низько вже 3-й раз за гру")
     assert "Healing Salve" not in low_hp_repeat_reason(
         {"low_hp_before": 4, "regen_items": ["item_flask"]}
     )

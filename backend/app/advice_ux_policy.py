@@ -151,7 +151,7 @@ def _coaching_action(action: str) -> str:
     if lowered.startswith("after this item pickup"):
         return action
     # "Consider: farm back your gold" (with a colon: the action stays an imperative;
-    # "Consider farm back" is not English). Russian: «Подумайте: …».
+    # "Consider farm back" is not English). Ukrainian: «Подумайте: …».
     if action:
         return f"Consider: {action[0].lower() + action[1:]}"
     return "Consider playing safely."

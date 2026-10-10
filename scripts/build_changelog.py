@@ -1,6 +1,6 @@
-"""Build site/changelog.html («Что нового») from docs/release-notes/v*.md.
+"""Build site/changelog.html («Що нового») from docs/release-notes/v*.md.
 
-The notes are Russian above the `---` line and a one-paragraph English summary
+The notes are Ukrainian above the `---` line and a one-paragraph English summary
 below it («**In English:** …»). Only the few Markdown forms the notes use are
 converted: `## heading`, a bold line as a subheading, `- ` bullets, paragraphs,
 **bold**, `code` and bare https links. Everything else is escaped as text.
@@ -53,7 +53,7 @@ def markdown(text: str) -> str:
         if not line:
             flush()
         elif line.startswith("## "):
-            flush()  # «Что нового» — the page title says it already
+            flush()  # «Що нового» — the page title says it already
         elif line.startswith("- "):
             if para:
                 flush()
@@ -70,18 +70,18 @@ def markdown(text: str) -> str:
 
 
 def release(path: Path) -> tuple[str, str, str]:
-    """(version, Russian HTML, English HTML) of one notes file."""
+    """(version, Ukrainian HTML, English HTML) of one notes file."""
     text = path.read_text(encoding="utf-8")
-    ru, _, en = text.partition("\n---\n")
+    uk, _, en = text.partition("\n---\n")
     en = re.sub(r"^\s*\*\*In English:\*\*\s*", "", en.strip())
     en = en[:1].upper() + en[1:]
     version = path.stem.lstrip("v")
-    return version, markdown(ru), markdown(en) if en else ""
+    return version, markdown(uk), markdown(en) if en else ""
 
 
 def _section(version: str, body: str, lang: str) -> str:
-    title = "Версия" if lang == "ru" else "Version"
-    link = "Скачать и подробности" if lang == "ru" else "Download and details"
+    title = "Версія" if lang == "uk" else "Version"
+    link = "Завантажити й подробиці" if lang == "uk" else "Download and details"
     return (
         f'<section class="release" id="v{version}">\n'
         f'<h2><a href="#v{version}">{title} {version}</a></h2>\n'
@@ -94,10 +94,10 @@ def _section(version: str, body: str, lang: str) -> str:
 def build() -> str:
     files = sorted(NOTES.glob("v*.md"), key=_version_key, reverse=True)
     releases = [release(path) for path in files]
-    ru = "\n".join(_section(v, body, "ru") for v, body, _ in releases)
+    uk = "\n".join(_section(v, body, "uk") for v, body, _ in releases)
     en = "\n".join(_section(v, body, "en") for v, _, body in releases if body)
     template = (ROOT / "scripts" / "changelog.template.html").read_text(encoding="utf-8")
-    return template.replace("<!-- RU -->", ru).replace("<!-- EN -->", en)
+    return template.replace("<!-- UK -->", uk).replace("<!-- EN -->", en)
 
 
 def main() -> int:

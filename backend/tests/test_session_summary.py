@@ -1,4 +1,4 @@
-"""«Итог вечера»: the games of the latest sitting and the text to share."""
+"""«Підсумок вечора»: the games of the latest sitting and the text to share."""
 
 from __future__ import annotations
 
@@ -47,7 +47,7 @@ def test_the_sitting_is_the_newest_chain_of_games():
     assert sitting(old, NOW) == []
 
 
-def test_the_evening_in_numbers_and_text_ru():
+def test_the_evening_in_numbers_and_text_uk():
     matches = [
         _match(14, 1, 80, True, problems=["death_streak"], deaths=2),
         _match(
@@ -56,7 +56,7 @@ def test_the_evening_in_numbers_and_text_ru():
         _match(12, 3, 65, True, deaths=4),
         *_usual(1),
     ]
-    summary = session_summary(matches, NOW, "ru")
+    summary = session_summary(matches, NOW, "uk")
     assert (summary["games"], summary["wins"], summary["losses"]) == (3, 2, 1)
     assert (
         summary["avg_score"] == 65
@@ -73,15 +73,15 @@ def test_the_evening_in_numbers_and_text_ru():
     assert summary["top_problem"]["id"] == "death_streak" and summary["top_problem"]["count"] == 2
     assert summary["id"] == f"{NOW - 3 * HOUR}:14"
     text = summary["text"].splitlines()
-    assert text[0] == "Итог вечера в Dota 2 · Wardly"
-    assert text[1] == "3 матча: 2 победы, 1 поражение · 2 ч 40 мин"
-    assert text[2] == "Средняя оценка тренера: 65/100 (обычно 55)"
-    assert text[3] == "Герои: Juggernaut 2–0, Lina 0–1"
-    assert text[4] == "Лучший матч: Juggernaut, 80/100"
-    assert text[5].startswith("Над чем работать: ") and text[5].endswith("(2 из 3)")
+    assert text[0] == "Підсумок вечора в Dota 2 · Wardly"
+    assert text[1] == "3 матчі: 2 перемоги, 1 поразка · 2 год 40 хв"
+    assert text[2] == "Середня оцінка тренера: 65/100 (зазвичай 55)"
+    assert text[3] == "Герої: Juggernaut 2–0, Lina 0–1"
+    assert text[4] == "Найкращий матч: Juggernaut, 80/100"
+    assert text[5].startswith("Над чим працювати: ") and text[5].endswith("(2 з 3)")
     assert text[-1] == "https://luhovyimvp.dev/?ref=session"
     # Nothing that names the player or the matches.
-    assert "14" not in summary["text"].replace("2 из 3", "")
+    assert "14" not in summary["text"].replace("2 з 3", "")
 
 
 def test_the_text_in_english_without_a_usual_score():
@@ -97,8 +97,8 @@ def test_the_text_in_english_without_a_usual_score():
 
 
 def test_one_game_is_not_an_evening():
-    assert session_summary([_match(1, 1, 70, True), *_usual(10)], NOW, "ru") is None
-    assert session_summary([], NOW, "ru") is None
+    assert session_summary([_match(1, 1, 70, True), *_usual(10)], NOW, "uk") is None
+    assert session_summary([], NOW, "uk") is None
 
 
 def test_the_id_changes_with_another_game():
@@ -115,11 +115,11 @@ def test_the_focus_counts_only_the_games_of_the_sitting():
         _match(2, 2, 60, True, problems=["death_streak"]),
         _match(1, 30, 60, True),  # yesterday: not in tonight's count
     ]
-    summary = session_summary(matches, NOW, "ru", focus=focus)
+    summary = session_summary(matches, NOW, "uk", focus=focus)
     assert summary["focus"]["met"] == 1 and summary["focus"]["total"] == 2
     assert summary["focus"]["title"]
-    assert "Фокус «" in summary["text"] and ": 1 из 2" in summary["text"]
+    assert "Фокус «" in summary["text"] and ": 1 з 2" in summary["text"]
 
 
 def test_session_endpoint(client):
-    assert client.get("/player/session?lang=ru").json() == {"session": None}
+    assert client.get("/player/session?lang=uk").json() == {"session": None}

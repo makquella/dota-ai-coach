@@ -2,7 +2,7 @@
 usage_stats.py - what the opt-in anonymous statistics send about advice.
 
 The launcher posts one row a day (services/api `POST /v1/stats`) when the player
-switched «Анонимная статистика» on; this is its advice part, from the analysed
+switched «Анонімна статистика» on; this is its advice part, from the analysed
 matches that started in [since, until):
 - `matches`: analysed matches, `with_advice`: those with live advice (recorded
   by the app);

@@ -3,7 +3,7 @@
 The launcher asks once a day (`POST /player/backups/auto`); a copy is made when
 the newest is a week old, or when the app version changed since the last one
 (so the history before an update stays recoverable). Copies are the same
-`wardly-backup` JSON as «Сохранить в файл», gzipped, in `<data>/backups/`:
+`wardly-backup` JSON as «Зберегти у файл», gzipped, in `<data>/backups/`:
 at most KEEP copies and BUDGET_BYTES together, the oldest go first, the newest
 always stays. A small sidecar per copy keeps its counts for the list, so
 listing never unpacks a copy. Restoring goes through history_backup: a preview

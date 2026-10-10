@@ -43,12 +43,12 @@ def _backup() -> dict[str, Any]:
             ],
             "cache": [
                 {
-                    "key": "coach:match:77:700:ru",
+                    "key": "coach:match:77:700:uk",
                     "value": '{"review":{"summary":"incoming"}}',
                     "fetched_at": 100,
                 },
                 {
-                    "key": "coach:match:123:900:ru",
+                    "key": "coach:match:123:900:uk",
                     "value": '{"review":{"summary":"new"}}',
                     "fetched_at": 200,
                 },
@@ -61,7 +61,7 @@ def _seed(store: PlayerStore) -> None:
     store.upsert_player(77, source="manual", persona_name="local")
     store.upsert_match(77, 700, source="gsi", fields={"kills": 5, "note": "local note"})
     store.set_meta("local_setting", "keep")
-    store.cache_set("coach:match:77:700:ru", {"review": {"summary": "local"}})
+    store.cache_set("coach:match:77:700:uk", {"review": {"summary": "local"}})
 
 
 def _snapshot(store: PlayerStore) -> dict[str, Any]:
@@ -155,15 +155,15 @@ INVALID_ROWS = [
     ("meta", {"key": "focus:123", "value": "[]"}),
     ("meta", {"key": "rank_history:123", "value": "{}"}),
     ("meta", {"key": "setting", "value": {"nested": 1}}),
-    ("cache", {"key": "coach:match:123:900:ru", "value": "not json", "fetched_at": 1}),
-    ("cache", {"key": "coach:match:123:900:ru", "value": "[]", "fetched_at": 1}),
-    ("cache", {"key": "coach:match:123:900:ru", "value": '{"review":42}', "fetched_at": 1}),
+    ("cache", {"key": "coach:match:123:900:uk", "value": "not json", "fetched_at": 1}),
+    ("cache", {"key": "coach:match:123:900:uk", "value": "[]", "fetched_at": 1}),
+    ("cache", {"key": "coach:match:123:900:uk", "value": '{"review":42}', "fetched_at": 1}),
     ("cache", {"key": "coach:ask:123:900", "value": "[42]", "fetched_at": 1}),
-    ("cache", {"key": "coach:match:123:900:ru", "value": "{}", "fetched_at": "yesterday"}),
-    ("cache", {"key": "coach:match:123:900:ru", "value": "{}", "fetched_at": -1}),
-    ("cache", {"key": "coach:match:123:900:ru", "value": '{"score":NaN}', "fetched_at": 1}),
-    ("cache", {"key": "coach:match:123:900:ru", "value": '{"score":1e999}', "fetched_at": 1}),
-    ("cache", {"key": "coach:match:123:900:ru", "value": '{"text":"\\ud800"}', "fetched_at": 1}),
+    ("cache", {"key": "coach:match:123:900:uk", "value": "{}", "fetched_at": "yesterday"}),
+    ("cache", {"key": "coach:match:123:900:uk", "value": "{}", "fetched_at": -1}),
+    ("cache", {"key": "coach:match:123:900:uk", "value": '{"score":NaN}', "fetched_at": 1}),
+    ("cache", {"key": "coach:match:123:900:uk", "value": '{"score":1e999}', "fetched_at": 1}),
+    ("cache", {"key": "coach:match:123:900:uk", "value": '{"text":"\\ud800"}', "fetched_at": 1}),
 ]
 
 

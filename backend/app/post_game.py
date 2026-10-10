@@ -15,16 +15,16 @@ from typing import Any
 from app.analysis_texts import render_finding
 
 TEXT = {
-    "ru": {
-        "title": "Итог матча",
-        "win": "Победа",
-        "loss": "Поражение",
+    "uk": {
+        "title": "Підсумок матчу",
+        "win": "Перемога",
+        "loss": "Поразка",
         "score": "{score}/100",
-        "tip": "Главное: {title}",
-        "strength": "Получилось: {title}",
-        "focus_met": "Фокус выполнен.",
-        "focus_missed": "Фокус не выполнен.",
-        "more": "Полный разбор — в приложении.",
+        "tip": "Головне: {title}",
+        "strength": "Вдалося: {title}",
+        "focus_met": "Фокус виконано.",
+        "focus_missed": "Фокус не виконано.",
+        "more": "Повний розбір — у застосунку.",
     },
     "en": {
         "title": "Match summary",
@@ -46,7 +46,7 @@ def post_game_card(
     """The card fits the overlay window (176 px): a top row (hero, result, score),
     one main line (the top tip, else the top strength) and a short detail (the
     focus result, the tip's drill, a pointer to the full review)."""
-    lang = "ru" if lang == "ru" else "en"
+    lang = "uk" if lang == "uk" else "en"
     text = TEXT[lang]
     headline = analysis.get("headline") or {}
     score = headline.get("score")

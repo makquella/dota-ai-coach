@@ -88,7 +88,7 @@ def test_preview_writes_nothing_and_restore_merges(client, tmp_path):
     service, _ = _service(client, tmp_path)
     copy = client.post("/player/backups").json()["item"]
     assert copy["kind"] == "manual"
-    client.post(f"/player/matches/{MATCH_ID}/note", json={"note": "Не ходить в лес"})
+    client.post(f"/player/matches/{MATCH_ID}/note", json={"note": "Не ходити в ліс"})
     with sqlite3.connect(service.data_dir / "coach.sqlite3") as conn:
         conn.execute("DELETE FROM matches WHERE match_id = ?", (MATCH_ID,))
     assert service.store.count_matches(ME) == 0

@@ -1,4 +1,4 @@
-"""«На чём основан разбор?»: what a stored review was built from, and whether
+"""«На чому ґрунтується розбір?»: what a stored review was built from, and whether
 the reviews Progress averages are comparable (audit E).
 
 `stamp` records on every analysis the rules version (ANALYSIS_VERSION), the

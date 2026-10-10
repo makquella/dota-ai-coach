@@ -81,7 +81,7 @@ def test_stored_reviews_get_their_items_when_the_table_is_read(client, tmp_path)
     with store._lock:
         store._conn.execute("UPDATE matches SET items = NULL")
         store._conn.commit()
-    detail = client.get(f"/player/matches/{reviewed[0]}?lang=ru").json()
+    detail = client.get(f"/player/matches/{reviewed[0]}?lang=uk").json()
     assert detail["summary"]["items"] == ["bfury"]
 
 

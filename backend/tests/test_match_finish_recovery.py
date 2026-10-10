@@ -71,7 +71,7 @@ def test_sqlite_failure_keeps_full_finish_and_startup_replays_it(client: TestCli
         key: value for key, value in pending.items() if not key.startswith("_")
     }
     assert not path.exists() and service.tracker.pending_count() == 0
-    for lang in ("ru", "en"):
+    for lang in ("uk", "en"):
         detail = client.get(f"/player/matches/{MATCH_ID}?lang={lang}").json()
         assert detail["analysis"]["lang"] == lang
         assert detail["summary"]["win"] == 0
@@ -86,7 +86,7 @@ def test_partial_commit_replay_preserves_notes_and_enriched_match(client: TestCl
     assert service.tracker.pending_count() == 1
     _allow_writes()
     timeline = service.store.get_match(ME, MATCH_ID)["timeline"]
-    assert service.store.set_note(ME, MATCH_ID, "Сохранённая заметка")
+    assert service.store.set_note(ME, MATCH_ID, "Збережена нотатка")
     service.store.upsert_match(
         ME, MATCH_ID, source="opendota", fields={"gpm": 999}, parse_status="parsed"
     )
@@ -94,7 +94,7 @@ def test_partial_commit_replay_preserves_notes_and_enriched_match(client: TestCl
     service.configure(service.data_dir, client=None, auto_start=False)
     row = service.store.get_match(ME, MATCH_ID)
     assert row["timeline"] == timeline
-    assert row["note"] == "Сохранённая заметка"
+    assert row["note"] == "Збережена нотатка"
     assert row["gpm"] == 999 and row["parse_status"] == "parsed"
     assert row["sources"] == ["gsi", "opendota"]
     assert service.store.count_matches(ME) == 1 and service.tracker.pending_count() == 0

@@ -1,5 +1,5 @@
 // Spoken advice (optional): Chromium's speechSynthesis with the voices of the
-// system (Windows: SAPI voices such as "Microsoft Irina" for Russian). Works
+// system (Windows: SAPI voices such as "Microsoft Ostap" for Ukrainian, where installed). Works
 // even when exclusive fullscreen hides the card. Pure rules + a small speaker
 // so the rules run in node tests; loaded as a plain script by the overlay and
 // the control panel (window.OverlayVoice).

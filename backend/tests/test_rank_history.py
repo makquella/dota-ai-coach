@@ -13,7 +13,7 @@ def test_a_step_is_noted_only_when_the_medal_changes():
     assert rank_history.note(raw, 52, today="2026-09-05") is None
     raw = rank_history.note(raw, 54, today="2026-09-20")
     assert rank_history.note(raw, None) is None and rank_history.note(raw, 99) is None
-    summary = rank_history.summary(raw, "ru")
+    summary = rank_history.summary(raw, "uk")
     assert summary["current"] == "Легенда 4" and summary["first"] == "Легенда 2"
     assert summary["change"] == 2 and summary["since"] == "2026-09-01"
     assert [s["date"] for s in summary["steps"]] == ["2026-09-01", "2026-09-20"]

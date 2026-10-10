@@ -24,10 +24,10 @@ os.environ["DOTA_AI_BACKEND_PORT"] = sys.argv[1] if len(sys.argv) > 1 else "8777
 import uvicorn  # noqa: E402
 from demo_data import (  # noqa: E402
     CAREER_EN,
-    CAREER_RU,
+    CAREER_UK,
     EN,
     PRO_SKILLS,
-    RU,
+    UK,
     DemoLLM,
     friend_row,
     vary,
@@ -102,7 +102,7 @@ def main() -> None:
                 PLAYER_SERVICE.store.upsert_match(ME, row["match_id"], source="gsi")
         client.post("/player/friend", json={"steam": str(friend_id)})
         PLAYER_SERVICE.jobs.run_pending(until=float("inf"))
-        for lang in ("ru", "en"):
+        for lang in ("uk", "en"):
             for path in (
                 f"/player/matches/{first}?lang={lang}",
                 f"/player/career?lang={lang}",
@@ -112,7 +112,7 @@ def main() -> None:
                 coach = client.get(path).json()["coach"]
                 print(f"{path}: AI review {coach['state']}", flush=True)
                 script = {
-                    "ru": (RU, CAREER_RU),
+                    "uk": (UK, CAREER_UK),
                     "en": (EN, CAREER_EN),
                 }[lang][0 if "/matches/" in path else 1]
                 review = coach.get("review") or {}

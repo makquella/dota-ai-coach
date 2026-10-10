@@ -24,9 +24,9 @@ test("pipe paths per platform", () => {
 });
 
 test("the activity: a match with the hero and its start, the menu, nothing without Dota", () => {
-  const match = buildActivity({ dotaRunning: true, inMatch: true, hero: "Juggernaut", startedAt: 1_790_000_000_500, lang: "ru" });
+  const match = buildActivity({ dotaRunning: true, inMatch: true, hero: "Juggernaut", startedAt: 1_790_000_000_500, lang: "uk" });
   assert.equal(match.details, "Матч на Juggernaut");
-  assert.equal(match.state, "С тренером Wardly");
+  assert.equal(match.state, "З тренером Wardly");
   assert.deepEqual(match.timestamps, { start: 1_790_000_000_500 }, "milliseconds, as the RPC server reads them");
   assert.equal(match.assets.large_image, "wardly");
   assert.ok(match.buttons[0].label.length <= 32);

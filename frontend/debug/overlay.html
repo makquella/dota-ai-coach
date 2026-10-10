@@ -180,7 +180,7 @@
   <body>
     <!-- Debug-only page (backend /debug/, source checkout only): the product UI is the Wardly desktop app. -->
     <p role="note" style="margin:0;padding:6px 12px;background:#5a1d22;color:#fff;font:600 13px/1.4 system-ui,sans-serif;text-align:center">
-      Debug page for developers — not the Wardly app. / Отладочная страница для разработчика — не приложение Wardly.
+      Debug page for developers — not the Wardly app. / Налагоджувальна сторінка для розробника — не застосунок Wardly.
     </p>
     <main>
       <label for="api-token">Local API token / Токен локального API</label>
@@ -226,7 +226,7 @@
       async function refreshRecommendation() {
         try {
           const token = document.querySelector("#api-token").value.trim();
-          if (!token) { showStatus("Enter the local API token / Введите токен локального API"); return; }
+          if (!token) { showStatus("Enter the local API token / Введіть токен локального API"); return; }
           const response = await fetch("/overlay/recommendation", { cache: "no-store", headers: { Authorization: `Bearer ${token}` } });
           if (!response.ok) throw new Error("Backend authorization failed.");
           const data = await response.json();

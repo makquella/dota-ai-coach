@@ -359,7 +359,7 @@ def plan(root: Path, args: argparse.Namespace) -> tuple[list[str], set[str], lis
             add(
                 [python, str(root / "scripts/bump_version.py"), "--check"],
                 root,
-                "backend/package/lock/RU-EN versions",
+                "backend/package/lock/UK-EN versions",
             )
             add(
                 [python, str(root / "scripts/build_site.py"), "--check"],

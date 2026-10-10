@@ -12,7 +12,7 @@ const vm = require("node:vm");
 const ROOT = path.join(__dirname, "..");
 const appTexts = require("../renderer/app-texts").create(require("../renderer/whats-new"));
 const matchTexts = require("../renderer/match-texts").create({});
-const updateTexts = {en: require("../renderer/whats-new").texts("en"), ru: require("../renderer/whats-new").texts("ru")};
+const updateTexts = {en: require("../renderer/whats-new").texts("en"), uk: require("../renderer/whats-new").texts("uk")};
 
 function tableFrom(file, declaration) {
   return vm.runInNewContext(`(${tableSource(file, declaration)})`, {
@@ -60,9 +60,9 @@ function keyPaths(node, prefix = "") {
 
 function assertSameKeys(table, name) {
   const en = new Set(keyPaths(table.en));
-  const ru = new Set(keyPaths(table.ru));
-  assert.deepEqual([...en].filter((key) => !ru.has(key)), [], `${name}: missing in ru`);
-  assert.deepEqual([...ru].filter((key) => !en.has(key)), [], `${name}: missing in en`);
+  const uk = new Set(keyPaths(table.uk));
+  assert.deepEqual([...en].filter((key) => !uk.has(key)), [], `${name}: missing in uk`);
+  assert.deepEqual([...uk].filter((key) => !en.has(key)), [], `${name}: missing in en`);
 }
 
 // Keys written twice in one object: the later one silently wins (a
@@ -180,7 +180,7 @@ test("every id in index.html is unique (aria-labelledby resolves to the first on
 
 test("the autostart hint says which state the switch is in", () => {
   const table = appTexts;
-  for (const lang of ["en", "ru"]) {
+  for (const lang of ["en", "uk"]) {
     assert.notEqual(table[lang].autostartOn, table[lang].autostartOff, lang);
   }
 });

@@ -1,4 +1,4 @@
-// The first-run tour («Путеводитель»): a dimmed panel with a cut-out around one
+// The first-run tour («Путівник»): a dimmed panel with a cut-out around one
 // element and a small card next to it — what the element is for, Back / Next /
 // Skip. Pure placement rules (tested in node, test/tour.test.js) + the drawing;
 // loaded as a plain script by the control panel (window.LauncherTour). The steps

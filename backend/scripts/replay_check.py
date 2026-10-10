@@ -1,5 +1,5 @@
 """
-«Проверить исправление на записи»: replay fixed role matches through the whole
+«Перевірити виправлення на записі»: replay fixed role matches through the whole
 live path and compare the advice with the accepted results.
 
 Each case is a sanitized synthetic match (tests/match_fixtures.py: no names,

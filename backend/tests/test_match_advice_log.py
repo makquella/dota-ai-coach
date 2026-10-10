@@ -11,9 +11,9 @@ def test_live_advice_is_kept_for_the_review(client):
     stream = gsi_match_stream(death_minutes=(7, 18, 19, 20), win=False, step_seconds=5)
     for payload in stream:
         client.post("/gsi", json=payload)
-        client.get("/overlay/recommendation?lang=ru")  # the overlay asks every tick
-    detail_ru = client.get(f"/player/matches/{MATCH_ID}?lang=ru").json()
-    advice = detail_ru["analysis"]["advice"]
+        client.get("/overlay/recommendation?lang=uk")  # the overlay asks every tick
+    detail_uk = client.get(f"/player/matches/{MATCH_ID}?lang=uk").json()
+    advice = detail_uk["analysis"]["advice"]
     assert advice, "no live advice recorded"
     times = [item["t"] for item in advice]
     assert times == sorted(times) and all(t >= 0 for t in times)
@@ -63,9 +63,9 @@ def test_deaths_right_after_urgent_advice_become_a_finding():
     assert [item["death_t"] for item in block["ignored"]] == [415, 1120]
     assert findings[0]["id"] == "died_after_warning"
     assert findings[0]["params"] == {"count": 2, "urgent": 3, "t": 400, "window": 30}
-    text = render_finding(findings[0], "ru")["text"]
+    text = render_finding(findings[0], "uk")["text"]
     assert text.startswith(
-        "2 раза вы погибли в течение 30 с после срочной подсказки (первый раз — 6:40)"
+        "2 рази ви загинули протягом 30 с після термінової підказки (перший раз — 6:40)"
     )
     # One ignored warning is not a pattern.
     one = {**facts, "deaths_log": [{"t": 415}]}

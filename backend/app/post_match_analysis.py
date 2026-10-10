@@ -7,7 +7,7 @@ Input: MatchFacts (match_facts.py). Output: a language-neutral review:
 - sections (laning, farm, survival, fights, items, vision): a 0-100 score and
   the key numbers behind it;
 - findings: strengths and things to improve, each with an id, severity and
-  the numbers that prove it (texts come from analysis_texts.py, ru/en);
+  the numbers that prove it (texts come from analysis_texts.py, uk/en);
 - series for charts (last hits vs target, gold earned, XP per minute) and a
   timeline of key moments (deaths, big items, buybacks, farm stalls).
 

@@ -51,11 +51,11 @@ const SIZE = { width: 1280, height: 800 };
 const CARD_SIZE = { width: 720, height: 620 };
 
 const ADVICE = {
-  ru: [
-    ["Навёрстывайте фарм: добиваний к 18-й минуте — 98, хороший темп — 120+.", "medium", "18:01"],
-    ["Держите свиток телепортации в слоте: купите его сейчас, курьер принесёт.", "medium", "15:12"],
-    ["Уходите с волны сейчас и восстановите HP, прежде чем вернуться.", "high", "12:34"],
-    ["Купите части следующего предмета на 1800 золота сейчас — заберёте их у фонтана.", "medium", "9:40"]
+  uk: [
+    ["Надолужуйте фарм: добивань до 18-ї хвилини — 98, добрий темп — 120+.", "medium", "18:01"],
+    ["Тримайте сувій телепортації в слоті: купіть його зараз, кур'єр принесе.", "medium", "15:12"],
+    ["Ідіть із хвилі зараз і відновіть HP, перш ніж повернутися.", "high", "12:34"],
+    ["Купіть частини наступного предмета на 1800 золота зараз — заберете їх біля фонтана.", "medium", "9:40"]
   ],
   en: [
     ["Recover farm: 98 last hits at minute 18, a good pace is 120+.", "medium", "18:01"],
@@ -162,13 +162,13 @@ const SHOTS = {
 
 // Single cards of the match review (by their title), for the site's detail row.
 const CARDS = {
-  map: { ru: "Карта матча", en: "Match map" },
-  build: { ru: "Сборка", en: "Build" },
-  chart: { ru: "По ходу матча", en: "Over the match" }
+  map: { uk: "Мапа матчу", en: "Match map" },
+  build: { uk: "Збірка", en: "Build" },
+  chart: { uk: "Протягом матчу", en: "Over the match" }
 };
 
 async function openPage(browser, lang, label, size = SIZE) {
-  const page = await browser.newPage({ viewport: size, deviceScaleFactor: 2, locale: lang === "ru" ? "ru-RU" : "en-US" });
+  const page = await browser.newPage({ viewport: size, deviceScaleFactor: 2, locale: lang === "uk" ? "uk-UA" : "en-US" });
   page.on("pageerror", (error) => console.error(`${lang}/${label}:`, error.message));
   await serveDotaAssets(page);
   await page.exposeFunction("__player", async (op, args) => {
@@ -179,13 +179,13 @@ async function openPage(browser, lang, label, size = SIZE) {
     const response = await backendFetch(endpoint);
     return response.ok ? { ok: true, data: await response.json() } : { ok: false, status: response.status };
   });
-  // «Друзья»: the own card from the demo backend and two made-up friends (the
+  // «Друзі»: the own card from the demo backend and two made-up friends (the
   // demo has no server); their looks are real items of the shop.
   await page.exposeFunction("__friends", async () => {
     const response = await backendFetch(`/player/profile/public?lang=${lang}`);
     const own = response.ok ? (await response.json()).card : null;
     const friend = (name, level, mmr, frame, nameLook, title, week) => ({
-      lang, name, level, mmr, rank_label: lang === "ru" ? "Властелин 2" : "Ancient 2", title,
+      lang, name, level, mmr, rank_label: lang === "uk" ? "Володар 2" : "Ancient 2", title,
       equipped: { frame, banner: "banner_dusk", name: nameLook, title: null }, stats: { app_games: level * 6, week_games: week }
     });
     return {
@@ -195,7 +195,7 @@ async function openPage(browser, lang, label, size = SIZE) {
       url: "https://luhovyimvp.dev/p/4k7p9qx2",
       showMmr: true,
       rows: [
-        { id: "a", place: 1, card: friend("mid_or_feed", 12, 4010, "frame_fire", "name_gold", lang === "ru" ? "Трайхардер" : "Tryhard", 9) },
+        { id: "a", place: 1, card: friend("mid_or_feed", 12, 4010, "frame_fire", "name_gold", lang === "uk" ? "Трайхардер" : "Tryhard", 9) },
         { id: "me", me: true, place: 2, card: own },
         { id: "b", place: 3, card: friend("pos5_enjoyer", 3, null, "frame_ice", "name_ice", null, 2) }
       ],
@@ -237,7 +237,7 @@ async function loadPictures(page) {
 (async () => {
   fs.mkdirSync(outDir, { recursive: true });
   const browser = await chromium.launch(process.env.CHROMIUM ? { executablePath: process.env.CHROMIUM } : {});
-  for (const lang of ["ru", "en"]) {
+  for (const lang of ["uk", "en"]) {
     for (const [name, steps] of Object.entries(SHOTS)) {
       // ONLY=profile,home shoots just those (a quick look while working on a view).
       if (process.env.ONLY && !process.env.ONLY.split(",").includes(name)) continue;

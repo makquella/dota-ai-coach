@@ -59,7 +59,7 @@ def analyze_career(
     hero_stats: list[dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
     """`rank_tier` of the player (OpenDota profile) and cached /heroStats are optional."""
-    lang = "ru" if lang == "ru" else "en"
+    lang = "uk" if lang == "uk" else "en"
     decided = [m for m in matches if m.get("win") is not None]
     wins = sum(1 for m in decided if m["win"])
     analyzed = [m for m in matches if m.get("analysis")]
@@ -298,8 +298,8 @@ def _recurring(analyzed: list[dict[str, Any]], kind: str, lang: str) -> list[dic
                 "of": total,
                 "share": round(100 * share),
                 "text": (
-                    f"В {count} из {total} последних разобранных матчей"
-                    if lang == "ru"
+                    f"У {count} з {total} останніх розібраних матчів"
+                    if lang == "uk"
                     else f"In {count} of your last {total} reviewed matches"
                 ),
             }

@@ -5,8 +5,8 @@ const { createSpeaker, pickVoice, speechText, wantsSpeech } = require("../overla
 
 const VOICES = [
   { name: "Microsoft David", lang: "en-US", localService: true },
-  { name: "Google русский", lang: "ru-RU", localService: false },
-  { name: "Microsoft Irina", lang: "ru-RU", localService: true }
+  { name: "Google українська", lang: "uk-UA", localService: false },
+  { name: "Microsoft Ostap", lang: "uk-UA", localService: true }
 ];
 
 function fakeSynth() {
@@ -44,9 +44,9 @@ test("modes decide which advice is spoken", () => {
 });
 
 test("a local voice of the UI language is preferred", () => {
-  assert.equal(pickVoice(VOICES, "ru").name, "Microsoft Irina");
+  assert.equal(pickVoice(VOICES, "uk").name, "Microsoft Ostap");
   assert.equal(pickVoice(VOICES, "en").name, "Microsoft David");
-  assert.equal(pickVoice(VOICES.slice(0, 1), "ru"), null);
+  assert.equal(pickVoice(VOICES.slice(0, 1), "uk"), null);
 });
 
 test("long actions are cut at a word boundary", () => {
@@ -60,10 +60,10 @@ test("each advice is spoken once, tips keep a gap, urgent interrupts", () => {
   const synth = fakeSynth();
   const clock = { t: 0 };
   const voice = speaker(synth, clock);
-  const tip = { key: "a", text: "Stack the camp", adviceMode: "coaching", mode: "all", locale: "ru" };
+  const tip = { key: "a", text: "Stack the camp", adviceMode: "coaching", mode: "all", locale: "uk" };
 
   assert.equal(voice.say(tip), "spoken");
-  assert.equal(synth.spoken[0].voice.name, "Microsoft Irina");
+  assert.equal(synth.spoken[0].voice.name, "Microsoft Ostap");
   assert.equal(voice.say(tip), "same");
 
   clock.t = 1000;
@@ -80,9 +80,9 @@ test("each advice is spoken once, tips keep a gap, urgent interrupts", () => {
 test("urgent-only mode ignores tips; no voice for the language is reported", () => {
   const synth = fakeSynth();
   const voice = speaker(synth, { t: 0 });
-  assert.equal(voice.say({ key: "a", text: "Stack", adviceMode: "coaching", mode: "urgent", locale: "ru" }), "off");
+  assert.equal(voice.say({ key: "a", text: "Stack", adviceMode: "coaching", mode: "urgent", locale: "uk" }), "off");
   synth.getVoices = () => VOICES.slice(0, 1);
-  assert.equal(voice.say({ key: "b", text: "Отходите", adviceMode: "urgent", mode: "urgent", locale: "ru" }), "no_voice");
+  assert.equal(voice.say({ key: "b", text: "Відходьте", adviceMode: "urgent", mode: "urgent", locale: "uk" }), "no_voice");
   assert.equal(synth.spoken.length, 0);
 });
 

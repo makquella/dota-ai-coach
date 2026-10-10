@@ -172,7 +172,7 @@ The overlay window is shown only when all of these hold:
 
 Alt-tab or minimizing Dota hides it within ~0.3 s; leaving the match or the main menu hides it within ~5 s. Exceptions: while a replay demo runs, and while the overlay is unlocked for dragging (`Ctrl+Alt+L`), it is shown regardless of Dota.
 
-Tray status (Russian texts on a Russian system): **Dota not found** / «Дота не найдена» (no `dota2.exe`), **Waiting for game** / «Ждём игру» (Dota running, no match data), **In game** / «В игре».
+Tray status (in the app language): **Dota not found** / «Доту не знайдено» (no `dota2.exe`), **Waiting for game** / «Чекаємо гру» (Dota running, no match data), **In game** / «У грі».
 
 Focus tracking uses one hidden PowerShell helper that calls `user32.dll` (`GetForegroundWindow`, `GetWindowThreadProcessId`, `IsIconic`, `GetWindowRect`) and `shell32.dll` (`SHQueryUserNotificationState`) and prints a line only when something changes; it polls every 0.3 s while Dota runs and every 1.5 s otherwise, and exits when the app exits. If PowerShell is unavailable, the overlay simply follows the on/off switch.
 
@@ -182,7 +182,7 @@ The position presets (left / right / bottom) are computed inside Dota's window, 
 
 ### Exclusive Fullscreen
 
-Windows does not draw other windows over a game in *exclusive* fullscreen, so the overlay cannot be seen there. The helper reads `SHQueryUserNotificationState` while Dota is focused; `QUNS_RUNNING_D3D_FULL_SCREEN` means exclusive fullscreen. The app then shows a tray balloon once per Dota run, a warning in the tray menu/tooltip and the status line «Оверлей не виден из-за полноэкранного режима» with the fix: Dota → Settings → Video → Display mode → **Borderless window**. The flag is kept until Dota exits (alt-tab does not clear it). The detection covers Direct3D exclusive fullscreen (Dota's default renderer); if it fires although the overlay is visible (e.g. Windows' fullscreen optimizations), **I can see the advice** in the status line turns the warning off for good (`fullscreenWarningDismissed` in `settings.json`).
+Windows does not draw other windows over a game in *exclusive* fullscreen, so the overlay cannot be seen there. The helper reads `SHQueryUserNotificationState` while Dota is focused; `QUNS_RUNNING_D3D_FULL_SCREEN` means exclusive fullscreen. The app then shows a tray balloon once per Dota run, a warning in the tray menu/tooltip and the status line «Підказок не видно через повноекранний режим» with the fix: Dota → Settings → Video → Display mode → **Borderless window**. The flag is kept until Dota exits (alt-tab does not clear it). The detection covers Direct3D exclusive fullscreen (Dota's default renderer); if it fires although the overlay is visible (e.g. Windows' fullscreen optimizations), **I can see the advice** in the status line turns the warning off for good (`fullscreenWarningDismissed` in `settings.json`).
 
 ## Development Mode
 
@@ -200,7 +200,7 @@ Check tray → **Overlay** is ticked, or press `Ctrl+Alt+O`. The tray status mus
 
 ### Advice language
 
-Advice follows the system language: on a Russian Windows the app asks the backend for `lang=ru` and shows Russian text; otherwise English. Translations live in `backend/app/advice_i18n.py`; a text without a translation is shown in English.
+Advice follows the app language (by default the system one: Ukrainian on a Ukrainian, Russian or Belarusian Windows): in Ukrainian the app asks the backend for `lang=uk` and shows Ukrainian text; otherwise English. Translations live in `backend/app/advice_i18n.py`; a text without a translation is shown in English.
 
 ### Matches tab is empty
 

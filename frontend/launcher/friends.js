@@ -1,4 +1,4 @@
-// «Друзья» (0.35): the pure parts — friend codes, the list kept in settings and
+// «Друзі» (0.35): the pure parts — friend codes, the list kept in settings and
 // the leaderboard order. main.js does the requests (services/api: PUT
 // /v1/profile/<id>, POST /v1/profiles) and keeps the token; this module has no
 // Electron or network, so test/friends.test.js runs it as it is.

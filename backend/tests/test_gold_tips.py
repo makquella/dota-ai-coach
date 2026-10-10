@@ -18,8 +18,8 @@ def test_an_empty_bag_at_the_start_is_called_after_a_short_wait():
     tips = _tips(-80, lambda clock: [], -80 + START_WAIT - 5)
     assert tips.tip(-80 + START_WAIT - 5, "en", gold=600, alive=True, role="carry") is None
     tips.observe(-80 + START_WAIT, [])
-    hint = tips.tip(-80 + START_WAIT, "ru", gold=625, alive=True, role="support")
-    assert hint["title"] == "Купите стартовые предметы" and "600 золота" in hint["hint"]
+    hint = tips.tip(-80 + START_WAIT, "uk", gold=625, alive=True, role="support")
+    assert hint["title"] == "Купіть стартові предмети" and "600 золота" in hint["hint"]
     # It keeps the card over the game plan.
     assert hint["over_plan"] is True
     # Bought something: no call.
@@ -43,15 +43,15 @@ def test_gold_left_unspent_for_two_minutes_is_named_by_role():
     assert support["title"] == "2500 gold unspent" and "wards" in support["hint"]
     core = _tips(3 * 60, lambda clock: bag, 7 * 60)
     bfury = {"key": "bfury", "name": "Battle Fury"}
-    with_item = core.tip(7 * 60, "ru", gold=1300, alive=True, role="carry", next_item=bfury)
-    assert with_item["title"] == "1300 золота не потрачено" and "Battle Fury" in with_item["hint"]
+    with_item = core.tip(7 * 60, "uk", gold=1300, alive=True, role="carry", next_item=bfury)
+    assert with_item["title"] == "1300 золота не витрачено" and "Battle Fury" in with_item["hint"]
     assert with_item["items"] == [bfury]
     # The quick-buy step: the part the gold already buys, drawn next to the item.
     part = {"key": "quarterstaff", "name": "Quarterstaff", "cost": 875}
     stepped = _tips(3 * 60, lambda clock: bag, 7 * 60).tip(
-        7 * 60, "ru", gold=1300, alive=True, role="carry", next_item=bfury, buy_now=part
+        7 * 60, "uk", gold=1300, alive=True, role="carry", next_item=bfury, buy_now=part
     )
-    assert "на Quarterstaff (875) золота уже хватает" in stepped["hint"]
+    assert "на Quarterstaff (875) золота вже вистачає" in stepped["hint"]
     assert [i["key"] for i in stepped["items"]] == ["bfury", "quarterstaff"]
     # A core under its threshold, or a purchase lately: no call.
     assert (
@@ -158,8 +158,8 @@ def test_the_usual_start_leaves_out_the_tp_and_rare_buys():
 def test_the_start_card_names_the_usual_start_with_icons():
     tips = _tips(-80, lambda clock: [], -60)
     start = [{"key": "tango", "name": "Tango"}, {"key": "quelling_blade", "name": "Quelling Blade"}]
-    hint = tips.tip(-60, "ru", gold=625, alive=True, role="carry", start_items=start)
-    assert "Обычный старт на этом герое: Tango, Quelling Blade." in hint["hint"]
+    hint = tips.tip(-60, "uk", gold=625, alive=True, role="carry", start_items=start)
+    assert "Звичайний старт на цьому герої: Tango, Quelling Blade." in hint["hint"]
     assert hint["items"] == start and hint["label"] == "Покупки"
 
 
@@ -230,8 +230,8 @@ def test_the_overlay_shows_the_start_in_strategy_time(client):
     payload["items"] = {f"slot{i}": {"name": "empty"} for i in range(9)}
     payload["player"]["gold"] = 600
     client.post("/gsi", json=payload)
-    hint = client.get("/overlay/recommendation?lang=ru").json().get("map_hint")
-    assert hint is not None and hint["title"] == "Купите стартовые предметы"
+    hint = client.get("/overlay/recommendation?lang=uk").json().get("map_hint")
+    assert hint is not None and hint["title"] == "Купіть стартові предмети"
 
 
 def test_the_spawn_tick_of_the_pre_game_is_not_a_death(client):

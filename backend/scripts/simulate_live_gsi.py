@@ -10,7 +10,7 @@ lifetimes and spacing.
 
 Run from backend/:
     python scripts/simulate_live_gsi.py                      # synthetic match
-    python scripts/simulate_live_gsi.py --deaths 7,18,19,33 --lang ru
+    python scripts/simulate_live_gsi.py --deaths 7,18,19,33 --lang uk
     python scripts/simulate_live_gsi.py --session session_records/<id>/raw_gsi_states.jsonl
 """
 
@@ -145,7 +145,7 @@ def main() -> None:
     parser.add_argument("--session", type=Path, help="raw_gsi_states.jsonl to replay")
     parser.add_argument("--minutes", type=int, default=40, help="synthetic match length")
     parser.add_argument("--deaths", default="7,18,19,33", help="synthetic death minutes")
-    parser.add_argument("--lang", default="en", choices=("en", "ru"))
+    parser.add_argument("--lang", default="en", choices=("en", "uk"))
     parser.add_argument("--reasons", action="store_true", help="print the reasons too")
     parser.add_argument(
         "--hints", action="store_true", help="print map hints (timers, role tips) too"

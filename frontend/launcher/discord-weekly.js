@@ -57,7 +57,7 @@ function dueWeek(now, lastWeekEnd) {
 
 /** The backend path for a period: both ends, since a local week is not always 168 hours. */
 function weekQuery(period, lang) {
-  return `/player/week?lang=${lang === "ru" ? "ru" : "en"}&since=${Math.floor(period.start / 1000)}&until=${Math.floor(period.end / 1000)}`;
+  return `/player/week?lang=${lang === "uk" ? "uk" : "en"}&since=${Math.floor(period.start / 1000)}&until=${Math.floor(period.end / 1000)}`;
 }
 
 /**
@@ -71,21 +71,21 @@ function postOutcome(result) {
 }
 
 const TEXT = {
-  ru: {
-    title: (from, to) => `Неделя в Dota 2 · ${from} – ${to}`,
-    games: (n) => `${n} ${plural(n, "матч", "матча", "матчей")}`,
-    record: (w, l) => `${w} ${plural(w, "победа", "победы", "побед")} · ${l} ${plural(l, "поражение", "поражения", "поражений")}`,
-    score: "Средняя оценка",
-    change: (d) => (d > 0 ? `+${d} к прошлой неделе` : d < 0 ? `${d} к прошлой неделе` : "как на прошлой неделе"),
-    heroes: "Герои",
-    heroLine: (h) => `${h.hero} — ${h.games} ${plural(h.games, "матч", "матча", "матчей")}, ${h.wins} ${plural(h.wins, "победа", "победы", "побед")}`,
-    best: "Лучший матч",
-    bestLine: (b) => `${b.hero} · ${b.score}/100${b.win === true ? " · победа" : b.win === false ? " · поражение" : ""}`,
-    problem: "Чаще всего повторялось",
-    problemLine: (p) => `${p.title} (${p.count} из ${p.of})`,
+  uk: {
+    title: (from, to) => `Тиждень у Dota 2 · ${from} – ${to}`,
+    games: (n) => `${n} ${plural(n, "матч", "матчі", "матчів")}`,
+    record: (w, l) => `${w} ${plural(w, "перемога", "перемоги", "перемог")} · ${l} ${plural(l, "поразка", "поразки", "поразок")}`,
+    score: "Середня оцінка",
+    change: (d) => (d > 0 ? `+${d} до минулого тижня` : d < 0 ? `${d} до минулого тижня` : "як минулого тижня"),
+    heroes: "Герої",
+    heroLine: (h) => `${h.hero} — ${h.games} ${plural(h.games, "матч", "матчі", "матчів")}, ${h.wins} ${plural(h.wins, "перемога", "перемоги", "перемог")}`,
+    best: "Найкращий матч",
+    bestLine: (b) => `${b.hero} · ${b.score}/100${b.win === true ? " · перемога" : b.win === false ? " · поразка" : ""}`,
+    problem: "Найчастіше повторювалося",
+    problemLine: (p) => `${p.title} (${p.count} з ${p.of})`,
     focus: "Фокус",
-    focusLine: (f) => `${f.title}: ${f.met} из ${f.results.length} матчей`,
-    footer: "Wardly — тренер по Dota 2"
+    focusLine: (f) => `${f.title}: ${f.met} з ${f.results.length} матчів`,
+    footer: "Wardly — тренер з Dota 2"
   },
   en: {
     title: (from, to) => `The week in Dota 2 · ${from} – ${to}`,
@@ -118,7 +118,7 @@ function plural(n, one, few, many) {
 }
 
 function day(ms, lang) {
-  return new Date(ms).toLocaleDateString(lang === "ru" ? "ru-RU" : "en-GB", { day: "numeric", month: "short" });
+  return new Date(ms).toLocaleDateString(lang === "uk" ? "uk-UA" : "en-GB", { day: "numeric", month: "short" });
 }
 
 function clip(text, max) {
@@ -134,7 +134,7 @@ function buildWeeklyMessage(week, { lang, period }) {
   if (!week || !Number(week.games)) {
     return null;
   }
-  const t = TEXT[lang === "ru" ? "ru" : "en"];
+  const t = TEXT[lang === "uk" ? "uk" : "en"];
   const lines = [`**${t.games(week.games)}** · ${t.record(week.wins || 0, week.losses || 0)}`];
   const fields = [];
   if (Number.isFinite(week.avg_score)) {
@@ -162,7 +162,7 @@ function buildWeeklyMessage(week, { lang, period }) {
     embeds: [
       {
         title: clip(t.title(day(period.start, lang), day(period.end - DAY_MS, lang)), 250),
-        url: `${SITE_URL}/${lang === "ru" ? "" : "en/"}?ref=discord-week`,
+        url: `${SITE_URL}/${lang === "uk" ? "" : "en/"}?ref=discord-week`,
         description: lines.join("\n"),
         color: COLOR,
         fields,

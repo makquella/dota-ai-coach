@@ -1,6 +1,6 @@
 # Update history boundary
 
-The 0.53.24 F13 slice extracts 758 lines of RU/EN What's New history from
+The 0.53.24 F13 slice extracts 758 lines of UK/EN What's New history from
 `renderer/app.js` into `renderer/whats-new.js`, together with the existing
 numeric skipped-version selection. The I18N table obtains detached locale
 tables from the module; main retains its DOM rendering/dismissal and IPC flow.
@@ -22,7 +22,7 @@ patch ordering/limit, initial/missing notes, detached bilingual tables/fallback,
 and current version consistency across launcher lock, both backend versions
 and bilingual release notes.
 
-Source and packaged Electron smoke renders the actual What's New card in RU
+Source and packaged Electron smoke renders the actual What's New card in UK
 and EN, including skipped-version labels and the current bullets, then restores
 real status. The test uses synchronous DOM reads because smoke windows can be
 hidden and animation frames may be suspended. It leaves CSP, sandbox and IPC

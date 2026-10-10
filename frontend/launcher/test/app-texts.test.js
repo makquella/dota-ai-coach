@@ -6,8 +6,8 @@ const whatsNew = require("../renderer/whats-new");
 test("control-panel catalogs retain functional copy and current patch history",()=>{
   const texts=create(whatsNew);
   assert.equal(texts.en.status.inGameTitle("Luna","10:00"),"In game: Luna, 10:00");
-  assert.equal(texts.ru.backupLoaded(0,false),"Загружено новых матчей: 0. Ничего не перезаписано.");
-  assert.deepEqual(texts.en.whatsNew,whatsNew.texts("en"));assert.deepEqual(texts.ru.whatsNew,whatsNew.texts("ru"));
+  assert.equal(texts.uk.backupLoaded(0,false),"Завантажено нових матчів: 0. Нічого не перезаписано.");
+  assert.deepEqual(texts.en.whatsNew,whatsNew.texts("en"));assert.deepEqual(texts.uk.whatsNew,whatsNew.texts("uk"));
 });
 test("nested catalogs and update tables belong to each panel instance",()=>{
   const first=create(whatsNew),second=create(whatsNew);

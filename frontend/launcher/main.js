@@ -135,7 +135,7 @@ const settings = createSettingsStore(path.join(USER_DATA_DIR, "settings.json"), 
   inviteDone: false,
   // The first-run tour of the panel was shown (finished or skipped).
   tourDone: false,
-  // «Итог вечера»: the sitting whose card was closed, and the one the tray told about.
+  // «Підсумок вечора»: the sitting whose card was closed, and the one the tray told about.
   sessionSeen: "",
   sessionNotified: "",
   // How often coaching advice may appear: calm | normal | active (backend scheduler).
@@ -143,14 +143,14 @@ const settings = createSettingsStore(path.join(USER_DATA_DIR, "settings.json"), 
   // Position for map timers and role tips (auto = from the lane), and the timers switch.
   adviceRole: "auto",
   mapHints: true,
-  // «Друзья» (friends.js): the published profile card (id = friend code, the
+  // «Друзі» (friends.js): the published profile card (id = friend code, the
   // token only this launcher has) and the friends' codes; off until the player
   // shows the profile.
   friendsProfile: { enabled: false, id: "", token: "", showMmr: true, url: "", hash: "", at: 0 },
   friends: [],
   // A week of match recordings on this computer (backend match_records.py), off by default.
   matchRecords: false,
-  // Rich Presence on the player's Discord profile («Матч на Juggernaut · с тренером Wardly»).
+  // Rich Presence on the player's Discord profile («Матч на Juggernaut · з тренером Wardly»).
   discordPresence: true,
   // The week in Discord: the player's channel webhook link (discord-weekly.js),
   // the end (ms) of the last calendar week handled, and the last post's result.
@@ -165,7 +165,7 @@ const settings = createSettingsStore(path.join(USER_DATA_DIR, "settings.json"), 
   statsSince: 0,
   statsSentAt: "",
   fullscreenSeenDay: "",
-  // UI language: auto (system) | ru | en.
+  // UI language: auto (system) | uk | en.
   language: "auto",
   overlay: { ...OVERLAY_DEFAULTS }
 }, {
@@ -173,6 +173,11 @@ const settings = createSettingsStore(path.join(USER_DATA_DIR, "settings.json"), 
   secretKeys: ["shares", "friendsProfile", "discordWebhook", "deviceKey"],
   codec: createSecretCodec(safeStorage)
 });
+// Versions before 0.54 offered Russian («ru»); a player who picked it gets Ukrainian.
+const LEGACY_CYRILLIC_LANGUAGE = "ru";
+if (settings.get("language") === LEGACY_CYRILLIC_LANGUAGE) {
+  settings.set("language", "uk");
+}
 
 let mainWindow = null;
 let splashWindow = null;
@@ -320,7 +325,7 @@ updater.on("change", () => {
 });
 
 // ---------------------------------------------------------------------------
-// Tray texts (Russian or English, by system locale)
+// Tray texts (Ukrainian or English, by system locale)
 // ---------------------------------------------------------------------------
 
 const TRAY_TEXT = {
@@ -356,37 +361,37 @@ const TRAY_TEXT = {
     voice_urgent: "Urgent advice",
     voice_all: "All advice"
   },
-  ru: {
-    open: "Открыть",
-    overlay: "Подсказки поверх игры",
-    autostartWindows: "Автозапуск с Windows",
-    autostartLogin: "Автозапуск при входе",
-    quit: "Выход",
+  uk: {
+    open: "Відкрити",
+    overlay: "Підказки поверх гри",
+    autostartWindows: "Автозапуск із Windows",
+    autostartLogin: "Автозапуск під час входу",
+    quit: "Вихід",
     backend: "Тренер",
-    backendStates: { running: "работает", starting: "запускается…", stopping: "останавливается…", stopped: "остановлен" },
-    [DOTA_STATUS.NOT_FOUND]: "Дота не найдена",
-    [DOTA_STATUS.WAITING]: "Ждём игру",
-    [DOTA_STATUS.IN_GAME]: "В игре",
-    gsiInstalled: "Wardly подключён к Dota 2.",
-    restartDota: "Перезапустите Dota 2.",
-    fullscreenMenu: "Подсказки не видны: полноэкранный режим",
+    backendStates: { running: "працює", starting: "запускається…", stopping: "зупиняється…", stopped: "зупинено" },
+    [DOTA_STATUS.NOT_FOUND]: "Доту не знайдено",
+    [DOTA_STATUS.WAITING]: "Чекаємо гру",
+    [DOTA_STATUS.IN_GAME]: "У грі",
+    gsiInstalled: "Wardly підключено до Dota 2.",
+    restartDota: "Перезапустіть Dota 2.",
+    fullscreenMenu: "Підказок не видно: повноекранний режим",
     fullscreenBalloon:
-      "Дота запущена в эксклюзивном полноэкранном режиме — поверх него подсказки не рисуются. В Доте: Настройки → Видео → режим экрана «Окно без рамки» (Borderless window). Или включите озвучку советов в приложении.",
-    updateDownloading: (version, percent) => `Загружается обновление ${version}… ${percent}%`,
-    updateReady: (version) => `Перезапустить и обновить до ${version}`,
-    updateAfterGame: (version) => `Обновление ${version} установится после выхода из Доты`,
-    updated: (version) => `Обновлено до версии ${version}.`,
+      "Дота запущена в ексклюзивному повноекранному режимі — поверх нього підказки не малюються. У Доті: Налаштування → Відео → режим екрана «Вікно без рамки» (Borderless window). Або ввімкніть озвучення порад у застосунку.",
+    updateDownloading: (version, percent) => `Завантажується оновлення ${version}… ${percent}%`,
+    updateReady: (version) => `Перезапустити й оновити до ${version}`,
+    updateAfterGame: (version) => `Оновлення ${version} встановиться після виходу з Доти`,
+    updated: (version) => `Оновлено до версії ${version}.`,
     reviewReady: (score, focusMet) =>
-      `Разбор матча готов${score ? `: оценка${score}` : ""}.${focusMet === true ? " Фокус: получилось." : focusMet === false ? " Фокус: снова повторилось." : ""} Нажмите, чтобы открыть.`,
+      `Розбір матчу готовий${score ? `: оцінка${score}` : ""}.${focusMet === true ? " Фокус: вдалося." : focusMet === false ? " Фокус: знову повторилося." : ""} Натисніть, щоб відкрити.`,
     sessionReady: (games, wins, losses, score) =>
-      `Итог вечера: ${games} ${games % 10 >= 2 && games % 10 <= 4 && (games % 100 < 12 || games % 100 > 14) ? "матча" : games % 10 === 1 && games % 100 !== 11 ? "матч" : "матчей"}, ${wins}–${losses}${score !== null && score !== undefined ? `, средняя оценка ${score}` : ""}. Нажмите, чтобы посмотреть и скопировать для друзей.`,
-    problemReport: "Сохранить отчёт о проблеме",
-    lastReview: (score) => `Разбор последнего матча${score !== null && score !== undefined ? ` · ${score}/100` : ""}`,
-    reportSentLater: (id) => `Отчёт о проблеме отправлен. Номер: ${id}.`,
+      `Підсумок вечора: ${games} ${games % 10 >= 2 && games % 10 <= 4 && (games % 100 < 12 || games % 100 > 14) ? "матчі" : games % 10 === 1 && games % 100 !== 11 ? "матч" : "матчів"}, ${wins}–${losses}${score !== null && score !== undefined ? `, середня оцінка ${score}` : ""}. Натисніть, щоб подивитися й скопіювати для друзів.`,
+    problemReport: "Зберегти звіт про проблему",
+    lastReview: (score) => `Розбір останнього матчу${score !== null && score !== undefined ? ` · ${score}/100` : ""}`,
+    reportSentLater: (id) => `Звіт про проблему надіслано. Номер: ${id}.`,
     voice: "Голос",
-    voice_off: "Выключен",
-    voice_urgent: "Срочные советы",
-    voice_all: "Все советы"
+    voice_off: "Вимкнено",
+    voice_urgent: "Термінові поради",
+    voice_all: "Усі поради"
   }
 };
 
@@ -503,19 +508,21 @@ function emptyLiveDetails() {
 }
 
 // "auto" follows the system language; the player can pick one in Settings.
+// Ukrainian on a Ukrainian, Russian or Belarusian Windows, English elsewhere.
+const CYRILLIC_SYSTEM_LOCALE = /^(uk|ru|be)(-|$)/i;
 function uiLocale() {
   const chosen = settings.get("language");
-  if (chosen === "ru" || chosen === "en") {
+  if (chosen === "uk" || chosen === "en") {
     return chosen;
   }
   try {
-    return app.getLocale().toLowerCase().startsWith("ru") ? "ru" : "en";
+    return CYRILLIC_SYSTEM_LOCALE.test(app.getLocale()) ? "uk" : "en";
   } catch {
     return "en";
   }
 }
 
-// «Размер интерфейса»: the control panel's zoom, kept in settings.uiScale.
+// «Розмір інтерфейсу»: the control panel's zoom, kept in settings.uiScale.
 // Ctrl + plus / minus / 0 and Ctrl + the mouse wheel step through the same
 // sizes (the default menu's zoom keys would change the page and forget it).
 const UI_SCALES = [0.9, 1, 1.1, 1.25];
@@ -571,14 +578,14 @@ function uiScaleKey(input) {
 }
 
 function setLanguage(value) {
-  settings.set("language", ["ru", "en"].includes(value) ? value : "auto");
+  settings.set("language", ["uk", "en"].includes(value) ? value : "auto");
   overlay.notifyBackendChanged(); // re-sends the overlay config with the new locale
   refreshTray();
   updateStatus();
   return publicStatus();
 }
 
-/** «Итог вечера» in the tray once per sitting, after Dota is closed (2+ games). */
+/** «Підсумок вечора» in the tray once per sitting, after Dota is closed (2+ games). */
 async function notifySession() {
   if (dotaWatcher.getState().running) {
     return;
@@ -597,7 +604,7 @@ const INVITE_AFTER_REVIEWS = 3;
 
 /** The site link a player sends to a friend: their language, tagged for the source count. */
 function inviteUrl() {
-  return `https://luhovyimvp.dev/${uiLocale() === "ru" ? "" : "en/"}?ref=invite`;
+  return `https://luhovyimvp.dev/${uiLocale() === "uk" ? "" : "en/"}?ref=invite`;
 }
 
 function inviteDue() {
@@ -743,13 +750,13 @@ function refreshPresence() {
 }
 
 // ---------------------------------------------------------------------------
-// Discord Rich Presence (discord-presence.js): Dota running → «В меню Dota 2»,
+// Discord Rich Presence (discord-presence.js): Dota running → «У меню Dota 2»,
 // a match → «Матч на <герой>» with the time since the horn; nothing without Dota.
 // ---------------------------------------------------------------------------
 
 const discord = discordPresence.createDiscordPresence({
   log: (message) => appendLog("discord", message, { force: true }),
-  // Shown under «Статус в Discord»: Discord not found, refused, or shown.
+  // Shown under «Статус у Discord»: Discord not found, refused, or shown.
   onState: () => updateStatus()
 });
 let discordMatch = { hero: null, startedAt: null };
@@ -901,7 +908,7 @@ function setShareStats(enabled) {
   return publicStatus();
 }
 
-// «Удалить мои данные на сервере»: every report, shared link, transfer and
+// «Видалити мої дані на сервері»: every report, shared link, transfer and
 // statistics row of this installation (DELETE /v1/device/<install id>).
 async function deleteServerData() {
   const controller = new AbortController();
@@ -930,7 +937,7 @@ async function deleteServerData() {
 }
 
 // ---------------------------------------------------------------------------
-// «Друзья» (0.35): the profile card the player shows friends, and the friends'
+// «Друзі» (0.35): the profile card the player shows friends, and the friends'
 // cards by code. The card is built by the backend (/player/profile/public) and
 // published to services/api under a random id with a token only this launcher
 // keeps; friends are a list of codes on this computer, nothing more.
@@ -1099,7 +1106,7 @@ async function friendsAction(request) {
   }
 }
 
-// «Что будет отправлено»: the body for today so far, exactly as it would go.
+// «Що буде надіслано»: the body for today so far, exactly as it would go.
 async function statsPreview() {
   const day = adviceStats.dayStart(Date.now());
   const start = Math.max(day, Number(settings.get("statsSince")) || 0);
@@ -1830,7 +1837,7 @@ const PLAYER_OPS = {
   match: (args) => ["GET", `/player/matches/${matchIdArg(args)}?lang=${uiLocale()}`, undefined, 15000],
   refreshMatch: (args) => ["POST", `/player/matches/${matchIdArg(args)}/refresh`],
   addMatch: (args) => ["POST", `/player/matches/${matchIdArg(args)}/add`],
-  // «Заметка»: the player's own line on a match (200 characters at most).
+  // «Нотатка»: the player's own line on a match (200 characters at most).
   setNote: (args) => ["POST", `/player/matches/${matchIdArg(args)}/note`, { note: String(args.note || "").slice(0, 200) }],
   addMatchStatus: (args) => ["GET", `/player/matches/${matchIdArg(args)}/add`],
   week: () => ["GET", `/player/week?lang=${uiLocale()}`],
@@ -2001,7 +2008,7 @@ async function playerRequest(op, args = {}) {
 }
 
 // Every ~5 s: account + "a new post-match review is ready" (tray balloon).
-// «Автоматические копии»: ask the backend two minutes after it starts and then
+// «Автоматичні копії»: ask the backend two minutes after it starts and then
 // once a day; it decides whether a weekly or an update copy is due. Never
 // during a match (a long history takes a few seconds to pack).
 const AUTO_BACKUP_FIRST_MS = 2 * 60_000;
@@ -2518,7 +2525,7 @@ async function collectProblemReport() {
   });
 }
 
-// «Хранить записи матчей»: "list" → the backend's recordings of the week;
+// «Зберігати записи матчів»: "list" → the backend's recordings of the week;
 // {save: id} → that recording copied to Downloads (the id is checked by the
 // backend, which only serves files of its own list).
 async function matchRecordsAction(request) {
@@ -3479,7 +3486,7 @@ function registerIpc() {
     }
     return publicStatus();
   });
-  // «Итог вечера»: copy its text (built by the backend, re-read here, never taken
+  // «Підсумок вечора»: copy its text (built by the backend, re-read here, never taken
   // from the page) or hide the card of that sitting.
   handleLauncher("launcher:session", async (_event, action) => {
     if (action === "copy") {

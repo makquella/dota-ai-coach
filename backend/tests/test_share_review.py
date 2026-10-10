@@ -23,13 +23,13 @@ def _reviewed(client, tmp_path):
 
 def test_share_payload_has_the_review_and_nothing_personal(client, tmp_path):
     _reviewed(client, tmp_path)
-    answer = client.get(f"/player/matches/{MATCH_ID}/share?lang=ru")
+    answer = client.get(f"/player/matches/{MATCH_ID}/share?lang=uk")
     assert answer.status_code == 200
     review = answer.json()["review"]
     assert review["hero"] == "Juggernaut" and review["hero_key"] == "juggernaut"
-    assert review["lang"] == "ru" and review["score"] == 90 and review["win"] is True
+    assert review["lang"] == "uk" and review["score"] == 90 and review["win"] is True
     assert review["stats"]["kills"] == 11 and review["played_on"] == "2026-09-21"
-    assert [s["label"] for s in review["sections"]][:2] == ["Линия", "Фарм"]
+    assert [s["label"] for s in review["sections"]][:2] == ["Лінія", "Фарм"]
     text = json.dumps(review, ensure_ascii=False)
     # No match id, account, Steam ID, nickname or other players.
     for secret in (str(MATCH_ID), str(ME), ME_STEAM64, "Player 1", "Me"):

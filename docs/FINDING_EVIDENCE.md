@@ -27,7 +27,7 @@ AI compaction revalidates field/parameter/source consistency. An exact LH10 sour
 can fill the player's sample when lane/peer measurements are absent, retaining
 its real source. Existing opponent comparisons still require their own sample.
 
-`coach_finding_evidence.py` checks explicit RU/EN numeric observer/sentry and
+`coach_finding_evidence.py` checks explicit UK/EN numeric observer/sentry and
 first-ten-minute death claims. Inventory claims require an estimate qualifier
 and full recording; early-death claims require a recorded-event qualifier.
 Other heroes, team counts, other time slices and metric swaps fail. The generic
@@ -42,7 +42,7 @@ and evidence. No live/paid provider is needed for these checks.
 
 `renderer/finding-evidence.js` validates whitelisted metadata and uses textContent.
 Finding disclosures show measured value, method, source and recording intervals
-in RU/EN; AI disclosures use the same renderer. Functional HTTP/SQLite tests cover
+in UK/EN; AI disclosures use the same renderer. Functional HTTP/SQLite tests cover
 producer → analysis → prompt → review → saved answers. Electron smoke opens the
 actual disclosure and renders charts with gaps.
 

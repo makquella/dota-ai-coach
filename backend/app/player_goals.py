@@ -3,7 +3,7 @@ player_goals.py - streak goals and the tilt warning on the home screen.
 
 Both read the match table only (`PlayerStore.list_matches`, newest first), since
 the player status that carries them is polled every few seconds:
-- goals: small streaks with a target, e.g. «5 матчей подряд — не больше 5 смертей»:
+- goals: small streaks with a target, e.g. «5 матчів поспіль — не більше 5 смертей»:
   the current run from the newest match, the best run of the rows read and
   whether the target is met. A match without the number (no score before its
   review) is skipped, it neither breaks nor extends a run.
@@ -11,7 +11,7 @@ the player status that carries them is polled every few seconds:
   earlier matches chained by starts TILT_CHAIN_GAP apart) with 3+ losses in a row
   at its end, or its last two scores both TILT_SCORE_DROP+ below the player's usual
   score (average of up to 20 earlier scored matches, 5+ needed). Facts only; the
-  launcher words it («Три поражения подряд — может, перерыв?»).
+  launcher words it («Три поразки поспіль — може, перерва?»).
 """
 
 from __future__ import annotations

@@ -22,12 +22,12 @@ export const ADMIN_SCRIPT_HEADERS = {
 };
 
 export const ADMIN_HTML = `<!doctype html>
-<html lang="ru">
+<html lang="uk">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
-<title>Wardly — статистика подсказок</title>
+<title>Wardly — статистика підказок</title>
 <style>
   :root { --bg: #0b0c0e; --card: #15171b; --line: #262a31; --text: #eceef2; --muted: #9aa0aa; --accent: #f05560; --ok: #4cc38a; --warn: #e5b454; }
   * { box-sizing: border-box; }
@@ -63,22 +63,22 @@ export const ADMIN_HTML = `<!doctype html>
 </head>
 <body>
 <main>
-  <h1>Статистика подсказок</h1>
-  <p class="muted">Анонимная статистика по согласию игроков: сколько раз показана подсказка каждого типа и после каких срочных предупреждений в течение 30 секунд была смерть.</p>
+  <h1>Статистика підказок</h1>
+  <p class="muted">Анонімна статистика за згодою гравців: скільки разів показано підказку кожного типу й після яких термінових попереджень протягом 30 секунд була смерть.</p>
   <form class="bar-row" id="login">
-    <label for="token" class="muted">Ключ администратора</label>
+    <label for="token" class="muted">Ключ адміністратора</label>
     <input id="token" type="password" autocomplete="off" size="28" required>
     <label for="days" class="muted">за</label>
-    <select id="days"><option value="7">7 дней</option><option value="30" selected>30 дней</option><option value="90">90 дней</option></select>
-    <button type="submit">Показать</button>
-    <button type="button" class="ghost hidden" id="logout">Выйти</button>
+    <select id="days"><option value="7">7 днів</option><option value="30" selected>30 днів</option><option value="90">90 днів</option></select>
+    <button type="submit">Показати</button>
+    <button type="button" class="ghost hidden" id="logout">Вийти</button>
     <span id="status" class="muted" aria-live="polite"></span>
   </form>
   <section id="view" class="hidden">
     <div class="tiles" id="tiles"></div>
-    <div class="card"><h2>Откуда приходят</h2><table id="channels"></table><p class="muted">Источник — <code>?ref=</code> в ссылке на сайт (luhovyimvp.dev/?ref=pikabu). Без него: search — поисковики, direct — без перехода, other — другие сайты; site — скачивание по кнопке на сайте, когда источник неизвестен.</p></div>
-    <div class="card"><h2>По дням</h2><div class="days" id="days-chart" role="img" aria-label="Устройства по дням"></div><p class="muted" id="days-note"></p></div>
-    <div class="card"><h2>Подсказки: показано и смерть в течение 30 с после срочной</h2><table id="advice"></table></div>
+    <div class="card"><h2>Звідки приходять</h2><table id="channels"></table><p class="muted">Джерело — <code>?ref=</code> у посиланні на сайт (luhovyimvp.dev/?ref=pikabu). Без нього: search — пошуковики, direct — без переходу, other — інші сайти; site — завантаження кнопкою на сайті, коли джерело невідоме.</p></div>
+    <div class="card"><h2>За днями</h2><div class="days" id="days-chart" role="img" aria-label="Пристрої за днями"></div><p class="muted" id="days-note"></p></div>
+    <div class="card"><h2>Підказки: показано й смерть протягом 30 с після термінової</h2><table id="advice"></table></div>
     <div class="grid" id="dists"></div>
   </section>
 </main>
@@ -96,16 +96,16 @@ function adminApp() {
   const $ = (id) => document.getElementById(id);
   const KEY = "wardly-admin-token";
   const LABELS = {
-    versions: "Версии",
-    langs: "Язык",
-    ai: "ИИ-тренер",
-    sync_errors: "Ошибки синхронизации",
+    versions: "Версії",
+    langs: "Мова",
+    ai: "ШІ-тренер",
+    sync_errors: "Помилки синхронізації",
     voice: "Голос",
-    frequency: "Частота советов",
+    frequency: "Частота порад",
     role: "Роль",
     overlay: "Оверлей",
-    map_hints: "Таймеры карты",
-    discord: "Статус в Discord"
+    map_hints: "Таймери мапи",
+    discord: "Статус у Discord"
   };
 
   function el(tag, attrs, ...children) {
@@ -145,13 +145,13 @@ function adminApp() {
     const max = Math.max(1, ...entries.map(([, n]) => n));
     const card = el("div", { class: "card" }, el("h2", { text: title }));
     if (!entries.length) {
-      card.append(el("p", { class: "muted", text: "Пока нет данных" }));
+      card.append(el("p", { class: "muted", text: "Поки немає даних" }));
       return card;
     }
     const list = el("div", { class: "bars" });
     for (const [key, n] of entries.slice(0, 12)) {
       list.append(
-        el("div", {}, el("span", { text: key === "true" ? "вкл" : key === "false" ? "выкл" : key }), el("i", { style: `width:${Math.round((100 * n) / max)}%` }), el("span", { class: "muted", text: String(n) }))
+        el("div", {}, el("span", { text: key === "true" ? "увімк" : key === "false" ? "вимк" : key }), el("i", { style: `width:${Math.round((100 * n) / max)}%` }), el("span", { class: "muted", text: String(n) }))
       );
     }
     card.append(list);
@@ -160,22 +160,22 @@ function adminApp() {
 
   function render(stats, days) {
     $("tiles").replaceChildren(
-      tile("Устройств", stats.devices),
-      tile("Отправок (дней)", stats.rows),
-      tile("Разобрано матчей", stats.matches),
-      tile("С подсказками в игре", stats.with_advice),
-      tile("Полноэкранный режим", stats.fullscreen)
+      tile("Пристроїв", stats.devices),
+      tile("Надсилань (днів)", stats.rows),
+      tile("Розібрано матчів", stats.matches),
+      tile("З підказками в грі", stats.with_advice),
+      tile("Повноекранний режим", stats.fullscreen)
     );
     const perDay = stats.by_day || [];
     const maxDay = Math.max(1, ...perDay.map((d) => d.devices));
     $("days-chart").replaceChildren(
-      ...perDay.map((d) => el("span", { title: `${d.day}: ${d.devices} устр., ${d.matches} матчей, ${d.advice} подсказок`, style: `height:${Math.round((100 * d.devices) / maxDay)}%` }))
+      ...perDay.map((d) => el("span", { title: `${d.day}: ${d.devices} пристр., ${d.matches} матчів, ${d.advice} підказок`, style: `height:${Math.round((100 * d.devices) / maxDay)}%` }))
     );
-    $("days-note").textContent = perDay.length ? `${perDay[0].day} — ${perDay[perDay.length - 1].day}, за ${days} дн.` : "Пока нет данных";
+    $("days-note").textContent = perDay.length ? `${perDay[0].day} — ${perDay[perDay.length - 1].day}, за ${days} дн.` : "Поки немає даних";
 
     const channels = stats.channels || [];
     $("channels").replaceChildren(
-      el("thead", {}, el("tr", {}, el("th", { text: "Источник" }), el("th", { class: "n", text: "Заходы" }), el("th", { class: "n", text: "Скачивания" }), el("th", { class: "n", text: "Конверсия" }))),
+      el("thead", {}, el("tr", {}, el("th", { text: "Джерело" }), el("th", { class: "n", text: "Заходи" }), el("th", { class: "n", text: "Завантаження" }), el("th", { class: "n", text: "Конверсія" }))),
       el(
         "tbody",
         {},
@@ -190,14 +190,14 @@ function adminApp() {
                 el("td", { class: "n", text: c.rate != null ? `${c.rate}%` : "—" })
               )
             )
-          : [el("tr", {}, el("td", { class: "muted", text: "Пока нет данных" }))])
+          : [el("tr", {}, el("td", { class: "muted", text: "Поки немає даних" }))])
       )
     );
 
     const rows = Object.entries(stats.advice || {}).sort((a, b) => b[1] - a[1]);
     const table = $("advice");
     table.replaceChildren(
-      el("thead", {}, el("tr", {}, el("th", { text: "Тип подсказки" }), el("th", { class: "n", text: "Показано" }), el("th", { class: "n", text: "Смерть после" }), el("th", { class: "n", text: "Доля" })))
+      el("thead", {}, el("tr", {}, el("th", { text: "Тип підказки" }), el("th", { class: "n", text: "Показано" }), el("th", { class: "n", text: "Смерть після" }), el("th", { class: "n", text: "Частка" })))
     );
     const body = el("tbody");
     for (const [kind, shown] of rows) {
@@ -214,7 +214,7 @@ function adminApp() {
         )
       );
     }
-    if (!rows.length) body.append(el("tr", {}, el("td", { class: "muted", text: "Пока нет данных" })));
+    if (!rows.length) body.append(el("tr", {}, el("td", { class: "muted", text: "Поки немає даних" })));
     table.append(body);
 
     const dists = [bars(LABELS.versions, stats.versions), bars(LABELS.langs, stats.langs), bars(LABELS.ai, stats.ai)];
@@ -228,7 +228,7 @@ function adminApp() {
     const secret = token();
     const days = $("days").value;
     if (!secret) return;
-    $("status").textContent = "Загрузка…";
+    $("status").textContent = "Завантаження…";
     $("status").className = "muted";
     try {
       const response = await fetch(`/v1/admin/stats?days=${encodeURIComponent(days)}`, {
@@ -237,7 +237,7 @@ function adminApp() {
       });
       if (response.status === 404) {
         remember("");
-        $("status").textContent = "Ключ не подошёл. Если вы меняли секрет API_ADMIN_TOKEN, перезапустите выкладку: GitHub → Actions → API → Run workflow.";
+        $("status").textContent = "Ключ не підійшов. Якщо ви змінювали секрет API_ADMIN_TOKEN, перезапустіть викладку: GitHub → Actions → API → Run workflow.";
         $("status").className = "error";
         $("view").classList.add("hidden");
         $("logout").classList.add("hidden");
@@ -248,7 +248,7 @@ function adminApp() {
       $("status").textContent = "";
       $("logout").classList.remove("hidden");
     } catch (error) {
-      $("status").textContent = `Не удалось загрузить: ${error.message}`;
+      $("status").textContent = `Не вдалося завантажити: ${error.message}`;
       $("status").className = "error";
     }
   }

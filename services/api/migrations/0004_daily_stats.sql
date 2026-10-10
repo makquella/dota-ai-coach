@@ -1,5 +1,5 @@
 -- Opt-in anonymous statistics (src/stats.js): one row per installation and day,
--- sent by the launcher only when the player switched «Анонимная статистика» on.
+-- sent by the launcher only when the player switched «Анонімна статистика» on.
 -- The body is rebuilt field by field from an allowlist (counts of advice per
 -- decision point, a few settings); the installation id is a salted hash.
 CREATE TABLE IF NOT EXISTS daily_stats (

@@ -1,21 +1,21 @@
-# Проверка типов без роста долга
+# Перевірка типів без зростання боргу
 
-F14 в 0.53.9 заменяет `mypy app || true` на обязательный `scripts/check_types.py`. Используется **mypy 2.4.0** из hash-locked `requirements-dev.txt` и Python target **3.11** из backend config. Проверяется весь `app/`, включая новые модули. Сам checker дополнительно проходит `mypy --strict` без baseline.
+F14 у 0.53.9 замінює `mypy app || true` на обов'язковий `scripts/check_types.py`. Використовується **mypy 2.4.0** з hash-locked `requirements-dev.txt` і Python target **3.11** з backend config. Перевіряється весь `app/`, зокрема нові модулі. Сам checker додатково проходить `mypy --strict` без baseline.
 
-Текущий baseline содержит **179 ошибок в 30 файлах**, сгруппированных в 92 уникальных записей. В 0.53.22 typed hint boundary и narrowing item names устранили ещё три ошибки; allowances удалены. В 0.53.21 однократное narrowing state/extra в live-hint path устранило 32 ошибки; allowances удалены. В 0.53.18 устранены 11 ошибок narrowing в MatchMemory и удалены соответствующие allowances. В 0.53.15 исправлена повторная аннотация `items` в GSI normalizer и удалено одно allowance; исходный F14 baseline содержал 226 ошибок. Оставшийся baseline — известный долг, а не исправленные ошибки. Запись включает путь, сообщение, error code и число повторений. Номера diagnostic строк/колонок и лишние пробелы форматирования не участвуют в сравнении; текст сообщения сравнивается полностью, включая embedded line references, если checker их выдаёт.
+Поточний baseline містить **179 помилок у 30 файлах**, згрупованих у 92 унікальні записи. У 0.53.22 typed hint boundary і narrowing item names усунули ще три помилки; allowances видалено. У 0.53.21 одноразове narrowing state/extra в live-hint path усунуло 32 помилки; allowances видалено. У 0.53.18 усунуто 11 помилок narrowing у MatchMemory й видалено відповідні allowances. У 0.53.15 виправлено повторну анотацію `items` у GSI normalizer і видалено одне allowance; вихідний F14 baseline містив 226 помилок. Решта baseline — відомий борг, а не виправлені помилки. Запис містить шлях, повідомлення, error code і кількість повторень. Номери diagnostic рядків/колонок і зайві пробіли форматування не беруть участі в порівнянні; текст повідомлення порівнюється повністю, зокрема embedded line references, якщо checker їх видає.
 
-## Что останавливает CI
+## Що зупиняє CI
 
-- Новое сообщение, code или файл, а также дополнительное повторение известной ошибки. Одинаковое общее число ошибок не скрывает замену одной ошибки другой.
-- Ошибка в чистом модуле. В baseline явно объявлены `coach_evidence`, `demo_overlay_cache`, `diagnostics`, `gsi_snapshot`, `job_queue`, `live_hints`, `local_api_auth`, `local_api_security`, `match_memory`, `player_contracts`, `player_store`, `signal_capabilities`, `storage_json`; для них нет allowances. Все остальные модули без известных ошибок тоже проверяются без allowances.
-- Устаревшее allowance после исправления ошибки: его нужно удалить из baseline, чтобы последующий возврат ошибки считался регрессией.
-- Несовпадение версии mypy/target, неверный baseline, исчезнувший clean module, нераспознанный error format, failure/timeout самого mypy.
+- Нове повідомлення, code чи файл, а також додаткове повторення відомої помилки. Однакова загальна кількість помилок не приховує заміни однієї помилки іншою.
+- Помилка в чистому модулі. У baseline явно оголошено `coach_evidence`, `demo_overlay_cache`, `diagnostics`, `gsi_snapshot`, `job_queue`, `live_hints`, `local_api_auth`, `local_api_security`, `match_memory`, `player_contracts`, `player_store`, `signal_capabilities`, `storage_json`; для них немає allowances. Усі інші модулі без відомих помилок теж перевіряються без allowances.
+- Застаріле allowance після виправлення помилки: його треба видалити з baseline, щоб подальше повернення помилки вважалося регресією.
+- Розбіжність версії mypy/target, хибний baseline, зниклий clean module, нерозпізнаний error format, failure/timeout самого mypy.
 
-Настройки mypy, включая текущие `check_untyped_defs` и `ignore_missing_imports`, сохранены. Gate ограничивает диагностику, которую обнаруживает этот checker; он не превращает старые `Any` и неаннотированные границы в строгие типы. Числовая/фактическая валидность AI-ответов относится к F04, runtime failures и consumer contracts — к функциональным тестам.
+Налаштування mypy, зокрема поточні `check_untyped_defs` і `ignore_missing_imports`, збережено. Gate обмежує діагностику, яку виявляє цей checker; він не перетворює старих `Any` і неанотованих меж на строгі типи. Числова/фактична валідність AI-відповідей стосується F04, runtime failures і consumer contracts — функціональних тестів.
 
-## Команды
+## Команди
 
-Из `backend/` с существующим venv:
+З `backend/` з наявним venv:
 
 ```bash
 python ../scripts/check_types.py
@@ -23,9 +23,9 @@ python -m mypy --strict ../scripts/check_types.py
 python -m pytest tests/test_type_gate.py
 ```
 
-Команду checker можно запускать из другого cwd: пути и cwd mypy выбираются явно относительно script. `--backend-dir` и `--baseline` используются для изолированных fixtures или другого checkout. Checker запускает mypy тем же `sys.executable`, без shell.
+Команду checker можна запускати з іншого cwd: шляхи й cwd mypy вибираються явно відносно script. `--backend-dir` і `--baseline` використовуються для ізольованих fixtures чи іншого checkout. Checker запускає mypy тим самим `sys.executable`, без shell.
 
-После исправления существующих type errors:
+Після виправлення наявних type errors:
 
 ```bash
 python ../scripts/check_types.py --prune-baseline
@@ -33,6 +33,6 @@ git diff -- type-baseline.json
 python ../scripts/check_types.py
 ```
 
-Prune работает только если новых ошибок нет, и только удаляет разрешения на исчезнувшие ошибки. Новые allowances автоматически не создаются; при отказе baseline остаётся прежним. Сокращение baseline коммитится вместе с исправлением и проходит review. Обновление закреплённого mypy требует отдельного согласованного изменения lockfile, tool metadata и разбора diagnostic diff; обычный prune не обходится с версией другого checker.
+Prune працює, лише якщо нових помилок немає, і лише видаляє дозволи на зниклі помилки. Нові allowances автоматично не створюються; у разі відмови baseline залишається попереднім. Скорочення baseline комітиться разом із виправленням і проходить review. Оновлення закріпленого mypy потребує окремої узгодженої зміни lockfile, tool metadata й розбору diagnostic diff; звичайний prune не працює з версією іншого checker.
 
-CI проверяет lint/format самого script, blocking gate, strict checker, затем pytest. Интеграционные тесты запускают настоящий установленный mypy через CLI на временных модулях: line shifts, repeated errors, message/source swaps при прежнем total, новый модуль, исправление/prune/возврат ошибки и неверный baseline. Эти fixtures не меняют рабочий `app/` и не отключают реальные проверки.
+CI перевіряє lint/format самого script, blocking gate, strict checker, потім pytest. Інтеграційні тести запускають справжній встановлений mypy через CLI на тимчасових модулях: line shifts, repeated errors, message/source swaps за попереднього total, новий модуль, виправлення/prune/повернення помилки й хибний baseline. Ці fixtures не змінюють робочого `app/` і не вимикають реальних перевірок.

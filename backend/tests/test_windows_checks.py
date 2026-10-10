@@ -51,7 +51,7 @@ def _scope(repo: Path, base: str) -> subprocess.CompletedProcess[str]:
 
 def test_only_known_non_desktop_paths_skip_windows(repo: tuple[Path, str]) -> None:
     root, base = repo
-    for name in ("docs/Проверка с пробелами.md", "site/index.html", "services/api/src/index.js"):
+    for name in ("docs/Перевірка з пробілами.md", "site/index.html", "services/api/src/index.js"):
         path = root / name
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text("# changed\n")

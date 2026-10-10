@@ -50,7 +50,7 @@ def test_normalized_core_remains_identical_for_sparse_packet_and_unknown_signals
     assert "enemy_units" not in state["extra_context"]
 
 
-@pytest.mark.parametrize("language", ["ru", "en"])
+@pytest.mark.parametrize("language", ["uk", "en"])
 def test_finding_and_coverage_dto_roundtrip_complete_real_http_review(
     client: TestClient, tmp_path: Path, language: str
 ) -> None:

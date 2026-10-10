@@ -1,5 +1,5 @@
 """
-session_summary.py - «Итог вечера»: the games of one sitting, and a text to share.
+session_summary.py - «Підсумок вечора»: the games of one sitting, and a text to share.
 
 From the stored match table and reviews (no network), like weekly_summary: the
 newest matches chained by starts at most SESSION_CHAIN_GAP apart, the last of
@@ -58,7 +58,7 @@ def sitting(matches: list[dict[str, Any]], now: float) -> list[dict[str, Any]]:
     return games
 
 
-def _plural_ru(n: int, one: str, few: str, many: str) -> str:
+def _plural_uk(n: int, one: str, few: str, many: str) -> str:
     if n % 10 == 1 and n % 100 != 11:
         return one
     if 2 <= n % 10 <= 4 and not 12 <= n % 100 <= 14:
@@ -66,23 +66,23 @@ def _plural_ru(n: int, one: str, few: str, many: str) -> str:
     return many
 
 
-def _duration_text(minutes: int, ru: bool) -> str:
+def _duration_text(minutes: int, uk: bool) -> str:
     hours, rest = divmod(minutes, 60)
-    if ru:
-        return f"{hours} ч {rest:02d} мин" if hours else f"{rest} мин"
+    if uk:
+        return f"{hours} год {rest:02d} хв" if hours else f"{rest} хв"
     return f"{hours} h {rest:02d} min" if hours else f"{rest} min"
 
 
 def share_text(summary: dict[str, Any], lang: str) -> str:
     """A few plain lines for a chat; the numbers are the summary's own."""
-    ru = lang == "ru"
+    uk = lang == "uk"
     games, wins, losses = summary["games"], summary["wins"], summary["losses"]
-    if ru:
+    if uk:
         lines = [
-            "Итог вечера в Dota 2 · Wardly",
-            f"{games} {_plural_ru(games, 'матч', 'матча', 'матчей')}: "
-            f"{wins} {_plural_ru(wins, 'победа', 'победы', 'побед')}, "
-            f"{losses} {_plural_ru(losses, 'поражение', 'поражения', 'поражений')}"
+            "Підсумок вечора в Dota 2 · Wardly",
+            f"{games} {_plural_uk(games, 'матч', 'матчі', 'матчів')}: "
+            f"{wins} {_plural_uk(wins, 'перемога', 'перемоги', 'перемог')}, "
+            f"{losses} {_plural_uk(losses, 'поразка', 'поразки', 'поразок')}"
             f" · {_duration_text(summary['minutes'], True)}",
         ]
     else:
@@ -94,9 +94,9 @@ def share_text(summary: dict[str, Any], lang: str) -> str:
         ]
     if summary.get("avg_score") is not None:
         usual = summary.get("usual_score")
-        if ru:
-            tail = f" (обычно {usual})" if usual is not None else ""
-            lines.append(f"Средняя оценка тренера: {summary['avg_score']}/100{tail}")
+        if uk:
+            tail = f" (зазвичай {usual})" if usual is not None else ""
+            lines.append(f"Середня оцінка тренера: {summary['avg_score']}/100{tail}")
         else:
             tail = f" (usually {usual})" if usual is not None else ""
             lines.append(f"Average coach score: {summary['avg_score']}/100{tail}")
@@ -104,26 +104,26 @@ def share_text(summary: dict[str, Any], lang: str) -> str:
         f"{h['hero']} {h['wins']}–{h['games'] - h['wins']}" for h in summary["heroes"]
     )
     if heroes:
-        lines.append(f"{'Герои' if ru else 'Heroes'}: {heroes}")
+        lines.append(f"{'Герої' if uk else 'Heroes'}: {heroes}")
     best = summary.get("best")
     if best:
-        label = "Лучший матч" if ru else "Best match"
+        label = "Найкращий матч" if uk else "Best match"
         lines.append(f"{label}: {best['hero'] or '—'}, {best['score']}/100")
     problem = summary.get("top_problem")
     if problem:
-        if ru:
+        if uk:
             lines.append(
-                f"Над чем работать: {problem['title']} ({problem['count']} из {problem['of']})"
+                f"Над чим працювати: {problem['title']} ({problem['count']} з {problem['of']})"
             )
         else:
             lines.append(f"To work on: {problem['title']} ({problem['count']} of {problem['of']})")
     focus = summary.get("focus")
     if focus:
-        if ru:
-            lines.append(f"Фокус «{focus['title']}»: {focus['met']} из {focus['total']}")
+        if uk:
+            lines.append(f"Фокус «{focus['title']}»: {focus['met']} з {focus['total']}")
         else:
             lines.append(f"Focus “{focus['title']}”: {focus['met']} of {focus['total']}")
-    lines.append(f"{SITE}{'' if ru else 'en/'}?ref=session")
+    lines.append(f"{SITE}{'' if uk else 'en/'}?ref=session")
     return "\n".join(lines)
 
 

@@ -366,7 +366,7 @@ h1 {
   font-variant-numeric: tabular-nums;
 }
 
-/* «Почему этот совет?»: what the coach saw, folded under the advice. */
+/* «Чому ця порада?»: what the coach saw, folded under the advice. */
 .advice-why {
   grid-column: 2 / -1;
   margin-top: var(--sp-1);
@@ -543,7 +543,7 @@ label.setting {
   resize: vertical;
 }
 
-/* «Ещё настройки» at the end of Settings: rarely needed rows, folded. */
+/* «Ще налаштування» at the end of Settings: rarely needed rows, folded. */
 .settings-more {
   margin-top: var(--sp-3);
 }
@@ -1167,7 +1167,7 @@ label.setting:has(.switch:disabled) {
 
 /* A zone (or the two-column part) after another one starts a new area: the
    room of .zone + .zone, which the rule above (an id wins) cut to 12 px —
-   «Цели» sat right under the tiles of «Итоги». */
+   «Цілі» sat right under the tiles of «Підсумки». */
 :is(.view, #matches-root, #match-root, #progress-root, #profile-root) > :is(.zone, .layout-2) + :is(.zone, .layout-2) {
   margin-top: var(--sp-8);
 }
@@ -1456,7 +1456,7 @@ span.setup-mark {
   color: var(--text-3);
 }
 
-/* «Перенос на другой компьютер»: the code is read off one screen and typed on another. */
+/* «Перенесення на інший комп'ютер»: the code is read off one screen and typed on another. */
 .transfer-code {
   display: block;
   margin-top: var(--sp-2);
@@ -1484,7 +1484,7 @@ span.setup-mark {
   flex: 1 1 100%;
 }
 
-/* «Неделя в Discord»: the link form gives way to «Send now / Disconnect» once connected. */
+/* «Тиждень у Discord»: the link form gives way to «Send now / Disconnect» once connected. */
 .weekly-row [hidden] {
   display: none;
 }
@@ -2453,7 +2453,7 @@ span.setup-mark {
 
 .moment {
   display: grid;
-  /* time · icon · text · «Смотреть» (the last column is empty without a replay) */
+  /* time · icon · text · «Дивитися» (the last column is empty without a replay) */
   grid-template-columns: 44px 20px minmax(0, 1fr) auto;
   align-items: center;
   gap: var(--sp-2);
@@ -2534,7 +2534,7 @@ span.setup-mark {
   gap: var(--sp-3);
 }
 
-/* Three short tiles in the side column («С тренером» on the profile). */
+/* Three short tiles in the side column («З тренером» on the profile). */
 .tiles.tiles-compact {
   grid-template-columns: repeat(auto-fit, minmax(96px, 1fr));
 }
@@ -3881,7 +3881,7 @@ span.setup-mark {
   color: var(--text-2);
 }
 
-/* «Горячие клавиши» under the overlay settings: the game's, then the window's. */
+/* «Гарячі клавіші» under the overlay settings: the game's, then the window's. */
 .hotkeys-group {
   margin: var(--sp-3) 0 0;
   color: var(--text-3);
@@ -4332,7 +4332,7 @@ kbd {
   line-height: 1.45;
 }
 
-/* «Также в 0.50.0»: the versions an update skipped, under the new one. */
+/* «Також у 0.50.0»: the versions an update skipped, under the new one. */
 .whats-new-list .whats-new-version {
   margin: var(--sp-2) 0 0 calc(-1 * var(--sp-5));
   list-style: none;
@@ -4693,7 +4693,7 @@ kbd {
   }
 }
 
-/* Home: «Итог вечера», the latest sitting (shown once Dota is closed). */
+/* Home: «Підсумок вечора», the latest sitting (shown once Dota is closed). */
 .session-card {
   margin-bottom: var(--sp-3);
 }
@@ -4758,7 +4758,7 @@ kbd {
   font-size: var(--fs-13);
 }
 
-/* «Герои: Juggernaut 2–1 · Lina 1–1» under the week's tiles. */
+/* «Герої: Juggernaut 2–1 · Lina 1–1» under the week's tiles. */
 .week-heroes {
   display: flex;
   flex-wrap: wrap;
@@ -5079,7 +5079,7 @@ tr.row-link[data-result="loss"] > td:first-child {
   font-size: 11px;
 }
 
-/* «Последние матчи» on Home. */
+/* «Останні матчі» on Home. */
 .recent-list {
   display: grid;
   gap: var(--sp-1);
@@ -5327,7 +5327,7 @@ tr.row-link[data-result="loss"] > td:first-child {
   }
 }
 
-/* «Ваша неделя»: the score of every match under the tiles. */
+/* «Ваш тиждень»: the score of every match under the tiles. */
 .week-chart-title {
   margin: var(--sp-5) 0 var(--sp-1);
 }
@@ -5336,7 +5336,7 @@ tr.row-link[data-result="loss"] > td:first-child {
   min-height: 132px;
 }
 
-/* The App card sits alone under the «Приложение» zone heading: no second title. */
+/* The App card sits alone under the «Застосунок» zone heading: no second title. */
 #app-card > .card-head {
   display: none;
 }
@@ -5366,7 +5366,7 @@ tr.row-link[data-result="loss"] > td:first-child {
   }
 }
 
-/* «Смотреть» at the end of a death or a key moment: copies the replay jump command. */
+/* «Дивитися» at the end of a death or a key moment: copies the replay jump command. */
 .moment .watch-moment {
   align-self: start;
   opacity: 0.75;
@@ -5985,7 +5985,7 @@ tr.row-link[data-result="loss"] > td:first-child {
 }
 
 
-/* «Друзья»: the own code, the add form and the leaderboard. */
+/* «Друзі»: the own code, the add form and the leaderboard. */
 .pf-friends {
   display: grid;
   gap: var(--sp-3);
@@ -6145,7 +6145,7 @@ tr.row-link[data-result="loss"] > td:first-child {
   font-weight: 700;
 }
 
-/* «Найти настройку» (settings-search.js): the field in the Settings head, the
+/* «Знайти налаштування» (settings-search.js): the field in the Settings head, the
    rows without the words hidden, the words found highlighted. */
 .search-field {
   position: relative;
@@ -6252,7 +6252,7 @@ tr.row-link[data-result="loss"] > td:first-child {
   }
 }
 
-/* «Заметка» (0.52): the player's line on a match — under the review title and
+/* «Нотатка» (0.52): the player's line on a match — under the review title and
    as an icon next to the hero in the match table. */
 .review-note {
   display: flex;
@@ -6475,7 +6475,7 @@ tr.row-link[data-result="loss"] > td:first-child {
   }
 }
 
-/* «Найти…» Ctrl K: in the header of a narrow window, above the player in the
+/* «Знайти…» Ctrl K: in the header of a narrow window, above the player in the
    side navigation. */
 .side-find {
   display: inline-flex;
@@ -6563,7 +6563,7 @@ tr.row-link[data-result="loss"] > td:first-child {
   text-overflow: ellipsis;
 }
 
-/* «Автоматические копии»: the list of copies under the switch (renderBackups). */
+/* «Автоматичні копії»: the list of copies under the switch (renderBackups). */
 .auto-backup-body {
   flex-basis: 100%;
   display: grid;
@@ -6595,7 +6595,7 @@ tr.row-link[data-result="loss"] > td:first-child {
   gap: var(--sp-2);
 }
 
-/* «Полезно / не к месту / повторялось» under a live advice card (adviceVerdicts). */
+/* «Корисно / не до речі / повторювалося» under a live advice card (adviceVerdicts). */
 .advice-verdicts {
   display: flex;
   flex-wrap: wrap;
@@ -6623,7 +6623,7 @@ tr.row-link[data-result="loss"] > td:first-child {
   outline-offset: 2px;
 }
 
-/* «На чём основан разбор?» under the review's source line (reviewBasis). */
+/* «На чому ґрунтується розбір?» under the review's source line (reviewBasis). */
 .review-basis {
   margin: 2px 0 0;
 }

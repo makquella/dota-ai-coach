@@ -6,7 +6,7 @@ the recorded samples in data/gsi_samples/, then breaks them at random: drops
 fields and whole blocks, swaps types (strings, lists, None, booleans), puts in
 huge, negative and fractional numbers, jumps the clock back and forth, switches
 heroes, teams and matches mid-stream, adds spectator blocks. Every payload is
-followed by the requests the launcher makes (overlay in ru and en, /gsi/status,
+followed by the requests the launcher makes (overlay in uk and en, /gsi/status,
 /player). Any 5xx answer fails the run and prints the payload that caused it.
 
     python scripts/fuzz_live_gsi.py --payloads 10000 --seed 1
@@ -204,7 +204,7 @@ def _send(
                 sent += 1
                 answers = [("POST /gsi", client.post("/gsi", json=body))]
                 for path in (
-                    "/overlay/recommendation?lang=ru",
+                    "/overlay/recommendation?lang=uk",
                     "/overlay/recommendation?lang=en",
                     "/gsi/status",
                     "/player",

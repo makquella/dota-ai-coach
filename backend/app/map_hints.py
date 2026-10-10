@@ -31,7 +31,7 @@ from functools import lru_cache
 from typing import Any
 
 from app.config import DATA_DIR
-from app.last_moments import RUNES_RU
+from app.last_moments import RUNES_UK
 from app.live_tools import POWER_RUNES
 
 TIMERS_PATH = DATA_DIR / "meta" / "map_timers.json"
@@ -158,7 +158,7 @@ ROLE_CHECK_FROM = 3 * 60
 ROLE_CHECK_SHOW = 20
 ROLE_NAMES = {
     "en": {"carry": "carry", "mid": "mid", "offlane": "offlaner", "support": "support"},
-    "ru": {"carry": "керри", "mid": "мид", "offlane": "хардлайнер", "support": "саппорт"},
+    "uk": {"carry": "керрі", "mid": "мід", "offlane": "хардлайнер", "support": "саппорт"},
 }
 CORE_ROLES = {"carry", "mid", "offlane"}
 # Support: gold kept instead of wards, dust, smoke and a save item.
@@ -166,13 +166,13 @@ CORE_ROLES = {"carry", "mid", "offlane"}
 TIPS = {
     "stack": {
         "en": ("Stack a camp", "Pull the camp at :53 so the next spawn stacks on top."),
-        "ru": ("Застакайте лагерь", "Отведите крипов на :53 — сверху появится новый лагерь."),
+        "uk": ("Застакайте табір", "Відведіть кріпів на :53 — згори з'явиться новий табір."),
     },
     "tp": {
         "en": ("No TP scroll", "Buy one now: without it you cannot join a fight or save a tower."),
-        "ru": (
-            "Нет свитка телепортации",
-            "Купите его сейчас: без ТП не успеть на драку и к вышке.",
+        "uk": (
+            "Немає сувою телепортації",
+            "Купіть його зараз: без ТП не встигнути на бійку й до вежі.",
         ),
     },
     "last_hits": {
@@ -180,20 +180,20 @@ TIPS = {
             "Leave the last hits to your carry",
             "A support's gold comes from runes, stacks and kills.",
         ),
-        "ru": ("Оставьте добивания керри", "Золото саппорта — руны, стаки и убийства."),
+        "uk": ("Залиште добивання керрі", "Золото саппорта — руни, стаки й убивства."),
     },
     "wards": {
         "en": ("No observer wards on you", "Take wards from the shop and light up the next fight."),
-        "ru": ("Нет вардов", "Возьмите варды в лавке и подсветите место следующей драки."),
+        "uk": ("Немає вардів", "Візьміть варди в крамниці й підсвітіть місце наступної бійки."),
     },
     "ward_bag": {
         "en": (
             "Place your observer ward",
             "A ward in the bag shows nothing: put it where the next fight or gank will come from.",
         ),
-        "ru": (
-            "Поставьте вард",
-            "Вард в сумке ничего не показывает: поставьте его там, откуда придёт драка или ганк.",
+        "uk": (
+            "Поставте вард",
+            "Вард у сумці нічого не показує: поставте його там, звідки прийде бійка або ганк.",
         ),
     },
     "invis_dust": {
@@ -201,9 +201,9 @@ TIPS = {
             "{enemy} goes invisible",
             "Carry Dust of Appearance or a sentry ward into fights: without them nobody can hit {enemy}.",
         ),
-        "ru": (
-            "{enemy} уходит в невидимость",
-            "Носите в драки Dust of Appearance или сентри: без них {enemy} никто не ударит.",
+        "uk": (
+            "{enemy} іде в невидимість",
+            "Носіть у бійки Dust of Appearance або сентрі: без них {enemy} ніхто не вдарить.",
         ),
     },
     # Where to put it: by the phase of the game, the kill score and Roshan.
@@ -212,9 +212,9 @@ TIPS = {
             "Place your observer ward",
             "Put it by the river next to your lane: a gank shows up before it reaches you.",
         ),
-        "ru": (
-            "Поставьте вард",
-            "Поставьте его у реки рядом с вашей линией: ганк будет виден заранее.",
+        "uk": (
+            "Поставте вард",
+            "Поставте його біля річки поруч із вашою лінією: ганк буде видно заздалегідь.",
         ),
     },
     "ward_bag_behind": {
@@ -223,10 +223,9 @@ TIPS = {
             "Your team is {gap} kills behind: ward the entrances to your own jungle, "
             "where the enemy comes to catch your cores.",
         ),
-        "ru": (
-            "Поставьте вард",
-            "Команда отстаёт на {gap} убийств: поставьте его у входа в свой лес — "
-            "там враг ловит тех, кто фармит.",
+        "uk": (
+            "Поставте вард",
+            "Команда відстає на {gap} вбивств: поставте його біля входу у свій ліс — там ворог ловить тих, хто фармить.",
         ),
     },
     "ward_bag_ahead": {
@@ -235,10 +234,9 @@ TIPS = {
             "Your team is {gap} kills ahead: ward the enemy jungle so your team can "
             "catch their cores and take towers safely.",
         ),
-        "ru": (
-            "Поставьте вард",
-            "Команда впереди на {gap} убийств: поставьте его в лесу врага — "
-            "так команда поймает их фармящих героев и безопасно снесёт вышки.",
+        "uk": (
+            "Поставте вард",
+            "Команда попереду на {gap} вбивств: поставте його в лісі ворога — так команда спіймає їхніх героїв, що фармлять, і безпечно знесе вежі.",
         ),
     },
     "ward_bag_roshan": {
@@ -246,9 +244,9 @@ TIPS = {
             "Place your observer ward",
             "Roshan can be up now: put it by the Roshan pit so the enemy cannot take it unseen.",
         ),
-        "ru": (
-            "Поставьте вард",
-            "Рошан может уже появиться: поставьте его у логова — враг не заберёт его незаметно.",
+        "uk": (
+            "Поставте вард",
+            "Рошан уже може з'явитися: поставте його біля лігва — ворог не забере його непомітно.",
         ),
     },
     "save_item": {
@@ -256,9 +254,9 @@ TIPS = {
             "No save item yet",
             "Glimmer Cape or Force Staff saves a core in a fight: buy one of them next.",
         ),
-        "ru": (
-            "Нет спасающего предмета",
-            "Glimmer Cape или Force Staff спасают кора в драке: купите один из них следующим.",
+        "uk": (
+            "Немає рятівного предмета",
+            "Glimmer Cape або Force Staff рятують кора в бійці: купіть один із них наступним.",
         ),
     },
     # The save item most bought on the hero (cached OpenDota build).
@@ -267,10 +265,9 @@ TIPS = {
             "No save item yet: {item}",
             "{item} is the save item most bought on this hero: {left} gold to go.",
         ),
-        "ru": (
-            "Нет спасающего предмета: {item}",
-            "{item} чаще всего берут на этом герое, чтобы спасать союзников: "
-            "осталось {left} золота.",
+        "uk": (
+            "Немає рятівного предмета: {item}",
+            "{item} найчастіше беруть на цьому герої, щоб рятувати союзників: лишилося {left} золота.",
         ),
     },
     "save_item_now": {
@@ -278,10 +275,9 @@ TIPS = {
             "Buy {item} now",
             "{item} is the save item most bought on this hero, and you have the gold for it.",
         ),
-        "ru": (
-            "Купите {item} сейчас",
-            "{item} чаще всего берут на этом герое, чтобы спасать союзников, "
-            "и золота на него хватает.",
+        "uk": (
+            "Купіть {item} зараз",
+            "{item} найчастіше беруть на цьому герої, щоб рятувати союзників, і золота на нього вистачає.",
         ),
     },
     # The save item against the enemy lineup (situational_items.lineup_save_item).
@@ -290,9 +286,9 @@ TIPS = {
             "Buy {item} now",
             "{item} fits against this enemy lineup, and you have the gold for it.",
         ),
-        "ru": (
-            "Купите {item} сейчас",
-            "{item} лучше всего против этого состава врага, и золота на него хватает.",
+        "uk": (
+            "Купіть {item} зараз",
+            "{item} найкращий проти цього складу ворога, і золота на нього вистачає.",
         ),
     },
     "save_item_magic": {
@@ -300,9 +296,9 @@ TIPS = {
             "{item} against their magic",
             "{count} enemy heroes deal magic damage, and {item} saves an ally from it.",
         ),
-        "ru": (
-            "{item} против магии",
-            "Героев врага с магическим уроном: {count}, а {item} спасает от него союзника.",
+        "uk": (
+            "{item} проти магії",
+            "Героїв ворога з магічною шкодою: {count}, а {item} рятує від неї союзника.",
         ),
     },
     "save_item_physical": {
@@ -310,10 +306,9 @@ TIPS = {
             "{item} against their carries",
             "{enemy} and other right-click carries: {item} stops their attacks for a few seconds.",
         ),
-        "ru": (
-            "{item} против их керри",
-            "У врага {enemy} и другие керри с ударами с руки: {item} на несколько секунд "
-            "спасает от их атак.",
+        "uk": (
+            "{item} проти їхніх керрі",
+            "У ворога {enemy} та інші керрі з ударами з руки: {item} на кілька секунд рятує від їхніх атак.",
         ),
     },
     # The player's past lanes against the hero now in their lane (lane_duel.py).
@@ -323,10 +318,9 @@ TIPS = {
             "You lost the lane to {hero} {lost} of {games} times: play for experience, "
             "take only the safe last hits and call your support early.",
         ),
-        "ru": (
-            "Тяжёлая линия: {hero}",
-            "Против {hero} вы проиграли линию {lost} из {games} раз: играйте от опыта, "
-            "добивайте только безопасные крипы и зовите саппорта заранее.",
+        "uk": (
+            "Важка лінія: {hero}",
+            "Проти {hero} ви програли лінію {lost} з {games} разів: грайте від досвіду, добивайте лише безпечних кріпів і кличте саппорта заздалегідь.",
         ),
     },
     "lane_easy": {
@@ -335,10 +329,9 @@ TIPS = {
             "You won the lane against {hero} {won} of {games} times: press from the "
             "first minutes and take their last hits away.",
         ),
-        "ru": (
-            "Удобная линия: {hero}",
-            "Против {hero} вы выиграли линию {won} из {games} раз: давите с первых минут "
-            "и не давайте добивать.",
+        "uk": (
+            "Зручна лінія: {hero}",
+            "Проти {hero} ви виграли лінію {won} з {games} разів: тисніть із перших хвилин і не давайте добивати.",
         ),
     },
     # An enemy gone from the minimap in the laning stage (enemy_lanes.py).
@@ -348,10 +341,9 @@ TIPS = {
             "{hero} has not been seen for {seconds} s and may be coming to your lane. "
             "Stay closer to your tower.",
         ),
-        "ru": (
-            "Не видно мида: {hero}",
-            "{hero} не видно уже {seconds} с — может идти на вашу линию. "
-            "Держитесь ближе к своей башне.",
+        "uk": (
+            "Не видно міда: {hero}",
+            "{hero} не видно вже {seconds} с — може йти на вашу лінію. Тримайтеся ближче до своєї вежі.",
         ),
     },
     "missing_lane": {
@@ -360,10 +352,9 @@ TIPS = {
             "{hero} has not been seen for {seconds} s: maybe coming around through the "
             "trees or off to another lane. Don't push up too far.",
         ),
-        "ru": (
-            "Соперник пропал с линии: {hero}",
-            "{hero} не видно уже {seconds} с — может обходить через лес или идти на "
-            "другую линию. Не заходите далеко вперёд.",
+        "uk": (
+            "Суперник зник з лінії: {hero}",
+            "{hero} не видно вже {seconds} с — може обходити через ліс або йти на іншу лінію. Не заходьте далеко вперед.",
         ),
     },
     "mid_six": {
@@ -371,9 +362,9 @@ TIPS = {
             "Level 6: look for a rotation",
             "Push the wave first, then check the side lanes with the next rune.",
         ),
-        "ru": (
-            "6-й уровень: время ротации",
-            "Сначала запушьте волну, потом с руной посмотрите на боковые линии.",
+        "uk": (
+            "6-й рівень: час ротації",
+            "Спершу запуште хвилю, потім із руною подивіться на бокові лінії.",
         ),
     },
     "mid_last_hits": {
@@ -381,9 +372,9 @@ TIPS = {
             "{last_hits} last hits by {time}",
             "A good mid has {target}+: last-hit and deny under your tower, trade only with the wave on your side.",
         ),
-        "ru": (
-            "{last_hits} {last_hits_word} к {time}",
-            "Хороший мид — {target}+: добивайте и денайте под своей вышкой, размены — когда волна на вашей стороне.",
+        "uk": (
+            "{last_hits} {last_hits_word} до {time}",
+            "Добрий мід — {target}+: добивайте й денайте під своєю вежею, розміни — коли хвиля на вашому боці.",
         ),
     },
     "mid_bottle": {
@@ -391,9 +382,9 @@ TIPS = {
             "No Bottle yet",
             "Most mids live on it: every rune refills it, and it keeps you in the lane without going to base.",
         ),
-        "ru": (
-            "Нет бутылки",
-            "Большинство мидеров живёт на ней: руна заполняет её, и не нужно ходить на базу.",
+        "uk": (
+            "Немає пляшки",
+            "Більшість мідерів живе на ній: руна заповнює її, і не треба ходити на базу.",
         ),
     },
     "lane_regen": {
@@ -401,9 +392,9 @@ TIPS = {
             "No regen for the lane",
             "Take Tango or a Healing Salve: the first trades cost HP, and walking to base costs the lane.",
         ),
-        "ru": (
-            "Нет регена на линию",
-            "Возьмите Tango или Healing Salve: первые размены стоят HP, а уход на базу стоит линии.",
+        "uk": (
+            "Немає регену на лінію",
+            "Візьміть Tango або Healing Salve: перші розміни коштують HP, а похід на базу коштує лінії.",
         ),
     },
     "lane_hp": {
@@ -411,9 +402,9 @@ TIPS = {
             "{hp}% HP and nothing to heal",
             "Buy a Healing Salve and send it with the courier: with half HP you cannot stand in for last hits.",
         ),
-        "ru": (
-            "{hp}% HP и нечем лечиться",
-            "Купите Healing Salve и отправьте курьером: с половиной HP линию не отстоять.",
+        "uk": (
+            "{hp}% HP і нічим лікуватися",
+            "Купіть Healing Salve і відправте кур'єром: з половиною HP лінію не відстояти.",
         ),
     },
     "lane_stick": {
@@ -421,9 +412,9 @@ TIPS = {
             "No Magic Stick yet",
             "200 gold: it charges from enemy spells and heals you in one press — the cheapest save of the lane.",
         ),
-        "ru": (
-            "Ещё нет Magic Stick",
-            "200 золота: он заряжается от вражеских заклинаний и лечит одним нажатием — самое дешёвое спасение на линии.",
+        "uk": (
+            "Ще немає Magic Stick",
+            "200 золота: він заряджається від ворожих заклять і лікує одним натисканням — найдешевший порятунок на лінії.",
         ),
     },
     "lane_denies": {
@@ -431,9 +422,9 @@ TIPS = {
             "{denies} denies by 4:00",
             "Finish your own creeps when they are low: a deny takes gold and half the experience from the enemy.",
         ),
-        "ru": (
-            "Денаев к 4:00: {denies}",
-            "Добивайте своих крипов на низком HP: денай забирает у врага золото и половину опыта.",
+        "uk": (
+            "Денаїв до 4:00: {denies}",
+            "Добивайте своїх кріпів із низьким HP: денай забирає у ворога золото й половину досвіду.",
         ),
     },
     "bottle_rune": {
@@ -441,31 +432,30 @@ TIPS = {
             "{rune} rune in your Bottle",
             "Use it for a kill on a side lane: the Bottle holds one rune, and the next one comes soon.",
         ),
-        "ru": (
-            "Руна {rune_ru} в бутылке",
-            "Используйте её для убийства на боковой линии: в бутылке помещается одна руна, "
-            "а следующая появится скоро.",
+        "uk": (
+            "Руна {rune_uk} у пляшці",
+            "Використайте її для вбивства на боковій лінії: у пляшці вміщається одна руна, а наступна з'явиться скоро.",
         ),
     },
     "mid_rune": {
         "en": ("", "Take it and go straight to a side lane: the best moment to rotate."),
-        "ru": ("", "Заберите её и сразу идите на боковую линию: лучший момент для ротации."),
+        "uk": ("", "Заберіть її й одразу йдіть на бокову лінію: найкращий момент для ротації."),
     },
     "mid_rune_full": {
         "en": (
             "",
             "Your Bottle still holds a {rune} rune: use it now, or the new rune will not fit in.",
         ),
-        "ru": (
+        "uk": (
             "",
-            "В бутылке ещё лежит руна {rune_ru}: используйте её сейчас, иначе новая туда не поместится.",
+            "У пляшці ще лежить руна {rune_uk}: використайте її зараз, інакше нова туди не вміститься.",
         ),
     },
     "mid_rune_bottle": {
         "en": ("", "Bottle it if you do not need it now: keep it for a kill after the next wave."),
-        "ru": (
+        "uk": (
             "",
-            "Если сейчас не нужна — положите её в бутылку и приберегите для убийства после следующей волны.",
+            "Якщо зараз не потрібна — покладіть її в пляшку й приберегіть для вбивства після наступної хвилі.",
         ),
     },
     "offlane_hard_lane": {
@@ -473,9 +463,9 @@ TIPS = {
             "A hard lane",
             "Stop feeding under their tower: pull the big camp into your wave and take the experience safely.",
         ),
-        "ru": (
-            "Тяжёлая линия",
-            "Не умирайте под их вышкой: подтяните большой лагерь в свою волну и берите опыт без риска.",
+        "uk": (
+            "Важка лінія",
+            "Не помирайте під їхньою вежею: підтягніть великий табір у свою хвилю й беріть досвід без ризику.",
         ),
     },
     "pull": {
@@ -483,9 +473,9 @@ TIPS = {
             "Pull at {at_label}",
             "Pull the small camp into your wave so it meets at your tower.",
         ),
-        "ru": (
-            "Пулл в {at_label}",
-            "Отведите малый лагерь в свою волну: линия встанет у вашей вышки.",
+        "uk": (
+            "Пул о {at_label}",
+            "Відведіть малий табір у свою хвилю: лінія стане біля вашої вежі.",
         ),
     },
     "item_late": {
@@ -493,9 +483,9 @@ TIPS = {
             "{item} is late",
             "Most players finish it by {time}. Farm camps between waves and skip fights until you have it.",
         ),
-        "ru": (
-            "{item} опаздывает",
-            "Обычно его собирают к {time}. Фармите лагеря между волнами и не лезьте в драки без него.",
+        "uk": (
+            "{item} запізнюється",
+            "Зазвичай його збирають до {time}. Фарміть табори між хвилями й не лізьте в бійки без нього.",
         ),
     },
     "role_mismatch": {
@@ -503,9 +493,9 @@ TIPS = {
             "Role in the settings: {setting}",
             "You play as {seen}, so some tips miss. Set “Your role” to Auto in Wardly.",
         ),
-        "ru": (
-            "Роль в настройках: {setting}",
-            "А играете вы как {seen}, поэтому часть подсказок не в тему. Поставьте «Ваша роль» → «Авто» в Wardly.",
+        "uk": (
+            "Роль у налаштуваннях: {setting}",
+            "А граєте ви як {seen}, тому частина підказок не до речі. Поставте «Ваша роль» → «Авто» у Wardly.",
         ),
     },
     "item_early": {
@@ -513,9 +503,9 @@ TIPS = {
             "{item} ahead of time",
             "Most players have it by {time}: this is your window — push and look for fights.",
         ),
-        "ru": (
-            "{item} раньше обычного",
-            "Обычно его собирают к {time}: сейчас ваше окно — давите и ищите драки.",
+        "uk": (
+            "{item} раніше, ніж зазвичай",
+            "Зазвичай його збирають до {time}: зараз ваше вікно — тисніть і шукайте бійки.",
         ),
     },
     "offlane_six": {
@@ -523,9 +513,9 @@ TIPS = {
             "Level 6: pressure the lane",
             "With your support, go for the enemy carry or their tower while the wave is close.",
         ),
-        "ru": (
-            "6-й уровень: давите линию",
-            "Вместе с саппортом идите на вражеского керри или вышку, пока волна рядом.",
+        "uk": (
+            "6-й рівень: тисніть лінію",
+            "Разом із саппортом ідіть на ворожого керрі або вежу, поки хвиля поруч.",
         ),
     },
 }
@@ -536,10 +526,10 @@ TIPS = {
 STRIP_SIZE = 3
 STRIP_AHEAD = 3 * 60
 STRIP_LABELS = {
-    "water_rune": ("Водная руна", "Water rune"),
+    "water_rune": ("Руна води", "Water rune"),
     "power_rune": ("Руна", "Rune"),
-    "bounty_rune": ("Богатство", "Bounty"),
-    "wisdom_shrine": ("Мудрость", "Wisdom"),
+    "bounty_rune": ("Багатство", "Bounty"),
+    "wisdom_shrine": ("Мудрість", "Wisdom"),
     "lotus": ("Лотос", "Lotus"),
     "tormentor": ("Торментор", "Tormentor"),
     "neutral_tier_2": ("Нейтралки", "Neutrals"),
@@ -549,16 +539,16 @@ STRIP_LABELS = {
     "stack": ("Стак", "Stack"),
     "roshan": ("Рошан", "Roshan"),
     "roshan_maybe": ("Рошан?", "Roshan?"),
-    "aegis": ("Аегис", "Aegis"),
+    "aegis": ("Аегіс", "Aegis"),
 }
 
 
 def strip_item(kind: str, at: int, clock: int, lang: str, **extra: Any) -> dict[str, Any]:
-    ru, en = STRIP_LABELS[kind]
+    uk, en = STRIP_LABELS[kind]
     return {
         "id": f"{kind}@{at}",
         "kind": kind,
-        "label": ru if lang == "ru" else en,
+        "label": uk if lang == "uk" else en,
         "at": at,
         "at_label": clock_label(at),
         "in_seconds": at - clock,
@@ -680,15 +670,15 @@ def next_timer(clock: int, role: str | None, lang: str) -> dict[str, Any] | None
     if not candidates:
         return None
     at, _minor, _index, event = min(candidates, key=lambda row: row[:3])
-    ru = lang == "ru"
+    uk = lang == "uk"
     return {
         "kind": "timer",
         "id": f"{event['id']}@{at}",
         "at": at,
         "at_label": clock_label(at),
         "in_seconds": at - clock,
-        "title": event["ru" if ru else "en"],
-        "hint": event.get("hint_ru" if ru else "hint_en") or "",
+        "title": event["uk" if uk else "en"],
+        "hint": event.get("hint_uk" if uk else "hint_en") or "",
         "speak": bool(event.get("speak")),
         "minor": bool(event.get("minor")),
         "patch": data.get("patch"),
@@ -739,7 +729,7 @@ class RoleTips:
         start = self._once(key, clock, BOTTLE_RUNE_SHOW)
         if start is None:
             return None
-        return _tip("bottle_rune", key, lang, rune=rune, rune_ru=RUNES_RU.get(rune, rune))
+        return _tip("bottle_rune", key, lang, rune=rune, rune_uk=RUNES_UK.get(rune, rune))
 
     def _every(self, key: str, clock: int, every: int, show: int) -> int | None:
         """Shown for `show` seconds, then again `every` seconds later: the start."""
@@ -997,7 +987,7 @@ class RoleTips:
         start = self._once("role_mismatch", clock, ROLE_CHECK_SHOW)
         if start is None:
             return None
-        names = ROLE_NAMES["ru" if lang == "ru" else "en"]
+        names = ROLE_NAMES["uk" if lang == "uk" else "en"]
         return _tip(
             "role_mismatch",
             f"role_mismatch@{start}",
@@ -1050,7 +1040,7 @@ class RoleTips:
                         key,
                         lang,
                         last_hits=shown,
-                        last_hits_word=_ru_plural(shown, "добивание", "добивания", "добиваний"),
+                        last_hits_word=_ru_plural(shown, "добивання", "добивання", "добивань"),
                         time=clock_label(at),
                         target=target,
                     )
@@ -1093,7 +1083,7 @@ def _tip(
     clock: int | None = None,
     **params: Any,
 ) -> dict[str, Any]:
-    title, hint = TIPS[key]["ru" if lang == "ru" else "en"]
+    title, hint = TIPS[key]["uk" if lang == "uk" else "en"]
     if params:
         title, hint = title.format(**params), hint.format(**params)
     return {
@@ -1233,9 +1223,9 @@ def map_hint(
         and bottle_rune in POWER_RUNES
     ):
         # The Bottle holds one rune: the one in it has to go before the next.
-        key = "ru" if lang == "ru" else "en"
+        key = "uk" if lang == "uk" else "en"
         timer["hint"] = TIPS["mid_rune_full"][key][1].format(
-            rune=bottle_rune, rune_ru=RUNES_RU.get(bottle_rune, bottle_rune)
+            rune=bottle_rune, rune_uk=RUNES_UK.get(bottle_rune, bottle_rune)
         )
     elif (
         timer is not None
@@ -1245,10 +1235,10 @@ def map_hint(
     ):
         if level >= POWER_SPIKE_LEVEL:
             # With level 6 a power rune is the mid's rotation.
-            timer["hint"] = TIPS["mid_rune"]["ru" if lang == "ru" else "en"][1]
+            timer["hint"] = TIPS["mid_rune"]["uk" if lang == "uk" else "en"][1]
         elif items is not None and BOTTLE_ITEMS & set(items):
             # Before it (a known level only), a Bottle keeps the rune for a kill.
-            timer["hint"] = TIPS["mid_rune_bottle"]["ru" if lang == "ru" else "en"][1]
+            timer["hint"] = TIPS["mid_rune_bottle"]["uk" if lang == "uk" else "en"][1]
     if timer is not None and not timer["minor"]:
         return timer
     tip = tips.tip(

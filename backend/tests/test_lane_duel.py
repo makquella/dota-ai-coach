@@ -73,10 +73,10 @@ def test_a_lost_lane_names_the_enemy_core_and_when_it_turned():
     assert block["points"][-1]["lh"] == 50 and block["points"][-1]["enemy_lh"] == 30
     (finding,) = findings
     assert finding["id"] == "lane_lost" and finding["params"]["gold"] == 1000
-    ru = render_finding(finding, "ru")
-    assert ru["title"] == "Линия против Axe проиграна"
-    assert "50 добиваний у вас против 30 у Axe" in ru["text"]
-    assert "разрыв появился с 3-й минуты" in ru["text"]
+    uk = render_finding(finding, "uk")
+    assert uk["title"] == "Лінію проти Axe програно"
+    assert "50 добивань у вас проти 30 у Axe" in uk["text"]
+    assert "розрив з'явився з 3-ї хвилини" in uk["text"]
     en = render_finding(finding, "en")
     assert "1000 gold behind; the gap opened at minute 3" in en["text"]
 
@@ -175,11 +175,11 @@ def test_the_lane_record_tip_shows_once():
     record = {"hero": "Axe", "kind": "hard", "won": 1, "even": 0, "lost": 2, "games": 3}
     tips = RoleTips()
     base = {"alive": True, "has_ward": None}
-    tip = tips.tip(100, "carry", lang="ru", lane_record=record, **base)
-    assert tip["title"] == "Тяжёлая линия: Axe"
-    assert "проиграли линию 2 из 3 раз" in tip["hint"]
+    tip = tips.tip(100, "carry", lang="uk", lane_record=record, **base)
+    assert tip["title"] == "Важка лінія: Axe"
+    assert "програли лінію 2 з 3 разів" in tip["hint"]
     assert (
-        tips.tip(100 + LANE_RECORD_SHOW + 1, "carry", lang="ru", lane_record=record, **base) is None
+        tips.tip(100 + LANE_RECORD_SHOW + 1, "carry", lang="uk", lane_record=record, **base) is None
     )
     # A support's lane is not judged, so no record tip for it.
     assert RoleTips().tip(100, "support", lang="en", lane_record=record, **base) is None

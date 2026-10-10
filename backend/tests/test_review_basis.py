@@ -1,4 +1,4 @@
-"""«На чём основан разбор?»: every built review records its rules, data and why
+"""«На чому ґрунтується розбір?»: every built review records its rules, data and why
 it was (re)built; Progress says whether its averages compare like with like."""
 
 from __future__ import annotations
@@ -63,6 +63,6 @@ def test_career_basis_counts_patches_and_parsed_replays():
 
 def test_progress_carries_the_basis(client, tmp_path):
     _reviewed_match(client, tmp_path, None)
-    basis = client.get("/player/career?lang=ru").json().get("basis")
+    basis = client.get("/player/career?lang=uk").json().get("basis")
     if basis is not None:  # Progress needs a few matches before it reports
         assert basis["rules"] == ANALYSIS_VERSION

@@ -6,7 +6,7 @@ from __future__ import annotations
 
 from test_situational_items import META
 
-from app.advice_i18n import translate_ru
+from app.advice_i18n import translate_uk
 from app.death_screen import build_death_screen
 from app.dota_constants import hero_id_from_name
 from app.draft_analysis import MAGIC_DAMAGE, PHYSICAL_CARRIES
@@ -53,8 +53,8 @@ def test_the_magic_reason_in_both_languages():
     assert reason.startswith(
         "3 enemy heroes deal magic damage, and Black King Bar protects you from it"
     )
-    assert translate_ru(reason).startswith(
-        "3 героя врага бьют магией — Black King Bar защитит от неё: не хватает 1100 золота"
+    assert translate_uk(reason).startswith(
+        "3 герої ворога б'ють магією — Black King Bar захистить від неї: бракує 1100 золота"
     )
     card = build_death_screen(
         death={"t": 1200, "usable": []},
@@ -64,9 +64,9 @@ def test_the_magic_reason_in_both_languages():
         buyback_cost=None,
         minute=20,
         next_item=item,
-        lang="ru",
+        lang="uk",
     )
-    assert any("магическим уроном — 3" in line for line in card["lines"])
+    assert any("магічною шкодою — 3" in line for line in card["lines"])
 
 
 def test_a_support_gets_the_save_item_against_the_lineup():
@@ -85,13 +85,13 @@ def test_a_support_gets_the_save_item_against_the_lineup():
         "support",
         alive=True,
         has_ward=True,
-        lang="ru",
+        lang="uk",
         gold=1300,
         items=items,
         save_item=glimmer,
     )
-    assert tip["title"] == "Glimmer Cape против магии"
-    assert "магическим уроном: 3" in tip["hint"]
+    assert tip["title"] == "Glimmer Cape проти магії"
+    assert "магічною шкодою: 3" in tip["hint"]
     tip = RoleTips().tip(
         13 * 60,
         "support",

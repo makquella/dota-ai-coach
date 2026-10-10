@@ -71,7 +71,7 @@ def test_parsed_ward_logs_override_aggregate_and_preserve_known_zero() -> None:
     )
     facts = facts_from_opendota(trim_match(raw, ME))
     assert facts is not None and (facts["obs_placed"], facts["sen_placed"]) == (0, 2)
-    analysis = render_analysis(analyze_match(facts), "ru")
+    analysis = render_analysis(analyze_match(facts), "uk")
     finding = next(f for f in analysis["improvements"] if f["id"] == "wards_low")
     assert finding["evidence"][0] == {
         "field": "obs_placed",
@@ -211,9 +211,9 @@ def test_evidence_is_detached_and_param_mismatches_and_duplicates_are_unknown() 
     "text",
     [
         "2 observer wards and 7 sentry wards.",
-        "У вас 2 обсервер-варда и 7 сентри.",
+        "У вас 2 обсервер-варди і 7 сентрі.",
         "Recorded 2 deaths before minute 10.",
-        "Зафиксировано 2 смерти до 10-й минуты.",
+        "Зафіксовано 2 смерті до 10-ї хвилини.",
     ],
 )
 def test_valid_source_bound_claims_are_kept(text: str) -> None:
@@ -227,7 +227,7 @@ def test_valid_source_bound_claims_are_kept(text: str) -> None:
         "2 sentry wards.",
         "3 observer wards.",
         "2 wards.",
-        "2 варда.",
+        "2 варди.",
         "Anti-Mage placed 2 observer wards.",
         "2 observer wards before minute 10.",
         "Recorded 9 deaths before minute 10.",
@@ -295,9 +295,12 @@ def test_http_review_and_saved_question_use_backend_finding_evidence(
 
 def test_future_ward_and_death_goals_keep_existing_policy() -> None:
     result, _, _, _ = FactChecker(json.dumps(_ledger()), []).scrub(
-        {"next_game": ["Place 3 observer wards.", "Не больше 2 смертей до 10-й минуты."]}
+        {"next_game": ["Place 3 observer wards.", "Не більше 2 смертей до 10-ї хвилини."]}
     )
-    assert result["next_game"] == ["Place 3 observer wards.", "Не больше 2 смертей до 10-й минуты."]
+    assert result["next_game"] == [
+        "Place 3 observer wards.",
+        "Не більше 2 смертей до 10-ї хвилини.",
+    ]
 
 
 def test_lh10_finding_fills_ai_sample_when_lane_and_peers_are_absent() -> None:

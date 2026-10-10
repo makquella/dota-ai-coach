@@ -38,34 +38,34 @@ const OVERLAY_TEXT = {
     sampleAction: "Leave the wave now and reset HP before rejoining.",
     sampleReason: "Drag the card where you like, then press “Done” or Ctrl+Alt+L."
   },
-  ru: {
-    urgent: "Срочно",
-    tip: "Совет",
+  uk: {
+    urgent: "Терміново",
+    tip: "Порада",
     coach: "Тренер",
     demo: "Демо",
-    waitingBackend: "Запускаем тренера…",
-    backendStopped: "Тренер остановлен: откройте Wardly, чтобы запустить.",
-    waitingGsi: "Ждём, пока Dota 2 подключится…",
-    waitingGsiShort: "Ждём данные игры…",
-    monitoring: "Следим за линией — срочных советов нет.",
-    unsupportedHero: "Этот герой пока не поддерживается.",
-    invalidState: "Ждём корректные данные игры…",
-    listening: "Ждём следующий совет…",
-    muted: "Советы выключены на 5 минут.",
-    mutedFor: (s) => `Советы выключены (${s} с).`,
-    noNewAdvice: "Новых советов нет.",
-    paused: "Советы на паузе, чтобы не перегружать.",
-    watching: "Наблюдаем…",
-    noUrgent: "Срочных советов нет.",
-    noAction: "Срочных советов нет",
-    plan: "План на игру",
-    map: "Карта",
-    itemMinute: (m) => `обычно к ${m}-й минуте`,
-    hintIn: (seconds) => (seconds > 0 ? `через ${seconds} с` : "сейчас"),
+    waitingBackend: "Запускаємо тренера…",
+    backendStopped: "Тренера зупинено: відкрийте Wardly, щоб запустити.",
+    waitingGsi: "Чекаємо, поки Dota 2 підключиться…",
+    waitingGsiShort: "Чекаємо дані гри…",
+    monitoring: "Стежимо за лінією — термінових порад немає.",
+    unsupportedHero: "Цей герой поки не підтримується.",
+    invalidState: "Чекаємо коректні дані гри…",
+    listening: "Чекаємо наступну пораду…",
+    muted: "Поради вимкнено на 5 хвилин.",
+    mutedFor: (s) => `Поради вимкнено (${s} с).`,
+    noNewAdvice: "Нових порад немає.",
+    paused: "Поради на паузі, щоб не перевантажувати.",
+    watching: "Спостерігаємо…",
+    noUrgent: "Термінових порад немає.",
+    noAction: "Термінових порад немає",
+    plan: "План на гру",
+    map: "Мапа",
+    itemMinute: (m) => `зазвичай до ${m}-ї хвилини`,
+    hintIn: (seconds) => (seconds > 0 ? `через ${seconds} с` : "зараз"),
     hintSoon: (title) => `Скоро: ${title}`,
-    sample: "Пример",
-    sampleAction: "Уходите с волны сейчас и восстановите HP, прежде чем вернуться.",
-    sampleReason: "Перетащите карточку, куда удобно, и нажмите «Готово» или Ctrl+Alt+L."
+    sample: "Приклад",
+    sampleAction: "Ідіть із хвилі зараз і відновіть HP, перш ніж повернутися.",
+    sampleReason: "Перетягніть картку, куди зручно, і натисніть «Готово» або Ctrl+Alt+L."
   }
 };
 
@@ -354,7 +354,7 @@ function renderAdvice(data, options = { refreshTimer: true }) {
   ].filter(Boolean).join(" ");
   labelEl.textContent = labelText(adviceMode, data);
   // The corner carries the map timing when there is one; «medium priority»
-  // only repeated the label on the left («Совет» / «Срочно») and its colour.
+  // only repeated the label on the left («Порада» / «Терміново») and its colour.
   priorityEl.textContent = currentHint ? hintShort(currentHint) : "";
   actionEl.textContent = recommendation.action || tr("noAction");
   reasonEl.textContent = recommendation.reason || "";

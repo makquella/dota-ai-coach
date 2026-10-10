@@ -1,4 +1,4 @@
--- «Перенос по коду»: the match history on its way to another computer. The body
+-- «Перенесення за кодом»: the match history on its way to another computer. The body
 -- is encrypted by the launcher with the part of the code the server never sees
 -- (src/transfer.js); it lives TRANSFER_MINUTES, TRANSFER_TRIES downloads at most (a
 -- mistyped secret part can be retried), and the launcher deletes it once imported.

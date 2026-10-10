@@ -92,12 +92,12 @@ test("upload payload is limited and has no keys", () => {
     text: '{"api_key": "plain-secret"}\nERROR x',
     note: `  ${"n".repeat(NOTE_MAX + 50)} gsk_1234567890abcdefXYZ`,
     installId: "a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d",
-    app: { version: "0.2.1", os: "win32 10.0.22631", locale: "ru" }
+    app: { version: "0.2.1", os: "win32 10.0.22631", locale: "uk" }
   });
   assert.deepEqual(Object.keys(payload).sort(), ["install_id", "lang", "note", "os", "text", "version"]);
   assert.equal(payload.note.length, NOTE_MAX);
   assert.ok(!payload.text.includes("plain-secret"));
-  assert.equal(payload.lang, "ru");
+  assert.equal(payload.lang, "uk");
   assert.ok(!uploadPayload({ text: "x", note: "key gsk_1234567890abcdefXYZ" }).note.includes("gsk_"));
 });
 

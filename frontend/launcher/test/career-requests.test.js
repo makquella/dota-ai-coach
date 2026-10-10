@@ -24,7 +24,7 @@ test("rapid hero A/B/A requests allow only the latest response to apply", async 
 });
 
 test("changed locale, hero, view or account cannot receive an earlier response", async () => {
-  for (const patch of [{locale:"ru"},{heroId:8},{view:"home"},{accountId:2},{linked:false}]) {
+  for (const patch of [{locale:"uk"},{heroId:8},{view:"home"},{accountId:2},{linked:false}]) {
     const f = fixture(); const work = f.load(); await prepared();
     Object.assign(f.context,patch); f.pending[0].resolve("stale");
     assert.equal(await work, false); assert.deepEqual(f.applied, []);
@@ -47,7 +47,7 @@ test("superseded or locale-changed status preparation cannot start a career fetc
   status[0](); assert.equal(await old, false); assert.equal(f.pending.length, 0);
   status[1](); await prepared(); f.pending[0].resolve("hero 8");
   assert.equal(await latest, true);
-  const localized = f.load(); f.context.locale = "ru"; status[2]();
+  const localized = f.load(); f.context.locale = "uk"; status[2]();
   assert.equal(await localized, false); assert.equal(f.pending.length, 1);
 });
 

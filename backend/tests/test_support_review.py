@@ -29,8 +29,8 @@ def test_a_save_item_on_time():
     assert block["save_item"] == {"t": 13 * 60, "item": "Glimmer Cape"}
     assert block["score"] == 100
     assert _ids(findings) == ["save_item_fast"]
-    text = render_finding(findings[0], "ru")
-    assert text["text"].startswith("Glimmer Cape уже к 13:00")
+    text = render_finding(findings[0], "uk")
+    assert text["text"].startswith("Glimmer Cape уже до 13:00")
 
 
 def test_a_late_save_item_and_its_score():

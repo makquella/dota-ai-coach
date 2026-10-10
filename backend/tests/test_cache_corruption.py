@@ -96,7 +96,7 @@ def test_json_null_remains_a_valid_explicit_cache_miss(tmp_path: Path) -> None:
     store = PlayerStore(tmp_path / "store.sqlite3")
     try:
         clear()
-        for key in ("coach:match:123:900:ru", "friend:matches:123", "opendota:items"):
+        for key in ("coach:match:123:900:uk", "friend:matches:123", "opendota:items"):
             store.cache_set(key, None)
             assert store.cache_get(key) is None
         assert len(store.export_rows("cache")) == 3
@@ -159,11 +159,11 @@ def test_match_http_survives_corrupt_constants_reviews_and_questions(
     assert client.post("/player/link", json={"steam": str(ME)}).status_code == 200
     PLAYER_SERVICE.jobs.run_pending(until=float("inf"))
     store = PLAYER_SERVICE.store
-    keys = ["opendota:items", f"coach:match:{ME}:{MATCH_ID}:ru", f"coach:ask:{ME}:{MATCH_ID}"]
+    keys = ["opendota:items", f"coach:match:{ME}:{MATCH_ID}:uk", f"coach:ask:{ME}:{MATCH_ID}"]
     for key in keys:
         _raw(store, key, "private-payload")
     clear()
-    response = client.get(f"/player/matches/{MATCH_ID}?lang=ru")
+    response = client.get(f"/player/matches/{MATCH_ID}?lang=uk")
     assert response.status_code == 200
     assert response.json()["analysis"]["headline"]["hero"]
     assert response.json()["coach"]["state"] == "off"
@@ -177,8 +177,8 @@ def test_match_http_survives_corrupt_constants_reviews_and_questions(
     store.cache_set(
         keys[1], {"verification_version": COACH_VERSION, "review": {"summary": "restored"}}
     )
-    store.cache_set(keys[2], [{"question": "q", "answer": "a", "lang": "ru"}])
-    restored = client.get(f"/player/matches/{MATCH_ID}?lang=ru")
+    store.cache_set(keys[2], [{"question": "q", "answer": "a", "lang": "uk"}])
+    restored = client.get(f"/player/matches/{MATCH_ID}?lang=uk")
     assert restored.status_code == 200
     assert restored.json()["coach"]["review"]["summary"] == "restored"
     assert restored.json()["questions"][0]["question"] == "q"

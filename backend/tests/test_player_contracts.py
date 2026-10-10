@@ -18,7 +18,7 @@ from app.post_match_analysis import analyze_match
 
 
 @pytest.mark.parametrize("parsed", [True, False])
-@pytest.mark.parametrize("lang", ["ru", "en"])
+@pytest.mark.parametrize("lang", ["uk", "en"])
 def test_response_validation_preserves_complete_review_and_note(
     client: TestClient, tmp_path: Path, parsed: bool, lang: str
 ) -> None:
@@ -28,7 +28,7 @@ def test_response_validation_preserves_complete_review_and_note(
     assert client.post("/player/link", json={"steam": str(ME)}).status_code == 200
     service.fetch_match(MATCH_ID, request_parse=False)
     service.jobs.run_pending(until=float("inf"))
-    note = "Проверить ранний фарм / Check early farm"
+    note = "Перевірити ранній фарм / Check early farm"
     assert client.post(f"/player/matches/{MATCH_ID}/note", json={"note": note}).status_code == 200
 
     response = client.get(f"/player/matches/{MATCH_ID}?lang={lang}")
@@ -96,14 +96,14 @@ def test_coach_and_question_evidence_survive_response_validation(
 ) -> None:
     provider = FakeLLM(GOOD_MATCH_REVIEW, {"answer": "You had 3 kills and 9 deaths."})
     service = _reviewed_match(client, tmp_path, provider)
-    assert client.get(f"/player/matches/{MATCH_ID}?lang=ru").status_code == 200
+    assert client.get(f"/player/matches/{MATCH_ID}?lang=uk").status_code == 200
     service.ai_jobs.run_pending(until=float("inf"))
     answer = client.post(
         f"/player/matches/{MATCH_ID}/ask?lang=en", json={"question": "How many kills?"}
     )
     assert answer.status_code == 200 and answer.json()["ok"] is True
-    body = client.get(f"/player/matches/{MATCH_ID}?lang=ru").json()
-    assert body == service.match_detail(MATCH_ID, "ru")
+    body = client.get(f"/player/matches/{MATCH_ID}?lang=uk").json()
+    assert body == service.match_detail(MATCH_ID, "uk")
     assert body["coach"]["review"]["counter_evidence"][0]["observed_at"] is None
     assert body["questions"][0]["counter_evidence"]
     assert body["questions"][0]["answer"] == answer.json()["answer"]["answer"]

@@ -1,46 +1,46 @@
 ---
 name: test-writer
 description: >
-  Писать pytest-тесты для backend Dota AI Coach. Использовать когда нужно покрыть
-  тестами модули app/, особенно логику советов, scheduler spacing, decision points,
-  safety-гейтинг, UX-политику. Триггерить на словах: тест, test, покрыть, coverage,
-  pytest, conftest, fixture, проверка, test case, assertion.
+  Писати pytest-тести для backend Dota AI Coach. Використовувати, коли потрібно покрити
+  тестами модулі app/, особливо логіку порад, scheduler spacing, decision points,
+  safety-гейтинг, UX-політику. Тригерити на словах: тест, test, покрити, coverage,
+  pytest, conftest, fixture, перевірка, test case, assertion.
 ---
 
 # Test writer
 
-## Принципы
+## Принципи
 
-Тесты в этом проекте — **функциональные/интеграционные**: они прогоняют реальный
-пайплайн через HTTP-эндпоинты FastAPI `TestClient`, а не мокают внутренние слои.
-Это обеспечивает высокое покрытие при малом количестве тестов.
+Тести в цьому проєкті — **функціональні/інтеграційні**: вони проганяють реальний
+пайплайн через HTTP-ендпоінти FastAPI `TestClient`, а не мокають внутрішні шари.
+Це забезпечує високе покриття за невеликої кількості тестів.
 
-LLM-вывод **НЕ тестировать напрямую** — он опционален и gated `USE_LLM`.
-Тестировать только детерминированную логику.
+Вивід LLM **НЕ тестувати напряму** — він опційний і gated `USE_LLM`.
+Тестувати лише детерміновану логіку.
 
-## Инфраструктура
+## Інфраструктура
 
-- **Фреймворк:** pytest, без конфигурационного файла (дефолтные настройки)
-- **Тесты:** `backend/tests/`
-- **Фикстуры:** `backend/tests/conftest.py`
-- **GSI-сэмплы:** `data/gsi_samples/` (37 JSON-файлов, сценарии для разных героев)
-- **Симуляции:** `data/match_simulations/` (2 JSONL-файла по ~600 состояний)
+- **Фреймворк:** pytest, без конфігураційного файлу (типові налаштування)
+- **Тести:** `backend/tests/`
+- **Фікстури:** `backend/tests/conftest.py`
+- **GSI-семпли:** `data/gsi_samples/` (37 JSON-файлів, сценарії для різних героїв)
+- **Симуляції:** `data/match_simulations/` (2 JSONL-файли по ~600 станів)
 - **Запуск:** `cd backend && pytest -q`
 
-## Fixtures (из conftest.py)
+## Fixtures (з conftest.py)
 
-Три фикстуры, все автоматически доступны:
+Три фікстури, усі автоматично доступні:
 
-1. **`reset_runtime_state`** (autouse) — сбрасывает 5 глобальных синглтонов
-   (`ADVICE_SCHEDULER`, `MATCH_MEMORY`, `COACH_SESSION_HISTORY` и др.)
-   до и после каждого теста. Главная изоляция — не нужно руками ресетить.
-2. **`client`** — `fastapi.testclient.TestClient(app)`. Почти все тесты идут через него.
-3. **`repo_root`** — `Path` к корню репозитория. Для доступа к `data/` файлам.
+1. **`reset_runtime_state`** (autouse) — скидає 5 глобальних синглтонів
+   (`ADVICE_SCHEDULER`, `MATCH_MEMORY`, `COACH_SESSION_HISTORY` та ін.)
+   до й після кожного тесту. Головна ізоляція — не треба скидати вручну.
+2. **`client`** — `fastapi.testclient.TestClient(app)`. Майже всі тести йдуть через нього.
+3. **`repo_root`** — `Path` до кореня репозиторію. Для доступу до файлів `data/`.
 
-## Паттерны существующих тестов
+## Патерни наявних тестів
 
 ### 1. HTTP-smoke (test_api_smoke.py)
-GET-запросы к эндпоинтам, проверка status_code и базовой структуры ответа.
+GET-запити до ендпоінтів, перевірка status_code і базової структури відповіді.
 
 ```python
 def test_health_returns_ok(client: TestClient) -> None:
@@ -48,9 +48,9 @@ def test_health_returns_ok(client: TestClient) -> None:
     assert resp.status_code == 200
 ```
 
-### 2. GSI-сэмплы → проверка советов (test_gsi_samples_and_advice.py)
-POST реального JSON из `data/gsi_samples/` в `/gsi`, затем GET `/overlay/recommendation`
-и проверка `decision_point`, `advice_mode`, текста.
+### 2. GSI-семпли → перевірка порад (test_gsi_samples_and_advice.py)
+POST реального JSON із `data/gsi_samples/` у `/gsi`, потім GET `/overlay/recommendation`
+і перевірка `decision_point`, `advice_mode`, тексту.
 
 ```python
 def _sample(repo_root: Path, name: str) -> dict:
@@ -62,9 +62,9 @@ def _post_sample(client: TestClient, repo_root: Path, name: str) -> dict:
     return resp.json()
 ```
 
-### 3. Scheduler spacing через демо-эндпоинт (test_scheduler_spacing.py)
-Синтетические state-дикты POST'ятся в `/demo/replay-state`, проверяется spacing
-между не-urgent советами (>= 45s), interrupt при LOW_HP, heartbeat nudge (>= 180s тишины).
+### 3. Scheduler spacing через демо-ендпоінт (test_scheduler_spacing.py)
+Синтетичні state-дикти POST'яться в `/demo/replay-state`, перевіряється spacing
+між не-urgent порадами (>= 45s), interrupt при LOW_HP, heartbeat nudge (>= 180s тиші).
 
 ```python
 def _state(timestamp: int = 0, **overrides: object) -> dict:
@@ -83,52 +83,52 @@ def _send_demo_state(client: TestClient, timestamp: int, state: dict) -> dict:
     return resp.json()
 ```
 
-### 4. Replay-симуляции (test_replay_demo_data.py)
-Полный проигрыш JSONL-файла (601 состояние) через POST в `/demo/replay-state`,
-проверка количества советов и spacing.
+### 4. Replay-симуляції (test_replay_demo_data.py)
+Повний програш JSONL-файлу (601 стан) через POST у `/demo/replay-state`,
+перевірка кількості порад і spacing.
 
-### 5. Юнит-тест модуля (test_live_session_recorder.py)
-Прямой импорт модуля и проверка file I/O в `tmp_path`.
+### 5. Юніт-тест модуля (test_live_session_recorder.py)
+Прямий імпорт модуля й перевірка file I/O у `tmp_path`.
 
-## Конвенции
+## Конвенції
 
-- **Именование:** `test_<descriptive_snake_case>` — длинные, самодокументирующиеся имена
-- **Хелперы:** префикс `_` (`_state`, `_send_demo_state`, `_sample`)
-- **Ассерты на decision_point:** использовать `in {...}` set membership,
-  не жёсткое равенство — допускает вариации:
+- **Іменування:** `test_<descriptive_snake_case>` — довгі імена, що самі себе документують
+- **Хелпери:** префікс `_` (`_state`, `_send_demo_state`, `_sample`)
+- **Асерти на decision_point:** використовувати `in {...}` set membership,
+  а не жорстку рівність — допускає варіації:
   ```python
   assert rec["decision_point"] in {"LOW_HP", "LOW_HP_WARNING"}
   ```
-- **Один файл — одна забота:** smoke, GSI-сэмплы, scheduler spacing, recorder, replay
-- **Type annotations:** `from __future__ import annotations` + аннотации на всех функциях
-- **Импорты:** `from __future__ import annotations` + стандартные + `pytest` + `app.*`
+- **Один файл — одна турбота:** smoke, GSI-семпли, scheduler spacing, recorder, replay
+- **Type annotations:** `from __future__ import annotations` + анотації на всіх функціях
+- **Імпорти:** `from __future__ import annotations` + стандартні + `pytest` + `app.*`
 
-## Что тестировать (и как)
+## Що тестувати (і як)
 
-| Область | Эндпоинт / подход | Что проверять |
+| Область | Ендпоінт / підхід | Що перевіряти |
 |---------|-------------------|----------------|
-| Decision points | POST `/gsi` с GSI-сэмплом → GET `/overlay/recommendation` | Правильный decision_point для сценария |
-| Scheduler spacing | POST `/demo/replay-state` с синтетическим state | Дубликаты подавлены, spacing >= 45s, urgent interrupt |
-| Heartbeat nudge | POST `/demo/replay-state` с timestamp jumps | Nudge после 180s тишины, не заменяет urgent |
-| Death pinning | GSI-сэмплы со смертью → совет залипает | Death-совет не сбрасывается раньше времени |
-| Safety gating | GSI-сэмплы для разных героев | Hero-specific safety логика |
-| UX policy | GET `/overlay/recommendation` | advice_mode правильный, rate-limit bypass работает |
-| Laning coach | POST `/gsi` с лайнинг-сэмплом (0-10 мин) | Farm deficit, regen check советы |
-| Post-laning coach | POST `/gsi` с post-laning сэмплом (10+ мин) | Route reset, farm recovery советы |
+| Decision points | POST `/gsi` з GSI-семплом → GET `/overlay/recommendation` | Правильний decision_point для сценарію |
+| Scheduler spacing | POST `/demo/replay-state` із синтетичним state | Дублікати придушено, spacing >= 45s, urgent interrupt |
+| Heartbeat nudge | POST `/demo/replay-state` зі стрибками timestamp | Nudge після 180s тиші, не замінює urgent |
+| Death pinning | GSI-семпли зі смертю → порада залипає | Death-порада не скидається завчасно |
+| Safety gating | GSI-семпли для різних героїв | Hero-specific safety логіка |
+| UX policy | GET `/overlay/recommendation` | advice_mode правильний, rate-limit bypass працює |
+| Laning coach | POST `/gsi` з лайнінг-семплом (0-10 хв) | Поради farm deficit, regen check |
+| Post-laning coach | POST `/gsi` з post-laning семплом (10+ хв) | Поради route reset, farm recovery |
 
-## Новые GSI-сэмплы
+## Нові GSI-семпли
 
-Если нужного сценария нет в `data/gsi_samples/` (37 файлов):
-1. Посмотреть существующие за образец формата
-2. Создать минимальный JSON с нужными полями
-3. Положить в `data/gsi_samples/`
-4. НЕ редактировать существующие сэмплы вручную
+Якщо потрібного сценарію немає в `data/gsi_samples/` (37 файлів):
+1. Подивитися наявні як зразок формату
+2. Створити мінімальний JSON із потрібними полями
+3. Покласти в `data/gsi_samples/`
+4. НЕ редагувати наявні семпли вручну
 
-## Чего НЕ делать
+## Чого НЕ робити
 
-- Не мокать внутренние слои (decision_points, scheduler, recommender) — тестируй
-  через HTTP-эндпоинты, как остальные тесты
-- Не тестировать LLM-ответы — LLM опционален (USE_LLM=false)
-- Не добавлять pytest-конфигурацию — проект использует дефолты
-- Не писать тесты, зависящие от порядка выполнения — `autouse` fixture гарантирует
-  изоляцию через ресет синглтонов
+- Не мокати внутрішні шари (decision_points, scheduler, recommender) — тестуй
+  через HTTP-ендпоінти, як інші тести
+- Не тестувати LLM-відповіді — LLM опційний (USE_LLM=false)
+- Не додавати pytest-конфігурацію — проєкт використовує типові значення
+- Не писати тестів, що залежать від порядку виконання — `autouse` fixture гарантує
+  ізоляцію через скидання синглтонів

@@ -34,7 +34,7 @@
   }
 
   // Numbers in the page's language (app.js sets <html lang>): «3 619» and
-  // «12,5k» in Russian, «3,619» and «12.5k» in English.
+  // «12,5k» in Ukrainian, «3,619» and «12.5k» in English.
   function pageLocale() {
     return (typeof document !== "undefined" && document.documentElement && document.documentElement.lang) || "en-US";
   }

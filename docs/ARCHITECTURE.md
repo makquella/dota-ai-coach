@@ -35,7 +35,7 @@ Key files:
 - `backend/app/llm_provider.py` - optional wording/review providers.
 - `backend/app/player_api.py`, `player_service.py`, `player_store.py`, `steam_ids.py` - linked Steam account (auto from GSI), SQLite match table, background OpenDota sync.
 - `backend/app/match_tracker.py` - whole-match timeline of the local player from live GSI (samples, deaths with unspent gold, items, buybacks).
-- `backend/app/opendota.py`, `match_facts.py`, `post_match_analysis.py`, `analysis_texts.py`, `career_analysis.py` - OpenDota client, merged match facts, post-match review (ru/en), statistics and advice over many matches.
+- `backend/app/opendota.py`, `match_facts.py`, `post_match_analysis.py`, `analysis_texts.py`, `career_analysis.py` - OpenDota client, merged match facts, post-match review (uk/en), statistics and advice over many matches.
 - `backend/app/hero_meta.py`, `build_analysis.py`, `peer_analysis.py` - cached OpenDota meta (items, item timings, pro builds, win rate per rank), build advice, comparison with same-role players of the player's rank.
 - `backend/app/draft_analysis.py`, `self_compare.py` - draft of a match (matchups vs the enemy five, best hero of your pool for it, counter items) and your best games vs your worst on your main hero.
 - `backend/app/farm_tracker.py` - live "no farm lately" signal for the post-laning coach.
@@ -48,14 +48,14 @@ Key files:
 - `backend/app/diagnostics.py` - recent errors and runtime info for the problem report, with keys redacted.
 - `backend/scripts/simulate_live_gsi.py` - raw GSI through the live endpoints on game time, printing every advice card; `backend/scripts/evaluate_system.py` - latency, replay advice, review coverage and fact-check numbers.
 - `backend/app/coach_llm.py`, `coach_review.py` - optional AI coach: explains a match or recent matches using rule-based facts (Google Gemini Flash by default, or Groq / OpenRouter). The checker validates allowed numbers, times, heroes and items; it does not yet bind each number to its metric/source (audit F04). `backend/scripts/compare_coach_models.py` compares models on the same match.
-- `backend/app/advice_i18n.py` - Russian wording of the visible advice text, applied only at the API edge (`lang=ru` on `/overlay/recommendation` and `/advice/recent`); the pipeline, logs and history stay English.
+- `backend/app/advice_i18n.py` - Ukrainian wording of the visible advice text, applied only at the API edge (`lang=uk` on `/overlay/recommendation` and `/advice/recent`); the pipeline, logs and history stay English.
 
 ## Frontend
 
 Launcher:
 
 - `frontend/launcher/main.js` - app lifecycle: single-instance lock, tray, autostart, backend process (free port, health check, graceful stop, crash restart), replay demo, GSI config, IPC.
-- `frontend/launcher/preload.js`, `frontend/launcher/renderer/app.js` - control panel window: status line, match / recent advice / overlay settings cards, collapsed developer section; ru/en texts. Shared design tokens in `frontend/launcher/assets/ui/tokens.css`.
+- `frontend/launcher/preload.js`, `frontend/launcher/renderer/app.js` - control panel window: status line, match / recent advice / overlay settings cards, collapsed developer section; uk/en texts. Shared design tokens in `frontend/launcher/assets/ui/tokens.css`.
 - `frontend/launcher/overlay-window.js` - the always-on-top overlay window and its hotkeys.
 - `frontend/launcher/overlay-placement.js` - pure geometry: position presets inside Dota's window / on its monitor, reachability of hand-placed positions.
 - `frontend/launcher/renderer/matches.js`, `renderer/charts.js` - Matches / match review / Progress tabs and their SVG charts.
@@ -72,7 +72,7 @@ The launcher is the only Electron app. It starts the backend hidden on a free po
 live GSI ──> match_tracker (whole-match timeline) ──┐
                                                     ├─> match_facts ─> post_match_analysis ─> SQLite (player_store)
 OpenDota (history, parsed replays) ─> opendota ─────┘                                         │
-                                                                                               ├─> /player/matches/{id}  (review, ru/en)
+                                                                                               ├─> /player/matches/{id}  (review, uk/en)
                                                          career_analysis <─────────────────────┴─> /player/career
 ```
 

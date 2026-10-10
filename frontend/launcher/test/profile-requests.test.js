@@ -21,7 +21,7 @@ test("only the newest profile result applies, including a read superseded by a l
 });
 
 test("changed account, link state, language or view rejects a delayed profile result", async () => {
-  for (const patch of [{ accountId: 2 }, { linked: false }, { locale: "ru" }, { view: "matches" }]) {
+  for (const patch of [{ accountId: 2 }, { linked: false }, { locale: "uk" }, { view: "matches" }]) {
     const f = fixture(); const old = f.load(); await prepared();
     Object.assign(f.context, patch); f.pending[0].resolve("stale");
     assert.equal(await old, false); assert.deepEqual(f.applied, []);
@@ -45,7 +45,7 @@ test("superseded status preparation cannot launch a profile or action request", 
   const old = f.load(); const latest = f.load();
   status[0](); assert.equal(await old, false); assert.equal(f.pending.length, 0);
   status[1](); await prepared(); f.pending[0].resolve("latest"); assert.equal(await latest, true);
-  const changed = f.load({ op: "profileMmrClear" }); f.context.locale = "ru"; status[2]();
+  const changed = f.load({ op: "profileMmrClear" }); f.context.locale = "uk"; status[2]();
   assert.equal(await changed, false); assert.equal(f.pending.length, 1);
 });
 

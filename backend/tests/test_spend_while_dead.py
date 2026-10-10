@@ -20,17 +20,17 @@ def test_spare_gold_while_dead_turns_into_a_purchase():
         "Buy parts of your next item now with your 2350 gold: they wait for you at the fountain."
     )
     assert "safer route" in advice.reason
-    assert translate_text(advice.action, "ru") == (
-        "Купите части следующего предмета на 2350 золота сейчас — заберёте их у фонтана."
+    assert translate_text(advice.action, "uk") == (
+        "Купіть частини наступного предмета на 2350 золота зараз — заберете їх біля фонтана."
     )
-    assert translate_text(advice.reason, "ru").startswith("Непотраченное золото")
+    assert translate_text(advice.reason, "uk").startswith("Невитрачене золото")
 
 
 def test_late_game_keeps_the_buyback_gold():
     advice = build_post_laning_advice(_dead(34, 4200, buyback_cost=2600), "DEATH_REVIEW")
     assert advice.action == "Buy parts of your next item with 1600 gold and keep 2600 for buyback."
-    assert translate_text(advice.action, "ru") == (
-        "Купите части следующего предмета на 1600 золота, а 2600 оставьте на байбэк."
+    assert translate_text(advice.action, "uk") == (
+        "Купіть частини наступного предмета на 1600 золота, а 2600 залиште на байбек."
     )
     # Not enough left after the buyback reserve, or the reserve is unknown: the
     # usual death review.
@@ -54,7 +54,7 @@ def test_other_death_reviews_carry_it_as_their_reason(client):
     seen = {}
     for payload in gsi_match_stream(minutes=8, death_minutes=(7,), step_seconds=5):
         client.post("/gsi", json=payload)
-        response = client.get("/overlay/recommendation?lang=ru").json()
+        response = client.get("/overlay/recommendation?lang=uk").json()
         if (
             response.get("status") == "active_advice"
             and response["decision_point"] == "DEATH_REVIEW"
@@ -62,7 +62,7 @@ def test_other_death_reviews_carry_it_as_their_reason(client):
             seen = response["recommendation"]
             break
     # Before minute 10 the death review keeps its own action; the reason is the purchase.
-    assert seen["action"] == "Пока ждёте возрождения, продумайте более безопасный маршрут."
+    assert seen["action"] == "Поки чекаєте відродження, продумайте безпечніший маршрут."
     assert seen["reason"] == (
-        "Купите части следующего предмета на 1800 золота сейчас — заберёте их у фонтана."
+        "Купіть частини наступного предмета на 1800 золота зараз — заберете їх біля фонтана."
     )

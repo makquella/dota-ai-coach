@@ -16,7 +16,7 @@ const STATS = {
   day: isoDay(NOW - DAY),
   version: "0.17.0",
   os: "win32",
-  lang: "ru",
+  lang: "uk",
   usage: {
     matches: 3,
     with_advice: 2,
@@ -102,7 +102,7 @@ test("only allowlisted fields and counts are kept", () => {
   assert.equal(checked.ok, true);
   assert.deepEqual(checked.row, {
     os: "win32",
-    lang: "ru",
+    lang: "uk",
     matches: 3,
     with_advice: 2,
     advice: { LOW_HP_WARNING: 5, LANING_FARM_CHECK: 2 },
@@ -171,7 +171,7 @@ test("the admin summary and the weekly note", async () => {
   assert.equal(answer.stats.matches, 4);
   assert.deepEqual(answer.stats.advice, { LOW_HP_WARNING: 6, LANING_FARM_CHECK: 2 });
   assert.deepEqual(answer.stats.ignored_share, { LOW_HP_WARNING: 33 });
-  assert.deepEqual(answer.stats.langs, { ru: 1, en: 1 });
+  assert.deepEqual(answer.stats.langs, { uk: 1, en: 1 });
 
   const sent = [];
   const realFetch = globalThis.fetch;

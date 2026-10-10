@@ -8,31 +8,31 @@ from typing import Any
 
 from match_fixtures import opendota_match
 
-RU = {
-    "summary": "Матч решила линия. К 10:00 у вас 36 добиваний против 65 у Anti-Mage. Две смерти от Shadow Fiend (4:00 и 7:00) отдали ему темп, а дальше отставание росло: с 15:00 по 22:00 почти нет фарма, и Maelstrom пришёл к 26:00 вместо обычных 20:00.",
+UK = {
+    "summary": "Матч вирішила лінія. На 10:00 у вас 36 добивань проти 65 в Anti-Mage. Дві смерті від Shadow Fiend (4:00 і 7:00) віддали йому темп, а далі відставання зростало: з 15:00 до 22:00 майже немає фарму, і Maelstrom прийшов на 26:00 замість звичних 20:00.",
     "turning_points": [
         {
             "time": "4:00",
-            "text": "Первая смерть от Shadow Fiend: линия стала опасной, добивания просели.",
+            "text": "Перша смерть від Shadow Fiend: лінія стала небезпечною, добивання просіли.",
         },
         {
             "time": "15:00",
-            "text": "Начался провал в фарме до 22:00: золото почти не росло, а враги забрали центр карты.",
+            "text": "Почався провал у фармі до 22:00: золото майже не росло, а вороги забрали центр мапи.",
         },
         {
             "time": "26:00",
-            "text": "Maelstrom на 6 минут позже обычного: с таким таймингом герой выигрывает 40% игр вместо 50%.",
+            "text": "Maelstrom на 6 хвилин пізніше звичного: з таким таймінгом герой виграє 40% ігор замість 50%.",
         },
     ],
     "mistakes": [
         {
-            "title": "Линия против Shadow Fiend и Anti-Mage",
-            "detail": "Две смерти на линии отдали темп. К 10:00 у вас 36 добиваний, а хороший темп для керри — заметно больше.",
-            "fix": "Против Shadow Fiend стойте за крипами и отходите, когда он подходит на удар. Если линия проиграна, раньше уходите в лес: сохраните и добивания, и жизнь.",
+            "title": "Лінія проти Shadow Fiend і Anti-Mage",
+            "detail": "Дві смерті на лінії віддали темп. На 10:00 у вас 36 добивань, а добрий темп для керрі — помітно більший.",
+            "fix": "Проти Shadow Fiend стійте за кріпами й відходьте, коли він підходить на удар. Якщо лінію програно, раніше йдіть у ліс: збережете і добивання, і життя.",
         },
     ],
     "strengths": [],
-    "next_game": ["Maelstrom к 20:00.", "Не больше 2 смертей на линии."],
+    "next_game": ["Maelstrom до 20:00.", "Не більше 2 смертей на лінії."],
 }
 EN = {
     "summary": "The lane decided the match. By 10:00 you had 36 last hits against 65 for Anti-Mage. Two deaths to Shadow Fiend (4:00 and 7:00) handed him the tempo, and then the gap grew: almost no farm from 15:00 to 22:00, and Maelstrom came at 26:00 instead of the usual 20:00.",
@@ -61,17 +61,17 @@ EN = {
     "next_game": ["Maelstrom by 20:00.", "No more than 2 lane deaths."],
 }
 
-CAREER_RU = {
-    "summary": "Juggernaut — ваш основной герой, и на нём вы выигрываете чаще всего. Главная проблема — серии смертей: после первой смерти следующие идут одна за другой.",
+CAREER_UK = {
+    "summary": "Juggernaut — ваш основний герой, і на ньому ви виграєте найчастіше. Головна проблема — серії смертей: після першої смерті наступні йдуть одна за одною.",
     "patterns": [
         {
-            "title": "Серии смертей",
-            "detail": "Смерти идут подряд после первой ошибки.",
-            "fix": "После смерти сначала посмотрите на карту, потом выбирайте маршрут.",
+            "title": "Серії смертей",
+            "detail": "Смерті йдуть поспіль після першої помилки.",
+            "fix": "Після смерті спершу погляньте на мапу, потім обирайте маршрут.",
         },
     ],
-    "strengths": ["Хорошая линия в победных матчах."],
-    "plan": ["Не больше 5 смертей за матч.", "Первый предмет к 15:00."],
+    "strengths": ["Добра лінія в переможних матчах."],
+    "plan": ["Не більше 5 смертей за матч.", "Перший предмет до 15:00."],
 }
 CAREER_EN = {
     "summary": "Juggernaut is your main hero and the one you win on most. The main problem is death streaks: after the first death the next ones come one after another.",
@@ -94,11 +94,11 @@ class DemoLLM:
 
     def complete(self, messages: list[dict[str, str]], **kwargs: Any) -> str:
         system = messages[0]["content"]
-        ru = "Write in Russian" in system
+        uk = "Write in Ukrainian" in system
         if "patterns" in system:  # noqa: SIM108 - match vs career reads clearer
-            answer = CAREER_RU if ru else CAREER_EN
+            answer = CAREER_UK if uk else CAREER_EN
         else:
-            answer = RU if ru else EN
+            answer = UK if uk else EN
         return json.dumps(answer, ensure_ascii=False)
 
     def check(self) -> None:

@@ -38,7 +38,7 @@ site/changelog and versions. These are consumer profiles, not a claim of perfect
 static dependency inference; actual UI/replay acceptance remains task-specific.
 
 `bump_version.py --check` is read-only. It reads both backend values via Python AST,
-package/lock/root versions via JSON, executes the actual RU/EN update module with
+package/lock/root versions via JSON, executes the actual UK/EN update module with
 Node, and requires current/latest copy and bilingual notes. New copy and analysis
 cache versions stay deliberate. CI runs this gate plus lint/strict types for the
 runner; it cannot silently accept a forgotten root version or locale entry.

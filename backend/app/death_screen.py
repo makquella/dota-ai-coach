@@ -8,7 +8,7 @@ last seconds) and the live state, in the request language, only facts:
 - the same place again (PlayerService._death_place: 2+ deaths there lately);
 - what to buy now: the next build item when its missing parts fit the gold,
   else "buy parts of it", keeping the buyback cost after minute 30.
-Title: «Возрождение через 23 с». Nothing to say → no card.
+Title: «Відродження через 23 с». Nothing to say → no card.
 """
 
 from __future__ import annotations
@@ -23,24 +23,24 @@ BUYBACK_RESERVE_MINUTE = 30
 SPEND_MIN_GOLD = 500
 
 TEXT = {
-    "ru": {
-        "title": "Возрождение через {s} с",
-        "title_plain": "Пока ждёте возрождения",
-        "burst": "Убили за {s} с при высоком HP: поймали, когда вы были одни или на виду.",
-        "unpressed": "Готово, но не нажато: {name} — в следующий раз жмите при первом ударе.",
-        "place": "{n}-я смерть {place} за {m} мин — после возрождения идите в другое место.",
-        "place_match": "{n}-я смерть {place} за игру — после возрождения идите в другое место.",
-        "buy_item": "Купите {item} сейчас: золота хватает, курьер принесёт.",
-        "buy_parts": "Купите части {item}: не хватает {need} золота.",
-        "spend": "Потратьте {gold} золота на следующий предмет — у фонтана это быстрее.",
-        "reserve": " Оставьте {cost} на байбэк.",
-        "why_disabled": "Почему {item}: смертей под контролем — {n}, с ним контроль вас не удержит.",
-        "why_burst": "Почему {item}: смертей за пару секунд с высокого здоровья — {n}, он даст время.",
-        "why_targeted": "Почему {item}: смертей под контролем против {enemy} — {n}, он блокирует {spell}.",
-        "why_evasion": "Почему {item}: {enemy} уклоняется от атак, а он бьёт без промаха.",
-        "why_healing": "Почему {item}: {enemy} много лечится, а он режет лечение.",
-        "why_illusions": "Почему {item}: {enemy} дерётся иллюзиями, а он бьёт их всех сразу.",
-        "why_magic": "Почему {item}: героев врага с магическим уроном — {n}, он защитит от него.",
+    "uk": {
+        "title": "Відродження через {s} с",
+        "title_plain": "Поки чекаєте відродження",
+        "burst": "Убили за {s} с із високим HP: спіймали, коли ви були самі або на виду.",
+        "unpressed": "Готово, але не натиснуто: {name} — наступного разу тисніть при першому ударі.",
+        "place": "{n}-та смерть {place} за {m} хв — після відродження йдіть в інше місце.",
+        "place_match": "{n}-та смерть {place} за гру — після відродження йдіть в інше місце.",
+        "buy_item": "Купіть {item} зараз: золота вистачає, кур'єр принесе.",
+        "buy_parts": "Купіть частини {item}: бракує {need} золота.",
+        "spend": "Витратьте {gold} золота на наступний предмет — біля фонтана це швидше.",
+        "reserve": " Залиште {cost} на байбек.",
+        "why_disabled": "Чому {item}: смертей під контролем — {n}, з ним контроль вас не втримає.",
+        "why_burst": "Чому {item}: смертей за пару секунд із високого здоров'я — {n}, він дасть час.",
+        "why_targeted": "Чому {item}: смертей під контролем проти {enemy} — {n}, він блокує {spell}.",
+        "why_evasion": "Чому {item}: {enemy} ухиляється від атак, а він б'є без промаху.",
+        "why_healing": "Чому {item}: {enemy} багато лікується, а він ріже лікування.",
+        "why_illusions": "Чому {item}: {enemy} б'ється ілюзіями, а він б'є їх усіх одразу.",
+        "why_magic": "Чому {item}: героїв ворога з магічною шкодою — {n}, він захистить від неї.",
     },
     "en": {
         "title": "Respawn in {s} s",
@@ -75,8 +75,8 @@ def _place(place: dict[str, Any] | None, lang: str) -> str | None:
         return None
     zone, side = place.get("zone"), place.get("side")
     sides = PLACE_SIDES[lang]
-    if lang == "ru":
-        zones = PLACE_ZONES["ru"]["in"]
+    if lang == "uk":
+        zones = PLACE_ZONES["uk"]["in"]
         return f"{zones[zone]} {sides[side]}" if zone in zones and side in sides else None
     names = PLACE_ZONES["en"]["name"]
     return f"in the {names[zone]} {sides[side]}" if zone in names and side in sides else None
@@ -93,7 +93,7 @@ def build_death_screen(
     next_item: dict[str, Any] | None,
     lang: str,
 ) -> dict[str, Any] | None:
-    lang = "ru" if lang == "ru" else "en"
+    lang = "uk" if lang == "uk" else "en"
     text = TEXT[lang]
     lines: list[str] = []
     death = death or {}

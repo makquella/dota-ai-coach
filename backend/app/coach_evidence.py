@@ -41,16 +41,16 @@ def counter_evidence(headline: Mapping[str, object]) -> dict[CombatMetric, Count
 
 
 LABELS: dict[CombatMetric, str] = {
-    "kills": r"kills?|убийств\w*",
+    "kills": r"kills?|вбивств\w*|убивств\w*",
     "deaths": r"deaths?|смерт\w*",
-    "assists": r"assists?|ассист\w*|содействи\w*",
+    "assists": r"assists?|асист\w*|ассист\w*|допомог\w*",
 }
-NUMBER = r"[+−-]?\d+(?:[.,\u00a0\u202f ]\d+)*(?:\s*(?:k|тыс\.?))?"
+NUMBER = r"[+−-]?\d+(?:[.,   ]\d+)*(?:\s*(?:k|тис\.?))?"
 COUNTERS = {
     field: re.compile(
         rf"(?<![\w:.,])(?P<before>{NUMBER})\s+(?:{label})(?!\w)"
         rf"|(?<!\w)(?:{label})\s*[:=—–]?\s*"
-        rf"(?:(?:их\s+)?было\s+|were\s+|was\s+|total\s+)?"
+        rf"(?:(?:їх\s+)?було\s+|were\s+|was\s+|total\s+)?"
         rf"(?P<after>{NUMBER})(?![\w:]|[.,]\d)",
         re.IGNORECASE,
     )
@@ -62,19 +62,19 @@ KDA = re.compile(
 )
 SCOPED = re.compile(
     r"\d{1,2}:\d{2}|\b(?:minutes?|per|lane|laning|first|last)\b"
-    r"|минут\w*|\b(?:на|за)\s+лини\w*|\b(?:первые|последние)\b"
-    r"|\b(?:teammate|enemy|opponent|team)\b|союзник\w*|противник\w*|враг\w*|команд\w*",
+    r"|хвилин\w*|\b(?:на|за)\s+ліні\w*|\b(?:перші|останні)\b"
+    r"|\b(?:teammate|enemy|opponent|team)\b|союзник\w*|супротивник\w*|противник\w*|суперник\w*|ворог\w*|ворож\w*|команд\w*",
     re.IGNORECASE,
 )
 
 
 def _value(text: str) -> float:
-    # Keep the same RU/EN decimal/thousands conventions as the existing checker.
+    # Keep the same UK/EN decimal/thousands conventions as the existing checker.
     text = re.sub(r"(?<=\d)[ \u00a0\u202f](?=\d{3}(?!\d))", "", text)
     text = re.sub(r"(?<=\d),(?=\d{3}(?!\d))", "", text)
     text = text.replace(",", ".").replace("−", "-").strip()
-    multiple = 1000 if re.search(r"(?:k|тыс\.?)$", text, re.IGNORECASE) else 1
-    text = re.sub(r"\s*(?:k|тыс\.?)$", "", text, flags=re.IGNORECASE)
+    multiple = 1000 if re.search(r"(?:k|тис\.?)$", text, re.IGNORECASE) else 1
+    text = re.sub(r"\s*(?:k|тис\.?)$", "", text, flags=re.IGNORECASE)
     try:
         return float(text) * multiple
     except ValueError:
@@ -153,14 +153,14 @@ def rate_evidence(headline: Mapping[str, object]) -> dict[RateMetric, RateEviden
 
 
 RATE_LABELS: dict[RateMetric, str] = {
-    "gpm": r"gpm|gold\s+per\s+minute|золот\w*\s+(?:в|за)\s+минут\w*",
-    "xpm": r"xpm|(?:xp|experience)\s+per\s+minute|опыт\w*\s+(?:в|за)\s+минут\w*",
+    "gpm": r"gpm|gold\s+per\s+minute|золот\w*\s+(?:в|за|на)\s+хвилин\w*",
+    "xpm": r"xpm|(?:xp|experience)\s+per\s+minute|досвід\w*\s+(?:в|за|на)\s+хвилин\w*",
 }
 RATE_PATTERNS = {
     field: re.compile(
         rf"(?<![\w:.,])(?P<before>{NUMBER})\s+(?:{label})(?!\w)"
         rf"|(?<!\w)(?:{label})\s*[:=—–]?\s*"
-        rf"(?:(?:их\s+)?было\s+|(?:was|were|of|total)\s+)?"
+        rf"(?:(?:їх\s+)?було\s+|(?:was|were|of|total)\s+)?"
         rf"(?P<after>{NUMBER})(?![\w:]|[.,]\d)",
         re.IGNORECASE,
     )
@@ -233,14 +233,14 @@ def farm_evidence(headline: Mapping[str, object]) -> dict[FarmMetric, FarmEviden
 
 
 FARM_LABELS: dict[FarmMetric, str] = {
-    "last_hits": r"last[ -]+hits?|lh|добивани\w*|добит\w*\s+крип\w*",
+    "last_hits": r"last[ -]+hits?|lh|добиван\w*|добит\w*\s+кріп\w*",
     "denies": r"denies|deny|dn|дена\w*",
 }
 FARM_PATTERNS = {
     field: re.compile(
         rf"(?<![\w:.,])(?P<before>{NUMBER})\s+(?:{label})(?!\w)"
         rf"|(?<!\w)(?:{label})\s*[:=—–]?\s*"
-        rf"(?:(?:их\s+)?было\s+|(?:was|were|of|total)\s+)?"
+        rf"(?:(?:їх\s+)?було\s+|(?:was|were|of|total)\s+)?"
         rf"(?P<after>{NUMBER})(?![\w:]|[.,]\d)",
         re.IGNORECASE,
     )
@@ -402,7 +402,7 @@ def farm_slice_facts(context: Mapping[str, object]) -> dict[str, object]:
 FARM_AT_10 = re.compile(
     r"(?<![\d:])10:00(?![\d:])"
     r"|(?<!\w)(?:at|by)\s+(?:minute\s+10|10(?:th)?\s+minutes?)(?!\w)"
-    r"|(?<!\w)(?:к|на)\s+10(?:-?(?:й|ю|ой))?\s+минут\w*",
+    r"|(?<!\w)(?:до|на)\s+10(?:-?(?:й|ї|у|ту))?\s+хвилин\w*",
     re.IGNORECASE,
 )
 
@@ -469,8 +469,8 @@ class MatchFarmBindings:
             for field, label in FARM_LABELS.items():
                 pattern = re.compile(
                     rf"(?<![\w:.,]){NUMBER}\s+(?:{label})"
-                    rf"(?:\s+(?:к|на|at|by)\s+10:00)?\s+(?:против|against|versus|vs\.?)\s+"
-                    rf"(?P<count>{NUMBER})\s+(?:(?:у|for|on)\s+)?{re.escape(enemy_hero)}(?!\w)",
+                    rf"(?:\s+(?:до|на|at|by)\s+10:00)?\s+(?:проти|against|versus|vs\.?)\s+"
+                    rf"(?P<count>{NUMBER})\s+(?:(?:у|в|for|on)\s+)?{re.escape(enemy_hero)}(?!\w)",
                     re.IGNORECASE,
                 )
                 comparisons.extend(

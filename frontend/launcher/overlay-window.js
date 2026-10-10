@@ -9,7 +9,7 @@ const { protectWindow } = require("./renderer-security");
 // whole coach runs as one process with one tray icon.
 
 const WINDOW_WIDTH = 420;
-// Room for a 3-line action + 2-line reason (Russian text runs ~25% longer).
+// Room for a 3-line action + 2-line reason (Ukrainian text runs ~25% longer).
 const WINDOW_HEIGHT = 212; // the card and, under it, the timer strip
 const ALWAYS_ON_TOP_LEVEL = "screen-saver";
 const ENFORCE_ALWAYS_ON_TOP_MS = 2500;

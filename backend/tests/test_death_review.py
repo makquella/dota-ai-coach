@@ -56,5 +56,5 @@ def test_each_death_with_what_is_known():
     }
     assert review_deaths({"deaths_log": []}) is None
     # The warning is shown in the review language.
-    ru = render_analysis({"death_review": block}, "ru")["death_review"]["deaths"][0]
-    assert ru["warning"]["action"] != first["warning"]["action"]
+    uk = render_analysis({"death_review": block}, "uk")["death_review"]["deaths"][0]
+    assert uk["warning"]["action"] != first["warning"]["action"]

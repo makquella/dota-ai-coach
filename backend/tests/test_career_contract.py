@@ -46,7 +46,7 @@ def test_unlinked_and_empty_linked_progress_keep_distinct_wire_shapes(client: Te
     assert body["heroes"] == body["hero_choices"] == body["series"] == []
 
 
-@pytest.mark.parametrize("language", ["ru", "en"])
+@pytest.mark.parametrize("language", ["uk", "en"])
 @pytest.mark.parametrize("hero", [None, 8, 999])
 def test_filtered_progress_equals_real_service_with_all_nested_extensions(
     client: TestClient,
@@ -69,7 +69,7 @@ def test_filtered_progress_equals_real_service_with_all_nested_extensions(
     assert ("questions" in body) is (hero is None)
 
 
-@pytest.mark.parametrize("language", ["ru", "en"])
+@pytest.mark.parametrize("language", ["uk", "en"])
 def test_parsed_progress_keeps_analysis_and_nested_extensions(
     client: TestClient,
     tmp_path: Path,

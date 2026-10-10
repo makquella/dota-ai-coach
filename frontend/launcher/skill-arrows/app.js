@@ -14,16 +14,16 @@ const TEXT = {
     auto: "Automatic",
     cancel: "Cancel"
   },
-  ru: {
-    title: "Стрелки над навыками: подправить рамку",
+  uk: {
+    title: "Стрілки над навичками: підправити рамку",
     text:
-      "Стрелки сами находят иконки способностей. Если промахиваются (другой интерфейс или формат экрана), перетащите рамку на иконки внизу — от первой способности до последней, без дерева талантов — и подтяните края. Стрелки ←↑→↓ двигают рамку на пиксель, с Shift — на десять.",
-    slots: "Способностей на панели:",
-    detected: "(видно в игре)",
-    save: "Сохранить",
-    reset: "Вернуть как было",
-    auto: "Автоматически",
-    cancel: "Отмена"
+      "Стрілки самі знаходять іконки здібностей. Якщо промахуються (інший інтерфейс чи формат екрана), перетягніть рамку на іконки внизу — від першої здібності до останньої, без дерева талантів — і підтягніть краї. Стрілки ←↑→↓ рухають рамку на піксель, із Shift — на десять.",
+    slots: "Здібностей на панелі:",
+    detected: "(видно в грі)",
+    save: "Зберегти",
+    reset: "Повернути як було",
+    auto: "Автоматично",
+    cancel: "Скасувати"
   }
 };
 
@@ -78,7 +78,7 @@ const calibration = { frame: null, initial: null, slots: 4, drag: null };
 
 function startCalibration(payload) {
   const text = tableFor(payload.locale);
-  document.documentElement.lang = payload.locale === "ru" ? "ru" : "en";
+  document.documentElement.lang = payload.locale === "uk" ? "uk" : "en";
   $("cal-title").textContent = text.title;
   $("cal-text").textContent = text.text;
   $("cal-slots-label").textContent = text.slots;

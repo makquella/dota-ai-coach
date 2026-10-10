@@ -1,5 +1,5 @@
 # Sends a release installer to VirusTotal and adds the report's link to the
-# release notes (`**VirusTotal:** <url>`); the site shows «Проверка VirusTotal»
+# release notes (`**VirusTotal:** <url>`); the site shows «Перевірка VirusTotal»
 # only when the notes carry the link for this installer's SHA-256.
 # Used by release.yml after publishing and by virustotal.yml by hand for a
 # release whose upload failed. Needs VT_API_KEY and GH_TOKEN in the environment.

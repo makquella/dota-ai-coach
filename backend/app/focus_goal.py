@@ -43,13 +43,13 @@ MAX_RESULTS = 10
 # Findings whose title names one item or hero ("Late Battle Fury"). The check works
 # on the finding, not on that item or hero, so the goal gets a general title.
 GENERAL_TITLES = {
-    "build_timing_late": {"ru": "Поздние ключевые предметы", "en": "Late key items"},
+    "build_timing_late": {"uk": "Пізні ключові предмети", "en": "Late key items"},
     "counter_item_missing": {
-        "ru": "Нет предметов против вражеских героев",
+        "uk": "Немає предметів проти ворожих героїв",
         "en": "No answer to the enemy heroes",
     },
     "killed_by_one": {
-        "ru": "Один и тот же враг убивает вас снова и снова",
+        "uk": "Той самий ворог убиває вас знову й знову",
         "en": "The same enemy keeps killing you",
     },
 }
@@ -127,7 +127,7 @@ def focus_summary(
     general = GENERAL_TITLES.get(focus["id"])
     if general:
         # The drill names the item or hero of one match too.
-        rendered = {**rendered, "title": general["ru" if lang == "ru" else "en"], "drill": None}
+        rendered = {**rendered, "title": general["uk" if lang == "uk" else "en"], "drill": None}
     results = []
     for match in matches:
         if not played_after(match, focus):

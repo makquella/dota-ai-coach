@@ -18,19 +18,19 @@ def _screen(**overrides):
         "buyback_cost": None,
         "minute": 18,
         "next_item": {"name": "Manta Style", "gold_left": 1500},
-        "lang": "ru",
+        "lang": "uk",
     }
     return build_death_screen(**{**args, **overrides})
 
 
 def test_the_card_says_how_it_happened_and_what_to_do():
     card = _screen()
-    assert card["title"] == "Возрождение через 23 с"
+    assert card["title"] == "Відродження через 23 с"
     assert card["lines"] == [
-        "Убили за 2 с при высоком HP: поймали, когда вы были одни или на виду.",
-        "Готово, но не нажато: Black King Bar — в следующий раз жмите при первом ударе.",
-        "3-я смерть на центральной линии у реки за 6 мин — после возрождения идите в другое место.",
-        "Купите Manta Style сейчас: золота хватает, курьер принесёт.",
+        "Убили за 2 с із високим HP: спіймали, коли ви були самі або на виду.",
+        "Готово, але не натиснуто: Black King Bar — наступного разу тисніть при першому ударі.",
+        "3-та смерть на центральній лінії біля річки за 6 хв — після відродження йдіть в інше місце.",
+        "Купіть Manta Style зараз: золота вистачає, кур'єр принесе.",
     ]
     english = _screen(lang="en")
     assert english["lines"][2] == (
@@ -49,13 +49,13 @@ def test_the_card_says_how_it_happened_and_what_to_do():
 def test_the_buy_line_keeps_the_buyback_gold_late():
     card = _screen(death={}, place=None, minute=35, buyback_cost=1500, gold=2400)
     assert card["lines"] == [
-        "Купите части Manta Style: не хватает 600 золота. Оставьте 1500 на байбэк."
+        "Купіть частини Manta Style: бракує 600 золота. Залиште 1500 на байбек."
     ]
     # No buyback cost known after minute 30: no buy line (and nothing else: no card).
     assert _screen(death={}, place=None, minute=35, buyback_cost=None) is None
     # Without a known next item: spend on the next item in general.
     card = _screen(death={}, place=None, next_item=None, gold=900)
-    assert card["lines"] == ["Потратьте 900 золота на следующий предмет — у фонтана это быстрее."]
+    assert card["lines"] == ["Витратьте 900 золота на наступний предмет — біля фонтана це швидше."]
 
 
 def test_the_live_card_while_dead(client):
@@ -68,10 +68,10 @@ def test_the_live_card_while_dead(client):
         if payload["map"]["clock_time"] > 18 * 60 + 5:
             break
         client.post("/gsi", json=payload)
-    body = client.get("/overlay/recommendation?lang=ru").json()
+    body = client.get("/overlay/recommendation?lang=uk").json()
     card = body["death_screen"]
-    assert card["title"] == "Возрождение через 20 с"
-    assert "Готово, но не нажато: Black King Bar" in card["lines"][0]
+    assert card["title"] == "Відродження через 20 с"
+    assert "Готово, але не натиснуто: Black King Bar" in card["lines"][0]
 
 
 def _dead_client(client):
@@ -89,12 +89,12 @@ def _dead_client(client):
 
 def test_the_card_id_stays_while_the_gold_changes(client):
     last = _dead_client(client)
-    first = client.get("/overlay/recommendation?lang=ru").json()["death_screen"]
+    first = client.get("/overlay/recommendation?lang=uk").json()["death_screen"]
     last["hero"]["gold"] = last["player"]["gold"] = (last["player"].get("gold") or 0) + 250
     last["player"]["gold_unreliable"] = (last["player"].get("gold_unreliable") or 0) + 250
     last["map"]["clock_time"] += 1
     client.post("/gsi", json=last)
-    second = client.get("/overlay/recommendation?lang=ru").json()["death_screen"]
+    second = client.get("/overlay/recommendation?lang=uk").json()["death_screen"]
     assert first["id"] and second["id"] == first["id"]
 
 
@@ -102,8 +102,8 @@ def test_no_death_card_when_gsi_is_stale(client, monkeypatch):
     from app import main
 
     _dead_client(client)
-    assert client.get("/overlay/recommendation?lang=ru").json().get("death_screen")
+    assert client.get("/overlay/recommendation?lang=uk").json().get("death_screen")
     monkeypatch.setattr(main, "_seconds_since_timestamp", lambda _timestamp: 60.0)
-    body = client.get("/overlay/recommendation?lang=ru").json()
+    body = client.get("/overlay/recommendation?lang=uk").json()
     assert body["status"] == "stale_gsi"
     assert "death_screen" not in body

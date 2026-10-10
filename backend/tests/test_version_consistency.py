@@ -1,4 +1,4 @@
-"""Version checks read actual Python AST, JSON locks and executed RU/EN catalogs."""
+"""Version checks read actual Python AST, JSON locks and executed UK/EN catalogs."""
 
 from __future__ import annotations
 
@@ -76,7 +76,7 @@ def test_mismatched_backend_and_lock_metadata_fail_before_success(
         versions.check(release_tree)
 
 
-@pytest.mark.parametrize("language", ["ru", "en"])
+@pytest.mark.parametrize("language", ["uk", "en"])
 def test_missing_actual_locale_copy_fails(release_tree: Path, language: str) -> None:
     current = versions.check(release_tree)
     path = release_tree / "frontend/launcher/renderer/whats-new.js"
@@ -100,6 +100,7 @@ def test_notes_are_required_in_both_languages_at_current_latest_version(
     elif damage == "one_language":
         path.write_text("Only one section")
     else:
-        (path.parent / "v0.53.999.md").write_text("future draft")
+        major, minor, patch = current.split(".")
+        (path.parent / f"v{major}.{minor}.{int(patch) + 1}.md").write_text("future draft")
     with pytest.raises(ValueError, match="notes|English"):
         versions.check(release_tree)

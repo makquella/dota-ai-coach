@@ -43,15 +43,15 @@ def test_plan_names_the_farm_target_key_item_and_recurring_mistake(client, tmp_p
 
     monkeypatch.setattr(stratz_builds, "build", lambda *args, **kwargs: [])
     service = _synced(client, tmp_path)
-    plan = service.game_plan("Juggernaut", "ru")
+    plan = service.game_plan("Juggernaut", "uk")
     assert plan is not None
-    assert plan["title"] == "План на игру" and plan["hero"] == "Juggernaut"
+    assert plan["title"] == "План на гру" and plan["hero"] == "Juggernaut"
     assert plan["role"] == "core"
     lh, item, *rest = plan["lines"]
-    assert lh.startswith("К 10:00 — 55 добиваний (ваш средний: ")
+    assert lh.startswith("До 10:00 — 55 добивань (ваш середній: ")
     # The key item comes from the cached OpenDota build with its typical timing.
-    assert " к " in item and "побед" in item and "%" in item
-    assert all(line.startswith("Частая ошибка: ") for line in rest)
+    assert " до " in item and "перемог" in item and "%" in item
+    assert all(line.startswith("Часта помилка: ") for line in rest)
 
     english = service.game_plan("Juggernaut", "en")
     assert english["lines"][0].startswith("55 last hits by 10:00 (your average: ")
@@ -117,12 +117,12 @@ def test_overlay_shows_the_plan_only_early_and_while_the_card_is_free(client, tm
 
     # Before -0:20 the card is the first skill point's, not the plan's.
     client.post("/gsi", json=_gsi_at(-40, game_state="DOTA_GAMERULES_STATE_PRE_GAME"))
-    assert "game_plan" not in client.get("/overlay/recommendation?lang=ru").json()
+    assert "game_plan" not in client.get("/overlay/recommendation?lang=uk").json()
 
     client.post("/gsi", json=_gsi_at(-20, game_state="DOTA_GAMERULES_STATE_PRE_GAME"))
-    early = client.get("/overlay/recommendation?lang=ru").json()
+    early = client.get("/overlay/recommendation?lang=uk").json()
     assert early["recommendation"] is None
-    assert early["game_plan"]["title"] == "План на игру"
+    assert early["game_plan"]["title"] == "План на гру"
 
     client.post("/gsi", json=_gsi_at(80))
     assert "game_plan" in client.get("/overlay/recommendation").json()
@@ -172,8 +172,8 @@ def test_the_plan_names_the_enemy_heroes_the_player_loses_to():
     on_hero = (
         [_vs(False, [2, 25, 14])] * 3 + [_vs(True, [2, 14])] + [_vs(True, [14]), _vs(True, [8])]
     )
-    plan = build_game_plan(hero="Juggernaut", history=on_hero, all_recent=[], meta=None, lang="ru")
-    assert "Тяжело против: Lina 0–3, Axe 1–3" in plan["lines"]
+    plan = build_game_plan(hero="Juggernaut", history=on_hero, all_recent=[], meta=None, lang="uk")
+    assert "Важко проти: Lina 0–3, Axe 1–3" in plan["lines"]
     # Too few meetings on this hero: the record over every hero is used.
     everywhere = [_vs(False, [2])] * 3
     plan = build_game_plan(hero="Lina", history=[], all_recent=everywhere, meta=None, lang="en")

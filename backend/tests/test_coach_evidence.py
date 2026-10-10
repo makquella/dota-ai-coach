@@ -19,21 +19,21 @@ from app.player_service import ASK_CACHE_KEY
     "text",
     [
         "You had 200 kills.",
-        "У вас 200 убийств.",
+        "У вас 200 вбивств.",
         "Kills: 200, deaths: 5.",
-        "Убийств было 200.",
-        "Смерти: их было 2.",
+        "Вбивств було 200.",
+        "Смерті: їх було 2.",
         "You had 8 deaths.",
         "5 assists, 2 kills.",
         "KDA 2/4/5.",
         "2 kills on lane.",
-        "2 убийства к 10:00.",
+        "2 вбивства до 10:00.",
         "Anti-Mage had 2 kills.",
         "You had 0.2k kills.",
         "2.4 kills.",
         "-2 kills.",
         "Kills: -2.",
-        "У вас −2 убийства.",
+        "У вас −2 вбивства.",
         "The enemy had 2 kills.",
         "KDA -2/5/4.",
     ],
@@ -51,7 +51,7 @@ def test_unrelated_or_small_numbers_never_license_a_combat_counter(text: str) ->
 
 
 @pytest.mark.parametrize(
-    "text", ["2 kills, 5 deaths, 4 assists.", "Смертей: 5, убийств: 2, ассистов: 4.", "KDA 2/5/4."]
+    "text", ["2 kills, 5 deaths, 4 assists.", "Смертей: 5, вбивств: 2, асистів: 4.", "KDA 2/5/4."]
 )
 def test_correct_field_bound_totals_are_kept(text: str) -> None:
     facts = {"kills": 2, "deaths": 5, "assists": 4}
@@ -73,13 +73,13 @@ def test_review_scrubs_metric_swaps_without_removing_future_goals(
     client: TestClient, tmp_path: Path
 ) -> None:
     answer = copy.deepcopy(GOOD_MATCH_REVIEW)
-    answer["summary"] += " У вас 160 убийств. У вас 2 смерти. KDA 9/3/6."
-    answer["strengths"] = ["У вас 3 убийства и 6 ассистов."]
+    answer["summary"] += " У вас 160 вбивств. У вас 2 смерті. KDA 9/3/6."
+    answer["strengths"] = ["У вас 3 вбивства й 6 асистів."]
     provider = FakeLLM(answer)
     service = _reviewed_match(client, tmp_path, provider)
-    client.get(f"/player/matches/{MATCH_ID}?lang=ru")
+    client.get(f"/player/matches/{MATCH_ID}?lang=uk")
     service.ai_jobs.run_pending(until=float("inf"))
-    coach = client.get(f"/player/matches/{MATCH_ID}?lang=ru").json()["coach"]
+    coach = client.get(f"/player/matches/{MATCH_ID}?lang=uk").json()["coach"]
     assert coach["state"] == "ready"
     review = coach["review"]
     assert review["summary"] == GOOD_MATCH_REVIEW["summary"]
@@ -121,30 +121,30 @@ def test_question_swapped_metrics_retry_and_cache_only_verified_answer(
 def test_question_unknown_metric_is_rejected_and_never_cached(
     client: TestClient, tmp_path: Path
 ) -> None:
-    provider = FakeLLM({"answer": "У вас 2 смерти."})
+    provider = FakeLLM({"answer": "У вас 2 смерті."})
     _reviewed_match(client, tmp_path, provider)
     result = client.post(
-        f"/player/matches/{MATCH_ID}/ask?lang=ru", json={"question": "Сколько смертей?"}
+        f"/player/matches/{MATCH_ID}/ask?lang=uk", json={"question": "Скільки смертей?"}
     ).json()
     assert result == {"ok": False, "code": "unverified"}
     assert len(provider.calls) == 2
-    assert client.get(f"/player/matches/{MATCH_ID}?lang=ru").json()["questions"] == []
+    assert client.get(f"/player/matches/{MATCH_ID}?lang=uk").json()["questions"] == []
 
 
 def test_legacy_review_is_hidden_until_regenerated_even_when_ai_is_off(
     client: TestClient, tmp_path: Path
 ) -> None:
     service = _reviewed_match(client, tmp_path, None)
-    key = f"coach:match:{ME}:{MATCH_ID}:ru"
-    legacy = {"hash": "old", "review": {"summary": "У вас 160 убийств."}}
+    key = f"coach:match:{ME}:{MATCH_ID}:uk"
+    legacy = {"hash": "old", "review": {"summary": "У вас 160 вбивств."}}
     service.store.cache_set(key, legacy)
-    coach = client.get(f"/player/matches/{MATCH_ID}?lang=ru").json()["coach"]
+    coach = client.get(f"/player/matches/{MATCH_ID}?lang=uk").json()["coach"]
     assert coach == {"state": "off"}
     assert service.store.cache_get(key) == legacy
     service.llm = FakeLLM(GOOD_MATCH_REVIEW)
-    assert client.get(f"/player/matches/{MATCH_ID}?lang=ru").json()["coach"] == {"state": "pending"}
+    assert client.get(f"/player/matches/{MATCH_ID}?lang=uk").json()["coach"] == {"state": "pending"}
     service.ai_jobs.run_pending(until=float("inf"))
-    coach = client.get(f"/player/matches/{MATCH_ID}?lang=ru").json()["coach"]
+    coach = client.get(f"/player/matches/{MATCH_ID}?lang=uk").json()["coach"]
     assert coach["state"] == "ready" and coach["review"]["summary"] == GOOD_MATCH_REVIEW["summary"]
     assert service.store.cache_get(key)["verification_version"] == COACH_VERSION
 
@@ -162,4 +162,20 @@ def test_legacy_questions_are_rechecked_on_read_without_provider_or_storage_dele
     returned = client.get(f"/player/matches/{MATCH_ID}?lang=en").json()["questions"]
     assert len(returned) == 1 and returned[0]["answer"] == history[1]["answer"]
     assert returned[0]["counter_evidence"][0]["field"] == "kills"
+    assert service.store.cache_get(key) == history
+
+
+def test_russian_answers_from_before_0_54_stay_stored_but_are_not_shown(
+    client: TestClient, tmp_path: Path
+) -> None:
+    service = _reviewed_match(client, tmp_path, None)
+    key = f"{ASK_CACHE_KEY}:{ME}:{MATCH_ID}"
+    history = [
+        {"question": "How many deaths?", "answer": "You had 9 deaths.", "lang": "en"},
+        {"question": "Сколько смертей?", "answer": "У вас 9 смертей.", "lang": "ru"},
+    ]
+    service.store.cache_set(key, history)
+    for lang in ("uk", "en"):
+        returned = client.get(f"/player/matches/{MATCH_ID}?lang={lang}").json()["questions"]
+        assert [q["lang"] for q in returned] == ["en"]
     assert service.store.cache_get(key) == history

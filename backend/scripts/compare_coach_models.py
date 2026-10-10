@@ -10,7 +10,7 @@ Keys come from the env: GEMINI_API_KEY, OPENROUTER_API_KEY, GROQ_API_KEY.
     cd backend
     GEMINI_API_KEY=... OPENROUTER_API_KEY=... python scripts/compare_coach_models.py \\
         --model gemini:gemini-3.8-flash --model openrouter:stealth/space-bunny-alpha \\
-        --lang ru --out coach_compare.md
+        --lang uk --out coach_compare.md
 
 By default the synthetic test match is used (tests/match_fixtures.py). With
 --data-dir (the app's PLAYER_DATA_DIR, e.g. %APPDATA%\\DotaAICoach\\player_data)
@@ -81,7 +81,7 @@ def _service(args: argparse.Namespace) -> tuple[PlayerService, int]:
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     parser.add_argument("--model", action="append", required=True, help="provider:model")
-    parser.add_argument("--lang", default="ru", choices=("ru", "en"))
+    parser.add_argument("--lang", default="uk", choices=("uk", "en"))
     parser.add_argument("--career", action="store_true", help="review the recent matches")
     parser.add_argument("--data-dir", help="the app's PLAYER_DATA_DIR (a copy is used)")
     parser.add_argument("--match", help="match id (with --data-dir)")

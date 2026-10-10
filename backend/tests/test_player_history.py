@@ -169,7 +169,7 @@ def test_good_parsed_match_is_praised():
 
 
 def test_bad_parsed_match_names_the_problems_with_numbers():
-    analysis = _analysis(opendota_match(good=False), lang="ru", with_meta=False)
+    analysis = _analysis(opendota_match(good=False), lang="uk", with_meta=False)
     assert analysis["headline"]["grade"] == "D"
     ids = [f["id"] for f in analysis["improvements"]]
     assert "gpm_low" in ids
@@ -179,7 +179,7 @@ def test_bad_parsed_match_names_the_problems_with_numbers():
     gpm = next(f for f in analysis["improvements"] if f["id"] == "gpm_low")
     assert "390" in gpm["text"] and "88%" in gpm["text"] and gpm["drill"]
     stall = next(f for f in analysis["improvements"] if f["id"] == "farm_stall")
-    assert "С 15 по 22-ю минуту" in stall["text"]
+    assert "З 15 по 22-ту хвилину" in stall["text"]
     assert analysis["series"]["last_hits"][10] < analysis["series"]["last_hits_target"][10]
     # Gold and experience get a "good pace" line of the same length.
     series = analysis["series"]
@@ -223,7 +223,7 @@ def test_every_finding_has_both_languages_and_formats_cleanly():
         opendota_match(good=False),
         opendota_match(good=False, parsed=False),
     ):
-        for lang in ("ru", "en"):
+        for lang in ("uk", "en"):
             analysis = _analysis(match, lang)
             for finding in analysis["strengths"] + analysis["improvements"]:
                 produced.add(finding["id"])
@@ -232,8 +232,8 @@ def test_every_finding_has_both_languages_and_formats_cleanly():
                 assert not re.search(r"\bNone\b", finding["text"]), finding
     assert produced
     for finding_id, langs in FINDINGS.items():
-        assert set(langs) == {"ru", "en"}, finding_id
-        assert set(langs["ru"]) == set(langs["en"]), finding_id
+        assert set(langs) == {"uk", "en"}, finding_id
+        assert set(langs["uk"]) == set(langs["en"]), finding_id
 
 
 # --- career ---------------------------------------------------------------------------
@@ -250,7 +250,7 @@ def test_career_trend_heroes_and_recurring_problems():
         summary["start_time"] = 1790000000 - index * 3600
         summary["analysis"] = analyze_match(facts_from_opendota(trimmed))
         matches.append(summary)
-    career = analyze_career(matches, "ru")
+    career = analyze_career(matches, "uk")
     assert career["matches"] == 20 and career["winrate"] == 50
     assert career["trend"]["gpm"]["direction"] == "up" and career["trend"]["gpm"]["better"]
     assert career["trend"]["deaths"]["direction"] == "down" and career["trend"]["deaths"]["better"]
@@ -299,13 +299,13 @@ def test_gsi_links_the_player_and_reviews_the_match(client, tmp_path):
     assert rows[0]["match_id"] == MATCH_ID and rows[0]["win"] is False
     assert rows[0]["sources"] == ["gsi"] and rows[0]["has_timeline"]
 
-    detail = client.get(f"/player/matches/{MATCH_ID}?lang=ru").json()
+    detail = client.get(f"/player/matches/{MATCH_ID}?lang=uk").json()
     assert detail["parse_status"] == "waiting_opendota"
-    assert detail["analysis"]["lang"] == "ru" and detail["analysis"]["sources"] == ["gsi"]
+    assert detail["analysis"]["lang"] == "uk" and detail["analysis"]["sources"] == ["gsi"]
 
     # After the delay the worker fetches OpenDota and rebuilds the review.
     service.jobs.run_pending(until=float("inf"))
-    detail = client.get(f"/player/matches/{MATCH_ID}?lang=ru").json()
+    detail = client.get(f"/player/matches/{MATCH_ID}?lang=uk").json()
     assert detail["sources"] == ["gsi", "opendota"]
     assert detail["parse_status"] == "parsed"
     assert detail["analysis"]["parsed"] is True
@@ -356,9 +356,9 @@ def test_link_sync_and_career_endpoints(client, tmp_path):
     reviewed = [row for row in table["items"] if row["has_analysis"]]
     assert len(reviewed) == 12
 
-    career = client.get("/player/career?lang=ru").json()
+    career = client.get("/player/career?lang=uk").json()
     assert career["linked"] and career["matches"] == 15 and career["analyzed"] == 12
-    assert career["recurring"] and career["recurring"][0]["text"].startswith("В ")
+    assert career["recurring"] and career["recurring"][0]["text"].startswith("У ")
 
     assert client.get("/player/matches/1").status_code == 404
     assert client.delete("/player").json()["linked"] is False
@@ -472,13 +472,13 @@ def test_opendota_meta_endpoints_are_parsed():
 
 
 def test_late_core_item_gets_a_winrate_backed_advice():
-    analysis = _analysis(opendota_match(good=False), lang="ru")
+    analysis = _analysis(opendota_match(good=False), lang="uk")
     ids = [f["id"] for f in analysis["improvements"]]
     late = next(f for f in analysis["improvements"] if f["id"] == "build_timing_late")
     # Compared with the usual timing (20:00, 50%), not the lucky early bucket (15:00, 55%).
-    assert "Maelstrom к 26:00" in late["text"] and "40%" in late["text"] and "50%" in late["text"]
-    assert "к 20:00" in late["text"] and "55%" not in late["text"]
-    assert "к 20:00" in late["drill"]
+    assert "Maelstrom до 26:00" in late["text"] and "40%" in late["text"] and "50%" in late["text"]
+    assert "до 20:00" in late["text"] and "55%" not in late["text"]
+    assert "до 20:00" in late["drill"]
     # The generic "late first item" finding is replaced by the specific one.
     assert "core_item_slow" not in ids
     build = analysis["build"]
@@ -506,9 +506,9 @@ def test_standard_build_with_good_timings_is_recognised():
 
 
 def test_rank_peers_compare_with_the_direct_opponent():
-    analysis = _analysis(opendota_match(good=False), lang="ru")
+    analysis = _analysis(opendota_match(good=False), lang="uk")
     peers = analysis["peers"]
-    assert peers["role"] == "carry" and peers["role_label"] == "керри"
+    assert peers["role"] == "carry" and peers["role_label"] == "керрі"
     assert peers["lobby_rank_label"] == "Легенда 4"
     assert [p["hero"] for p in peers["peers"]] == ["Anti-Mage"] and peers["peers"][0]["enemy"]
     assert peers["me"]["gpm"] == 390 and peers["avg"]["gpm"] == 600
@@ -522,7 +522,7 @@ def test_rank_peers_compare_with_the_direct_opponent():
     gpm = next(f for f in analysis["improvements"] if f["id"] == "peer_gpm_behind")
     assert "Anti-Mage" in gpm["text"] and "600" in gpm["text"]
     deaths = next(f for f in analysis["improvements"] if f["id"] == "peer_deaths_more")
-    assert "9 смертей против 5 у керри" in deaths["text"]
+    assert "9 смертей проти 5 у керрі" in deaths["text"]
     good = _analysis(opendota_match(good=True))
     assert "peer_gpm_ahead" in {f["id"] for f in peer_findings(good["peers"])}
 
@@ -544,10 +544,10 @@ def test_unparsed_match_peers_follow_the_farm_order():
 def test_rank_labels():
     from app.analysis_texts import rank_label
 
-    assert rank_label(54, "ru") == "Легенда 4"
+    assert rank_label(54, "uk") == "Легенда 4"
     assert rank_label(35, "en") == "Crusader 5"
-    assert rank_label(80, "ru") == "Титан"
-    assert rank_label(None, "ru") is None
+    assert rank_label(80, "uk") == "Безсмертний"
+    assert rank_label(None, "uk") is None
 
 
 def test_career_rank_comparison_and_bracket_winrates(client, tmp_path):
@@ -562,9 +562,9 @@ def test_career_rank_comparison_and_bracket_winrates(client, tmp_path):
     service = _service(tmp_path, fake)
     client.post("/player/link", json={"steam": str(ME)})
     service.jobs.run_pending(until=float("inf"))
-    career = client.get("/player/career?lang=ru").json()
+    career = client.get("/player/career?lang=uk").json()
     rank = career["rank"]
-    assert rank["rank_label"] == "Легенда 4" and rank["role_label"] == "керри"
+    assert rank["rank_label"] == "Легенда 4" and rank["role_label"] == "керрі"
     assert rank["matches"] == 12
     gpm = next(row for row in rank["metrics"] if row["key"] == "gpm")
     assert gpm["peers"] == 600.0
@@ -586,7 +586,7 @@ def test_build_advice_works_offline_from_the_cache(client, tmp_path):
     service.client = None
     for payload in gsi_match_stream(match_id=MATCH_ID + 1, win=False):
         client.post("/gsi", json=payload)
-    detail = client.get(f"/player/matches/{MATCH_ID + 1}?lang=ru").json()
+    detail = client.get(f"/player/matches/{MATCH_ID + 1}?lang=uk").json()
     build = detail["analysis"]["build"]
     assert [item["key"] for item in build["items"]] == ["bfury", "manta"]
     assert build["items"][0]["timing"]["winrate"] == 57
@@ -609,7 +609,7 @@ def _draft_meta():
     }
 
 
-def _draft_analysis(match, lang="ru"):
+def _draft_analysis(match, lang="uk"):
     trimmed = trim_match(match, ME)
     facts = facts_from_opendota(trimmed)
     return render_analysis(analyze_match(facts, opendota=trimmed, draft=_draft_meta()), lang)
@@ -686,7 +686,7 @@ def test_counter_item_missing_and_bought():
     counter = next(c for c in analysis["draft"]["counters"] if c["reason"] == "evasion")
     assert counter["heroes"] == ["Phantom Assassin"] and counter["bought"] == []
     missing = next(f for f in analysis["improvements"] if f["id"] == "counter_item_missing")
-    assert "Phantom Assassin (уклонение)" in missing["text"]
+    assert "Phantom Assassin (ухилення)" in missing["text"]
     assert "Monkey King Bar" in missing["text"]
 
     match = _with_enemy(opendota_match(good=True), 6, 44)
@@ -775,14 +775,14 @@ def test_service_fetches_matchups_for_the_pool_and_rebuilds_old_reviews(client, 
     client.post("/player/link", json={"steam": str(ME)})
     service.jobs.run_pending(until=float("inf"))
     assert {"matchups:8", "matchups:1"} <= set(fake.calls)
-    detail = client.get(f"/player/matches/{MATCH_ID}?lang=ru").json()
+    detail = client.get(f"/player/matches/{MATCH_ID}?lang=uk").json()
     assert detail["analysis"]["draft"]["pool"]
 
     # A review stored by an older version of the rules is rebuilt when read.
     record = service.store.get_match(ME, MATCH_ID)
     old = {**record["analysis"], "version": 1, "draft": None}
     service.store.upsert_match(ME, MATCH_ID, source="opendota", analysis=old)
-    detail = client.get(f"/player/matches/{MATCH_ID}?lang=ru").json()
+    detail = client.get(f"/player/matches/{MATCH_ID}?lang=uk").json()
     assert detail["analysis"]["version"] != 1 and detail["analysis"]["draft"]
 
 
@@ -801,19 +801,19 @@ def test_best_matches_are_compared_with_the_worst(client, tmp_path):
     PLAYER_SERVICE.configure(tmp_path / "svc", client=fake, auto_start=False)
     client.post("/player/link", json={"steam": str(ME)})
     PLAYER_SERVICE.jobs.run_pending(until=float("inf"))
-    compare = client.get("/player/career?lang=ru").json()["self_compare"]
+    compare = client.get("/player/career?lang=uk").json()["self_compare"]
     assert compare["hero"] == "Juggernaut" and compare["matches"] == 12
     assert compare["best"]["winrate"] == 100 and compare["worst"]["winrate"] == 0
     rows = {row["key"]: row for row in compare["rows"]}
     assert rows["lh_10"]["best"] == 70 and rows["lh_10"]["worst"] == 36
     assert all(row["best_is_better"] for row in compare["rows"])
     assert (
-        "Первый большой предмет: Battle Fury к 12:00 в лучших матчах, Maelstrom к 26:00 в худших."
+        "Перший великий предмет: Battle Fury до 12:00 у найкращих матчах, Maelstrom до 26:00 у найгірших."
         in compare["highlights"]
     )
     assert len(compare["highlights"]) == 3
     # Pick advice depends on each lineup: not a recurring problem to train.
-    career = client.get("/player/career?lang=ru").json()
+    career = client.get("/player/career?lang=uk").json()
     assert "draft_better_pick" not in {row["id"] for row in career["recurring"]}
 
 
@@ -894,8 +894,8 @@ def test_a_targeted_disable_that_keeps_killing_asks_for_linkens():
     assert counter["kills"] == 3
     missing = next(f for f in findings if f["id"] == "counter_item_missing")
     assert missing["params"]["items"] == "Linken's Sphere"
-    ru = render_finding(missing, "ru")
-    assert "Beastmaster (вы погибали под Primal Roar)" in ru["text"]
+    uk = render_finding(missing, "uk")
+    assert "Beastmaster (ви гинули під Primal Roar)" in uk["text"]
     # One kill: the lineup alone asks for no Linken's.
     facts["deaths_log"] = facts["deaths_log"][:1]
     block, _ = analyze_draft(facts, trimmed, _draft_meta(), "core")
@@ -905,6 +905,6 @@ def test_a_targeted_disable_that_keeps_killing_asks_for_linkens():
 def test_best_vs_worst_numbers_are_written_in_the_language():
     from app.self_compare import _fmt
 
-    assert _fmt("lane_deaths", 0.5, "ru") == "0,5"
+    assert _fmt("lane_deaths", 0.5, "uk") == "0,5"
     assert _fmt("lane_deaths", 2.5, "en") == "2.5"
-    assert _fmt("deaths", 3.0, "ru") == "3"
+    assert _fmt("deaths", 3.0, "uk") == "3"

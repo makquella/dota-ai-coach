@@ -1,5 +1,5 @@
 """
-share_review.py - the public part of a match review, for «Поделиться разбором».
+share_review.py - the public part of a match review, for «Поділитися розбором».
 
 Only what a page for other people needs, picked field by field from the
 rendered review (never passed through as a whole): hero, result, score,
@@ -57,7 +57,7 @@ def public_review(detail: dict[str, Any], lang: str, *, with_coach: bool) -> dic
     start = _int(summary.get("start_time"))
     sections = analysis.get("sections") or {}
     result: dict[str, Any] = {
-        "lang": "ru" if lang == "ru" else "en",
+        "lang": "uk" if lang == "uk" else "en",
         "hero": _text(headline.get("hero"), 40),
         "hero_key": _hero_key(headline.get("hero_id") or summary.get("hero_id")),
         "win": headline.get("win") if isinstance(headline.get("win"), bool) else None,

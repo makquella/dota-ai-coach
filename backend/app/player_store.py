@@ -54,7 +54,7 @@ MATCH_COLUMNS = (
     "score",
     # The final inventory as a JSON list of item keys (the match table's icons).
     "items",
-    # The player's own note on the match (0.52, «Заметка»): only set_note writes it.
+    # The player's own note on the match (0.52, «Нотатка»): only set_note writes it.
     "note",
 )
 
@@ -508,7 +508,7 @@ class PlayerStore:
             ).fetchall()
         return [_summary_row(row) for row in rows]
 
-    # The columns the «Профиль» tab reads (player_profile.py), for every match.
+    # The columns the «Профіль» tab reads (player_profile.py), for every match.
     PROFILE_COLUMNS = (
         "match_id",
         "start_time",

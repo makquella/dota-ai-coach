@@ -45,16 +45,16 @@ RECORD_GAMES = 20
 HARD_OPPONENTS_SHOWN = 2
 
 TEXT = {
-    "ru": {
-        "title": "План на игру",
-        "lh": "К 10:00 — {target} добиваний",
-        "lh_avg": "К 10:00 — {target} добиваний (ваш средний: {avg})",
-        "item": "{item} к {time}, как у большинства: побед {winrate}%",
-        "item_plain": "Ключевой предмет: {item}",
-        "reminder": "Частая ошибка: {title}",
+    "uk": {
+        "title": "План на гру",
+        "lh": "До 10:00 — {target} добивань",
+        "lh_avg": "До 10:00 — {target} добивань (ваш середній: {avg})",
+        "item": "{item} до {time}, як у більшості: перемог {winrate}%",
+        "item_plain": "Ключовий предмет: {item}",
+        "reminder": "Часта помилка: {title}",
         "focus": "Ваш фокус: {title}",
-        "hard": "Тяжело против: {heroes}",
-        "skills": "Прокачка у про: сначала {first}, потом {second}",
+        "hard": "Важко проти: {heroes}",
+        "skills": "Прокачка в про: спершу {first}, потім {second}",
     },
     "en": {
         "title": "Plan for this game",
@@ -163,7 +163,7 @@ def build_game_plan(
     build of high-rank players in the player's position (app/stratz_builds.build),
     drawn as icons with their usual minute instead of OpenDota's popular items."""
     record_rows = history if record_history is None else record_history
-    lang = "ru" if lang == "ru" else "en"
+    lang = "uk" if lang == "uk" else "en"
     text = TEXT[lang]
     lines: list[str] = []
 

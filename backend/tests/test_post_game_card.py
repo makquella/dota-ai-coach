@@ -16,18 +16,18 @@ def test_score_screen_shows_the_summary_of_the_match_just_played(client, tmp_pat
     for payload in stream[:-1]:
         client.post("/gsi", json=payload)
     # In the match: no summary yet.
-    assert "post_game" not in client.get("/overlay/recommendation?lang=ru").json()
+    assert "post_game" not in client.get("/overlay/recommendation?lang=uk").json()
     assert client.get("/gsi/status").json()["post_game"] is False
 
     client.post("/gsi", json=stream[-1])  # POST_GAME: the match is reviewed at once
     status = client.get("/gsi/status").json()
     assert status["post_game"] is True and status["in_match"] is False
-    card = client.get("/overlay/recommendation?lang=ru").json()["post_game"]
-    assert card["title"] == "Итог матча" and card["hero"] == "Juggernaut"
-    assert card["result"] == "Поражение" and card["win"] is False
+    card = client.get("/overlay/recommendation?lang=uk").json()["post_game"]
+    assert card["title"] == "Підсумок матчу" and card["hero"] == "Juggernaut"
+    assert card["result"] == "Поразка" and card["win"] is False
     assert card["score_text"] == f"{card['score']}/100"
-    assert card["main"].startswith("Главное: ") and len(card["detail"]) == 2
-    assert card["detail"][-1] == "Полный разбор — в приложении."
+    assert card["main"].startswith("Головне: ") and len(card["detail"]) == 2
+    assert card["detail"][-1] == "Повний розбір — у застосунку."
     english = client.get("/overlay/recommendation?lang=en").json()["post_game"]
     assert english["title"] == "Match summary"
 

@@ -66,17 +66,17 @@ def _simulate(stream):
     spec = importlib.util.spec_from_file_location("simulate_live_gsi", SCRIPT)
     script = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(script)
-    return script.simulate(stream, "ru")
+    return script.simulate(stream, "uk")
 
 
 def test_overlay_reminds_once_the_tp_is_gone():
     cards = _simulate(_stream(12 * 60))
-    tp = [c for c in cards if c["action"].startswith("Держите свиток телепортации")]
+    tp = [c for c in cards if c["action"].startswith("Тримайте сувій телепортації")]
     assert len(tp) == 1
     assert 13 * 60 <= tp[0]["clock"] < 17 * 60
-    assert "свитка телепортации уже" in tp[0]["reason"]
+    assert "сувою телепортації вже" in tp[0]["reason"]
 
 
 def test_no_reminder_while_the_tp_is_there():
     cards = _simulate(_stream(None))
-    assert not [c for c in cards if "телепортации" in c["action"]]
+    assert not [c for c in cards if "телепортації" in c["action"]]

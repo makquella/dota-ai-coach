@@ -1,46 +1,46 @@
-# Локальный API: доступ и отладка
+# Локальний API: доступ і налагодження
 
-В 0.53.7 локальные запросы проходят проверку до вызова обработчиков FastAPI. Сервис принимает HTTP только от loopback-клиента с `Host` текущего порта: `127.0.0.1`, `localhost` или `[::1]`. Launcher использует `127.0.0.1` и запускает один backend. Packaged entrypoint отключает доверие к proxy headers и отвергает внешний bind address.
+У 0.53.7 локальні запити проходять перевірку до виклику обробників FastAPI. Сервіс приймає HTTP лише від loopback-клієнта з `Host` поточного порту: `127.0.0.1`, `localhost` або `[::1]`. Launcher використовує `127.0.0.1` і запускає один backend. Packaged entrypoint вимикає довіру до proxy headers і відкидає зовнішню bind address.
 
-## Два разных права доступа
+## Два різні права доступу
 
-- **Control**: `Authorization: Bearer <control token>` для настроек, истории, диагностики, demo и остальных частных endpoints, включая чтение. Launcher создаёт случайный 256-битный токен на запуск приложения и передаёт его дочернему backend через environment. Токен остаётся в main process; renderer получает только DTO через IPC. Повторный запуск backend внутри того же launcher использует тот же токен.
-- **GSI**: Dota отправляет `{"auth":{"token":"<gsi token>"}, ...}` в `POST /gsi`. Этот другой 256-битный токен не открывает историю и не меняет настройки. Launcher сохраняет его в `local-api-gsi.json` в user data, чтобы уже загруженный Dota config продолжал работать после перезапуска тренера. Config содержит только GSI-токен. Доверенный control-клиент также может отправлять GSI для воспроизведения и диагностики.
+- **Control**: `Authorization: Bearer <control token>` для налаштувань, історії, діагностики, demo та решти приватних endpoints, зокрема читання. Launcher створює випадковий 256-бітний токен на запуск застосунку й передає його дочірньому backend через environment. Токен залишається в main process; renderer отримує лише DTO через IPC. Повторний запуск backend усередині того самого launcher використовує той самий токен.
+- **GSI**: Dota надсилає `{"auth":{"token":"<gsi token>"}, ...}` у `POST /gsi`. Цей інший 256-бітний токен не відкриває історії й не змінює налаштувань. Launcher зберігає його в `local-api-gsi.json` у user data, щоб уже завантажений Dota config і далі працював після перезапуску тренера. Config містить лише GSI-токен. Довірений control-клієнт також може надсилати GSI для відтворення й діагностики.
 
-Health (`/`, `/health`), Swagger/ReDoc, OpenAPI и статические developer pages доступны без токена; частные ответы и любые изменения требуют соответствующего права. Query parameters и cookies не заменяют токены. Тело `auth` удаляется до нормализации GSI, census, diagnostics, записи сессии и match recovery. Bearer credentials и 64-значные hex secrets редактируются в problem reports; файлы с токенами исключены из Git.
+Health (`/`, `/health`), Swagger/ReDoc, OpenAPI і статичні developer pages доступні без токена; приватні відповіді й будь-які зміни потребують відповідного права. Query parameters і cookies не замінюють токенів. Тіло `auth` видаляється до нормалізації GSI, census, diagnostics, запису сесії та match recovery. Bearer credentials і 64-значні hex secrets редагуються в problem reports; файли з токенами виключено з Git.
 
-Любой переданный `Origin` должен точно совпадать с локальным адресом и портом backend. Чужой сайт, `Origin: null` и другой localhost-порт получают отказ даже с верным токеном. Отсутствие Origin допустимо для Dota и локальных инструментов, но не отменяет аутентификацию. CORS допускает только эти же локальные origins; сам по себе CORS не обеспечивает защиту записей.
+Будь-який переданий `Origin` має точно збігатися з локальною адресою й портом backend. Чужий сайт, `Origin: null` та інший localhost-порт отримують відмову навіть із правильним токеном. Відсутність Origin допустима для Dota й локальних інструментів, але не скасовує автентифікації. CORS допускає лише ці самі локальні origins; сам собою CORS не забезпечує захисту записів.
 
-## Обновление Dota config
+## Оновлення Dota config
 
-При запуске launcher синхронизирует найденный `gamestate_integration_dota_ai_coach.cfg`: выбранный порт и блок Valve `auth.token`. После первого перехода на 0.53.7 **перезапустите Dota один раз**, чтобы игра прочитала новый config. Если config устанавливается в папку вручную, используйте обычную кнопку установки в launcher. Игровые блоки данных и heartbeat сохраняются.
+Під час запуску launcher синхронізує знайдений `gamestate_integration_dota_ai_coach.cfg`: вибраний порт і блок Valve `auth.token`. Після першого переходу на 0.53.7 **перезапустіть Dota один раз**, щоб гра прочитала новий config. Якщо config встановлюється в теку вручну, використовуйте звичайну кнопку встановлення в launcher. Ігрові блоки даних і heartbeat зберігаються.
 
-POSIX-файлы credentials/config создаются с mode `0600`. В Windows действует доступ к user data и папке игры через существующие ACL; chmod не устанавливает отдельный Windows ACL. Backend, запускаемый без launcher, использует отдельный приватный `backend/local-api-auth.json` (или `WRITABLE_DIR` в сборке), с control и GSI токенами. Неверный/неполный файл или только одна из двух environment variables останавливают запуск; автоматической замены на незащищённый режим нет.
+POSIX-файли credentials/config створюються з mode `0600`. У Windows діє доступ до user data й теки гри через наявні ACL; chmod не встановлює окремого Windows ACL. Backend, що запускається без launcher, використовує окремий приватний `backend/local-api-auth.json` (або `WRITABLE_DIR` у збірці), з control і GSI токенами. Хибний/неповний файл або лише одна з двох environment variables зупиняють запуск; автоматичної заміни на незахищений режим немає.
 
 ## Manual debug
 
-Для standalone backend из `backend/`:
+Для standalone backend з `backend/`:
 
 ```bash
 .venv/bin/python -m uvicorn app.main:app --host 127.0.0.1 --port 8000 --no-proxy-headers
 ```
 
-При другом порте задайте `DOTA_AI_BACKEND_PORT` с тем же значением, что `--port`. Не запускайте второй backend вместе с launcher. Если заданы `DOTA_AI_CONTROL_TOKEN` / `DOTA_AI_GSI_TOKEN`, оба должны быть разными случайными строками из 64 lowercase hex символов; храните их в environment, а не в аргументах запуска или общих логах.
+За іншого порту задайте `DOTA_AI_BACKEND_PORT` з тим самим значенням, що й `--port`. Не запускайте другого backend разом із launcher. Якщо задано `DOTA_AI_CONTROL_TOKEN` / `DOTA_AI_GSI_TOKEN`, обидва мають бути різними випадковими рядками з 64 lowercase hex символів; зберігайте їх в environment, а не в аргументах запуску чи спільних логах.
 
-Откройте `/docs`, нажмите **Authorize** и вставьте control-токен из своего приватного standalone файла. Swagger добавляет Bearer header к частным запросам. В отладочных страницах для разработчика `/debug/` и `/debug/overlay.html` (только из исходников, не в установленном приложении; без токена открываются только они сами, остальной `frontend/` не отдаётся) есть password-поле для того же токена; значение не сохраняется в localStorage. В обычном desktop интерфейсе ввод не нужен.
+Відкрийте `/docs`, натисніть **Authorize** і вставте control-токен зі свого приватного standalone файлу. Swagger додає Bearer header до приватних запитів. На налагоджувальних сторінках для розробника `/debug/` і `/debug/overlay.html` (лише з вихідного коду, не у встановленому застосунку; без токена відкриваються лише вони самі, решта `frontend/` не віддається) є password-поле для того самого токена; значення не зберігається в localStorage. У звичайному desktop-інтерфейсі введення не потрібне.
 
-Replay helper автоматически читает standalone credentials или использует environment, полученный от launcher. Кнопки demo передают обе variables и выбранный порт в дочерний процесс. Helper не пересылает токен через HTTP redirects. Для site screenshots Node-часть использует тот же control-токен из environment или standalone файла; браузер получает только результаты запросов.
+Replay helper автоматично читає standalone credentials або використовує environment, отриманий від launcher. Кнопки demo передають обидві variables і вибраний порт у дочірній процес. Helper не пересилає токена через HTTP redirects. Для site screenshots Node-частина використовує той самий control-токен з environment чи standalone файлу; браузер отримує лише результати запитів.
 
-## Размеры и ошибки
+## Розміри й помилки
 
-До обработчиков проверяется объявленный и реально прочитанный размер, включая chunked HTTP без `Content-Length`:
+До обробників перевіряється оголошений і реально прочитаний розмір, зокрема chunked HTTP без `Content-Length`:
 
-| Запрос | Максимум |
+| Запит | Максимум |
 |---|---|
 | `POST /gsi` | 4 MiB |
-| `POST /player/backup` | 512 MiB, как в launcher |
-| Остальные тела | 1 MiB |
+| `POST /player/backup` | 512 MiB, як у launcher |
+| Решта тіл | 1 MiB |
 
-Непустые изменяющие запросы требуют `application/json`; compressed bodies не принимаются. Коды: `401 unauthorized`, `403 untrusted_origin/nonlocal_client`, `400 invalid_host/invalid_length/invalid_json/invalid_gsi`, `413 body_too_large`, `415 json_required/unsupported_encoding`. Ответ и diagnostics содержат код причины без присланных токенов или тела. Для GSI JSON также запрещены non-finite numbers и некорректные Unicode sequences. Конкурирующие standalone процессы публикуют полностью записанный credentials-файл атомарно и используют одного победителя.
+Непорожні змінні запити потребують `application/json`; compressed bodies не приймаються. Коди: `401 unauthorized`, `403 untrusted_origin/nonlocal_client`, `400 invalid_host/invalid_length/invalid_json/invalid_gsi`, `413 body_too_large`, `415 json_required/unsupported_encoding`. Відповідь і diagnostics містять код причини без надісланих токенів чи тіла. Для GSI JSON також заборонено non-finite numbers і некоректні Unicode sequences. Конкурентні standalone процеси публікують повністю записаний credentials-файл атомарно й використовують одного переможця.
 
-Это граница локального HTTP. Программы с доступом к файлам/environment того же OS-пользователя могут получить его credentials. Защита IPC sender, navigation и CSP подготовлена отдельным F17 в 0.53.8 — [DESKTOP_SECURITY.md](DESKTOP_SECURITY.md); control-токен не предназначен для исправления XSS внутри доверенного renderer. Проверки включают реальный TCP backend, сохранённые сессии, параллельное создание credentials и launcher/Windows smoke с положительными и отрицательными запросами. Живая Dota в CI не запускается; Valve payload проверяется по токену из настоящего генератора config.
+Це межа локального HTTP. Програми з доступом до файлів/environment того самого OS-користувача можуть отримати його credentials. Захист IPC sender, navigation і CSP підготовлено окремим F17 у 0.53.8 — [DESKTOP_SECURITY.md](DESKTOP_SECURITY.md); control-токен не призначений для виправлення XSS усередині довіреного renderer. Перевірки охоплюють реальний TCP backend, збережені сесії, паралельне створення credentials і launcher/Windows smoke з позитивними й негативними запитами. Жива Dota в CI не запускається; Valve payload перевіряється за токеном зі справжнього генератора config.

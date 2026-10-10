@@ -81,7 +81,7 @@ test("every tour step with a picture has it in both languages, and every target 
   const block = app.slice(app.indexOf("const TOUR_STEPS = ["), app.indexOf("];", app.indexOf("const TOUR_STEPS = [")));
   const images = [...block.matchAll(/image: "([a-z]+)"/g)].map((m) => m[1]);
   assert.ok(images.length >= 3);
-  for (const lang of ["ru", "en"]) {
+  for (const lang of ["uk", "en"]) {
     for (const image of images) {
       assert.ok(fs.existsSync(path.join(__dirname, `../assets/tour/${lang}/${image}.webp`)), `${lang}/${image}.webp`);
     }

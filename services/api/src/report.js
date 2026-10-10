@@ -95,10 +95,10 @@ export function summarize(report) {
 }
 
 export function telegramCaption(id, report) {
-  const lines = [`Отчёт ${id}`, [report.version, report.os, report.lang].filter(Boolean).join(" · ")];
+  const lines = [`Звіт ${id}`, [report.version, report.os, report.lang].filter(Boolean).join(" · ")];
   const summary = summarize(report);
   if (summary) {
-    lines.push(report.note ? `Игрок: ${summary}` : `Ошибка: ${summary}`);
+    lines.push(report.note ? `Гравець: ${summary}` : `Помилка: ${summary}`);
   }
   return lines.filter(Boolean).join("\n").slice(0, 1000);
 }

@@ -59,7 +59,7 @@ def test_unlinked_and_empty_linked_profile_preserve_nulls_and_known_zero(
     assert profile["sparks"] == {"balance": 0, "earned": 0, "spent": 0}
 
 
-@pytest.mark.parametrize("language", ["ru", "en"])
+@pytest.mark.parametrize("language", ["uk", "en"])
 @pytest.mark.parametrize("source", [None, "manual_zero", "manual", "medal"])
 def test_complete_profile_matches_service_for_missing_manual_and_medal_rating(
     client: TestClient,
@@ -96,7 +96,7 @@ def test_complete_profile_matches_service_for_missing_manual_and_medal_rating(
             assert graph["current"] == 0
 
 
-@pytest.mark.parametrize("language", ["ru", "en"])
+@pytest.mark.parametrize("language", ["uk", "en"])
 def test_rating_estimates_keep_signed_changes_and_negative_extrapolation(
     client: TestClient,
     language: str,
@@ -115,7 +115,7 @@ def test_rating_estimates_keep_signed_changes_and_negative_extrapolation(
     assert "anchor" not in rating["points"][1]
 
 
-@pytest.mark.parametrize("language", ["ru", "en"])
+@pytest.mark.parametrize("language", ["uk", "en"])
 def test_mmr_clear_and_cosmetic_mutations_return_the_same_complete_contract(
     client: TestClient,
     language: str,

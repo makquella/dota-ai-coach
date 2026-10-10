@@ -25,7 +25,7 @@ CARDS = ("map", "build", "chart")
 
 def main() -> None:
     raw = Path(sys.argv[1] if len(sys.argv) > 1 else "out")
-    for lang in ("ru", "en"):
+    for lang in ("uk", "en"):
         (SITE / "app" / lang).mkdir(parents=True, exist_ok=True)
         (SITE / "overlay" / lang).mkdir(parents=True, exist_ok=True)
         for name in APP:

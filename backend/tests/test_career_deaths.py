@@ -53,7 +53,7 @@ def test_a_spot_needs_deaths_from_two_matches():
         _match(2, True, [(700, OWN_JUNGLE), (800, OWN_JUNGLE), (900, OWN_JUNGLE)]),
         _match(1, True, [(700, ENEMY_JUNGLE), (800, ENEMY_JUNGLE)]),
     ]
-    assert death_map(matches, "ru")["spots"] == []
+    assert death_map(matches, "uk")["spots"] == []
 
 
 def test_only_the_newest_matches_and_enough_deaths():
@@ -88,6 +88,6 @@ def test_the_career_carries_it():
         {**_match(i, True, [(700, OWN_JUNGLE), (900, ENEMY_JUNGLE)]), "win": True}
         for i in range(4, 0, -1)
     ]
-    career = analyze_career(matches, "ru")
+    career = analyze_career(matches, "uk")
     assert career["death_map"]["total"] == 8
     assert career["death_map"]["spots"][0]["label"]

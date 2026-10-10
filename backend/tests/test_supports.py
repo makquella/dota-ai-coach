@@ -99,8 +99,8 @@ def test_a_ward_kept_in_the_bag_for_two_minutes():
     assert tips.tip(300, "support", alive=True, has_ward=True, lang="en", ward_charges=2) is None
     # Buying more keeps the time; nothing placed for two minutes → the tip.
     assert tips.tip(380, "support", alive=True, has_ward=True, lang="en", ward_charges=3) is None
-    hint = tips.tip(420, "support", alive=True, has_ward=True, lang="ru", ward_charges=3)
-    assert hint["title"] == "Поставьте вард"
+    hint = tips.tip(420, "support", alive=True, has_ward=True, lang="uk", ward_charges=3)
+    assert hint["title"] == "Поставте вард"
     # Placing one restarts the count.
     fresh = RoleTips()
     fresh.tip(300, "support", alive=True, has_ward=True, lang="en", ward_charges=2)
@@ -265,17 +265,17 @@ def test_the_save_item_is_the_one_bought_on_the_hero():
     assert hint["title"] == "No save item yet: Force Staff"
     # 2200 for the parts, 1300 carried: 900 still to farm.
     assert hint["hint"] == "Force Staff is the save item most bought on this hero: 900 gold to go."
-    ru = RoleTips().tip(
+    uk = RoleTips().tip(
         13 * 60,
         "support",
         alive=True,
         has_ward=True,
-        lang="ru",
+        lang="uk",
         gold=2500,
         items=items,
         save_item={**item, "gold_left": 2200},
     )
-    assert ru["title"] == "Купите Force Staff сейчас"
+    assert uk["title"] == "Купіть Force Staff зараз"
     # Unknown build: the old tip.
     plain = RoleTips().tip(
         13 * 60, "support", alive=True, has_ward=True, lang="en", gold=1300, items=items

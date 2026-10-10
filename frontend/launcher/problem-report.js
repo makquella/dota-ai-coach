@@ -89,7 +89,7 @@ function buildReport(parts, date = new Date()) {
 }
 
 // --- Sending the report (docs/DATA_PLAN.md, stage 1) ------------------------
-// «Отправить разработчику» posts the same report to the project's API; when it
+// «Надіслати розробникові» posts the same report to the project's API; when it
 // cannot be sent now it waits in an outbox and goes out later.
 
 const API_URL = "https://api.luhovyimvp.dev";

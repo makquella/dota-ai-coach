@@ -1,4 +1,4 @@
-// Opt-in anonymous statistics («Анонимная статистика» in the launcher's
+// Opt-in anonymous statistics («Анонімна статистика» in the launcher's
 // Settings → App, off by default): one row per installation and day, rebuilt
 // here field by field from an allowlist, so nothing else can be stored.
 //
@@ -67,7 +67,7 @@ export function validateStats(body, now = Date.now()) {
   const settings = body.settings && typeof body.settings === "object" ? body.settings : {};
   const row = {
     os: ["win32", "linux", "darwin"].includes(body.os) ? body.os : "other",
-    lang: ["ru", "en"].includes(body.lang) ? body.lang : "other",
+    lang: ["uk", "en"].includes(body.lang) ? body.lang : "other",
     matches: count(usage.matches, 200) ?? 0,
     with_advice: count(usage.with_advice, 200) ?? 0,
     advice: counters(usage.advice),

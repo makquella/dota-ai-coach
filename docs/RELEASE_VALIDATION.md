@@ -1,20 +1,20 @@
-# Проверка commit перед выпуском
+# Перевірка commit перед випуском
 
-F15 в 0.53.10 делает текущий CI reusable: `ci.yml` принимает обязательный `source_sha` при `workflow_call`. Обычные push/PR проверки сохраняют прежние job names и запускают Windows packaging. Каждая checkout использует полный SHA, и `verify_source.py` подтверждает HEAD и отсутствие изменений tracked source. Для PR это GitHub test-merge SHA; для push — SHA события.
+F15 у 0.53.10 робить поточний CI reusable: `ci.yml` приймає обов'язковий `source_sha` при `workflow_call`. Звичайні push/PR перевірки зберігають попередні job names і запускають Windows packaging. Кожен checkout використовує повний SHA, і `verify_source.py` підтверджує HEAD і відсутність змін tracked source. Для PR це GitHub test-merge SHA; для push — SHA події.
 
 ## Release workflow
 
-1. Read-only `source` job берёт snapshot SHA события, читает version и проверяет соответствие tag. Manual release разрешён только на main и с ещё несуществующим version tag, как раньше. В output передаётся фактический commit HEAD, поэтому annotated tag разрешается до commit.
-2. Read-only `validation` вызывает тот же `ci.yml` для этого SHA. Проходят locked dependency checks, Ruff/format, blocking type gate, полный pytest, frontend syntax/unit tests и site generators. Нет `secrets: inherit`; signing credentials не передаются validation.
-3. Windows job зависит от успешных `source` **и** `validation`, checkout того же SHA и ещё раз проверяет source перед сборкой. Он делает собственный Windows build с прежней signing configuration, signature check и backend/app/installer smoke. В reusable call передаётся `skip_windows: true`, чтобы эта же unsigned package-сборка не выполнялась второй раз. В обычном PR Windows job не пропускается.
-4. Перед публикацией и каждой retry проверяется тот же HEAD, неизменённый tracked source и текущий remote tag. Для annotated tag используется peeled commit. Тег другого commit и исчезнувший push tag дают отказ. Только manual release может создать отсутствующий тег, с явным `--target RELEASE_SHA`.
+1. Read-only `source` job бере snapshot SHA події, читає version і перевіряє відповідність tag. Manual release дозволено лише на main і з іще не наявним version tag, як раніше. В output передається фактичний commit HEAD, тому annotated tag розв'язується до commit.
+2. Read-only `validation` викликає той самий `ci.yml` для цього SHA. Проходять locked dependency checks, Ruff/format, blocking type gate, повний pytest, frontend syntax/unit tests і site generators. Немає `secrets: inherit`; signing credentials не передаються validation.
+3. Windows job залежить від успішних `source` **і** `validation`, checkout того самого SHA і ще раз перевіряє source перед збиранням. Він робить власний Windows build із попередньою signing configuration, signature check і backend/app/installer smoke. У reusable call передається `skip_windows: true`, щоб ця сама unsigned package-збірка не виконувалася вдруге. У звичайному PR Windows job не пропускається.
+4. Перед публікацією й кожним retry перевіряються той самий HEAD, незмінений tracked source і поточний remote tag. Для annotated tag використовується peeled commit. Тег іншого commit і зниклий push tag дають відмову. Лише manual release може створити відсутній тег, з явним `--target RELEASE_SHA`.
 
-Изменение main за время ожидания/сборки не меняет выбранный release commit. Failure или skip общей validation не запускает Windows publish job: сохранён default success gate, без `always()` или `continue-on-error` на validation. Artifacts, signing и release notes сохраняют существующий формат.
+Зміна main під час очікування/збирання не змінює вибраного release commit. Failure чи skip спільної validation не запускає Windows publish job: збережено default success gate, без `always()` або `continue-on-error` на validation. Artifacts, signing і release notes зберігають наявний формат.
 
-## Проверки и границы
+## Перевірки й межі
 
-`scripts/verify_source.py` принимает только full lowercase SHA, без branch/tag/short SHA, и запускает Git через argv с явным cwd. Его CLI проверяется на настоящих временных репозиториях и local bare origin: другой HEAD, dirty/staged source, lightweight/annotated tags, movement/deletion, manual missing tag. Workflow contract проверяет dependencies, readonly permissions и передачу одного SHA. Actionlint проверяет GitHub Actions expressions и reusable-call schema.
+`scripts/verify_source.py` приймає лише full lowercase SHA, без branch/tag/short SHA, і запускає Git через argv з явним cwd. Його CLI перевіряється на справжніх тимчасових репозиторіях і local bare origin: інший HEAD, dirty/staged source, lightweight/annotated tags, movement/deletion, manual missing tag. Workflow contract перевіряє dependencies, readonly permissions і передавання одного SHA. Actionlint перевіряє GitHub Actions expressions і reusable-call schema.
 
-Протокол проверяет source и состояние tag в моменты проверок; GitHub не предоставляет атомарную операцию «проверить ref и опубликовать release», поэтому защита от одновременного изменения tag также зависит от repository tag protections. Проверка source не является подписанной provenance для каждого байта installer. Signing, dependency integrity и Windows smoke остаются отдельными необходимыми проверками.
+Протокол перевіряє source і стан tag у моменти перевірок; GitHub не надає атомарної операції «перевірити ref і опублікувати release», тому захист від одночасної зміни tag також залежить від repository tag protections. Перевірка source не є підписаною provenance для кожного байта installer. Signing, dependency integrity і Windows smoke залишаються окремими необхідними перевірками.
 
-При разработке этого исправления release/tag/publish не запускались. PR CI проверяет новый checkout guard и обычную Windows-сборку; корректность release dependency graph и tag guards проверяется без публикации. Выпуск по-прежнему запускается существующим tag/manual workflow, когда выбранная версия готова к выпуску.
+Під час розробки цього виправлення release/tag/publish не запускалися. PR CI перевіряє новий checkout guard і звичайну Windows-збірку; коректність release dependency graph і tag guards перевіряється без публікації. Випуск, як і раніше, запускається наявним tag/manual workflow, коли вибрана версія готова до випуску.

@@ -25,7 +25,7 @@ function fakeSafeStorage(user = "user-1") {
 }
 
 const DEFAULTS = {
-  language: "ru",
+  language: "uk",
   discordWebhook: "",
   shares: {},
   friendsProfile: {enabled:false, id:"", token:"", showMmr:true}

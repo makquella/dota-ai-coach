@@ -9,9 +9,9 @@ in patch 7.41), and while the player's own hero holds the Aegis (the hero's
 `aegis` flag or `item_aegis`) it expires AEGIS seconds after the pickup.
 
 Hints, in the shape of map_hints timers (kind "timer", never minor):
-- «Рошан может появиться» from `lead_seconds` before the window opens;
-- «Рошан точно жив» when the window closes;
-- «Аегис сгорит через 60 с» a minute before the player's Aegis expires.
+- «Рошан може з'явитися» from `lead_seconds` before the window opens;
+- «Рошан точно живий» when the window closes;
+- «Аегіс згорить через 60 с» a minute before the player's Aegis expires.
 Nothing is guessed: without a kill event there is no Roshan hint.
 """
 
@@ -23,17 +23,17 @@ from app.map_hints import clock_label, strip_item, timers
 
 TEXT = {
     "window": {
-        "ru": ("Рошан может появиться", "Окно появления открывается в {at}, до {until}."),
+        "uk": ("Рошан може з'явитися", "Вікно появи відкривається о {at}, до {until}."),
         "en": ("Roshan can respawn", "The respawn window opens at {at}, until {until}."),
     },
     "alive": {
-        "ru": ("Рошан точно жив", "Окно появления закрылось: Рошан уже в логове."),
+        "uk": ("Рошан точно живий", "Вікно появи закрилося: Рошан уже в лігві."),
         "en": ("Roshan is up for sure", "The respawn window has closed: Roshan is in the pit."),
     },
     "aegis": {
-        "ru": (
-            "Аегис сгорит через {left} с",
-            "Играйте активнее, пока он у вас: начните драку или снесите башню.",
+        "uk": (
+            "Аегіс згорить через {left} с",
+            "Грайте активніше, поки він у вас: почніть бійку або знесіть вежу.",
         ),
         "en": (
             "Aegis expires in {left} s",
@@ -113,7 +113,7 @@ class RoshanTimer:
         if clock is None:
             return None
         cfg = _settings()
-        lang = "ru" if lang == "ru" else "en"
+        lang = "uk" if lang == "uk" else "en"
         if self.aegis_at is not None:
             expires = self.aegis_at + cfg["aegis"]
             if expires - cfg["warn"] <= clock <= expires:

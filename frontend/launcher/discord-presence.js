@@ -1,4 +1,4 @@
-// Discord Rich Presence: «Играет в Dota 2 · Juggernaut · с тренером Wardly» on the
+// Discord Rich Presence: «Грає в Dota 2 · Juggernaut · з тренером Wardly» on the
 // player's Discord profile. Discord's desktop client listens on a local IPC pipe
 // (discord-ipc-0..9); the frames are an int32 op, an int32 length and JSON. No
 // bot, no token, no server: only the public Application ID. Nothing is sent when
@@ -55,12 +55,12 @@ function ipcPath(index, { platform = process.platform, env = process.env } = {})
 }
 
 const TEXT = {
-  ru: {
-    match: (hero) => (hero ? `Матч на ${hero}` : "Матч в Dota 2"),
-    menu: "В меню Dota 2",
-    coach: "С тренером Wardly",
-    large: "Wardly — тренер по Dota 2",
-    button: "Wardly — тренер по Доте"
+  uk: {
+    match: (hero) => (hero ? `Матч на ${hero}` : "Матч у Dota 2"),
+    menu: "У меню Dota 2",
+    coach: "З тренером Wardly",
+    large: "Wardly — тренер з Dota 2",
+    button: "Wardly — тренер з Доти"
   },
   en: {
     match: (hero) => (hero ? `Playing ${hero}` : "In a Dota 2 match"),
@@ -79,14 +79,14 @@ function buildActivity({ dotaRunning, inMatch, hero, startedAt, lang }) {
   if (!dotaRunning && !inMatch) {
     return null;
   }
-  const t = TEXT[lang === "ru" ? "ru" : "en"];
+  const t = TEXT[lang === "uk" ? "uk" : "en"];
   const activity = {
     details: inMatch ? t.match(hero) : t.menu,
     state: t.coach,
     assets: { large_image: "wardly", large_text: t.large },
     // Friends who click it land on the site in the player's language; ?ref= lets
     // the site count them (see site/app.js).
-    buttons: [{ label: t.button, url: `${SITE_URL}/${lang === "ru" ? "" : "en/"}?ref=discord` }],
+    buttons: [{ label: t.button, url: `${SITE_URL}/${lang === "uk" ? "" : "en/"}?ref=discord` }],
     instance: false
   };
   if (inMatch && Number.isFinite(startedAt)) {

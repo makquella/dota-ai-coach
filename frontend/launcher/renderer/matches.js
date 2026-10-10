@@ -4,7 +4,7 @@
 // (window.launcherApi.player(op, args), see PLAYER_OPS in main.js):
 //   status, link, linkDetected, unlink, sync, matches, match, refreshMatch, career.
 // Review texts (titles, explanations, drills) are already localized by the
-// backend; this file only holds the UI labels (ru/en). Everything is built
+// backend; this file only holds the UI labels (uk/en). Everything is built
 // with DOM nodes and textContent — backend strings are never parsed as HTML.
 (function () {
   const TEXT = window.WardlyMatchTexts.create({ number, decimal, clock, plural });
@@ -88,7 +88,7 @@
     return `${sign}${Math.floor(abs / 60)}:${String(abs % 60).padStart(2, "0")}`;
   }
 
-  // `style` "short" («3 ч. назад») where a column is narrow (the match table).
+  // `style` "short" («3 год тому») where a column is narrow (the match table).
   function relativeTime(unixSeconds, style = "long") {
     if (!unixSeconds) {
       return "—";
@@ -102,7 +102,7 @@
     if (abs < 86400) {
       return rtf.format(Math.round(diff / 3600), "hour");
     }
-    // Short: «вчера», then the date («2 окт.»): «3 дн. назад» broke the column.
+    // Short: «учора», then the date («2 жовт.»): «3 дн. тому» broke the column.
     if (style === "short" && abs >= 86400 * 1.5) {
       return new Date(unixSeconds * 1000).toLocaleDateString(state.locale, { day: "numeric", month: "short" });
     }
@@ -121,7 +121,7 @@
     return value === null || value === undefined ? "—" : Math.round(value).toLocaleString(state.locale);
   }
 
-  // A fraction the way the player reads it: «7,5» in Russian, «7.5» in English.
+  // A fraction the way the player reads it: «7,5» in Ukrainian, «7.5» in English.
   function decimal(value, digits = 1) {
     if (value === null || value === undefined || !Number.isFinite(Number(value))) {
       return "—";
@@ -289,7 +289,7 @@
     return navigation.forward();
   }
 
-  // «‹ Матчи» / «‹ Главная»: a review goes back to the tab it came from.
+  // «‹ Матчі» / «‹ Головна»: a review goes back to the tab it came from.
   function leaveReview() {
     const seen = state.matchId;
     setView(state.reviewFrom && state.reviewFrom !== "match" ? state.reviewFrom : "matches", { restore: true });
@@ -922,7 +922,7 @@
               "span",
               { class: "hero-note-cell" },
               heroLabel(row.hero_id || row.hero, row.hero || "—"),
-              // «Заметка»: the player's own line, read on hover.
+              // «Нотатка»: the player's own line, read on hover.
               row.note ? h("span", { class: "row-note", title: row.note, "aria-label": `${t("noteLabel")}: ${row.note}` }, icon("sticky-note")) : null
             )
           ),
@@ -1017,7 +1017,7 @@
   }
 
   // Saves the current view as a PDF (light print theme, see @media print).
-  // «Поделиться разбором»: a link to the public part of the review (main.js createShare).
+  // «Поділитися розбором»: a link to the public part of the review (main.js createShare).
   // `kind` "progress": the same panel for the Progress page (main.js keys it "progress").
   function shareButton(panel, detail, kind = "match") {
     // The title names it when the sticky bar shows the icon alone.
@@ -1046,7 +1046,7 @@
     const note = h("p", { class: "muted small share-note", role: "status", text: message || "" });
     let body;
     if (share) {
-      const expires = new Date(share.expiresAt).toLocaleDateString(state.locale === "ru" ? "ru-RU" : "en-GB");
+      const expires = new Date(share.expiresAt).toLocaleDateString(state.locale === "uk" ? "uk-UA" : "en-GB");
       const link = h("input", { class: "input share-link", type: "text", readonly: true, value: share.url, "aria-label": text("shareLink") });
       link.addEventListener("focus", () => link.select());
       body = h(
@@ -1124,7 +1124,7 @@
           note.textContent = "";
           const printDate = document.getElementById("print-date");
           if (printDate) {
-            printDate.textContent = new Date().toLocaleDateString(state.locale === "ru" ? "ru-RU" : "en-GB");
+            printDate.textContent = new Date().toLocaleDateString(state.locale === "uk" ? "uk-UA" : "en-GB");
           }
           try {
             await loadAllPictures();
@@ -1413,7 +1413,7 @@
     );
   }
 
-  // «На чём основан разбор?» (backend review_basis.py): the rules version, the
+  // «На чому ґрунтується розбір?» (backend review_basis.py): the rules version, the
   // data it read and why it was built; a review from before 0.53.57 says so.
   function reviewBasis(analysis, sources) {
     if (!analysis) {
@@ -1433,7 +1433,7 @@
       basis
         ? t(
             `basisReason.${basis.reason}`,
-            new Date(basis.built_at).toLocaleString(state.locale === "ru" ? "ru-RU" : "en-GB", { day: "numeric", month: "long", hour: "2-digit", minute: "2-digit" }),
+            new Date(basis.built_at).toLocaleString(state.locale === "uk" ? "uk-UA" : "en-GB", { day: "numeric", month: "long", hour: "2-digit", minute: "2-digit" }),
             basis.previous_rules
           )
         : t("basisOld")
@@ -1566,7 +1566,7 @@
     );
   }
 
-  // «Заметка» (0.52): the player's own line on the match (lag, a new build,
+  // «Нотатка» (0.52): the player's own line on the match (lag, a new build,
   // played with a friend…), also marked in the match table. Kept on this
   // computer only: never sent to the AI coach or in a shared review.
   function noteLine(detail, summary) {
@@ -1985,7 +1985,7 @@
   }
 
   // The first skill maxed against the pro order on the hero (backend skill_build.py).
-  // «Линия»: the lane minute by minute against its enemy core (lane_duel.py,
+  // «Лінія»: the lane minute by minute against its enemy core (lane_duel.py,
   // parsed replays only).
   function laneCard(analysis) {
     const lane = analysis.lane;
@@ -2112,7 +2112,7 @@
         label: clock(bucket.time),
         value: bucket.winrate,
         title: t("buildTimingTip", clock(bucket.time)),
-        detail: `${number(bucket.games)} ${state.locale === "ru" ? "игр" : "games"}`,
+        detail: `${number(bucket.games)} ${state.locale === "uk" ? "ігор" : "games"}`,
         muted: bucket.time !== timing.bucket
       })),
       // 0-based columns, but no taller than needed so a 10-point gap is visible.
@@ -2253,7 +2253,7 @@
       "span",
       { class: "toolbar-actions no-print" },
       // Icon buttons with their names as tooltips: two worded buttons squeezed
-      // the card's title («Сравнение с другом») onto two lines.
+      // the card's title («Порівняння з другом») onto two lines.
       data.state !== "loading"
         ? h("button", {
             class: "btn btn-ghost btn-sm btn-icon",
@@ -2445,7 +2445,7 @@
   }
 
   // Heroes to play more and to park (career_analysis.hero_pool), all heroes only.
-  // «Ваши линии»: the judged lanes of the last 20 reviewed matches (lane_duel.career_lanes).
+  // «Ваші лінії»: the judged lanes of the last 20 reviewed matches (lane_duel.career_lanes).
   function lanesCard(lanes) {
     if (!lanes || !lanes.games) {
       return null;
@@ -2503,7 +2503,7 @@
     if (!history || !(history.steps || []).length || history.steps.length < 2) {
       return null;
     }
-    const day = (iso) => new Date(`${iso}T12:00:00Z`).toLocaleDateString(state.locale === "ru" ? "ru-RU" : "en-GB");
+    const day = (iso) => new Date(`${iso}T12:00:00Z`).toLocaleDateString(state.locale === "uk" ? "uk-UA" : "en-GB");
     const line = history.change >= 0
       ? t("rankUp", history.first, history.current, day(history.since))
       : t("rankDown", history.first, history.current, day(history.since));
@@ -3087,7 +3087,7 @@
     );
   }
 
-  // «Полезно / не к месту / повторялось» under a card (backend advice_feedback.py);
+  // «Корисно / не до речі / повторювалося» under a card (backend advice_feedback.py);
   // pressing the chosen one again clears it. Local only, never during a game.
   function adviceVerdicts(item) {
     const matchId = state.matchId;
@@ -3233,7 +3233,7 @@
   }
 
   // "Ask the coach": a free question about this match, answered from its facts.
-  // «Спросить тренера» about one match (op "ask") or, with `career`, the recent matches.
+  // «Запитати тренера» about one match (op "ask") or, with `career`, the recent matches.
   function askCard(detail, career = false) {
     const coach = detail.coach;
     if (!coach || coach.state === "off" || coach.state === "none") {
@@ -3519,7 +3519,7 @@
     }
     const aiCard = card(t("aiSettingsTitle"), "graduation-cap", body);
     // Words the settings search finds it by (settings-search.js).
-    aiCard.dataset.search = "ии ai тренер разбор ключ gemini groq openrouter key coach review";
+    aiCard.dataset.search = "ші ai тренер розбір ключ gemini groq openrouter key coach review";
     root.replaceChildren(aiCard);
     hydrate(root);
   }
@@ -3935,7 +3935,7 @@
     }
     const dateFormat = { day: "numeric", month: "short" };
     const points = rating.points.map((point) => {
-      const date = point.t ? new Date(point.t * 1000).toLocaleDateString(state.locale === "ru" ? "ru-RU" : "en-GB", dateFormat) : "";
+      const date = point.t ? new Date(point.t * 1000).toLocaleDateString(state.locale === "uk" ? "uk-UA" : "en-GB", dateFormat) : "";
       const hero = point.hero_id ? window.DotaIcons?.hero(point.hero_id)?.name : null;
       const what = point.anchor ? t("pfAnchor") : point.win ? t("pfWin") : t("pfLoss");
       return { ...point, title: date, detail: [what, hero].filter(Boolean).join(" · ") };
@@ -3943,7 +3943,7 @@
     window.LauncherCharts.rating(host, { points, ariaLabel: t("pfRating") });
   }
 
-  // «Друзья»: the own code (or the button that shows the profile), the add form
+  // «Друзі»: the own code (or the button that shows the profile), the add form
   // and the leaderboard of the player and the friends.
   function friendsCard() {
     const data = state.friends;
@@ -4134,7 +4134,7 @@
   }
 
   function achievementsCard(list) {
-    // Alone under the «Награды» zone heading: no second title on the card.
+    // Alone under the «Нагороди» zone heading: no second title on the card.
     return h(
       "section",
       { class: "card" },
@@ -4374,7 +4374,7 @@
 
   // The problem the player chose to work on and how the matches since went.
   function goalBody(focus) {
-    const since = focus.since ? new Date(focus.since).toLocaleDateString(state.locale === "ru" ? "ru-RU" : "en-GB", { day: "numeric", month: "long" }) : "";
+    const since = focus.since ? new Date(focus.since).toLocaleDateString(state.locale === "uk" ? "uk-UA" : "en-GB", { day: "numeric", month: "long" }) : "";
     const marks = (focus.results || []).map((result) =>
       h("button", {
         class: "goal-mark",
@@ -4517,7 +4517,7 @@
             { class: "table-wrap" },
             h(
               "table",
-              // Headers wrap («На вашем / ранге»): seven columns fit the main column without a sideways scroll.
+              // Headers wrap («На вашому / ранзі»): seven columns fit the main column without a sideways scroll.
               { class: "table table-wrapping" },
               h("thead", {}, h("tr", {}, h("th", { text: t("colHero") }), h("th", { class: "num-col", text: t("colMatches") }), h("th", { class: "num-col", text: t("colWinrate") }), h("th", { class: "num-col", text: t("colBracket"), title: career.rank_bracket_label ? t("bracketHint", career.rank_bracket_label) : "" }), h("th", { class: "num-col hide-narrow", text: "KDA" }), h("th", { class: "num-col hide-narrow", text: t("colGpm") }), h("th", { class: "num-col", text: t("colScore") }))),
               h(
@@ -4639,16 +4639,16 @@
   }
 
   function todayLine(today) {
-    const ru = state.locale === "ru";
+    const uk = state.locale === "uk";
     if (!today) {
       return t("summaryNoGames");
     }
     return [
-      ru ? `${today.games} ${plural(today.games, "матч", "матча", "матчей")}` : `${today.games} ${today.games === 1 ? "match" : "matches"}`,
+      uk ? `${today.games} ${plural(today.games, "матч", "матчі", "матчів")}` : `${today.games} ${today.games === 1 ? "match" : "matches"}`,
       `${today.wins}–${today.losses}`,
-      today.avg_score == null ? null : ru ? `средняя оценка ${today.avg_score}` : `average score ${today.avg_score}`,
+      today.avg_score == null ? null : uk ? `середня оцінка ${today.avg_score}` : `average score ${today.avg_score}`,
       // Today's matches judged by the focus (the focus block below spans days).
-      today.focus_total ? (ru ? `фокус ${today.focus_met} из ${today.focus_total}` : `focus ${today.focus_met} of ${today.focus_total}`) : null
+      today.focus_total ? (uk ? `фокус ${today.focus_met} з ${today.focus_total}` : `focus ${today.focus_met} of ${today.focus_total}`) : null
     ].filter(Boolean).join(" · ");
   }
 
@@ -4776,7 +4776,7 @@
     renderWeek(result.ok ? result.data.week : null);
   }
 
-  // «Последние матчи» on Home: the newest reviewed games, asked again when a new
+  // «Останні матчі» on Home: the newest reviewed games, asked again when a new
   // review is written (the same key as the week) or after a minute.
   const RECENT_MATCHES = 6;
 
@@ -4891,7 +4891,7 @@
     );
   }
 
-  // --- home: «Итог вечера» (app/session_summary.py) --------------------------------
+  // --- home: «Підсумок вечора» (app/session_summary.py) --------------------------------
 
   async function refreshSession(status) {
     // Only once Dota is closed: during the evening the card would be about half of it.
@@ -5111,10 +5111,10 @@
   }
 
   function onStatus(status) {
-    const localeChanged = state.locale !== (status.locale === "ru" ? "ru" : "en");
+    const localeChanged = state.locale !== (status.locale === "uk" ? "uk" : "en");
     const cameUp = status.backend === "running" && state.status?.backend !== "running";
     const backendChanged = status.backend !== state.status?.backend;
-    state.locale = status.locale === "ru" ? "ru" : "en";
+    state.locale = status.locale === "uk" ? "uk" : "en";
     state.status = status;
     // A tab waiting for the coach (offlinePage) opens once it runs, and says
     // «starting» / «not answering» as that changes.
@@ -5173,7 +5173,7 @@
       linked && {
         icon: "refresh-cw",
         label: t("palSync"),
-        keys: "sync обновить синхронизировать история history refresh",
+        keys: "sync оновити синхронізувати історія history refresh",
         run: async () => {
           setView("matches");
           await call("sync");
@@ -5183,18 +5183,18 @@
       linked && {
         icon: "search",
         label: t("palOpenNumber"),
-        keys: "номер ссылка opendota dotabuff stratz number link id",
+        keys: "номер посилання opendota dotabuff stratz number link id",
         run: () => {
           setView("matches");
           setTimeout(() => document.querySelector(".open-number-input")?.focus(), 400);
         }
       },
-      { icon: "circle-help", label: t("palHotkeys"), keys: "горячие клавиши hotkeys keys shortcuts", run: () => showHotkeys() },
-      { icon: "compass", label: t("palTour"), keys: "обучение экскурсия тур tour guide help", run: () => document.getElementById("tour-start")?.click() },
+      { icon: "circle-help", label: t("palHotkeys"), keys: "гарячі клавіші hotkeys keys shortcuts", run: () => showHotkeys() },
+      { icon: "compass", label: t("palTour"), keys: "навчання екскурсія тур tour guide help", run: () => document.getElementById("tour-start")?.click() },
       {
         icon: "send",
         label: t("palReport"),
-        keys: "проблема ошибка баг отчёт report bug problem",
+        keys: "проблема помилка баг звіт report bug problem",
         run: () => {
           setView("settings");
           const button = document.getElementById("report-open");
@@ -5260,7 +5260,7 @@
       ["profile", "user"],
       ["settings", "settings"]
     ].map(([view, iconName]) => ({ group: "tabs", icon: iconName, label: t(`backTo.${view}`), keys: view, run: () => setView(view) }));
-    // «Прогресс на Juggernaut»: Progress filtered to a hero of the list.
+    // «Прогрес на Juggernaut»: Progress filtered to a hero of the list.
     const heroes = new Map();
     for (const row of rows) {
       if (row.hero_id && !heroes.has(row.hero_id)) {
@@ -5271,7 +5271,7 @@
       group: "heroes",
       hero: heroId,
       label: t("palProgressHero", name || "—"),
-      keys: "progress прогресс",
+      keys: "progress прогрес",
       run: () => {
         state.careerHero = heroId;
         setView("progress");
@@ -5448,7 +5448,7 @@
     // Keyboard: Ctrl+1…5 opens a tab, Esc leaves a match review for the list,
     // ←/→ in a review open the newer / older match of the list.
     // Never while typing, and never under the first-run tour (it owns Esc).
-    // Ctrl+K anywhere (the key, not the letter: «л» on a Russian layout).
+    // Ctrl+K anywhere (the key, not the letter: «л» on a Cyrillic layout).
     document.addEventListener("keydown", (event) => {
       if ((event.ctrlKey || event.metaKey) && !event.altKey && !event.shiftKey && event.code === "KeyK") {
         event.preventDefault();

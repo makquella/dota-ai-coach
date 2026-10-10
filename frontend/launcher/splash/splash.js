@@ -5,10 +5,10 @@
   const statusEl = document.getElementById("status");
   const params = new URLSearchParams(location.search);
   const TEXTS = {
-    ru: { starting: "Запускаю тренера…", slow: "Первый запуск бывает дольше обычного…", ready: "Готово" },
+    uk: { starting: "Запускаю тренера…", slow: "Перший запуск буває довшим, ніж зазвичай…", ready: "Готово" },
     en: { starting: "Starting the coach…", slow: "The first start takes a little longer…", ready: "Ready" }
   };
-  const lang = params.get("lang") === "ru" ? "ru" : "en";
+  const lang = params.get("lang") === "uk" ? "uk" : "en";
   document.documentElement.lang = lang;
   const INTRO_MS = 900;
   const started = Date.now();

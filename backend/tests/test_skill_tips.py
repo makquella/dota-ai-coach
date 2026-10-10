@@ -57,8 +57,8 @@ def test_a_point_left_unspent_is_named_after_a_short_wait():
     _feed(tips, 100, _payload(3, [1, 1, 1]))
     _feed(tips, 110, _payload(4, [1, 1, 1]))  # levelled up, nothing spent
     assert tips.tip(110 + UNSPENT_WAIT - 1, "en", alive=True) is None
-    hint = tips.tip(110 + UNSPENT_WAIT, "ru", alive=True)
-    assert hint["title"] == "Не вложено очко навыков"
+    hint = tips.tip(110 + UNSPENT_WAIT, "uk", alive=True)
+    assert hint["title"] == "Не вкладено очко навичок"
     assert hint["id"] == "skill-point@4"
     assert tips.tip(110 + UNSPENT_WAIT, "en", alive=False) is None
     # Spent → quiet.
@@ -82,11 +82,11 @@ def test_the_talent_is_named_when_both_of_its_pair_are_open():
     talents = [False] * 8
     _feed(tips, 900, _payload(9, [4, 3, 1], ult=1, talents=talents))
     _feed(tips, 910, _payload(10, [4, 3, 1], ult=1, talents=talents))
-    hint = tips.tip(910 + UNSPENT_WAIT, "ru", alive=True)
-    assert hint["title"] == "Выберите талант" and "10-го" in hint["hint"]
+    hint = tips.tip(910 + UNSPENT_WAIT, "uk", alive=True)
+    assert hint["title"] == "Оберіть талант" and "10-го" in hint["hint"]
     talents[1] = True  # the right-hand level-10 talent
     _feed(tips, 930, _payload(10, [4, 3, 1], ult=1, talents=talents))
-    assert tips.tip(931, "ru", alive=True) is None
+    assert tips.tip(931, "uk", alive=True) is None
 
 
 def test_invoke_is_never_named_as_an_ultimate_to_learn():
@@ -168,8 +168,8 @@ def test_the_live_overlay_names_the_ultimate(client):
     client.get("/overlay/recommendation")
     client.post("/gsi", json=payload(610, 6, 0))
     client.post("/gsi", json=payload(610 + UNSPENT_WAIT, 6, 0))
-    hint = client.get("/overlay/recommendation?lang=ru").json().get("map_hint")
-    assert hint and hint["title"] == "Изучите ультимейт"
+    hint = client.get("/overlay/recommendation?lang=uk").json().get("map_hint")
+    assert hint and hint["title"] == "Вивчіть ультимейт"
     assert "Omnislash" in hint["hint"] or "Omni Slash" in hint["hint"]
 
 

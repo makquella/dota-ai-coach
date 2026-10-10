@@ -47,20 +47,20 @@ async function runRendererSecuritySmoke({ mainWindow, overlayWindow, skillArrows
   // Fresh private view state obtains the fixture through genuine preload/IPC.
   await main.loadFile(path.join(__dirname, "renderer/index.html"));
   try {
-    for (const [lang, label] of [["ru", "Язык"], ["en", "Language"]]) {
+    for (const [lang, label] of [["uk", "Мова"], ["en", "Language"]]) {
       await main.executeJavaScript(`document.querySelector('#tab-settings').click(); document.querySelector('[data-language="${lang}"]').click(); true`);
       const drawn = await until(() => main.executeJavaScript(`document.documentElement.lang === '${lang}' && document.querySelector('#language-title').textContent === '${label}' && document.querySelector('[data-language="${lang}"]').getAttribute('aria-checked') === 'true'`));
       step(`settings UI and trusted IPC (${lang})`, drawn);
       await main.executeJavaScript("document.querySelector('#backup-export').click(); true");
       const saved = await until(() => main.executeJavaScript("!document.querySelector('#backup-export').disabled && document.querySelector('#backup-hint').textContent.includes('history-smoke.json.gz')"), 10000);
       await main.executeJavaScript("document.querySelector('#backup-import').click(); true");
-      const loaded = await until(() => main.executeJavaScript(`!document.querySelector('#backup-import').disabled && document.querySelector('#backup-hint').textContent.includes(${JSON.stringify(lang === "ru" ? "Загружено новых матчей: 0" : "Loaded: 0 new matches")})`), 10000);
+      const loaded = await until(() => main.executeJavaScript(`!document.querySelector('#backup-import').disabled && document.querySelector('#backup-hint').textContent.includes(${JSON.stringify(lang === "uk" ? "Завантажено нових матчів: 0" : "Loaded: 0 new matches")})`), 10000);
       step(`history file roundtrip through UI and trusted IPC (${lang})`, saved && loaded, JSON.stringify({saved,loaded}));
       await main.executeJavaScript("window.PlayerViews.setView('matches', { remember: false }); true");
       const matchCopy = await until(() => main.executeJavaScript(`(() => {
         const root = document.querySelector('#matches-root');
-        const linked = ${JSON.stringify(lang === "ru" ? "Матчи" : "Matches")};
-        const unlinked = ${JSON.stringify(lang === "ru" ? "Привяжите аккаунт Steam" : "Link your Steam account")};
+        const linked = ${JSON.stringify(lang === "uk" ? "Матчі" : "Matches")};
+        const unlinked = ${JSON.stringify(lang === "uk" ? "Прив'яжіть акаунт Steam" : "Link your Steam account")};
         return !document.querySelector('#view-matches').classList.contains('hidden')
           && !root.querySelector('.skeleton') && (root.textContent.includes(unlinked) || root.textContent.includes(linked));
       })()`));
@@ -118,7 +118,7 @@ async function runRendererSecuritySmoke({ mainWindow, overlayWindow, skillArrows
         const root = document.querySelector('#progress-root');
         const rows = [...root.querySelectorAll('.table-wrapping tbody tr')];
         const tiles = root.querySelectorAll('.tiles .tile-value');
-        return !document.querySelector('#view-progress').classList.contains('hidden') && root.textContent.includes(${JSON.stringify(lang === "ru" ? "Прогресс" : "Progress")})
+        return !document.querySelector('#view-progress').classList.contains('hidden') && root.textContent.includes(${JSON.stringify(lang === "uk" ? "Прогрес" : "Progress")})
           && rows.length === 2 && tiles[0]?.textContent === '52%' && tiles[1]?.textContent === '—';
       })()`));
       await main.executeJavaScript("(() => { const select = document.querySelector('#progress-root select'); select.value = '8'; select.dispatchEvent(new Event('change', {bubbles:true})); })()");
@@ -163,11 +163,11 @@ async function runRendererSecuritySmoke({ mainWindow, overlayWindow, skillArrows
         const old = await Promise.all([oldProfile, oldFriends]);
         return old.every(value => value === false) && latestProfile === true && latestFriends === true;
       })()`);
-      const otherLanguage = lang === 'ru' ? 'en' : 'ru';
+      const otherLanguage = lang === 'uk' ? 'en' : 'uk';
       await main.executeJavaScript(`window.launcherApi.setLanguage('${otherLanguage}')`);
-      const profileTranslated = await until(() => main.executeJavaScript(`document.documentElement.lang === '${otherLanguage}' && document.querySelector('#profile-root .pf-level')?.textContent.startsWith(${JSON.stringify(lang === 'ru' ? 'Level' : 'Уровень')})`));
+      const profileTranslated = await until(() => main.executeJavaScript(`document.documentElement.lang === '${otherLanguage}' && document.querySelector('#profile-root .pf-level')?.textContent.startsWith(${JSON.stringify(lang === 'uk' ? 'Level' : 'Рівень')})`));
       await main.executeJavaScript(`window.launcherApi.setLanguage('${lang}')`);
-      const profileRestoredLanguage = await until(() => main.executeJavaScript(`document.documentElement.lang === '${lang}' && document.querySelector('#profile-root .pf-level')?.textContent.startsWith(${JSON.stringify(lang === 'ru' ? 'Уровень' : 'Level')})`));
+      const profileRestoredLanguage = await until(() => main.executeJavaScript(`document.documentElement.lang === '${lang}' && document.querySelector('#profile-root .pf-level')?.textContent.startsWith(${JSON.stringify(lang === 'uk' ? 'Рівень' : 'Level')})`));
       step(`profile/friends tab ownership and visible locale reload (${lang})`, profileOwnership && profileTranslated && profileRestoredLanguage, JSON.stringify({profileOwnership,profileTranslated,profileRestoredLanguage}));
       await main.executeJavaScript("window.PlayerViews.setView('matches', {remember:false}); true");
       await until(() => main.executeJavaScript("Boolean(document.querySelector('#matches-root .player-actions .btn-ghost'))"));
@@ -202,7 +202,7 @@ async function runRendererSecuritySmoke({ mainWindow, overlayWindow, skillArrows
       await main.executeJavaScript("delete window.__wardlyReturnRow; true");
       step(`review history back, forward and focused return (${lang})`, review && back && forward && returned, JSON.stringify({review,back,forward,returned}));
       await main.executeJavaScript("window.PlayerViews.openMatch('8999999999'); true");
-      const missingDetail = await until(() => main.executeJavaScript(`document.querySelector('#match-root').textContent.includes(${JSON.stringify(lang === "ru" ? "Этого матча больше нет в истории." : "This match is no longer in your history.")}) && !document.querySelector('#match-root .skeleton')`));
+      const missingDetail = await until(() => main.executeJavaScript(`document.querySelector('#match-root').textContent.includes(${JSON.stringify(lang === "uk" ? "Цього матчу більше немає в історії." : "This match is no longer in your history.")}) && !document.querySelector('#match-root .skeleton')`));
       step(`extracted detail missing-record UI via genuine IPC (${lang})`, missingDetail);
       await main.executeJavaScript("window.PlayerViews.setView('matches', {remember:false}); true");
       await until(() => main.executeJavaScript("document.querySelectorAll('#matches-root tbody .row-link').length >= 30"));
@@ -227,8 +227,8 @@ async function runRendererSecuritySmoke({ mainWindow, overlayWindow, skillArrows
         const card = document.querySelector('#whats-new-card');
         const heading = document.querySelector('#whats-new-heading');
         const list = document.querySelector('#whats-new-list');
-        const label = ${JSON.stringify(lang === "ru" ? "Что нового в " : "What's new in ")};
-        const also = ${JSON.stringify(lang === "ru" ? "Также в " : "Also in ")};
+        const label = ${JSON.stringify(lang === "uk" ? "Що нового в " : "What's new in ")};
+        const also = ${JSON.stringify(lang === "uk" ? "Також у " : "Also in ")};
         const table = window.WardlyWhatsNew.texts(${JSON.stringify(lang)});
         return !card.classList.contains('hidden') && heading.textContent === label + version
           && list.querySelectorAll('.whats-new-version').length === 3
@@ -253,7 +253,7 @@ async function runRendererSecuritySmoke({ mainWindow, overlayWindow, skillArrows
   })()`);
   step("match counter contract renders partial and zero totals", partialCounters);
 
-  for (const [language, label] of [["ru", "Убийства: 0"], ["en", "Kills: 0"]]) {
+  for (const [language, label] of [["uk", "Вбивства: 0"], ["en", "Kills: 0"]]) {
     const rendered = await main.executeJavaScript(`(() => {
       const row = { source: 'analysis.headline', field: 'kills', observed_at: null, precision: 'reported_total', value: 0 };
       const node = window.WardlyCoachEvidence.render({ counter_evidence: [row] }, ${JSON.stringify(language)});
@@ -270,12 +270,12 @@ async function runRendererSecuritySmoke({ mainWindow, overlayWindow, skillArrows
   const rejected = await main.executeJavaScript(`(() => {
     const row = { source: 'analysis.headline', field: 'kills', observed_at: null, precision: 'reported_total', value: '<img src=x onerror=alert(1)>' };
     return window.WardlyCoachEvidence.render({ counter_evidence: [row] }, 'en') === null
-      && window.WardlyCoachEvidence.render({}, 'ru') === null
+      && window.WardlyCoachEvidence.render({}, 'uk') === null
       && window.WardlyCoachEvidence.render({ counter_evidence: [{...row, value: 2, source: 'unknown'}] }, 'en') === null;
   })()`);
   step("coach evidence rejects malformed data and supports legacy reviews", rejected);
 
-  for (const [language, decimal] of [["ru", "430,5"], ["en", "430.5"]]) {
+  for (const [language, decimal] of [["uk", "430,5"], ["en", "430.5"]]) {
     const rendered = await main.executeJavaScript(`(() => {
       const rate = { source: 'analysis.headline', field: 'gpm', observed_at: null, precision: 'reported_match_rate', value: 0 };
       const node = window.WardlyCoachEvidence.render({ rate_evidence: [rate, {...rate, field: 'xpm', value: 430.5}] }, ${JSON.stringify(language)});
@@ -294,7 +294,7 @@ async function runRendererSecuritySmoke({ mainWindow, overlayWindow, skillArrows
     step(`coach rate evidence DOM (${language})`, rendered);
   }
 
-  for (const [language, label] of [["ru", "Добивания: 0"], ["en", "Last hits: 0"]]) {
+  for (const [language, label] of [["uk", "Добивання: 0"], ["en", "Last hits: 0"]]) {
     const rendered = await main.executeJavaScript(`(() => {
       const row = {source:'analysis.headline', field:'last_hits', observed_at:null, precision:'reported_total', value:0};
       const node = window.WardlyCoachEvidence.render({farm_evidence:[row,{...row,field:'denies',value:3}]}, ${JSON.stringify(language)});
@@ -320,7 +320,7 @@ async function runRendererSecuritySmoke({ mainWindow, overlayWindow, skillArrows
     step(`coach farm evidence DOM (${language})`, rendered);
   }
 
-  for (const [language, label] of [["ru", "неполные данные"], ["en", "partial data"]]) {
+  for (const [language, label] of [["uk", "неповні дані"], ["en", "partial data"]]) {
     const finding = await main.executeJavaScript(`(() => {
       const row = {field:'obs_placed',source:'gsi.inventory_changes',precision:'inventory_estimate',value:0,observed_at:null,coverage:{start:900,end:1800,gaps:[[1200,1260]],complete:false}};
       const node = window.WardlyFindingEvidence.render({id:'wards_low',params:{obs:0},evidence:[row]}, ${JSON.stringify(language)});

@@ -1,6 +1,6 @@
 # Match-screen copy boundary
 
-F13, second slice in 0.53.16, moves the 1,386-line RU/EN `TEXT` literal out of
+F13, second slice in 0.53.16, moves the 1,386-line UK/EN `TEXT` literal out of
 `renderer/matches.js` into `renderer/match-texts.js`. Text values and functions
 are preserved; the literal is only reindented. The controller keeps view state,
 actions and DOM rendering, reducing it from 6,853 to 5,468 lines at extraction.
@@ -16,10 +16,10 @@ view. The Node export exposes the same factory without DOM/Electron imports.
 CSP. `renderer/**/*` already includes it in the installer, and `npm run check`
 checks its syntax explicitly. The factory has no IPC, network or storage access.
 
-Existing duplicate-key and RU/EN key-coverage checks now read the canonical
+Existing duplicate-key and UK/EN key-coverage checks now read the canonical
 literal. Three factory tests exercise section metric/time formatter bindings,
-Russian plural delegation and changing locale behind the formatter. Source
-and packaged Windows smoke switch RU/EN, navigate to the real Matches view and
+Ukrainian plural delegation and changing locale behind the formatter. Source
+and packaged Windows smoke switch UK/EN, navigate to the real Matches view and
 verify rendered copy plus the authenticated API/preload/security checks. These
 DOM checks catch missing scripts, load order and broken view initialization.
 

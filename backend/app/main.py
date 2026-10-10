@@ -120,7 +120,7 @@ app = LocalApiApp(
     lifespan=_lifespan,
     title="Wardly",
     description="MVP-1: rule-based carry coach with local knowledge-base RAG.",
-    version="0.53.62",
+    version="0.54.0",
 )
 app.include_router(player_router)
 
@@ -156,7 +156,7 @@ if _DEBUG_PAGES is not None:
 @app.get("/", summary="Health check")
 def root():
     """Simple health-check endpoint."""
-    return {"status": "ok", "service": "Wardly", "version": "0.53.62"}
+    return {"status": "ok", "service": "Wardly", "version": "0.54.0"}
 
 
 @app.get("/health", summary="Health check")
@@ -414,7 +414,7 @@ def session_recording_status():
 
 @app.get("/overlay/recommendation", summary="Get overlay-friendly recommendation")
 def overlay_recommendation(lang: str = "en"):
-    """`lang=ru` returns the visible text in Russian (see app/advice_i18n.py)."""
+    """`lang=uk` returns the visible text in Ukrainian (see app/advice_i18n.py)."""
     lang = normalize_lang(lang)
     response = localize_overlay_response(_overlay_recommendation_payload(), lang)
     plan = _game_plan_for_overlay(response, lang)
