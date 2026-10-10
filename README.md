@@ -364,6 +364,21 @@ See the detailed roadmap:
 
 - [Roadmap](docs/ROADMAP.md)
 
+## Code signing policy
+
+Free code signing provided by [SignPath.io](https://signpath.io), certificate by [SignPath Foundation](https://signpath.org).
+The application to SignPath Foundation is submitted; until it is approved, the Windows installer is unsigned.
+
+- **What is signed:** only the Wardly installer and the app inside it, built by GitHub Actions
+  ([`release.yml`](.github/workflows/release.yml)) from this repository's source. Every signing request is approved manually.
+- **Committers and reviewers:** [makquella](https://github.com/makquella). Pull requests from anyone else are reviewed before merge.
+- **Approvers:** [makquella](https://github.com/makquella) (repository owner).
+- **Privacy policy:** [luhovyimvp.dev/privacy.html](https://luhovyimvp.dev/privacy.html) — what the app sends, to which
+  services (OpenDota, Valve CDN, GitHub, optional AI services; problem reports and anonymous statistics only with consent)
+  and how to turn it off.
+
+The same policy on the website: [luhovyimvp.dev/code-signing.html](https://luhovyimvp.dev/code-signing.html).
+
 ## License / Authorship
 
 - Author: Artem / makquella

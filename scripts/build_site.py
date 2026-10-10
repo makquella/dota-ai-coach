@@ -34,7 +34,10 @@ from app.advice_context import LH_RANGE_POINTS  # noqa: E402 - after the backend
 from app.hero_profiles import POSITION_PACE  # noqa: E402
 from app.live_tools import USABLE_SAFETY  # noqa: E402
 
-ASSET_VERSION = "9"
+sys.path.insert(0, str(ROOT / "scripts"))
+import news  # noqa: E402 - scripts/news.py, after the scripts path
+
+ASSET_VERSION = "10"
 POSITIONS = ("carry", "mid", "offlane", "support")
 POSITION_NAMES = {
     "uk": {"carry": "Керрі", "mid": "Мід", "offlane": "Хардлайн", "support": "Саппорт"},
@@ -463,6 +466,7 @@ T = {
             ("#profile", "Профіль"),
         ],
         "heroes": "Герої",
+        "news": "Новини",
         "faq": "Запитання",
         "download": "Завантажити",
         "download_long": "Завантажити для Windows",
@@ -527,6 +531,7 @@ T = {
             ("#profile", "Profile"),
         ],
         "heroes": "Heroes",
+        "news": "News",
         "faq": "FAQ",
         "download": "Download",
         "download_long": "Download for Windows",
@@ -592,6 +597,67 @@ ICONS = """    <svg width="0" height="0" style="position: absolute" aria-hidden=
     </svg>"""
 
 
+DOWNLOAD = "https://github.com/makquella/dota-ai-coach/releases/latest"
+
+
+def site_header(lang: str, up: str, home: str) -> str:
+    """The top bar of a generated page; `up` leads to the site root, `home` to
+    this language's home page."""
+    t = T[lang]
+    e = html.escape
+    nav = "\n".join(
+        f'          <a href="{home}{anchor}">{e(label)}</a>' for anchor, label in t["nav"]
+    )
+    return f"""    <header class="nav" id="top">
+      <div class="wrap nav-inner">
+        <a class="brand" href="{home}" aria-label="Wardly">
+          <img class="brand-mark" src="{up}assets/logo-mark.png" alt="" width="28" height="28" />
+          <span class="brand-name">Wardly</span>
+        </a>
+        <nav class="nav-links" aria-label="{e(t["footer_label"])}">
+{nav}
+          <a href="{home}heroes.html">{e(t["heroes"])}</a>
+          <a href="{home}news.html">{e(t["news"])}</a>
+          <a href="{home}#faq">{e(t["faq"])}</a>
+        </nav>
+        <div class="nav-actions">
+          <div class="lang" role="group" aria-label="{e(t["lang"])}">
+            <button type="button" data-lang="uk" aria-pressed="{str(lang == "uk").lower()}">UK</button>
+            <button type="button" data-lang="en" aria-pressed="{str(lang == "en").lower()}">EN</button>
+          </div>
+          <a class="btn btn-primary btn-sm js-download" href="{DOWNLOAD}">
+            <svg class="i" aria-hidden="true"><use href="#i-windows" /></svg>
+            <span>{e(t["download"])}</span>
+          </a>
+        </div>
+      </div>
+    </header>"""
+
+
+def site_footer(lang: str, up: str, home: str) -> str:
+    t = T[lang]
+    e = html.escape
+    return f"""    <footer class="footer">
+      <div class="wrap footer-inner">
+        <a class="brand" href="{home}" aria-label="Wardly">
+          <img class="brand-mark" src="{up}assets/logo-mark.png" alt="" width="24" height="24" />
+          <span class="brand-name">Wardly</span>
+        </a>
+        <nav class="footer-links" aria-label="{e(t["footer_label"])}">
+          <a href="https://github.com/makquella/dota-ai-coach" rel="noopener">GitHub</a>
+          <a href="https://github.com/makquella/dota-ai-coach/releases" rel="noopener">{e(t["releases"])}</a>
+          <a href="https://github.com/makquella/dota-ai-coach/issues" rel="noopener">{e(t["issues"])}</a>
+          <a href="{home}heroes.html">{e(t["heroes"])}</a>
+          <a href="{home}news.html">{e(t["news"])}</a>
+          <a href="{up}changelog.html">{e(t["changelog"])}</a>
+          <a href="{up}privacy.html">{e(t["privacy"])}</a>
+          <a href="{up}code-signing.html">Code signing policy</a>
+        </nav>
+        <p class="footer-legal">{e(t["legal"])}</p>
+      </div>
+    </footer>"""
+
+
 def hero_page(hero: dict, all_heroes: list[dict], lang: str) -> str:
     t = T[lang]
     e = html.escape
@@ -647,10 +713,7 @@ def hero_page(hero: dict, all_heroes: list[dict], lang: str) -> str:
         for h in all_heroes
         if h["position"] == position and h is not hero
     )
-    nav = "\n".join(
-        f'          <a href="{home}{anchor}">{e(label)}</a>' for anchor, label in t["nav"]
-    )
-    download = "https://github.com/makquella/dota-ai-coach/releases/latest"
+    download = DOWNLOAD
     return f"""<!doctype html>
 <html lang="{lang}" data-static="{lang}" {alt}>
   <head>
@@ -675,29 +738,7 @@ def hero_page(hero: dict, all_heroes: list[dict], lang: str) -> str:
   <body>
     <a class="skip" href="#main">{e(t["skip"])}</a>
 
-    <header class="nav" id="top">
-      <div class="wrap nav-inner">
-        <a class="brand" href="{home}" aria-label="Wardly">
-          <img class="brand-mark" src="{up}assets/logo-mark.png" alt="" width="28" height="28" />
-          <span class="brand-name">Wardly</span>
-        </a>
-        <nav class="nav-links" aria-label="{e(t["footer_label"])}">
-{nav}
-          <a href="{home}heroes.html">{e(t["heroes"])}</a>
-          <a href="{home}#faq">{e(t["faq"])}</a>
-        </nav>
-        <div class="nav-actions">
-          <div class="lang" role="group" aria-label="{e(t["lang"])}">
-            <button type="button" data-lang="uk" aria-pressed="{str(lang == "uk").lower()}">UK</button>
-            <button type="button" data-lang="en" aria-pressed="{str(lang == "en").lower()}">EN</button>
-          </div>
-          <a class="btn btn-primary btn-sm js-download" href="{download}">
-            <svg class="i" aria-hidden="true"><use href="#i-windows" /></svg>
-            <span>{e(t["download"])}</span>
-          </a>
-        </div>
-      </div>
-    </header>
+{site_header(lang, up, home)}
 
     <main id="main">
       <section class="page-head">
@@ -770,23 +811,7 @@ def hero_page(hero: dict, all_heroes: list[dict], lang: str) -> str:
       </section>
     </main>
 
-    <footer class="footer">
-      <div class="wrap footer-inner">
-        <a class="brand" href="{home}" aria-label="Wardly">
-          <img class="brand-mark" src="{up}assets/logo-mark.png" alt="" width="24" height="24" />
-          <span class="brand-name">Wardly</span>
-        </a>
-        <nav class="footer-links" aria-label="{e(t["footer_label"])}">
-          <a href="https://github.com/makquella/dota-ai-coach" rel="noopener">GitHub</a>
-          <a href="https://github.com/makquella/dota-ai-coach/releases" rel="noopener">{e(t["releases"])}</a>
-          <a href="https://github.com/makquella/dota-ai-coach/issues" rel="noopener">{e(t["issues"])}</a>
-          <a href="{home}heroes.html">{e(t["heroes"])}</a>
-          <a href="{up}changelog.html">{e(t["changelog"])}</a>
-          <a href="{up}privacy.html">{e(t["privacy"])}</a>
-        </nav>
-        <p class="footer-legal">{e(t["legal"])}</p>
-      </div>
-    </footer>
+{site_footer(lang, up, home)}
 
 {ICONS}
 
@@ -797,12 +822,103 @@ def hero_page(hero: dict, all_heroes: list[dict], lang: str) -> str:
 """
 
 
+# --- news pages -----------------------------------------------------------------------
+
+
+def _page(
+    lang: str, *, up: str, home: str, path: str, title: str, description: str, main: str
+) -> str:
+    """A generated page around `main`; `path` is the page's path under each
+    language's root (`news.html`, `news/<slug>.html`)."""
+    e = html.escape
+    uk_url, en_url = f"{BASE}/{path}", f"{BASE}/en/{path}"
+    url = uk_url if lang == "uk" else en_url
+    depth = path.count("/")
+    alt = (
+        f'data-alt-en="{"../" * depth}en/{path}"'
+        if lang == "uk"
+        else f'data-alt-uk="{"../" * (depth + 1)}{path}"'
+    )
+    return f"""<!doctype html>
+<html lang="{lang}" data-static="{lang}" {alt}>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{e(title)}</title>
+    <meta name="description" content="{e(description)}" />
+    <meta name="theme-color" content="#0c0d0f" />
+    <meta property="og:type" content="article" />
+    <meta property="og:title" content="{e(title)}" />
+    <meta property="og:description" content="{e(description)}" />
+    <link rel="canonical" href="{url}" />
+    <link rel="alternate" hreflang="uk" href="{uk_url}" />
+    <link rel="alternate" hreflang="en" href="{en_url}" />
+    <link rel="alternate" hreflang="x-default" href="{uk_url}" />
+    <meta property="og:url" content="{url}" />
+    <meta property="og:image" content="{BASE}/assets/og.jpg?v=7" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <link rel="icon" href="{up}assets/favicon.png" type="image/png" />
+    <link rel="stylesheet" href="{up}styles.css?v={ASSET_VERSION}" />
+  </head>
+  <body>
+    <a class="skip" href="#main">{e(T[lang]["skip"])}</a>
+
+{site_header(lang, up, home)}
+
+{main}
+
+{site_footer(lang, up, home)}
+
+{ICONS}
+
+    <script src="{up}i18n-en.js?v={ASSET_VERSION}" defer></script>
+    <script src="{up}app.js?v={ASSET_VERSION}" defer></script>
+  </body>
+</html>
+"""
+
+
+def news_pages(all_heroes: list[dict]) -> dict[Path, str]:
+    """site/news.html, site/news/<slug>.html and their /en/ copies (scripts/news.py)."""
+    posts = news.load_posts()
+    links = {hero["name"]: hero["slug"] for hero in all_heroes}
+    files: dict[Path, str] = {}
+    for lang in ("uk", "en"):
+        root = SITE if lang == "uk" else SITE / "en"
+        up_list = "" if lang == "uk" else "../"
+        t = news.TEXT[lang]
+        files[root / "news.html"] = _page(
+            lang,
+            up=up_list,
+            home="./",
+            path="news.html",
+            title=f"{t['list_title']} — Wardly",
+            description=t["list_lead"],
+            main=news.list_main(posts, lang, "./", up_list),
+        )
+        for post in posts:
+            data = news.summary(post, news.previous_of(post, posts))
+            files[root / "news" / f"{news.slug(post)}.html"] = _page(
+                lang,
+                up=up_list + "../",
+                home="../",
+                path=f"news/{news.slug(post)}.html",
+                title=f"{news.title(post, lang)} — Wardly",
+                description=news.lead(post, data, lang),
+                main=news.post_main(post, data, lang, links, "../"),
+            )
+    return files
+
+
 # --- sitemap -----------------------------------------------------------------------
 
 
 def sitemap(all_heroes: list[dict]) -> str:
-    pairs = [("/", "/en/"), ("/heroes.html", "/en/heroes.html")]
+    pairs = [("/", "/en/"), ("/heroes.html", "/en/heroes.html"), ("/news.html", "/en/news.html")]
     pairs += [(f"/heroes/{h['slug']}.html", f"/en/heroes/{h['slug']}.html") for h in all_heroes]
+    for post in news.load_posts():
+        page = f"/news/{news.slug(post)}.html"
+        pairs.append((page, f"/en{page}"))
     lines = [
         '<?xml version="1.0" encoding="UTF-8"?>',
         '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">',
@@ -814,7 +930,7 @@ def sitemap(all_heroes: list[dict]) -> str:
                 f'<xhtml:link rel="alternate" hreflang="uk" href="{BASE}{uk}" />'
                 f'<xhtml:link rel="alternate" hreflang="en" href="{BASE}{en}" /></url>'
             )
-    for page in ("/changelog.html", "/privacy.html"):
+    for page in ("/changelog.html", "/privacy.html", "/code-signing.html"):
         lines.append(f"  <url><loc>{BASE}{page}</loc></url>")
     lines.append("</urlset>")
     return "\n".join(lines) + "\n"
@@ -866,6 +982,7 @@ def build() -> dict[Path, str]:
     for hero in all_heroes:
         files[SITE / "heroes" / f"{hero['slug']}.html"] = hero_page(hero, all_heroes, "uk")
         files[SITE / "en" / "heroes" / f"{hero['slug']}.html"] = hero_page(hero, all_heroes, "en")
+    files.update(news_pages(all_heroes))
     files[SITE / "sitemap.xml"] = sitemap(all_heroes)
     return files
 
@@ -877,7 +994,7 @@ def main() -> int:
     )
     args = parser.parse_args()
     files = build()
-    generated_dirs = [SITE / "heroes", SITE / "en" / "heroes"]
+    generated_dirs = [SITE / "heroes", SITE / "en" / "heroes", SITE / "news", SITE / "en" / "news"]
     stray = [p for d in generated_dirs if d.exists() for p in d.glob("*.html") if p not in files]
     if args.check:
         stale = [

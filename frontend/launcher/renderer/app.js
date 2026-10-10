@@ -73,6 +73,10 @@ const els = {
   whatsNewList: $("#whats-new-list"),
   whatsNewDismiss: $("#whats-new-dismiss"),
   inviteCard: $("#invite-card"),
+  statsAskCard: $("#stats-ask-card"),
+  statsAskYes: $("#stats-ask-yes"),
+  statsAskNo: $("#stats-ask-no"),
+  statsAskPrivacy: $("#stats-ask-privacy"),
   inviteCopy: $("#invite-copy"),
   inviteDismiss: $("#invite-dismiss"),
   tourStart: $("#tour-start"),
@@ -444,6 +448,13 @@ async function init() {
       setTimeout(() => renderStatus(status), 1400);
     })
   );
+  els.statsAskYes.addEventListener("click", () =>
+    run(async () => renderStatus(await window.launcherApi.statsAnswer("yes")))
+  );
+  els.statsAskNo.addEventListener("click", () =>
+    run(async () => renderStatus(await window.launcherApi.statsAnswer("no")))
+  );
+  els.statsAskPrivacy.addEventListener("click", () => run(() => window.launcherApi.openPrivacy()));
   els.inviteDismiss.addEventListener("click", () =>
     run(async () => renderStatus(await window.launcherApi.invite("dismiss")))
   );
@@ -975,6 +986,7 @@ function renderStatus(status) {
   renderSetup(status);
   renderWhatsNew(status);
   els.inviteCard.classList.toggle("hidden", !status.invite);
+  els.statsAskCard.classList.toggle("hidden", !status.statsAsk);
   // «Now» (current match, recent advice) only while Dota runs or there is advice
   // to show; with Dota closed the summary and the week lead.
   const live = status.live || {};
