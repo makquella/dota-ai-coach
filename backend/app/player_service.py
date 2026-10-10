@@ -700,7 +700,7 @@ class PlayerService:
         primary = self.store.primary_account_id()
         if primary is None:
             return None
-        rows = self.store.list_matches(primary, limit=PROFILE_MATCHES_LIMIT)
+        rows = self.store.profile_rows(primary, limit=PROFILE_MATCHES_LIMIT)
         return build_profile(
             rows,
             player=self.store.get_player(primary),

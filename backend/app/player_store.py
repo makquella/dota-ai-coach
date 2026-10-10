@@ -122,6 +122,12 @@ CREATE TABLE IF NOT EXISTS matches (
     PRIMARY KEY (account_id, match_id)
 );
 CREATE INDEX IF NOT EXISTS matches_by_time ON matches (account_id, start_time DESC);
+-- The order every list reads in (newest first, unknown times last), with and
+-- without the hero filter: no temporary sort over the whole history.
+CREATE INDEX IF NOT EXISTS matches_by_order
+  ON matches (account_id, COALESCE(start_time, 0) DESC, match_id DESC);
+CREATE INDEX IF NOT EXISTS matches_by_hero_order
+  ON matches (account_id, hero_id, COALESCE(start_time, 0) DESC, match_id DESC);
 CREATE TABLE IF NOT EXISTS cache (
     key TEXT PRIMARY KEY,
     value TEXT,
@@ -499,6 +505,31 @@ class PlayerStore:
                 f"timeline_json IS NOT NULL AS has_timeline FROM matches WHERE {where} "
                 f"ORDER BY {order} LIMIT ? OFFSET ?",
                 (*params, int(limit), int(offset)),
+            ).fetchall()
+        return [_summary_row(row) for row in rows]
+
+    # The columns the «Профиль» tab reads (player_profile.py), for every match.
+    PROFILE_COLUMNS = (
+        "match_id",
+        "start_time",
+        "win",
+        "score",
+        "hero_id",
+        "duration",
+        "deaths",
+        "lobby_type",
+        "sources",
+    )
+
+    def profile_rows(self, account_id: int, *, limit: int) -> list[dict[str, Any]]:
+        """Newest first, only PROFILE_COLUMNS and has_analysis: the profile reads
+        the whole history, so no items, notes or other summary columns."""
+        with self._lock:
+            rows = self._conn.execute(
+                f"SELECT {', '.join(self.PROFILE_COLUMNS)}, "
+                "analysis_json IS NOT NULL AS has_analysis FROM matches WHERE account_id = ? "
+                "ORDER BY COALESCE(start_time, 0) DESC, match_id DESC LIMIT ?",
+                (int(account_id), int(limit)),
             ).fetchall()
         return [_summary_row(row) for row in rows]
 
