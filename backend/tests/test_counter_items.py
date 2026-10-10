@@ -306,3 +306,13 @@ def test_the_draft_read_reaches_the_overlay(client):
             titles.append(hint.get("title"))
     # After the lane tips that come first (a Magic Stick), once.
     assert titles.count("Against their draft: Monkey King Bar") >= 2
+
+
+def test_the_draft_read_follows_the_live_role(monkeypatch):
+    from app.player_api import PLAYER_SERVICE
+
+    monkeypatch.setattr(PLAYER_SERVICE, "_live_meta", lambda hero_id: META)
+    lineup = ["Phantom Lancer", "Lion", "Axe", "Crystal Maiden"]
+    # A support hero played as a carry gets the carry's counter; its usual role, none.
+    assert PLAYER_SERVICE.draft_item("Crystal Maiden", [], lineup) is None
+    assert PLAYER_SERVICE.draft_item("Crystal Maiden", [], lineup, "carry")["key"] == "maelstrom"

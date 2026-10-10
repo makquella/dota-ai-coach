@@ -518,7 +518,7 @@ def _live_role_and_hint(response: dict[str, object], lang: str) -> dict[str, obj
     )
     lane_record = _lane_record(trackers.opponents) if map_enabled else None
     draft = (
-        PLAYER_SERVICE.draft_item(hero, names, trackers.enemies or None)
+        PLAYER_SERVICE.draft_item(hero, names, trackers.enemies or None, role.get("role"))
         if map_enabled
         and role
         and role.get("role") != "support"

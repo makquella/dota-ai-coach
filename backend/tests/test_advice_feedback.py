@@ -116,3 +116,17 @@ def test_the_scheduler_follows_the_marks(client):
     PLAYER_SERVICE.store.set_meta(f"advice_feedback:{account}:1", None)
     _rate(client, advice[0]["key"], None)
     assert ADVICE_SCHEDULER.quieter == frozenset()
+
+
+def test_a_restored_backup_refreshes_the_quieter_advice(client, tmp_path):
+    from app.advice_scheduler import ADVICE_SCHEDULER
+
+    _recorded_match(client)
+    account = PLAYER_SERVICE.store.primary_account_id()
+    marks = {f"{60 * i}:SAFE_FARMING": "repeated" for i in range(1, 4)}
+    PLAYER_SERVICE.store.set_meta(f"advice_feedback:{account}:{MATCH_ID}", json.dumps(marks))
+    backup = client.get("/player/backup").json()
+    PLAYER_SERVICE.configure(tmp_path / "other", client=None, auto_start=False)
+    ADVICE_SCHEDULER.set_quieter(())
+    assert client.post("/player/backup", json=backup).status_code == 200
+    assert ADVICE_SCHEDULER.quieter == frozenset({"SAFE_FARMING"})

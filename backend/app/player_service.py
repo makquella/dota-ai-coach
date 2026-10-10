@@ -628,14 +628,20 @@ class PlayerService:
         return buy_now(item_key, owned, constants, gold)
 
     def draft_item(
-        self, hero: str, owned: list[str] | None, enemies: list[str] | None
+        self,
+        hero: str,
+        owned: list[str] | None,
+        enemies: list[str] | None,
+        position: str | None = None,
     ) -> dict[str, Any] | None:
         """The counter item to plan for against the enemy heroes seen, for a core
-        early in the match (situational_items.draft_item)."""
+        early in the match (situational_items.draft_item); `position` is the live
+        role, else the hero's usual one."""
         hero_id = hero_id_from_name(hero)
         if hero_id is None or owned is None:
             return None
-        return draft_counter_item(enemies, owned, self._live_meta(hero_id), get_hero_position(hero))
+        position = position or get_hero_position(hero)
+        return draft_counter_item(enemies, owned, self._live_meta(hero_id), position)
 
     def save_item(
         self, hero: str, owned: list[str] | None, enemies: list[str] | None = None

@@ -278,12 +278,15 @@ def export_history(request: Request):
 @router.post("/backup", summary="Merge a history backup (adds, never overwrites)")
 def import_history(data: Annotated[dict, Body()]):
     try:
-        return PLAYER_SERVICE.import_backup(data)
+        result = PLAYER_SERVICE.import_backup(data)
     except BackupError as error:
         return JSONResponse(
             status_code=503 if error.code == "restore_failed" else 400,
             content={"status": "error", "code": error.code, "detail": str(error)},
         )
+    # The backup may bring advice marks (or the linked account).
+    refresh_quieter_advice()
+    return result
 
 
 # Automatic local copies (auto_backup.py): list, make, preview, restore.
@@ -340,11 +343,13 @@ def preview_backup(backup_id: BackupId):
 @router.post("/backups/{backup_id}/restore", summary="Merge a local copy back (adds only)")
 def restore_backup(backup_id: BackupId):
     try:
-        return PLAYER_SERVICE.restore_backup_copy(backup_id)
+        result = PLAYER_SERVICE.restore_backup_copy(backup_id)
     except KeyError:
         return _backup_missing()
     except BackupError as error:
         return _backup_error(error)
+    refresh_quieter_advice()
+    return result
 
 
 class AdviceFeedbackRequest(BaseModel):
