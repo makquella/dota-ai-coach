@@ -8,764 +8,764 @@
   {
    "id": 1,
    "name": "Anti-Mage",
-   "picks": 606024,
-   "wins": 307919
+   "picks": 609567,
+   "wins": 309647
   },
   {
    "id": 2,
    "name": "Axe",
-   "picks": 738994,
-   "wins": 374205
+   "picks": 742892,
+   "wins": 376194
   },
   {
    "id": 3,
    "name": "Bane",
-   "picks": 135435,
-   "wins": 66291
+   "picks": 136207,
+   "wins": 66652
   },
   {
    "id": 4,
    "name": "Bloodseeker",
-   "picks": 177388,
-   "wins": 91994
+   "picks": 178324,
+   "wins": 92482
   },
   {
    "id": 5,
    "name": "Crystal Maiden",
-   "picks": 622483,
-   "wins": 323268
+   "picks": 625657,
+   "wins": 324903
   },
   {
    "id": 6,
    "name": "Drow Ranger",
-   "picks": 653278,
-   "wins": 301109
+   "picks": 657666,
+   "wins": 303147
   },
   {
    "id": 7,
    "name": "Earthshaker",
-   "picks": 677813,
-   "wins": 341802
+   "picks": 681360,
+   "wins": 343619
   },
   {
    "id": 8,
    "name": "Juggernaut",
-   "picks": 801094,
-   "wins": 421739
+   "picks": 804790,
+   "wins": 423715
   },
   {
    "id": 9,
    "name": "Mirana",
-   "picks": 500231,
-   "wins": 257830
+   "picks": 502512,
+   "wins": 259040
   },
   {
    "id": 10,
    "name": "Morphling",
-   "picks": 165163,
-   "wins": 79223
+   "picks": 166088,
+   "wins": 79646
   },
   {
    "id": 11,
    "name": "Shadow Fiend",
-   "picks": 472480,
-   "wins": 204496
+   "picks": 475136,
+   "wins": 205648
   },
   {
    "id": 12,
    "name": "Phantom Lancer",
-   "picks": 547799,
-   "wins": 290685
+   "picks": 550822,
+   "wins": 292289
   },
   {
    "id": 13,
    "name": "Puck",
-   "picks": 126909,
-   "wins": 59513
+   "picks": 127597,
+   "wins": 59843
   },
   {
    "id": 14,
    "name": "Pudge",
-   "picks": 1199446,
-   "wins": 616132
+   "picks": 1205854,
+   "wins": 619431
   },
   {
    "id": 15,
    "name": "Razor",
-   "picks": 292177,
-   "wins": 147555
+   "picks": 293441,
+   "wins": 148209
   },
   {
    "id": 16,
    "name": "Sand King",
-   "picks": 168268,
-   "wins": 83301
+   "picks": 169204,
+   "wins": 83751
   },
   {
    "id": 17,
    "name": "Storm Spirit",
-   "picks": 245028,
-   "wins": 115158
+   "picks": 246230,
+   "wins": 115739
   },
   {
    "id": 18,
    "name": "Sven",
-   "picks": 472989,
-   "wins": 245026
+   "picks": 475273,
+   "wins": 246181
   },
   {
    "id": 19,
    "name": "Tiny",
-   "picks": 270849,
-   "wins": 119403
+   "picks": 272412,
+   "wins": 120094
   },
   {
    "id": 20,
    "name": "Vengeful Spirit",
-   "picks": 430345,
-   "wins": 225369
+   "picks": 432593,
+   "wins": 226564
   },
   {
    "id": 21,
    "name": "Windranger",
-   "picks": 749311,
-   "wins": 364112
+   "picks": 753070,
+   "wins": 365929
   },
   {
    "id": 22,
    "name": "Zeus",
-   "picks": 564080,
-   "wins": 282863
+   "picks": 566801,
+   "wins": 284183
   },
   {
    "id": 23,
    "name": "Kunkka",
-   "picks": 196866,
-   "wins": 97997
+   "picks": 197911,
+   "wins": 98518
   },
   {
    "id": 25,
    "name": "Lina",
-   "picks": 701917,
-   "wins": 330440
+   "picks": 705526,
+   "wins": 332126
   },
   {
    "id": 26,
    "name": "Lion",
-   "picks": 1068087,
-   "wins": 521946
+   "picks": 1073831,
+   "wins": 524805
   },
   {
    "id": 27,
    "name": "Shadow Shaman",
-   "picks": 702321,
-   "wins": 363101
+   "picks": 706505,
+   "wins": 365200
   },
   {
    "id": 28,
    "name": "Slardar",
-   "picks": 296993,
-   "wins": 146510
+   "picks": 298521,
+   "wins": 147273
   },
   {
    "id": 29,
    "name": "Tidehunter",
-   "picks": 516743,
-   "wins": 255810
+   "picks": 520257,
+   "wins": 257544
   },
   {
    "id": 30,
    "name": "Witch Doctor",
-   "picks": 708574,
-   "wins": 370601
+   "picks": 712577,
+   "wins": 372732
   },
   {
    "id": 31,
    "name": "Lich",
-   "picks": 464507,
-   "wins": 244740
+   "picks": 467042,
+   "wins": 246066
   },
   {
    "id": 32,
    "name": "Riki",
-   "picks": 252687,
-   "wins": 133338
+   "picks": 253911,
+   "wins": 133981
   },
   {
    "id": 33,
    "name": "Enigma",
-   "picks": 176282,
-   "wins": 89086
+   "picks": 177319,
+   "wins": 89601
   },
   {
    "id": 34,
    "name": "Tinker",
-   "picks": 223460,
-   "wins": 105005
+   "picks": 224689,
+   "wins": 105595
   },
   {
    "id": 35,
    "name": "Sniper",
-   "picks": 871243,
-   "wins": 435275
+   "picks": 875730,
+   "wins": 437534
   },
   {
    "id": 36,
    "name": "Necrophos",
-   "picks": 668680,
-   "wins": 342411
+   "picks": 671923,
+   "wins": 344030
   },
   {
    "id": 37,
    "name": "Warlock",
-   "picks": 247589,
-   "wins": 123414
+   "picks": 248828,
+   "wins": 124013
   },
   {
    "id": 38,
    "name": "Beastmaster",
-   "picks": 92340,
-   "wins": 42574
+   "picks": 92863,
+   "wins": 42828
   },
   {
    "id": 39,
    "name": "Queen of Pain",
-   "picks": 389064,
-   "wins": 185177
+   "picks": 390917,
+   "wins": 186049
   },
   {
    "id": 40,
    "name": "Venomancer",
-   "picks": 299501,
-   "wins": 144625
+   "picks": 300994,
+   "wins": 145416
   },
   {
    "id": 41,
    "name": "Faceless Void",
-   "picks": 360004,
-   "wins": 175962
+   "picks": 361708,
+   "wins": 176788
   },
   {
    "id": 42,
    "name": "Wraith King",
-   "picks": 551810,
-   "wins": 304271
+   "picks": 554497,
+   "wins": 305787
   },
   {
    "id": 43,
    "name": "Death Prophet",
-   "picks": 233496,
-   "wins": 112809
+   "picks": 234888,
+   "wins": 113457
   },
   {
    "id": 44,
    "name": "Phantom Assassin",
-   "picks": 589510,
-   "wins": 302255
+   "picks": 592758,
+   "wins": 303926
   },
   {
    "id": 45,
    "name": "Pugna",
-   "picks": 187458,
-   "wins": 94256
+   "picks": 188414,
+   "wins": 94726
   },
   {
    "id": 46,
    "name": "Templar Assassin",
-   "picks": 219187,
-   "wins": 101082
+   "picks": 220422,
+   "wins": 101685
   },
   {
    "id": 47,
    "name": "Viper",
-   "picks": 364523,
-   "wins": 177918
+   "picks": 366490,
+   "wins": 178855
   },
   {
    "id": 48,
    "name": "Luna",
-   "picks": 524210,
-   "wins": 267134
+   "picks": 527299,
+   "wins": 268762
   },
   {
    "id": 49,
    "name": "Dragon Knight",
-   "picks": 531556,
-   "wins": 280961
+   "picks": 534269,
+   "wins": 282378
   },
   {
    "id": 50,
    "name": "Dazzle",
-   "picks": 221401,
-   "wins": 112541
+   "picks": 222759,
+   "wins": 113259
   },
   {
    "id": 51,
    "name": "Clockwerk",
-   "picks": 131766,
-   "wins": 62473
+   "picks": 132341,
+   "wins": 62761
   },
   {
    "id": 52,
    "name": "Leshrac",
-   "picks": 108220,
-   "wins": 55798
+   "picks": 108787,
+   "wins": 56117
   },
   {
    "id": 53,
    "name": "Nature's Prophet",
-   "picks": 406920,
-   "wins": 177641
+   "picks": 408980,
+   "wins": 178598
   },
   {
    "id": 54,
    "name": "Lifestealer",
-   "picks": 628239,
-   "wins": 324080
+   "picks": 631426,
+   "wins": 325758
   },
   {
    "id": 55,
    "name": "Dark Seer",
-   "picks": 215096,
-   "wins": 105919
+   "picks": 216064,
+   "wins": 106367
   },
   {
    "id": 56,
    "name": "Clinkz",
-   "picks": 214729,
-   "wins": 106801
+   "picks": 215877,
+   "wins": 107374
   },
   {
    "id": 57,
    "name": "Omniknight",
-   "picks": 101535,
-   "wins": 51518
+   "picks": 102122,
+   "wins": 51828
   },
   {
    "id": 58,
    "name": "Enchantress",
-   "picks": 121467,
-   "wins": 57994
+   "picks": 122049,
+   "wins": 58269
   },
   {
    "id": 59,
    "name": "Huskar",
-   "picks": 202775,
-   "wins": 93110
+   "picks": 203845,
+   "wins": 93611
   },
   {
    "id": 60,
    "name": "Night Stalker",
-   "picks": 310365,
-   "wins": 160371
+   "picks": 312004,
+   "wins": 161200
   },
   {
    "id": 61,
    "name": "Broodmother",
-   "picks": 108860,
-   "wins": 53845
+   "picks": 109561,
+   "wins": 54214
   },
   {
    "id": 62,
    "name": "Bounty Hunter",
-   "picks": 322644,
-   "wins": 167813
+   "picks": 324089,
+   "wins": 168572
   },
   {
    "id": 63,
    "name": "Weaver",
-   "picks": 234896,
-   "wins": 111461
+   "picks": 236170,
+   "wins": 112052
   },
   {
    "id": 64,
    "name": "Jakiro",
-   "picks": 351767,
-   "wins": 171130
+   "picks": 353641,
+   "wins": 172043
   },
   {
    "id": 65,
    "name": "Batrider",
-   "picks": 46421,
-   "wins": 20947
+   "picks": 46691,
+   "wins": 21064
   },
   {
    "id": 66,
    "name": "Chen",
-   "picks": 20007,
-   "wins": 9178
+   "picks": 20108,
+   "wins": 9224
   },
   {
    "id": 67,
    "name": "Spectre",
-   "picks": 421443,
-   "wins": 223866
+   "picks": 423566,
+   "wins": 224995
   },
   {
    "id": 68,
    "name": "Ancient Apparition",
-   "picks": 362582,
-   "wins": 186169
+   "picks": 364646,
+   "wins": 187248
   },
   {
    "id": 69,
    "name": "Doom",
-   "picks": 236311,
-   "wins": 112859
+   "picks": 237389,
+   "wins": 113378
   },
   {
    "id": 70,
    "name": "Ursa",
-   "picks": 298239,
-   "wins": 145809
+   "picks": 299925,
+   "wins": 146646
   },
   {
    "id": 71,
    "name": "Spirit Breaker",
-   "picks": 731668,
-   "wins": 381994
+   "picks": 735500,
+   "wins": 383977
   },
   {
    "id": 72,
    "name": "Gyrocopter",
-   "picks": 155513,
-   "wins": 72914
+   "picks": 156208,
+   "wins": 73234
   },
   {
    "id": 73,
    "name": "Alchemist",
-   "picks": 128268,
-   "wins": 60797
+   "picks": 128885,
+   "wins": 61072
   },
   {
    "id": 74,
    "name": "Invoker",
-   "picks": 789838,
-   "wins": 399335
+   "picks": 794391,
+   "wins": 401624
   },
   {
    "id": 75,
    "name": "Silencer",
-   "picks": 431620,
-   "wins": 218356
+   "picks": 433681,
+   "wins": 219437
   },
   {
    "id": 76,
    "name": "Outworld Devourer",
-   "picks": 510595,
-   "wins": 272744
+   "picks": 513157,
+   "wins": 274090
   },
   {
    "id": 77,
    "name": "Lycan",
-   "picks": 63584,
-   "wins": 31035
+   "picks": 63906,
+   "wins": 31190
   },
   {
    "id": 78,
    "name": "Brewmaster",
-   "picks": 93514,
-   "wins": 47122
+   "picks": 94087,
+   "wins": 47410
   },
   {
    "id": 79,
    "name": "Shadow Demon",
-   "picks": 88048,
-   "wins": 39248
+   "picks": 88551,
+   "wins": 39477
   },
   {
    "id": 80,
    "name": "Lone Druid",
-   "picks": 128218,
-   "wins": 62803
+   "picks": 128859,
+   "wins": 63122
   },
   {
    "id": 81,
    "name": "Chaos Knight",
-   "picks": 205688,
-   "wins": 106018
+   "picks": 206694,
+   "wins": 106522
   },
   {
    "id": 82,
    "name": "Meepo",
-   "picks": 81455,
-   "wins": 42952
+   "picks": 81938,
+   "wins": 43183
   },
   {
    "id": 83,
    "name": "Treant Protector",
-   "picks": 133942,
-   "wins": 61055
+   "picks": 134709,
+   "wins": 61445
   },
   {
    "id": 84,
    "name": "Ogre Magi",
-   "picks": 727069,
-   "wins": 368519
+   "picks": 730645,
+   "wins": 370270
   },
   {
    "id": 85,
    "name": "Undying",
-   "picks": 587170,
-   "wins": 292131
+   "picks": 590607,
+   "wins": 293850
   },
   {
    "id": 86,
    "name": "Rubick",
-   "picks": 842756,
-   "wins": 418673
+   "picks": 847144,
+   "wins": 420833
   },
   {
    "id": 87,
    "name": "Disruptor",
-   "picks": 347388,
-   "wins": 175332
+   "picks": 349055,
+   "wins": 176161
   },
   {
    "id": 88,
    "name": "Nyx Assassin",
-   "picks": 407024,
-   "wins": 213632
+   "picks": 409382,
+   "wins": 214838
   },
   {
    "id": 89,
    "name": "Naga Siren",
-   "picks": 72544,
-   "wins": 35644
+   "picks": 72952,
+   "wins": 35841
   },
   {
    "id": 90,
    "name": "Keeper of the Light",
-   "picks": 214169,
-   "wins": 104721
+   "picks": 215511,
+   "wins": 105378
   },
   {
    "id": 91,
    "name": "Io",
-   "picks": 176630,
-   "wins": 88106
+   "picks": 177767,
+   "wins": 88687
   },
   {
    "id": 92,
    "name": "Visage",
-   "picks": 69576,
-   "wins": 36368
+   "picks": 70011,
+   "wins": 36591
   },
   {
    "id": 93,
    "name": "Slark",
-   "picks": 573221,
-   "wins": 287580
+   "picks": 575893,
+   "wins": 288887
   },
   {
    "id": 94,
    "name": "Medusa",
-   "picks": 123242,
-   "wins": 60638
+   "picks": 123836,
+   "wins": 60950
   },
   {
    "id": 95,
    "name": "Troll Warlord",
-   "picks": 134081,
-   "wins": 70004
+   "picks": 134777,
+   "wins": 70368
   },
   {
    "id": 96,
    "name": "Centaur Warrunner",
-   "picks": 273570,
-   "wins": 135349
+   "picks": 274760,
+   "wins": 135921
   },
   {
    "id": 97,
    "name": "Magnus",
-   "picks": 439284,
-   "wins": 217322
+   "picks": 441766,
+   "wins": 218552
   },
   {
    "id": 98,
    "name": "Timbersaw",
-   "picks": 198688,
-   "wins": 90873
+   "picks": 199725,
+   "wins": 91354
   },
   {
    "id": 99,
    "name": "Bristleback",
-   "picks": 294496,
-   "wins": 144506
+   "picks": 295989,
+   "wins": 145227
   },
   {
    "id": 100,
    "name": "Tusk",
-   "picks": 227853,
-   "wins": 109235
+   "picks": 229117,
+   "wins": 109863
   },
   {
    "id": 101,
    "name": "Skywrath Mage",
-   "picks": 526191,
-   "wins": 263151
+   "picks": 528962,
+   "wins": 264548
   },
   {
    "id": 102,
    "name": "Abaddon",
-   "picks": 137763,
-   "wins": 70294
+   "picks": 138517,
+   "wins": 70667
   },
   {
    "id": 103,
    "name": "Elder Titan",
-   "picks": 48726,
-   "wins": 24263
+   "picks": 48963,
+   "wins": 24383
   },
   {
    "id": 104,
    "name": "Legion Commander",
-   "picks": 681855,
-   "wins": 359191
+   "picks": 685775,
+   "wins": 361322
   },
   {
    "id": 105,
    "name": "Techies",
-   "picks": 551646,
-   "wins": 282016
+   "picks": 555076,
+   "wins": 283784
   },
   {
    "id": 106,
    "name": "Ember Spirit",
-   "picks": 288843,
-   "wins": 141355
+   "picks": 290372,
+   "wins": 142094
   },
   {
    "id": 107,
    "name": "Earth Spirit",
-   "picks": 178287,
-   "wins": 88107
+   "picks": 179216,
+   "wins": 88557
   },
   {
    "id": 108,
    "name": "Underlord",
-   "picks": 268237,
-   "wins": 130359
+   "picks": 269327,
+   "wins": 130907
   },
   {
    "id": 109,
    "name": "Terrorblade",
-   "picks": 279856,
-   "wins": 126388
+   "picks": 281768,
+   "wins": 127253
   },
   {
    "id": 110,
    "name": "Phoenix",
-   "picks": 212352,
-   "wins": 109743
+   "picks": 213590,
+   "wins": 110376
   },
   {
    "id": 111,
    "name": "Oracle",
-   "picks": 202315,
-   "wins": 98432
+   "picks": 203828,
+   "wins": 99136
   },
   {
    "id": 112,
    "name": "Winter Wyvern",
-   "picks": 266423,
-   "wins": 132171
+   "picks": 268018,
+   "wins": 132950
   },
   {
    "id": 113,
    "name": "Arc Warden",
-   "picks": 208372,
-   "wins": 107742
+   "picks": 209662,
+   "wins": 108432
   },
   {
    "id": 114,
    "name": "Monkey King",
-   "picks": 234802,
-   "wins": 108377
+   "picks": 236036,
+   "wins": 108948
   },
   {
    "id": 119,
    "name": "Dark Willow",
-   "picks": 304535,
-   "wins": 148951
+   "picks": 306205,
+   "wins": 149742
   },
   {
    "id": 120,
    "name": "Pangolier",
-   "picks": 141411,
-   "wins": 65763
+   "picks": 142262,
+   "wins": 66150
   },
   {
    "id": 121,
    "name": "Grimstroke",
-   "picks": 283675,
-   "wins": 147721
+   "picks": 285376,
+   "wins": 148623
   },
   {
    "id": 123,
    "name": "Hoodwink",
-   "picks": 493075,
-   "wins": 232085
+   "picks": 495839,
+   "wins": 233335
   },
   {
    "id": 126,
    "name": "Void Spirit",
-   "picks": 191293,
-   "wins": 94667
+   "picks": 192296,
+   "wins": 95177
   },
   {
    "id": 128,
    "name": "Snapfire",
-   "picks": 422581,
-   "wins": 208601
+   "picks": 424889,
+   "wins": 209725
   },
   {
    "id": 129,
    "name": "Mars",
-   "picks": 173216,
-   "wins": 82929
+   "picks": 174106,
+   "wins": 83367
   },
   {
    "id": 131,
    "name": "Ring Master",
-   "picks": 206501,
-   "wins": 100171
+   "picks": 207742,
+   "wins": 100775
   },
   {
    "id": 135,
    "name": "Dawnbreaker",
-   "picks": 389558,
-   "wins": 203490
+   "picks": 391730,
+   "wins": 204613
   },
   {
    "id": 136,
    "name": "Marci",
-   "picks": 268649,
-   "wins": 130535
+   "picks": 270606,
+   "wins": 131464
   },
   {
    "id": 137,
    "name": "Primal Beast",
-   "picks": 179976,
-   "wins": 86787
+   "picks": 181189,
+   "wins": 87390
   },
   {
    "id": 138,
    "name": "Muerta",
-   "picks": 120480,
-   "wins": 57986
+   "picks": 121113,
+   "wins": 58288
   },
   {
    "id": 145,
    "name": "Kez",
-   "picks": 164872,
-   "wins": 75196
+   "picks": 165846,
+   "wins": 75656
   },
   {
    "id": 155,
    "name": "Largo",
-   "picks": 71169,
-   "wins": 34138
+   "picks": 71544,
+   "wins": 34323
   }
  ]
 }
