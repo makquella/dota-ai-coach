@@ -37,11 +37,25 @@ def fetch_hero_stats() -> list[dict]:
         return json.loads(response.read().decode("utf-8"))
 
 
+def dump(post: dict) -> str:
+    """The post as JSON, one hero per line (a readable weekly diff)."""
+    head = {key: value for key, value in post.items() if key != "heroes"}
+    lines = [json.dumps(hero, ensure_ascii=False) for hero in post["heroes"]]
+    body = json.dumps(head, ensure_ascii=False, indent=1)[:-2]
+    return body + ',\n "heroes": [\n  ' + ",\n  ".join(lines) + "\n ]\n}\n"
+
+
 def write_meta(stats: list[dict], today: date) -> Path:
     post = news.meta_post(stats, today)
     news.POSTS.mkdir(parents=True, exist_ok=True)
     path = news.POSTS / f"{news.slug(post)}.json"
-    path.write_text(json.dumps(post, ensure_ascii=False, indent=1) + "\n", encoding="utf-8")
+    path.write_text(dump(post), encoding="utf-8")
+    # A new hero has no picture yet: the page shows their initials until one is added.
+    posts = news.load_posts()
+    data = news.summary(post, news.previous_of(post, posts))
+    have = {image.stem for image in news.HERO_IMAGES.glob("*.webp")}
+    for key in sorted(news.image_keys(data) - have):
+        print(f"no picture site/assets/heroes/{key}.webp: the page shows initials")
     return path
 
 
