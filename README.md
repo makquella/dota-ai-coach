@@ -200,8 +200,8 @@ SignPath Foundation's free program for open source projects did not accept Wardl
 we will apply again later.
 
 - **How to check a download:** the installer is built by GitHub Actions ([`release.yml`](.github/workflows/release.yml))
-  from this repository's source at the release commit; every release links a VirusTotal report whose address holds the
-  installer's SHA-256 (compare with `Get-FileHash`).
+  from this repository's source at the release commit; the release notes usually link a VirusTotal report whose address
+  holds the installer's SHA-256 (compare with `Get-FileHash`); without one, check the file on virustotal.com yourself.
 - **Once signed:** only the Wardly installer and the app inside it, built from this repository; every signing request
   approved manually.
 - **Committers and reviewers:** [makquella](https://github.com/makquella). Pull requests from anyone else are reviewed before merge.
