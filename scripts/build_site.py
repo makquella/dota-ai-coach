@@ -999,13 +999,19 @@ def build() -> dict[Path, str]:
 
 def check_asset_versions() -> None:
     """Fail when a hand-written page loads shared assets with another version."""
+    assets = ("styles.css", "app.js", "i18n-en.js")
     for name in ("index.html", "heroes.html"):
         text = (SITE / name).read_text(encoding="utf-8")
-        for asset, version in re.findall(r"(styles\.css|app\.js|i18n-en\.js)\?v=(\w+)", text):
-            if version != ASSET_VERSION:
-                raise SystemExit(
-                    f"site/{name}: {asset}?v={version}, expected ?v={ASSET_VERSION} (ASSET_VERSION)"
-                )
+        urls = re.findall(r'(?:href|src)="([^"]*)"', text)
+        for asset in assets:
+            found = [url for url in urls if url.split("?")[0] == asset]
+            if not found:
+                raise SystemExit(f"site/{name}: does not load {asset}")
+            for url in found:
+                if url != f"{asset}?v={ASSET_VERSION}":
+                    raise SystemExit(
+                        f"site/{name}: {url}, expected {asset}?v={ASSET_VERSION} (ASSET_VERSION)"
+                    )
 
 
 def main() -> int:
