@@ -284,6 +284,33 @@
   window.addEventListener("scroll", onScroll, { passive: true });
   onScroll();
 
+  // The menu button (phones and narrow windows): the section links as a panel
+  // under the header; a link, Escape, a tap outside or a wide window closes it.
+  const menuButton = document.querySelector(".nav-toggle");
+  const menu = document.getElementById("site-menu");
+  if (menuButton && menu) {
+    const setMenu = (open) => {
+      nav.classList.toggle("menu-open", open);
+      menuButton.setAttribute("aria-expanded", String(open));
+    };
+    menuButton.addEventListener("click", () => setMenu(!nav.classList.contains("menu-open")));
+    menu.addEventListener("click", (event) => {
+      if (event.target.closest("a")) setMenu(false);
+    });
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "Escape" && nav.classList.contains("menu-open")) {
+        setMenu(false);
+        menuButton.focus();
+      }
+    });
+    document.addEventListener("click", (event) => {
+      if (nav.classList.contains("menu-open") && !nav.contains(event.target)) setMenu(false);
+    });
+    window.matchMedia("(min-width: 1081px)").addEventListener("change", (event) => {
+      if (event.matches) setMenu(false);
+    });
+  }
+
   const revealed = document.querySelectorAll(".section-head, .tile, .step, .split-copy, .split-stage, .mode, .heroes, .final-inner");
   if ("IntersectionObserver" in window) {
     const observer = new IntersectionObserver(

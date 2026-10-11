@@ -37,7 +37,7 @@ from app.live_tools import USABLE_SAFETY  # noqa: E402
 sys.path.insert(0, str(ROOT / "scripts"))
 import news  # noqa: E402 - scripts/news.py, after the scripts path
 
-ASSET_VERSION = "11"
+ASSET_VERSION = "12"
 POSITIONS = ("carry", "mid", "offlane", "support")
 POSITION_NAMES = {
     "uk": {"carry": "Керрі", "mid": "Мід", "offlane": "Хардлайн", "support": "Саппорт"},
@@ -467,6 +467,7 @@ T = {
         ],
         "heroes": "Герої",
         "news": "Новини",
+        "menu": "Меню",
         "faq": "Запитання",
         "download": "Завантажити",
         "download_long": "Завантажити для Windows",
@@ -532,6 +533,7 @@ T = {
         ],
         "heroes": "Heroes",
         "news": "News",
+        "menu": "Menu",
         "faq": "FAQ",
         "download": "Download",
         "download_long": "Download for Windows",
@@ -614,7 +616,7 @@ def site_header(lang: str, up: str, home: str) -> str:
           <img class="brand-mark" src="{up}assets/logo-mark.png" alt="" width="28" height="28" />
           <span class="brand-name">Wardly</span>
         </a>
-        <nav class="nav-links" aria-label="{e(t["footer_label"])}">
+        <nav class="nav-links" id="site-menu" aria-label="{e(t["footer_label"])}">
 {nav}
           <a href="{home}heroes.html">{e(t["heroes"])}</a>
           <a href="{home}news.html">{e(t["news"])}</a>
@@ -629,6 +631,9 @@ def site_header(lang: str, up: str, home: str) -> str:
             <svg class="i" aria-hidden="true"><use href="#i-windows" /></svg>
             <span>{e(t["download"])}</span>
           </a>
+          <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="site-menu" aria-label="{e(t["menu"])}">
+            <span></span><span></span><span></span>
+          </button>
         </div>
       </div>
     </header>"""

@@ -274,6 +274,37 @@ p {
   color: var(--text);
 }
 
+/* The menu button: phones and narrow windows only (the links fold into a panel). */
+.nav-toggle {
+  display: none;
+  flex-direction: column;
+  justify-content: center;
+  gap: 4px;
+  width: 40px;
+  height: 40px;
+  padding: 0 11px;
+  border: 1px solid var(--line-strong);
+  border-radius: 10px;
+  background: none;
+  cursor: pointer;
+}
+.nav-toggle span {
+  display: block;
+  height: 2px;
+  border-radius: 1px;
+  background: var(--text);
+  transition: transform 200ms var(--ease), opacity 160ms var(--ease);
+}
+.nav.menu-open .nav-toggle span:nth-child(1) {
+  transform: translateY(6px) rotate(45deg);
+}
+.nav.menu-open .nav-toggle span:nth-child(2) {
+  opacity: 0;
+}
+.nav.menu-open .nav-toggle span:nth-child(3) {
+  transform: translateY(-6px) rotate(-45deg);
+}
+
 /* --- hero -------------------------------------------------------------------------- */
 
 .hero {
@@ -808,6 +839,41 @@ h2 {
   }
   .nav-actions {
     margin-left: auto;
+  }
+  .nav-toggle {
+    display: inline-flex;
+  }
+  .nav.menu-open {
+    background: var(--bg);
+    border-bottom-color: var(--line);
+  }
+  .nav.menu-open .nav-links {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    max-height: calc(100vh - 72px);
+    overflow-y: auto;
+    padding: 8px max(20px, calc((100vw - var(--wrap)) / 2)) 20px;
+    background: var(--bg);
+    border-bottom: 1px solid var(--line);
+    box-shadow: 0 24px 40px rgba(0, 0, 0, 0.45);
+    animation: menu-in 180ms var(--ease);
+  }
+  .nav.menu-open .nav-links a {
+    padding: 14px 4px;
+    border-bottom: 1px solid var(--line);
+    color: var(--text);
+    font-size: 17px;
+  }
+  .nav.menu-open .nav-links a:last-child {
+    border-bottom: 0;
+  }
+  .nav.menu-open .nav-links a[aria-current="page"] {
+    color: var(--accent);
   }
   .hero-grid,
   .split {
@@ -1501,5 +1567,24 @@ h2 {
   .news-item {
     flex-direction: column;
     align-items: flex-start;
+  }
+}
+
+@keyframes menu-in {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .nav.menu-open .nav-links {
+    animation: none;
+  }
+  .nav-toggle span {
+    transition: none;
   }
 }

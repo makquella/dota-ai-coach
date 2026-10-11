@@ -28,7 +28,7 @@
     <link rel="apple-touch-icon" href="assets/icon.png" />
     <link rel="preload" href="assets/fonts/montserrat-cyrillic-wght-normal.woff2" as="font" type="font/woff2" crossorigin />
     <link rel="preload" href="assets/fonts/inter-cyrillic-wght-normal.woff2" as="font" type="font/woff2" crossorigin />
-    <link rel="stylesheet" href="styles.css?v=22" />
+    <link rel="stylesheet" href="styles.css?v=23" />
     <script type="application/ld+json">
     {
       "@context": "https://schema.org",
@@ -64,7 +64,7 @@
           <img class="brand-mark" src="assets/logo-mark.png" alt="" width="28" height="28" />
           <span class="brand-name">Wardly</span>
         </a>
-        <nav class="nav-links" aria-label="Розділи" data-i18n-aria="navLabel">
+        <nav class="nav-links" id="site-menu" aria-label="Розділи" data-i18n-aria="navLabel">
           <a href="#ingame" data-i18n="navIngame">У грі</a>
           <a href="#how" data-i18n="navHow">Як це працює</a>
           <a href="#review" data-i18n="navReview">Розбір</a>
@@ -82,6 +82,9 @@
             <svg class="i" aria-hidden="true"><use href="#i-windows" /></svg>
             <span data-i18n="navDownload">Завантажити</span>
           </a>
+          <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="site-menu" aria-label="Меню" data-i18n-aria="menuLabel">
+            <span></span><span></span><span></span>
+          </button>
         </div>
       </div>
     </header>
@@ -368,7 +371,7 @@
       </defs>
     </svg>
 
-    <script src="i18n-en.js?v=22" defer></script>
-    <script src="app.js?v=22" defer></script>
+    <script src="i18n-en.js?v=23" defer></script>
+    <script src="app.js?v=23" defer></script>
   </body>
 </html>
