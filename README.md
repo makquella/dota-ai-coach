@@ -191,17 +191,21 @@ Diagrams:
 - The minimal replay parser does not currently extract exact spendable gold or ability cooldowns.
 - Advice is intentionally conservative when required signals are missing.
 - Optional LLM usage is not required for live mode and is best treated as wording/review support.
-- The Windows build is unsigned until SignPath Foundation approves it (SmartScreen may warn on first run).
+- The Windows build is not code-signed yet (SmartScreen may warn on first run).
 
 ## Code signing policy
 
-Free code signing provided by [SignPath.io](https://signpath.io), certificate by [SignPath Foundation](https://signpath.org).
-The application to SignPath Foundation is submitted; until it is approved, the Windows installer is unsigned.
+The Windows installer is **not code-signed yet**, so SmartScreen may warn on first run ("More info" → "Run anyway").
+SignPath Foundation's free program for open source projects did not accept Wardly yet (it needs more public visibility);
+we will apply again later.
 
-- **What is signed:** only the Wardly installer and the app inside it, built by GitHub Actions
-  ([`release.yml`](.github/workflows/release.yml)) from this repository's source. Every signing request is approved manually.
+- **How to check a download:** the installer is built by GitHub Actions ([`release.yml`](.github/workflows/release.yml))
+  from this repository's source at the release commit; every release links a VirusTotal report whose address holds the
+  installer's SHA-256 (compare with `Get-FileHash`).
+- **Once signed:** only the Wardly installer and the app inside it, built from this repository; every signing request
+  approved manually.
 - **Committers and reviewers:** [makquella](https://github.com/makquella). Pull requests from anyone else are reviewed before merge.
-- **Approvers:** [makquella](https://github.com/makquella) (repository owner).
+- **Release approvers:** [makquella](https://github.com/makquella) (repository owner).
 - **Privacy policy:** [luhovyimvp.dev/privacy.html](https://luhovyimvp.dev/privacy.html) — what the app sends, to which
   services (OpenDota, Valve CDN, GitHub, optional AI services; problem reports and anonymous statistics only with consent)
   and how to turn it off.

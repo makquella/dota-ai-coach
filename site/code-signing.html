@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Політика підпису коду — Wardly</title>
-    <meta name="description" content="Code signing policy Wardly: хто збирає, перевіряє й підписує інсталятор для Windows і з якого коду." />
+    <meta name="description" content="Code signing policy Wardly: чому інсталятор поки без підпису, як його перевірити і хто збирає та схвалює релізи." />
     <meta name="theme-color" content="#0c0d0f" />
     <link rel="canonical" href="https://luhovyimvp.dev/code-signing.html" />
     <link rel="icon" href="assets/favicon.png" type="image/png" />
@@ -77,31 +77,41 @@
     <main class="wrap doc">
       <article data-doc="uk" lang="uk">
         <h1>Політика підпису коду</h1>
-        <p class="doc-updated">Code signing policy · оновлено 10 жовтня 2026 року</p>
+        <p class="doc-updated">Code signing policy · оновлено 11 жовтня 2026 року</p>
 
-        <p><strong>Free code signing provided by <a href="https://signpath.io" rel="noopener">SignPath.io</a>, certificate by <a href="https://signpath.org" rel="noopener">SignPath Foundation</a>.</strong></p>
         <p>
-          Заявку до SignPath Foundation подано. Доки її не схвалено, інсталятор Wardly для Windows без цифрового
-          підпису: Windows може показати «Windows захистив ваш комп'ютер». Кожен інсталятор має звіт VirusTotal в описі релізу.
+          <strong>Інсталятор Wardly для Windows поки без цифрового підпису.</strong> Тому Windows може показати
+          «Windows захистив ваш комп'ютер»: натисніть «Докладніше» → «Однаково запустити». Сертифікат для підпису коду коштує
+          грошей, а безкоштовні програми для відкритих проєктів беруть лише відомі проєкти — ми подамо заявку знову, коли Wardly
+          стане помітнішим.
         </p>
 
-        <h2>Що підписується</h2>
+        <h2>Як перевірити інсталятор</h2>
         <ul>
-          <li>Лише інсталятор Wardly для Windows і програма в ньому, зібрані з
-            <a href="https://github.com/makquella/dota-ai-coach" rel="noopener">відкритого коду цього репозиторію</a> (ліцензія MIT).</li>
-          <li>Збірка автоматична: GitHub Actions (<code>.github/workflows/release.yml</code>) збирає інсталятор з коду релізного коміту.
-            Скрипти збірки й налаштування CI — частина того самого відкритого коду.</li>
+          <li>Інсталятор зібрано з <a href="https://github.com/makquella/dota-ai-coach" rel="noopener">відкритого коду цього
+            репозиторію</a> (ліцензія MIT) автоматично, у GitHub Actions (<code>.github/workflows/release.yml</code>), з коду
+            релізного коміту. Скрипти збірки й налаштування CI — частина того самого відкритого коду.</li>
+          <li>В описі кожного <a href="https://github.com/makquella/dota-ai-coach/releases" rel="noopener">релізу</a> є звіт
+            VirusTotal. В адресі звіту — SHA-256 інсталятора: порівняйте її з хешем завантаженого файлу
+            (PowerShell: <code>Get-FileHash .\Wardly-Setup-0.55.0.exe</code>).</li>
+          <li>Завантажуйте Wardly лише з цього сайту або зі сторінки релізів на GitHub.</li>
+        </ul>
+
+        <h2>Коли з'явиться підпис</h2>
+        <ul>
+          <li>Підписуватимуться лише інсталятор Wardly і програма в ньому, зібрані з цього репозиторію; сторонні бінарні файли —
+            ніколи від імені проєкту.</li>
           <li>Назва продукту в метаданих файлів — Wardly, версія однакова для всіх файлів одного релізу.</li>
-          <li>Кожен підпис потребує ручного схвалення відповідальної особи (approver). Сторонні бінарні файли не підписуються від імені проєкту.</li>
+          <li>Кожен підпис потребуватиме ручного схвалення відповідальної особи.</li>
         </ul>
 
         <h2>Ролі</h2>
         <ul>
           <li><strong>Автори й рецензенти (committers and reviewers):</strong>
             <a href="https://github.com/makquella" rel="noopener">makquella</a>. Зміни від інших людей (pull requests) потрапляють у код лише після перевірки.</li>
-          <li><strong>Схвалення підпису (approvers):</strong>
+          <li><strong>Схвалення релізів (approvers):</strong>
             <a href="https://github.com/makquella" rel="noopener">makquella</a> — власник репозиторію.</li>
-          <li>Для доступу до репозиторію й SignPath використовується двофакторна автентифікація.</li>
+          <li>Для доступу до репозиторію використовується двофакторна автентифікація.</li>
         </ul>
 
         <h2>Конфіденційність</h2>
@@ -117,31 +127,40 @@
 
       <article data-doc="en" lang="en" hidden>
         <h1>Code signing policy</h1>
-        <p class="doc-updated">Updated 10 October 2026</p>
+        <p class="doc-updated">Updated 11 October 2026</p>
 
-        <p><strong>Free code signing provided by <a href="https://signpath.io" rel="noopener">SignPath.io</a>, certificate by <a href="https://signpath.org" rel="noopener">SignPath Foundation</a>.</strong></p>
         <p>
-          The application to SignPath Foundation has been submitted. Until it is approved, the Wardly installer for Windows is
-          unsigned and Windows may show “Windows protected your PC”. Every installer has a VirusTotal report in its release notes.
+          <strong>The Wardly installer for Windows is not code-signed yet.</strong> Windows may therefore show “Windows protected
+          your PC”: click “More info” → “Run anyway”. A code signing certificate costs money, and the free programs for open source
+          projects accept only well-known ones — we will apply again once Wardly is better known.
         </p>
 
-        <h2>What is signed</h2>
+        <h2>How to check the installer</h2>
         <ul>
-          <li>Only the Wardly installer for Windows and the app inside it, built from
-            <a href="https://github.com/makquella/dota-ai-coach" rel="noopener">the open source code of this repository</a> (MIT licence).</li>
-          <li>Builds are automated: GitHub Actions (<code>.github/workflows/release.yml</code>) builds the installer from the release
-            commit. Build scripts and CI configuration are part of the same open source code.</li>
+          <li>The installer is built automatically by GitHub Actions (<code>.github/workflows/release.yml</code>) from
+            <a href="https://github.com/makquella/dota-ai-coach" rel="noopener">the open source code of this repository</a>
+            (MIT licence) at the release commit. Build scripts and CI configuration are part of the same open source code.</li>
+          <li>Every <a href="https://github.com/makquella/dota-ai-coach/releases" rel="noopener">release</a> has a VirusTotal report
+            in its notes. The report's address holds the installer's SHA-256: compare it with the hash of the file you downloaded
+            (PowerShell: <code>Get-FileHash .\Wardly-Setup-0.55.0.exe</code>).</li>
+          <li>Download Wardly only from this website or from the GitHub releases page.</li>
+        </ul>
+
+        <h2>Once it is signed</h2>
+        <ul>
+          <li>Only the Wardly installer and the app inside it, built from this repository, will be signed; third-party binaries
+            never in the project's name.</li>
           <li>The product name in the file metadata is Wardly, and the version is the same for every file of a release.</li>
-          <li>Every signing request is approved manually by an approver. Third-party binaries are never signed in the project's name.</li>
+          <li>Every signing request will be approved manually.</li>
         </ul>
 
         <h2>Team roles</h2>
         <ul>
           <li><strong>Committers and reviewers:</strong>
             <a href="https://github.com/makquella" rel="noopener">makquella</a>. Changes from anyone else (pull requests) are reviewed before they are merged.</li>
-          <li><strong>Approvers:</strong>
+          <li><strong>Release approvers:</strong>
             <a href="https://github.com/makquella" rel="noopener">makquella</a>, the repository owner.</li>
-          <li>Multi-factor authentication is used for access to the repository and to SignPath.</li>
+          <li>Multi-factor authentication is used for access to the repository.</li>
         </ul>
 
         <h2>Privacy policy</h2>

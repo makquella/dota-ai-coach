@@ -224,7 +224,7 @@ Since 2023 code signing keys must live on hardware (token or cloud HSM), so a ce
 
 | Option | Cost | Who can use it | In this pipeline |
 |---|---|---|---|
-| **SignPath Foundation** | free | open source projects: OSI licence (this repo is MIT), public repository, an already published release, maintained project; the publisher shown by Windows is "SignPath Foundation" | apply at signpath.org after the first release; needs a follow-up change to `release.yml` (SignPath's GitHub action signs the unpacked app and the installer, then `latest.yml` is regenerated for the signed installer) |
+| **SignPath Foundation** | free | open source projects: OSI licence (this repo is MIT), public repository, an already published release, maintained project; the publisher shown by Windows is "SignPath Foundation" | applied October 2026 and declined for now (not enough public visibility: stars, articles, community); reapply once the project is better known; needs a follow-up change to `release.yml` (SignPath's GitHub action signs the unpacked app and the installer, then `latest.yml` is regenerated for the signed installer) |
 | **Azure Artifact Signing** (formerly Trusted Signing) | from $9.99/month, paid Azure subscription | organisations in the US, Canada, EU, UK and some other countries; **individual developers only in the US and Canada** | supported now: set the secrets below |
 | Certificate from a CA (OV/EV) on a cloud HSM | roughly $100–400/year | anyone who passes the CA's identity check | via `CSC_LINK` only if the provider can hand a signing certificate to signtool in CI; most cloud HSMs need their own signing tool instead |
 
