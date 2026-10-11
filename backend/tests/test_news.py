@@ -106,3 +106,15 @@ def test_a_release_post_fits_one_message():
     assert text.startswith("<b>Wardly 0.55.0</b>")
     assert "English part" not in text and len(text) < 4096
     assert text.endswith("Завантажити: https://luhovyimvp.dev/?ref=tg")
+
+
+def test_an_overlapping_or_old_post_is_not_the_previous_week():
+    stats = _stats(_rows(0.50))
+    early = news.meta_post(stats, date(2026, 10, 10))  # 4-10 October
+    monday = news.meta_post(_stats(_rows(0.56)), date(2026, 10, 12))  # 6-12 October
+    # Five shared days: not «against the previous week», the week's own halves instead.
+    assert news.summary(monday, early)["moves"] != "week"
+    week_later = news.meta_post(_stats(_rows(0.56)), date(2026, 10, 17))  # 11-17 October
+    assert news.summary(week_later, early)["moves"] == "week"
+    month_later = news.meta_post(_stats(_rows(0.56)), date(2026, 11, 10))
+    assert news.summary(month_later, early)["moves"] != "week"

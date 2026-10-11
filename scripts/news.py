@@ -9,8 +9,9 @@ always say the same thing. scripts/build_site.py writes the pages (site/news.htm
 site/news/<slug>.html and their /en/ copies); .github/workflows/news.yml makes a
 post every Monday and sends it to the Telegram channel.
 
-Who changed: against the previous post when there is one (week over week), else
-inside the week — the last three days against the first three.
+Who changed: against the previous post when it covers the week right before this
+one (no shared days), else inside the week — the last three days against the
+first three.
 """
 
 from __future__ import annotations
@@ -261,7 +262,7 @@ def summary(post: dict[str, Any], previous: dict[str, Any] | None) -> dict[str, 
     top_pick = sorted(rows.values(), key=lambda row: (-row["pick"], row["name"]))[:TOP]
     moves: list[dict[str, Any]] = []
     basis = None
-    if previous is not None:
+    if previous is not None and _week_before(previous, post):
         before = _win_rates(previous)
         moves = [
             {**row, "change": (row["win"] - before[row["name"]]) * 100}
@@ -291,6 +292,13 @@ def summary(post: dict[str, Any], previous: dict[str, Any] | None) -> dict[str, 
         "down": down,
         "moves": basis if up or down else None,
     }
+
+
+def _week_before(previous: dict[str, Any], post: dict[str, Any]) -> bool:
+    """The previous post covers the week right before this one: it ended before
+    this one started (no shared days), at most a week earlier."""
+    gap = date.fromisoformat(post["from"]) - date.fromisoformat(previous["to"])
+    return 1 <= gap.days <= 7
 
 
 def previous_of(post: dict[str, Any], posts: list[dict[str, Any]]) -> dict[str, Any] | None:
