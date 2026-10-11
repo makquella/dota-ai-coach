@@ -211,7 +211,7 @@ Gitignored but may appear locally: `backend/logs/`, `backend/session_records/`, 
 
 ## Plans
 
-- `docs/ROADMAP.md` — what comes next (0.2.x stability, 0.3 advice for every role, 0.4 deeper reviews, 0.5 sharing).
+- `docs/ROADMAP.md` — the long-term goal, the stages toward it with exit criteria, and the metrics they are measured by.
 - `docs/DATA_PLAN.md` — free cloud storage for problem reports, opt-in stats, match recordings, a shared OpenDota cache and shared reviews (Cloudflare Workers + D1 + R2 at `api.luhovyimvp.dev`; local-first, opt-in, no keys or nicknames).
 
 ## Reference
