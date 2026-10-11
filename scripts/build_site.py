@@ -37,7 +37,10 @@ from app.live_tools import USABLE_SAFETY  # noqa: E402
 sys.path.insert(0, str(ROOT / "scripts"))
 import news  # noqa: E402 - scripts/news.py, after the scripts path
 
-ASSET_VERSION = "12"
+# One version for styles.css, app.js and i18n-en.js on every page, hand-written
+# (index.html, heroes.html) and generated alike. Separate counters let one page
+# reuse a URL that browsers had already cached with older files.
+ASSET_VERSION = "24"
 POSITIONS = ("carry", "mid", "offlane", "support")
 POSITION_NAMES = {
     "uk": {"carry": "Керрі", "mid": "Мід", "offlane": "Хардлайн", "support": "Саппорт"},
@@ -994,12 +997,24 @@ def build() -> dict[Path, str]:
     return files
 
 
+def check_asset_versions() -> None:
+    """Fail when a hand-written page loads shared assets with another version."""
+    for name in ("index.html", "heroes.html"):
+        text = (SITE / name).read_text(encoding="utf-8")
+        for asset, version in re.findall(r"(styles\.css|app\.js|i18n-en\.js)\?v=(\w+)", text):
+            if version != ASSET_VERSION:
+                raise SystemExit(
+                    f"site/{name}: {asset}?v={version}, expected ?v={ASSET_VERSION} (ASSET_VERSION)"
+                )
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     parser.add_argument(
         "--check", action="store_true", help="fail when a generated file is out of date"
     )
     args = parser.parse_args()
+    check_asset_versions()
     files = build()
     generated_dirs = [SITE / "heroes", SITE / "en" / "heroes", SITE / "news", SITE / "en" / "news"]
     stray = [p for d in generated_dirs if d.exists() for p in d.glob("*.html") if p not in files]
