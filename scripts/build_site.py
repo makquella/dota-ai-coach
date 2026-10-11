@@ -37,7 +37,7 @@ from app.live_tools import USABLE_SAFETY  # noqa: E402
 sys.path.insert(0, str(ROOT / "scripts"))
 import news  # noqa: E402 - scripts/news.py, after the scripts path
 
-ASSET_VERSION = "10"
+ASSET_VERSION = "11"
 POSITIONS = ("carry", "mid", "offlane", "support")
 POSITION_NAMES = {
     "uk": {"carry": "Керрі", "mid": "Мід", "offlane": "Хардлайн", "support": "Саппорт"},
@@ -883,6 +883,7 @@ def news_pages(all_heroes: list[dict]) -> dict[Path, str]:
     """site/news.html, site/news/<slug>.html and their /en/ copies (scripts/news.py)."""
     posts = news.load_posts()
     links = {hero["name"]: hero["slug"] for hero in all_heroes}
+    images = {path.stem for path in news.HERO_IMAGES.glob("*.webp")}
     files: dict[Path, str] = {}
     for lang in ("uk", "en"):
         root = SITE if lang == "uk" else SITE / "en"
@@ -895,7 +896,7 @@ def news_pages(all_heroes: list[dict]) -> dict[Path, str]:
             path="news.html",
             title=f"{t['list_title']} — Wardly",
             description=t["list_lead"],
-            main=news.list_main(posts, lang, "./", up_list),
+            main=news.list_main(posts, lang, "./", up_list, images),
         )
         for post in posts:
             data = news.summary(post, news.previous_of(post, posts))
@@ -906,7 +907,7 @@ def news_pages(all_heroes: list[dict]) -> dict[Path, str]:
                 path=f"news/{news.slug(post)}.html",
                 title=f"{news.title(post, lang)} — Wardly",
                 description=news.lead(post, data, lang),
-                main=news.post_main(post, data, lang, links, "../"),
+                main=news.post_main(post, data, lang, links, "../", up_list + "../", images),
             )
     return files
 
