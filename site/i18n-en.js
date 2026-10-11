@@ -5,6 +5,7 @@ window.WARDLY_EN = {
   "title": "Wardly — a Dota 2 coach right in your game",
   "skip": "Skip to content",
   "navLabel": "Sections",
+  "menuLabel": "Menu",
   "navIngame": "In game",
   "navHow": "How it works",
   "navReview": "Review",
