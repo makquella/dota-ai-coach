@@ -91,7 +91,12 @@ def evaluate_hero_safety(normalized_state: Mapping[str, Any] | Any) -> dict[str,
         # treat the missing defensive as a non-issue, because the hero is not yet
         # in a punishing window. This is conservative-by-omission (we under-report
         # risk at high HP rather than nag), documented in AGENTS.md.
-        if ability and ability_is_unavailable(ability) and hp_percent <= warning_hp:
+        if (
+            ability
+            and _learned(ability)
+            and ability_is_unavailable(ability)
+            and hp_percent <= warning_hp
+        ):
             risk = "high" if hp_percent <= critical_hp else "medium"
             triggered.append(
                 {

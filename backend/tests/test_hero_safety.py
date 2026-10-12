@@ -224,3 +224,21 @@ def test_an_escape_on_cooldown_alone_needs_a_reason_to_speak() -> None:
     assert not has_hero_survivability_risk(healthy, hp_percent=100, mana_percent=100)
     hurt = _state("Anti-Mage", hp_percent=55, extra_context=blink)
     assert has_hero_survivability_risk(hurt, hp_percent=55, mana_percent=100)
+
+
+def test_an_unlearned_defensive_ability_is_nothing_to_wait_for() -> None:
+    """A level 3 Terrorblade was told «avoid risky trades until Sunder is ready»."""
+    from app.decision_points import has_ability_safety_cooldown
+    from app.hero_profiles import evaluate_laning_context
+
+    sunder = {"abilities": [_ability("Sunder", can_cast=False, cooldown=0, level=0)]}
+    state = _state("Terrorblade", hp_percent=30, extra_context=sunder)
+    assert "defensive_ability_on_cooldown" not in evaluate_hero_safety(state)["hero_safety_flags"]
+    lane = evaluate_laning_context(state)
+    assert lane["key_safety_available"] is None
+    assert not has_ability_safety_cooldown(lane, hp_percent=30, fight_pressure=True)
+
+    # Learned and on cooldown: still a reason to be careful.
+    used = {"abilities": [_ability("Sunder", can_cast=False, cooldown=71, level=1)]}
+    lane = evaluate_laning_context(_state("Terrorblade", hp_percent=30, extra_context=used))
+    assert lane["key_safety_available"] is False

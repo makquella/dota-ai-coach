@@ -61,6 +61,17 @@ def test_a_disable_names_what_removes_it_or_gets_out_after_it():
     assert disabled_copy(_extra(BKB)) is None  # not disabled
 
 
+def test_a_low_hp_card_under_a_stun_names_the_tool_for_after_it():
+    """A stunned and hexed Terrorblade at 28:13 was told «Leave the wave now»."""
+    from app.advice_text import clean_action_text, clean_reason_text
+
+    action, reason = low_hp_copy(_extra(MANTA, stunned=True))
+    assert action == "The moment the disable ends, use Manta Style."
+    assert clean_action_text(action, "LOW_HP") == action
+    assert clean_reason_text(reason, "LOW_HP") == reason
+    assert translate_uk(action) != action
+
+
 def test_regen_needs_a_usable_item():
     assert regen_items({"slot0": {"name": "item_bottle", "charges": 0}}) == []
     assert regen_items({"slot0": {"name": "item_bottle", "charges": 2}}) == ["item_bottle"]
