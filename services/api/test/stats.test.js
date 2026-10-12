@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import worker, { cleanup, config, sendWeeklyStats } from "../src/index.js";
-import { aggregateStats, isoDay, validateStats } from "../src/stats.js";
+import { aggregateStats, isoDay, validateStats, weeklyStatsText } from "../src/stats.js";
 
 const DAY = 24 * 3_600_000;
 // The Worker checks the day against the real clock, so the tests run on it too.
@@ -111,7 +111,12 @@ test("only allowlisted fields and counts are kept", () => {
     ai: "ready",
     opendota_key: false,
     fullscreen: false,
-    sync_error: null
+    sync_error: null,
+    app: { launches: 0, backend_crashes: 0, renderer_crashes: 0, unclean_exits: 0 },
+    marks: { useful: 0, irrelevant: 0, repeated: 0 },
+    noisy: {},
+    setup: {},
+    age: null
   });
   const stored = JSON.stringify(checked.row);
   for (const secret of ["76561198", "Juggernaut", "8843382732", "nickname", INSTALL]) {
@@ -227,4 +232,64 @@ test("the summary has a row per day", () => {
     { day: "2026-09-26", devices: 1, matches: 1, advice: 1, ignored: 0 },
     { day: "2026-09-27", devices: 2, matches: 6, advice: 5, ignored: 1 }
   ]);
+});
+
+test("launches, crashes, advice marks and first-run steps are kept as counts and flags only", () => {
+  const checked = validateStats(
+    {
+      ...STATS,
+      app: { launches: 3, backend_crashes: 1, renderer_crashes: -2, unclean_exits: 999, path: "C:\\Users\\me" },
+      marks: { useful: 4, irrelevant: 1, repeated: "2", text: "bad advice" },
+      noisy: { LANING_FARM_CHECK: 1, "bad kind": 3 },
+      setup: { dota: true, gsi: true, launch: null, data: false, folder: "D:\\Steam", advice: "yes" },
+      age: "2-6"
+    },
+    NOW
+  );
+  assert.deepEqual(checked.row.app, { launches: 3, backend_crashes: 1, renderer_crashes: 0, unclean_exits: 0 });
+  assert.deepEqual(checked.row.marks, { useful: 4, irrelevant: 1, repeated: 0 });
+  assert.deepEqual(checked.row.noisy, { LANING_FARM_CHECK: 1 });
+  assert.deepEqual(checked.row.setup, { dota: true, gsi: true, data: false });
+  assert.equal(checked.row.age, "2-6");
+  assert.equal(validateStats({ ...STATS, age: "100" }, NOW).row.age, null);
+  const stored = JSON.stringify(checked.row);
+  for (const secret of ["Users", "Steam", "bad advice"]) {
+    assert.ok(!stored.includes(secret), secret);
+  }
+});
+
+test("the summary counts crash-free days, marks and the first-run funnel by each device's newest row", () => {
+  const row = (app, setup, extra = {}) => JSON.stringify({ matches: 0, advice: {}, ignored: {}, app, setup, ...extra });
+  const summary = aggregateStats([
+    { install_hash: "a", day: "2026-10-10", version: "0.56.0", body: row({ launches: 2 }, { dota: true, gsi: false }, { age: "0" }) },
+    {
+      install_hash: "a",
+      day: "2026-10-11",
+      version: "0.56.0",
+      body: row({ launches: 1, backend_crashes: 1 }, { dota: true, gsi: true, data: true }, {
+        age: "1",
+        marks: { useful: 3, irrelevant: 1, repeated: 0 },
+        noisy: { LANING_FARM_CHECK: 1 }
+      })
+    },
+    { install_hash: "b", day: "2026-10-11", version: "0.56.0", body: row({ launches: 1 }, { dota: true, gsi: false, data: false }, { age: "30+" }) },
+    // An older version without the new fields counts for nothing new.
+    { install_hash: "c", day: "2026-10-11", version: "0.55.0", body: row(undefined, undefined) }
+  ]);
+  assert.deepEqual(summary.app, { launches: 4, backend_crashes: 1, renderer_crashes: 0, unclean_exits: 0 });
+  assert.equal(summary.crash_free, 66.7);
+  assert.deepEqual(summary.marks, { useful: 3, irrelevant: 1, repeated: 0 });
+  assert.deepEqual(summary.noisy, { LANING_FARM_CHECK: 1 });
+  assert.equal(summary.setup.dota, 2);
+  assert.equal(summary.setup.gsi, 1);
+  assert.equal(summary.setup_known.gsi, 2);
+  assert.equal(summary.setup.data, 1);
+  assert.equal(summary.setup_known.advice, 0);
+  assert.deepEqual(summary.ages, { 1: 1, "30+": 1 });
+  const text = weeklyStatsText({ ...summary, channels: [] });
+  assert.ok(text.includes("Launches: 4; crashes: service 1, window 0, unclean exits 0; days without a crash: 66.7%"), text);
+  assert.ok(text.includes("Advice marks: useful 3 (75%), not to the point 1, repeated 0; noisiest: LANING_FARM_CHECK 1"), text);
+  assert.ok(text.includes("First run (devices that reached the step): dota 2/2, gsi 1/2, data 1/2"), text);
+  const empty = weeklyStatsText(aggregateStats([]));
+  assert.ok(empty.includes("Launches: —") && empty.includes("Advice marks: —"), empty);
 });

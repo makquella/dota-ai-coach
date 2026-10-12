@@ -3,12 +3,25 @@
 // (services/api `POST /v1/stats`): which advice was shown per decision point,
 // which urgent warnings were followed by a death (backend GET /player/usage),
 // how many matches were analysed, and the few settings that shape the advice.
-// No match ids, heroes, times, advice texts, nickname, Steam ID or keys; the
-// random installation id lets the player delete everything with the device delete.
+// Since 0.56: how many times the app started and crashed that day, how many
+// advice cards the player marked «Корисно / Не до речі / Повторювалося» since the
+// last upload, which first-run steps this installation has reached so far and
+// how many days ago it was installed (a bucket). No match ids, heroes, times,
+// advice texts, nickname, Steam ID or keys; the random installation id lets the
+// player delete everything with the device delete.
 //
 // Pure helpers, tested in test/advice-stats.test.js; main.js sends.
 
 const HOUR_MS = 3600 * 1000;
+const DAY_MS = 24 * HOUR_MS;
+// The daily app counters kept on this computer (settings `statsDaily`).
+const APP_COUNTERS = ["launches", "backend_crashes", "renderer_crashes", "unclean_exits"];
+const DAILY_KEEP = 10;
+// First-run steps, in the order a new player meets them (the Home checklist,
+// then the first advice in a match and the first review).
+const SETUP_STEPS = ["dota", "gsi", "launch", "data", "preview", "account", "advice", "review", "ai"];
+const VERDICTS = ["useful", "irrelevant", "repeated"];
+const KIND = /^[A-Z][A-Z0-9_]{1,47}$/;
 
 /** Local midnight of the day `now` is in (ms). */
 function dayStart(now) {
@@ -57,17 +70,121 @@ function usageQuery(period) {
 function counts(value) {
   const out = {};
   for (const [kind, n] of Object.entries(value || {})) {
-    if (/^[A-Z][A-Z0-9_]{1,47}$/.test(kind) && Number.isInteger(n) && n >= 0) {
+    if (KIND.test(kind) && Number.isInteger(n) && n >= 0) {
       out[kind] = n;
     }
   }
   return out;
 }
 
+/** The daily counters with one more `key` on `day` (YYYY-MM-DD); only the last DAILY_KEEP days are kept. */
+function bumpDaily(daily, day, key) {
+  const out = {};
+  for (const [each, row] of Object.entries(daily && typeof daily === "object" ? daily : {})) {
+    if (/^\d{4}-\d{2}-\d{2}$/.test(each) && row && typeof row === "object") {
+      out[each] = { ...row };
+    }
+  }
+  if (APP_COUNTERS.includes(key)) {
+    const row = out[day] || {};
+    row[key] = (Number.isInteger(row[key]) ? row[key] : 0) + 1;
+    out[day] = row;
+  }
+  const keep = Object.keys(out).sort().slice(-DAILY_KEEP);
+  return Object.fromEntries(keep.map((each) => [each, out[each]]));
+}
+
+/** The day's app counters, zeros for what did not happen. */
+function appCounts(daily, day) {
+  const row = (daily && daily[day]) || {};
+  return Object.fromEntries(APP_COUNTERS.map((key) => [key, Number.isInteger(row[key]) && row[key] > 0 ? row[key] : 0]));
+}
+
+/**
+ * The marks given since the last upload, from the backend's running totals
+ * (GET /player/advice-feedback): `marks` per verdict, `noisy` = new «not to the
+ * point» and «repeated» marks per decision point. Without a previous snapshot
+ * (statistics just switched on) nothing counts yet. A removed mark is not
+ * negative: the snapshot simply follows the current totals.
+ */
+function marksDelta(summary, sent) {
+  const totals = (summary && summary.totals) || {};
+  const byDp = (summary && summary.by_decision_point) || {};
+  const snapshot = { totals: {}, noisy: {} };
+  for (const verdict of VERDICTS) {
+    snapshot.totals[verdict] = Number.isInteger(totals[verdict]) && totals[verdict] > 0 ? totals[verdict] : 0;
+  }
+  for (const [kind, row] of Object.entries(byDp)) {
+    if (!KIND.test(kind) || !row) {
+      continue;
+    }
+    const n = (Number(row.irrelevant) || 0) + (Number(row.repeated) || 0);
+    if (Number.isInteger(n) && n > 0) {
+      snapshot.noisy[kind] = n;
+    }
+  }
+  const marks = Object.fromEntries(VERDICTS.map((verdict) => [verdict, 0]));
+  const noisy = {};
+  if (sent && sent.totals) {
+    for (const verdict of VERDICTS) {
+      marks[verdict] = Math.max(0, snapshot.totals[verdict] - (Number(sent.totals[verdict]) || 0));
+    }
+    for (const [kind, n] of Object.entries(snapshot.noisy)) {
+      const added = n - (Number((sent.noisy || {})[kind]) || 0);
+      if (added > 0) {
+        noisy[kind] = added;
+      }
+    }
+  }
+  return { marks, noisy, snapshot };
+}
+
+/** Days since installation as a bucket: "0", "1", "2-6", "7-29" or "30+" ("" when unknown). */
+function ageBucket(now, installedAt) {
+  const since = Number(installedAt);
+  if (!since || since > now) {
+    return since > now ? "0" : "";
+  }
+  const days = Math.floor((dayStart(now) - dayStart(since)) / DAY_MS + 0.5);
+  if (days <= 0) {
+    return "0";
+  }
+  if (days === 1) {
+    return "1";
+  }
+  return days < 7 ? "2-6" : days < 30 ? "7-29" : "30+";
+}
+
+/** The first-run steps this installation has reached: true / false, null where the app cannot tell. */
+function setupFlags(state) {
+  const s = state || {};
+  return Object.fromEntries(
+    SETUP_STEPS.map((step) => [step, s[step] === null || s[step] === undefined ? null : Boolean(s[step])])
+  );
+}
+
 /** The exact body sent (the panel shows it before the player switches it on). */
-function buildStats({ installId, day, version, platform, lang, usage, settings, ai, opendotaKey, fullscreen, syncError }) {
+function buildStats({
+  installId,
+  day,
+  version,
+  platform,
+  lang,
+  usage,
+  settings,
+  ai,
+  opendotaKey,
+  fullscreen,
+  syncError,
+  app,
+  marks,
+  noisy,
+  setup,
+  age
+}) {
   const u = usage || {};
   const s = settings || {};
+  const m = marks || {};
   return {
     install_id: String(installId || ""),
     day,
@@ -91,7 +208,12 @@ function buildStats({ installId, day, version, platform, lang, usage, settings, 
     ai: ai ? "ready" : "off",
     opendota_key: Boolean(opendotaKey),
     fullscreen: Boolean(fullscreen),
-    sync_error: typeof syncError === "string" && /^[a-z_]{1,32}$/.test(syncError) ? syncError : null
+    sync_error: typeof syncError === "string" && /^[a-z_]{1,32}$/.test(syncError) ? syncError : null,
+    app: appCounts({ day: app || {} }, "day"),
+    marks: Object.fromEntries(VERDICTS.map((verdict) => [verdict, Number.isInteger(m[verdict]) && m[verdict] > 0 ? m[verdict] : 0])),
+    noisy: counts(noisy),
+    setup: setupFlags(setup),
+    age: ["0", "1", "2-6", "7-29", "30+"].includes(age) ? age : ""
   };
 }
 
@@ -108,4 +230,19 @@ function uploadOutcome(result) {
   return { done: status === 400 || status === 413 || Boolean(result && result.code === "disabled") };
 }
 
-module.exports = { buildStats, dayStart, dueDay, localDay, startFrom, uploadOutcome, usageQuery };
+module.exports = {
+  APP_COUNTERS,
+  SETUP_STEPS,
+  ageBucket,
+  appCounts,
+  buildStats,
+  bumpDaily,
+  dayStart,
+  dueDay,
+  localDay,
+  marksDelta,
+  setupFlags,
+  startFrom,
+  uploadOutcome,
+  usageQuery
+};

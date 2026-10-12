@@ -140,8 +140,9 @@ function adminApp() {
     return el("div", { class: "tile" }, el("span", { class: "muted", text: label }), el("b", { text: String(value) }));
   }
 
-  function bars(title, counts) {
-    const entries = Object.entries(counts || {}).sort((a, b) => b[1] - a[1]);
+  function bars(title, counts, keepOrder = false) {
+    const entries = Object.entries(counts || {});
+    if (!keepOrder) entries.sort((a, b) => b[1] - a[1]);
     const max = Math.max(1, ...entries.map(([, n]) => n));
     const card = el("div", { class: "card" }, el("h2", { text: title }));
     if (!entries.length) {
@@ -164,7 +165,14 @@ function adminApp() {
       tile("Надсилань (днів)", stats.rows),
       tile("Розібрано матчів", stats.matches),
       tile("З підказками в грі", stats.with_advice),
-      tile("Повноекранний режим", stats.fullscreen)
+      tile("Повноекранний режим", stats.fullscreen),
+      tile("Запусків", (stats.app || {}).launches || 0),
+      tile("Днів без збоїв", stats.crash_free != null ? `${stats.crash_free}%` : "—"),
+      tile("«Корисно» серед відміток", (() => {
+        const m = stats.marks || {};
+        const total = (m.useful || 0) + (m.irrelevant || 0) + (m.repeated || 0);
+        return total ? `${Math.round((100 * (m.useful || 0)) / total)}% з ${total}` : "—";
+      })())
     );
     const perDay = stats.by_day || [];
     const maxDay = Math.max(1, ...perDay.map((d) => d.devices));
@@ -220,6 +228,15 @@ function adminApp() {
     const dists = [bars(LABELS.versions, stats.versions), bars(LABELS.langs, stats.langs), bars(LABELS.ai, stats.ai)];
     for (const [key, counts] of Object.entries(stats.settings || {})) dists.push(bars(LABELS[key] || key, counts));
     dists.push(bars(LABELS.sync_errors, stats.sync_errors));
+    // The first-run funnel in order: devices (newest row) that reached each step.
+    const funnel = {};
+    for (const [step, n] of Object.entries(stats.setup || {})) {
+      if ((stats.setup_known || {})[step]) funnel[`${step} (${n}/${stats.setup_known[step]})`] = n;
+    }
+    dists.push(bars("Перший запуск: дійшли до кроку", funnel, true));
+    dists.push(bars("Днів від встановлення", stats.ages));
+    dists.push(bars("Збої", { служба: (stats.app || {}).backend_crashes || 0, вікно: (stats.app || {}).renderer_crashes || 0, "некоректний вихід": (stats.app || {}).unclean_exits || 0 }));
+    dists.push(bars("Найчастіше «не до речі» / «повторювалося»", stats.noisy));
     $("dists").replaceChildren(...dists);
     $("view").classList.remove("hidden");
   }

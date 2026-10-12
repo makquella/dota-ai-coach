@@ -9,6 +9,10 @@
 
   const TEXT = {
     en: {
+      "0.56.0": [
+        "A faster first run: «Start Dota 2» on Home opens the game through Steam in one click, and «Show» puts a sample advice card over the screen while you wait.",
+        "If you share anonymous statistics, they now also count app starts and crashes, your marks on the advice and the first-run steps done, so we see what to fix first. Advice texts, heroes, matches and keys are never sent."
+      ],
       "0.55.0": [
         "Lane: against an opponent you have laned against before, the overlay says when you are behind their usual last hits at 5:00 and 7:00.",
         "Items for the enemy draft: once four enemy heroes are seen, a core gets the counter item to plan for (Monkey King Bar, Maelstrom, Spirit Vessel, BKB or Pipe, and now Silver Edge against Bristleback, Spectre and Huskar).",
@@ -522,6 +526,10 @@
       ]
     },
     uk: {
+      "0.56.0": [
+        "Швидший перший запуск: «Запустити Dota 2» на «Головній» відкриває гру через Steam одним натиском, а «Показати» виводить приклад картки поверх екрана, поки ви чекаєте.",
+        "Якщо ви ділитеся анонімною статистикою, тепер вона рахує ще запуски й падіння застосунку, ваші відмітки на порадах і пройдені кроки першого запуску — так видно, що виправляти першим. Тексти порад, герої, матчі й ключі не надсилаються."
+      ],
       "0.55.0": [
         "Лінія: проти суперника, з яким ви вже стояли на лінії, оверлей скаже, коли ви відстаєте від його звичних добивань на 5:00 і 7:00.",
         "Предмети під вражеський драфт: щойно видно чотирьох героїв ворога, кор отримує предмет, який варто запланувати (Monkey King Bar, Maelstrom, Spirit Vessel, BKB чи Pipe, а тепер і Silver Edge проти Bristleback, Spectre та Huskar).",
