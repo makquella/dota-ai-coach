@@ -82,6 +82,7 @@ function createUpdater({
     updater.autoInstallOnAppQuit = true;
     updater.allowPrerelease = false;
     updater.allowDowngrade = false;
+    updater.disableWebInstaller = true; // the full NSIS installer, never a web one
     updater.logger = {
       info: (message) => log(String(message)),
       warn: (message) => log(`warn: ${message}`),

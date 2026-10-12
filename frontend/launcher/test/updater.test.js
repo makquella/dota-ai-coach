@@ -56,6 +56,7 @@ test("events move the state from checking to ready", async () => {
   const { updater, fake } = started();
   assert.equal(fake.autoDownload, true);
   assert.equal(fake.autoInstallOnAppQuit, true);
+  assert.equal(fake.disableWebInstaller, true);
   const states = [];
   updater.on("change", (state) => states.push(state.status));
 

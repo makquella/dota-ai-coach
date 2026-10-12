@@ -30,6 +30,11 @@ const IDENTITY_PATTERNS = [
   [/\b7656119\d{10}\b/g, "[steam id]"],
   [/(\/players\/)\d+/g, "$1[id]"],
   [/(account[_ ]?id[=: ]+)\d+/gi, "$1[id]"],
+  // Service job and cache keys carry the account (or a friend's): "sync:<id>",
+  // "coach:match:<id>:<match>:uk", "match:<id>:<match>:uk". A bare
+  // "match:<match>" job keeps its match id.
+  [/\b((?:coach:(?:match|career|ask)|sync|rebuild|career|friend|mmr|cosmetics|last_review|rank_history):)\d+/g, "$1[id]"],
+  [/\b(match:)\d+(?=:\d+:)/g, "$1[id]"],
   [/([A-Za-z]:(?:\\\\|\\|\/)+Users(?:\\\\|\\|\/)+)[^\\/"'\s]+/gi, "$1[user]"],
   [/(\/home\/)[^/"'\s]+/g, "$1[user]"]
 ];

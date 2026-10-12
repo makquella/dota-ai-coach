@@ -125,13 +125,26 @@ test("reports carry no nickname, Steam id or Windows user name", () => {
   const report = buildReport({
     status: { player: { linked: true, accountId: 123456789 } },
     app: { userData: "C:\\Users\\Artem\\AppData\\Roaming\\DotaAICoach" },
-    diagnostics: { player: { account_id: 123456789, persona_name: "Nick", sync: "ok" } },
+    diagnostics: {
+      player: {
+        account_id: 123456789,
+        persona_name: "Nick",
+        sync: "ok",
+        coach_jobs: { "coach:match:123456789:9042342539:uk": { state: "error" } },
+        jobs: ["sync:123456789", "friend:123456789", "match:9042342539"],
+        ai_jobs: ["match:123456789:9042342539:uk", "career:123456789:uk"]
+      }
+    },
     launcherLog: "GET https://api.opendota.com/api/players/123456789/matches\nsteam 76561197960389013 linked\n"
   });
   for (const secret of ["123456789", "76561197960389013", "Nick", "Artem"]) {
     assert.ok(!report.includes(secret), secret);
   }
   assert.match(report, /"sync": "ok"/);
+  assert.match(report, /"coach:match:\[id\]:9042342539:uk"/); // the match id stays
+  for (const key of ['"sync:[id]"', '"friend:[id]"', '"match:9042342539"', '"match:[id]:9042342539:uk"', '"career:[id]:uk"']) {
+    assert.ok(report.includes(key), key);
+  }
   assert.match(report, /Users\\\\\[user\]/);
   assert.equal(anonymize("/home/artem/logs and C:/Users/Artem/x"), "/home/[user]/logs and C:/Users/[user]/x");
   assert.ok(!uploadPayload({ text: '{"accountId": 55}' }).text.includes("55"));
