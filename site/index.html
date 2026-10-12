@@ -28,7 +28,7 @@
     <link rel="apple-touch-icon" href="assets/icon.png" />
     <link rel="preload" href="assets/fonts/montserrat-cyrillic-wght-normal.woff2" as="font" type="font/woff2" crossorigin />
     <link rel="preload" href="assets/fonts/inter-cyrillic-wght-normal.woff2" as="font" type="font/woff2" crossorigin />
-    <link rel="stylesheet" href="styles.css?v=24" />
+    <link rel="stylesheet" href="styles.css?v=25" />
     <script type="application/ld+json">
     {
       "@context": "https://schema.org",
@@ -123,6 +123,38 @@
               <svg class="i" aria-hidden="true"><use href="#i-shield" /></svg>
               <a href="https://www.virustotal.com/" rel="noopener" data-i18n="metaVt">Перевірка VirusTotal</a>
             </p>
+            <details class="install-help" id="install">
+              <summary>
+                <svg class="i" aria-hidden="true"><use href="#i-shield" /></svg>
+                <span data-i18n="installTitle">Windows попереджає під час встановлення?</span>
+              </summary>
+              <div class="install-body">
+                <div class="install-grid">
+                  <ol class="install-steps">
+                    <li data-i18n-html="install1">Відкрий <strong>Wardly-Setup.exe</strong> із завантажень.</li>
+                    <li data-i18n-html="install2">Якщо з'явилося синє вікно Windows, натисни <strong>«Докладніше»</strong> (More info).</li>
+                    <li data-i18n-html="install3">Унизу з'явиться <strong>«Однаково запустити»</strong> (Run anyway). Далі — звичайне встановлення.</li>
+                  </ol>
+                  <div class="smartscreen" aria-hidden="true">
+                    <p class="ss-title" data-i18n="ssTitle">Windows захистив ваш комп'ютер</p>
+                    <span class="ss-line"></span>
+                    <span class="ss-line short"></span>
+                    <p class="ss-more"><span class="ss-num">2</span><u data-i18n="ssMore">Докладніше</u></p>
+                    <div class="ss-foot">
+                      <span class="ss-btn ss-run"><span class="ss-num">3</span><span data-i18n="ssRun">Однаково запустити</span></span>
+                      <span class="ss-btn" data-i18n="ssNo">Не запускати</span>
+                    </div>
+                  </div>
+                </div>
+                <p class="install-why" data-i18n="installWhy">Так Windows зустрічає кожну програму без платного цифрового підпису. Код Wardly відкритий, а справжність файлу можна перевірити за SHA-256.</p>
+                <div class="install-hash js-sha" hidden>
+                  <span class="install-hash-label">SHA-256</span>
+                  <code class="js-sha-value"></code>
+                  <button class="install-copy js-sha-copy" type="button" data-i18n="installCopy">Копіювати</button>
+                </div>
+                <p class="install-check js-sha" hidden data-i18n-html="installCheck">Перевірити: PowerShell у папці «Завантаження» → <code>Get-FileHash .\Wardly-Setup-*.exe</code></p>
+              </div>
+            </details>
           </div>
 
           <div class="hero-stage" aria-hidden="true">
@@ -328,6 +360,7 @@
             <svg class="i" aria-hidden="true"><use href="#i-windows" /></svg>
             <span data-i18n="ctaDownload">Завантажити для Windows</span>
           </a>
+          <a class="install-link js-install-link" href="#install" data-i18n="installLink">Що робити, якщо Windows попереджає</a>
         </div>
       </section>
     </main>
@@ -371,7 +404,7 @@
       </defs>
     </svg>
 
-    <script src="i18n-en.js?v=24" defer></script>
-    <script src="app.js?v=24" defer></script>
+    <script src="i18n-en.js?v=25" defer></script>
+    <script src="app.js?v=25" defer></script>
   </body>
 </html>

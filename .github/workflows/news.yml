@@ -3,7 +3,8 @@ name: News
 # Every Monday: the «Мета тижня» post. scripts/build_news.py reads OpenDota's
 # public hero statistics (last 7 days), writes data/news/posts/<date>-meta.json,
 # scripts/build_site.py writes its pages under site/news/, the commit goes to
-# main, the site is published and the post goes to the Telegram channel.
+# main, the site is published and the post goes to the Telegram channel: a picture
+# card drawn with the runner's Chrome and a short caption (scripts/news_cards.py).
 #
 # Telegram: the channel https://t.me/wardlydota (repository variable
 # TELEGRAM_CHANNEL overrides it) and the secret TELEGRAM_BOT_TOKEN; the bot must be

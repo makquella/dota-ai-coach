@@ -40,7 +40,7 @@ import news  # noqa: E402 - scripts/news.py, after the scripts path
 # One version for styles.css, app.js and i18n-en.js on every page, hand-written
 # (index.html, heroes.html) and generated alike. Separate counters let one page
 # reuse a URL that browsers had already cached with older files.
-ASSET_VERSION = "24"
+ASSET_VERSION = "25"
 POSITIONS = ("carry", "mid", "offlane", "support")
 POSITION_NAMES = {
     "uk": {"carry": "Керрі", "mid": "Мід", "offlane": "Хардлайн", "support": "Саппорт"},

@@ -250,6 +250,41 @@
         el.querySelector("a").href = release.report;
       }
     });
+    // The SHA-256 GitHub keeps for the installer, to compare with Get-FileHash.
+    document.querySelectorAll(".js-sha").forEach((el) => (el.hidden = !release.sha256));
+    document.querySelectorAll(".js-sha-value").forEach((el) => (el.textContent = release.sha256 || ""));
+  }
+
+  // --- install help: opened by a download click or the «Windows warns» link ------
+
+  const installHelp = document.getElementById("install");
+  if (installHelp) {
+    document.querySelectorAll(".js-download").forEach((a) =>
+      a.addEventListener("click", () => {
+        installHelp.open = true;
+      })
+    );
+    document.querySelectorAll(".js-install-link").forEach((a) =>
+      a.addEventListener("click", () => {
+        installHelp.open = true;
+      })
+    );
+    document.querySelectorAll(".js-sha-copy").forEach((button) =>
+      button.addEventListener("click", async () => {
+        const value = release && release.sha256;
+        if (!value || !navigator.clipboard) {
+          return;
+        }
+        try {
+          await navigator.clipboard.writeText(value);
+          const label = button.textContent;
+          button.textContent = "✓";
+          setTimeout(() => (button.textContent = label), 1500);
+        } catch {
+          // Clipboard refused: the hash stays visible to select by hand.
+        }
+      })
+    );
   }
 
   async function loadRelease() {
@@ -267,6 +302,7 @@
         const report = digest ? `https://www.virustotal.com/gui/file/${digest[1]}` : null;
         release = {
           report: report && String(data.body || "").includes(report) ? report : null,
+          sha256: digest ? digest[1] : null,
           size: asset.size,
           version: String(data.tag_name || "").replace(/^v/, "")
         };
