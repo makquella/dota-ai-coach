@@ -1105,7 +1105,13 @@ function setupSteps(status) {
     ...(status.launchOption === "ok" || status.launchOption === "missing"
       ? [{ id: "launch", done: status.launchOption === "ok" || dataSeen, action: () => window.launcherApi.copyLaunchOption() }]
       : []),
-    { id: "data", done: dataSeen },
+    // While waiting for Dota: the sample advice card over the screen (the overlay unlocked), to see and place it.
+    // Only with the overlay on: a switched-off overlay shows no card, and the player chose that.
+    ...(status.overlay === "running"
+      ? [{ id: "preview", done: Boolean(status.setup?.previewed), optional: true, action: () => window.launcherApi.setOverlayLocked(false) }]
+      : []),
+    // One click starts Dota 2 through Steam (not while it already runs: then it needs a restart).
+    { id: "data", done: dataSeen, action: status.dotaRunning ? null : () => window.launcherApi.launchDota() },
     { id: "account", done: Boolean(player.linked), action: () => window.PlayerViews?.setView("matches") },
     {
       id: "ai",
@@ -1164,15 +1170,17 @@ function renderSetup(status) {
   if (!els.setupPreviewImg.src.endsWith(preview.slice(2))) {
     els.setupPreviewImg.src = preview;
   }
-  // The first open step gets the action; later ones wait for it.
-  const next = steps.find((step) => !step.done);
+  // The first open required step gets the action (optional ones keep theirs); later ones wait for it.
+  const next = steps.find((step) => !step.done && !step.optional);
   const signature = JSON.stringify([locale, steps.map((step) => step.done), next?.id]);
   if (els.setupSteps.dataset.signature === signature) {
     return;
   }
   els.setupSteps.dataset.signature = signature;
+  // Numbers count the required steps only (the optional ones carry an icon).
+  const numbers = new Map(required.map((step, index) => [step, index + 1]));
   els.setupSteps.replaceChildren(
-    ...steps.map((step, index) => {
+    ...steps.map((step) => {
       const [title, hint] = tr(`setup.${step.id}`);
       const item = document.createElement("li");
       item.className = "setup-step";
@@ -1184,7 +1192,7 @@ function renderSetup(status) {
       const mark = document.createElement(numbered ? "span" : "i");
       mark.className = "setup-mark";
       if (numbered) {
-        mark.textContent = String(index + 1);
+        mark.textContent = String(numbers.get(step));
       } else {
         mark.dataset.icon = step.done ? "circle-check" : "sparkles";
       }

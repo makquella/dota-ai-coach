@@ -288,6 +288,8 @@ async function locateDota(options = {}) {
 
 // Since 2023 Dota 2 sends game state only when started with this option.
 const GSI_LAUNCH_OPTION = "-gamestateintegration";
+// Steam starts Dota 2 from this link, as from the library's Play button.
+const DOTA_STEAM_URL = `steam://rungameid/${DOTA_APP_ID}`;
 
 // userdata/<account id>/config/localconfig.vdf ->
 // UserLocalConfigStore > Software > Valve > Steam > apps > 570 > LaunchOptions.
@@ -392,6 +394,7 @@ function checkLaunchOptions({ steamRoots = [], accountId = null, platform = proc
 }
 
 module.exports = {
+  DOTA_STEAM_URL,
   DOTA_APP_ID,
   GSI_LAUNCH_OPTION,
   checkLaunchOptions,

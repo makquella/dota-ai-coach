@@ -77,7 +77,7 @@
     <main class="wrap doc">
       <article data-doc="uk" lang="uk">
         <h1>Конфіденційність</h1>
-        <p class="doc-updated">Оновлено 10 жовтня 2026 року</p>
+        <p class="doc-updated">Оновлено 12 жовтня 2026 року</p>
 
         <p>
           Wardly працює на вашому комп'ютері. Історія матчів, розбори й ключі зберігаються лише там; ключі й токени у Windows зашифровано для вашого облікового запису (DPAPI). В інтернет застосунок
@@ -181,7 +181,13 @@
           кожного типу (наприклад, <code>LOW_HP_WARNING: 5</code>), після скількох термінових попереджень протягом 30 секунд була
           смерть, скільки матчів розібрано, а також версію застосунку, систему (лише Windows / Linux / macOS), мову й
           кілька налаштувань підказок: оверлей, голос, частота, роль, таймери мапи, статус у Discord, чи є ключ ШІ та
-          OpenDota (не самі ключі), чи був ексклюзивний повноекранний режим, код останньої помилки синхронізації. Без героїв,
+          OpenDota (не самі ключі), чи був ексклюзивний повноекранний режим, код останньої помилки синхронізації. З версії 0.56:
+          скільки разів за день застосунок запускався й скільки разів зупинилися служба тренера чи вікно або застосунок закрився
+          некоректно (лише числа, без шляхів і тексту помилок); скільки карток ви позначили «Корисно», «Не до речі» й
+          «Повторювалося» від попереднього надсилання (і для яких типів підказок — «не до речі» чи «повторювалося»); які кроки
+          першого запуску вже пройдено (знайдено Доту, підключено, Дота зв'язалася з тренером, показано приклад підказки,
+          прив'язано акаунт, була перша підказка в матчі, перший розбір, ключ ШІ — лише «так / ні») і скільки днів тому
+          встановлено застосунок (групою: 0, 1, 2–6, 7–29, 30+). Без героїв,
           номерів і часу матчів, текстів підказок, ніка, Steam ID і ключів. Ідентифікатор встановлення зберігається на сервері
           лише у вигляді хешу. Точний текст надсилання показує «Що надсилається» під перемикачем. Зберігається рік; один
           рядок на встановлення й день. Рахуємо лише з моменту ввімкнення; вимкнення одразу припиняє надсилання.
@@ -229,7 +235,7 @@
 
       <article data-doc="en" lang="en" hidden>
         <h1>Privacy</h1>
-        <p class="doc-updated">Updated October 10, 2026</p>
+        <p class="doc-updated">Updated October 12, 2026</p>
 
         <p>
           Wardly runs on your computer. Match history, reviews and keys stay there; on Windows keys and tokens are encrypted for your user account (DPAPI). The app goes online for match data
@@ -322,7 +328,12 @@
           <code>LOW_HP_WARNING: 5</code>), how many urgent warnings were followed by a death within 30 seconds, how many matches
           were reviewed — plus the app version, the system (Windows / Linux / macOS only), the language and a few advice
           settings: overlay, voice, frequency, role, map timers, Discord status, whether an AI or OpenDota key is set (never the
-          keys), whether Dota ran in exclusive fullscreen, and the code of the last sync error. No heroes, match numbers or
+          keys), whether Dota ran in exclusive fullscreen, and the code of the last sync error. Since 0.56: how many times the app
+          started that day and how many times the coach service or a window stopped or the app did not close cleanly (numbers
+          only, no paths or error text); how many cards you marked «Useful», «Not to the point» and «Repeated» since the last
+          upload (and for which kinds of advice the last two); which first-run steps are done (Dota found, connected, Dota
+          talked to the coach, sample advice shown, account linked, first advice in a match, first review, AI key — only
+          «yes / no») and how many days ago the app was installed (as a group: 0, 1, 2–6, 7–29, 30+). No heroes, match numbers or
           times, advice texts, nickname, Steam ID or keys. The installation id is kept on the server only as a hash. «What is
           sent» under the switch shows the exact body. Kept for a year, one row per installation and day. Counting starts when
           you switch it on; switching it off stops sending at once.

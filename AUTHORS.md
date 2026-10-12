@@ -1,7 +1,7 @@
 # Authors
 
-- Author: Artem / makquella
-- Project: Wardly coursework prototype
-- Year: 2026
+- Artem ([makquella](https://github.com/makquella)): author and maintainer.
 
-Dota 2 is a trademark/game by Valve. This project is an educational prototype and is not affiliated with Valve.
+Contributors are listed in the [GitHub contributors graph](https://github.com/makquella/dota-ai-coach/graphs/contributors).
+
+Dota 2 is a registered trademark of Valve Corporation. Wardly is not affiliated with or endorsed by Valve.

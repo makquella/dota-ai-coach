@@ -46,6 +46,7 @@ const { createSettingsStore } = require("./settings");
 const { loadLocalApiAuth, controlHeaders, renderGsiConfig } = require("./local-api");
 const { trustedHandlers, protectWindow } = require("./renderer-security");
 const {
+  DOTA_STEAM_URL,
   GSI_LAUNCH_OPTION,
   checkLaunchOptions,
   dotaDirFromExecutable,
@@ -138,6 +139,17 @@ const settings = createSettingsStore(path.join(USER_DATA_DIR, "settings.json"), 
   // The Home card asking to share anonymous statistics was answered (yes or no);
   // the answer itself is `shareStats`, changeable in Settings → App.
   statsAsked: false,
+  // Opt-in statistics (advice-stats.js): launches and crashes per local day (last
+  // 10 days), the advice-mark totals already sent, and the first-run facts the
+  // checklist cannot see itself: when the app was installed, the first live
+  // advice, the sample card shown. `sessionOpen` stays true while the app runs,
+  // so a start that finds it set counts the last exit as unclean.
+  statsDaily: {},
+  statsMarksSent: null,
+  installedAt: 0,
+  firstAdviceAt: "",
+  overlayPreviewed: false,
+  sessionOpen: false,
   // «Підсумок вечора»: the sitting whose card was closed, and the one the tray told about.
   sessionSeen: "",
   sessionNotified: "",
@@ -648,7 +660,11 @@ function publicStatus() {
     appVersion: app.getVersion(),
     update: { ...updater.getState(), blockedByGame: isGameRunning() },
     player: live.player,
-    setup: { gsiSeen: Boolean(settings.get("gsiSeenAt")), dismissed: Boolean(settings.get("setupDismissed")) },
+    setup: {
+      gsiSeen: Boolean(settings.get("gsiSeenAt")),
+      dismissed: Boolean(settings.get("setupDismissed")),
+      previewed: Boolean(settings.get("overlayPreviewed"))
+    },
     report: { last: settings.get("lastReport") || null, queued: outboxCount },
     whatsNew: settings.get("whatsNewPending") === app.getVersion() ? app.getVersion() : "",
     whatsNewFrom: settings.get("whatsNewFrom") || "",
@@ -806,7 +822,30 @@ const STATS_TIMEOUT_MS = 20_000;
 let statsTimer = null;
 let statsBusy = false;
 
-async function statsBody(period) {
+/** One more launch, crash or unclean exit today (advice-stats.js, kept even while the statistics are off). */
+function countApp(key) {
+  const today = adviceStats.localDay(adviceStats.dayStart(Date.now()));
+  settings.set("statsDaily", adviceStats.bumpDaily(settings.get("statsDaily"), today, key));
+}
+
+/** The first-run steps reached so far, as the Home checklist sees them (null: cannot tell). */
+function setupState() {
+  const gsiSeen = Boolean(settings.get("gsiSeenAt"));
+  const player = live.player || {};
+  return {
+    dota: Boolean(dotaInstall.dotaDir) || gsiSeen,
+    gsi: gsiStatus.status === "installed" || gsiSeen,
+    launch: launchOptions.state === "ok" || gsiSeen ? true : launchOptions.state === "missing" ? false : null,
+    data: gsiSeen,
+    preview: Boolean(settings.get("overlayPreviewed")),
+    account: Boolean(player.linked),
+    advice: Boolean(settings.get("firstAdviceAt")),
+    review: (Number(settings.get("liveReviews")) || 0) > 0 || Boolean(player.lastReview),
+    ai: Boolean(player.aiConfigured)
+  };
+}
+
+async function statsParts(period) {
   const payload = await requestBackendJson(adviceStats.usageQuery(period), "GET", undefined, 15000);
   let syncError = null;
   try {
@@ -815,7 +854,14 @@ async function statsBody(period) {
   } catch {
     // The day's counts matter; the sync state is optional.
   }
-  return adviceStats.buildStats({
+  let feedback = null;
+  try {
+    feedback = await requestBackendJson("/player/advice-feedback", "GET", undefined, 5000);
+  } catch {
+    // No marks this time; they are counted at the next upload.
+  }
+  const delta = adviceStats.marksDelta(feedback, settings.get("statsMarksSent"));
+  const body = adviceStats.buildStats({
     installId: installId(),
     day: period.day,
     version: app.getVersion(),
@@ -833,8 +879,18 @@ async function statsBody(period) {
     ai: Boolean(live.player && live.player.aiConfigured),
     opendotaKey: Boolean(live.player && live.player.opendotaKey),
     fullscreen: settings.get("fullscreenSeenDay") === period.day,
-    syncError
+    syncError,
+    app: adviceStats.appCounts(settings.get("statsDaily"), period.day),
+    marks: delta.marks,
+    noisy: delta.noisy,
+    setup: setupState(),
+    age: adviceStats.ageBucket(Date.now(), settings.get("installedAt"))
   });
+  return { body, marksSnapshot: delta.snapshot };
+}
+
+async function statsBody(period) {
+  return (await statsParts(period)).body;
 }
 
 async function postStats(body) {
@@ -871,9 +927,12 @@ async function checkAdviceStats() {
   }
   statsBusy = true;
   try {
-    const result = await postStats(await statsBody(due));
+    const parts = await statsParts(due);
+    const result = await postStats(parts.body);
     if (adviceStats.uploadOutcome(result).done) {
       settings.set("statsLastDay", due.end);
+      // The marks of this upload are handled either way (stored or refused for good).
+      settings.set("statsMarksSent", parts.marksSnapshot);
       if (result.ok) {
         settings.set("statsSentAt", new Date().toISOString());
       }
@@ -900,6 +959,20 @@ function restartStatsCount() {
   const schedule = adviceStats.startFrom(Date.now());
   settings.set("statsLastDay", schedule.statsLastDay);
   settings.set("statsSince", schedule.statsSince);
+  // Launches and crashes before this moment are never sent: today's counters start again.
+  settings.set("statsDaily", {});
+  // Nor marks given before it: the totals now are where the next upload counts from.
+  settings.set("statsMarksSent", null);
+  baselineMarks().catch(() => {});
+}
+
+/** The advice-mark totals at the consent; unreadable (backend down), the first upload takes them instead. */
+async function baselineMarks() {
+  if (processStatus.backend !== "running") {
+    return;
+  }
+  const feedback = await requestBackendJson("/player/advice-feedback", "GET", undefined, 5000);
+  settings.set("statsMarksSent", adviceStats.marksDelta(feedback, null).snapshot);
 }
 
 // On: counting starts now (the first upload tomorrow is what happened after this), never earlier.
@@ -1342,6 +1415,9 @@ async function pollGsiStatus() {
       const items = Array.isArray(recent.items) ? recent.items : [];
       recentChanged = JSON.stringify(items) !== JSON.stringify(live.recentAdvice);
       live.recentAdvice = items;
+      if (items.length && !settings.get("firstAdviceAt")) {
+        settings.set("firstAdviceAt", new Date().toISOString());
+      }
     } catch {
       // Keep the last list; the backend may be restarting.
     }
@@ -1705,6 +1781,7 @@ function handleBackendExit({ code, wasStopping }) {
     return;
   }
   appendLog("launcher", `Backend stopped unexpectedly (code ${code ?? "null"}).`, { force: true });
+  countApp("backend_crashes");
   const now = Date.now();
   backend.restarts = backend.restarts.filter((timestamp) => now - timestamp < BACKEND_RESTART_WINDOW_MS);
   if (backend.restarts.length >= BACKEND_MAX_RESTARTS) {
@@ -3391,6 +3468,17 @@ function registerIpc() {
     clipboard.writeText(GSI_LAUNCH_OPTION);
     return { ok: true, text: GSI_LAUNCH_OPTION };
   });
+  // The checklist's «start Dota 2»: Steam starts the game (a fixed URL, nothing from the page).
+  handleLauncher("launcher:launch-dota", async () => {
+    try {
+      await shell.openExternal(DOTA_STEAM_URL);
+      appendLog("launcher", "Dota 2 started from the first-run checklist.", { force: true });
+      return { ok: true };
+    } catch (error) {
+      appendLog("launcher", `Could not start Dota 2 through Steam: ${error.message}`, { force: true });
+      return { ok: false, code: "steam" };
+    }
+  });
   // «Watch this moment» in a review: only a replay tick number crosses the
   // bridge, the command text is built here.
   handleLauncher("launcher:copy-replay-tick", (_event, tick) => {
@@ -3460,6 +3548,10 @@ function registerIpc() {
   });
   handleLauncher("launcher:set-overlay-locked", (_event, locked) => {
     overlay.setLocked(Boolean(locked));
+    if (!locked && overlay.isEnabled()) {
+      // The sample card is on screen (only an enabled overlay shows it): the checklist's «see an advice» step is done.
+      settings.set("overlayPreviewed", true);
+    }
     return publicStatus();
   });
   handleLauncher("launcher:dismiss-fullscreen-warning", () => {
@@ -3861,6 +3953,15 @@ function bootstrap() {
     appendLog("launcher", `${APP_NAME} ${app.getVersion()} started (${IS_PACKAGED ? "packaged" : "dev"}).`, {
       force: true
     });
+    // Counted on this computer even while the statistics are off; sent only if they are on.
+    if (settings.get("sessionOpen")) {
+      countApp("unclean_exits");
+    }
+    settings.set("sessionOpen", true);
+    countApp("launches");
+    if (!settings.get("installedAt")) {
+      settings.set("installedAt", Date.parse(settings.get("gsiSeenAt")) || Date.now());
+    }
     migrateAutostartPath();
     autostartEnabled = isAutostartEnabled();
     createTray();
@@ -3908,9 +4009,18 @@ function bootstrap() {
   // Keep running in the tray when every window is closed.
   app.on("window-all-closed", () => {});
 
+  // A window's page that crashed or was killed (not a normal close) counts for the statistics.
+  app.on("render-process-gone", (_event, _contents, details) => {
+    if (details && details.reason !== "clean-exit") {
+      countApp("renderer_crashes");
+      appendLog("launcher", `A window's page stopped: ${details.reason}.`, { force: true });
+    }
+  });
+
   // Stop the backend gracefully before Electron exits.
   app.on("before-quit", (event) => {
     isQuitting = true;
+    settings.set("sessionOpen", false);
     if (shutdownComplete) {
       return;
     }

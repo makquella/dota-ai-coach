@@ -25,6 +25,7 @@ contextBridge.exposeInMainWorld("launcherApi", {
   installGsi: (customPath) => ipcRenderer.invoke("launcher:install-gsi", customPath),
   chooseGsiFolder: () => ipcRenderer.invoke("launcher:choose-gsi-folder"),
   chooseDotaFolder: () => ipcRenderer.invoke("launcher:choose-dota-folder"),
+  launchDota: () => ipcRenderer.invoke("launcher:launch-dota"),
   setOverlayPosition: (preset) => ipcRenderer.invoke("launcher:set-overlay-position", preset),
   setLanguage: (value) => ipcRenderer.invoke("launcher:set-language", value),
   setUiScale: (value) => ipcRenderer.invoke("launcher:set-ui-scale", Number(value)),
