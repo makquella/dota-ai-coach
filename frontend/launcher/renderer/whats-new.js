@@ -11,7 +11,7 @@
     en: {
       "0.56.1": [
         "«Save file» for a recorded match (Settings → Keep match recordings for a week) works again: the file goes to Downloads instead of «Could not save the file».",
-        "Problem reports no longer carry your Steam id inside the AI coach status."
+        "Problem reports no longer carry your Steam id inside the service job names."
       ],
       "0.56.0": [
         "A faster first run: «Start Dota 2» on Home opens the game through Steam in one click, and «Show» puts a sample advice card over the screen while you wait.",
@@ -532,7 +532,7 @@
     uk: {
       "0.56.1": [
         "«Зберегти файл» для записаного матчу («Налаштування» → «Зберігати записи матчів тиждень») знову працює: файл потрапляє в «Завантаження», а не «Не вдалося зберегти файл».",
-        "Звіт про проблему більше не містить вашого Steam id у стані AI-тренера."
+        "Звіт про проблему більше не містить вашого Steam id у назвах службових задач."
       ],
       "0.56.0": [
         "Швидший перший запуск: «Запустити Dota 2» на «Головній» відкриває гру через Steam одним натиском, а «Показати» виводить приклад картки поверх екрана, поки ви чекаєте.",
