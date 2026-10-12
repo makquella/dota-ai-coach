@@ -2640,17 +2640,24 @@ function downloadBackendFile(endpointPath, filePath, timeoutMs = 60000) {
       reject(new Error("Backend is not running."));
       return;
     }
-    const request = http.get(new URL(endpointPath, backendUrl()), { timeout: timeoutMs }, (response) => {
+    // Like every other local API call, the download carries the control token.
+    const url = new URL(endpointPath, backendUrl());
+    const headers = controlHeaders(url, backendUrl(), localApiAuth().control);
+    const request = http.get(url, { timeout: timeoutMs, headers }, (response) => {
       if (response.statusCode !== 200) {
         response.resume();
         reject(new Error(`Backend returned HTTP ${response.statusCode}`));
         return;
       }
       const out = fs.createWriteStream(filePath);
+      const fail = (error) => {
+        out.destroy();
+        fs.rm(filePath, { force: true }, () => reject(error));
+      };
       response.pipe(out);
       out.on("finish", () => out.close(() => resolve(filePath)));
-      out.on("error", reject);
-      response.on("error", reject);
+      out.on("error", fail);
+      response.on("error", fail);
     });
     request.on("timeout", () => request.destroy(new Error("timeout")));
     request.on("error", reject);

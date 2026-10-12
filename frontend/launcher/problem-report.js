@@ -30,6 +30,8 @@ const IDENTITY_PATTERNS = [
   [/\b7656119\d{10}\b/g, "[steam id]"],
   [/(\/players\/)\d+/g, "$1[id]"],
   [/(account[_ ]?id[=: ]+)\d+/gi, "$1[id]"],
+  // Service job and cache keys carry the account: "coach:match:<id>:<match>:uk".
+  [/\b((?:coach:(?:match|career|ask)|rebuild|last_review|rank_history):)\d+/g, "$1[id]"],
   [/([A-Za-z]:(?:\\\\|\\|\/)+Users(?:\\\\|\\|\/)+)[^\\/"'\s]+/gi, "$1[user]"],
   [/(\/home\/)[^/"'\s]+/g, "$1[user]"]
 ];

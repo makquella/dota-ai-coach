@@ -9,6 +9,10 @@
 
   const TEXT = {
     en: {
+      "0.56.1": [
+        "«Save file» for a recorded match (Settings → Keep match recordings for a week) works again: the file goes to Downloads instead of «Could not save the file».",
+        "Problem reports no longer carry your Steam id inside the AI coach status."
+      ],
       "0.56.0": [
         "A faster first run: «Start Dota 2» on Home opens the game through Steam in one click, and «Show» puts a sample advice card over the screen while you wait.",
         "If you share anonymous statistics, they now also count app starts and crashes, your marks on the advice and the first-run steps done, so we see what to fix first. Advice texts, heroes, matches and keys are never sent."
@@ -526,6 +530,10 @@
       ]
     },
     uk: {
+      "0.56.1": [
+        "«Зберегти файл» для записаного матчу («Налаштування» → «Зберігати записи матчів тиждень») знову працює: файл потрапляє в «Завантаження», а не «Не вдалося зберегти файл».",
+        "Звіт про проблему більше не містить вашого Steam id у стані AI-тренера."
+      ],
       "0.56.0": [
         "Швидший перший запуск: «Запустити Dota 2» на «Головній» відкриває гру через Steam одним натиском, а «Показати» виводить приклад картки поверх екрана, поки ви чекаєте.",
         "Якщо ви ділитеся анонімною статистикою, тепер вона рахує ще запуски й падіння застосунку, ваші відмітки на порадах і пройдені кроки першого запуску — так видно, що виправляти першим. Тексти порад, герої, матчі й ключі не надсилаються."
