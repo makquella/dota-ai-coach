@@ -11,6 +11,14 @@ REPORTS_ENABLED = "true"
 # Share links point at the site: a Workers route (Cloudflare dashboard) sends
 # luhovyimvp.dev/r/* to this Worker.
 SHARE_ORIGIN = "https://luhovyimvp.dev"
+# Promo engine (src/promo.js, docs/MARKETING_ENGINE.md). Approved videos go to
+# this channel and, through Metricool, to these networks. "draft" leaves them
+# as Metricool drafts to publish by hand; "publish" schedules them for real.
+TELEGRAM_CHANNEL = "@wardlydota"
+PROMO_NETWORKS = "instagram,tiktok,youtube"
+PROMO_METRICOOL_MODE = "draft"
+PROMO_TIMEZONE = "Europe/Kyiv"
+PROMO_DELAY_MINUTES = "15"
 
 [[d1_databases]]
 binding = "DB"

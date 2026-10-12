@@ -1,0 +1,113 @@
+name: Promo
+
+# Wardly Marketing Engine (docs/MARKETING_ENGINE.md). Three times a week:
+# pick a topic from the project's data, write the script, voice it (Piper,
+# offline), render a 1080x1920 video (headless Chrome + ffmpeg), check it,
+# and send it to the developer's Telegram for approval. Nothing is published
+# here: the buttons in Telegram go to the Worker (services/api/src/promo.js),
+# which publishes only after «✅ Всюди» or «📣 Лише Telegram».
+#
+# Secrets: API_ADMIN_TOKEN, TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID (the developer's
+# chat). Without them the video is only built and kept as an artifact.
+on:
+  schedule:
+    - cron: "23 14 * * 2,4,6"
+  workflow_dispatch:
+    inputs:
+      format:
+        description: "Format (auto: the rotation picks)"
+        type: choice
+        options: [auto, coach, meta, hero, fact, release]
+        default: auto
+      send:
+        description: "Send to Telegram for approval"
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: promo
+  cancel-in-progress: false
+
+env:
+  API_URL: https://api.luhovyimvp.dev
+  PROMO_VOICE_MODEL: ${{ github.workspace }}/.voices/uk_UA-ukrainian_tts-medium.onnx
+
+jobs:
+  video:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: main
+          fetch-depth: 0 # release notes dates (topics.latest_release)
+      - uses: actions/setup-python@v5
+        with:
+          python-version-file: .python-version
+          cache: pip
+          cache-dependency-path: |
+            backend/requirements.txt
+            scripts/promo/requirements.txt
+      - name: Install
+        run: |
+          python -m pip install --require-hashes --only-binary=:all: -r backend/requirements.txt
+          python -m pip install -r scripts/promo/requirements.txt
+          python -m playwright install --with-deps chromium
+          ffmpeg -version | head -1
+      - name: Voice model (cached)
+        uses: actions/cache@v4
+        with:
+          path: .voices
+          key: piper-uk_UA-ukrainian_tts-medium-v1
+      - name: Download the voice when missing
+        run: |
+          mkdir -p .voices
+          base=https://huggingface.co/rhasspy/piper-voices/resolve/main/uk/uk_UA/ukrainian_tts/medium
+          for f in uk_UA-ukrainian_tts-medium.onnx.json uk_UA-ukrainian_tts-medium.onnx; do
+            [ -s ".voices/$f" ] || curl -fsSL --retry 4 --retry-delay 10 -o ".voices/$f" "$base/$f"
+          done
+      - name: What worked (format weights)
+        env:
+          API_ADMIN_TOKEN: ${{ secrets.API_ADMIN_TOKEN }}
+        run: python -m scripts.promo.weights
+      - name: Build the video
+        env:
+          FORMAT: ${{ inputs.format }}
+        run: |
+          args="--out promo-out --record"
+          if [ -n "$FORMAT" ] && [ "$FORMAT" != auto ]; then args="$args --format $FORMAT"; fi
+          python -m scripts.promo.package $args
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: promo-${{ github.run_id }}
+          path: promo-out
+          retention-days: 7
+      - name: Send for approval
+        if: github.event_name == 'schedule' || inputs.send
+        env:
+          API_ADMIN_TOKEN: ${{ secrets.API_ADMIN_TOKEN }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID || vars.TELEGRAM_CHAT_ID }}
+        run: |
+          if [ -z "$API_ADMIN_TOKEN" ] || [ -z "$TELEGRAM_BOT_TOKEN" ] || [ -z "$TELEGRAM_CHAT_ID" ]; then
+            echo "::warning::API_ADMIN_TOKEN, TELEGRAM_BOT_TOKEN or TELEGRAM_CHAT_ID is missing: the video stays an artifact"
+            exit 0
+          fi
+          python -m scripts.promo.send promo-out
+      - name: Remember what was made
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/promo/history.json data/promo/weights.json 2>/dev/null || git add data/promo/history.json
+          if git diff --cached --quiet; then
+            echo "Nothing new"
+          else
+            git commit -m "Promo: $(python -c 'import json;h=json.load(open("data/promo/history.json"));print(h[-1]["format"]+" "+h[-1]["topic"])')"
+            git push origin HEAD:main
+          fi
