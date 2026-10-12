@@ -79,9 +79,9 @@ jobs:
         env:
           FORMAT: ${{ inputs.format }}
         run: |
-          args="--out promo-out --record"
-          if [ -n "$FORMAT" ] && [ "$FORMAT" != auto ]; then args="$args --format $FORMAT"; fi
-          python -m scripts.promo.package $args
+          args=(--out promo-out --record)
+          if [ -n "$FORMAT" ] && [ "$FORMAT" != auto ]; then args+=(--format "$FORMAT"); fi
+          python -m scripts.promo.package "${args[@]}"
       - uses: actions/upload-artifact@v4
         if: always()
         with:

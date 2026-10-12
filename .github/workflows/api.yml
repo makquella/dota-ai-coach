@@ -153,7 +153,7 @@ jobs:
           secret=$(node -e 'const c=require("crypto");process.stdout.write(c.createHash("sha256").update("wardly-promo-webhook:"+process.env.TELEGRAM_BOT_TOKEN).digest("hex").slice(0,48))')
           node -e '
             const body = { url: process.argv[1] + "/v1/telegram/webhook", secret_token: process.argv[2], allowed_updates: ["callback_query", "message"] };
-            fetch(`https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/setWebhook`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) })
+            fetch("https://api.telegram.org/bot" + process.env.TELEGRAM_BOT_TOKEN + "/setWebhook", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) })
               .then((r) => r.json()).then((d) => { console.log("setWebhook:", d.ok ? "ok" : d.description); if (!d.ok) process.exit(1); });' "$origin" "$secret"
 
       - name: Check
