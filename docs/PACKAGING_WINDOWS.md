@@ -84,7 +84,7 @@ CI runs `scripts\build-windows.ps1` and `scripts\smoke-windows.ps1` on `windows-
 
 ## Releases And Auto-Update
 
-Installed apps update themselves from GitHub Releases of `makquella/dota-ai-coach` (`electron-updater`, `publish` in `frontend/launcher/package.json`).
+Installed apps update themselves from GitHub Releases of `makquella/wardly` (`electron-updater`, `publish` in `frontend/launcher/package.json`).
 
 To release a version:
 

@@ -20,7 +20,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 NOTES = ROOT / "docs" / "release-notes"
 PAGE = ROOT / "site" / "changelog.html"
-RELEASES = "https://github.com/makquella/dota-ai-coach/releases/tag/"
+RELEASES = "https://github.com/makquella/wardly/releases/tag/"
 
 
 def _version_key(path: Path) -> tuple[int, ...]:

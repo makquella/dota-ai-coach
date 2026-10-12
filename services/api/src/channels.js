@@ -9,7 +9,7 @@ export const CHANNEL_RATE_PER_HOUR = { visit: 30, download: 10 };
 // A day holds at most this many sources; later new ones count as "other".
 export const CHANNEL_MAX_SOURCES = 60;
 
-const REPO = "makquella/dota-ai-coach";
+const REPO = "makquella/wardly";
 export const RELEASES_PAGE = `https://github.com/${REPO}/releases/latest`;
 const SOURCE = /^[a-z0-9][a-z0-9_-]{0,23}$/;
 

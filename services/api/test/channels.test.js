@@ -87,7 +87,7 @@ function githubRedirect(tag) {
   return async (url, init) => {
     assert.equal(url, RELEASES_PAGE);
     assert.equal(init.redirect, "manual");
-    return new Response(null, { status: 302, headers: { location: `https://github.com/makquella/dota-ai-coach/releases/tag/${tag}` } });
+    return new Response(null, { status: 302, headers: { location: `https://github.com/makquella/wardly/releases/tag/${tag}` } });
   };
 }
 
@@ -101,10 +101,10 @@ test("source names are short lowercase slugs", () => {
 
 test("the installer URL comes from the latest release tag", async () => {
   assert.equal(
-    installerUrl("https://github.com/makquella/dota-ai-coach/releases/tag/v0.18.0"),
-    "https://github.com/makquella/dota-ai-coach/releases/download/v0.18.0/Wardly-Setup-0.18.0.exe"
+    installerUrl("https://github.com/makquella/wardly/releases/tag/v0.18.0"),
+    "https://github.com/makquella/wardly/releases/download/v0.18.0/Wardly-Setup-0.18.0.exe"
   );
-  assert.equal(installerUrl("https://github.com/makquella/dota-ai-coach/releases"), null);
+  assert.equal(installerUrl("https://github.com/makquella/wardly/releases"), null);
   resetInstallerCache();
   assert.match(await latestInstaller(githubRedirect("v0.18.0"), NOW), /v0\.18\.0\/Wardly-Setup-0\.18\.0\.exe$/);
   // Cached for 10 minutes, then looked up again.

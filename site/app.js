@@ -2,7 +2,7 @@
 // here), screenshots per language, the download button (latest GitHub release),
 // where the visitor came from (below) and small scroll effects. No dependencies.
 (() => {
-  const REPO = "makquella/dota-ai-coach";
+  const REPO = "makquella/wardly";
   const LANG_KEY = "dac.lang";
   const API = "https://api.luhovyimvp.dev";
   // Bump with every reshoot of the pictures (scripts/site-shots) and in index.html.
