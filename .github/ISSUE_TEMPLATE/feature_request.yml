@@ -1,0 +1,21 @@
+name: Idea
+description: Something Wardly could do better
+labels: [idea]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: The problem
+      description: What in your games or reviews is hard today? A real example helps most.
+    validations:
+      required: true
+  - type: textarea
+    id: idea
+    attributes:
+      label: What would help
+      description: How you imagine it. Keep in mind that Wardly sees only what Dota's Game State Integration shows (no hidden enemies, no input automation).
+  - type: input
+    id: role
+    attributes:
+      label: Your role and rank (optional)
+      placeholder: "Pos 4, Legend"
