@@ -10,15 +10,15 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/makquella/dota-ai-coach/releases/latest"><img alt="Latest release" src="https://img.shields.io/github/v/release/makquella/dota-ai-coach?label=release&color=d23a46" /></a>
-  <a href="https://github.com/makquella/dota-ai-coach/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/makquella/dota-ai-coach/actions/workflows/ci.yml/badge.svg?branch=main" /></a>
-  <a href="https://github.com/makquella/dota-ai-coach/releases"><img alt="Downloads" src="https://img.shields.io/github/downloads/makquella/dota-ai-coach/total?color=2f3542" /></a>
-  <a href="LICENSE"><img alt="MIT license" src="https://img.shields.io/github/license/makquella/dota-ai-coach?color=2f3542" /></a>
+  <a href="https://github.com/makquella/wardly/releases/latest"><img alt="Latest release" src="https://img.shields.io/github/v/release/makquella/wardly?label=release&color=d23a46" /></a>
+  <a href="https://github.com/makquella/wardly/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/makquella/wardly/actions/workflows/ci.yml/badge.svg?branch=main" /></a>
+  <a href="https://github.com/makquella/wardly/releases"><img alt="Downloads" src="https://img.shields.io/github/downloads/makquella/wardly/total?color=2f3542" /></a>
+  <a href="LICENSE"><img alt="MIT license" src="https://img.shields.io/github/license/makquella/wardly?color=2f3542" /></a>
   <a href="https://t.me/wardlydota"><img alt="Telegram" src="https://img.shields.io/badge/Telegram-@wardlydota-2f3542?logo=telegram" /></a>
 </p>
 
 <p align="center">
-  <a href="https://github.com/makquella/dota-ai-coach/releases/latest"><b>Download for Windows</b></a> ·
+  <a href="https://github.com/makquella/wardly/releases/latest"><b>Download for Windows</b></a> ·
   <a href="https://luhovyimvp.dev/en/?ref=github">Website</a> ·
   <a href="https://luhovyimvp.dev/en/heroes.html?ref=github">64 heroes with full advice</a> ·
   <a href="https://luhovyimvp.dev/changelog.html">What's new</a> ·

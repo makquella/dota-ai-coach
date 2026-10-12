@@ -2,7 +2,7 @@
 
 ## Reporting a vulnerability
 
-Please report security issues privately through GitHub: **[Report a vulnerability](https://github.com/makquella/dota-ai-coach/security/advisories/new)**. Do not open a public issue for them.
+Please report security issues privately through GitHub: **[Report a vulnerability](https://github.com/makquella/wardly/security/advisories/new)**. Do not open a public issue for them.
 
 Include what you found, how to reproduce it, and the version (shown in Settings, or the release tag). You will get an answer within a week. Fixes ship as a patch release, and the advisory is published once players have the update.
 

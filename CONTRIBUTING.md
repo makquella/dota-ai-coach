@@ -47,6 +47,6 @@ The runner picks the checks from the paths you changed: Ruff and format for the 
 
 ## Reporting bugs and ideas
 
-- **Bugs:** «Report a problem» in the app's Settings sends the log with keys removed. Or [open an issue](https://github.com/makquella/dota-ai-coach/issues/new/choose).
+- **Bugs:** «Report a problem» in the app's Settings sends the log with keys removed. Or [open an issue](https://github.com/makquella/wardly/issues/new/choose).
 - **Security issues:** please do not open a public issue; see [SECURITY.md](SECURITY.md).
 - **Ideas:** open an issue, or write in [t.me/wardlydota](https://t.me/wardlydota).

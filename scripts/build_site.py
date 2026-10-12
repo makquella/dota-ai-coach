@@ -602,7 +602,7 @@ ICONS = """    <svg width="0" height="0" style="position: absolute" aria-hidden=
     </svg>"""
 
 
-DOWNLOAD = "https://github.com/makquella/dota-ai-coach/releases/latest"
+DOWNLOAD = "https://github.com/makquella/wardly/releases/latest"
 
 
 def site_header(lang: str, up: str, home: str) -> str:
@@ -652,10 +652,10 @@ def site_footer(lang: str, up: str, home: str) -> str:
           <span class="brand-name">Wardly</span>
         </a>
         <nav class="footer-links" aria-label="{e(t["footer_label"])}">
-          <a href="https://github.com/makquella/dota-ai-coach" rel="noopener">GitHub</a>
+          <a href="https://github.com/makquella/wardly" rel="noopener">GitHub</a>
           <a href="https://t.me/wardlydota" rel="noopener">Telegram</a>
-          <a href="https://github.com/makquella/dota-ai-coach/releases" rel="noopener">{e(t["releases"])}</a>
-          <a href="https://github.com/makquella/dota-ai-coach/issues" rel="noopener">{e(t["issues"])}</a>
+          <a href="https://github.com/makquella/wardly/releases" rel="noopener">{e(t["releases"])}</a>
+          <a href="https://github.com/makquella/wardly/issues" rel="noopener">{e(t["issues"])}</a>
           <a href="{home}heroes.html">{e(t["heroes"])}</a>
           <a href="{home}news.html">{e(t["news"])}</a>
           <a href="{up}changelog.html">{e(t["changelog"])}</a>

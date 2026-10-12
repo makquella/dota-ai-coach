@@ -214,7 +214,7 @@ function Test-UpdateFiles {
   $appUpdate = Join-Path $DistDir "win-unpacked\resources\app-update.yml"
   Assert-True (Test-Path $appUpdate) "resources\app-update.yml exists"
   $config = Get-Content $appUpdate -Raw
-  Assert-True ($config -match "provider:\s*github" -and $config -match "repo:\s*dota-ai-coach") "app-update.yml uses GitHub releases"
+  Assert-True ($config -match "provider:\s*github" -and $config -match "repo:\s*wardly") "app-update.yml uses GitHub releases"
 }
 
 function Test-Installer {

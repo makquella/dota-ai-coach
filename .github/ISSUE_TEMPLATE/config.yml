@@ -1,7 +1,7 @@
 blank_issues_enabled: false
 contact_links:
   - name: Security issue
-    url: https://github.com/makquella/dota-ai-coach/security/advisories/new
+    url: https://github.com/makquella/wardly/security/advisories/new
     about: Report vulnerabilities privately, please.
   - name: Telegram channel @wardlydota
     url: https://t.me/wardlydota

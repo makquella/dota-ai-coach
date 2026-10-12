@@ -595,7 +595,7 @@ def post_main(
             <h2>{e(t["cta_title"])}</h2>
             <p>{e(t["cta_text"])}</p>
             <div class="cta-row">
-              <a class="btn btn-primary btn-lg js-download" href="https://github.com/makquella/dota-ai-coach/releases/latest">
+              <a class="btn btn-primary btn-lg js-download" href="https://github.com/makquella/wardly/releases/latest">
                 <svg class="i" aria-hidden="true"><use href="#i-windows" /></svg>
                 <span>{e(t["download"])}</span>
               </a>
