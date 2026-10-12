@@ -959,8 +959,20 @@ function restartStatsCount() {
   const schedule = adviceStats.startFrom(Date.now());
   settings.set("statsLastDay", schedule.statsLastDay);
   settings.set("statsSince", schedule.statsSince);
-  // Marks given before this moment are never sent: the next upload takes the totals as its start.
+  // Launches and crashes before this moment are never sent: today's counters start again.
+  settings.set("statsDaily", {});
+  // Nor marks given before it: the totals now are where the next upload counts from.
   settings.set("statsMarksSent", null);
+  baselineMarks().catch(() => {});
+}
+
+/** The advice-mark totals at the consent; unreadable (backend down), the first upload takes them instead. */
+async function baselineMarks() {
+  if (processStatus.backend !== "running") {
+    return;
+  }
+  const feedback = await requestBackendJson("/player/advice-feedback", "GET", undefined, 5000);
+  settings.set("statsMarksSent", adviceStats.marksDelta(feedback, null).snapshot);
 }
 
 // On: counting starts now (the first upload tomorrow is what happened after this), never earlier.
@@ -3536,8 +3548,8 @@ function registerIpc() {
   });
   handleLauncher("launcher:set-overlay-locked", (_event, locked) => {
     overlay.setLocked(Boolean(locked));
-    if (!locked) {
-      // The sample card is on screen: the checklist's «see an advice» step is done.
+    if (!locked && overlay.isEnabled()) {
+      // The sample card is on screen (only an enabled overlay shows it): the checklist's «see an advice» step is done.
       settings.set("overlayPreviewed", true);
     }
     return publicStatus();

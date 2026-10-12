@@ -109,6 +109,12 @@ test("marks are sent once: the new ones since the last upload, nothing on the fi
   );
   assert.deepEqual(next.marks, { useful: 2, irrelevant: 1, repeated: 0 });
   assert.deepEqual(next.noisy, { FARM: 1 });
+  // Totals that could not be read send nothing and keep the snapshot (no resend from zero later).
+  const unread = stats.marksDelta(null, next.snapshot);
+  assert.deepEqual(unread.marks, { useful: 0, irrelevant: 0, repeated: 0 });
+  assert.equal(unread.snapshot, next.snapshot);
+  const after = stats.marksDelta({ totals: { useful: 7, irrelevant: 3, repeated: 1 }, by_decision_point: {} }, unread.snapshot);
+  assert.deepEqual(after.marks, { useful: 1, irrelevant: 0, repeated: 0 });
   // A removed mark never goes negative.
   const removed = stats.marksDelta({ totals: { useful: 5, irrelevant: 3, repeated: 1 }, by_decision_point: {} }, next.snapshot);
   assert.deepEqual(removed.marks, { useful: 0, irrelevant: 0, repeated: 0 });

@@ -1106,12 +1106,10 @@ function setupSteps(status) {
       ? [{ id: "launch", done: status.launchOption === "ok" || dataSeen, action: () => window.launcherApi.copyLaunchOption() }]
       : []),
     // While waiting for Dota: the sample advice card over the screen (the overlay unlocked), to see and place it.
-    {
-      id: "preview",
-      done: Boolean(status.setup?.previewed),
-      optional: true,
-      action: () => window.launcherApi.setOverlayLocked(false)
-    },
+    // Only with the overlay on: a switched-off overlay shows no card, and the player chose that.
+    ...(status.overlay === "running"
+      ? [{ id: "preview", done: Boolean(status.setup?.previewed), optional: true, action: () => window.launcherApi.setOverlayLocked(false) }]
+      : []),
     // One click starts Dota 2 through Steam (not while it already runs: then it needs a restart).
     { id: "data", done: dataSeen, action: status.dotaRunning ? null : () => window.launcherApi.launchDota() },
     { id: "account", done: Boolean(player.linked), action: () => window.PlayerViews?.setView("matches") },

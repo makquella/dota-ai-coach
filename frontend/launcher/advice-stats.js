@@ -108,7 +108,11 @@ function appCounts(daily, day) {
  * negative: the snapshot simply follows the current totals.
  */
 function marksDelta(summary, sent) {
-  const totals = (summary && summary.totals) || {};
+  if (!summary || typeof summary !== "object") {
+    // The totals could not be read: nothing this time, and the last snapshot stays.
+    return { marks: Object.fromEntries(VERDICTS.map((verdict) => [verdict, 0])), noisy: {}, snapshot: sent || null };
+  }
+  const totals = summary.totals || {};
   const byDp = (summary && summary.by_decision_point) || {};
   const snapshot = { totals: {}, noisy: {} };
   for (const verdict of VERDICTS) {
