@@ -81,6 +81,7 @@ def telegram_caption(item: script.Script) -> str:
 def make(
     out: Path, today: date, forced: str | None, with_video: bool, allow_silent: bool
 ) -> dict[str, Any]:
+    out = out.resolve()  # the page loads its pictures by file:// URI
     out.mkdir(parents=True, exist_ok=True)
     history = topics.load_history()
     post, _, _ = latest_week()

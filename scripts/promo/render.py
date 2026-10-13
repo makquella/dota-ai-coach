@@ -71,7 +71,7 @@ def assets_for(
             except OSError:
                 pass
         if target.exists():
-            assets[f"render:{key}"] = target.as_uri()
+            assets[f"render:{key}"] = target.resolve().as_uri()
     return assets
 
 
@@ -146,7 +146,7 @@ def render(
             ],
         )
         page = browser.new_page(viewport={"width": scene_page.WIDTH, "height": scene_page.HEIGHT})
-        page.goto(page_file.as_uri(), wait_until="load")
+        page.goto(page_file.resolve().as_uri(), wait_until="load")
         page.evaluate("document.fonts.ready.then(() => true)")
         encoder = subprocess.Popen(command, stdin=subprocess.PIPE)
         assert encoder.stdin is not None
@@ -208,7 +208,7 @@ def stills(page_html: str, times: list[float], out_dir: Path) -> list[Path]:
             args=["--allow-file-access-from-files", "--disable-web-security"],
         )
         page = browser.new_page(viewport={"width": scene_page.WIDTH, "height": scene_page.HEIGHT})
-        page.goto(page_file.as_uri(), wait_until="load")
+        page.goto(page_file.resolve().as_uri(), wait_until="load")
         page.evaluate("document.fonts.ready.then(() => true)")
         for t in times:
             page.evaluate(f"window.renderAt({t})")
