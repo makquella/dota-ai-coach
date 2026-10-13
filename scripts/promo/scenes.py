@@ -444,9 +444,9 @@ html body { margin:0; width:1080px; height:1920px; overflow:hidden; background:v
 .tip p { margin:0; font:700 42px/1.2 Montserrat, sans-serif; }
 /* cta */
 .cta { position:absolute; left:72px; right:150px; top:300px; text-align:center; z-index:5; }
-.cta .shot { max-height:420px; object-fit:cover; object-position:top; }
+.cta .shot { max-height:360px; object-fit:cover; object-position:top; }
 .cta .shot { width:100%; border-radius:26px; border:2px solid var(--line); box-shadow:0 30px 80px rgba(0,0,0,.6); }
-.cta .logo { width:150px; height:150px; margin:-75px auto 0; display:block; position:relative; }
+.cta .logo { width:124px; height:124px; margin:30px auto 0; display:block; position:relative; }
 .cta h2 { margin:20px 0 10px; font:900 62px/1.1 Montserrat, sans-serif; }
 .cta p { margin:0; color:var(--muted); font:600 36px/1.3 Inter, sans-serif; }
 .cta .site { display:inline-block; margin-top:26px; padding:22px 40px; border-radius:999px; background:var(--fill);
