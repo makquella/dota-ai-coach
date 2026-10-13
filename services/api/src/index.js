@@ -26,6 +26,8 @@
 //                                   -> promo packages for approval (src/promo.js, docs/MARKETING_ENGINE.md)
 //   GET    /m/<media key>/<file>    -> a promo video or cover (public while not rejected or expired)
 //   POST   /v1/telegram/webhook     -> the bot's approve / reject buttons (secret header, TELEGRAM_CHAT_ID only)
+//   GET    /oauth/<network>/callback -> connects YouTube, Instagram or TikTok after the bot's /connect
+//   cron */5                        -> the promo delivery queue (uploads, polling, reports)
 //   GET    /admin, /admin/app.js    -> the statistics page (src/admin-page.js; asks for the token, holds no data;
 //                                      404 while ADMIN_TOKEN is not set)
 //   cron                            -> deletes reports older than RETENTION_DAYS, expired shares, old rate counters,
@@ -87,7 +89,7 @@ import {
   channelSource,
   latestInstaller
 } from "./channels.js";
-import { promoList, promoMaintenance, promoMedia, putPromoFile, registerPromo, telegramWebhook } from "./promo.js";
+import { PROMO_CRON, oauthCallback, promoList, promoMaintenance, promoMedia, promoPublish, putPromoFile, registerPromo, telegramWebhook } from "./promo.js";
 import {
   TRANSFER_MAX_BYTES,
   TRANSFER_MINUTES,
@@ -877,6 +879,10 @@ export default {
       if (media && (request.method === "GET" || request.method === "HEAD")) {
         return await promoMedia(request, media[1], media[2], env);
       }
+      const oauth = path.match(/^\/oauth\/(youtube|instagram|tiktok)\/callback$/);
+      if (oauth && request.method === "GET") {
+        return await oauthCallback(request, oauth[1], env);
+      }
       if (request.method === "POST" && path === "/v1/telegram/webhook") {
         return await telegramWebhook(request, env);
       }
@@ -924,7 +930,12 @@ export default {
     }
   },
 
-  async scheduled(_event, env, ctx) {
+  async scheduled(event, env, ctx) {
+    if (event?.cron === PROMO_CRON) {
+      // Every five minutes: the promo delivery queue (src/promo.js), nothing else.
+      ctx.waitUntil(promoPublish(env).catch((error) => console.log(`promo publish: ${error.message}`)));
+      return;
+    }
     ctx.waitUntil(cleanup(env).then((count) => console.log(`cleanup: ${count} old reports`)));
     ctx.waitUntil(sendWeeklyStats(env).catch((error) => console.log(`weekly stats: ${error.message}`)));
     ctx.waitUntil(promoMaintenance(env).catch((error) => console.log(`promo: ${error.message}`)));
