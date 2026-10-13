@@ -322,3 +322,14 @@ def test_format_weights_read_names_itself_and_never_stops_the_video(monkeypatch,
     assert not (tmp_path / "weights.json").exists()
     out = capsys.readouterr().out
     assert "weights unchanged: HTTPError" in out and "secret" not in out
+
+
+def test_quality_findings_become_check_annotations_on_actions(monkeypatch, capsys):
+    from scripts.promo import package
+
+    monkeypatch.delenv("GITHUB_ACTIONS", raising=False)
+    package.annotate("error", "у відео немає голосу")
+    assert capsys.readouterr().out == ""
+    monkeypatch.setenv("GITHUB_ACTIONS", "true")
+    package.annotate("error", "100% тиші\nдругий рядок")
+    assert capsys.readouterr().out == "::error title=Promo quality::100%25 тиші%0Aдругий рядок\n"
