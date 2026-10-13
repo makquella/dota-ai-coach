@@ -13,6 +13,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import os
 import random
 import sys
 from datetime import UTC, date, datetime
@@ -169,6 +170,14 @@ def make(
     return package
 
 
+def annotate(level: str, message: str) -> None:
+    """On GitHub Actions, also as a check annotation: the job log is not
+    always at hand, the annotations are (check-runs/<id>/annotations)."""
+    if os.environ.get("GITHUB_ACTIONS") == "true":
+        clean = message.replace("%", "%25").replace("\r", "%0D").replace("\n", "%0A")
+        print(f"::{level} title=Promo quality::{clean}")
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     parser.add_argument("--out", type=Path, required=True)
@@ -191,8 +200,10 @@ def main() -> None:
     print(f"{package['format']} · {package['topic']} · {package['seconds']} s · {package['title']}")
     for line in report["errors"]:
         print(f"  error: {line}")
+        annotate("error", line)
     for line in report["warnings"]:
         print(f"  warning: {line}")
+        annotate("warning", line)
     if args.record and report["ok"]:
         history = topics.load_history()
         history.append(

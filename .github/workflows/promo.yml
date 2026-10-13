@@ -84,7 +84,15 @@ jobs:
         run: |
           args=(--out promo-out --record)
           if [ -n "$FORMAT" ] && [ "$FORMAT" != auto ]; then args+=(--format "$FORMAT"); fi
-          python -m scripts.promo.package "${args[@]}"
+          # A crash shows up as a check annotation too (the job log is not
+          # always at hand); quality findings annotate themselves.
+          status=0
+          python -m scripts.promo.package "${args[@]}" 2> promo-stderr.log || status=$?
+          cat promo-stderr.log >&2
+          if [ "$status" -ne 0 ]; then
+            echo "::error title=Promo build::$(tail -n 1 promo-stderr.log)"
+            exit "$status"
+          fi
       - uses: actions/upload-artifact@v4
         if: always()
         with:
