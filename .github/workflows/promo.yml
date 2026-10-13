@@ -20,7 +20,7 @@ on:
       format:
         description: "Format (auto: the rotation picks)"
         type: choice
-        options: [auto, coach, meta, hero, fact, release]
+        options: [auto, draft, coach, meta, hero, fact, release]
         default: auto
       send:
         description: "Send to Telegram for approval"

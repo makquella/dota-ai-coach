@@ -27,6 +27,7 @@ test("a package needs an id, a known format and captions within the limits", () 
   assert.equal(validatePromo(PACKAGE).id, PACKAGE.id);
   assert.equal(validatePromo({ ...PACKAGE, id: "../../etc" }), null);
   assert.equal(validatePromo({ ...PACKAGE, format: "ad" }), null);
+  assert.equal(validatePromo({ ...PACKAGE, format: "draft" }).id, PACKAGE.id);
   assert.equal(validatePromo({ ...PACKAGE, caption: "x".repeat(2201) }), null);
   assert.equal(validatePromo({ ...PACKAGE, youtube_title: "" }), null);
 });

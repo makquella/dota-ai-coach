@@ -614,3 +614,14 @@ def test_the_card_hits_as_the_voice_says_wardly():
     assert scenes.card_moment(line[0]) == pytest.approx(6 * 0.4)
     page = scenes.page("draft", line, {}, 0)
     assert 'data-impact="2.40"' in page and "ПРОТИ SPECTRE" in page and "Проти драфту" in page
+
+
+def test_the_worker_and_the_workflow_know_every_format():
+    import re
+
+    worker = (ROOT / "services" / "api" / "src" / "promo.js").read_text(encoding="utf-8")
+    listed = re.search(r"PROMO_FORMATS = \[([^\]]*)\]", worker).group(1)
+    assert set(topics.WEIGHTS) <= set(re.findall(r'"([a-z]+)"', listed))
+    workflow = (ROOT / ".github" / "workflows" / "promo.yml").read_text(encoding="utf-8")
+    choices = re.search(r"options: \[([^\]]*)\]", workflow).group(1)
+    assert set(topics.WEIGHTS) <= {c.strip() for c in choices.split(",")}

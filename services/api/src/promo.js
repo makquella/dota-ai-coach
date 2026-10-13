@@ -31,7 +31,7 @@ import {
   socialConfigured
 } from "./social.js";
 
-export const PROMO_FORMATS = ["coach", "meta", "hero", "fact", "release"];
+export const PROMO_FORMATS = ["draft", "coach", "meta", "hero", "fact", "release"];
 export const PROMO_FILES = { "video.mp4": "video/mp4", "cover.jpg": "image/jpeg" };
 export const PROMO_MAX_VIDEO = 95 * 1024 * 1024; // under the Workers request limit
 export const PROMO_MAX_COVER = 2 * 1024 * 1024;
