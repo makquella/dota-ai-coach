@@ -19,5 +19,12 @@
   "format": "draft",
   "topic": "spectre",
   "hook": 0
+ },
+ {
+  "id": "ab7ebbdf04e19ac2",
+  "date": "2026-10-13",
+  "format": "release",
+  "topic": "0.56.2",
+  "hook": 0
  }
 ]
