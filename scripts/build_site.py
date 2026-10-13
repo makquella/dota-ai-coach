@@ -524,6 +524,7 @@ T = {
         "issues": "Повідомити про проблему",
         "changelog": "Що нового",
         "privacy": "Конфіденційність",
+        "terms": "Умови використання",
         "legal": "Dota 2 — товарний знак Valve Corporation. Проєкт не пов'язаний із Valve і не схвалений нею. Портрети героїв — Valve.",
     },
     "en": {
@@ -590,6 +591,7 @@ T = {
         "issues": "Report a problem",
         "changelog": "What's new",
         "privacy": "Privacy",
+        "terms": "Terms of service",
         "legal": "Dota 2 is a trademark of Valve Corporation. This project is not affiliated with or endorsed by Valve. Hero portraits are Valve's.",
     },
 }
@@ -660,6 +662,7 @@ def site_footer(lang: str, up: str, home: str) -> str:
           <a href="{home}news.html">{e(t["news"])}</a>
           <a href="{up}changelog.html">{e(t["changelog"])}</a>
           <a href="{up}privacy.html">{e(t["privacy"])}</a>
+          <a href="{up}terms.html">{e(t["terms"])}</a>
           <a href="{up}code-signing.html">Code signing policy</a>
         </nav>
         <p class="footer-legal">{e(t["legal"])}</p>
@@ -940,7 +943,7 @@ def sitemap(all_heroes: list[dict]) -> str:
                 f'<xhtml:link rel="alternate" hreflang="uk" href="{BASE}{uk}" />'
                 f'<xhtml:link rel="alternate" hreflang="en" href="{BASE}{en}" /></url>'
             )
-    for page in ("/changelog.html", "/privacy.html", "/code-signing.html"):
+    for page in ("/changelog.html", "/privacy.html", "/terms.html", "/code-signing.html"):
         lines.append(f"  <url><loc>{BASE}{page}</loc></url>")
     lines.append("</urlset>")
     return "\n".join(lines) + "\n"
