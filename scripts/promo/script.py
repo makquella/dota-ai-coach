@@ -17,8 +17,6 @@ import re
 from dataclasses import asdict, dataclass, field
 from typing import Any
 
-from .pronounce import percent_word
-
 SITE = "https://luhovyimvp.dev"
 HASHTAGS = ("#dota2", "#дота2", "#дота", "#wardly")
 CTA_VOICE = "Wardly безкоштовний. Посилання в профілі."
@@ -28,7 +26,7 @@ YOUTUBE_TITLE_LIMIT = 100
 @dataclass
 class Scene:
     kind: str  # hook | card | stat | list | tips | cta
-    voice: str  # what is said (screen spelling; pronounce.py turns it into Cyrillic)
+    voice: str  # what is said, as written (ElevenLabs reads the English names as they are)
     data: dict[str, Any] = field(default_factory=dict)
 
 
@@ -48,6 +46,15 @@ class Script:
 
     def voice_text(self) -> str:
         return " ".join(scene.voice for scene in self.scenes)
+
+
+def percent_word(number: int) -> str:
+    """«відсоток / відсотки / відсотків» for a whole number."""
+    if number % 10 == 1 and number % 100 != 11:
+        return "відсоток"
+    if number % 10 in (2, 3, 4) and number % 100 not in (12, 13, 14):
+        return "відсотки"
+    return "відсотків"
 
 
 def whole_percent(value: float) -> int:

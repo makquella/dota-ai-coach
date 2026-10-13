@@ -69,9 +69,4 @@ def check(
             (warnings if allow_silent else errors).append("у відео немає голосу")
         if media.get("bytes", 0) > 200 * 1024 * 1024:
             errors.append("файл більший за 200 МБ")
-    guessed = package.get("pronunciation_guesses") or []
-    if guessed:
-        warnings.append(
-            "вимова за правилами (додати в data/promo/pronounce.json): " + ", ".join(guessed)
-        )
     return {"ok": not errors, "errors": errors, "warnings": warnings}
