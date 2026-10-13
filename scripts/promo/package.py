@@ -15,6 +15,7 @@ import hashlib
 import json
 import os
 import random
+import shutil
 import sys
 from datetime import UTC, date, datetime
 from pathlib import Path
@@ -27,6 +28,7 @@ import build_site  # noqa: E402 - scripts/build_site.py
 import news  # noqa: E402
 import news_cards  # noqa: E402
 
+from . import media as media_files  # noqa: E402
 from . import quality, render, scenes, script, topics, voice  # noqa: E402
 
 
@@ -106,24 +108,28 @@ def make(
     timeline_in = [{"kind": s.kind, "voice": s.voice, "data": s.data} for s in item.scenes]
     voices: list[Path | None] = []
     seconds: list[float | None] = []
-    guessed: list[str] = []
+    words: list[list[dict[str, Any]] | None] = []
     for index, scene in enumerate(item.scenes):
-        result = voice.synthesize(scene.voice, out / f"voice-{index}.wav") if with_video else None
+        result = (
+            voice.synthesize(
+                scene.voice,
+                out / f"voice-{index}.wav",
+                previous=item.scenes[index - 1].voice if index else "",
+                following=item.scenes[index + 1].voice if index + 1 < len(item.scenes) else "",
+            )
+            if with_video
+            else None
+        )
         if result is None:
             voices.append(None)
             seconds.append(None)
+            words.append(None)
             continue
-        path, words = result
+        path, said = result
         voices.append(path)
         seconds.append(voice.duration(path))
-        guessed += [w for w in words if w not in guessed]
-    if not with_video:
-        guessed = []
-        for scene in item.scenes:
-            for word in voice.pronounce.for_voice(scene.voice)[1]:
-                if word not in guessed:
-                    guessed.append(word)
-    timeline = scenes.timeline(timeline_in, seconds)
+        words.append(said)
+    timeline = scenes.timeline(timeline_in, seconds, words)
     total = timeline[-1]["end"]
     package: dict[str, Any] = {
         "id": package_id,
@@ -138,8 +144,7 @@ def make(
         "link": item.link,
         "seconds": round(total, 2),
         "script": item.to_dict(),
-        "pronunciation_guesses": guessed,
-        "voice": "piper" if any(v is not None for v in voices) else "none",
+        "voice": "elevenlabs" if any(v is not None for v in voices) else "none",
     }
     media = None
     if with_video:
@@ -152,10 +157,18 @@ def make(
                 ],
                 out / "voice.wav",
             )
-        assets = render.assets_for(timeline, out)
         seed = int(package_id[:4], 16)
+        assets: dict[str, Any] = dict(render.assets_for(timeline, out))
+        assets["seqs"] = media_files.prepare(timeline, media_files.Library(out), seed)
         page_html = scenes.page(item.format, timeline, assets, seed)
-        video = render.render(page_html, total, out / "video.mp4", audio, cover=out / "cover.jpg")
+        video = render.render(
+            page_html,
+            total,
+            out / "video.mp4",
+            audio,
+            cover=out / "cover.jpg",
+            cover_at=max(0.5, timeline[0]["end"] - 0.4),
+        )
         media = render.probe(video)
         package["media"] = media
         for path in [
@@ -164,6 +177,7 @@ def make(
             *out.glob("render-*.png"),
         ]:
             path.unlink(missing_ok=True)
+        shutil.rmtree(out / "media", ignore_errors=True)
     package["quality"] = quality.check(package, media, allow_silent=allow_silent)
     (out / "package.json").write_text(
         json.dumps(package, ensure_ascii=False, indent=1), encoding="utf-8"

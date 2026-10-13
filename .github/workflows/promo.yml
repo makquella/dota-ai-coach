@@ -1,14 +1,17 @@
 name: Promo
 
 # Wardly Marketing Engine (docs/MARKETING_ENGINE.md). Three times a week:
-# pick a topic from the project's data, write the script, voice it (Piper,
-# offline), render a 1080x1920 video (headless Chrome + ffmpeg), check it,
+# pick a topic from the project's data, write the script, voice it
+# (ElevenLabs), render a 1080x1920 video from Valve's hero animations and
+# ability clips (headless Chrome + ffmpeg), check it,
 # and send it to the developer's Telegram for approval. Nothing is published
 # here: the buttons in Telegram go to the Worker (services/api/src/promo.js),
 # which publishes only after «✅ Всюди» or «📣 Лише Telegram».
 #
-# Secrets: API_ADMIN_TOKEN, TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID (the developer's
-# chat). Without them the video is only built and kept as an artifact.
+# Secrets: ELEVENLABS_API_KEY (the voice; variables ELEVENLABS_VOICE_ID and
+# ELEVENLABS_MODEL optional), API_ADMIN_TOKEN, TELEGRAM_BOT_TOKEN,
+# TELEGRAM_CHAT_ID (the developer's chat). Without the Telegram ones the video
+# is only built and kept as an artifact.
 on:
   schedule:
     - cron: "23 14 * * 2,4,6"
@@ -33,7 +36,6 @@ concurrency:
 
 env:
   API_URL: https://api.luhovyimvp.dev
-  PROMO_VOICE_MODEL: ${{ github.workspace }}/.voices/uk_UA-ukrainian_tts-medium.onnx
 
 jobs:
   video:
@@ -64,18 +66,6 @@ jobs:
           ffmpeg_exe="$(python -c 'from scripts.promo import render; print(render.ffmpeg())')"
           ffmpeg_version="$("$ffmpeg_exe" -version)"
           echo "${ffmpeg_version%%$'\n'*}"
-      - name: Voice model (cached)
-        uses: actions/cache@v4
-        with:
-          path: .voices
-          key: piper-uk_UA-ukrainian_tts-medium-v1
-      - name: Download the voice when missing
-        run: |
-          mkdir -p .voices
-          base=https://huggingface.co/rhasspy/piper-voices/resolve/main/uk/uk_UA/ukrainian_tts/medium
-          for f in uk_UA-ukrainian_tts-medium.onnx.json uk_UA-ukrainian_tts-medium.onnx; do
-            [ -s ".voices/$f" ] || curl -fsSL --retry 4 --retry-delay 10 -o ".voices/$f" "$base/$f"
-          done
       - name: What worked (format weights)
         env:
           API_ADMIN_TOKEN: ${{ secrets.API_ADMIN_TOKEN }}
@@ -83,7 +73,14 @@ jobs:
       - name: Build the video
         env:
           FORMAT: ${{ inputs.format }}
+          ELEVENLABS_API_KEY: ${{ secrets.ELEVENLABS_API_KEY }}
+          ELEVENLABS_VOICE_ID: ${{ vars.ELEVENLABS_VOICE_ID }}
+          ELEVENLABS_MODEL: ${{ vars.ELEVENLABS_MODEL }}
         run: |
+          if [ -z "$ELEVENLABS_API_KEY" ]; then
+            echo "::error title=Promo voice::ELEVENLABS_API_KEY is not set: add it in Settings -> Secrets and variables -> Actions"
+            exit 1
+          fi
           args=(--out promo-out --record)
           if [ -n "$FORMAT" ] && [ "$FORMAT" != auto ]; then args+=(--format "$FORMAT"); fi
           # A crash shows up as a check annotation too (the job log is not

@@ -14,10 +14,11 @@ flowchart LR
     Backend[real live pipeline] --> Demo[coach_demo.py]
     Topics --> Script[script.py]
     Demo --> Script
-    Script --> Voice[voice.py · Piper uk]
+    Script --> Voice[voice.py · ElevenLabs]
     Script --> Scenes[scenes.py · HTML 1080x1920]
     Voice --> Render[render.py · Chrome frames + ffmpeg]
     Scenes --> Render
+    Media[media.py · Valve animations and clips] --> Render
     Render --> QC[quality.py]
     QC --> Send[send.py]
     Send -->|video + buttons| TG[developer's Telegram]
@@ -36,8 +37,9 @@ flowchart LR
 | Topic | `scripts/promo/topics.py` | A release not promoted yet first; the week's meta and its fact once per meta post; coach and hero videos rotate the 64 heroes with a site page (popular first, none of the last 20). Formats are drawn by weight, never the same twice in a row, seeded by the date. |
 | Script | `scripts/promo/script.py` | Five formats. Every number comes from a listed source: OpenDota weekly stats (`data/news/posts`), hero profiles, release notes. |
 | Real cards | `scripts/promo/coach_demo.py` | «What Wardly says on X»: a synthetic match runs through the real backend (`/gsi` → rules → scheduler → `/overlay/recommendation`) with two moments built from the hero's profile, HP falling fast with an escape ready, and a stun with BKB ready. The video shows exactly what the app shows. |
-| Voice | `scripts/promo/voice.py`, `pronounce.py` | Piper (offline, MIT), Ukrainian voice `uk_UA-ukrainian_tts-medium`. Dota names are said through `data/promo/pronounce.json`; words read by fallback rules are listed in the quality report. Percent words agree with the number. |
-| Picture | `scripts/promo/scenes.py`, `render.py` | One HTML page drawn frame by frame (`window.renderAt(t)`), 30 fps. Site fonts and colours, Valve hero renders, the real overlay card CSS, in-game screenshots. Burned-in subtitles. Content stays out of the platforms' button areas. |
+| Voice | `scripts/promo/voice.py` | ElevenLabs (`eleven_multilingual_v2` by default): the Ukrainian script with the English hero, ability and item names read as written. One request per scene, with the neighbouring scenes as context so the intonation carries across cuts; the character alignment gives every word its time. Percent words agree with the number. |
+| Moving pictures | `scripts/promo/media.py` | Valve's own, from dota2.com's CDN: each hero's idle animation (VP9 with transparency) and in-game clips of abilities. Valve's hero data feed names the abilities, so a card that says «use Shackles» gets the Shackles clip; an item card gets the item's icon. A coach moment opens on an enemy's stun or burst. Clips are cropped to 9:16 where they move most, with the action above the overlay card, and decoded into frames once per run. |
+| Picture | `scripts/promo/scenes.py`, `render.py` | One HTML page drawn frame by frame (`window.renderAt(t)`), 30 fps; frame sequences play frame-exact. Cuts punch in with a flash, a card hits with a shake, the advised ability or item follows. Site fonts and colours, the real overlay card CSS. Subtitles light up word by word with the voice. Content stays out of the platforms' button areas. |
 | Check | `scripts/promo/quality.py` | 12 to 59 s, 1080x1920, a voice track, caption limits, no promises or cheat claims, no unfilled placeholders, sources present. |
 | Approval | `scripts/promo/send.py` → Telegram | The video with buttons **✅ Всюди · 📣 Лише Telegram · ❌ Відхилити**, and a reply with captions per network, the YouTube title and the data sources. |
 | Publish | `services/api/src/promo.js`, `src/social.js` | On a press from `TELEGRAM_CHAT_ID`: the channel post at once (by the approval message's file id), and one delivery per connected network. The five-minute cron works the queue: YouTube (one resumable upload), Instagram (a Reel container, polled until ready, then published), TikTok (an upload to the app's inbox as a draft, or a direct post). The result comes as a reply to the approval message. Networks that are not connected go through Metricool if it is configured, else they are listed as not connected. |
@@ -71,6 +73,12 @@ bot `/connect youtube` (or `instagram`, `tiktok`) and allow access on the page i
 links. `/accounts` shows what is connected. Redirect URI for every app:
 `https://api.luhovyimvp.dev/oauth/<network>/callback`.
 
+### Voice → `ELEVENLABS_API_KEY`
+
+1. An ElevenLabs Starter plan (or higher: the free plan forbids commercial use and wants attribution). Profile → API keys → a new key; repository secret `ELEVENLABS_API_KEY`.
+2. Optional, a repository variable `ELEVENLABS_VOICE_ID`: a voice from the Voice Library (a native Ukrainian speaker sounds best; add it to your voices and copy its id). Without it a premade voice speaks. `ELEVENLABS_MODEL` switches the model (default `eleven_multilingual_v2`).
+3. The Promo workflow stops with an annotation when the key is missing; it never sends a silent video.
+
 ### YouTube Shorts → `YOUTUBE_CLIENT_ID`, `YOUTUBE_CLIENT_SECRET`
 
 1. [console.cloud.google.com](https://console.cloud.google.com): a new project, *APIs & Services → Library → YouTube Data API v3 → Enable*.
@@ -99,11 +107,11 @@ links. `/accounts` shows what is connected. Redirect URI for every app:
 
 ## Costs
 
-GitHub Actions (about 5 minutes per video on the free runners), the existing Cloudflare free tier (R2, D1 rows, two cron triggers), Piper (offline, free) and the networks' own free APIs. No paid AI APIs; Metricool is optional.
+GitHub Actions (about 8 minutes per video on the free runners), the existing Cloudflare free tier (R2, D1 rows, two cron triggers), the networks' own free APIs and ElevenLabs Starter (commercial use; a video is about 700 characters, three a week fit the plan's monthly credits). Metricool is optional.
 
 ## Extending
 
 - A new format: a builder in `script.py`, a branch in `topics.choose` and `package.build_script`, a weight in `topics.WEIGHTS`, a pill in `scenes.PILLS`, tests in `backend/tests/test_promo.py`.
-- A word said wrong: add it to `data/promo/pronounce.json` (the approval message lists every guessed word).
+- A word said wrong: rewrite it in the script (`script.py`) the way it should sound, or try another voice (`ELEVENLABS_VOICE_ID`).
 - A new network: a client in `services/api/src/social.js` with `authUrl`, `exchange`, `fresh`, `step` and `stats`, its secrets in `NETWORK_SECRETS` and `api.yml`, a route in `index.js`.
 - Tests: `backend/tests/test_promo.py`; `services/api/test/promo.test.js`, `test/social.test.js`, `test/integration/promo.test.js` and `test/integration/social.test.js` (real D1 and R2).

@@ -82,6 +82,7 @@ def render(
     audio: Path | None,
     cover: Path | None = None,
     fps: int = scene_page.FPS,
+    cover_at: float = COVER_AT,
 ) -> Path:
     from playwright.sync_api import sync_playwright
 
@@ -148,6 +149,7 @@ def render(
         page = browser.new_page(viewport={"width": scene_page.WIDTH, "height": scene_page.HEIGHT})
         page.goto(page_file.resolve().as_uri(), wait_until="load")
         page.evaluate("document.fonts.ready.then(() => true)")
+        page.evaluate("window.renderAt(0)")
         encoder = subprocess.Popen(command, stdin=subprocess.PIPE)
         assert encoder.stdin is not None
         try:
@@ -155,7 +157,7 @@ def render(
                 t = index / fps
                 page.evaluate(f"window.renderAt({t})")
                 encoder.stdin.write(page.screenshot(type="jpeg", quality=JPEG_QUALITY))
-                if cover is not None and abs(t - COVER_AT) < 0.5 / fps:
+                if cover is not None and abs(t - cover_at) < 0.5 / fps:
                     page.screenshot(path=str(cover), type="jpeg", quality=90)
         finally:
             encoder.stdin.close()
