@@ -345,3 +345,23 @@ def test_pictures_load_from_a_relative_output_folder(monkeypatch, tmp_path):
     timeline = [{"data": {"hero": "axe"}}]
     assets = render.assets_for(timeline, Path("promo-out"), download=False)
     assert assets["render:axe"] == (tmp_path / "promo-out" / "render-axe.png").as_uri()
+
+
+def test_a_refused_request_names_the_reason_without_the_bot_token(monkeypatch):
+    import io
+
+    def refused(request, timeout):
+        raise send.urllib.error.HTTPError(
+            request.full_url,
+            400,
+            "Bad Request",
+            {},
+            io.BytesIO(b'{"description": "chat not found"}'),
+        )
+
+    monkeypatch.setattr(send.urllib.request, "urlopen", refused)
+    with pytest.raises(SystemExit) as stopped:
+        send._request("https://api.telegram.org/bot123:bot-secret/sendVideo", method="POST")
+    message = str(stopped.value)
+    assert "HTTP 400" in message and "chat not found" in message
+    assert "/bot***/sendVideo" in message and "bot-secret" not in message

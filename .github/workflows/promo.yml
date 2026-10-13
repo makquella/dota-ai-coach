@@ -112,7 +112,13 @@ jobs:
             echo "::warning::API_ADMIN_TOKEN, TELEGRAM_BOT_TOKEN or TELEGRAM_CHAT_ID is missing: the video stays an artifact"
             exit 0
           fi
-          python -m scripts.promo.send promo-out
+          status=0
+          python -m scripts.promo.send promo-out 2> promo-send-stderr.log || status=$?
+          cat promo-send-stderr.log >&2
+          if [ "$status" -ne 0 ]; then
+            echo "::error title=Promo send::$(tail -n 1 promo-send-stderr.log)"
+            exit "$status"
+          fi
       - name: Remember what was made
         run: |
           git config user.name "github-actions[bot]"

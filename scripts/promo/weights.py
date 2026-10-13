@@ -59,6 +59,8 @@ def main() -> None:
         # The numbers only tune the rotation: a missed read keeps the old
         # weights and never stops this week's video.
         print(f"weights unchanged: {type(error).__name__}: {error}")
+        if os.environ.get("GITHUB_ACTIONS") == "true":
+            print(f"::warning title=Promo weights::{type(error).__name__}: {error}")
         return
     found = multipliers(posts)
     topics.WEIGHTS_FILE.parent.mkdir(parents=True, exist_ok=True)
