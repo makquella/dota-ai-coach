@@ -18,7 +18,9 @@ from __future__ import annotations
 import html
 import json
 import os
+import re
 import sys
+import urllib.error
 import urllib.request
 import uuid
 from pathlib import Path
@@ -54,9 +56,19 @@ def _request(
     request = urllib.request.Request(
         url, data=data, method=method, headers={"User-Agent": USER_AGENT, **(headers or {})}
     )
-    with urllib.request.urlopen(request, timeout=TIMEOUT) as response:
-        body = response.read()
+    try:
+        with urllib.request.urlopen(request, timeout=TIMEOUT) as response:
+            body = response.read()
+    except urllib.error.HTTPError as error:
+        # What the server said, so a failed run names its reason; the bot
+        # token in Telegram's URL never reaches the log.
+        detail = error.read(300).decode("utf-8", "replace").strip()
+        raise SystemExit(f"{method} {redact(url)}: HTTP {error.code} {detail}") from None
     return json.loads(body) if body else {}
+
+
+def redact(url: str) -> str:
+    return re.sub(r"/bot[^/]+/", "/bot***/", url)
 
 
 def register(package: dict[str, Any], folder: Path, api: str, token: str) -> str:
