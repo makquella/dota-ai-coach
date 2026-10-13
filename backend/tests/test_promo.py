@@ -333,3 +333,15 @@ def test_quality_findings_become_check_annotations_on_actions(monkeypatch, capsy
     monkeypatch.setenv("GITHUB_ACTIONS", "true")
     package.annotate("error", "100% тиші\nдругий рядок")
     assert capsys.readouterr().out == "::error title=Promo quality::100%25 тиші%0Aдругий рядок\n"
+
+
+def test_pictures_load_from_a_relative_output_folder(monkeypatch, tmp_path):
+    # The workflow passes --out promo-out: the page still needs file:// URIs.
+    from scripts.promo import render
+
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / "promo-out").mkdir()
+    (tmp_path / "promo-out" / "render-axe.png").write_bytes(b"png")
+    timeline = [{"data": {"hero": "axe"}}]
+    assets = render.assets_for(timeline, Path("promo-out"), download=False)
+    assert assets["render:axe"] == (tmp_path / "promo-out" / "render-axe.png").as_uri()
