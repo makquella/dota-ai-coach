@@ -167,12 +167,13 @@ test("a rejected package is never published and its media are gone", async (t) =
   assert.equal(calls.filter((c) => c.url.endsWith("/sendVideo")).length, 0);
 });
 
-test("only the Telegram channel without Metricool", async (t) => {
+test("only the Telegram channel when no network is connected and Metricool is off", async (t) => {
   const { mf, db, calls } = await localWorker(t);
   await upload(mf);
   await press(mf, "all");
   const row = await db.prepare("SELECT status, result FROM promo_posts WHERE id = ?").bind(ID).first();
   assert.equal(row.status, "published");
-  assert.equal(JSON.parse(row.result).metricool.status, "SKIPPED");
+  assert.deepEqual(JSON.parse(row.result).skipped, ["instagram", "tiktok", "youtube"]);
+  assert.match(calls.filter((c) => c.url.endsWith("/sendMessage")).map((c) => JSON.parse(c.body).text).at(-1), /не підключено/);
   assert.equal(calls.filter((c) => c.url.endsWith("/sendVideo")).length, 1);
 });

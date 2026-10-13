@@ -19,6 +19,14 @@ PROMO_NETWORKS = "instagram,tiktok,youtube"
 PROMO_METRICOOL_MODE = "draft"
 PROMO_TIMEZONE = "Europe/Kyiv"
 PROMO_DELAY_MINUTES = "15"
+# Direct publishing (src/social.js). The OAuth redirect URIs to register are
+# <PROMO_PUBLIC_ORIGIN>/oauth/<youtube|instagram|tiktok>/callback; Instagram
+# fetches the video from <PROMO_PUBLIC_ORIGIN>/m/<key>/video.mp4.
+PROMO_PUBLIC_ORIGIN = "https://api.luhovyimvp.dev"
+# "inbox": TikTok gets a draft to post from the app (works before TikTok's
+# audit); "direct": posted at once (public only after the audit).
+TIKTOK_MODE = "inbox"
+YOUTUBE_PRIVACY = "public"
 
 [[d1_databases]]
 binding = "DB"
@@ -31,7 +39,7 @@ binding = "REPORTS"
 bucket_name = "dota-ai-coach-reports"
 
 [triggers]
-crons = ["17 3 * * *"]
+crons = ["17 3 * * *", "*/5 * * * *"]
 
 [observability]
 enabled = true

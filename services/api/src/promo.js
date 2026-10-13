@@ -6,12 +6,29 @@
 //   GET  /m/<media key>/<file>               -> the media, public while the post is not rejected or expired
 //                                               (Metricool fetches the video from here)
 //   POST /v1/telegram/webhook                -> the bot's updates; only with the webhook secret header
+//   GET  /oauth/<network>/callback           -> the end of /connect <network> (YouTube, Instagram, TikTok)
+//
+// Direct publishing (src/social.js): «Всюди» queues one delivery per connected
+// network; the five-minute cron (promoPublish) uploads, polls and reports back
+// to the approval message. Networks without a connection go through Metricool
+// when it is configured, else they are skipped.
 //
 // Nothing is published without the developer: a package is 'pending' until a
 // button press in TELEGRAM_CHAT_ID moves it, once (a conditional UPDATE), to
 // 'publishing'. «Всюди» schedules it in Metricool (as a draft while
 // PROMO_METRICOOL_MODE is not "publish") and posts it to the Telegram channel;
 // «Лише Telegram» only the channel; «Відхилити» deletes the media.
+
+import {
+  NETWORK_CLIENTS,
+  NETWORK_NAMES,
+  NETWORK_SECRETS,
+  SOCIAL_NETWORKS,
+  connectedNetworks,
+  loadAccount,
+  saveAccount,
+  socialConfigured
+} from "./social.js";
 
 export const PROMO_FORMATS = ["coach", "meta", "hero", "fact", "release"];
 export const PROMO_FILES = { "video.mp4": "video/mp4", "cover.jpg": "image/jpeg" };
@@ -25,6 +42,12 @@ const TITLE_MAX = 100;
 const NETWORKS = ["instagram", "tiktok", "youtube"];
 const METRICOOL = "https://app.metricool.com/api";
 const DAY = 86_400_000;
+export const PROMO_CRON = "*/5 * * * *"; // wrangler.toml [triggers]
+const OAUTH_MINUTES = 15;
+const DELIVERY_TRIES = 6;
+const DELIVERY_LEASE = 10 * 60_000;
+const DELIVERY_DEADLINE = 6 * 3_600_000; // a network still processing after this is given up
+const BACKOFF = [2, 5, 15, 30, 60].map((m) => m * 60_000);
 
 const JSON_HEADERS = { "content-type": "application/json; charset=utf-8", "cache-control": "no-store" };
 
@@ -160,8 +183,14 @@ export async function telegramWebhook(request, env, now = Date.now()) {
     return json({ ok: true });
   }
   const admin = String(env.TELEGRAM_CHAT_ID || "");
+  const origin = publicOrigin(env, request);
   const message = update.message;
-  if (message?.chat?.type === "private" && /^\/(start|id)\b/.test(String(message.text || ""))) {
+  const command = String(message?.text || "").trim();
+  if (message?.chat?.type === "private" && admin && String(message.chat.id) === admin && String(message.from?.id) === admin) {
+    const handled = await adminCommand(env, command, message.chat.id, origin, now);
+    if (handled) return json({ ok: true });
+  }
+  if (message?.chat?.type === "private" && /^\/(start|id)\b/.test(command)) {
     // The chat id to put in TELEGRAM_CHAT_ID; harmless to anyone: it is their own.
     await telegram(env, "sendMessage", {
       chat_id: message.chat.id,
@@ -177,7 +206,6 @@ export async function telegramWebhook(request, env, now = Date.now()) {
     await telegram(env, "answerCallbackQuery", { callback_query_id: callback.id, text: "Недоступно" });
     return json({ ok: true });
   }
-  const origin = String(env.PROMO_MEDIA_ORIGIN || new URL(request.url).origin).replace(/\/+$/, "");
   // Answered after the work (Telegram waits; a redelivery finds the post decided).
   await decide(env, match[2], match[1], callback, now, origin);
   return json({ ok: true });
@@ -224,21 +252,39 @@ export async function decide(env, id, action, callback, now = Date.now(), origin
   }
   let metricoolId = null;
   let publishAt = null;
+  const queued = [];
   if (action === "all") {
-    if (metricoolReady(env)) {
-      const scheduled = await scheduleMetricool(env, body, `${origin}/m/${row.media_key}/video.mp4`, now);
+    const connected = await connectedNetworks(env);
+    const wanted = promoNetworks(env);
+    const direct = wanted.filter((n) => connected[n] && socialConfigured(env, n));
+    const rest = wanted.filter((n) => !direct.includes(n));
+    for (const network of direct) {
+      await env.DB.prepare(
+        "INSERT OR IGNORE INTO promo_deliveries (post_id, network, status, attempts, next_at, updated_at) VALUES (?1, ?2, 'queued', 0, ?3, ?3)"
+      )
+        .bind(id, network, now)
+        .run();
+      queued.push(network);
+    }
+    if (rest.length && metricoolReady(env)) {
+      const scheduled = await scheduleMetricool({ ...env, PROMO_NETWORKS: rest.join(",") }, body, `${origin}/m/${row.media_key}/video.mp4`, now);
       result.metricool = scheduled;
       metricoolId = scheduled.id || null;
       publishAt = scheduled.publish_at || null;
-    } else {
-      result.metricool = { status: "SKIPPED", error: "Metricool is not configured" };
+    } else if (rest.length) {
+      result.skipped = rest;
     }
   }
-  const failed = Object.values(result).some((r) => r.status === "ERROR");
-  const status = failed ? "failed" : action === "all" && metricoolId ? "scheduled" : "published";
-  await env.DB.prepare("UPDATE promo_posts SET status = ?2, publish_at = ?3, metricool_id = ?4, result = ?5 WHERE id = ?1")
-    .bind(id, status, publishAt, metricoolId, JSON.stringify(result))
+  const failed = Object.values(result).some((r) => r?.status === "ERROR");
+  // Queued deliveries decide the end (finishPost); a channel or Metricool error
+  // stays in `result` and in the report.
+  const status = queued.length ? "publishing" : failed ? "failed" : action === "all" && metricoolId ? "scheduled" : "published";
+  await env.DB.prepare(
+    "UPDATE promo_posts SET status = ?2, publish_at = ?3, metricool_id = ?4, result = ?5, approval_chat = ?6, approval_message = ?7 WHERE id = ?1"
+  )
+    .bind(id, status, publishAt, metricoolId, JSON.stringify(result), String(callback.message?.chat?.id ?? ""), callback.message?.message_id ?? null)
     .run();
+  if (queued.length) result.queued = queued;
   await report(env, callback, statusText(result, env));
   return { ok: !failed, status, result };
 }
@@ -258,6 +304,14 @@ function statusText(result, env) {
     } else {
       lines.push(`⚠️ Metricool: ${m.error || m.status}`);
     }
+  }
+  if (result.queued?.length) {
+    lines.push(`⏳ ${result.queued.map((n) => NETWORK_NAMES[n]).join(", ")}: у черзі, звіт — за кілька хвилин`);
+  }
+  if (result.skipped?.length) {
+    lines.push(
+      `➖ ${result.skipped.map((n) => NETWORK_NAMES[n]).join(", ")}: не підключено (${result.skipped.map((n) => `/connect ${n}`).join(", ")})`
+    );
   }
   return lines.join("\n") || "Готово";
 }
@@ -491,7 +545,7 @@ export async function promoList(env, now = Date.now()) {
 }
 
 export function weeklyPromoText(posts) {
-  const published = posts.filter((p) => ["scheduled", "published"].includes(p.status));
+  const published = posts.filter((p) => ["scheduled", "published", "publishing"].includes(p.status));
   if (!published.length) return null;
   const byFormat = {};
   for (const post of published) {
@@ -532,10 +586,15 @@ export async function promoMaintenance(env, now = Date.now()) {
         .run();
     }
   }
-  const stored = await refreshStats(env, now).catch((error) => {
-    console.log(`promo stats: ${error.message}`);
-    return 0;
-  });
+  const stored =
+    (await refreshStats(env, now).catch((error) => {
+      console.log(`promo stats: ${error.message}`);
+      return 0;
+    })) +
+    (await refreshDirectStats(env, now).catch((error) => {
+      console.log(`promo direct stats: ${error.message}`);
+      return 0;
+    }));
   if (new Date(now).getUTCDay() === 1 && env.TELEGRAM_BOT_TOKEN && env.TELEGRAM_CHAT_ID) {
     const list = await (await promoList(env, now)).json();
     const recent = list.posts.filter((p) => p.created_at >= now - PROMO_STATS_DAYS * DAY);
@@ -543,4 +602,250 @@ export async function promoMaintenance(env, now = Date.now()) {
     if (message) await telegram(env, "sendMessage", { chat_id: String(env.TELEGRAM_CHAT_ID), text: message });
   }
   return { cleaned: (results || []).length, stored };
+}
+
+// --- connecting accounts (the bot's /connect) -------------------------------------------
+
+export function publicOrigin(env, request) {
+  const set = String(env.PROMO_PUBLIC_ORIGIN || env.PROMO_MEDIA_ORIGIN || "").trim();
+  return (set || (request ? new URL(request.url).origin : "")).replace(/\/+$/, "");
+}
+
+function redirectFor(origin, network) {
+  return `${origin}/oauth/${network}/callback`;
+}
+
+const COMMAND = /^\/(connect|disconnect|accounts)(?:@\w+)?(?:\s+(\w+))?\s*$/i;
+
+async function adminCommand(env, text, chat, origin, now) {
+  const match = text.match(COMMAND);
+  if (!match) return false;
+  const verb = match[1].toLowerCase();
+  const network = String(match[2] || "").toLowerCase();
+  const say = (message, extra = {}) => telegram(env, "sendMessage", { chat_id: chat, text: message, ...extra });
+  if (verb === "accounts") {
+    const connected = await connectedNetworks(env);
+    const lines = SOCIAL_NETWORKS.map((n) => {
+      if (connected[n]) return `✅ ${NETWORK_NAMES[n]}: ${connected[n].name || "підключено"}`;
+      if (socialConfigured(env, n)) return `➖ ${NETWORK_NAMES[n]}: не підключено — /connect ${n}`;
+      return `⚙️ ${NETWORK_NAMES[n]}: додайте секрети ${NETWORK_SECRETS[n].join(", ")}`;
+    });
+    await say(`Акаунти для промо:\n${lines.join("\n")}`);
+    return true;
+  }
+  if (!SOCIAL_NETWORKS.includes(network)) {
+    await say(`Вкажіть мережу: /${verb} youtube | instagram | tiktok`);
+    return true;
+  }
+  if (verb === "disconnect") {
+    await env.DB.prepare("DELETE FROM promo_accounts WHERE network = ?1").bind(network).run();
+    await say(`${NETWORK_NAMES[network]} відключено. Нові відео туди не підуть.`);
+    return true;
+  }
+  if (!socialConfigured(env, network)) {
+    await say(
+      `Спершу додайте в секрети репозиторію ${NETWORK_SECRETS[network].join(" і ")} і запустіть workflow «API». ` +
+        `Адреса повернення для застосунку: ${redirectFor(origin, network)}`
+    );
+    return true;
+  }
+  const state = crypto.getRandomValues(new Uint8Array(16)).reduce((s, b) => s + b.toString(16).padStart(2, "0"), "");
+  await env.DB.prepare("DELETE FROM promo_oauth WHERE created_at < ?1").bind(now - OAUTH_MINUTES * 60_000).run();
+  await env.DB.prepare("INSERT INTO promo_oauth (state, network, created_at) VALUES (?1, ?2, ?3)").bind(state, network, now).run();
+  const url = NETWORK_CLIENTS[network].authUrl(env, redirectFor(origin, network), state);
+  await say(`Підключення ${NETWORK_NAMES[network]}: відкрийте посилання й дозвольте доступ (діє ${OAUTH_MINUTES} хв).`, {
+    reply_markup: { inline_keyboard: [[{ text: `Увійти в ${NETWORK_NAMES[network]}`, url }]] }
+  });
+  return true;
+}
+
+const PAGE_HEADERS = {
+  "content-type": "text/html; charset=utf-8",
+  "cache-control": "no-store",
+  "referrer-policy": "no-referrer",
+  "x-content-type-options": "nosniff",
+  "content-security-policy": "default-src 'none'; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'"
+};
+
+function page(title, text, status = 200) {
+  const e = (v) => String(v).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+  return new Response(
+    `<!doctype html><html lang="uk"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">` +
+      `<title>${e(title)}</title><body style="font:18px/1.5 system-ui,sans-serif;background:#0c0d0f;color:#f3f3f4;padding:40px 24px;max-width:560px;margin:auto">` +
+      `<h1 style="font-size:26px">${e(title)}</h1><p>${e(text)}</p></body></html>`,
+    { status, headers: PAGE_HEADERS }
+  );
+}
+
+export async function oauthCallback(request, network, env, now = Date.now()) {
+  if (!SOCIAL_NETWORKS.includes(network) || !socialConfigured(env, network)) return page("Не знайдено", "Немає такої мережі.", 404);
+  const url = new URL(request.url);
+  const state = url.searchParams.get("state") || "";
+  const code = url.searchParams.get("code") || url.searchParams.get("auth_code") || "";
+  if (!/^[a-f0-9]{32}$/.test(state)) return page("Посилання недійсне", "Почніть знову: /connect у боті.", 400);
+  // One use: the row goes before the exchange, so a replayed link does nothing.
+  const row = await env.DB.prepare("DELETE FROM promo_oauth WHERE state = ?1 AND network = ?2 AND created_at >= ?3 RETURNING network")
+    .bind(state, network, now - OAUTH_MINUTES * 60_000)
+    .first();
+  if (!row) return page("Посилання застаріло", "Почніть знову: /connect у боті.", 400);
+  if (!code) return page("Доступ не надано", url.searchParams.get("error_description") || url.searchParams.get("error") || "Спробуйте ще раз.", 400);
+  let account;
+  try {
+    account = await NETWORK_CLIENTS[network].exchange(env, code, redirectFor(publicOrigin(env, request), network), now);
+    await saveAccount(env, network, account, now);
+  } catch (error) {
+    console.log(`oauth ${network}: ${error.message}`);
+    if (env.TELEGRAM_BOT_TOKEN && env.TELEGRAM_CHAT_ID) {
+      await telegram(env, "sendMessage", { chat_id: String(env.TELEGRAM_CHAT_ID), text: `⚠️ ${NETWORK_NAMES[network]}: не вдалося підключити — ${error.message}` });
+    }
+    return page("Не вдалося підключити", error.message, 502);
+  }
+  if (env.TELEGRAM_BOT_TOKEN && env.TELEGRAM_CHAT_ID) {
+    await telegram(env, "sendMessage", {
+      chat_id: String(env.TELEGRAM_CHAT_ID),
+      text: `✅ ${NETWORK_NAMES[network]} підключено: ${account.name}. Наступні схвалені відео підуть і туди.`
+    });
+  }
+  return page(`${NETWORK_NAMES[network]} підключено`, `${account.name}. Це вікно можна закрити.`);
+}
+
+// --- the delivery queue (cron every five minutes) ----------------------------------------
+
+function media(env, row, origin) {
+  return {
+    url: `${origin}/m/${row.media_key}/video.mp4`,
+    cover_url: null,
+    size: 0,
+    async open(offset = 0) {
+      const object = await env.REPORTS.get(`promo/${row.media_key}/video.mp4`, offset ? { range: { offset } } : undefined);
+      if (!object) throw new Error("the video is gone from storage");
+      return object.body;
+    }
+  };
+}
+
+const DELIVERY_WORDS = {
+  published: "опубліковано",
+  draft: "чернетка",
+  error: "помилка"
+};
+
+export async function promoPublish(env, now = Date.now()) {
+  if (!env.REPORTS) return { worked: 0 };
+  const origin = publicOrigin(env, null);
+  const { results } = await env.DB.prepare(
+    "SELECT d.post_id, d.network, d.status, d.attempts, d.external_id, p.media_key, p.body, p.decided_at " +
+      "FROM promo_deliveries d JOIN promo_posts p ON p.id = d.post_id " +
+      "WHERE d.status IN ('queued', 'processing') AND d.next_at <= ?1 ORDER BY d.next_at LIMIT 6"
+  )
+    .bind(now)
+    .all();
+  let worked = 0;
+  const touched = new Set();
+  for (const row of results || []) {
+    // A lease: two overlapping runs never work the same delivery.
+    const claimed = await env.DB.prepare(
+      "UPDATE promo_deliveries SET next_at = ?4 WHERE post_id = ?1 AND network = ?2 AND next_at <= ?3 AND status IN ('queued', 'processing')"
+    )
+      .bind(row.post_id, row.network, now, now + DELIVERY_LEASE)
+      .run();
+    if (!claimed.meta?.changes) continue;
+    worked += 1;
+    touched.add(row.post_id);
+    let outcome;
+    try {
+      let account = await loadAccount(env, row.network);
+      if (!account) throw new Error(`${NETWORK_NAMES[row.network]} не підключено`);
+      const client = NETWORK_CLIENTS[row.network];
+      const refreshed = await client.fresh(env, account, now);
+      if (refreshed.changed) await saveAccount(env, row.network, refreshed.account, now);
+      account = refreshed.account;
+      const head = await env.REPORTS.head(`promo/${row.media_key}/video.mp4`);
+      if (!head) throw new Error("the video is gone from storage");
+      const job = { body: JSON.parse(row.body), external_id: row.external_id, media: { ...media(env, row, origin), size: head.size } };
+      outcome = await client.step(env, account, job, now);
+    } catch (error) {
+      outcome = { status: "retry", detail: error.message };
+    }
+    const attempts = row.attempts + (outcome.status === "retry" ? 1 : 0);
+    let status = outcome.status;
+    let nextAt = now + (outcome.retry_in || 0);
+    if (status === "retry") {
+      status = attempts >= DELIVERY_TRIES ? "error" : row.status;
+      nextAt = now + BACKOFF[Math.min(attempts - 1, BACKOFF.length - 1)];
+    }
+    if (status === "processing" && row.decided_at && now - row.decided_at > DELIVERY_DEADLINE) {
+      status = "error";
+      outcome.detail = `${NETWORK_NAMES[row.network]} не завершив обробку за 6 годин`;
+    }
+    // A lost upload session starts over: the stored id is cleared.
+    const keepId = outcome.restart ? "" : outcome.external_id || null;
+    await env.DB.prepare(
+      "UPDATE promo_deliveries SET status = ?3, attempts = ?4, next_at = ?5, external_id = CASE WHEN ?6 = '' THEN NULL ELSE COALESCE(?6, external_id) END, " +
+        "url = COALESCE(?7, url), detail = ?8, updated_at = ?9 WHERE post_id = ?1 AND network = ?2"
+    )
+      .bind(row.post_id, row.network, status, attempts, nextAt, keepId, outcome.url || null, outcome.detail || null, now)
+      .run();
+  }
+  for (const postId of touched) await finishPost(env, postId);
+  return { worked };
+}
+
+async function finishPost(env, postId) {
+  const { results } = await env.DB.prepare("SELECT network, status, url, detail FROM promo_deliveries WHERE post_id = ?1").bind(postId).all();
+  const rows = results || [];
+  if (!rows.length || rows.some((r) => ["queued", "processing"].includes(r.status))) return;
+  const failed = rows.every((r) => r.status === "error");
+  const moved = await env.DB.prepare("UPDATE promo_posts SET status = ?2 WHERE id = ?1 AND status = 'publishing'")
+    .bind(postId, failed ? "failed" : "published")
+    .run();
+  if (!moved.meta?.changes || !env.TELEGRAM_BOT_TOKEN) return;
+  const post = await env.DB.prepare("SELECT approval_chat, approval_message FROM promo_posts WHERE id = ?1").bind(postId).first();
+  const chat = post?.approval_chat || String(env.TELEGRAM_CHAT_ID || "");
+  if (!chat) return;
+  const lines = rows.map((r) => {
+    const icon = r.status === "published" ? "✅" : r.status === "draft" ? "📝" : "⚠️";
+    const tail = [r.url, r.detail].filter(Boolean).join(" · ");
+    return `${icon} ${NETWORK_NAMES[r.network]}: ${DELIVERY_WORDS[r.status] || r.status}${tail ? ` — ${tail}` : ""}`;
+  });
+  await telegram(env, "sendMessage", {
+    chat_id: chat,
+    text: lines.join("\n"),
+    disable_web_page_preview: true,
+    ...(post?.approval_message ? { reply_to_message_id: post.approval_message } : {})
+  });
+}
+
+// Numbers straight from the networks for the directly published videos.
+export async function refreshDirectStats(env, now = Date.now()) {
+  const { results } = await env.DB.prepare(
+    "SELECT d.post_id, d.network, d.external_id, d.url, p.body FROM promo_deliveries d JOIN promo_posts p ON p.id = d.post_id " +
+      "WHERE d.status IN ('published', 'draft') AND d.updated_at >= ?1"
+  )
+    .bind(now - PROMO_STATS_DAYS * DAY)
+    .all();
+  let stored = 0;
+  for (const network of SOCIAL_NETWORKS) {
+    const items = (results || [])
+      .filter((r) => r.network === network && r.external_id)
+      .map((r) => ({ ...r, caption: JSON.parse(r.body).caption }));
+    if (!items.length || !socialConfigured(env, network)) continue;
+    let account = await loadAccount(env, network);
+    if (!account) continue;
+    const refreshed = await NETWORK_CLIENTS[network].fresh(env, account, now);
+    if (refreshed.changed) await saveAccount(env, network, refreshed.account, now);
+    account = refreshed.account;
+    for (const n of await NETWORK_CLIENTS[network].stats(env, account, items)) {
+      const item = items.find((i) => i.external_id === n.external_id);
+      if (!item) continue;
+      await env.DB.prepare(
+        "INSERT INTO promo_stats (post_id, network, updated_at, url, views, likes, comments, shares) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8) " +
+          "ON CONFLICT (post_id, network) DO UPDATE SET updated_at = ?3, url = ?4, views = ?5, likes = ?6, comments = ?7, shares = ?8"
+      )
+        .bind(item.post_id, network, now, n.url || item.url || null, n.views, n.likes, n.comments, n.shares)
+        .run();
+      stored += 1;
+    }
+  }
+  return stored;
 }

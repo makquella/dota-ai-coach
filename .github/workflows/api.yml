@@ -8,7 +8,8 @@ name: API
 # Repository settings: secret CLOUDFLARE_API_TOKEN (Workers edit, D1 edit,
 # Workers R2 Storage edit), variable (or secret) CLOUDFLARE_ACCOUNT_ID; optional
 # secrets TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID, API_ADMIN_TOKEN; for the promo
-# engine (docs/MARKETING_ENGINE.md) METRICOOL_TOKEN, METRICOOL_USER_ID, METRICOOL_BLOG_ID.
+# engine (docs/MARKETING_ENGINE.md) YOUTUBE_CLIENT_ID/_SECRET, INSTAGRAM_APP_ID/_SECRET,
+# TIKTOK_CLIENT_KEY/_SECRET and, optionally, METRICOOL_TOKEN, METRICOOL_USER_ID, METRICOOL_BLOG_ID.
 on:
   pull_request:
     paths: ["services/api/**", ".github/workflows/api.yml"]
@@ -131,9 +132,16 @@ jobs:
           METRICOOL_TOKEN: ${{ secrets.METRICOOL_TOKEN }}
           METRICOOL_USER_ID: ${{ secrets.METRICOOL_USER_ID || vars.METRICOOL_USER_ID }}
           METRICOOL_BLOG_ID: ${{ secrets.METRICOOL_BLOG_ID || vars.METRICOOL_BLOG_ID }}
+          YOUTUBE_CLIENT_ID: ${{ secrets.YOUTUBE_CLIENT_ID }}
+          YOUTUBE_CLIENT_SECRET: ${{ secrets.YOUTUBE_CLIENT_SECRET }}
+          INSTAGRAM_APP_ID: ${{ secrets.INSTAGRAM_APP_ID }}
+          INSTAGRAM_APP_SECRET: ${{ secrets.INSTAGRAM_APP_SECRET }}
+          TIKTOK_CLIENT_KEY: ${{ secrets.TIKTOK_CLIENT_KEY }}
+          TIKTOK_CLIENT_SECRET: ${{ secrets.TIKTOK_CLIENT_SECRET }}
         run: |
           node -e '
-            const names = ["TELEGRAM_BOT_TOKEN", "TELEGRAM_CHAT_ID", "ADMIN_TOKEN", "METRICOOL_TOKEN", "METRICOOL_USER_ID", "METRICOOL_BLOG_ID"];
+            const names = ["TELEGRAM_BOT_TOKEN", "TELEGRAM_CHAT_ID", "ADMIN_TOKEN", "METRICOOL_TOKEN", "METRICOOL_USER_ID", "METRICOOL_BLOG_ID",
+              "YOUTUBE_CLIENT_ID", "YOUTUBE_CLIENT_SECRET", "INSTAGRAM_APP_ID", "INSTAGRAM_APP_SECRET", "TIKTOK_CLIENT_KEY", "TIKTOK_CLIENT_SECRET"];
             const set = Object.fromEntries(names.filter((n) => process.env[n]).map((n) => [n, process.env[n]]));
             require("fs").writeFileSync("secrets.json", JSON.stringify(set));
             console.log("secrets:", Object.keys(set).join(", ") || "none");'
