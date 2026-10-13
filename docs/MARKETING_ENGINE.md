@@ -48,10 +48,13 @@ flowchart LR
 Run locally, from the repository root (the backend venv plus `scripts/promo/requirements.txt`, `python -m playwright install chromium`):
 
 ```bash
-PROMO_VOICE_MODEL=/path/uk_UA-ukrainian_tts-medium.onnx \
+ELEVENLABS_API_KEY=... \
   python -m scripts.promo.package --out promo-out --format coach   # video.mp4, cover.jpg, package.json
+python -m scripts.promo.package --out promo-out --format coach --allow-silent  # no key: a silent draft
 python -m scripts.promo.package --out promo-out --format meta --no-video  # script and captions only
 ```
+
+The video needs the network (Valve's animations and clips, ElevenLabs); keep the key out of shell history and files.
 
 ## Safety
 
