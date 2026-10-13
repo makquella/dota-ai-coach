@@ -12,5 +12,12 @@
   "format": "coach",
   "topic": "legion_commander",
   "hook": 1
+ },
+ {
+  "id": "ad63cf6bf7c620b2",
+  "date": "2026-10-13",
+  "format": "draft",
+  "topic": "spectre",
+  "hook": 0
  }
 ]
