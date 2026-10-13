@@ -11,11 +11,12 @@ from __future__ import annotations
 import json
 import os
 import statistics
+import urllib.error
 import urllib.request
 from datetime import UTC, datetime
 from typing import Any
 
-from . import topics
+from . import send, topics
 
 MIN_POSTS = 3
 
@@ -37,7 +38,8 @@ def multipliers(posts: list[dict[str, Any]]) -> dict[str, float]:
 
 def fetch(api: str, token: str) -> list[dict[str, Any]]:
     request = urllib.request.Request(
-        f"{api}/v1/admin/promo", headers={"Authorization": f"Bearer {token}"}
+        f"{api}/v1/admin/promo",
+        headers={"Authorization": f"Bearer {token}", "User-Agent": send.USER_AGENT},
     )
     with urllib.request.urlopen(request, timeout=30) as response:
         return list(json.loads(response.read())["posts"])
@@ -51,7 +53,13 @@ def main() -> None:
     if not api or not token:
         print("no API_URL / API_ADMIN_TOKEN: weights unchanged")
         return
-    posts = fetch(api, token)
+    try:
+        posts = fetch(api, token)
+    except (urllib.error.URLError, OSError, ValueError, KeyError) as error:
+        # The numbers only tune the rotation: a missed read keeps the old
+        # weights and never stops this week's video.
+        print(f"weights unchanged: {type(error).__name__}: {error}")
+        return
     found = multipliers(posts)
     topics.WEIGHTS_FILE.parent.mkdir(parents=True, exist_ok=True)
     topics.WEIGHTS_FILE.write_text(

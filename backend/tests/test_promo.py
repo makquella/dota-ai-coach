@@ -265,6 +265,7 @@ def test_the_approval_message_fits_and_the_buttons_name_the_package(monkeypatch,
     urls = [r.full_url for r in sent]
     assert urls[1].endswith("/v1/admin/promo/0123456789abcdef/video.mp4")
     assert sent[0].headers["Authorization"] == "Bearer admin-secret"
+    assert {r.get_header("User-agent") for r in sent} == {"Wardly promo"}
     assert b"promo:all:0123456789abcdef" in sent[2].data
     assert json.loads(sent[3].data)["reply_to_message_id"] == 7
     assert "secret" not in capsys.readouterr().out
@@ -301,3 +302,23 @@ def test_format_weights_move_only_with_enough_numbers():
     found = weights.multipliers(posts)
     assert found["coach"] > 1 > found["meta"]
     assert "hero" not in found  # a rejected video says nothing
+
+
+def test_format_weights_read_names_itself_and_never_stops_the_video(monkeypatch, tmp_path, capsys):
+    from scripts.promo import weights
+
+    monkeypatch.setenv("API_URL", "https://api.test")
+    monkeypatch.setenv("API_ADMIN_TOKEN", "admin-secret")
+    monkeypatch.setattr(topics, "WEIGHTS_FILE", tmp_path / "weights.json")
+    seen = []
+
+    def refused(request, timeout):
+        seen.append(request)
+        raise weights.urllib.error.HTTPError(request.full_url, 403, "Forbidden", {}, None)
+
+    monkeypatch.setattr(weights.urllib.request, "urlopen", refused)
+    weights.main()
+    assert seen[0].get_header("User-agent") == "Wardly promo"
+    assert not (tmp_path / "weights.json").exists()
+    out = capsys.readouterr().out
+    assert "weights unchanged: HTTPError" in out and "secret" not in out
