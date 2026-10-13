@@ -25,6 +25,9 @@ from pathlib import Path
 from typing import Any
 
 TIMEOUT = 120
+# Cloudflare in front of the Worker refuses urllib's default "Python-urllib"
+# agent (error 1010), so every request names itself.
+USER_AGENT = "Wardly promo"
 FORMAT_NAMES = {
     "coach": "Що підкаже Wardly",
     "meta": "Мета тижня",
@@ -48,7 +51,9 @@ def _request(
     method: str = "GET",
     headers: dict[str, str] | None = None,
 ) -> Any:
-    request = urllib.request.Request(url, data=data, method=method, headers=headers or {})
+    request = urllib.request.Request(
+        url, data=data, method=method, headers={"User-Agent": USER_AGENT, **(headers or {})}
+    )
     with urllib.request.urlopen(request, timeout=TIMEOUT) as response:
         body = response.read()
     return json.loads(body) if body else {}
