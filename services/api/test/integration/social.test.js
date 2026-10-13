@@ -136,7 +136,7 @@ test("accounts connect through the bot, only for the developer, and are stored s
   assert.match(list, /TikTok: додайте секрети/);
 });
 
-async function approveAndRun(mf, db, calls) {
+async function approveAndRun(mf, db, calls, action = "all") {
   const auth = { authorization: "Bearer admin-secret" };
   const created = await mf.dispatchFetch("https://api.test/v1/admin/promo", {
     method: "POST",
@@ -157,7 +157,7 @@ async function approveAndRun(mf, db, calls) {
     callback_query: {
       id: "cb",
       from: { id: Number(ADMIN) },
-      data: `promo:all:${ID}`,
+      data: `promo:${action}:${ID}`,
       message: { message_id: 9, chat: { id: Number(ADMIN), type: "private" }, video: { file_id: "F1" } }
     }
   });
@@ -221,4 +221,24 @@ test("a failed channel post does not stop the networks or their report", async (
   await worker.scheduled({ cron: "*/5 * * * *" });
   assert.equal((await db.prepare("SELECT status FROM promo_posts WHERE id = ?").bind(ID).first()).status, "published");
   assert.match(sent(calls, "sendMessage").at(-1).text, /✅ YouTube: опубліковано/);
+});
+
+test("«Лише YouTube» queues YouTube only and leaves the channel alone", async (t) => {
+  const { mf, db, calls } = await localWorker(t);
+  await connect(mf, calls, "youtube", "c1");
+  await connect(mf, calls, "instagram", "c2");
+  await approveAndRun(mf, db, calls, "yt");
+  assert.deepEqual((await deliveries(db)).map((r) => `${r.network}:${r.status}`), ["youtube:queued"]);
+  assert.equal(sent(calls, "sendVideo").length, 0); // no channel post
+  assert.match(sent(calls, "sendMessage").at(-1).text, /YouTube: у черзі/);
+  assert.equal((await db.prepare("SELECT status FROM promo_posts WHERE id = ?").bind(ID).first()).status, "publishing");
+});
+
+test("«Лише YouTube» without YouTube connected publishes nothing and says so", async (t) => {
+  const { mf, db, calls } = await localWorker(t);
+  await approveAndRun(mf, db, calls, "yt");
+  assert.deepEqual(await deliveries(db), []);
+  assert.equal(sent(calls, "sendVideo").length, 0);
+  assert.match(sent(calls, "sendMessage").at(-1).text, /YouTube: не підключено/);
+  assert.equal((await db.prepare("SELECT status FROM promo_posts WHERE id = ?").bind(ID).first()).status, "failed");
 });

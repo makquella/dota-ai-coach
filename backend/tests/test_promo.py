@@ -233,7 +233,7 @@ def test_the_approval_message_fits_and_the_buttons_name_the_package(monkeypatch,
     assert len(send.approval_caption(package)) <= 1024
     buttons = [b for row in send.keyboard(package["id"])["inline_keyboard"] for b in row]
     assert {b["callback_data"] for b in buttons} == {
-        f"promo:{a}:{package['id']}" for a in ("all", "tg", "no")
+        f"promo:{a}:{package['id']}" for a in ("all", "tg", "yt", "no")
     }
     assert all(len(b["callback_data"].encode()) <= 64 for b in buttons)
     (tmp_path / "video.mp4").write_bytes(b"\x00" * 10)
@@ -546,7 +546,7 @@ def test_scenes_play_the_frames_valve_gives_and_stay_whole_without_them(tmp_path
     # offline and nothing downloaded: no sequences, still a whole page
     assert media.prepare(line, library, 0) == {}
     page = scenes.page("coach", line, {}, 0)
-    assert "ОГЛУШЕНИЙ" in page and 'data-impact="1.0"' in page and "data-seq" not in page
+    assert "ОГЛУШЕНИЙ" in page and 'data-impact="1.00"' in page and "data-seq" not in page
     # with frames: the hero moves, the enemy's stun and the named ability play
     line[0]["media"] = {"idle": "idle:shadow_shaman", "bg": "clip:shadow_shaman_shackles"}
     line[1]["media"] = {
@@ -562,3 +562,55 @@ def test_scenes_play_the_frames_valve_gives_and_stay_whole_without_them(tmp_path
     page = scenes.page("coach", line, {"seqs": seqs}, 0)
     assert 'data-seq="clip:sven_storm_bolt"' in page and 'data-seq="idle:shadow_shaman"' in page
     assert "data-pay=" in page and "Shackles" in page and "window.__SEQS__" in page
+
+
+def test_the_draft_video_takes_its_enemy_item_and_card_from_the_app():
+    from scripts.promo import draft_demo
+
+    found = draft_demo.card("Phantom Lancer")
+    assert found["key"] == "phantom_lancer" and found["item"]["name"] == "Maelstrom"
+    assert found["title"] == "Проти їхнього драфту: Maelstrom"  # the overlay's own text
+    assert "Phantom Lancer" in found["reason"]
+    assert all(draft_demo.card(e) for e in draft_demo.enemies())  # every enemy has an answer
+    item = script.draft(found, random.Random(1), "0.56.2")
+    assert item.format == "draft" and item.topic == "phantom_lancer"
+    assert [s.kind for s in item.scenes] == ["hook", "card", "cta"]
+    card = item.scenes[1]
+    assert card.data["enemy"] == "phantom_lancer" and card.data["moment"] == "draft"
+    assert "Phantom Lancer" in card.voice and "Wardly" in card.voice and "Maelstrom" in card.voice
+    assert "#maelstrom" in item.caption and "promo-draft" in item.caption
+    assert quality.check(
+        {**_package(), "caption": item.caption, "script": item.to_dict(), "sources": item.sources},
+        {"seconds": 30, "width": 1080, "height": 1920, "audio": True, "bytes": 1},
+    )["ok"]
+
+
+def test_draft_videos_rotate_their_enemies():
+    pool = ["Phantom Lancer", "Spectre", "Meepo"]
+    keys = {"Phantom Lancer": "phantom_lancer", "Spectre": "spectre", "Meepo": "meepo"}
+    history = [
+        {"format": "draft", "topic": "phantom_lancer"},
+        {"format": "draft", "topic": "spectre"},
+    ]
+    assert topics.next_enemy(pool, keys, history, random.Random(0)) == "Meepo"
+    assert topics.next_enemy(pool, keys, history * 5, random.Random(0)) == "Meepo"
+
+
+def test_the_card_hits_as_the_voice_says_wardly():
+    raw = [
+        {
+            "kind": "card",
+            "voice": "Проти Spectre тобі знадобиться інший підхід. Wardly підкаже.",
+            "data": {"action": "x", "moment": "draft", "enemy": "spectre", "enemy_name": "Spectre"},
+        }
+    ]
+    words = [
+        [
+            {"word": w, "start": i * 0.4, "end": i * 0.4 + 0.3}
+            for i, w in enumerate(raw[0]["voice"].split())
+        ]
+    ]
+    line = scenes.timeline(raw, [3.0], words)
+    assert scenes.card_moment(line[0]) == pytest.approx(6 * 0.4)
+    page = scenes.page("draft", line, {}, 0)
+    assert 'data-impact="2.40"' in page and "ПРОТИ SPECTRE" in page and "Проти драфту" in page

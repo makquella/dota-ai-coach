@@ -4,6 +4,9 @@
   - the week's meta and its fact once per meta post;
   - coach and hero videos rotate heroes with a site page, the week's popular
     heroes first, none of the last HERO_REPEAT videos' heroes;
+  - draft videos rotate the enemies the app counters with an item (the
+    format TikTok gets first: the highest weight), none of the last
+    DRAFT_REPEAT draft videos' enemies;
   - the format is drawn by weight (WEIGHTS, times what the statistics say works,
     data/promo/weights.json), never the same format twice in a row.
 
@@ -24,7 +27,8 @@ HISTORY = ROOT / "data" / "promo" / "history.json"
 WEIGHTS_FILE = ROOT / "data" / "promo" / "weights.json"
 NOTES = ROOT / "docs" / "release-notes"
 
-WEIGHTS = {"coach": 3.0, "hero": 2.0, "meta": 2.0, "fact": 1.0, "release": 5.0}
+WEIGHTS = {"draft": 6.0, "coach": 3.0, "hero": 2.0, "meta": 2.0, "fact": 1.0, "release": 5.0}
+DRAFT_REPEAT = 8
 HERO_REPEAT = 20
 RELEASE_DAYS = 10
 MIN_WEIGHT, MAX_WEIGHT = 0.3, 3.0  # what the statistics may do to a base weight
@@ -114,6 +118,19 @@ def next_hero(
     return rng.choice(fresh[:10])
 
 
+def next_enemy(
+    enemies: list[str],
+    keys: dict[str, str | None],
+    history: list[dict[str, Any]],
+    rng: random.Random,
+) -> str | None:
+    """An enemy hero for a draft video, none of the last DRAFT_REPEAT draft videos'."""
+    drafts = [h for h in history if h.get("format") == "draft"][-DRAFT_REPEAT:]
+    recent = {h.get("topic") for h in drafts}
+    fresh = [e for e in enemies if keys.get(e) not in recent] or enemies
+    return rng.choice(fresh) if fresh else None
+
+
 def choose(
     today: date,
     site_heroes: list[dict[str, Any]],
@@ -138,6 +155,13 @@ def choose(
         for h in history
     ):
         options["fact"] = Choice("fact", week["date"], {"week": week})
+    from . import draft_demo
+
+    pool = draft_demo.enemies()
+    enemy = next_enemy(pool, {e: draft_demo.hero_key(e) for e in pool}, history, rng)
+    found = draft_demo.card(enemy) if enemy else None
+    if found:
+        options["draft"] = Choice("draft", found["key"], found)
     hero = next_hero(site_heroes, week, history, rng)
     options["coach"] = Choice("coach", hero["key"], {"hero": hero})
     options["hero"] = Choice("hero", hero["key"], {"hero": hero})

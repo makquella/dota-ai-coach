@@ -33,6 +33,7 @@ CARD_AT = 1.0  # the overlay card hits this long into a coach moment
 PAY_AFTER = 1.8  # then the advised ability plays, at the latest at half the scene
 
 PILLS = {
+    "draft": "Проти драфту",
     "coach": "Wardly у грі",
     "meta": "Мета тижня",
     "hero": "Герой",
@@ -223,11 +224,22 @@ def body_hook(scene: dict[str, Any], assets: dict[str, Any]) -> str:
 <div class="hook-text">{sub}<h1 style="font-size:{size}px">{words}</h1></div>"""
 
 
+def card_moment(scene: dict[str, Any]) -> float:
+    """When the card hits: as the voice says «Wardly» (after the scene's first
+    words), else CARD_AT."""
+    for word in (scene.get("words") or [])[1:]:
+        at = word["start"] - scene["start"]
+        if word["word"].startswith("Wardly") and at >= 0.6:
+            return round(at, 2)
+    return CARD_AT
+
+
 def body_card(scene: dict[str, Any], assets: dict[str, Any]) -> str:
     d, m = scene["data"], media(scene)
     seqs = assets.get("seqs") or {}
     length = scene["end"] - scene["start"]
-    pay_at = min(max(CARD_AT + PAY_AFTER, length * 0.5), max(CARD_AT + 0.6, length - 1.2))
+    card_at = card_moment(scene)
+    pay_at = min(max(card_at + PAY_AFTER, length * 0.5), max(card_at + 0.6, length - 1.2))
     urgent = d.get("mode") == "urgent"
     label = "Терміново" if urgent else "Порада"
     classes = "overlay-shell " + ("urgent priority-high" if urgent else "priority-medium")
@@ -245,6 +257,11 @@ def body_card(scene: dict[str, Any], assets: dict[str, Any]) -> str:
             f'<div class="hud"{until}><div data-at="0" data-anim="up"><b>HP</b>'
             '<div class="hp"><i data-hp="1"></i></div></div></div>'
         )
+    elif moment == "draft":
+        hud = (
+            f'<div class="hud enemy"{until}><div data-at="0.2" data-anim="slam">'
+            f"<span>ПРОТИ {e(str(d.get('enemy_name', '')).upper())}</span></div></div>"
+        )
     elif moment == "stun":
         hud = (
             f'<div class="hud stun"{until}><div data-at="0.25" data-anim="slam"><span>ОГЛУШЕНИЙ</span>'
@@ -257,6 +274,13 @@ def body_card(scene: dict[str, Any], assets: dict[str, Any]) -> str:
     if pay:
         # the ability the card names, in the game
         fix = seq(pay, "full", at=pay_at, loop=False)
+    elif d.get("enemy") and m.get("pay_icon"):
+        # the item against the enemy: big, glowing
+        fix = (
+            backdrop(scene, assets)
+            + '<div class="aura"></div>'
+            + f'<img class="item-big" src="{e(m["pay_icon"])}" alt="">'
+        )
     else:
         # an item (or nothing to show): the hero, alive, with the item's glow
         fix = (
@@ -268,7 +292,7 @@ def body_card(scene: dict[str, Any], assets: dict[str, Any]) -> str:
     return f"""<div class="stage">{stage}</div>{payoff}
 <div class="tint {e(moment or "")}" data-tint="{e(moment or "")}"></div>
 {hud}
-<div class="card-wrap" data-impact="{CARD_AT}">
+<div class="card-wrap" data-impact="{card_at:.2f}">
   <section class="{classes}">
     <div class="top-row"><span class="dot"></span><span class="label">{label}</span></div>
     <p class="action">{e(d["action"])}</p>
@@ -413,6 +437,9 @@ html body { margin:0; width:1080px; height:1920px; overflow:hidden; background:v
 .hud .hp i { display:block; height:100%; width:100%; background:linear-gradient(90deg,#2fbf55,#5ee27c); }
 .hud > div { display:flex; align-items:center; gap:20px; }
 .hud.stun > div { flex-direction:column; align-items:flex-start; gap:14px; }
+.hud.enemy span { padding:16px 30px; border-radius:16px; background:rgba(210,40,55,.92); letter-spacing:.08em; }
+.item-big { position:absolute; left:50%; top:470px; width:400px; height:400px; margin-left:-200px; object-fit:contain;
+  border-radius:40px; box-shadow:0 30px 80px rgba(0,0,0,.7); }
 .hud.stun span { padding:16px 30px; border-radius:16px; background:rgba(120,80,255,.92); letter-spacing:.12em; }
 .stunbar { width:420px; height:16px; border-radius:8px; background:rgba(0,0,0,.6); overflow:hidden; }
 .stunbar i { display:block; height:100%; width:100%; background:#b9a2ff; }
@@ -541,6 +568,8 @@ window.renderAt = async function (t) {
       if (lt >= at) flashLevel = Math.max(flashLevel, 0.3 * (1 - clamp((lt - at) / 0.15)));
       const aura = n.querySelector('.aura');
       if (aura) aura.style.transform = `scale(${0.6 + 0.4 * back((lt - at) / 0.5) + 0.05 * Math.sin(lt * 6)})`;
+      const big = n.querySelector('.item-big');
+      if (big) big.style.transform = `scale(${0.5 + 0.5 * back((lt - at) / 0.4)}) rotate(${(1 - ease((lt - at) / 0.4)) * -12}deg)`;
       const chip = n.querySelector('.pay-chip');
       if (chip) chip.style.transform = `scale(${1.5 - 0.5 * back((lt - at - 0.1) / 0.35)})`;
     });

@@ -51,6 +51,8 @@ def latest_week() -> tuple[dict[str, Any] | None, dict[str, Any] | None, str]:
 
 def build_script(choice: topics.Choice, today: date) -> script.Script | None:
     rng = random.Random(f"{today.isoformat()}:{choice.format}:{choice.topic}")
+    if choice.format == "draft":
+        return script.draft(choice.data, rng, backend_version())
     if choice.format == "coach":
         from . import coach_demo
 

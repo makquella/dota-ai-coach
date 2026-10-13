@@ -3,7 +3,8 @@
   1. register it in the Worker (POST /v1/admin/promo) and upload the video
      and the cover to R2 (PUT /v1/admin/promo/<id>/<file>);
   2. send the video to TELEGRAM_CHAT_ID with three buttons
-     (✅ Всюди · 📣 Лише Telegram · ❌ Відхилити) and, as a reply, the details:
+     (✅ Всюди · 📣 Лише Telegram · ▶️ Лише YouTube · ❌ Відхилити) and, as a
+     reply, the details:
      captions per network, sources, the quality report.
 
 The buttons go to the Worker's webhook (src/promo.js); nothing is published
@@ -111,7 +112,10 @@ def keyboard(package_id: str) -> dict[str, Any]:
                 {"text": "✅ Всюди", "callback_data": f"promo:all:{package_id}"},
                 {"text": "📣 Лише Telegram", "callback_data": f"promo:tg:{package_id}"},
             ],
-            [{"text": "❌ Відхилити", "callback_data": f"promo:no:{package_id}"}],
+            [
+                {"text": "▶️ Лише YouTube", "callback_data": f"promo:yt:{package_id}"},
+                {"text": "❌ Відхилити", "callback_data": f"promo:no:{package_id}"},
+            ],
         ]
     }
 
