@@ -51,11 +51,14 @@ jobs:
           python-version-file: .python-version
           cache: pip
           cache-dependency-path: |
-            backend/requirements.txt
+            backend/requirements-dev.txt
             scripts/promo/requirements.txt
       - name: Install
         run: |
-          python -m pip install --require-hashes --only-binary=:all: -r backend/requirements.txt
+          # requirements-dev: the coach video runs the real advice pipeline
+          # through FastAPI's TestClient (backend/scripts/simulate_live_gsi.py),
+          # which needs httpx.
+          python -m pip install --require-hashes --only-binary=:all: -r backend/requirements-dev.txt
           python -m pip install -r scripts/promo/requirements.txt
           python -m playwright install --with-deps chromium
           ffmpeg -version | head -1
