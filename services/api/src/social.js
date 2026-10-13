@@ -163,34 +163,64 @@ const youtube = {
       },
       status: { privacyStatus: privacy, selfDeclaredMadeForKids: false, embeddable: true }
     };
-    const init = await answer(
-      await fetch("https://www.googleapis.com/upload/youtube/v3/videos?uploadType=resumable&part=snippet,status", {
-        method: "POST",
-        headers: {
-          authorization: `Bearer ${account.access_token}`,
-          "content-type": "application/json; charset=UTF-8",
-          "x-upload-content-length": String(job.media.size),
-          "x-upload-content-type": "video/mp4"
-        },
-        body: JSON.stringify(meta)
-      })
-    );
-    const location = init.headers?.get("location");
-    if (!init.ok || !location) return { status: "retry", detail: `YouTube upload: ${problem(init, "no upload URL")}` };
-    const video = await job.media.open();
-    const uploaded = await answer(
-      await fetch(location, {
-        method: "PUT",
-        headers: { "content-type": "video/mp4", "content-length": String(job.media.size) },
-        body: video
-      })
-    );
-    if (!uploaded.ok || !uploaded.data.id) return { status: "retry", detail: `YouTube upload: ${problem(uploaded, "no video id")}` };
-    const got = uploaded.data.status?.privacyStatus;
+    const auth = `Bearer ${account.access_token}`;
+    const size = job.media.size;
+    if (!job.external_id) {
+      // Step 1: open the upload session and keep its URI before any byte goes
+      // out, so a lost answer is resumed, never uploaded twice.
+      const init = await answer(
+        await fetch("https://www.googleapis.com/upload/youtube/v3/videos?uploadType=resumable&part=snippet,status", {
+          method: "POST",
+          headers: {
+            authorization: auth,
+            "content-type": "application/json; charset=UTF-8",
+            "x-upload-content-length": String(size),
+            "x-upload-content-type": "video/mp4"
+          },
+          body: JSON.stringify(meta)
+        })
+      );
+      const location = init.headers?.get("location");
+      if (!init.ok || !location) return { status: "retry", detail: `YouTube upload: ${problem(init, "no upload URL")}` };
+      return { status: "processing", external_id: `upload:${location}`, retry_in: 0 };
+    }
+    if (!job.external_id.startsWith("upload:")) return { status: "published", external_id: job.external_id };
+    const session = job.external_id.slice("upload:".length);
+    // Step 2: ask the session how much it has, then send the rest.
+    const check = await fetch(session, {
+      method: "PUT",
+      headers: { authorization: auth, "content-length": "0", "content-range": `bytes */${size}` }
+    });
+    if (check.status === 404 || check.status === 410) {
+      return { status: "retry", external_id: null, restart: true, detail: "YouTube: сесію завантаження втрачено, починаю знову" };
+    }
+    let done = check.status === 200 || check.status === 201 ? await answer(check) : null;
+    if (!done) {
+      if (check.status !== 308) return { status: "retry", external_id: job.external_id, detail: `YouTube upload: ${check.status}` };
+      const range = check.headers.get("range");
+      const from = range ? Number(range.split("-")[1]) + 1 : 0;
+      const uploaded = await answer(
+        await fetch(session, {
+          method: "PUT",
+          headers: {
+            authorization: auth,
+            "content-type": "video/mp4",
+            "content-length": String(size - from),
+            ...(from ? { "content-range": `bytes ${from}-${size - 1}/${size}` } : {})
+          },
+          body: await job.media.open(from)
+        })
+      );
+      if (!uploaded.ok || !uploaded.data.id) {
+        return { status: "retry", external_id: job.external_id, detail: `YouTube upload: ${problem(uploaded, "no video id")}` };
+      }
+      done = uploaded;
+    }
+    const got = done.data.status?.privacyStatus;
     return {
       status: "published",
-      external_id: uploaded.data.id,
-      url: `https://youtube.com/shorts/${uploaded.data.id}`,
+      external_id: done.data.id,
+      url: `https://youtube.com/shorts/${done.data.id}`,
       detail: got && got !== privacy ? `YouTube зробив відео ${got} (проєкт API ще не пройшов аудит)` : null
     };
   },
@@ -314,7 +344,7 @@ const instagram = {
       await fetch(`${IG}/${job.external_id}?${form({ fields: "status_code,status", access_token: token })}`)
     );
     const code = container.data.status_code;
-    if (code === "IN_PROGRESS" || (!container.ok && container.status >= 500)) {
+    if (code === "IN_PROGRESS" || (!container.ok && (container.status >= 500 || container.status === 429))) {
       return { status: "processing", external_id: job.external_id, retry_in: 60_000 };
     }
     if (code !== "FINISHED") {
@@ -468,6 +498,15 @@ const tiktok = {
         body: JSON.stringify({ publish_id: job.external_id })
       })
     );
+    if (!status.ok) {
+      // 429 and 5xx: try again later (counted); other errors end the delivery.
+      const transient = status.status === 429 || status.status >= 500;
+      return {
+        status: transient ? "retry" : "error",
+        external_id: job.external_id,
+        detail: `TikTok status: ${problem(status, "error")}`
+      };
+    }
     const data = status.data.data || {};
     if (data.status === "SEND_TO_USER_INBOX") {
       return { status: "draft", external_id: job.external_id, detail: "TikTok: чернетка у «Вхідних» застосунку — опублікуйте її там" };

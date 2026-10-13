@@ -46,6 +46,7 @@ export const PROMO_CRON = "*/5 * * * *"; // wrangler.toml [triggers]
 const OAUTH_MINUTES = 15;
 const DELIVERY_TRIES = 6;
 const DELIVERY_LEASE = 10 * 60_000;
+const DELIVERY_DEADLINE = 6 * 3_600_000; // a network still processing after this is given up
 const BACKOFF = [2, 5, 15, 30, 60].map((m) => m * 60_000);
 
 const JSON_HEADERS = { "content-type": "application/json; charset=utf-8", "cache-control": "no-store" };
@@ -275,7 +276,9 @@ export async function decide(env, id, action, callback, now = Date.now(), origin
     }
   }
   const failed = Object.values(result).some((r) => r?.status === "ERROR");
-  const status = failed ? "failed" : queued.length ? "publishing" : action === "all" && metricoolId ? "scheduled" : "published";
+  // Queued deliveries decide the end (finishPost); a channel or Metricool error
+  // stays in `result` and in the report.
+  const status = queued.length ? "publishing" : failed ? "failed" : action === "all" && metricoolId ? "scheduled" : "published";
   await env.DB.prepare(
     "UPDATE promo_posts SET status = ?2, publish_at = ?3, metricool_id = ?4, result = ?5, approval_chat = ?6, approval_message = ?7 WHERE id = ?1"
   )
@@ -713,8 +716,8 @@ function media(env, row, origin) {
     url: `${origin}/m/${row.media_key}/video.mp4`,
     cover_url: null,
     size: 0,
-    async open() {
-      const object = await env.REPORTS.get(`promo/${row.media_key}/video.mp4`);
+    async open(offset = 0) {
+      const object = await env.REPORTS.get(`promo/${row.media_key}/video.mp4`, offset ? { range: { offset } } : undefined);
       if (!object) throw new Error("the video is gone from storage");
       return object.body;
     }
@@ -731,7 +734,7 @@ export async function promoPublish(env, now = Date.now()) {
   if (!env.REPORTS) return { worked: 0 };
   const origin = publicOrigin(env, null);
   const { results } = await env.DB.prepare(
-    "SELECT d.post_id, d.network, d.status, d.attempts, d.external_id, p.media_key, p.body " +
+    "SELECT d.post_id, d.network, d.status, d.attempts, d.external_id, p.media_key, p.body, p.decided_at " +
       "FROM promo_deliveries d JOIN promo_posts p ON p.id = d.post_id " +
       "WHERE d.status IN ('queued', 'processing') AND d.next_at <= ?1 ORDER BY d.next_at LIMIT 6"
   )
@@ -771,11 +774,17 @@ export async function promoPublish(env, now = Date.now()) {
       status = attempts >= DELIVERY_TRIES ? "error" : row.status;
       nextAt = now + BACKOFF[Math.min(attempts - 1, BACKOFF.length - 1)];
     }
+    if (status === "processing" && row.decided_at && now - row.decided_at > DELIVERY_DEADLINE) {
+      status = "error";
+      outcome.detail = `${NETWORK_NAMES[row.network]} не завершив обробку за 6 годин`;
+    }
+    // A lost upload session starts over: the stored id is cleared.
+    const keepId = outcome.restart ? "" : outcome.external_id || null;
     await env.DB.prepare(
-      "UPDATE promo_deliveries SET status = ?3, attempts = ?4, next_at = ?5, external_id = COALESCE(?6, external_id), " +
+      "UPDATE promo_deliveries SET status = ?3, attempts = ?4, next_at = ?5, external_id = CASE WHEN ?6 = '' THEN NULL ELSE COALESCE(?6, external_id) END, " +
         "url = COALESCE(?7, url), detail = ?8, updated_at = ?9 WHERE post_id = ?1 AND network = ?2"
     )
-      .bind(row.post_id, row.network, status, attempts, nextAt, outcome.external_id || null, outcome.url || null, outcome.detail || null, now)
+      .bind(row.post_id, row.network, status, attempts, nextAt, keepId, outcome.url || null, outcome.detail || null, now)
       .run();
   }
   for (const postId of touched) await finishPost(env, postId);

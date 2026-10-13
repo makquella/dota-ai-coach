@@ -67,24 +67,56 @@ test("each network needs its own app secrets and asks for the right scopes", () 
   assert.ok(direct.searchParams.get("scope").includes("video.publish"));
 });
 
-test("YouTube: one resumable upload, a Shorts link, a note when the API forces private", async (t) => {
+test("YouTube: the session is kept before upload, authorized, resumed, never started twice", async (t) => {
+  let stage = "fresh";
   const calls = stub(t, [
     [
       "upload/youtube/v3/videos",
       () => new Response("{}", { status: 200, headers: { location: "https://upload.test/session-1" } })
     ],
-    ["upload.test/session-1", { id: "vid123", status: { privacyStatus: "private" } }]
+    [
+      "upload.test/session-1",
+      (url, init) => {
+        if (String(init.headers["content-range"] || "").startsWith("bytes */")) {
+          if (stage === "partial") return new Response(null, { status: 308, headers: { range: "bytes=0-1023" } });
+          if (stage === "done") return Response.json({ id: "vid123", status: { privacyStatus: "public" } });
+          if (stage === "lost") return new Response(null, { status: 404 });
+          return new Response(null, { status: 308 });
+        }
+        return Response.json({ id: "vid123", status: { privacyStatus: "private" } });
+      }
+    ]
   ]);
-  const out = await NETWORK_CLIENTS.youtube.step(ENV, { access_token: "at" }, job());
-  assert.equal(out.status, "published");
-  assert.equal(out.url, "https://youtube.com/shorts/vid123");
-  assert.match(out.detail, /private/);
+  const opened = [];
+  const media = { url: "u", size: 4096, open: async (offset = 0) => (opened.push(offset), new Uint8Array(4096 - offset)) };
+  const account = { access_token: "at" };
+  const first = await NETWORK_CLIENTS.youtube.step(ENV, account, job({ media }));
+  assert.deepEqual([first.status, first.external_id], ["processing", "upload:https://upload.test/session-1"]);
   const meta = JSON.parse(calls[0].body);
   assert.equal(meta.snippet.title, BODY.youtube_title);
   assert.equal(meta.snippet.categoryId, "20");
   assert.equal(meta.status.selfDeclaredMadeForKids, false);
-  assert.equal(calls[0].headers.authorization, "Bearer at");
-  assert.equal(calls[1].method, "PUT");
+  assert.equal(opened.length, 0); // no bytes before the session is stored
+
+  const out = await NETWORK_CLIENTS.youtube.step(ENV, account, job({ media, external_id: first.external_id }));
+  assert.deepEqual([out.status, out.url], ["published", "https://youtube.com/shorts/vid123"]);
+  assert.match(out.detail, /private/);
+  const puts = calls.filter((c) => c.method === "PUT");
+  assert.ok(puts.every((c) => c.headers.authorization === "Bearer at"));
+  assert.deepEqual(opened, [0]);
+
+  stage = "partial"; // 1 KB arrived before the answer was lost: send the rest
+  await NETWORK_CLIENTS.youtube.step(ENV, account, job({ media, external_id: first.external_id }));
+  assert.equal(opened.at(-1), 1024);
+  assert.equal(calls.at(-1).headers["content-range"], "bytes 1024-4095/4096");
+  stage = "done"; // finished but the answer was lost: no second upload
+  const count = opened.length;
+  assert.equal((await NETWORK_CLIENTS.youtube.step(ENV, account, job({ media, external_id: first.external_id }))).status, "published");
+  assert.equal(opened.length, count);
+  stage = "lost";
+  const lost = await NETWORK_CLIENTS.youtube.step(ENV, account, job({ media, external_id: first.external_id }));
+  assert.equal(lost.status, "retry");
+  assert.equal(lost.restart, true);
 });
 
 test("YouTube refreshes an expiring access token, keeps a fresh one", async (t) => {
@@ -136,6 +168,14 @@ test("TikTok inbox: one-chunk upload, then a draft in the app", async (t) => {
   assert.equal(calls[1].headers["content-range"], "bytes 0-4095/4096");
   const done = await NETWORK_CLIENTS.tiktok.step(ENV, account, job({ external_id: "p1" }));
   assert.equal(done.status, "draft");
+});
+
+test("TikTok status errors end or retry the delivery, never poll forever", async (t) => {
+  let code = 401;
+  stub(t, [["/v2/post/publish/status/fetch/", () => Response.json({ error: { code: "access_token_invalid" } }, { status: code })]]);
+  assert.equal((await NETWORK_CLIENTS.tiktok.step(ENV, { access_token: "tt" }, job({ external_id: "p1" }))).status, "error");
+  code = 429;
+  assert.equal((await NETWORK_CLIENTS.tiktok.step(ENV, { access_token: "tt" }, job({ external_id: "p1" }))).status, "retry");
 });
 
 test("TikTok direct: the most public privacy the account allows", async (t) => {

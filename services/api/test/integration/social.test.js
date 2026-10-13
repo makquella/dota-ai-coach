@@ -16,7 +16,7 @@ const BOT = "123456:test-token";
 const ADMIN = "4242";
 const ID = "fedcba9876543210";
 
-async function localWorker(t) {
+async function localWorker(t, extra = {}) {
   const calls = [];
   let igStatus = "IN_PROGRESS";
   const paths = (await readdir(SOURCE, { recursive: true })).filter((name) => name.endsWith(".js") && name !== "index.js");
@@ -38,14 +38,20 @@ async function localWorker(t) {
         YOUTUBE_CLIENT_ID: "yt-id",
         YOUTUBE_CLIENT_SECRET: "yt-secret",
         INSTAGRAM_APP_ID: "ig-id",
-        INSTAGRAM_APP_SECRET: "ig-secret"
+        INSTAGRAM_APP_SECRET: "ig-secret",
+        ...extra
       },
       outboundService: async (request) => {
         const body = request.method === "GET" ? null : await request.text();
-        calls.push({ url: request.url, method: request.method, body });
+        calls.push({ url: request.url, method: request.method, body, headers: Object.fromEntries(request.headers) });
         const url = new URL(request.url);
         const route = `${url.hostname}${url.pathname}`;
-        if (url.hostname === "api.telegram.org") return Response.json({ ok: true, result: { message_id: 77 } });
+        if (url.hostname === "api.telegram.org") {
+          if (url.pathname.endsWith("/sendVideo") && JSON.parse(body).chat_id === "@broken") {
+            return Response.json({ ok: false, description: "chat not found" }, { status: 400 });
+          }
+          return Response.json({ ok: true, result: { message_id: 77 } });
+        }
         if (route === "oauth2.googleapis.com/token") {
           return Response.json({ access_token: "yt-access", refresh_token: "yt-refresh-secret", expires_in: 3600 });
         }
@@ -55,7 +61,10 @@ async function localWorker(t) {
         if (route === "www.googleapis.com/upload/youtube/v3/videos") {
           return new Response("{}", { headers: { location: "https://upload.test/s1" } });
         }
-        if (route === "upload.test/s1") return Response.json({ id: "vid1", status: { privacyStatus: "public" } });
+        if (route === "upload.test/s1") {
+          if (String(request.headers.get("content-range") || "").startsWith("bytes */")) return new Response(null, { status: 308 });
+          return Response.json({ id: "vid1", status: { privacyStatus: "public" } });
+        }
         if (route === "api.instagram.com/oauth/access_token") return Response.json({ access_token: "ig-short", user_id: 555 });
         if (route === "graph.instagram.com/access_token") return Response.json({ access_token: "ig-long-secret", expires_in: 5184000 });
         if (route === "graph.instagram.com/v21.0/me") return Response.json({ user_id: "555", username: "wardly" });
@@ -127,10 +136,7 @@ test("accounts connect through the bot, only for the developer, and are stored s
   assert.match(list, /TikTok: додайте секрети/);
 });
 
-test("an approved video goes to YouTube and Instagram by the cron, once, and is reported", async (t) => {
-  const { mf, db, calls, setIg } = await localWorker(t);
-  await connect(mf, calls, "youtube", "c1");
-  await connect(mf, calls, "instagram", "c2");
+async function approveAndRun(mf, db, calls) {
   const auth = { authorization: "Bearer admin-secret" };
   const created = await mf.dispatchFetch("https://api.test/v1/admin/promo", {
     method: "POST",
@@ -147,7 +153,6 @@ test("an approved video goes to YouTube and Instagram by the cron, once, and is 
   });
   const { media_key: key } = await created.json();
   await mf.dispatchFetch(`https://api.test/v1/admin/promo/${ID}/video.mp4`, { method: "PUT", headers: auth, body: new Uint8Array(2048).fill(3) });
-
   await update(mf, {
     callback_query: {
       id: "cb",
@@ -156,35 +161,64 @@ test("an approved video goes to YouTube and Instagram by the cron, once, and is 
       message: { message_id: 9, chat: { id: Number(ADMIN), type: "private" }, video: { file_id: "F1" } }
     }
   });
-  const queued = await db.prepare("SELECT network, status FROM promo_deliveries WHERE post_id = ? ORDER BY network").bind(ID).all();
-  assert.deepEqual(queued.results.map((r) => `${r.network}:${r.status}`), ["instagram:queued", "youtube:queued"]);
+  return key;
+}
+
+const deliveries = async (db) =>
+  (await db.prepare("SELECT network, status, url FROM promo_deliveries WHERE post_id = ? ORDER BY network").bind(ID).all()).results;
+
+test("an approved video goes to YouTube and Instagram by the cron, once, and is reported", async (t) => {
+  const { mf, db, calls, setIg } = await localWorker(t);
+  await connect(mf, calls, "youtube", "c1");
+  await connect(mf, calls, "instagram", "c2");
+  const key = await approveAndRun(mf, db, calls);
+  assert.deepEqual((await deliveries(db)).map((r) => `${r.network}:${r.status}`), ["instagram:queued", "youtube:queued"]);
   const report = sent(calls, "sendMessage").at(-1).text;
   assert.match(report, /Instagram, YouTube: у черзі/);
   assert.match(report, /TikTok: не підключено/);
 
   const worker = await mf.getWorker();
-  await worker.scheduled({ cron: "*/5 * * * *" });
-  let rows = await db.prepare("SELECT network, status, url, external_id FROM promo_deliveries WHERE post_id = ? ORDER BY network").bind(ID).all();
-  assert.deepEqual(rows.results.map((r) => `${r.network}:${r.status}`), ["instagram:processing", "youtube:published"]);
-  assert.equal(rows.results[1].url, "https://youtube.com/shorts/vid1");
+  const run = () => worker.scheduled({ cron: "*/5 * * * *" });
+  await run(); // YouTube: session kept; Instagram: container made
+  assert.deepEqual((await deliveries(db)).map((r) => `${r.network}:${r.status}`), ["instagram:processing", "youtube:processing"]);
   const container = calls.find((c) => c.url.includes("/555/media") && !c.url.includes("publish"));
   assert.equal(new URLSearchParams(container.body).get("video_url"), `https://api.test/m/${key}/video.mp4`);
+  assert.equal(calls.filter((c) => c.url.includes("upload.test/s1")).length, 0);
+
+  await run(); // YouTube: checked and uploaded; Instagram not due yet
+  let rows = await deliveries(db);
+  assert.deepEqual(rows.map((r) => `${r.network}:${r.status}`), ["instagram:processing", "youtube:published"]);
+  assert.equal(rows[1].url, "https://youtube.com/shorts/vid1");
+  assert.equal(calls.filter((c) => c.url.includes("/cont1")).length, 0);
+  const uploads = calls.filter((c) => c.url.includes("upload.test/s1"));
+  assert.equal(uploads.length, 2);
+  assert.ok(uploads.every((c) => c.headers.authorization === "Bearer yt-access"));
   assert.equal((await db.prepare("SELECT status FROM promo_posts WHERE id = ?").bind(ID).first()).status, "publishing");
 
-  // Not due yet: nothing happens; once due and finished, published once.
-  await worker.scheduled({ cron: "*/5 * * * *" });
-  assert.equal(calls.filter((c) => c.url.includes("/cont1")).length, 0);
   await db.prepare("UPDATE promo_deliveries SET next_at = 0 WHERE post_id = ?").bind(ID).run();
   setIg("FINISHED");
-  await worker.scheduled({ cron: "*/5 * * * *" });
-  await worker.scheduled({ cron: "*/5 * * * *" });
-  rows = await db.prepare("SELECT network, status, url FROM promo_deliveries WHERE post_id = ? ORDER BY network").bind(ID).all();
-  assert.deepEqual(rows.results.map((r) => `${r.network}:${r.status}`), ["instagram:published", "youtube:published"]);
+  await run();
+  await run();
+  rows = await deliveries(db);
+  assert.deepEqual(rows.map((r) => `${r.network}:${r.status}`), ["instagram:published", "youtube:published"]);
   assert.equal(calls.filter((c) => c.url.includes("/media_publish")).length, 1);
-  assert.equal(calls.filter((c) => c.url.includes("upload.test/s1")).length, 1);
+  assert.equal(calls.filter((c) => c.url.includes("upload.test/s1")).length, 2);
   assert.equal((await db.prepare("SELECT status FROM promo_posts WHERE id = ?").bind(ID).first()).status, "published");
   const final = sent(calls, "sendMessage").at(-1);
   assert.equal(final.reply_to_message_id, 9);
   assert.match(final.text, /✅ Instagram: опубліковано — https:\/\/www.instagram.com\/reel\/r1\//);
   assert.match(final.text, /✅ YouTube: опубліковано — https:\/\/youtube.com\/shorts\/vid1/);
+});
+
+test("a failed channel post does not stop the networks or their report", async (t) => {
+  const { mf, db, calls } = await localWorker(t, { TELEGRAM_CHANNEL: "@broken" });
+  await connect(mf, calls, "youtube", "c1");
+  await approveAndRun(mf, db, calls);
+  assert.equal((await db.prepare("SELECT status FROM promo_posts WHERE id = ?").bind(ID).first()).status, "publishing");
+  assert.match(sent(calls, "sendMessage").at(-1).text, /Telegram-канал: chat not found/);
+  const worker = await mf.getWorker();
+  await worker.scheduled({ cron: "*/5 * * * *" });
+  await worker.scheduled({ cron: "*/5 * * * *" });
+  assert.equal((await db.prepare("SELECT status FROM promo_posts WHERE id = ?").bind(ID).first()).status, "published");
+  assert.match(sent(calls, "sendMessage").at(-1).text, /✅ YouTube: опубліковано/);
 });
