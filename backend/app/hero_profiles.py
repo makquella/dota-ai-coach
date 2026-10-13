@@ -215,7 +215,8 @@ def _key_safety_status(profile: Mapping[str, Any], abilities: Any) -> dict[str, 
     for kind in ("escape", "defensive"):
         for ability_name in key_abilities[kind]:
             ability = find_ability(abilities, ability_name)
-            if not ability:
+            # Not learned yet (Sunder before level 6): nothing to wait for.
+            if not ability or _to_float(ability.get("level")) == 0:
                 continue
             any_found = True
             if ability_is_unavailable(ability):

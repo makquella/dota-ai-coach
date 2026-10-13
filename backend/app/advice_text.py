@@ -109,8 +109,13 @@ def clean_recommendation_text(
     )
 
 
-# live_tools.low_hp_copy actions ("Use Magic Wand now, then step back.").
-LOW_HP_TOOL_PREFIXES = ("use ", "step out of enemy range and use ")
+# live_tools.low_hp_copy actions ("Use Magic Wand now, then step back."); under
+# a stun or hex, the tool to press once it ends (live_tools.disabled_copy).
+LOW_HP_TOOL_PREFIXES = (
+    "use ",
+    "step out of enemy range and use ",
+    "the moment the disable ends use ",
+)
 # The rule texts a LOW_HP reason may keep (live_tools.py: the tool that is ready,
 # HP falling fast, the repeat count); anything else becomes the standard line.
 LOW_HP_REASON_PATTERNS = (
@@ -118,6 +123,7 @@ LOW_HP_REASON_PATTERNS = (
     re.compile(r"^Your HP has dropped this low \d+ times this game: "),
     re.compile(r"^Your HP is low and [^:]+ is ready: use it before the next hit"),
     re.compile(r"^[^:]+ is ready: it buys you the seconds to get away\.$"),
+    re.compile(r"^[^:]+ is ready: the second after a disable is when most kills finish\.$"),
     re.compile(r"^Magic Wand (?:has \d+ charges|is charged): that HP is yours right now\.$"),
     re.compile(r"^[^:]+ (?:is ready and heals you at once|heals you at once)\.$"),
     re.compile(r"^[^:]+ heals over time: use it where enemies cannot hit you\.$"),

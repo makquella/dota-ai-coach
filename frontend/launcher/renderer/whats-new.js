@@ -9,6 +9,10 @@
 
   const TEXT = {
     en: {
+      "0.56.2": [
+        "No more «avoid risky trades until Sunder is ready» before you have even learned Sunder: an ability you have not learned is nothing to wait for.",
+        "Low HP while stunned or hexed: the card now says what to press the moment it ends, instead of «Leave the wave now», which you cannot do while stunned."
+      ],
       "0.56.1": [
         "«Save file» for a recorded match (Settings → Keep match recordings for a week) works again: the file goes to Downloads instead of «Could not save the file».",
         "Problem reports no longer carry your Steam id inside the service job names."
@@ -530,6 +534,10 @@
       ]
     },
     uk: {
+      "0.56.2": [
+        "Більше немає «Не ризикуйте, поки Sunder не готовий», коли Sunder ще навіть не вивчено: на невивчену здібність нема чого чекати.",
+        "Мало HP під оглушенням чи хексом: картка тепер каже, що натиснути, щойно контроль мине, замість «Залиште хвилю зараз», чого під оглушенням не зробиш."
+      ],
       "0.56.1": [
         "«Зберегти файл» для записаного матчу («Налаштування» → «Зберігати записи матчів тиждень») знову працює: файл потрапляє в «Завантаження», а не «Не вдалося зберегти файл».",
         "Звіт про проблему більше не містить вашого Steam id у назвах службових задач."

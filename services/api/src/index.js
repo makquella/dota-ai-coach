@@ -22,6 +22,10 @@
 //   POST   /v1/profiles             -> the cards of up to 50 friend codes { ids } -> { profiles: {id: card} }
 //   DELETE /v1/profile/<id>         -> hides the card (same token)
 //   GET    /p/<id>                  -> the card as a page to send to a chat
+//   POST   /v1/admin/promo, PUT /v1/admin/promo/<id>/<file>, GET /v1/admin/promo
+//                                   -> promo packages for approval (src/promo.js, docs/MARKETING_ENGINE.md)
+//   GET    /m/<media key>/<file>    -> a promo video or cover (public while not rejected or expired)
+//   POST   /v1/telegram/webhook     -> the bot's approve / reject buttons (secret header, TELEGRAM_CHAT_ID only)
 //   GET    /admin, /admin/app.js    -> the statistics page (src/admin-page.js; asks for the token, holds no data;
 //                                      404 while ADMIN_TOKEN is not set)
 //   cron                            -> deletes reports older than RETENTION_DAYS, expired shares, old rate counters,
@@ -83,6 +87,7 @@ import {
   channelSource,
   latestInstaller
 } from "./channels.js";
+import { promoList, promoMaintenance, promoMedia, putPromoFile, registerPromo, telegramWebhook } from "./promo.js";
 import {
   TRANSFER_MAX_BYTES,
   TRANSFER_MINUTES,
@@ -868,6 +873,13 @@ export default {
       if (pageMatch && (request.method === "GET" || request.method === "HEAD")) {
         return await sharePage(request, pageMatch[1], env);
       }
+      const media = path.match(/^\/m\/([a-f0-9]{32})\/(video\.mp4|cover\.jpg)$/);
+      if (media && (request.method === "GET" || request.method === "HEAD")) {
+        return await promoMedia(request, media[1], media[2], env);
+      }
+      if (request.method === "POST" && path === "/v1/telegram/webhook") {
+        return await telegramWebhook(request, env);
+      }
       const device = path.match(/^\/v1\/device\/([^/]+)$/);
       if (request.method === "DELETE" && device) {
         return await deleteDevice(request, decodeURIComponent(device[1]), env);
@@ -890,6 +902,16 @@ export default {
         if (request.method === "GET" && path === "/v1/admin/stats") {
           return await adminStats(url, env);
         }
+        if (path === "/v1/admin/promo" && request.method === "POST") {
+          return await registerPromo(request, env);
+        }
+        if (path === "/v1/admin/promo" && request.method === "GET") {
+          return await promoList(env);
+        }
+        const promoFile = path.match(/^\/v1\/admin\/promo\/([a-f0-9]{16})\/(video\.mp4|cover\.jpg)$/);
+        if (promoFile && request.method === "PUT") {
+          return await putPromoFile(request, promoFile[1], promoFile[2], env);
+        }
         const one = path.match(/^\/v1\/admin\/report\/(R-[A-Z0-9]{6})$/);
         if (request.method === "GET" && one) {
           return await adminReport(one[1], env);
@@ -905,5 +927,6 @@ export default {
   async scheduled(_event, env, ctx) {
     ctx.waitUntil(cleanup(env).then((count) => console.log(`cleanup: ${count} old reports`)));
     ctx.waitUntil(sendWeeklyStats(env).catch((error) => console.log(`weekly stats: ${error.message}`)));
+    ctx.waitUntil(promoMaintenance(env).catch((error) => console.log(`promo: ${error.message}`)));
   }
 };
