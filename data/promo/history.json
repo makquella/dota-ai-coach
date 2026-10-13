@@ -5,5 +5,12 @@
   "format": "coach",
   "topic": "shadow_shaman",
   "hook": 2
+ },
+ {
+  "id": "68f43da72e508c64",
+  "date": "2026-10-13",
+  "format": "coach",
+  "topic": "legion_commander",
+  "hook": 1
  }
 ]
