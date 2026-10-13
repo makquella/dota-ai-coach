@@ -344,7 +344,14 @@ def prepare(timeline: list[dict[str, Any]], library: Library, seed: int) -> dict
         chosen: dict[str, Any] = {}
         if hero:
             chosen["idle"] = idle(hero)
-            if scene["kind"] == "card":
+            if scene["kind"] == "card" and data.get("enemy"):
+                # against the enemy draft: the enemy in action, then the item
+                item = library.item_in(data.get("action", ""))
+                chosen["threat"] = hero_clip(hero)
+                if item:
+                    chosen["pay_name"] = item["name"]
+                    chosen["pay_icon"] = library.item_icon(item["key"])
+            elif scene["kind"] == "card":
                 ability = library.ability_in(hero, data.get("action", ""))
                 item = None if ability else library.item_in(data.get("action", ""))
                 if ability:

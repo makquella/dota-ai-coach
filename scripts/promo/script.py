@@ -3,6 +3,7 @@ project's data. Every number on screen comes from a source listed in
 `Script.sources`; the voice text is the screen text said aloud.
 
 Formats (topics.py picks one):
+  draft    «Against <enemy>, not your usual build»: the counter-item card (draft_demo.py)
   coach    «What Wardly says on <hero>»: real overlay cards (coach_demo.py)
   meta     the week's strongest heroes (data/news/posts, OpenDota)
   hero     three things about a hero (the site's hero page data)
@@ -165,6 +166,62 @@ def coach(
                 "(/gsi → правила → планувальник), scripts/promo/coach_demo.py"
             ),
             f"Пороги HP — профіль героя {name} (data/heroes/hero_profiles.json)",
+        ],
+        hook=hook,
+    )
+
+
+# --- draft: the item against the enemy lineup -----------------------------------------
+
+DRAFT_HOOKS = (
+    "Досі купуєш одні й ті самі предмети в кожному матчі? Це може коштувати тобі перемоги!",
+    "Один і той самий білд щогри? Ось через що ти програєш.",
+    "Купуєш предмети за звичкою? Ворожий драфт каже інше.",
+)
+DRAFT_CLOSE = "Менше помилок. Більше розумних рішень. Грай краще з Wardly!"
+
+
+def draft(found: dict[str, Any], rng: random.Random, version: str) -> Script:
+    hook = rng.randrange(len(DRAFT_HOOKS))
+    enemy, key, item = found["enemy"], found["key"], found["item"]
+    scenes = [
+        Scene("hook", DRAFT_HOOKS[hook], {"hero": key, "name": enemy}),
+        Scene(
+            "card",
+            f"Проти {enemy} тобі знадобиться зовсім інший підхід. Wardly аналізує ворожий драфт "
+            f"і прямо під час гри підказує: {item['name']}.",
+            {
+                "hero": key,
+                "enemy": key,
+                "enemy_name": enemy,
+                "mode": "hint",
+                "action": found["title"],
+                "reason": found["reason"],
+                "moment": "draft",
+            },
+        ),
+        Scene("cta", f"{DRAFT_CLOSE} Посилання в профілі.", {"site": "luhovyimvp.dev"}),
+    ]
+    return Script(
+        format="draft",
+        topic=key,
+        title=f"Проти {enemy}: {item['name']}, а не звичний білд",
+        scenes=scenes,
+        caption=caption(
+            [
+                DRAFT_HOOKS[hook],
+                f"Проти {enemy} — {item['name']}: {found['reason']}",
+                "Wardly читає ворожий драфт і підказує предмети просто в матчі. " + DRAFT_CLOSE,
+            ],
+            [*HASHTAGS, hashtag(enemy), hashtag(item["name"])],
+            "promo-draft",
+        ),
+        sources=[
+            (
+                f"Предмет — логіка Wardly {version} (backend/app/situational_items.py, "
+                "draft_analysis.COUNTERS) для ворога в драфті; scripts/promo/draft_demo.py"
+            ),
+            "Текст картки — шаблон оверлея (backend/app/map_hints.py, draft_*)",
         ],
         hook=hook,
     )

@@ -17,7 +17,8 @@
 // button press in TELEGRAM_CHAT_ID moves it, once (a conditional UPDATE), to
 // 'publishing'. «Всюди» schedules it in Metricool (as a draft while
 // PROMO_METRICOOL_MODE is not "publish") and posts it to the Telegram channel;
-// «Лише Telegram» only the channel; «Відхилити» deletes the media.
+// «Лише Telegram» only the channel; «Лише YouTube» only YouTube (direct, else
+// Metricool), not the channel; «Відхилити» deletes the media.
 
 import {
   NETWORK_CLIENTS,
@@ -30,7 +31,7 @@ import {
   socialConfigured
 } from "./social.js";
 
-export const PROMO_FORMATS = ["coach", "meta", "hero", "fact", "release"];
+export const PROMO_FORMATS = ["draft", "coach", "meta", "hero", "fact", "release"];
 export const PROMO_FILES = { "video.mp4": "video/mp4", "cover.jpg": "image/jpeg" };
 export const PROMO_MAX_VIDEO = 95 * 1024 * 1024; // under the Workers request limit
 export const PROMO_MAX_COVER = 2 * 1024 * 1024;
@@ -200,7 +201,7 @@ export async function telegramWebhook(request, env, now = Date.now()) {
   }
   const callback = update.callback_query;
   if (!callback) return json({ ok: true });
-  const match = String(callback.data || "").match(/^promo:(all|tg|no):([a-f0-9]{16})$/);
+  const match = String(callback.data || "").match(/^promo:(all|tg|yt|no):([a-f0-9]{16})$/);
   const fromAdmin = admin && String(callback.from?.id) === admin && String(callback.message?.chat?.id) === admin;
   if (!match || !fromAdmin) {
     await telegram(env, "answerCallbackQuery", { callback_query_id: callback.id, text: "Недоступно" });
@@ -214,6 +215,7 @@ export async function telegramWebhook(request, env, now = Date.now()) {
 const ANSWERS = {
   all: "Публікую всюди…",
   tg: "Публікую в Telegram-каналі…",
+  yt: "Публікую лише на YouTube…",
   no: "Відхилено"
 };
 
@@ -239,7 +241,9 @@ export async function decide(env, id, action, callback, now = Date.now(), origin
   const result = {};
   const channel = String(env.TELEGRAM_CHANNEL || "").trim();
   const fileId = callback.message?.video?.file_id;
-  if (channel && fileId) {
+  if (action === "yt") {
+    // YouTube only: the channel stays as it is
+  } else if (channel && fileId) {
     const sent = await telegram(env, "sendVideo", {
       chat_id: channel,
       video: fileId,
@@ -253,9 +257,9 @@ export async function decide(env, id, action, callback, now = Date.now(), origin
   let metricoolId = null;
   let publishAt = null;
   const queued = [];
-  if (action === "all") {
+  if (action === "all" || action === "yt") {
     const connected = await connectedNetworks(env);
-    const wanted = promoNetworks(env);
+    const wanted = action === "yt" ? ["youtube"] : promoNetworks(env);
     const direct = wanted.filter((n) => connected[n] && socialConfigured(env, n));
     const rest = wanted.filter((n) => !direct.includes(n));
     for (const network of direct) {
@@ -275,10 +279,12 @@ export async function decide(env, id, action, callback, now = Date.now(), origin
       result.skipped = rest;
     }
   }
-  const failed = Object.values(result).some((r) => r?.status === "ERROR");
+  // «Лише YouTube» with YouTube neither connected nor in Metricool published nothing.
+  const failed =
+    Object.values(result).some((r) => r?.status === "ERROR") || (action === "yt" && !queued.length && !metricoolId);
   // Queued deliveries decide the end (finishPost); a channel or Metricool error
   // stays in `result` and in the report.
-  const status = queued.length ? "publishing" : failed ? "failed" : action === "all" && metricoolId ? "scheduled" : "published";
+  const status = queued.length ? "publishing" : failed ? "failed" : metricoolId ? "scheduled" : "published";
   await env.DB.prepare(
     "UPDATE promo_posts SET status = ?2, publish_at = ?3, metricool_id = ?4, result = ?5, approval_chat = ?6, approval_message = ?7 WHERE id = ?1"
   )

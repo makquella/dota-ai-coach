@@ -6,7 +6,7 @@ name: Promo
 # ability clips (headless Chrome + ffmpeg), check it,
 # and send it to the developer's Telegram for approval. Nothing is published
 # here: the buttons in Telegram go to the Worker (services/api/src/promo.js),
-# which publishes only after «✅ Всюди» or «📣 Лише Telegram».
+# which publishes only after «✅ Всюди», «📣 Лише Telegram» or «▶️ Лише YouTube».
 #
 # Secrets: ELEVENLABS_API_KEY (the voice; variables ELEVENLABS_VOICE_ID and
 # ELEVENLABS_MODEL optional), API_ADMIN_TOKEN, TELEGRAM_BOT_TOKEN,
@@ -20,7 +20,7 @@ on:
       format:
         description: "Format (auto: the rotation picks)"
         type: choice
-        options: [auto, coach, meta, hero, fact, release]
+        options: [auto, draft, coach, meta, hero, fact, release]
         default: auto
       send:
         description: "Send to Telegram for approval"
