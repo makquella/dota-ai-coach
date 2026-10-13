@@ -61,7 +61,9 @@ jobs:
           python -m pip install --require-hashes --only-binary=:all: -r backend/requirements-dev.txt
           python -m pip install -r scripts/promo/requirements.txt
           python -m playwright install --with-deps chromium
-          ffmpeg -version | head -1
+          ffmpeg_exe="$(python -c 'from scripts.promo import render; print(render.ffmpeg())')"
+          ffmpeg_version="$("$ffmpeg_exe" -version)"
+          echo "${ffmpeg_version%%$'\n'*}"
       - name: Voice model (cached)
         uses: actions/cache@v4
         with:
