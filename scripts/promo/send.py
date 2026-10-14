@@ -65,6 +65,8 @@ def _request(
         # token in Telegram's URL never reaches the log.
         detail = error.read(300).decode("utf-8", "replace").strip()
         raise SystemExit(f"{method} {redact(url)}: HTTP {error.code} {detail}") from None
+    except (urllib.error.URLError, TimeoutError) as error:
+        raise SystemExit(f"{method} {redact(url)}: {redact(str(error))}") from None
     return json.loads(body) if body else {}
 
 
@@ -129,6 +131,12 @@ def approval_caption(package: dict[str, Any]) -> str:
         ),
         f"{package['seconds']:.0f} с · голос: {html.escape(package.get('voice', '?'))}",
     ]
+    profile = package.get("voice_config")
+    if profile and package.get("voice") == "elevenlabs":
+        lines[1] = (
+            f"{package['seconds']:.0f} с · {html.escape(profile['name'])} · "
+            f"{html.escape(profile['model'])}"
+        )
     if report["warnings"]:
         lines.append("⚠️ " + html.escape("; ".join(report["warnings"]))[:400])
     lines.append("Опублікувати? Деталі — у відповіді нижче.")

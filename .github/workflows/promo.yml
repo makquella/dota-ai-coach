@@ -8,8 +8,9 @@ name: Promo
 # here: the buttons in Telegram go to the Worker (services/api/src/promo.js),
 # which publishes only after «✅ Всюди», «📣 Лише Telegram» or «▶️ Лише YouTube».
 #
-# Secrets: ELEVENLABS_API_KEY (the voice; variables ELEVENLABS_VOICE_ID and
-# ELEVENLABS_MODEL optional), API_ADMIN_TOKEN, TELEGRAM_BOT_TOKEN,
+# Selected voice: Alex Nekrasov, eleven_v4, UK, stability 0.5, speed 1.0.
+# Manual voice_preset=custom uses optional ELEVENLABS_* repository variables.
+# Secrets: ELEVENLABS_API_KEY (the voice), API_ADMIN_TOKEN, TELEGRAM_BOT_TOKEN,
 # TELEGRAM_CHAT_ID (the developer's chat). Without the Telegram ones the video
 # is only built and kept as an artifact.
 on:
@@ -22,6 +23,20 @@ on:
         type: choice
         options: [auto, draft, coach, meta, hero, fact, release]
         default: auto
+      voice_preset:
+        description: "Narration (Alex natural is the selected variant A; custom uses variables)"
+        type: choice
+        options: [alex-natural, custom]
+        default: alex-natural
+      voice_lab:
+        description: "Voice comparison (catalog checks models/voices without TTS)"
+        type: choice
+        options: ["off", catalog, A, B, C, D]
+        default: "off"
+      voice_catalog:
+        description: "Verified voice-catalog JSON from a catalog run (optional)"
+        type: string
+        default: ""
       send:
         description: "Send to Telegram for approval"
         type: boolean
@@ -31,7 +46,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: promo
+  group: ${{ inputs.voice_lab != '' && inputs.voice_lab != 'off' && format('promo-voice-{0}', inputs.voice_lab) || 'promo' }}
   cancel-in-progress: false
 
 env:
@@ -46,7 +61,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
         with:
-          ref: main
+          ref: ${{ github.event_name == 'workflow_dispatch' && github.sha || 'main' }}
           fetch-depth: 0 # release notes dates (topics.latest_release)
       - uses: actions/setup-python@v5
         with:
@@ -56,6 +71,7 @@ jobs:
             backend/requirements-dev.txt
             scripts/promo/requirements.txt
       - name: Install
+        if: inputs.voice_lab != 'catalog'
         run: |
           # requirements-dev: the coach video runs the real advice pipeline
           # through FastAPI's TestClient (backend/scripts/simulate_live_gsi.py),
@@ -67,21 +83,30 @@ jobs:
           ffmpeg_version="$("$ffmpeg_exe" -version)"
           echo "${ffmpeg_version%%$'\n'*}"
       - name: What worked (format weights)
+        if: inputs.voice_lab == '' || inputs.voice_lab == 'off'
         env:
           API_ADMIN_TOKEN: ${{ secrets.API_ADMIN_TOKEN }}
         run: python -m scripts.promo.weights
       - name: Build the video
+        if: inputs.voice_lab == '' || inputs.voice_lab == 'off'
         env:
           FORMAT: ${{ inputs.format }}
           ELEVENLABS_API_KEY: ${{ secrets.ELEVENLABS_API_KEY }}
-          ELEVENLABS_VOICE_ID: ${{ vars.ELEVENLABS_VOICE_ID }}
-          ELEVENLABS_MODEL: ${{ vars.ELEVENLABS_MODEL }}
+          ELEVENLABS_VOICE_ID: ${{ inputs.voice_preset == 'custom' && vars.ELEVENLABS_VOICE_ID || '9Sj8ugvpK1DmcAXyvi3a' }}
+          ELEVENLABS_VOICE_NAME: ${{ inputs.voice_preset == 'custom' && vars.ELEVENLABS_VOICE_NAME || '' }}
+          ELEVENLABS_MODEL: ${{ inputs.voice_preset == 'custom' && vars.ELEVENLABS_MODEL || 'eleven_v4' }}
+          ELEVENLABS_LANGUAGE: ${{ inputs.voice_preset == 'custom' && vars.ELEVENLABS_LANGUAGE || 'uk' }}
+          ELEVENLABS_STABILITY: ${{ inputs.voice_preset == 'custom' && vars.ELEVENLABS_STABILITY || '0.5' }}
+          ELEVENLABS_SPEED: ${{ inputs.voice_preset == 'custom' && vars.ELEVENLABS_SPEED || '1.0' }}
+          ELEVENLABS_CONTINUOUS: ${{ inputs.voice_preset == 'custom' && vars.ELEVENLABS_CONTINUOUS || 'true' }}
+          RECORD_HISTORY: ${{ github.ref == 'refs/heads/main' }}
         run: |
           if [ -z "$ELEVENLABS_API_KEY" ]; then
             echo "::error title=Promo voice::ELEVENLABS_API_KEY is not set: add it in Settings -> Secrets and variables -> Actions"
             exit 1
           fi
-          args=(--out promo-out --record)
+          args=(--out promo-out)
+          if [ "$RECORD_HISTORY" = true ]; then args+=(--record); fi
           if [ -n "$FORMAT" ] && [ "$FORMAT" != auto ]; then args+=(--format "$FORMAT"); fi
           # A crash shows up as a check annotation too (the job log is not
           # always at hand); quality findings annotate themselves.
@@ -92,6 +117,23 @@ jobs:
             echo "::error title=Promo build::$(tail -n 1 promo-stderr.log)"
             exit "$status"
           fi
+      - name: Compare Ukrainian male voices
+        if: inputs.voice_lab != '' && inputs.voice_lab != 'off'
+        env:
+          VOICE_VARIANT: ${{ inputs.voice_lab }}
+          VOICE_CATALOG: ${{ inputs.voice_catalog }}
+          SEND_PREVIEW: ${{ inputs.send }}
+          ELEVENLABS_API_KEY: ${{ secrets.ELEVENLABS_API_KEY }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID || vars.TELEGRAM_CHAT_ID }}
+        run: |
+          args=(--out promo-out --variant "$VOICE_VARIANT")
+          if [ -n "$VOICE_CATALOG" ]; then
+            python -c 'import os,json; from pathlib import Path; Path("voice-catalog.json").write_text(json.dumps(json.loads(os.environ["VOICE_CATALOG"])))'
+            args+=(--catalog voice-catalog.json)
+          fi
+          if [ "$SEND_PREVIEW" = true ] && [ "$VOICE_VARIANT" != catalog ]; then args+=(--send); fi
+          python -m scripts.promo.experiments "${args[@]}"
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -99,7 +141,7 @@ jobs:
           path: promo-out
           retention-days: 7
       - name: Send for approval
-        if: github.event_name == 'schedule' || inputs.send
+        if: (inputs.voice_lab == '' || inputs.voice_lab == 'off') && (github.event_name == 'schedule' || inputs.send)
         env:
           API_ADMIN_TOKEN: ${{ secrets.API_ADMIN_TOKEN }}
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
@@ -117,6 +159,7 @@ jobs:
             exit "$status"
           fi
       - name: Remember what was made
+        if: github.ref == 'refs/heads/main' && (inputs.voice_lab == '' || inputs.voice_lab == 'off')
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"

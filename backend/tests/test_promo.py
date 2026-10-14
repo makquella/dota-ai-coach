@@ -387,6 +387,7 @@ def test_elevenlabs_voice_writes_a_wav_and_never_leaks_the_key(monkeypatch, tmp_
 
     assert voice.synthesize("Привіт", tmp_path / "none.wav") is None  # no key: silent
     monkeypatch.setenv("ELEVENLABS_API_KEY", "el-secret")
+    monkeypatch.setenv("ELEVENLABS_MODEL", "eleven_multilingual_v2")
     monkeypatch.delenv("ELEVENLABS_VOICE_ID", raising=False)
     sent = []
     pcm = b"\x01\x00" * voice.RATE  # one second
