@@ -1,0 +1,812 @@
+{
+  "hero": {
+    "key": "terrorblade",
+    "id": 109,
+    "name": "Terrorblade",
+    "roles": [
+      "carry"
+    ]
+  },
+  "source": "sources/terrorblade.json",
+  "identity": "Terrorblade получает преимущество управлением иллюзиями, выбранным моментом формы и сохранением возможности Sunder. Показатель HP должен учитывать намеренный расход Demon Zeal и состояние эпизода. Дальние иллюзии, близкая группа для Dark Unity и временная форма решают разные задачи.",
+  "mechanics": [
+    {
+      "id": "T-image",
+      "field": "abilities/terrorblade_conjure_image/description",
+      "statement": "Conjure создаёт отдельную иллюзию, наносящую урон.",
+      "contains": "Creates an illusion"
+    },
+    {
+      "id": "T-image-time",
+      "field": "abilities/terrorblade_conjure_image/specials/illusion_duration/base",
+      "statement": "Базовая длительность иллюзии 34 секунды; таланты могут менять.",
+      "equals": [
+        34
+      ]
+    },
+    {
+      "id": "T-unity",
+      "field": "abilities/terrorblade_dark_unity/description",
+      "statement": "Dark Unity усиливает урон близких иллюзий.",
+      "contains": "Nearby Illusions"
+    },
+    {
+      "id": "T-unity-radius",
+      "field": "abilities/terrorblade_dark_unity/specials/radius/base",
+      "statement": "Базовый радиус Dark Unity 1200.",
+      "equals": [
+        1200
+      ]
+    },
+    {
+      "id": "T-meta",
+      "field": "abilities/terrorblade_metamorphosis/description",
+      "statement": "Meta меняет форму героя и близких иллюзий; разные единицы требуют отдельного наблюдения.",
+      "contains": "within %metamorph_aura_tooltip%"
+    },
+    {
+      "id": "T-meta-time",
+      "field": "abilities/terrorblade_metamorphosis/specials/duration/base",
+      "statement": "Базовая длительность Meta 35/40/45/50 секунд по уровню.",
+      "equals": [
+        35,
+        40,
+        45,
+        50
+      ]
+    },
+    {
+      "id": "T-wave",
+      "field": "abilities/terrorblade_terror_wave/description",
+      "statement": "Terror Wave даёт короткую Metamorphosis независимо от наличия обычного окна.",
+      "contains": "Metamorphosis for a short time"
+    },
+    {
+      "id": "T-sunder",
+      "field": "abilities/terrorblade_sunder/description",
+      "statement": "Sunder обменивает процент текущего HP; это не прямой гарантированный хил.",
+      "contains": "exchanging a percentage"
+    },
+    {
+      "id": "T-sunder-immune",
+      "field": "abilities/terrorblade_sunder/notes",
+      "statement": "Согласно описанию, HP debuff-immune врага не модифицируется; прочие результаты требуют проверки.",
+      "contains": "don't get their HP modified"
+    },
+    {
+      "id": "T-sunder-cost",
+      "field": "abilities/terrorblade_sunder/mana_costs",
+      "statement": "Базовая стоимость Sunder 100/75/50 по уровню.",
+      "equals": [
+        100,
+        75,
+        50
+      ]
+    },
+    {
+      "id": "T-sunder-cast",
+      "field": "abilities/terrorblade_sunder/cast_points",
+      "statement": "Базовый cast point Sunder 0,35 секунды.",
+      "equals": [
+        0.35
+      ]
+    },
+    {
+      "id": "T-zeal",
+      "field": "abilities/terrorblade_demon_zeal/description",
+      "statement": "Demon Zeal расходует часть текущего HP; нельзя применять в Meta, Meta удаляет Zeal.",
+      "contains": "Metamorphosis will remove Demon Zeal"
+    },
+    {
+      "id": "T-zeal-cost",
+      "field": "abilities/terrorblade_demon_zeal/specials/health_cost_pct/base",
+      "statement": "Базовая цена Demon Zeal — 20% текущего HP.",
+      "equals": [
+        20
+      ]
+    },
+    {
+      "id": "T-reflect",
+      "field": "abilities/terrorblade_reflection/notes",
+      "statement": "Reflection атакует только источник; исчезает при снятии slow.",
+      "contains": "destroyed if the slow debuff is removed"
+    }
+  ],
+  "advice": [
+    {
+      "id": "terrorblade.image_route",
+      "title": "Иллюзия на отдельный фарм, герой в пригодной позиции",
+      "phase": "farm",
+      "level": "advanced",
+      "status": "research_candidate",
+      "readiness": "manual_or_replay",
+      "benefit": "Получить фарм без одинакового риска для основного героя.",
+      "trigger": "Есть подтверждённая полезная удалённая задача для иллюзии.",
+      "conditions": [
+        "Единица, срок и маршрут подтверждены",
+        "Разделение не мешает срочной общей задаче"
+      ],
+      "suppress_if": [
+        "Нужно совместное давление",
+        "Маршрут бесполезен или единица не доживёт"
+      ],
+      "cancel_if": [
+        "Пропало любое обязательное условие",
+        "Изменилась цель/задача или сессия; старый план неактуален"
+      ],
+      "timing": "До решения, в спокойном окне; не пытаться голосом попасть в субсекундное исполнение.",
+      "repeat": "Повторять только после нового эпизода/изменения основания; выполнение плана подавляет повтор.",
+      "cost": "Внимание, мана создания и время жизни иллюзии.",
+      "requires": [
+        "controlled_units",
+        "wave_units",
+        "action_intent",
+        "effective_costs"
+      ],
+      "evidence": [
+        "T-image",
+        "T-image-time"
+      ],
+      "action": {
+        "uk": "Цю окрему пачку розглянь для ілюзії, зберігаючи позицію героя.",
+        "en": "Consider using an illusion for this separate wave while preserving hero position."
+      },
+      "reason": {
+        "uk": "Ілюзія та основний герой можуть виконувати різні задачі.",
+        "en": "The illusion and main hero can perform different tasks."
+      },
+      "scenarios": {
+        "positive": "Иллюзия успевает к полезной пачке, основной герой не нужен там.",
+        "negative": "Нужен общий урон рядом с героем: не разделять автоматически.",
+        "unknown": "Положение иллюзии неизвестно: не говорить, что она заберёт конкретную пачку."
+      }
+    },
+    {
+      "id": "terrorblade.image_refresh",
+      "title": "Новая иллюзия с учётом срока старой",
+      "phase": "farm",
+      "level": "practical",
+      "status": "research_candidate",
+      "readiness": "manual_or_replay",
+      "benefit": "Поддержать полезную задачу, не тратя ресурсы без назначения.",
+      "trigger": "Подтверждённая задача продлится дольше жизни текущей иллюзии.",
+      "conditions": [
+        "Срок, мана и задача известны",
+        "Новая единица успеет принести пользу"
+      ],
+      "suppress_if": [
+        "Иллюзия ещё справится",
+        "Создание лишает ресурса Sunder",
+        "Нет полезной задачи"
+      ],
+      "cancel_if": [
+        "Пропало любое обязательное условие",
+        "Изменилась цель/задача или сессия; старый план неактуален"
+      ],
+      "timing": "До решения, в спокойном окне; не пытаться голосом попасть в субсекундное исполнение.",
+      "repeat": "Повторять только после нового эпизода/изменения основания; выполнение плана подавляет повтор.",
+      "cost": "Мана и микроуправление новой единицей.",
+      "requires": [
+        "controlled_units",
+        "own_resources",
+        "own_abilities",
+        "effective_costs",
+        "action_intent"
+      ],
+      "evidence": [
+        "T-image-time",
+        "T-sunder-cost"
+      ],
+      "action": {
+        "uk": "Для продовження цієї задачі підготуй наступну ілюзію.",
+        "en": "Prepare the next illusion to continue this task."
+      },
+      "reason": {
+        "uk": "Поточна ілюзія не доживе до завершення маршруту.",
+        "en": "The current illusion will not last through the route."
+      },
+      "scenarios": {
+        "positive": "Срок подтверждён и маршрут требует замены.",
+        "negative": "Новая иллюзия не окупит ресурс или лишит защиты.",
+        "unknown": "Таймер неизвестен: не выводить его из одного cooldown."
+      }
+    },
+    {
+      "id": "terrorblade.unity_group",
+      "title": "Собрать иллюзии для нужного урона рядом",
+      "phase": "pressure",
+      "level": "advanced",
+      "status": "research_candidate",
+      "readiness": "manual_or_replay",
+      "benefit": "Использовать близость к герою, когда совместный урон важнее отдельного фарма.",
+      "trigger": "Намечено подтверждённое совместное давление.",
+      "conditions": [
+        "Известны позиции единиц",
+        "Полезно объединение",
+        "Нет опасности, отменяющей задачу"
+      ],
+      "suppress_if": [
+        "Отдельный фарм важнее",
+        "Единицы не успеют",
+        "Группировка повысит риск без выгоды"
+      ],
+      "cancel_if": [
+        "Пропало любое обязательное условие",
+        "Изменилась цель/задача или сессия; старый план неактуален"
+      ],
+      "timing": "До решения, в спокойном окне; не пытаться голосом попасть в субсекундное исполнение.",
+      "repeat": "Повторять только после нового эпизода/изменения основания; выполнение плана подавляет повтор.",
+      "cost": "Время сбора и отказ от удалённого фарма.",
+      "requires": [
+        "controlled_units",
+        "position",
+        "target_state",
+        "action_intent"
+      ],
+      "evidence": [
+        "T-unity",
+        "T-unity-radius"
+      ],
+      "action": {
+        "uk": "Для цього спільного тиску підведи потрібні ілюзії до героя.",
+        "en": "Bring the needed illusions near the hero for this coordinated pressure."
+      },
+      "reason": {
+        "uk": "Dark Unity посилює близькі ілюзії.",
+        "en": "Dark Unity strengthens nearby illusions."
+      },
+      "scenarios": {
+        "positive": "Совместная цель оправдывает потерю отдельного фарма.",
+        "negative": "Объединять все единицы для обычного фарма невыгодно.",
+        "unknown": "Неизвестна позиция единиц: не утверждать, что бонус уже работает."
+      }
+    },
+    {
+      "id": "terrorblade.meta_arrival",
+      "title": "Начало Meta связано с достижением задачи",
+      "phase": "pressure",
+      "level": "advanced",
+      "status": "research_candidate",
+      "readiness": "manual_or_replay",
+      "benefit": "Не расходовать сильное окно на лишний подход.",
+      "trigger": "До планируемого применения Meta есть заметный путь до задачи.",
+      "conditions": [
+        "Задача/путь и окно известны",
+        "Задержка формы не упускает необходимую защиту/урон"
+      ],
+      "suppress_if": [
+        "Применить раньше нужно для текущего эпизода",
+        "Срочная задача уже рядом"
+      ],
+      "cancel_if": [
+        "Пропало любое обязательное условие",
+        "Изменилась цель/задача или сессия; старый план неактуален"
+      ],
+      "timing": "До решения, в спокойном окне; не пытаться голосом попасть в субсекундное исполнение.",
+      "repeat": "Повторять только после нового эпизода/изменения основания; выполнение плана подавляет повтор.",
+      "cost": "Выбор момента, мана и долгое восстановление.",
+      "requires": [
+        "action_intent",
+        "position",
+        "effective_costs",
+        "target_state"
+      ],
+      "evidence": [
+        "T-meta-time",
+        "T-meta"
+      ],
+      "action": {
+        "uk": "Увімкни Meta ближче до виконання цієї задачі, якщо раннє застосування не потрібне.",
+        "en": "Start Meta closer to this task if an early cast is not needed."
+      },
+      "reason": {
+        "uk": "Час підходу витрачає частину сильного вікна.",
+        "en": "Travel spends part of the power window."
+      },
+      "scenarios": {
+        "positive": "До цели далеко, ранняя форма не помогает пути.",
+        "negative": "Нужно выиграть уже идущий размен: не заставлять ждать.",
+        "unknown": "Намерение неизвестно: готовность Meta не создаёт приказ атаковать."
+      }
+    },
+    {
+      "id": "terrorblade.meta_tail",
+      "title": "Продолжение давления с учётом остатка формы",
+      "phase": "fight",
+      "level": "advanced",
+      "status": "research_candidate",
+      "readiness": "manual_or_replay",
+      "benefit": "Выбрать достижимое продолжение до потери нужного режима атаки.",
+      "trigger": "Погоня/задача зависит от формы, окно скоро закончится.",
+      "conditions": [
+        "Активность и остаток подтверждены",
+        "Известна дистанция/задача",
+        "Есть вариант сократить действие"
+      ],
+      "suppress_if": [
+        "Продолжение полезно и без формы",
+        "Есть другая подтверждённая форма",
+        "Таймер не наблюдается"
+      ],
+      "cancel_if": [
+        "Форма закончилась/обновлена из другого источника",
+        "Погоня завершена",
+        "Потерян источник формы или состояние цели"
+      ],
+      "timing": "Перед новым продолжением; не выводить остаток из основного cooldown.",
+      "repeat": "Повторять только после нового эпизода/изменения основания; выполнение плана подавляет повтор.",
+      "cost": "Отказ от дополнительной погони или смена позиции.",
+      "requires": [
+        "active_effects",
+        "target_state",
+        "action_intent",
+        "effective_costs"
+      ],
+      "evidence": [
+        "T-meta-time",
+        "T-wave"
+      ],
+      "action": {
+        "uk": "Урахуй кінець форми перед цією додатковою погонею.",
+        "en": "Account for the form ending before this extra chase."
+      },
+      "reason": {
+        "uk": "План має працювати й після зміни режиму атаки.",
+        "en": "The plan must still work after the attack mode changes."
+      },
+      "scenarios": {
+        "positive": "Продолжение не успевает и зависит от дальнего режима.",
+        "negative": "Terror Wave даёт подтверждённое другое окно.",
+        "unknown": "Main Meta на cooldown: этого недостаточно для вывода «формы нет»."
+      }
+    },
+    {
+      "id": "terrorblade.wave_form",
+      "title": "Короткая форма от Terror Wave — отдельное окно",
+      "phase": "fight",
+      "level": "advanced",
+      "status": "research_candidate",
+      "readiness": "new_observation",
+      "benefit": "Не ошибиться в оставшемся времени и доступном режиме атаки.",
+      "trigger": "Подтверждённое применение Terror Wave изменило форму.",
+      "conditions": [
+        "Способность реально доступна",
+        "Источник/остаток формы наблюдаются"
+      ],
+      "suppress_if": [
+        "Эффект неизвестен",
+        "Система пытается запустить обычный таймер Meta"
+      ],
+      "cancel_if": [
+        "Пропало любое обязательное условие",
+        "Изменилась цель/задача или сессия; старый план неактуален"
+      ],
+      "timing": "До решения, в спокойном окне; не пытаться голосом попасть в субсекундное исполнение.",
+      "repeat": "Повторять только после нового эпизода/изменения основания; выполнение плана подавляет повтор.",
+      "cost": "Отдельный cooldown и мана этой способности.",
+      "requires": [
+        "own_abilities",
+        "cast_history",
+        "active_effects",
+        "upgrades_talents"
+      ],
+      "evidence": [
+        "T-wave"
+      ],
+      "action": {
+        "uk": "Це коротке вікно форми від Terror Wave — плануй відповідно.",
+        "en": "This is the short form window from Terror Wave; plan accordingly."
+      },
+      "reason": {
+        "uk": "Звичайний cooldown Meta не описує його тривалість.",
+        "en": "Normal Meta cooldown does not describe its duration."
+      },
+      "scenarios": {
+        "positive": "Временная форма подтверждена и влияет на задачу.",
+        "negative": "Только наличие умения в feed: никакого вывода об эффекте.",
+        "unknown": "Потерян источник формы: не показывать точные секунды."
+      }
+    },
+    {
+      "id": "terrorblade.sunder_target",
+      "title": "Sunder: выгода обмена и цена для цели",
+      "phase": "fight",
+      "level": "advanced",
+      "status": "research_candidate",
+      "readiness": "manual_or_replay",
+      "benefit": "Выбрать реальную полезную цель вместо первого доступного HP.",
+      "trigger": "Есть время до опасного эпизода оценить Sunder.",
+      "conditions": [
+        "HP доли, расстояние и применимость известны",
+        "Обмен полезен и не губит нужного союзника",
+        "Нет блокировки окна"
+      ],
+      "suppress_if": [
+        "Обмен ухудшит положение",
+        "Цель недоступна",
+        "Последствие иммунитета не проверено"
+      ],
+      "cancel_if": [
+        "Пропало любое обязательное условие",
+        "Изменилась цель/задача или сессия; старый план неактуален"
+      ],
+      "timing": "До решения, в спокойном окне; не пытаться голосом попасть в субсекундное исполнение.",
+      "repeat": "Повторять только после нового эпизода/изменения основания; выполнение плана подавляет повтор.",
+      "cost": "Мана/cooldown, изменение HP обеих сторон.",
+      "requires": [
+        "target_state",
+        "allied_units",
+        "own_resources",
+        "own_abilities",
+        "enemy_control"
+      ],
+      "evidence": [
+        "T-sunder",
+        "T-sunder-immune"
+      ],
+      "action": {
+        "uk": "Для Sunder обирай ціль за користю обміну, а не лише близькістю.",
+        "en": "Choose the Sunder target by exchange value, not just proximity."
+      },
+      "reason": {
+        "uk": "Це обмін часткою HP, який впливає на обидві сторони.",
+        "en": "It exchanges HP fractions and affects both sides."
+      },
+      "scenarios": {
+        "positive": "Есть подходящая наблюдаемая цель с полезным обменом.",
+        "negative": "Забрать HP критического союзника ухудшит бой.",
+        "unknown": "HP цели неизвестно: не обещать лечение или выбрать союзника за игрока."
+      }
+    },
+    {
+      "id": "terrorblade.sunder_cast_window",
+      "title": "Подготовить Sunder до потери окна применения",
+      "phase": "fight",
+      "level": "advanced",
+      "status": "research_candidate",
+      "readiness": "manual_or_replay",
+      "benefit": "Не превращать поздний cast в невыполнимое спасение.",
+      "trigger": "Наблюдаемая опасность приближается, цель и окно подтверждены.",
+      "conditions": [
+        "Можно применить до контроля/урона",
+        "Цена обмена оправдана",
+        "Окно больше общей задержки системы и реакции"
+      ],
+      "suppress_if": [
+        "Субсекундная голосовая команда запоздает",
+        "Нет цели",
+        "Нужно другое действие"
+      ],
+      "cancel_if": [
+        "Пропало любое обязательное условие",
+        "Изменилась цель/задача или сессия; старый план неактуален"
+      ],
+      "timing": "До решения, в спокойном окне; не пытаться голосом попасть в субсекундное исполнение.",
+      "repeat": "Повторять только после нового эпизода/изменения основания; выполнение плана подавляет повтор.",
+      "cost": "Возможное раннее использование cooldown.",
+      "requires": [
+        "target_state",
+        "enemy_control",
+        "own_resources",
+        "own_abilities"
+      ],
+      "evidence": [
+        "T-sunder-cast",
+        "T-sunder"
+      ],
+      "action": {
+        "uk": "Підготуй Sunder до втрати вікна застосування.",
+        "en": "Prepare Sunder before the casting window closes."
+      },
+      "reason": {
+        "uk": "Обмін має cast point; чекати мінімального HP не завжди вигідно.",
+        "en": "The exchange has a cast point; waiting for minimal HP is not always useful."
+      },
+      "scenarios": {
+        "positive": "До эпизода есть исполнимое окно и подходящая цель.",
+        "negative": "Команда приходит уже во время непрерывного контроля.",
+        "unknown": "Входящий урон/контроль неизвестен: не придумывать точный смертельный тайминг."
+      }
+    },
+    {
+      "id": "terrorblade.sunder_reserve",
+      "title": "Мана на Sunder после других действий",
+      "phase": "lane",
+      "level": "practical",
+      "status": "research_candidate",
+      "readiness": "manual_or_replay",
+      "benefit": "Сохранить ресурс нужного обмена в конкретном опасном эпизоде.",
+      "trigger": "Следующий планируемый каст оставит меньше стоимости нужного Sunder.",
+      "conditions": [
+        "Sunder изучен и нужен",
+        "Затраты подтверждены",
+        "Продолжение не имеет большей цены отказа"
+      ],
+      "suppress_if": [
+        "Другое действие необходимо сейчас",
+        "Резерв уже есть",
+        "Цель Sunder не подтверждена"
+      ],
+      "cancel_if": [
+        "Пропало любое обязательное условие",
+        "Изменилась цель/задача или сессия; старый план неактуален"
+      ],
+      "timing": "До решения, в спокойном окне; не пытаться голосом попасть в субсекундное исполнение.",
+      "repeat": "Повторять только после нового эпизода/изменения основания; выполнение плана подавляет повтор.",
+      "cost": "Отказ от дополнительного каста или восстановление.",
+      "requires": [
+        "own_resources",
+        "own_abilities",
+        "effective_costs",
+        "action_intent",
+        "target_state"
+      ],
+      "evidence": [
+        "T-sunder-cost"
+      ],
+      "action": {
+        "uk": "Після наступного заклинання залиш ресурс на потрібний Sunder.",
+        "en": "Retain resources for the needed Sunder after your next spell."
+      },
+      "reason": {
+        "uk": "Готовність ульти не замінює ману для обміну.",
+        "en": "Ultimate readiness does not replace exchange mana."
+      },
+      "scenarios": {
+        "positive": "Дополнительная иллюзия лишит маны на необходимый обмен.",
+        "negative": "Маны хватит на оба действия: молчать.",
+        "unknown": "Неизвестна необходимость/цель: не требовать всегда держать фиксированный резерв."
+      }
+    },
+    {
+      "id": "terrorblade.zeal_health",
+      "title": "Цена Demon Zeal не равна вражескому burst",
+      "phase": "farm",
+      "level": "advanced",
+      "status": "research_candidate",
+      "readiness": "new_observation",
+      "benefit": "Не прерывать полезное действие ложной тревогой по намеренному расходу HP.",
+      "trigger": "Подтверждённое применение Zeal объясняет часть снижения HP.",
+      "conditions": [
+        "Есть источник применения и фактическая динамика",
+        "Остальная угроза оценивается отдельно"
+      ],
+      "suppress_if": [
+        "Есть реальный дополнительный burst",
+        "Самоприменение не подтверждено"
+      ],
+      "cancel_if": [
+        "Есть дополнительное реальное давление",
+        "Источник цены HP не подтверждён",
+        "Начался новый эпизод снижения HP"
+      ],
+      "timing": "Учитывать в формировании предупреждения сразу после подтверждённой цены; не постоянно озвучивать цену умения.",
+      "repeat": "Повторять только после нового эпизода/изменения основания; выполнение плана подавляет повтор.",
+      "cost": "Цена текущего HP; не гарантирует безопасность дальнейших действий.",
+      "requires": [
+        "cast_history",
+        "own_resources",
+        "hp_history",
+        "own_abilities"
+      ],
+      "evidence": [
+        "T-zeal-cost",
+        "T-zeal"
+      ],
+      "action": {
+        "uk": "Частина втрати HP — ціна Demon Zeal; оцінюй додаткову загрозу окремо.",
+        "en": "Part of the HP loss is Demon Zeal cost; assess additional threats separately."
+      },
+      "reason": {
+        "uk": "Не кожне падіння HP означає ворожий burst.",
+        "en": "Not every HP drop is enemy burst."
+      },
+      "scenarios": {
+        "positive": "HP снизилось после подтверждённого Zeal без дополнительного давления.",
+        "negative": "Сразу после Zeal начался настоящий burst: не подавлять предупреждение.",
+        "unknown": "Только совпавший cooldown: не приписывать потерю HP своему умению."
+      }
+    },
+    {
+      "id": "terrorblade.zeal_meta",
+      "title": "Zeal и Meta не считать одновременными усилениями",
+      "phase": "pressure",
+      "level": "advanced",
+      "status": "research_candidate",
+      "readiness": "manual_or_replay",
+      "benefit": "Не потратить HP ради эффекта, который следующий шаг удалит.",
+      "trigger": "В одном плане собираются применить Zeal перед немедленной Meta.",
+      "conditions": [
+        "Оба действия реально доступны",
+        "Ранний эффект не даёт нужной пользы"
+      ],
+      "suppress_if": [
+        "Есть отдельное полезное окно Zeal до Meta",
+        "Срочная задача меняет последовательность"
+      ],
+      "cancel_if": [
+        "Пропало любое обязательное условие",
+        "Изменилась цель/задача или сессия; старый план неактуален"
+      ],
+      "timing": "До решения, в спокойном окне; не пытаться голосом попасть в субсекундное исполнение.",
+      "repeat": "Повторять только после нового эпизода/изменения основания; выполнение плана подавляет повтор.",
+      "cost": "Избежать лишней цены HP и cooldown.",
+      "requires": [
+        "action_intent",
+        "own_abilities",
+        "active_effects"
+      ],
+      "evidence": [
+        "T-zeal"
+      ],
+      "action": {
+        "uk": "Не витрачай Zeal заради посилення, яке наступна Meta прибере.",
+        "en": "Do not spend Zeal for a buff that the next Meta removes."
+      },
+      "reason": {
+        "uk": "Meta та Zeal мають взаємовиключення в описі здібності.",
+        "en": "Meta and Zeal have an explicit incompatibility."
+      },
+      "scenarios": {
+        "positive": "Сразу после Zeal планируется Meta без промежуточной выгоды.",
+        "negative": "Zeal нужен для отдельной предыдущей задачи.",
+        "unknown": "План следующего действия неизвестен: не запрещать Zeal из-за готовой Meta."
+      }
+    },
+    {
+      "id": "terrorblade.reflection_purpose",
+      "title": "Reflection для давления по источникам",
+      "phase": "lane",
+      "level": "practical",
+      "status": "research_candidate",
+      "readiness": "manual_or_replay",
+      "benefit": "Использовать замедление/атаку источника без смешивания с обычной иллюзией.",
+      "trigger": "Возможен полезный размен с допустимыми героями в области.",
+      "conditions": [
+        "Цели и задача подтверждены",
+        "Эффект применим",
+        "Цена не ломает продолжение"
+      ],
+      "suppress_if": [
+        "Нет подходящих героев",
+        "Уже снят debuff",
+        "Размен не оправдывает расход"
+      ],
+      "cancel_if": [
+        "Пропало любое обязательное условие",
+        "Изменилась цель/задача или сессия; старый план неактуален"
+      ],
+      "timing": "До решения, в спокойном окне; не пытаться голосом попасть в субсекундное исполнение.",
+      "repeat": "Повторять только после нового эпизода/изменения основания; выполнение плана подавляет повтор.",
+      "cost": "Мана и cooldown.",
+      "requires": [
+        "target_state",
+        "action_intent",
+        "own_resources",
+        "effective_costs"
+      ],
+      "evidence": [
+        "T-reflect"
+      ],
+      "action": {
+        "uk": "Для цього розміну Reflection тисне саме на своїх джерел.",
+        "en": "In this trade, Reflection pressures its own source heroes."
+      },
+      "reason": {
+        "uk": "Ці відображення не виконують задачі звичайних керованих ілюзій.",
+        "en": "These reflections do not perform ordinary controlled-illusion tasks."
+      },
+      "scenarios": {
+        "positive": "Нужен полезный pressure по допустимым источникам.",
+        "negative": "Попытка отправить отражение на отдельный фарм.",
+        "unknown": "Применимость цели неизвестна: не обещать результат."
+      }
+    },
+    {
+      "id": "terrorblade.reflection_removed",
+      "title": "Снятый debuff отменяет план Reflection",
+      "phase": "fight",
+      "level": "advanced",
+      "status": "research_candidate",
+      "readiness": "manual_or_replay",
+      "benefit": "Не рассчитывать на исчезнувшее давление после dispel.",
+      "trigger": "Подтверждено снятие slow на цели и план ещё зависит от отражения.",
+      "conditions": [
+        "Есть достоверное состояние цели",
+        "Можно изменить продолжение"
+      ],
+      "suppress_if": [
+        "Снятие неизвестно",
+        "Другой источник давления решает задачу"
+      ],
+      "cancel_if": [
+        "Пропало любое обязательное условие",
+        "Изменилась цель/задача или сессия; старый план неактуален"
+      ],
+      "timing": "До решения, в спокойном окне; не пытаться голосом попасть в субсекундное исполнение.",
+      "repeat": "Повторять только после нового эпизода/изменения основания; выполнение плана подавляет повтор.",
+      "cost": "Смена продолжения, не обязательное отступление.",
+      "requires": [
+        "target_state",
+        "active_effects",
+        "action_intent"
+      ],
+      "evidence": [
+        "T-reflect"
+      ],
+      "action": {
+        "uk": "Відображення цієї цілі зникло після зняття debuff — зміни продовження.",
+        "en": "This target reflection ended after the debuff removal; adjust the follow-up."
+      },
+      "reason": {
+        "uk": "Reflection залежить від збереження slow на джерелі.",
+        "en": "Reflection depends on the source retaining the slow."
+      },
+      "scenarios": {
+        "positive": "Эффект цели подтверждённо снят.",
+        "negative": "Только исчезновение с minimap: не выводить dispel.",
+        "unknown": "Нет телеметрии цели: категоричный вывод заблокирован."
+      }
+    },
+    {
+      "id": "terrorblade.reset_units",
+      "title": "Согласовать восстановление героя и задачи иллюзий",
+      "phase": "reset",
+      "level": "practical",
+      "status": "research_candidate",
+      "readiness": "manual_or_replay",
+      "benefit": "Восстановить основной ресурс без потери полезных задач оставшихся единиц.",
+      "trigger": "Герой собирается восстановиться, иллюзии ещё могут выполнить полезную задачу.",
+      "conditions": [
+        "Известны единицы/срок и задачи",
+        "Разделение не создаёт необоснованного риска"
+      ],
+      "suppress_if": [
+        "Единицы скоро исчезнут",
+        "Нужно совместное давление",
+        "Задача неизвестна"
+      ],
+      "cancel_if": [
+        "Пропало любое обязательное условие",
+        "Изменилась цель/задача или сессия; старый план неактуален"
+      ],
+      "timing": "До решения, в спокойном окне; не пытаться голосом попасть в субсекундное исполнение.",
+      "repeat": "Повторять только после нового эпизода/изменения основания; выполнение плана подавляет повтор.",
+      "cost": "Внимание и оставшееся время иллюзий.",
+      "requires": [
+        "own_resources",
+        "controlled_units",
+        "action_intent",
+        "wave_units"
+      ],
+      "evidence": [
+        "T-image",
+        "T-image-time"
+      ],
+      "action": {
+        "uk": "Поки герой відновлюється, признач корисну задачу живим ілюзіям.",
+        "en": "While the hero recovers, assign useful tasks to surviving illusions."
+      },
+      "reason": {
+        "uk": "Відновлення героя не обов’язково зупиняє всі доступні дії.",
+        "en": "Hero recovery need not stop every available action."
+      },
+      "scenarios": {
+        "positive": "Иллюзии успевают выполнить подтверждённую безопасную задачу.",
+        "negative": "Предлагается бесполезный маршрут ради активности.",
+        "unknown": "Единицы не наблюдаются: не считать их живыми по последнему касту."
+      }
+    }
+  ],
+  "open_checks": [
+    "Проверить динамику трансформации иллюзий и Dark Unity при входе/выходе из радиуса; наличие cooldown не описывает формы единиц.",
+    "Sunder: проверить валидные союзные/вражеские цели, процентный обмен, иммунитет, блокировки и конкретное окно применения; не считать его мгновенным полным лечением.",
+    "Сохранить реальный факт Demon Zeal и отличать намеренную цену HP от вражеского burst.",
+    "Активность Meta может происходить из Terror Wave; нужен источник формы/эффекта, а не только основной cooldown."
+  ],
+  "first_implementation": [
+    "Данные о форме/применении и модификаторах; отдельное наблюдение намеренной цены HP.",
+    "Подготовка окна Meta и ресурсов Sunder; отмена при смене задачи.",
+    "Контроль иллюзий и точная цель Sunder только после появления проверенного источника."
+  ]
+}

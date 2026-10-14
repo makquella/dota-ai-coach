@@ -1,0 +1,90 @@
+{
+  "own_resources": {
+    "status": "existing",
+    "description": "Собственные health/max_health/mana, alive; только присутствующие валидные поля текущего payload."
+  },
+  "own_abilities": {
+    "status": "existing",
+    "description": "raw_name, learned level, cooldown, can_cast; проверять фактическую возможность применения, не подменять целью."
+  },
+  "own_status": {
+    "status": "existing",
+    "description": "Наблюдаемые stun/hex/silence/mute и другие флаги. Отсутствующий флаг не считать подтверждённым false."
+  },
+  "own_inventory": {
+    "status": "existing",
+    "description": "Слоты и доступность собственных предметов, включая TP; это не рекомендация билда."
+  },
+  "position": {
+    "status": "existing",
+    "description": "Собственные координаты только при наличии; некоторые player payload их не содержат."
+  },
+  "hp_history": {
+    "status": "existing",
+    "description": "Динамика HP/маны из MatchMemory и записи; падение HP не всегда означает вражеский урон."
+  },
+  "visible_enemies": {
+    "status": "existing",
+    "description": "Текущие видимые враги и часть координат minimap; отсутствие не раскрывает скрытых врагов и их cooldown."
+  },
+  "match_clock": {
+    "status": "existing",
+    "description": "Идентификатор сессии, время игры и пауза для отмены устаревшего плана."
+  },
+  "charges": {
+    "status": "raw_extension",
+    "description": "charges/max_charges/charge_cooldown есть в real_player_ranked.json, но normalizer их теряет. Требует проверки на выбранном герое."
+  },
+  "upgrades_talents": {
+    "status": "raw_extension",
+    "description": "hero.aghanims_scepter/aghanims_shard/talent_* есть в реальных семплах. Нужны нормализация, сопоставление и контракт отсутствующих данных."
+  },
+  "effective_costs": {
+    "status": "new_observation",
+    "description": "Затраты и длительности по уровню с подтверждёнными модификаторами. Базовые значения Valve недостаточны при неизвестном изменении."
+  },
+  "cast_history": {
+    "status": "new_observation",
+    "description": "Подтверждённые применения/события способностей. Переход cooldown сам по себе не подтверждает попадание или наличие эффекта."
+  },
+  "active_effects": {
+    "status": "new_observation",
+    "description": "Наличие, остаток времени и величина щита/баффа. Cooldown не доказывает активность; packets/refreshes/modifiers учитываются."
+  },
+  "action_intent": {
+    "status": "manual_or_replay",
+    "description": "Подтверждённая задача: рискованная пачка, бой, сброс на базу. По одному движению нельзя уверенно восстановить намерение."
+  },
+  "remnant_anchor": {
+    "status": "manual_or_replay",
+    "description": "Существующие remnants, позиции, время создания/истечения и текущая обстановка точки. Заряды этого не заменяют."
+  },
+  "wave_units": {
+    "status": "manual_or_replay",
+    "description": "Количество, тип, HP и расположение крипов/нейтралов; текущий minimap этого не предоставляет полностью."
+  },
+  "target_state": {
+    "status": "manual_or_replay",
+    "description": "Состояние выбранной цели, расстояние, видимость, применимость действия, иммунитет/блокировки; не считать это известным по имени героя."
+  },
+  "enemy_control": {
+    "status": "manual_or_replay",
+    "description": "Фактические условия начала/продолжения контроля, доступность и источник наблюдения. Статический драфт описывает возможность, а не готовность."
+  },
+  "allied_units": {
+    "status": "manual_or_replay",
+    "description": "Позиции/HP/состояния и задачи союзников; player GSI их сейчас не подтверждает."
+  },
+  "controlled_units": {
+    "status": "manual_or_replay",
+    "description": "Позиции, ресурсы и состояние ward/иллюзий; нельзя выводить их только из cooldown способности."
+  },
+  "projection_body": {
+    "status": "manual_or_replay",
+    "description": "Состояние тела/духа Dazzle, tether, точка возврата; новая механика требует проверки реального представления и ограничений."
+  },
+  "autocast_mode": {
+    "status": "new_observation",
+    "description": "Alt-cast Storm Hammer не подтверждён перечисленными семплами. Нужен реальный источник режима; наличие улучшения не означает полёт."
+  }
+}

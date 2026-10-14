@@ -1,0 +1,810 @@
+{
+  "hero": {
+    "key": "sven",
+    "id": 18,
+    "name": "Sven",
+    "roles": [
+      "carry"
+    ]
+  },
+  "source": "sources/sven.json",
+  "identity": "Sven превращает окно силы в реальные удары: подготовить ресурс, достичь подходящей цели и не потратить окно на безрезультатную погоню. Cleave меняет выбор основной цели и положение в фарме/бою; Warcry нужен для конкретной задачи защиты или перемещения. Форма Storm Hammer с улучшением и альтернативным применением меняет конечную позицию.",
+  "mechanics": [
+    {
+      "id": "S-hammer",
+      "field": "abilities/sven_storm_bolt/description",
+      "statement": "Storm Hammer оглушает и повреждает небольшую область вокруг выбранной цели.",
+      "contains": "small area around the target"
+    },
+    {
+      "id": "S-hammer-cost",
+      "field": "abilities/sven_storm_bolt/mana_costs",
+      "statement": "Базовый Storm Hammer стоит 110 маны; талант может менять затраты.",
+      "equals": [
+        110
+      ]
+    },
+    {
+      "id": "S-flight",
+      "field": "abilities/sven_storm_bolt/scepter",
+      "statement": "С улучшением полёт Sven указан только для alt-cast; обычный cast нельзя считать полётом.",
+      "contains": "If alt-cast"
+    },
+    {
+      "id": "S-dispel",
+      "field": "abilities/sven_storm_bolt/scepter",
+      "statement": "Улучшение увеличивает range, даёт basic dispel и допускает invulnerable цели по описанию.",
+      "contains": "applies a basic dispel"
+    },
+    {
+      "id": "S-cleave",
+      "field": "abilities/sven_great_cleave/description",
+      "statement": "Обычная атака даёт cleave по соседним вражеским единицам.",
+      "contains": "cleaving all nearby enemy units"
+    },
+    {
+      "id": "S-cleave-range",
+      "field": "abilities/sven_great_cleave/specials/cleave_distance/base",
+      "statement": "Базовая дистанция cleave 400/500/600/700 по уровню.",
+      "equals": [
+        400,
+        500,
+        600,
+        700
+      ]
+    },
+    {
+      "id": "S-warcry",
+      "field": "abilities/sven_warcry/description",
+      "statement": "Warcry даёт союзным героям броню и движение; не универсальный иммунитет.",
+      "contains": "armor and movement speed"
+    },
+    {
+      "id": "S-warcry-range",
+      "field": "abilities/sven_warcry/specials/radius/base",
+      "statement": "Базовый радиус Warcry 700.",
+      "equals": [
+        700
+      ]
+    },
+    {
+      "id": "S-barrier",
+      "field": "abilities/sven_warcry/shard",
+      "statement": "Shard добавляет physical barrier и меняет Warcry; базовая способность не означает наличие barrier.",
+      "contains": "physical damage barrier"
+    },
+    {
+      "id": "S-strength",
+      "field": "abilities/sven_gods_strength/description",
+      "statement": "Strength усиливает урон и сопротивление slow, а не запрещает все виды контроля.",
+      "contains": "slow resistance"
+    },
+    {
+      "id": "S-strength-time",
+      "field": "abilities/sven_gods_strength/specials/AbilityDuration/base",
+      "statement": "Базовый Strength длится 30 секунд.",
+      "equals": [
+        30
+      ]
+    },
+    {
+      "id": "S-damage",
+      "field": "abilities/sven_gods_strength/notes",
+      "statement": "Бонус Strength основан на базовом уроне и основной характеристике.",
+      "contains": "base damage and the primary attribute"
+    },
+    {
+      "id": "S-strength-cost",
+      "field": "abilities/sven_gods_strength/mana_costs",
+      "statement": "Базовая мана Strength 100/125/150.",
+      "equals": [
+        100,
+        125,
+        150
+      ]
+    }
+  ],
+  "advice": [
+    {
+      "id": "sven.cleave_alignment",
+      "title": "Положение для полезного cleave",
+      "phase": "farm",
+      "level": "advanced",
+      "status": "research_candidate",
+      "readiness": "manual_or_replay",
+      "benefit": "Зачистить назначенную группу эффективнее выбранной атакой.",
+      "trigger": "Есть наблюдаемая группа и возможность изменить основную цель/положение.",
+      "conditions": [
+        "Геометрия и допустимые цели подтверждены",
+        "Время перестановки окупается"
+      ],
+      "suppress_if": [
+        "Перестановка упустит нужный last hit",
+        "Нельзя безопасно переместиться",
+        "Группы нет"
+      ],
+      "cancel_if": [
+        "Пропало любое обязательное условие",
+        "Изменилась цель/задача или сессия; старый план неактуален"
+      ],
+      "timing": "До решения, в спокойном окне; не пытаться голосом попасть в субсекундное исполнение.",
+      "repeat": "Повторять только после нового эпизода/изменения основания; выполнение плана подавляет повтор.",
+      "cost": "Шаг/смена цели и внимание.",
+      "requires": [
+        "wave_units",
+        "position",
+        "action_intent",
+        "own_abilities"
+      ],
+      "evidence": [
+        "S-cleave",
+        "S-cleave-range"
+      ],
+      "action": {
+        "uk": "Для цієї групи обери атаку, що накриє більше потрібних цілей cleave.",
+        "en": "For this group, choose an attack that covers more useful targets with cleave."
+      },
+      "reason": {
+        "uk": "Положення та головна ціль змінюють користь атаки.",
+        "en": "Position and the primary target change attack value."
+      },
+      "scenarios": {
+        "positive": "Известная геометрия даёт более полезную зачистку от другой атаки.",
+        "negative": "Перестановка теряет важное добивание.",
+        "unknown": "Крипы не наблюдаются: не давать точное направление cleave."
+      }
+    },
+    {
+      "id": "sven.cleave_fight_target",
+      "title": "Главная цель атаки и побочный урон",
+      "phase": "fight",
+      "level": "advanced",
+      "status": "research_candidate",
+      "readiness": "manual_or_replay",
+      "benefit": "Получить полезный cleave, не выбрав заведомо невыгодную основную цель.",
+      "trigger": "Подтверждено положение нескольких допустимых целей.",
+      "conditions": [
+        "Известны цели и задача",
+        "Выбор не мешает важному контролю/урону"
+      ],
+      "suppress_if": [
+        "Изолированный приоритет важнее",
+        "Цели не наблюдаются",
+        "Привязка к tank ради cleave ухудшит результат"
+      ],
+      "cancel_if": [
+        "Пропало любое обязательное условие",
+        "Изменилась цель/задача или сессия; старый план неактуален"
+      ],
+      "timing": "До решения, в спокойном окне; не пытаться голосом попасть в субсекундное исполнение.",
+      "repeat": "Повторять только после нового эпизода/изменения основания; выполнение плана подавляет повтор.",
+      "cost": "Смена атакуемой цели и позиционирование.",
+      "requires": [
+        "target_state",
+        "wave_units",
+        "position",
+        "action_intent"
+      ],
+      "evidence": [
+        "S-cleave"
+      ],
+      "action": {
+        "uk": "Урахуй cleave при виборі головної цілі, не втрачаючи пріоритет.",
+        "en": "Account for cleave when choosing the main target without losing priority."
+      },
+      "reason": {
+        "uk": "Кілька цілей не завжди виправдовують зміну фокуса.",
+        "en": "Multiple targets do not always justify changing focus."
+      },
+      "scenarios": {
+        "positive": "Другая допустимая главная цель улучшает нужный суммарный урон.",
+        "negative": "Изолированный важный герой требует прямого фокуса.",
+        "unknown": "Состояние целей неизвестно: не назначать фокус за игрока."
+      }
+    },
+    {
+      "id": "sven.hammer_cluster",
+      "title": "Цель Hammer с учётом области контроля",
+      "phase": "fight",
+      "level": "advanced",
+      "status": "research_candidate",
+      "readiness": "manual_or_replay",
+      "benefit": "Использовать наблюдаемое расположение для нужного группового контроля.",
+      "trigger": "До применения есть выбор допустимых целей Hammer.",
+      "conditions": [
+        "Расположение и применимость подтверждены",
+        "Есть время выбрать",
+        "Главный приоритет сохранён"
+      ],
+      "suppress_if": [
+        "Одна обязательная цель",
+        "Цель скоро недоступна",
+        "Поздняя команда мешает исполнению"
+      ],
+      "cancel_if": [
+        "Пропало любое обязательное условие",
+        "Изменилась цель/задача или сессия; старый план неактуален"
+      ],
+      "timing": "До решения, в спокойном окне; не пытаться голосом попасть в субсекундное исполнение.",
+      "repeat": "Повторять только после нового эпизода/изменения основания; выполнение плана подавляет повтор.",
+      "cost": "Выбор target и cooldown.",
+      "requires": [
+        "target_state",
+        "own_abilities",
+        "action_intent"
+      ],
+      "evidence": [
+        "S-hammer"
+      ],
+      "action": {
+        "uk": "Для цього Hammer обери ціль із корисним оточенням.",
+        "en": "For this Hammer, choose a target with useful nearby coverage."
+      },
+      "reason": {
+        "uk": "Контроль діє в області навколо основної цілі.",
+        "en": "The stun affects an area around the primary target."
+      },
+      "scenarios": {
+        "positive": "Можно контролировать нужную группу без потери главного target.",
+        "negative": "Число целей выше, но нужный герой уходит: не гнаться за AoE.",
+        "unknown": "Расположение неизвестно: не обещать stun всей группы."
+      }
+    },
+    {
+      "id": "sven.entry_budget",
+      "title": "Ресурс на выбранный вход и продолжение",
+      "phase": "pressure",
+      "level": "practical",
+      "status": "research_candidate",
+      "readiness": "manual_or_replay",
+      "benefit": "Не войти с маной только на первую часть намеченного действия.",
+      "trigger": "Планируемая последовательность требует Hammer/Warcry/Strength, но ресурса недостаточно.",
+      "conditions": [
+        "Нужные действия и эффективная цена подтверждены",
+        "Можно подготовиться до входа"
+      ],
+      "suppress_if": [
+        "Не все перечисленные действия нужны",
+        "Срочный эпизод оправдывает иной план",
+        "Маны достаточно"
+      ],
+      "cancel_if": [
+        "Пропало любое обязательное условие",
+        "Изменилась цель/задача или сессия; старый план неактуален"
+      ],
+      "timing": "До решения, в спокойном окне; не пытаться голосом попасть в субсекундное исполнение.",
+      "repeat": "Повторять только после нового эпизода/изменения основания; выполнение плана подавляет повтор.",
+      "cost": "Восстановление или сокращение намеченной последовательности.",
+      "requires": [
+        "own_resources",
+        "own_abilities",
+        "effective_costs",
+        "action_intent"
+      ],
+      "evidence": [
+        "S-hammer-cost",
+        "S-strength-cost",
+        "S-warcry"
+      ],
+      "action": {
+        "uk": "Перед цим входом перевір ресурс на потрібне продовження.",
+        "en": "Before this entry, check resources for the needed follow-up."
+      },
+      "reason": {
+        "uk": "План може вимагати більше, ніж один готовий Hammer.",
+        "en": "The plan may require more than one ready Hammer."
+      },
+      "scenarios": {
+        "positive": "Нужное продолжение подтверждено, следующего ресурса не хватает.",
+        "negative": "План требует только stun: не резервировать все кнопки автоматически.",
+        "unknown": "Талант/цена неизвестны: не выдавать точную сумму."
+      }
+    },
+    {
+      "id": "sven.strength_start",
+      "title": "Strength ближе к реальным ударам",
+      "phase": "pressure",
+      "level": "advanced",
+      "status": "research_candidate",
+      "readiness": "manual_or_replay",
+      "benefit": "Сохранить усиленное время для полезного контакта с задачей.",
+      "trigger": "До намеченной активации предстоит значительное сближение.",
+      "conditions": [
+        "Известны задача и путь",
+        "Ранний бафф не нужен сейчас",
+        "Нет другой подтверждённой выгоды"
+      ],
+      "suppress_if": [
+        "Ранняя активация необходима для текущего действия",
+        "Нужно закончить цель по пути",
+        "Намерение не известно"
+      ],
+      "cancel_if": [
+        "Пропало любое обязательное условие",
+        "Изменилась цель/задача или сессия; старый план неактуален"
+      ],
+      "timing": "До решения, в спокойном окне; не пытаться голосом попасть в субсекундное исполнение.",
+      "repeat": "Повторять только после нового эпизода/изменения основания; выполнение плана подавляет повтор.",
+      "cost": "Выбор момента и cooldown.",
+      "requires": [
+        "position",
+        "target_state",
+        "action_intent",
+        "effective_costs"
+      ],
+      "evidence": [
+        "S-strength-time",
+        "S-strength"
+      ],
+      "action": {
+        "uk": "Для цього плану активуй Strength ближче до корисних ударів.",
+        "en": "For this plan, activate Strength closer to useful attacks."
+      },
+      "reason": {
+        "uk": "Довгий підхід витрачає частину вікна посилення.",
+        "en": "A long approach spends part of the buff window."
+      },
+      "scenarios": {
+        "positive": "Путь занимает существенную часть окна, ранняя активация бесполезна.",
+        "negative": "По пути уже есть необходимая задача под усилением.",
+        "unknown": "Намерение неизвестно: не запрещать раннюю активацию как общий принцип."
+      }
+    },
+    {
+      "id": "sven.strength_chase",
+      "title": "Продолжение погони и остаток окна",
+      "phase": "fight",
+      "level": "advanced",
+      "status": "research_candidate",
+      "readiness": "manual_or_replay",
+      "benefit": "Перевести ограниченное усиление в полезные удары или другую достижимую задачу.",
+      "trigger": "Подтверждённая погоня расходует окно без контакта с нужной целью.",
+      "conditions": [
+        "Остаток и положение наблюдаются",
+        "Есть достижимая полезная альтернатива",
+        "Смена не теряет главный приоритет"
+      ],
+      "suppress_if": [
+        "Погоня достигнет нужной цели вовремя",
+        "Иной задачи нет",
+        "Исходная оценка устарела"
+      ],
+      "cancel_if": [
+        "Цель достигнута",
+        "Strength закончился/изменился",
+        "Альтернатива стала хуже или данные о пути устарели"
+      ],
+      "timing": "До решения продолжать очередную погоню, а не в момент удара.",
+      "repeat": "Повторять только после нового эпизода/изменения основания; выполнение плана подавляет повтор.",
+      "cost": "Смена фокуса/маршрута.",
+      "requires": [
+        "active_effects",
+        "target_state",
+        "position",
+        "action_intent"
+      ],
+      "evidence": [
+        "S-strength-time"
+      ],
+      "action": {
+        "uk": "Не витрачай решту цього вікна на безрезультатну погоню.",
+        "en": "Do not spend the remaining window on a fruitless chase."
+      },
+      "reason": {
+        "uk": "Обери досяжну корисну дію за підтвердженою ситуацією.",
+        "en": "Choose a reachable useful action using the confirmed situation."
+      },
+      "scenarios": {
+        "positive": "Известный путь не даёт полезного контакта, есть лучшая задача.",
+        "negative": "Достижение важной цели реально: не требовать сменить фокус.",
+        "unknown": "Путь/цель неизвестны: не объявлять погоню бесполезной."
+      }
+    },
+    {
+      "id": "sven.slow_not_disable",
+      "title": "Slow resistance не равно свободе от контроля",
+      "phase": "fight",
+      "level": "practical",
+      "status": "research_candidate",
+      "readiness": "manual_or_replay",
+      "benefit": "Не принимать усиление за гарантию возможности наносить удары.",
+      "trigger": "Намеченный вход полагается на Strength против известной другой блокировки.",
+      "conditions": [
+        "Тип угрозы и взаимодействие подтверждены",
+        "Есть полезная подготовка"
+      ],
+      "suppress_if": [
+        "Важна именно защита от slow",
+        "Угроза неизвестна",
+        "Уже подготовлен другой ответ"
+      ],
+      "cancel_if": [
+        "Пропало любое обязательное условие",
+        "Изменилась цель/задача или сессия; старый план неактуален"
+      ],
+      "timing": "До решения, в спокойном окне; не пытаться голосом попасть в субсекундное исполнение.",
+      "repeat": "Повторять только после нового эпизода/изменения основания; выполнение плана подавляет повтор.",
+      "cost": "Пересмотр момента или ресурса входа.",
+      "requires": [
+        "enemy_control",
+        "target_state",
+        "action_intent"
+      ],
+      "evidence": [
+        "S-strength"
+      ],
+      "action": {
+        "uk": "Strength допомагає зі slow, але перевір інший контроль перед входом.",
+        "en": "Strength helps with slows; check other control before entry."
+      },
+      "reason": {
+        "uk": "Посилення не гарантує вікно для атак.",
+        "en": "The buff does not guarantee an attack window."
+      },
+      "scenarios": {
+        "positive": "Наблюдаемая блокировка срывает нужные удары несмотря на бафф.",
+        "negative": "Просто любой disabler в драфте: не запрещать вход.",
+        "unknown": "Готовность контроля неизвестна: не обещать безопасное сближение."
+      }
+    },
+    {
+      "id": "sven.warcry_approach",
+      "title": "Warcry для конкретного сближения",
+      "phase": "lane",
+      "level": "practical",
+      "status": "research_candidate",
+      "readiness": "manual_or_replay",
+      "benefit": "Использовать движение и броню в полезном размене, а не расходовать заранее без задачи.",
+      "trigger": "Перед разменом/перемещением подтверждена польза движения или брони.",
+      "conditions": [
+        "Ресурс доступен",
+        "Задача и угроза известны",
+        "Время эффекта подходит"
+      ],
+      "suppress_if": [
+        "Задача требует другого момента",
+        "Польза отсутствует",
+        "Цена маны ломает необходимое действие"
+      ],
+      "cancel_if": [
+        "Пропало любое обязательное условие",
+        "Изменилась цель/задача или сессия; старый план неактуален"
+      ],
+      "timing": "До решения, в спокойном окне; не пытаться голосом попасть в субсекундное исполнение.",
+      "repeat": "Повторять только после нового эпизода/изменения основания; выполнение плана подавляет повтор.",
+      "cost": "Мана и cooldown Warcry.",
+      "requires": [
+        "own_abilities",
+        "own_resources",
+        "target_state",
+        "action_intent",
+        "effective_costs"
+      ],
+      "evidence": [
+        "S-warcry"
+      ],
+      "action": {
+        "uk": "Для цього зближення Warcry дає потрібний рух і броню.",
+        "en": "For this approach, Warcry provides the needed movement and armor."
+      },
+      "reason": {
+        "uk": "Підбери момент під задачу, а не лише готовність кнопки.",
+        "en": "Time it for the task rather than button readiness."
+      },
+      "scenarios": {
+        "positive": "Конкретный размен выигрывает от движения/брони.",
+        "negative": "Магическая угроза без полезной роли движения: не считать броню полным ответом.",
+        "unknown": "Тип угрозы неизвестен: не обещать защиту от любого урона."
+      }
+    },
+    {
+      "id": "sven.warcry_group",
+      "title": "Покрытие группы Warcry",
+      "phase": "pressure",
+      "level": "advanced",
+      "status": "research_candidate",
+      "readiness": "manual_or_replay",
+      "benefit": "Дать полезное усиление нужным союзникам перед совместным действием.",
+      "trigger": "Намечена общая задача с разным покрытием союзников.",
+      "conditions": [
+        "Позиции и задача команды известны",
+        "Радиус/модификаторы подтверждены",
+        "Вход не опоздает"
+      ],
+      "suppress_if": [
+        "Срочное собственное действие важнее",
+        "Группа не нуждается",
+        "Позиционирование опасно"
+      ],
+      "cancel_if": [
+        "Пропало любое обязательное условие",
+        "Изменилась цель/задача или сессия; старый план неактуален"
+      ],
+      "timing": "До решения, в спокойном окне; не пытаться голосом попасть в субсекундное исполнение.",
+      "repeat": "Повторять только после нового эпизода/изменения основания; выполнение плана подавляет повтор.",
+      "cost": "Короткая перестановка и cooldown.",
+      "requires": [
+        "allied_units",
+        "position",
+        "upgrades_talents",
+        "action_intent"
+      ],
+      "evidence": [
+        "S-warcry",
+        "S-warcry-range"
+      ],
+      "action": {
+        "uk": "Для цього спільного руху покрий Warcry потрібних союзників.",
+        "en": "For this coordinated movement, cover the needed allies with Warcry."
+      },
+      "reason": {
+        "uk": "Покриття залежить від відстані та покращення.",
+        "en": "Coverage depends on distance and upgrade."
+      },
+      "scenarios": {
+        "positive": "Наблюдаемая полезная группа может быть покрыта до движения.",
+        "negative": "Перестановка ради всех союзников упускает нужный момент.",
+        "unknown": "Позиции команды неизвестны: не говорить, кто уже получил бафф."
+      }
+    },
+    {
+      "id": "sven.barrier_variant",
+      "title": "Warcry с physical barrier — другой ресурс",
+      "phase": "fight",
+      "level": "advanced",
+      "status": "research_candidate",
+      "readiness": "manual_or_replay",
+      "benefit": "Учесть реально доступный вариант защиты, не приписывая его базовой способности.",
+      "trigger": "Подтверждённый Shard и physical threat меняют полезность Warcry.",
+      "conditions": [
+        "Модификатор и применимость известны",
+        "Эффект и задача подтверждены"
+      ],
+      "suppress_if": [
+        "Нет улучшения",
+        "Угроза не физическая",
+        "Ресурс уже достаточен"
+      ],
+      "cancel_if": [
+        "Пропало любое обязательное условие",
+        "Изменилась цель/задача или сессия; старый план неактуален"
+      ],
+      "timing": "До решения, в спокойном окне; не пытаться голосом попасть в субсекундное исполнение.",
+      "repeat": "Повторять только после нового эпизода/изменения основания; выполнение плана подавляет повтор.",
+      "cost": "Cooldown/мана и окно защиты.",
+      "requires": [
+        "upgrades_talents",
+        "active_effects",
+        "target_state",
+        "own_abilities"
+      ],
+      "evidence": [
+        "S-barrier",
+        "S-warcry"
+      ],
+      "action": {
+        "uk": "З цим покращенням у Warcry є фізичний barrier — урахуй його в цій загрозі.",
+        "en": "With this upgrade, Warcry has a physical barrier; account for it in this threat."
+      },
+      "reason": {
+        "uk": "Базова броня та barrier не є одним ресурсом.",
+        "en": "Base armor and the barrier are different resources."
+      },
+      "scenarios": {
+        "positive": "Улучшение и физическая задача подтверждены.",
+        "negative": "Без Shard система обещает barrier: запретить.",
+        "unknown": "Улучшение не наблюдается: не выводить его из наличия Warcry."
+      }
+    },
+    {
+      "id": "sven.hammer_flight_mode",
+      "title": "Alt-cast меняет конечную позицию Hammer",
+      "phase": "fight",
+      "level": "advanced",
+      "status": "research_candidate",
+      "readiness": "manual_or_replay",
+      "benefit": "Осознанно выбрать дистанционный контроль или полёт.",
+      "trigger": "Перед улучшенным Hammer выбор режима меняет нужную позицию.",
+      "conditions": [
+        "Scepter/способность и режим подтверждены",
+        "Цель и посадка пригодны",
+        "Есть время подготовить режим"
+      ],
+      "suppress_if": [
+        "Режим не наблюдается",
+        "Полёт нежелателен",
+        "Субсекундная команда опоздает"
+      ],
+      "cancel_if": [
+        "Hammer уже применён",
+        "Режим изменён на нужный",
+        "Потерян источник alt-cast или новая цель меняет намерение"
+      ],
+      "timing": "До применения улучшенного Hammer, пока ещё можно изменить режим.",
+      "repeat": "Повторять только после нового эпизода/изменения основания; выполнение плана подавляет повтор.",
+      "cost": "Изменение позиции и расход cooldown.",
+      "requires": [
+        "upgrades_talents",
+        "autocast_mode",
+        "target_state",
+        "position",
+        "action_intent"
+      ],
+      "evidence": [
+        "S-flight"
+      ],
+      "action": {
+        "uk": "Перед Hammer перевір alt-cast: він змінює, чи полетиш до цілі.",
+        "en": "Before Hammer, check alt-cast: it changes whether you travel to the target."
+      },
+      "reason": {
+        "uk": "Наявність покращення сама по собі не означає політ.",
+        "en": "Having the upgrade alone does not imply travel."
+      },
+      "scenarios": {
+        "positive": "Нужен дальний контроль без прилёта, режим сейчас создаёт неверный вход.",
+        "negative": "Подтверждённый полезный прилёт: не выключать автоматически.",
+        "unknown": "Автоматический режим неизвестен: не говорить «ты прилетишь»."
+      }
+    },
+    {
+      "id": "sven.hammer_dispel",
+      "title": "Улучшенный Hammer и применимость dispel",
+      "phase": "fight",
+      "level": "advanced",
+      "status": "research_candidate",
+      "readiness": "manual_or_replay",
+      "benefit": "Учесть конкретную механику текущего варианта при выборе цели.",
+      "trigger": "Для подтверждённой цели важен dispel или особая применимость улучшенного Hammer.",
+      "conditions": [
+        "Улучшение и эффект цели известны",
+        "Механика конкретного эффекта проверена"
+      ],
+      "suppress_if": [
+        "Эффект не снимается этим dispel",
+        "Нет улучшения",
+        "Неизвестно состояние цели"
+      ],
+      "cancel_if": [
+        "Пропало любое обязательное условие",
+        "Изменилась цель/задача или сессия; старый план неактуален"
+      ],
+      "timing": "До решения, в спокойном окне; не пытаться голосом попасть в субсекундное исполнение.",
+      "repeat": "Повторять только после нового эпизода/изменения основания; выполнение плана подавляет повтор.",
+      "cost": "Мана/cooldown и выбор цели.",
+      "requires": [
+        "upgrades_talents",
+        "target_state",
+        "own_abilities",
+        "action_intent"
+      ],
+      "evidence": [
+        "S-dispel"
+      ],
+      "action": {
+        "uk": "Урахуй перевірений dispel цього Hammer для цієї цілі.",
+        "en": "Account for this Hammer checked dispel interaction on this target."
+      },
+      "reason": {
+        "uk": "Basic dispel не знімає кожен можливий ефект.",
+        "en": "A basic dispel does not remove every effect."
+      },
+      "scenarios": {
+        "positive": "Подтверждено, что текущий эффект цели снимается улучшенным вариантом.",
+        "negative": "Попытка снять неснимаемый эффект.",
+        "unknown": "Эффект цели не известен: не обещать снятие защиты."
+      }
+    },
+    {
+      "id": "sven.strength_farm_value",
+      "title": "Strength на полезную задачу фарма",
+      "phase": "farm",
+      "level": "advanced",
+      "status": "research_candidate",
+      "readiness": "manual_or_replay",
+      "benefit": "Рассматривать ресурс по цене следующего окна, не запрещать расход вне боя автоматически.",
+      "trigger": "Подтверждённая задача фарма/зачистки выигрывает от усиления.",
+      "conditions": [
+        "Выигрыш и цена cooldown оценены",
+        "Нет более важной подтверждённой задачи",
+        "Ресурсы достаточны"
+      ],
+      "suppress_if": [
+        "Выгода мала",
+        "Предстоящая нужная драка подтверждена",
+        "Нет полезной группы"
+      ],
+      "cancel_if": [
+        "Пропало любое обязательное условие",
+        "Изменилась цель/задача или сессия; старый план неактуален"
+      ],
+      "timing": "До решения, в спокойном окне; не пытаться голосом попасть в субсекундное исполнение.",
+      "repeat": "Повторять только после нового эпизода/изменения основания; выполнение плана подавляет повтор.",
+      "cost": "Долгий cooldown в обмен на скорость/задачу.",
+      "requires": [
+        "wave_units",
+        "action_intent",
+        "own_resources",
+        "effective_costs"
+      ],
+      "evidence": [
+        "S-strength",
+        "S-strength-time",
+        "S-cleave"
+      ],
+      "action": {
+        "uk": "Strength на цю задачу фарму розглядай за користю та ціною наступного вікна.",
+        "en": "Consider Strength for this farming task by its value and the next window cost."
+      },
+      "reason": {
+        "uk": "Застосування поза бійкою не є помилкою саме по собі.",
+        "en": "Using it outside a fight is not inherently an error."
+      },
+      "scenarios": {
+        "positive": "Существенная полезная задача оправдывает cooldown.",
+        "negative": "Нет выгоды или предстоит подтверждённая нужная драка.",
+        "unknown": "Будущие задачи команды неизвестны: не заявлять, что драк точно не будет."
+      }
+    },
+    {
+      "id": "sven.post_window_reset",
+      "title": "Восстановление после сильного окна",
+      "phase": "reset",
+      "level": "practical",
+      "status": "research_candidate",
+      "readiness": "manual_or_replay",
+      "benefit": "Подготовить следующий полезный цикл вместо повторения неподготовленного входа.",
+      "trigger": "Закончилось подтверждённое сильное окно, ресурсы ограничивают продолжение.",
+      "conditions": [
+        "Конец эпизода и нужные ресурсы известны",
+        "Есть время для восстановления"
+      ],
+      "suppress_if": [
+        "Продолжение полезно и без ульты",
+        "Идёт срочный эпизод",
+        "Уже восстанавливается"
+      ],
+      "cancel_if": [
+        "Пропало любое обязательное условие",
+        "Изменилась цель/задача или сессия; старый план неактуален"
+      ],
+      "timing": "До решения, в спокойном окне; не пытаться голосом попасть в субсекундное исполнение.",
+      "repeat": "Повторять только после нового эпизода/изменения основания; выполнение плана подавляет повтор.",
+      "cost": "Время восстановления; не обязательный запрет боёв без ульты.",
+      "requires": [
+        "active_effects",
+        "own_resources",
+        "own_abilities",
+        "action_intent"
+      ],
+      "evidence": [
+        "S-strength-time",
+        "S-hammer-cost"
+      ],
+      "action": {
+        "uk": "Після цього вікна віднови ресурс для наступної корисної дії.",
+        "en": "After this window, restore resources for the next useful action."
+      },
+      "reason": {
+        "uk": "Кінець Strength не забороняє всі дії, але змінює план.",
+        "en": "Strength ending does not forbid all actions, but changes the plan."
+      },
+      "scenarios": {
+        "positive": "Повторный вход требует уже потраченного ресурса, есть окно восстановиться.",
+        "negative": "Hammer без ульты решает срочную задачу: не запрещать.",
+        "unknown": "Активность эффекта не подтверждена: не выводить конец из одного cooldown."
+      }
+    }
+  ],
+  "open_checks": [
+    "Проверить alt-cast Storm Hammer и реально доступный источник его режима; наличие Scepter не означает автоматический полёт.",
+    "Записать фактические Warcry/Strength buffs, таланты и улучшения. Base armor, slow resistance и Shard physical barrier — разные механики.",
+    "Критерий полезного входа требует наблюдаемой цели, позиции и возможности наносить удары. Имя героя и готовность ульты не доказывают выгодность.",
+    "Проверить cleave-геометрию и допустимые цели на записи/лобби; не переносить описание на несуществующие live-координаты крипов."
+  ],
+  "first_implementation": [
+    "Реальные costs/modifiers и autocast mode; читаемые preparatory карточки до входа.",
+    "Трекер подтверждённого активного Strength и отмены старого таймера; фактический cooldown важнее базового.",
+    "Cleave positioning и точный jump target ждут достоверные наблюдения геометрии/целей."
+  ]
+}
