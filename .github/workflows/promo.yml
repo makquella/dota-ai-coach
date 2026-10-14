@@ -40,7 +40,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: promo
+  group: ${{ inputs.voice_lab != '' && inputs.voice_lab != 'off' && format('promo-voice-{0}', inputs.voice_lab) || 'promo' }}
   cancel-in-progress: false
 
 env:
