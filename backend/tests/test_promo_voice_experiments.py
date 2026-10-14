@@ -13,6 +13,7 @@ from pathlib import Path
 from typing import Any
 
 import pytest
+import yaml
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 from scripts.promo import experiments, voice  # noqa: E402
@@ -186,3 +187,17 @@ def test_default_narration_requests_selected_A_in_one_continuous_take(
     effective = voice.configuration()
     assert effective["continuous"] and effective["name"] == "Alex Nekrasov - Confident and Clear"
     assert "test-key" not in json.dumps(effective)
+
+
+def test_workflow_choice_defaults_remain_strings_for_github_dispatch() -> None:
+    workflow = yaml.safe_load(
+        (Path(__file__).resolve().parents[2] / ".github/workflows/promo.yml").read_text()
+    )
+    # YAML 1.1 may parse the trigger key as True; the input values themselves
+    # must stay strings. An unquoted off was rejected by the actual dispatch API.
+    triggers = workflow.get("on", workflow.get(True))
+    for field in triggers["workflow_dispatch"]["inputs"].values():
+        if field["type"] == "choice":
+            assert isinstance(field["default"], str)
+            assert all(isinstance(value, str) for value in field["options"])
+            assert field["default"] in field["options"]

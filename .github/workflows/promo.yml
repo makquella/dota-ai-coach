@@ -31,8 +31,8 @@ on:
       voice_lab:
         description: "Voice comparison (catalog checks models/voices without TTS)"
         type: choice
-        options: [off, catalog, A, B, C, D]
-        default: off
+        options: ["off", catalog, A, B, C, D]
+        default: "off"
       voice_catalog:
         description: "Verified voice-catalog JSON from a catalog run (optional)"
         type: string
