@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "date": "2026-10-14",
+  "patch": "7.41f",
+  "patch_list_url": "https://www.dota2.com/datafeed/patchnoteslist?language=english",
+  "heroes": [
+    "ember_spirit",
+    "juggernaut",
+    "terrorblade",
+    "dazzle",
+    "sven"
+  ],
+  "scope": "gameplay_research_only",
+  "audience": "0-4000 MMR",
+  "scenario_kind": "designed_counterexamples_not_observed_matches"
+}

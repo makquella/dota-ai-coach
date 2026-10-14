@@ -1,0 +1,864 @@
+{
+  "hero": {
+    "key": "dazzle",
+    "id": 50,
+    "name": "Dazzle",
+    "roles": [
+      "support"
+    ]
+  },
+  "source": "sources/dazzle.json",
+  "identity": "Dazzle создаёт полезный размен через Poison Touch, расстановку Shadow Wave и доступное окно спасения. Nothl Projection меняет контроль, лечение и конечную позицию героя. Готовый Grave не означает ни наличие подходящей цели, ни возможность успеть спасти; точная команда должна учитывать обе стороны эпизода.",
+  "mechanics": [
+    {
+      "id": "D-poison",
+      "field": "abilities/dazzle_poison_touch/description",
+      "statement": "Poison обновляется и усиливает slow от атак именно Dazzle.",
+      "contains": "attacked by Dazzle"
+    },
+    {
+      "id": "D-grave",
+      "field": "abilities/dazzle_shallow_grave/description",
+      "statement": "Grave защищает союзника от смерти в окне и усиливает лечение в зависимости от HP.",
+      "contains": "Healing on that ally is also amplified"
+    },
+    {
+      "id": "D-axe",
+      "field": "abilities/dazzle_shallow_grave/notes",
+      "statement": "Culling Blade Axe может убить цель под Grave.",
+      "contains": "Culling Blade will still kill"
+    },
+    {
+      "id": "D-grave-time",
+      "field": "abilities/dazzle_shallow_grave/specials/duration/base",
+      "statement": "Базовое окно Grave 4/4,5/5/5,5 секунды по уровню.",
+      "equals": [
+        4,
+        4.5,
+        5,
+        5.5
+      ]
+    },
+    {
+      "id": "D-grave-cost",
+      "field": "abilities/dazzle_shallow_grave/mana_costs",
+      "statement": "Базовая мана Grave 90/100/110/120.",
+      "equals": [
+        90,
+        100,
+        110,
+        120
+      ]
+    },
+    {
+      "id": "D-wave",
+      "field": "abilities/dazzle_shadow_wave/notes",
+      "statement": "Цель около нескольких вылеченных единиц получает несколько экземпляров урона.",
+      "contains": "multiple instances of damage"
+    },
+    {
+      "id": "D-wave-priority",
+      "field": "abilities/dazzle_shadow_wave/notes",
+      "statement": "Shadow Wave предпочитает союзных героев крипам.",
+      "contains": "Prioritizes allied heroes"
+    },
+    {
+      "id": "D-wave-self",
+      "field": "abilities/dazzle_shadow_wave/description",
+      "statement": "Dazzle всегда получает лечение Shadow Wave.",
+      "contains": "always healed"
+    },
+    {
+      "id": "D-projection",
+      "field": "abilities/dazzle_nothl_projection/description",
+      "statement": "Дух неуязвим, способен кастовать/атаковать; после эффекта герой возвращается к телу.",
+      "contains": "returns to the body"
+    },
+    {
+      "id": "D-projection-buffs",
+      "field": "abilities/dazzle_nothl_projection/description",
+      "statement": "Во время Projection Poison даёт hex, Grave лечит при истечении, Wave имеет меньший cooldown.",
+      "contains": "Poison Touch hexes"
+    },
+    {
+      "id": "D-no-building",
+      "field": "abilities/dazzle_nothl_projection/notes",
+      "statement": "Дух не может атаковать строения.",
+      "contains": "cannot attack buildings"
+    },
+    {
+      "id": "D-tether",
+      "field": "abilities/dazzle_nothl_projection/notes",
+      "statement": "При удалении духа от тела tether начинает притягивать его сильнее.",
+      "contains": "pull him back"
+    },
+    {
+      "id": "D-shard",
+      "field": "abilities/dazzle_nothl_projection/shard",
+      "statement": "Shard позволяет применять Projection под disable; конкретные ограничения требуют проверки.",
+      "contains": "cast while Dazzle is disabled"
+    },
+    {
+      "id": "D-weave",
+      "field": "abilities/dazzle_innate_weave/description",
+      "statement": "Способности применяют складывающийся Weave: броня союзников растёт, врагов уменьшается.",
+      "contains": "Multiple instances of this effect stack"
+    }
+  ],
+  "advice": [
+    {
+      "id": "dazzle.poison_refresh",
+      "title": "Личные атаки поддерживают Poison Touch",
+      "phase": "lane",
+      "level": "practical",
+      "status": "research_candidate",
+      "readiness": "manual_or_replay",
+      "benefit": "Получить пользу от продления размена, если атака не ломает позицию.",
+      "trigger": "Цель под подтверждённым Poison, Dazzle может безопасно продлить давление.",
+      "conditions": [
+        "Debuff и допустимая атака подтверждены",
+        "Продление полезно",
+        "Сохранена позиция для своей задачи"
+      ],
+      "suppress_if": [
+        "Погоня откроет опасность",
+        "Debuff уже снят",
+        "Нужен немедленный save"
+      ],
+      "cancel_if": [
+        "Пропало любое обязательное условие",
+        "Изменилась цель/задача или сессия; старый план неактуален"
+      ],
+      "timing": "До решения, в спокойном окне; не пытаться голосом попасть в субсекундное исполнение.",
+      "repeat": "Повторять только после нового эпизода/изменения основания; выполнение плана подавляет повтор.",
+      "cost": "Атака, перемещение и внимание.",
+      "requires": [
+        "target_state",
+        "position",
+        "enemy_control",
+        "action_intent"
+      ],
+      "evidence": [
+        "D-poison"
+      ],
+      "action": {
+        "uk": "Якщо позиція дозволяє, власною атакою продовж Poison.",
+        "en": "If your position allows, refresh Poison with your own attack."
+      },
+      "reason": {
+        "uk": "Саме атаки Dazzle підтримують цей debuff.",
+        "en": "Dazzle attacks are what refresh this debuff."
+      },
+      "scenarios": {
+        "positive": "Есть допустимая атака для полезного продления размена.",
+        "negative": "Нужно выйти в опасную позицию лишь ради обновления.",
+        "unknown": "Неизвестен debuff цели: не считать любую атаку продлением."
+      }
+    },
+    {
+      "id": "dazzle.poison_chase",
+      "title": "Цена следующей атаки для обновления Poison",
+      "phase": "pressure",
+      "level": "advanced",
+      "status": "research_candidate",
+      "readiness": "manual_or_replay",
+      "benefit": "Не обменять позицию save-support на малополезное продление slow.",
+      "trigger": "Следующая атака по poisoned-цели требует смены позиции.",
+      "conditions": [
+        "Цель, опасность и задача поддержки известны",
+        "Цена позиции превышает пользу атаки"
+      ],
+      "suppress_if": [
+        "Атака решает важную задачу",
+        "Опасность не подтверждена",
+        "Другая роль меняет приоритет"
+      ],
+      "cancel_if": [
+        "Пропало любое обязательное условие",
+        "Изменилась цель/задача или сессия; старый план неактуален"
+      ],
+      "timing": "До решения, в спокойном окне; не пытаться голосом попасть в субсекундное исполнение.",
+      "repeat": "Повторять только после нового эпизода/изменения основания; выполнение плана подавляет повтор.",
+      "cost": "Возможная потеря дополнительного давления.",
+      "requires": [
+        "target_state",
+        "enemy_control",
+        "allied_units",
+        "action_intent"
+      ],
+      "evidence": [
+        "D-poison",
+        "D-grave"
+      ],
+      "action": {
+        "uk": "Не губи позицію для save лише заради наступного оновлення Poison.",
+        "en": "Do not lose your save position just for another Poison refresh."
+      },
+      "reason": {
+        "uk": "Ціна цієї атаки — доступність наступного спасіння.",
+        "en": "The cost of this attack is your next save availability."
+      },
+      "scenarios": {
+        "positive": "Подтверждённая нужная позиция save теряется при погоне.",
+        "negative": "Погоня выигрывает конкретную задачу без потери save.",
+        "unknown": "Состояние команды неизвестно: не объявлять текущую атаку ошибкой."
+      }
+    },
+    {
+      "id": "dazzle.wave_overlap",
+      "title": "Shadow Wave через группу у цели",
+      "phase": "farm",
+      "level": "advanced",
+      "status": "research_candidate",
+      "readiness": "manual_or_replay",
+      "benefit": "Использовать несколько экземпляров урона для назначенной задачи на линии.",
+      "trigger": "Известны союзные единицы около допустимой цели и задача зачистки/защиты линии.",
+      "conditions": [
+        "Расположение и bounce eligibility подтверждены",
+        "Польза оправдывает ману"
+      ],
+      "suppress_if": [
+        "Нет пересечения damage-radius",
+        "Нужно сохранить ресурс на save",
+        "Зачистка мешает нужному состоянию линии"
+      ],
+      "cancel_if": [
+        "Пропало любое обязательное условие",
+        "Изменилась цель/задача или сессия; старый план неактуален"
+      ],
+      "timing": "До решения, в спокойном окне; не пытаться голосом попасть в субсекундное исполнение.",
+      "repeat": "Повторять только после нового эпизода/изменения основания; выполнение плана подавляет повтор.",
+      "cost": "Мана Wave и влияние на линию.",
+      "requires": [
+        "wave_units",
+        "allied_units",
+        "target_state",
+        "own_resources",
+        "action_intent"
+      ],
+      "evidence": [
+        "D-wave",
+        "D-wave-priority"
+      ],
+      "action": {
+        "uk": "Для цієї пачки розглянь Wave через союзні одиниці поруч із ворогами.",
+        "en": "For this wave, consider Wave through allied units near the enemies."
+      },
+      "reason": {
+        "uk": "Перекриття біля цілі дає кілька випадків урону.",
+        "en": "Overlapping units near the target can produce multiple damage instances."
+      },
+      "scenarios": {
+        "positive": "Назначена полезная зачистка, геометрия и ресурсы подходят.",
+        "negative": "Wave разрушит нужную заморозку линии или лишит save.",
+        "unknown": "Состав/геометрия пачки неизвестны: не обещать урон по конкретному герою."
+      }
+    },
+    {
+      "id": "dazzle.wave_coverage",
+      "title": "Покрытие лечения с приоритетом героев",
+      "phase": "fight",
+      "level": "advanced",
+      "status": "research_candidate",
+      "readiness": "manual_or_replay",
+      "benefit": "Не считать ограниченный bounce лечением всей команды автоматически.",
+      "trigger": "Группа нуждается в лечении, допустимый первый target меняет покрытие.",
+      "conditions": [
+        "Позиции/HP/число единиц известны",
+        "Есть подходящий момент",
+        "Польза лечения подтверждена"
+      ],
+      "suppress_if": [
+        "Геометрия одинаково полезна",
+        "Срочный save важнее",
+        "Субсекундная команда опоздает"
+      ],
+      "cancel_if": [
+        "Пропало любое обязательное условие",
+        "Изменилась цель/задача или сессия; старый план неактуален"
+      ],
+      "timing": "До решения, в спокойном окне; не пытаться голосом попасть в субсекундное исполнение.",
+      "repeat": "Повторять только после нового эпизода/изменения основания; выполнение плана подавляет повтор.",
+      "cost": "Выбор target и мана.",
+      "requires": [
+        "allied_units",
+        "target_state",
+        "own_abilities",
+        "effective_costs"
+      ],
+      "evidence": [
+        "D-wave-priority",
+        "D-wave-self"
+      ],
+      "action": {
+        "uk": "Для цього Wave обери ціль, яка покриє потрібних союзників.",
+        "en": "Choose the Wave target that covers the needed allies."
+      },
+      "reason": {
+        "uk": "Стрибки обмежені геометрією та пріоритетом героїв.",
+        "en": "Bounces depend on geometry and hero priority."
+      },
+      "scenarios": {
+        "positive": "Известные позиции дают заметно лучшее покрытие от другого target.",
+        "negative": "Все нужныe союзники и так покрываются.",
+        "unknown": "Команда не наблюдается: только подготовка, без точной цели."
+      }
+    },
+    {
+      "id": "dazzle.save_heal_reserve",
+      "title": "Ресурс на Grave и последующее лечение",
+      "phase": "lane",
+      "level": "practical",
+      "status": "research_candidate",
+      "readiness": "manual_or_replay",
+      "benefit": "Подготовить последовательность спасения, а не одну доступную кнопку.",
+      "trigger": "Намеченный необязательный расход лишит маны на нужный save+heal.",
+      "conditions": [
+        "Стоимость и необходимость подтверждены",
+        "Задача поддержки известна"
+      ],
+      "suppress_if": [
+        "Следующий каст нужен немедленно",
+        "Маны достаточно",
+        "Save сейчас не является ожидаемой задачей"
+      ],
+      "cancel_if": [
+        "Пропало любое обязательное условие",
+        "Изменилась цель/задача или сессия; старый план неактуален"
+      ],
+      "timing": "До решения, в спокойном окне; не пытаться голосом попасть в субсекундное исполнение.",
+      "repeat": "Повторять только после нового эпизода/изменения основания; выполнение плана подавляет повтор.",
+      "cost": "Отказ от лишнего harass или восстановление маны.",
+      "requires": [
+        "own_resources",
+        "own_abilities",
+        "effective_costs",
+        "action_intent",
+        "allied_units"
+      ],
+      "evidence": [
+        "D-grave-cost",
+        "D-grave",
+        "D-wave-self"
+      ],
+      "action": {
+        "uk": "Залиш ресурс не лише на Grave, а й на потрібне лікування після нього.",
+        "en": "Reserve resources for Grave and the needed healing afterward."
+      },
+      "reason": {
+        "uk": "Захисне вікно має підготувати продовження.",
+        "en": "The protection window must prepare a follow-up."
+      },
+      "scenarios": {
+        "positive": "Следующий Poison лишит нужной последовательности на подтверждённый эпизод.",
+        "negative": "Poison сейчас нужен, а ресурсы save обеспечены.",
+        "unknown": "Состояние союзников неизвестно: не назначать постоянный универсальный резерв."
+      }
+    },
+    {
+      "id": "dazzle.grave_window",
+      "title": "Grave до потери исполнимого окна",
+      "phase": "fight",
+      "level": "practical",
+      "status": "research_candidate",
+      "readiness": "manual_or_replay",
+      "benefit": "Успеть применить защиту до контроля/урона, когда цель уже определена.",
+      "trigger": "Наблюдаемая цель нуждается в защите и есть достаточный lead time.",
+      "conditions": [
+        "Применимость, target и окно подтверждены",
+        "Цена cooldown оправдана",
+        "Угроза не основана на выдуманном DPS"
+      ],
+      "suppress_if": [
+        "Защита не нужна",
+        "Уже невозможно успеть",
+        "Другое действие решает задачу лучше"
+      ],
+      "cancel_if": [
+        "Цель уже защищена/восстановлена/погибла",
+        "Нет применимости/дистанции",
+        "Окно стало короче общей задержки"
+      ],
+      "timing": "Подготовительная карточка до опасного эпизода; срочный голос только при достаточном исполнимом окне.",
+      "repeat": "Повторять только после нового эпизода/изменения основания; выполнение плана подавляет повтор.",
+      "cost": "Cooldown, мана и выбор защищаемой цели.",
+      "requires": [
+        "allied_units",
+        "target_state",
+        "enemy_control",
+        "own_abilities"
+      ],
+      "evidence": [
+        "D-grave",
+        "D-grave-time"
+      ],
+      "action": {
+        "uk": "Підготуй Grave до втрати вікна для цієї цілі.",
+        "en": "Prepare Grave before this target casting window closes."
+      },
+      "reason": {
+        "uk": "Чекати мінімального HP корисно не в кожному епізоді.",
+        "en": "Waiting for minimal HP does not help every episode."
+      },
+      "scenarios": {
+        "positive": "Подтверждённая угроза и пригодная цель, достаточно времени.",
+        "negative": "Голосовая команда опоздает к мгновенному burst.",
+        "unknown": "HP цели нет: не выбирать цель по собственному HP Dazzle."
+      }
+    },
+    {
+      "id": "dazzle.grave_heal",
+      "title": "Использовать защитное окно для восстановления",
+      "phase": "fight",
+      "level": "practical",
+      "status": "research_candidate",
+      "readiness": "manual_or_replay",
+      "benefit": "Закончить Grave с ресурсами на продолжение, когда лечение действительно нужно.",
+      "trigger": "Под Grave подтверждена пригодная цель, лечение возможно.",
+      "conditions": [
+        "HP, эффект и потребность известны",
+        "Лечение не мешает более важному действию"
+      ],
+      "suppress_if": [
+        "Нужное восстановление уже идёт",
+        "Цель не нуждается",
+        "Нет применимого лечения"
+      ],
+      "cancel_if": [
+        "Пропало любое обязательное условие",
+        "Изменилась цель/задача или сессия; старый план неактуален"
+      ],
+      "timing": "До решения, в спокойном окне; не пытаться голосом попасть в субсекундное исполнение.",
+      "repeat": "Повторять только после нового эпизода/изменения основания; выполнение плана подавляет повтор.",
+      "cost": "Мана/cooldown лечения в пределах защитного окна.",
+      "requires": [
+        "allied_units",
+        "target_state",
+        "active_effects",
+        "own_abilities"
+      ],
+      "evidence": [
+        "D-grave",
+        "D-wave-self"
+      ],
+      "action": {
+        "uk": "Використай це вікно Grave для потрібного відновлення цілі.",
+        "en": "Use this Grave window for the target needed recovery."
+      },
+      "reason": {
+        "uk": "Grave посилює лікування залежно від HP цілі.",
+        "en": "Grave amplifies healing depending on target HP."
+      },
+      "scenarios": {
+        "positive": "Цель нуждается в лечении и доступен полезный Wave.",
+        "negative": "Цель уже получает достаточное восстановление.",
+        "unknown": "Эффект/HP не наблюдаются: не обещать величину лечения."
+      }
+    },
+    {
+      "id": "dazzle.axe_exception",
+      "title": "Grave не гарантирует защиту от Culling Blade",
+      "phase": "fight",
+      "level": "practical",
+      "status": "research_candidate",
+      "readiness": "manual_or_replay",
+      "benefit": "Выбрать другой план против подтверждённого исключения.",
+      "trigger": "Для конкретной цели наблюдаема угроза Culling Blade.",
+      "conditions": [
+        "Угроза и применимость подтверждены",
+        "План действительно полагается на Grave",
+        "Есть исполнимая альтернатива"
+      ],
+      "suppress_if": [
+        "Axe лишь присутствует в драфте",
+        "Готовность/условие Culling не известны",
+        "Grave всё равно полезен против другой угрозы"
+      ],
+      "cancel_if": [
+        "Пропало любое обязательное условие",
+        "Изменилась цель/задача или сессия; старый план неактуален"
+      ],
+      "timing": "До решения, в спокойном окне; не пытаться голосом попасть в субсекундное исполнение.",
+      "repeat": "Повторять только после нового эпизода/изменения основания; выполнение плана подавляет повтор.",
+      "cost": "Смена момента, позиции или восстановления.",
+      "requires": [
+        "enemy_control",
+        "target_state",
+        "allied_units",
+        "action_intent"
+      ],
+      "evidence": [
+        "D-axe"
+      ],
+      "action": {
+        "uk": "Проти цієї загрози Culling не покладайся лише на Grave.",
+        "en": "Against this Culling threat, do not rely on Grave alone."
+      },
+      "reason": {
+        "uk": "Culling Blade має виняток із захисту Grave.",
+        "en": "Culling Blade is an exception to Grave protection."
+      },
+      "scenarios": {
+        "positive": "Наблюдаемая возможность Culling делает прежний план недостаточным.",
+        "negative": "Axe далеко или условия не выполнены: не запрещать Grave.",
+        "unknown": "Cooldown Axe неизвестен: не обещать наличие или отсутствие Culling."
+      }
+    },
+    {
+      "id": "dazzle.projection_origin",
+      "title": "Позиция тела перед Nothl Projection",
+      "phase": "pressure",
+      "level": "advanced",
+      "status": "research_candidate",
+      "readiness": "manual_or_replay",
+      "benefit": "Подготовить пригодную конечную позицию и tether до начала действия духом.",
+      "trigger": "Намечено применение Projection с задачей вдали от исходной позиции.",
+      "conditions": [
+        "Позиция тела и задача подтверждены",
+        "Возврат пригоден",
+        "Требуемые механики тела проверены"
+      ],
+      "suppress_if": [
+        "Нужен немедленный Projection",
+        "Нет смысла менять точку",
+        "Последствия телу не проверены"
+      ],
+      "cancel_if": [
+        "Пропало любое обязательное условие",
+        "Изменилась цель/задача или сессия; старый план неактуален"
+      ],
+      "timing": "До решения, в спокойном окне; не пытаться голосом попасть в субсекундное исполнение.",
+      "repeat": "Повторять только после нового эпизода/изменения основания; выполнение плана подавляет повтор.",
+      "cost": "Время подготовки перед ультимейтом.",
+      "requires": [
+        "projection_body",
+        "position",
+        "enemy_control",
+        "action_intent"
+      ],
+      "evidence": [
+        "D-projection",
+        "D-tether"
+      ],
+      "action": {
+        "uk": "Перед Projection підготуй точку, до якої повернешся.",
+        "en": "Before Projection, prepare the position you will return to."
+      },
+      "reason": {
+        "uk": "Дух має зв’язок із тілом і повертається до нього.",
+        "en": "The spirit remains tethered to the body and returns there."
+      },
+      "scenarios": {
+        "positive": "Можно улучшить точку окончания следующего эпизода.",
+        "negative": "Подготовка упустит срочное спасение.",
+        "unknown": "Тело/дух не различаются в данных: не утверждать уязвимость или безопасность тела."
+      }
+    },
+    {
+      "id": "dazzle.projection_hex",
+      "title": "Контроль Poison в окне Projection",
+      "phase": "fight",
+      "level": "advanced",
+      "status": "research_candidate",
+      "readiness": "manual_or_replay",
+      "benefit": "Использовать временно усиленный инструмент контроля для подходящей задачи.",
+      "trigger": "Во время подтверждённой Projection имеется допустимая цель контроля.",
+      "conditions": [
+        "Эффект и применимость известны",
+        "Цель/окно подтверждены",
+        "Есть ресурсы"
+      ],
+      "suppress_if": [
+        "Эффект уже закончился",
+        "Цель не подвержена нужному действию",
+        "Другой save важнее"
+      ],
+      "cancel_if": [
+        "Пропало любое обязательное условие",
+        "Изменилась цель/задача или сессия; старый план неактуален"
+      ],
+      "timing": "До решения, в спокойном окне; не пытаться голосом попасть в субсекундное исполнение.",
+      "repeat": "Повторять только после нового эпизода/изменения основания; выполнение плана подавляет повтор.",
+      "cost": "Cooldown и мана Poison в усиленном окне.",
+      "requires": [
+        "active_effects",
+        "target_state",
+        "own_resources",
+        "own_abilities"
+      ],
+      "evidence": [
+        "D-projection-buffs"
+      ],
+      "action": {
+        "uk": "У цьому вікні Projection Poison дає додатковий контроль.",
+        "en": "In this Projection window, Poison provides extra control."
+      },
+      "reason": {
+        "uk": "Урахуй посилений ефект для цієї придатної цілі.",
+        "en": "Account for the empowered effect on this valid target."
+      },
+      "scenarios": {
+        "positive": "Усиленный Poison решает конкретную задачу контроля.",
+        "negative": "Информация о Projection устарела: карточка отменена.",
+        "unknown": "Иммунитет/применимость цели неизвестны: не обещать hex."
+      }
+    },
+    {
+      "id": "dazzle.projection_wave",
+      "title": "Изменившийся cooldown Wave в Projection",
+      "phase": "fight",
+      "level": "advanced",
+      "status": "research_candidate",
+      "readiness": "manual_or_replay",
+      "benefit": "Использовать полезное повторное лечение без предположения, что умение ещё недоступно.",
+      "trigger": "Реальная Wave восстановилась раньше обычного окна в Projection.",
+      "conditions": [
+        "Фактический cooldown и полезная цель известны",
+        "Мана и приоритет save сохранены"
+      ],
+      "suppress_if": [
+        "Лечение не нужно",
+        "Нет маны",
+        "Подсказка дублирует уже начатое действие"
+      ],
+      "cancel_if": [
+        "Пропало любое обязательное условие",
+        "Изменилась цель/задача или сессия; старый план неактуален"
+      ],
+      "timing": "До решения, в спокойном окне; не пытаться голосом попасть в субсекундное исполнение.",
+      "repeat": "Повторять только после нового эпизода/изменения основания; выполнение плана подавляет повтор.",
+      "cost": "Мана повторного лечения, внимание.",
+      "requires": [
+        "own_abilities",
+        "own_resources",
+        "active_effects",
+        "allied_units"
+      ],
+      "evidence": [
+        "D-projection-buffs"
+      ],
+      "action": {
+        "uk": "Wave уже знову доступний у Projection — використай, якщо лікування потрібне.",
+        "en": "Wave is available again in Projection; use it if healing is needed."
+      },
+      "reason": {
+        "uk": "Орієнтуйся на фактичний cooldown посиленого уміння.",
+        "en": "Use the actual cooldown of the empowered spell."
+      },
+      "scenarios": {
+        "positive": "Повторный heal нужен, реальное умение готово.",
+        "negative": "Просто готовая Wave без потребности: молчать.",
+        "unknown": "Нет HP команды: не объявлять повторный heal необходимым."
+      }
+    },
+    {
+      "id": "dazzle.projection_grave_end",
+      "title": "Продолжение после усиленного Grave",
+      "phase": "reset",
+      "level": "advanced",
+      "status": "research_candidate",
+      "readiness": "manual_or_replay",
+      "benefit": "Согласовать конец защиты с подтверждённым лечением и последующей позицией.",
+      "trigger": "Заканчивается подтверждённый усиленный Grave на нужной цели.",
+      "conditions": [
+        "Механика фиксации бонуса проверена",
+        "Цель/таймеры известны",
+        "Есть время подготовить продолжение"
+      ],
+      "suppress_if": [
+        "Неизвестно, сохранилось усиление",
+        "Лечение уже достаточно",
+        "Срочная команда опоздает"
+      ],
+      "cancel_if": [
+        "Пропало любое обязательное условие",
+        "Изменилась цель/задача или сессия; старый план неактуален"
+      ],
+      "timing": "До решения, в спокойном окне; не пытаться голосом попасть в субсекундное исполнение.",
+      "repeat": "Повторять только после нового эпизода/изменения основания; выполнение плана подавляет повтор.",
+      "cost": "Внимание к окончанию эффекта и новый план.",
+      "requires": [
+        "active_effects",
+        "allied_units",
+        "target_state",
+        "projection_body"
+      ],
+      "evidence": [
+        "D-projection-buffs",
+        "D-grave-time"
+      ],
+      "action": {
+        "uk": "Плануй продовження після цього посиленого Grave за підтвердженим ефектом.",
+        "en": "Plan the follow-up to this empowered Grave using the confirmed effect."
+      },
+      "reason": {
+        "uk": "Лікування при завершенні залежить від актуальних умов посилення.",
+        "en": "End healing depends on the actual empowerment conditions."
+      },
+      "scenarios": {
+        "positive": "Условия усиленного эффекта проверены, можно планировать восстановление.",
+        "negative": "Projection завершилась, а сохранение бонуса не проверено.",
+        "unknown": "Источник эффекта неизвестен: не гарантировать автоматический heal."
+      }
+    },
+    {
+      "id": "dazzle.projection_disabled",
+      "title": "Shard меняет доступность Projection под disable",
+      "phase": "fight",
+      "level": "advanced",
+      "status": "research_candidate",
+      "readiness": "new_observation",
+      "benefit": "Не пропустить реально доступный инструмент из-за общего запрета на каст.",
+      "trigger": "Под наблюдаемым disable Projection действительно доступна с подтверждённым улучшением.",
+      "conditions": [
+        "Улучшение и can_cast подтверждены",
+        "Конкретное взаимодействие проверено",
+        "Действие полезно и исполнимо"
+      ],
+      "suppress_if": [
+        "Нет улучшения",
+        "Can_cast false или неизвестен",
+        "Текст опоздает",
+        "Dead/неприменимое состояние"
+      ],
+      "cancel_if": [
+        "Projection применена",
+        "Улучшение/применимость не подтверждены",
+        "Контроль завершён или времени уже недостаточно"
+      ],
+      "timing": "При подтверждённой доступности и достаточном окне; не обобщать на все disables.",
+      "repeat": "Повторять только после нового эпизода/изменения основания; выполнение плана подавляет повтор.",
+      "cost": "Мана/cooldown и выбор момента ульты.",
+      "requires": [
+        "upgrades_talents",
+        "own_abilities",
+        "own_status",
+        "own_resources",
+        "effective_costs"
+      ],
+      "evidence": [
+        "D-shard"
+      ],
+      "action": {
+        "uk": "З цим покращенням перевір доступний Projection навіть під контролем.",
+        "en": "With this upgrade, check the available Projection even while disabled."
+      },
+      "reason": {
+        "uk": "Загальне правило недоступності заклинань тут має перевірений виняток.",
+        "en": "The general spell restriction has a checked exception here."
+      },
+      "scenarios": {
+        "positive": "Shard и конкретный disable допускают наблюдаемый полезный каст.",
+        "negative": "Нет Shard или неизвестно can_cast: не советовать.",
+        "unknown": "Заявление «можно под любым контролем» без отдельной проверки запрещено."
+      }
+    },
+    {
+      "id": "dazzle.projection_tether",
+      "title": "Расстояние духа и точка возврата",
+      "phase": "pressure",
+      "level": "advanced",
+      "status": "research_candidate",
+      "readiness": "manual_or_replay",
+      "benefit": "Не строить перемещение на игнорировании нарастающего притяжения.",
+      "trigger": "Подтверждённый маршрут духа приближается к ограничению tether.",
+      "conditions": [
+        "Тело/дух и расстояние известны",
+        "Можно изменить задачу/маршрут"
+      ],
+      "suppress_if": [
+        "Маршрут укладывается",
+        "Позиции не наблюдаются",
+        "Задача важнее краткой потери темпа"
+      ],
+      "cancel_if": [
+        "Пропало любое обязательное условие",
+        "Изменилась цель/задача или сессия; старый план неактуален"
+      ],
+      "timing": "До решения, в спокойном окне; не пытаться голосом попасть в субсекундное исполнение.",
+      "repeat": "Повторять только после нового эпизода/изменения основания; выполнение плана подавляет повтор.",
+      "cost": "Смена маршрута и времени доступного действия.",
+      "requires": [
+        "projection_body",
+        "position",
+        "action_intent"
+      ],
+      "evidence": [
+        "D-tether",
+        "D-no-building"
+      ],
+      "action": {
+        "uk": "Урахуй tether: цей рух віддаляє дух від точки повернення.",
+        "en": "Account for the tether: this movement takes the spirit farther from the return point."
+      },
+      "reason": {
+        "uk": "Сила притягання зростає з відстанню.",
+        "en": "The pull grows with distance."
+      },
+      "scenarios": {
+        "positive": "Наблюдаемый маршрут ухудшается из-за tether.",
+        "negative": "Короткое перемещение в пределах задачи.",
+        "unknown": "Отображается только одна позиция героя: не рассчитывать расстояние до тела."
+      }
+    },
+    {
+      "id": "dazzle.weave_followup",
+      "title": "Weave усиливает полезную последовательность",
+      "phase": "pressure",
+      "level": "advanced",
+      "status": "research_candidate",
+      "readiness": "manual_or_replay",
+      "benefit": "Учитывать сохраняющееся изменение брони при выборе следующего полезного действия.",
+      "trigger": "Подтверждённые стаки Weave меняют ценность продолжения.",
+      "conditions": [
+        "Эффект, цель и длительность известны",
+        "Следующий каст сам по себе полезен"
+      ],
+      "suppress_if": [
+        "Каст предлагается только ради стаков",
+        "Эффект истёк",
+        "Броня не является существенной частью задачи"
+      ],
+      "cancel_if": [
+        "Пропало любое обязательное условие",
+        "Изменилась цель/задача или сессия; старый план неактуален"
+      ],
+      "timing": "До решения, в спокойном окне; не пытаться голосом попасть в субсекундное исполнение.",
+      "repeat": "Повторять только после нового эпизода/изменения основания; выполнение плана подавляет повтор.",
+      "cost": "Мана/кд полезного действия; не спам ради innate.",
+      "requires": [
+        "active_effects",
+        "target_state",
+        "allied_units",
+        "action_intent"
+      ],
+      "evidence": [
+        "D-weave"
+      ],
+      "action": {
+        "uk": "Урахуй наявний Weave у наступній корисній дії.",
+        "en": "Account for existing Weave in your next useful action."
+      },
+      "reason": {
+        "uk": "Ефекти броні складаються, але кожен каст має власну ціну.",
+        "en": "Armor effects stack, but every cast has its own cost."
+      },
+      "scenarios": {
+        "positive": "Состояние эффекта подтверждено и влияет на следующий размен.",
+        "negative": "Безцельно спамить способности ради innate.",
+        "unknown": "Стаки не наблюдаются: не выдумывать текущую броню или точный урон."
+      }
+    }
+  ],
+  "open_checks": [
+    "Перепроверить Nothl Projection в лобби: тело/дух, разрешённые действия, раннее завершение, последствия контроля и улучшение. Не переносить старые правила Bad Juju.",
+    "Проверить момент фиксации усиленного Grave и лечения при истечении, если Projection закончилась раньше; не обещать автоматический результат.",
+    "Нужны реальные HP/положение/состояния союзников и целей. Их нельзя восстановить из собственных ресурсов.",
+    "Проверить источники Projection state/tether и обновление can_cast со Shard под каждым видом disable; универсальное «можно под любым контролем» не разрешено."
+  ],
+  "first_implementation": [
+    "Реальные upgrades/talents, ресурс на последовательность save+heal и состояние Projection.",
+    "Условная предварительная подготовка позиции и ресурсов; точный Grave на союзника ждёт источник его состояния.",
+    "Poison refresh и Shadow Wave по группе — следующая очередь с наблюдениями целей, а не новые общие предупреждения HP."
+  ]
+}

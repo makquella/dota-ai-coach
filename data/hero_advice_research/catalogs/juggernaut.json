@@ -1,0 +1,810 @@
+{
+  "hero": {
+    "key": "juggernaut",
+    "id": 8,
+    "name": "Juggernaut",
+    "roles": [
+      "carry"
+    ]
+  },
+  "source": "sources/juggernaut.json",
+  "identity": "Juggernaut меняет способ нанесения урона и переживания угроз между Blade Fury, обычными атаками и Omnislash. Healing Ward позволяет восстанавливать группу и продолжать задачу, если его сохраняют и контролируют. Полезный совет помогает выбрать режим и момент, а не требует spin при любом снижении HP.",
+  "mechanics": [
+    {
+      "id": "J-spin",
+      "field": "abilities/juggernaut_blade_fury/description",
+      "statement": "Blade Fury даёт debuff immunity и magic resistance; strong dispel указан в конце.",
+      "contains": "strong dispel at the end"
+    },
+    {
+      "id": "J-attacks",
+      "field": "abilities/juggernaut_blade_fury/notes",
+      "statement": "Без отдельного модификатора обычные атаки в spin наносят урон только целям, не затронутым Blade Fury, например зданиям.",
+      "contains": "only units that are not affected"
+    },
+    {
+      "id": "J-items",
+      "field": "abilities/juggernaut_blade_fury/notes",
+      "statement": "Предметы разрешены во время Blade Fury.",
+      "contains": "use items during Blade Fury"
+    },
+    {
+      "id": "J-scepter",
+      "field": "abilities/juggernaut_blade_fury/scepter",
+      "statement": "Улучшенная Blade Fury меняет радиус, замедление и добавляет атаки по затронутым целям.",
+      "contains": "an attack on affected enemies"
+    },
+    {
+      "id": "J-spin-time",
+      "field": "abilities/juggernaut_blade_fury/specials/duration/base",
+      "statement": "Базовая длительность spin — 5 секунд.",
+      "equals": [
+        5
+      ]
+    },
+    {
+      "id": "J-ward",
+      "field": "abilities/juggernaut_healing_ward/notes",
+      "statement": "Ward управляем; несколько Healing Ward не складываются.",
+      "contains": "can be controlled"
+    },
+    {
+      "id": "J-ward-radius",
+      "field": "abilities/juggernaut_healing_ward/specials/healing_ward_aura_radius/base",
+      "statement": "Базовый радиус лечения ward — 400.",
+      "equals": [
+        400
+      ]
+    },
+    {
+      "id": "J-ward-time",
+      "field": "abilities/juggernaut_healing_ward/specials/AbilityDuration/base",
+      "statement": "Базовая длительность ward 18/20/22/24 секунды по уровню.",
+      "equals": [
+        18,
+        20,
+        22,
+        24
+      ]
+    },
+    {
+      "id": "J-omni",
+      "field": "abilities/juggernaut_omni_slash/description",
+      "statement": "Omnislash атакует выбранную и другие близкие цели; герой неуязвим в течение действия.",
+      "contains": "other nearby enemy units"
+    },
+    {
+      "id": "J-omni-items",
+      "field": "abilities/juggernaut_omni_slash/notes",
+      "statement": "Предметы разрешены во время Omnislash.",
+      "contains": "use items during Omnislash"
+    },
+    {
+      "id": "J-omni-mana",
+      "field": "abilities/juggernaut_omni_slash/mana_costs",
+      "statement": "Базовая стоимость Omnislash 200/275/350 маны.",
+      "equals": [
+        200,
+        275,
+        350
+      ]
+    },
+    {
+      "id": "J-swift",
+      "field": "abilities/juggernaut_swift_slash/description",
+      "statement": "Swiftslash — короткая Omnislash; применимость должна быть видна у конкретного игрока.",
+      "contains": "short Omnislash"
+    },
+    {
+      "id": "J-form",
+      "field": "abilities/juggernaut_bladeform/description",
+      "statement": "Bladeform накапливается без получаемого урона и теряет стаки после повреждения.",
+      "contains": "does not take damage"
+    }
+  ],
+  "advice": [
+    {
+      "id": "juggernaut.spin_exit",
+      "title": "План после окончания Blade Fury",
+      "phase": "fight",
+      "level": "advanced",
+      "status": "research_candidate",
+      "readiness": "manual_or_replay",
+      "benefit": "Не оказаться в плохой позиции после завершения короткого окна защиты.",
+      "trigger": "Перед spin намечено сближение или выход с известным продолжением.",
+      "conditions": [
+        "Длительность и эффект подтверждены",
+        "Позиция/угроза известны",
+        "Можно подготовить следующий шаг"
+      ],
+      "suppress_if": [
+        "Вход уже решает задачу",
+        "Контекст неизвестен",
+        "Запоздавшая команда"
+      ],
+      "cancel_if": [
+        "Фактическая Blade Fury закончилась",
+        "Новая позиция уже подготовлена",
+        "Изменился источник эффекта или потерян достоверный таймер"
+      ],
+      "timing": "В начале подтверждённого окна spin с достаточным временем для выбора продолжения.",
+      "repeat": "Повторять только после нового эпизода/изменения основания; выполнение плана подавляет повтор.",
+      "cost": "Время spin и ресурс следующего действия.",
+      "requires": [
+        "active_effects",
+        "position",
+        "enemy_control",
+        "action_intent"
+      ],
+      "evidence": [
+        "J-spin",
+        "J-spin-time"
+      ],
+      "action": {
+        "uk": "До завершення Blade Fury підготуй наступну позицію.",
+        "en": "Prepare your next position before Blade Fury ends."
+      },
+      "reason": {
+        "uk": "Коротке захисне вікно не замінює план виходу.",
+        "en": "The short defensive window does not replace an exit plan."
+      },
+      "scenarios": {
+        "positive": "Намечен проход через опасную зону, выход достижим до конца окна.",
+        "negative": "Герой уже в пригодной позиции и задача выполнена.",
+        "unknown": "Cooldown известен, но начало эффекта нет: не выдавать таймер."
+      }
+    },
+    {
+      "id": "juggernaut.spin_tp",
+      "title": "Blade Fury и TP с проверкой контроля",
+      "phase": "reset",
+      "level": "advanced",
+      "status": "research_candidate",
+      "readiness": "manual_or_replay",
+      "benefit": "Использовать доступное восстановление/перемещение при реальном окне исполнения.",
+      "trigger": "Подтверждено намерение TP из зоны угрозы.",
+      "conditions": [
+        "Spin и TP применимы",
+        "Достаточно ресурсов",
+        "Конкретные угрозы не лишают подтверждённого окна"
+      ],
+      "suppress_if": [
+        "Известен контроль, срывающий план",
+        "Другое действие выгоднее",
+        "Непроверенная безопасность"
+      ],
+      "cancel_if": [
+        "Пропало любое обязательное условие",
+        "Изменилась цель/задача или сессия; старый план неактуален"
+      ],
+      "timing": "До решения, в спокойном окне; не пытаться голосом попасть в субсекундное исполнение.",
+      "repeat": "Повторять только после нового эпизода/изменения основания; выполнение плана подавляет повтор.",
+      "cost": "Расход spin/TP и временная потеря боевого ресурса.",
+      "requires": [
+        "own_abilities",
+        "own_inventory",
+        "effective_costs",
+        "enemy_control",
+        "action_intent"
+      ],
+      "evidence": [
+        "J-spin",
+        "J-items"
+      ],
+      "action": {
+        "uk": "Spin + TP розглядай лише з перевіреним вікном від контролю.",
+        "en": "Consider spin + TP only with a checked control window."
+      },
+      "reason": {
+        "uk": "Debuff immunity не гарантує завершення будь-якого TP.",
+        "en": "Debuff immunity does not guarantee every TP completes."
+      },
+      "scenarios": {
+        "positive": "Наблюдаемая угроза и взаимодействие с защитой проверены, окно достаточно.",
+        "negative": "Есть конкретный контроль, срывающий TP; не обещать спасение.",
+        "unknown": "Только драфт: возможна условная подготовка, не команда «TP безопасен»."
+      }
+    },
+    {
+      "id": "juggernaut.spin_buildings",
+      "title": "Урон по строению во время spin",
+      "phase": "pressure",
+      "level": "advanced",
+      "status": "research_candidate",
+      "readiness": "manual_or_replay",
+      "benefit": "Сохранить полезные атаки по цели, которую spin не повреждает.",
+      "trigger": "Продолжается подтверждённое давление на строение в spin.",
+      "conditions": [
+        "Цель и действие подтверждены",
+        "Нет важнее требующего выхода риска"
+      ],
+      "suppress_if": [
+        "Требуется срочный отход",
+        "Нельзя атаковать строение",
+        "Давление не является задачей"
+      ],
+      "cancel_if": [
+        "Пропало любое обязательное условие",
+        "Изменилась цель/задача или сессия; старый план неактуален"
+      ],
+      "timing": "До решения, в спокойном окне; не пытаться голосом попасть в субсекундное исполнение.",
+      "repeat": "Повторять только после нового эпизода/изменения основания; выполнение плана подавляет повтор.",
+      "cost": "Время атаки и риск задержаться.",
+      "requires": [
+        "active_effects",
+        "target_state",
+        "action_intent"
+      ],
+      "evidence": [
+        "J-attacks"
+      ],
+      "action": {
+        "uk": "Під час spin можна продовжувати атаки по цій будівлі.",
+        "en": "You can continue attacking this building during spin."
+      },
+      "reason": {
+        "uk": "Будівлі не отримують урон Blade Fury, але отримують урон цих атак.",
+        "en": "Buildings are not damaged by Blade Fury but take these attack hits."
+      },
+      "scenarios": {
+        "positive": "Подтверждённое полезное давление по строению с допустимым риском.",
+        "negative": "Задача — уйти, не продолжать бить tower.",
+        "unknown": "Цель не наблюдается: не переключать игрока на неизвестное строение."
+      }
+    },
+    {
+      "id": "juggernaut.spin_damage_mode",
+      "title": "Выбор spin или обычных атак",
+      "phase": "fight",
+      "level": "advanced",
+      "status": "research_candidate",
+      "readiness": "manual_or_replay",
+      "benefit": "Не заменить выгодный урон атак менее полезным режимом без нужной защиты.",
+      "trigger": "Намеченная Blade Fury меняет урон по выбранному герою.",
+      "conditions": [
+        "Подтверждены модификаторы и цель",
+        "Есть оценка задачи атаки и защиты"
+      ],
+      "suppress_if": [
+        "Защита важнее урона",
+        "Нет проверенного сравнения",
+        "Улучшение меняет режим"
+      ],
+      "cancel_if": [
+        "Пропало любое обязательное условие",
+        "Изменилась цель/задача или сессия; старый план неактуален"
+      ],
+      "timing": "До решения, в спокойном окне; не пытаться голосом попасть в субсекундное исполнение.",
+      "repeat": "Повторять только после нового эпизода/изменения основания; выполнение плана подавляет повтор.",
+      "cost": "Обмен урона на защиту/другую область действия.",
+      "requires": [
+        "upgrades_talents",
+        "target_state",
+        "action_intent",
+        "effective_costs"
+      ],
+      "evidence": [
+        "J-attacks",
+        "J-scepter",
+        "J-spin"
+      ],
+      "action": {
+        "uk": "Перед spin перевір, чи не втратиш потрібний урон атак.",
+        "en": "Before spinning, check whether it sacrifices needed attack damage."
+      },
+      "reason": {
+        "uk": "Урон звичайних атак і spin залежить від цілі та покращення.",
+        "en": "Attack and spin damage depend on the target and upgrade."
+      },
+      "scenarios": {
+        "positive": "Условия подтверждают, что spin без нужной защиты ухудшает полезную атаку.",
+        "negative": "Опасный debuff делает защиту нужнее урона.",
+        "unknown": "Модификатор не известен: не объявлять spin потерей урона."
+      }
+    },
+    {
+      "id": "juggernaut.ward_position",
+      "title": "Двигать Healing Ward вслед за полезной позицией",
+      "phase": "fight",
+      "level": "advanced",
+      "status": "research_candidate",
+      "readiness": "manual_or_replay",
+      "benefit": "Сохранить лечение группы без потери ward на передней линии.",
+      "trigger": "Подтверждённый ward перестал покрывать нужные союзные единицы.",
+      "conditions": [
+        "Положение ward и группы известно",
+        "Перемещение не ставит ward под очевидный удар"
+      ],
+      "suppress_if": [
+        "Ward уже покрывает задачу",
+        "Положение группы неизвестно",
+        "Голос мешает срочной игре"
+      ],
+      "cancel_if": [
+        "Ward уничтожен/истёк",
+        "Нужная группа снова покрыта",
+        "Потеряно наблюдение управляемой единицы"
+      ],
+      "timing": "Перед полезной перестановкой ward; голос не перебивает срочное действие героя.",
+      "repeat": "Повторять только после нового эпизода/изменения основания; выполнение плана подавляет повтор.",
+      "cost": "Микроуправление ward и внимание.",
+      "requires": [
+        "controlled_units",
+        "allied_units",
+        "target_state"
+      ],
+      "evidence": [
+        "J-ward",
+        "J-ward-radius"
+      ],
+      "action": {
+        "uk": "Підведи ward до своєї групи, зберігаючи його за боєм.",
+        "en": "Move the ward with your group while keeping it behind the fight."
+      },
+      "reason": {
+        "uk": "Лікування працює в обмеженому радіусі.",
+        "en": "Healing has a limited radius."
+      },
+      "scenarios": {
+        "positive": "Группа ушла за пределы ауры; есть пригодная новая позиция.",
+        "negative": "Ward уже в радиусе: повтор не нужен.",
+        "unknown": "Ward не наблюдается: cooldown не подтверждает, что он ещё жив."
+      }
+    },
+    {
+      "id": "juggernaut.ward_reset",
+      "title": "Восстановить группу перед следующим эпизодом",
+      "phase": "reset",
+      "level": "practical",
+      "status": "research_candidate",
+      "readiness": "manual_or_replay",
+      "benefit": "Перевести законченный бой в возможность следующего действия.",
+      "trigger": "Эпизод завершён, собственные/союзные ресурсы мешают продолжить задачу.",
+      "conditions": [
+        "Ward доступен и нужен",
+        "Восстановление проходит в пригодном месте",
+        "Цена не лишает следующего необходимого действия"
+      ],
+      "suppress_if": [
+        "Бой продолжается",
+        "Уже используется лечение",
+        "Группа разделена и выгода не подтверждена"
+      ],
+      "cancel_if": [
+        "Пропало любое обязательное условие",
+        "Изменилась цель/задача или сессия; старый план неактуален"
+      ],
+      "timing": "До решения, в спокойном окне; не пытаться голосом попасть в субсекундное исполнение.",
+      "repeat": "Повторять только после нового эпизода/изменения основания; выполнение плана подавляет повтор.",
+      "cost": "Мана, cooldown ward и время восстановления.",
+      "requires": [
+        "own_resources",
+        "own_abilities",
+        "effective_costs",
+        "allied_units",
+        "action_intent"
+      ],
+      "evidence": [
+        "J-ward",
+        "J-ward-radius"
+      ],
+      "action": {
+        "uk": "Після цього епізоду віднови групу ward перед продовженням.",
+        "en": "After this episode, heal the group with ward before continuing."
+      },
+      "reason": {
+        "uk": "Ресурс лікування дозволяє підготувати наступну дію.",
+        "en": "Healing helps prepare the next action."
+      },
+      "scenarios": {
+        "positive": "Несколько союзников нуждаются в восстановлении и могут быть покрыты.",
+        "negative": "Срочная задача важнее или все уже восстановлены.",
+        "unknown": "Известно только собственное HP: не утверждать состояние всей команды."
+      }
+    },
+    {
+      "id": "juggernaut.ward_timing",
+      "title": "Ward до нового урона при длительном размене",
+      "phase": "lane",
+      "level": "practical",
+      "status": "research_candidate",
+      "readiness": "manual_or_replay",
+      "benefit": "Использовать восстановление в течение выгодного эпизода, если оно сохраняется.",
+      "trigger": "Подтверждён длительный размен с пригодной защищённой позицией ward.",
+      "conditions": [
+        "Польза длительного лечения и цена известны",
+        "Ward может пережить эпизод"
+      ],
+      "suppress_if": [
+        "Ward быстро уничтожат",
+        "Короткий эпизод не оправдывает расход",
+        "Восстановление не нужно"
+      ],
+      "cancel_if": [
+        "Пропало любое обязательное условие",
+        "Изменилась цель/задача или сессия; старый план неактуален"
+      ],
+      "timing": "До решения, в спокойном окне; не пытаться голосом попасть в субсекундное исполнение.",
+      "repeat": "Повторять только после нового эпизода/изменения основания; выполнение плана подавляет повтор.",
+      "cost": "Мана и долгое окно cooldown.",
+      "requires": [
+        "own_resources",
+        "own_abilities",
+        "target_state",
+        "controlled_units",
+        "action_intent"
+      ],
+      "evidence": [
+        "J-ward",
+        "J-ward-time"
+      ],
+      "action": {
+        "uk": "Для цього тривалого розміну підготуй ward у захищеній позиції.",
+        "en": "For this sustained trade, prepare ward in a protected position."
+      },
+      "reason": {
+        "uk": "Він має пережити розмін, щоб дати користь.",
+        "en": "It must survive the trade to provide value."
+      },
+      "scenarios": {
+        "positive": "Защищённая позиция и длительный полезный размен подтверждены.",
+        "negative": "Ward немедленно окажется под ударом.",
+        "unknown": "Обзор позиции отсутствует: не объявлять её защищённой."
+      }
+    },
+    {
+      "id": "juggernaut.omni_isolation",
+      "title": "Выбор цели Omnislash с учётом окружения",
+      "phase": "fight",
+      "level": "advanced",
+      "status": "research_candidate",
+      "readiness": "manual_or_replay",
+      "benefit": "Направить ограниченное окно атак на нужную цель.",
+      "trigger": "До применения Omnislash подтверждено неблагоприятное окружение цели.",
+      "conditions": [
+        "Известны допустимые соседние единицы",
+        "Есть время изменить момент",
+        "Цель действительно приоритетна"
+      ],
+      "suppress_if": [
+        "Групповой урон — нужная задача",
+        "Отсрочка упускает необходимый момент",
+        "Окружение неизвестно"
+      ],
+      "cancel_if": [
+        "Пропало любое обязательное условие",
+        "Изменилась цель/задача или сессия; старый план неактуален"
+      ],
+      "timing": "До решения, в спокойном окне; не пытаться голосом попасть в субсекундное исполнение.",
+      "repeat": "Повторять только после нового эпизода/изменения основания; выполнение плана подавляет повтор.",
+      "cost": "Задержка применения или смена цели.",
+      "requires": [
+        "target_state",
+        "wave_units",
+        "action_intent"
+      ],
+      "evidence": [
+        "J-omni"
+      ],
+      "action": {
+        "uk": "Для урону по цій цілі дочекайся кращого оточення для Omnislash.",
+        "en": "For damage on this target, wait for a better Omnislash setup."
+      },
+      "reason": {
+        "uk": "Поруч є інші цілі, між якими можуть розподілитися атаки.",
+        "en": "Nearby units can receive part of the attacks."
+      },
+      "scenarios": {
+        "positive": "Приоритетный герой в плотной пачке, можно дождаться изоляции.",
+        "negative": "Нужно срочно пережить эпизод через допустимое применение.",
+        "unknown": "Пачка не наблюдается: не обещать соло-урон или гарантированное убийство."
+      }
+    },
+    {
+      "id": "juggernaut.omni_resource",
+      "title": "Ресурс на конкретное продолжение после лечения",
+      "phase": "pressure",
+      "level": "practical",
+      "status": "research_candidate",
+      "readiness": "manual_or_replay",
+      "benefit": "Не потратить ману так, что нужное следующее действие станет невозможным.",
+      "trigger": "Планируемое восстановление/каст лишит маны на намеченную Omnislash.",
+      "conditions": [
+        "Стоимость и модификаторы подтверждены",
+        "Следующая задача известна",
+        "Отказ от расхода действительно полезен"
+      ],
+      "suppress_if": [
+        "Лечение нужно немедленно",
+        "Маны хватает",
+        "Omnislash не входит в план"
+      ],
+      "cancel_if": [
+        "Пропало любое обязательное условие",
+        "Изменилась цель/задача или сессия; старый план неактуален"
+      ],
+      "timing": "До решения, в спокойном окне; не пытаться голосом попасть в субсекундное исполнение.",
+      "repeat": "Повторять только после нового эпизода/изменения основания; выполнение плана подавляет повтор.",
+      "cost": "Выбор между восстановлением и сохранением ресурса.",
+      "requires": [
+        "own_resources",
+        "own_abilities",
+        "effective_costs",
+        "action_intent"
+      ],
+      "evidence": [
+        "J-omni-mana",
+        "J-ward"
+      ],
+      "action": {
+        "uk": "Після цього лікування перевір ману на запланований Omnislash.",
+        "en": "Check your planned Omnislash mana after this heal."
+      },
+      "reason": {
+        "uk": "Готова ульта без потрібної мани не виконує план.",
+        "en": "A ready ultimate without the needed mana cannot execute the plan."
+      },
+      "scenarios": {
+        "positive": "Лечение необязательно, впереди подтверждённый нужный каст.",
+        "negative": "Без лечения герой не может выполнить задачу: не требовать сохранить ману любой ценой.",
+        "unknown": "Затраты неизвестны: только условная подготовка, без точного остатка."
+      }
+    },
+    {
+      "id": "juggernaut.omni_defense",
+      "title": "Неуязвимость Omnislash требует пригодной цели",
+      "phase": "fight",
+      "level": "advanced",
+      "status": "research_candidate",
+      "readiness": "manual_or_replay",
+      "benefit": "Выбрать допустимый защитный режим вместо автоматического отхода.",
+      "trigger": "Возникла известная угроза и подтверждённая возможность Omnislash.",
+      "conditions": [
+        "Цель доступна и действие применимо",
+        "Достаточно маны",
+        "Следующая позиция приемлема"
+      ],
+      "suppress_if": [
+        "Нет допустимой цели",
+        "Каст будет сорван",
+        "Использование ухудшит продолжение"
+      ],
+      "cancel_if": [
+        "Пропало любое обязательное условие",
+        "Изменилась цель/задача или сессия; старый план неактуален"
+      ],
+      "timing": "До решения, в спокойном окне; не пытаться голосом попасть в субсекундное исполнение.",
+      "repeat": "Повторять только после нового эпизода/изменения основания; выполнение плана подавляет повтор.",
+      "cost": "Cooldown ультимейта и возможное изменение позиции.",
+      "requires": [
+        "target_state",
+        "own_resources",
+        "own_abilities",
+        "enemy_control",
+        "action_intent"
+      ],
+      "evidence": [
+        "J-omni"
+      ],
+      "action": {
+        "uk": "Omnislash можна розглянути для цього вікна захисту, якщо ціль придатна.",
+        "en": "Consider Omnislash for this defensive window if the target is valid."
+      },
+      "reason": {
+        "uk": "Неуразливість починається лише після успішного застосування.",
+        "en": "Invulnerability requires a successful cast."
+      },
+      "scenarios": {
+        "positive": "Пригодная цель и окно исполнения подтверждены.",
+        "negative": "Цель исчезла до каста: карточка отменена.",
+        "unknown": "Только готовность способности: не выдавать команду."
+      }
+    },
+    {
+      "id": "juggernaut.swift_scope",
+      "title": "Короткий slash для задачи, не требующей полной ульты",
+      "phase": "pressure",
+      "level": "advanced",
+      "status": "research_candidate",
+      "readiness": "manual_or_replay",
+      "benefit": "Сохранить длинный cooldown, если короткое доступное действие решает эпизод.",
+      "trigger": "Есть реальная Swiftslash и ограниченная полезная задача.",
+      "conditions": [
+        "Способность реально изучена/доступна",
+        "Короткого окна достаточно",
+        "Полная ульта имеет другую ценность"
+      ],
+      "suppress_if": [
+        "Короткого окна недостаточно",
+        "Нет Swiftslash у игрока",
+        "Оценка цели неизвестна"
+      ],
+      "cancel_if": [
+        "Пропало любое обязательное условие",
+        "Изменилась цель/задача или сессия; старый план неактуален"
+      ],
+      "timing": "До решения, в спокойном окне; не пытаться голосом попасть в субсекундное исполнение.",
+      "repeat": "Повторять только после нового эпизода/изменения основания; выполнение плана подавляет повтор.",
+      "cost": "Cooldown и мана короткого slash.",
+      "requires": [
+        "own_abilities",
+        "effective_costs",
+        "target_state",
+        "action_intent"
+      ],
+      "evidence": [
+        "J-swift",
+        "J-omni"
+      ],
+      "action": {
+        "uk": "Для цієї короткої задачі розглянь доступний Swiftslash.",
+        "en": "For this brief task, consider your available Swiftslash."
+      },
+      "reason": {
+        "uk": "Повний Omnislash може залишитися для іншого епізоду.",
+        "en": "Full Omnislash can remain for another episode."
+      },
+      "scenarios": {
+        "positive": "Наблюдаемая задача укладывается в короткое окно.",
+        "negative": "Способность есть только в feed, но не изучена: никакого совета.",
+        "unknown": "Неизвестна потребность в уроне: не обещать, что короткого slash достаточно."
+      }
+    },
+    {
+      "id": "juggernaut.bladeform_route",
+      "title": "Bladeform при выборе маршрута фарма",
+      "phase": "farm",
+      "level": "advanced",
+      "status": "research_candidate",
+      "readiness": "manual_or_replay",
+      "benefit": "Учитывать цену лишнего получаемого урона при подготовке следующего давления.",
+      "trigger": "Есть выбор маршрута с разной ценой мелкого урона перед важным эпизодом.",
+      "conditions": [
+        "Стаки/время и задача подтверждены",
+        "Избегание урона не теряет нужный фарм"
+      ],
+      "suppress_if": [
+        "Ожидание стаков теряет больше пользы",
+        "Нужно немедленное действие",
+        "Стаки не наблюдаются"
+      ],
+      "cancel_if": [
+        "Пропало любое обязательное условие",
+        "Изменилась цель/задача или сессия; старый план неактуален"
+      ],
+      "timing": "До решения, в спокойном окне; не пытаться голосом попасть в субсекундное исполнение.",
+      "repeat": "Повторять только после нового эпизода/изменения основания; выполнение плана подавляет повтор.",
+      "cost": "Время маршрута и отказ от части размена.",
+      "requires": [
+        "active_effects",
+        "wave_units",
+        "action_intent"
+      ],
+      "evidence": [
+        "J-form"
+      ],
+      "action": {
+        "uk": "Перед наступним епізодом уникай зайвого урону, якщо це не коштує фарму.",
+        "en": "Avoid needless damage before the next episode if it does not cost useful farm."
+      },
+      "reason": {
+        "uk": "Bladeform залежить від часу без отриманого урону.",
+        "en": "Bladeform depends on time without taking damage."
+      },
+      "scenarios": {
+        "positive": "Есть равноценный маршрут без ненужной потери стаков.",
+        "negative": "Стоять без фарма ради стаков: не советовать.",
+        "unknown": "Стаки отсутствуют в данных: не говорить, сколько бонуса потеряно."
+      }
+    },
+    {
+      "id": "juggernaut.slash_items",
+      "title": "Разрешённые действия во время Omnislash",
+      "phase": "fight",
+      "level": "advanced",
+      "status": "research_candidate",
+      "readiness": "manual_or_replay",
+      "benefit": "Не считать slash периодом полной недоступности собственных предметов.",
+      "trigger": "До эпизода подтверждена полезная комбинация с уже имеющимся предметом.",
+      "conditions": [
+        "Предмет применим и нужен",
+        "Фаза slash подтверждается",
+        "Тайминг отработан заранее"
+      ],
+      "suppress_if": [
+        "Нет полезного действия",
+        "Условия предмета не выполнены",
+        "Реактивный голос опоздает"
+      ],
+      "cancel_if": [
+        "Пропало любое обязательное условие",
+        "Изменилась цель/задача или сессия; старый план неактуален"
+      ],
+      "timing": "До решения, в спокойном окне; не пытаться голосом попасть в субсекундное исполнение.",
+      "repeat": "Повторять только после нового эпизода/изменения основания; выполнение плана подавляет повтор.",
+      "cost": "Мана/cooldown предмета и внимание.",
+      "requires": [
+        "own_inventory",
+        "active_effects",
+        "action_intent",
+        "target_state"
+      ],
+      "evidence": [
+        "J-omni-items"
+      ],
+      "action": {
+        "uk": "Під час Omnislash предмети доступні — підготуй потрібну дію заздалегідь.",
+        "en": "Items can be used during Omnislash; prepare the useful action in advance."
+      },
+      "reason": {
+        "uk": "Застосовуй лише те, що має користь у цьому епізоді.",
+        "en": "Use only what helps this episode."
+      },
+      "scenarios": {
+        "positive": "Заранее подтверждён полезный допустимый предметный каст.",
+        "negative": "Просто начать перечислять все предметы: молчать.",
+        "unknown": "Фаза и цель не подтверждены: не командовать субсекундным применением."
+      }
+    },
+    {
+      "id": "juggernaut.avoid_retrade",
+      "title": "Повторный размен без ресурса предыдущего эпизода",
+      "phase": "lane",
+      "level": "practical",
+      "status": "research_candidate",
+      "readiness": "manual_or_replay",
+      "benefit": "Увидеть изменившееся ограничение перед повторением неудачного размена.",
+      "trigger": "После полученного давления подтверждено намерение немедленного повторного размена.",
+      "conditions": [
+        "Потеря ресурса и cooldown Blade Fury известны",
+        "Дальнейший размен зависит от защиты"
+      ],
+      "suppress_if": [
+        "Спокойный фарм",
+        "Размен имеет другую подтверждённую выгоду",
+        "Нужна немедленная защита"
+      ],
+      "cancel_if": [
+        "Пропало любое обязательное условие",
+        "Изменилась цель/задача или сессия; старый план неактуален"
+      ],
+      "timing": "До решения, в спокойном окне; не пытаться голосом попасть в субсекундное исполнение.",
+      "repeat": "Повторять только после нового эпизода/изменения основания; выполнение плана подавляет повтор.",
+      "cost": "Ожидание ресурса или смена способа размена.",
+      "requires": [
+        "hp_history",
+        "own_abilities",
+        "own_resources",
+        "action_intent"
+      ],
+      "evidence": [
+        "J-spin",
+        "J-spin-time"
+      ],
+      "action": {
+        "uk": "Перед повторним розміном урахуй, що Blade Fury ще недоступна.",
+        "en": "Before repeating the trade, account for Blade Fury being unavailable."
+      },
+      "reason": {
+        "uk": "Попередній захисний ресурс ще не відновився.",
+        "en": "The previous defensive resource has not recovered."
+      },
+      "scenarios": {
+        "positive": "Повторяется конкретный неблагоприятный размен, защита недоступна.",
+        "negative": "Тот же cooldown при спокойном фарме: никакого совета.",
+        "unknown": "Намерение неизвестно: не запрещать любой бой и не предписывать отступление."
+      }
+    }
+  ],
+  "open_checks": [
+    "Проверить актуальную дебафф-иммунность и прерывание spin+TP против конкретных контролей; не использовать старое «spell immunity».",
+    "Нужны реальные наблюдения ward, окружения Omnislash и стартовых условий. Процент HP не подтверждает необходимость отступления.",
+    "Проверить Swiftslash по реально изученной/доступной способности: сам список API не доказывает наличие у игрока.",
+    "Сверить Blade Fury с улучшением, Bladeform и талантами; разные режимы атаки не смешивать."
+  ],
+  "first_implementation": [
+    "Мана на конкретное необходимое продолжение и отмена после её изменения.",
+    "Подготовительные карточки ward/изолированной цели только для подтверждённого намерения.",
+    "Следующий источник данных: положение ward и допустимые цели Omnislash; никакой гарантии по имени врага."
+  ]
+}
