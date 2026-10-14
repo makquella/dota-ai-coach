@@ -50,6 +50,8 @@ print(json.dumps(pure(raw)))
             "level": 2,
             "can_cast": False,
             "cooldown": 0,
+            "can_cast_observed": False,
+            "ability_active": None,
         }
     ]
 
@@ -94,6 +96,8 @@ def test_legacy_exports_scalar_bounds_and_returned_rows_remain_detached() -> Non
             "level": 2,
             "cooldown": 1.5,
             "can_cast": False,
+            "can_cast_observed": None,
+            "ability_active": None,
         }
     ]
     first[0]["name"] = "changed"
@@ -101,6 +105,7 @@ def test_legacy_exports_scalar_bounds_and_returned_rows_remain_detached() -> Non
     assert ability_normalization.normalize_abilities(None) == []
     assert ability_normalization.normalize_abilities([None, {"level": 1}, " "]) == []
     assert optional_number(float("nan")) is None
+    assert optional_number(True) is None
     assert optional_number(float("inf")) is None
     assert optional_number(MAX_GSI_NUMBER + 1) is None
     assert optional_number("0") == 0 and optional_number("1.5") == 1.5

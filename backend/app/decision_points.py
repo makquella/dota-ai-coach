@@ -3,8 +3,9 @@ decision_points.py — tiny event detector for GSI-driven overlay advice.
 """
 
 from collections.abc import Mapping
-from typing import Any, Literal
+from typing import Any, Literal, cast
 
+from app.hero_gameplay import selected_rule
 from app.hero_profiles import evaluate_laning_context, farm_pace
 from app.hero_safety import evaluate_hero_safety
 from app.item_timing import contains_meaningful_item_reference, is_meaningful_item_timing
@@ -25,6 +26,7 @@ DecisionPoint = Literal[
     "DEAD_WAIT",
     "SMOKED_STATUS",
     "HERO_SURVIVABILITY_RISK",
+    "HERO_GAMEPLAY",
     "LANING_REGEN_CHECK",
     "LANING_FARM_CHECK",
     "ABILITY_SAFETY_COOLDOWN",
@@ -372,13 +374,13 @@ def detect_decision_point(state: Mapping[str, Any] | None) -> DecisionPoint:
         extra_context = _extra_context(state)
         replay_death_decision = str(extra_context.get("death_review_decision") or "")
         if replay_death_decision in DEATH_DECISION_POINTS:
-            return replay_death_decision
+            return cast(DecisionPoint, replay_death_decision)
         state_session = extra_context.get("match_session_id")
         death_decision = MATCH_MEMORY.death_review_for_state(
             state_session, available=bool(extra_context.get("death_review_available"))
         )
         if death_decision in DEATH_DECISION_POINTS:
-            return death_decision
+            return cast(DecisionPoint, death_decision)
         return "DEATH_REVIEW"
 
     # Priority order keeps urgent survival and death review first, then profile-
@@ -453,6 +455,9 @@ def detect_decision_point(state: Mapping[str, Any] | None) -> DecisionPoint:
 
     if low_mana:
         return "LOW_MANA"
+
+    if selected_rule(state) is not None:
+        return "HERO_GAMEPLAY"
 
     if has_laning_farm_check(laning_context, minute=minute):
         return "LANING_FARM_CHECK"

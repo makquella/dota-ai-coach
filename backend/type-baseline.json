@@ -89,12 +89,6 @@
       "count": 2
     },
     {
-      "path": "app/decision_points.py",
-      "message": "Incompatible return value type (got \"str\", expected \"Literal['LOW_HP', 'LOW_HP_WARNING', 'RECENT_DAMAGE_WARNING', 'OVERSTAY_WARNING', 'DEATH_REVIEW', 'REPEATED_DEATH_PATTERN', 'DEATH_WITH_ESCAPE_ON_COOLDOWN', 'DEATH_LOW_RESOURCE', 'LOW_MANA', 'DISABLED_STATUS', 'BUYBACK_AVAILABLE', 'DEAD_WAIT', 'SMOKED_STATUS', 'HERO_SURVIVABILITY_RISK', 'LANING_REGEN_CHECK', 'LANING_FARM_CHECK', 'ABILITY_SAFETY_COOLDOWN', 'SOFT_STATUS', 'FARMING_PHASE_PRESSURE', 'OBJECTIVE_FIGHT_CHECK', 'BAD_FIGHT_RISK', 'ITEM_TIMING', 'SAFE_FARMING', 'NO_ADVICE']\")",
-      "code": "return-value",
-      "count": 2
-    },
-    {
       "path": "app/deep_replay_review.py",
       "message": "Argument 1 to \"_duration_minutes\" has incompatible type \"list[int | None]\"; expected \"list[int]\"",
       "code": "arg-type",

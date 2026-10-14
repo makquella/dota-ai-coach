@@ -22,6 +22,7 @@ from app.enemy_heroes import EnemyHeroes
 from app.enemy_lanes import EnemyLanes
 from app.farm_tracker import FarmTracker
 from app.gold_tips import GoldTips
+from app.hero_gameplay import HeroGameplay
 from app.live_hints import LiveHintInputs, render_live_hints
 from app.live_role import LiveRoleTracker
 from app.map_hints import RoleTips, timers
@@ -147,6 +148,7 @@ class MatchMemory:
         self.roshan = RoshanTimer()
         self.enemies = EnemyHeroes()
         self.enemy_lanes = EnemyLanes()
+        self.gameplay = HeroGameplay()
 
     def observe_state(self, state: dict[str, Any]) -> dict[str, Any]:
         # Roshan/Aegis can need timer settings on the first observed event.
@@ -249,6 +251,7 @@ class MatchMemory:
             )
         self.last_states.append(_copy_state(state))
         self._annotate_state(state)
+        self.gameplay.observe(state)
         return state
 
     @_owned
@@ -276,6 +279,18 @@ class MatchMemory:
     @_owned
     def note_advice(self, decision_point: str) -> None:
         self.last_advice_type = decision_point
+
+    @_owned
+    def gameplay_context(self, state: Mapping[str, Any]) -> dict[str, Any] | None:
+        if _ctx_value(state, "match_session_id") != self.match_id or state.get("hero") != self.hero:
+            return None
+        return self.gameplay.context(state)
+
+    @_owned
+    def note_gameplay_advice(self, state: Mapping[str, Any], context: Mapping[str, Any]) -> None:
+        clock = _game_clock(state)
+        if clock is not None and _ctx_value(state, "match_session_id") == self.match_id:
+            self.gameplay.shown(context, clock)
 
     @_owned
     def role_snapshot(self, prior: dict[str, Any] | None = None) -> dict[str, Any] | None:

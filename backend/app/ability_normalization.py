@@ -78,7 +78,8 @@ def normalize_abilities(value: Any) -> list[dict[str, Any]]:
 def _normalize_ability(value: Any) -> dict[str, Any] | None:
     if isinstance(value, dict):
         raw_name = optional_str(value.get("name"))
-        level = optional_int(value.get("level"))
+        raw_level = optional_number(value.get("level"))
+        level = optional_int(raw_level) if raw_level is not None and raw_level % 1 == 0 else None
         cooldown = optional_number(
             first_value(
                 value.get("cooldown"), value.get("cooldown_remaining"), value.get("cooldown_time")
@@ -87,11 +88,17 @@ def _normalize_ability(value: Any) -> dict[str, Any] | None:
         can_cast = optional_bool(value.get("can_cast"))
         if can_cast is None:
             can_cast = optional_bool(value.get("ability_active"))
+        observed_cast = value.get("can_cast")
+        observed_cast = observed_cast if isinstance(observed_cast, bool) else None
+        active = value.get("ability_active")
+        active = active if isinstance(active, bool) else None
     else:
         raw_name = optional_str(value)
         level = None
         cooldown = None
         can_cast = None
+        observed_cast = None
+        active = None
 
     if not raw_name:
         return None
@@ -102,6 +109,9 @@ def _normalize_ability(value: Any) -> dict[str, Any] | None:
         "level": level,
         "cooldown": cooldown,
         "can_cast": can_cast,
+        # ability_active only describes the HUD slot, not actual castability.
+        "can_cast_observed": observed_cast,
+        "ability_active": active,
     }
 
 

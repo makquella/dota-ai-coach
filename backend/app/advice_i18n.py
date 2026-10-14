@@ -25,6 +25,7 @@ from functools import lru_cache, partial
 from hashlib import sha256
 from typing import Any
 
+from app.hero_gameplay_texts import GAMEPLAY_TRANSLATIONS
 from app.last_moments import RUNES_UK
 
 DEFAULT_LANG = "en"
@@ -1007,6 +1008,11 @@ _UK_FUNCTIONS: tuple[tuple[re.Pattern[str], Callable[[dict[str, str]], str]], ..
 
 # advice_ux_policy rewords coaching-mode actions as "Consider: <action>" (older
 # logs and history have "Consider <action>").
+_UK_PATTERNS += tuple(
+    (re.compile(r"^" + re.escape(source) + r"$"), translated)
+    for source, translated in GAMEPLAY_TRANSLATIONS.items()
+)
+
 _CONSIDER_PREFIX = re.compile(r"^Consider:? (?P<rest>.+)$")
 _SENTENCE_SPLIT = re.compile(r"(?<=[.;!?])\s+(?=[A-Z])")
 _TRUNCATION = "..."

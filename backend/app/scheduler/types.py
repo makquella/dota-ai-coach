@@ -31,6 +31,7 @@ AdviceType = Literal[
     "DEAD_WAIT",
     "SMOKED_STATUS",
     "HERO_SURVIVABILITY_RISK",
+    "HERO_GAMEPLAY",
     "LANING_REGEN_CHECK",
     "LANING_FARM_CHECK",
     "ABILITY_SAFETY_COOLDOWN",
@@ -66,3 +67,4 @@ class ScheduledAdvice:
     low_hp_episode_id: int | None = None
     game_time_gap_since_previous_advice: float | None = None
     suppressed_by_game_time_spacing: bool = False
+    hero_gameplay: dict[str, Any] | None = None

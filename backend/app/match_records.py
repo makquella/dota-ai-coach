@@ -195,6 +195,7 @@ class MatchRecords:
                         "w": round(now, 2),
                         "clock": response.get("clock_time"),
                         "dp": response.get("decision_point"),
+                        "hero_gameplay": response.get("hero_gameplay"),
                         "action": recommendation.get("action"),
                         "reason": recommendation.get("reason"),
                         "priority": recommendation.get("priority"),

@@ -63,6 +63,7 @@ class SchedulerState:
     _last_advice_state_hash: str | None = None
     _last_advice_tactical_state_hash: str | None = None
     _last_recommendation: RecommendationResponse | None = None
+    _last_gameplay_context: dict[str, Any] | None = None
     _last_source: OverlaySource = "none"
     _last_llm_used: bool = False
     _last_advice_mode: str = "status"

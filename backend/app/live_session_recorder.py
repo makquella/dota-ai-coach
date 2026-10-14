@@ -121,6 +121,7 @@ class LiveSessionRecorder:
                 "hero": state.get("hero"),
                 "game_time": _extra(state).get("game_time"),
                 "decision_point": response.get("decision_point"),
+                "hero_gameplay": response.get("hero_gameplay"),
                 "action": recommendation.get("action"),
                 "reason": recommendation.get("reason"),
                 "priority": recommendation.get("priority"),

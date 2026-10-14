@@ -16,7 +16,7 @@ def optional_int(value: Any) -> int | None:
 
 
 def optional_number(value: Any) -> float | int | None:
-    if value is None:
+    if value is None or isinstance(value, bool):
         return None
     try:
         number = float(value)
