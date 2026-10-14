@@ -8,8 +8,9 @@ name: Promo
 # here: the buttons in Telegram go to the Worker (services/api/src/promo.js),
 # which publishes only after «✅ Всюди», «📣 Лише Telegram» or «▶️ Лише YouTube».
 #
-# Secrets: ELEVENLABS_API_KEY (the voice; variables ELEVENLABS_VOICE_ID and
-# ELEVENLABS_MODEL optional), API_ADMIN_TOKEN, TELEGRAM_BOT_TOKEN,
+# Selected voice: Alex Nekrasov, eleven_v4, UK, stability 0.5, speed 1.0.
+# Manual voice_preset=custom uses optional ELEVENLABS_* repository variables.
+# Secrets: ELEVENLABS_API_KEY (the voice), API_ADMIN_TOKEN, TELEGRAM_BOT_TOKEN,
 # TELEGRAM_CHAT_ID (the developer's chat). Without the Telegram ones the video
 # is only built and kept as an artifact.
 on:
@@ -22,6 +23,11 @@ on:
         type: choice
         options: [auto, draft, coach, meta, hero, fact, release]
         default: auto
+      voice_preset:
+        description: "Narration (Alex natural is the selected variant A; custom uses variables)"
+        type: choice
+        options: [alex-natural, custom]
+        default: alex-natural
       voice_lab:
         description: "Voice comparison (catalog checks models/voices without TTS)"
         type: choice
@@ -86,14 +92,21 @@ jobs:
         env:
           FORMAT: ${{ inputs.format }}
           ELEVENLABS_API_KEY: ${{ secrets.ELEVENLABS_API_KEY }}
-          ELEVENLABS_VOICE_ID: ${{ vars.ELEVENLABS_VOICE_ID }}
-          ELEVENLABS_MODEL: ${{ vars.ELEVENLABS_MODEL }}
+          ELEVENLABS_VOICE_ID: ${{ inputs.voice_preset == 'custom' && vars.ELEVENLABS_VOICE_ID || '9Sj8ugvpK1DmcAXyvi3a' }}
+          ELEVENLABS_VOICE_NAME: ${{ inputs.voice_preset == 'custom' && vars.ELEVENLABS_VOICE_NAME || '' }}
+          ELEVENLABS_MODEL: ${{ inputs.voice_preset == 'custom' && vars.ELEVENLABS_MODEL || 'eleven_v4' }}
+          ELEVENLABS_LANGUAGE: ${{ inputs.voice_preset == 'custom' && vars.ELEVENLABS_LANGUAGE || 'uk' }}
+          ELEVENLABS_STABILITY: ${{ inputs.voice_preset == 'custom' && vars.ELEVENLABS_STABILITY || '0.5' }}
+          ELEVENLABS_SPEED: ${{ inputs.voice_preset == 'custom' && vars.ELEVENLABS_SPEED || '1.0' }}
+          ELEVENLABS_CONTINUOUS: ${{ inputs.voice_preset == 'custom' && vars.ELEVENLABS_CONTINUOUS || 'true' }}
+          RECORD_HISTORY: ${{ github.ref == 'refs/heads/main' }}
         run: |
           if [ -z "$ELEVENLABS_API_KEY" ]; then
             echo "::error title=Promo voice::ELEVENLABS_API_KEY is not set: add it in Settings -> Secrets and variables -> Actions"
             exit 1
           fi
-          args=(--out promo-out --record)
+          args=(--out promo-out)
+          if [ "$RECORD_HISTORY" = true ]; then args+=(--record); fi
           if [ -n "$FORMAT" ] && [ "$FORMAT" != auto ]; then args+=(--format "$FORMAT"); fi
           # A crash shows up as a check annotation too (the job log is not
           # always at hand); quality findings annotate themselves.
@@ -146,7 +159,7 @@ jobs:
             exit "$status"
           fi
       - name: Remember what was made
-        if: inputs.voice_lab == '' || inputs.voice_lab == 'off'
+        if: github.ref == 'refs/heads/main' && (inputs.voice_lab == '' || inputs.voice_lab == 'off')
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"

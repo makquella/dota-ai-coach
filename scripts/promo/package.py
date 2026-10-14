@@ -116,7 +116,8 @@ def make(
     voices: list[Path | None] = []
     seconds: list[float | None] = []
     words: list[list[dict[str, Any]] | None] = []
-    continuous = os.environ.get("ELEVENLABS_CONTINUOUS") == "true" and with_video
+    voice_config = voice.configuration()
+    continuous = voice_config["continuous"] and with_video and voice.available()
     narrated = (
         voice.synthesize_scenes([scene.voice for scene in item.scenes], out) if continuous else None
     )
@@ -161,6 +162,8 @@ def make(
         "script": item.to_dict(),
         "voice": "elevenlabs" if any(v is not None for v in voices) else "none",
     }
+    if any(v is not None for v in voices):
+        package["voice_config"] = voice_config
     media = None
     if with_video:
         audio = None

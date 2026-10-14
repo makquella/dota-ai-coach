@@ -1,15 +1,9 @@
-"""The voice-over: ElevenLabs (multilingual model), the script's Ukrainian with
-the English hero and ability names read as they are.
+"""Promo narration: selected Ukrainian Alex Nekrasov on ElevenLabs v4.
 
-One WAV per scene (16-bit mono PCM, RATE), and the time of every word from
-ElevenLabs' character alignment: the subtitles light up word by word with the
-voice. Neighbouring scenes go along as `previous_text` / `next_text`, so the
-intonation runs on across cuts.
-
-Environment: ELEVENLABS_API_KEY (a repository secret), ELEVENLABS_VOICE_ID and
-ELEVENLABS_MODEL (optional). Without the key `synthesize` returns None and
-the video is made silent; the quality check refuses to send a silent video
-for approval. The key is never printed."""
+One continuous take is aligned and split for the scene renderer. Legacy models
+can retain per-scene narration/context with explicit environment overrides.
+ELEVENLABS_API_KEY is used only in request headers and never in metadata/logs.
+"""
 
 from __future__ import annotations
 
@@ -25,10 +19,10 @@ from typing import Any
 
 API = "https://api.elevenlabs.io/v1/text-to-speech/{voice}/with-timestamps?output_format=pcm_22050"
 RATE = 22050
-# A premade voice that every account has; a native Ukrainian voice from the
-# Voice Library sounds better: put its id into the ELEVENLABS_VOICE_ID variable.
-DEFAULT_VOICE = "TX3LPaxmHKxFdv7VOQHJ"  # "Liam"
-DEFAULT_MODEL = "eleven_multilingual_v2"
+# Variant A selected by the developer after the live Telegram comparisons.
+DEFAULT_VOICE = "9Sj8ugvpK1DmcAXyvi3a"
+DEFAULT_VOICE_NAME = "Alex Nekrasov - Confident and Clear"
+DEFAULT_MODEL = "eleven_v4"
 SETTINGS = {"stability": 0.4, "similarity_boost": 0.8, "style": 0.35, "use_speaker_boost": True}
 TIMEOUT = 120
 RETRIES = (2, 5, 15)
@@ -99,13 +93,34 @@ def _post(url: str, body: dict[str, Any], key: str) -> dict[str, Any]:
 def settings(model: str) -> dict[str, Any]:
     values = dict(SETTINGS)
     if model in {"eleven_v3", "eleven_v4"}:
-        values = {"stability": 0.5}
+        values = {"stability": 0.5, "speed": 1.0}
     for name, env in (("stability", "ELEVENLABS_STABILITY"), ("speed", "ELEVENLABS_SPEED")):
         if os.environ.get(env):
             values[name] = float(os.environ[env])
     if not 0 <= values["stability"] <= 1 or not 0.7 <= values.get("speed", 1.0) <= 1.2:
         raise ValueError("Unsupported voice stability/speed")
     return values
+
+
+def configuration() -> dict[str, Any]:
+    """Effective non-secret settings, shared by narration and package metadata."""
+    selected = os.environ.get("ELEVENLABS_VOICE_ID", "").strip() or DEFAULT_VOICE
+    model = os.environ.get("ELEVENLABS_MODEL", "").strip() or DEFAULT_MODEL
+    modern = model in {"eleven_v3", "eleven_v4"}
+    continuous = os.environ.get("ELEVENLABS_CONTINUOUS", "").strip().lower()
+    if continuous not in {"", "true", "false"}:
+        raise ValueError("ELEVENLABS_CONTINUOUS must be true or false")
+    values = settings(model)
+    return {
+        "voice_id": selected,
+        "name": os.environ.get("ELEVENLABS_VOICE_NAME", "").strip()
+        or (DEFAULT_VOICE_NAME if selected == DEFAULT_VOICE else selected),
+        "model": model,
+        "language": os.environ.get("ELEVENLABS_LANGUAGE", "").strip() or ("uk" if modern else None),
+        "stability": values["stability"],
+        "speed": values.get("speed", 1.0),
+        "continuous": continuous == "true" if continuous else modern,
+    }
 
 
 def synthesize(
@@ -115,20 +130,20 @@ def synthesize(
     key = os.environ.get("ELEVENLABS_API_KEY", "").strip()
     if not key:
         return None
-    voice = os.environ.get("ELEVENLABS_VOICE_ID", "").strip() or DEFAULT_VOICE
-    model = os.environ.get("ELEVENLABS_MODEL", "").strip() or DEFAULT_MODEL
+    config = configuration()
+    selected, model = config["voice_id"], config["model"]
     body: dict[str, Any] = {
         "text": text,
         "model_id": model,
         "voice_settings": settings(model),
     }
-    if os.environ.get("ELEVENLABS_LANGUAGE"):
-        body["language_code"] = os.environ["ELEVENLABS_LANGUAGE"]
+    if config["language"]:
+        body["language_code"] = config["language"]
     if previous and model not in {"eleven_v3", "eleven_v4"}:
         body["previous_text"] = previous
     if following and model not in {"eleven_v3", "eleven_v4"}:
         body["next_text"] = following
-    answer = _post(API.format(voice=voice), body, key)
+    answer = _post(API.format(voice=selected), body, key)
     pcm = base64.b64decode(answer.get("audio_base64") or "")
     if not pcm:
         raise SystemExit("ElevenLabs: empty audio")

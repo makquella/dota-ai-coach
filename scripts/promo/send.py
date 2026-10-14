@@ -131,6 +131,12 @@ def approval_caption(package: dict[str, Any]) -> str:
         ),
         f"{package['seconds']:.0f} с · голос: {html.escape(package.get('voice', '?'))}",
     ]
+    profile = package.get("voice_config")
+    if profile and package.get("voice") == "elevenlabs":
+        lines[1] = (
+            f"{package['seconds']:.0f} с · {html.escape(profile['name'])} · "
+            f"{html.escape(profile['model'])}"
+        )
     if report["warnings"]:
         lines.append("⚠️ " + html.escape("; ".join(report["warnings"]))[:400])
     lines.append("Опублікувати? Деталі — у відповіді нижче.")

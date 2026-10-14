@@ -129,7 +129,7 @@ def test_continuous_take_uses_one_real_request_and_preserves_scene_word_times(
     assert len(calls) == 1
     request = json.loads(calls[0][1])
     assert request["model_id"] == "eleven_v3" and request["language_code"] == "uk"
-    assert request["voice_settings"] == {"stability": 0.5}
+    assert request["voice_settings"] == {"stability": 0.5, "speed": 1.0}
     assert "previous_text" not in request and "next_text" not in request
     for (path, words), text in zip(pieces, texts, strict=True):
         assert [w["word"] for w in words] == text.split()
@@ -158,3 +158,31 @@ def test_preview_delivery_is_real_bot_upload_without_publish_callbacks(
     assert calls[0][0] == "/botpreview-test-token/sendVideo"
     assert b"video-fixture" in calls[0][1] and b"Native &amp; Voice" in calls[0][1]
     assert b"reply_markup" not in calls[0][1] and b"promo:all" not in calls[0][1]
+
+
+def test_default_narration_requests_selected_A_in_one_continuous_take(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    for name in (
+        "ELEVENLABS_VOICE_ID",
+        "ELEVENLABS_VOICE_NAME",
+        "ELEVENLABS_MODEL",
+        "ELEVENLABS_LANGUAGE",
+        "ELEVENLABS_STABILITY",
+        "ELEVENLABS_SPEED",
+        "ELEVENLABS_CONTINUOUS",
+    ):
+        monkeypatch.delenv(name, raising=False)
+    monkeypatch.setenv("ELEVENLABS_API_KEY", "test-key")
+    with _provider() as (url, calls):
+        monkeypatch.setattr(voice, "API", url + "/v1/tts/{voice}")
+        pieces = voice.synthesize_scenes(["Досі купуєш?", "Wardly підказує."], tmp_path)
+    assert len(calls) == 1 and len(pieces) == 2
+    assert calls[0][0].endswith("/9Sj8ugvpK1DmcAXyvi3a")
+    body = json.loads(calls[0][1])
+    assert body["model_id"] == "eleven_v4" and body["language_code"] == "uk"
+    assert body["voice_settings"] == {"stability": 0.5, "speed": 1.0}
+    assert "previous_text" not in body and "next_text" not in body
+    effective = voice.configuration()
+    assert effective["continuous"] and effective["name"] == "Alex Nekrasov - Confident and Clear"
+    assert "test-key" not in json.dumps(effective)

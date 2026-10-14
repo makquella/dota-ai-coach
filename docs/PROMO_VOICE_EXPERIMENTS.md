@@ -1,8 +1,11 @@
 # Manual Ukrainian voice comparisons
 
 PRs #188 and #189 introduced ElevenLabs scene narration and the draft video
-format. The code defaults to `eleven_multilingual_v2` and the premade Liam;
-repository variables may override them. `/v1/` is the API route version, rather
+format, originally defaulting to `eleven_multilingual_v2` and premade Liam.
+After the live comparison the developer selected **A** on 14 October 2026:
+**Alex Nekrasov — Confident and Clear**, `eleven_v4`, Ukrainian, stability `0.5`,
+speed `1.0`, continuous narration. This is now the scheduled/default preset;
+manual `voice_preset=custom` retains explicit repository-variable overrides. `/v1/` is the API route version, rather
 than the speech model version. The voice lab checks the authenticated model
 catalog and chooses `eleven_v4` when available, otherwise `eleven_v3`; it refuses
 to silently fall back to an older model.
@@ -31,7 +34,7 @@ context. Every output records the actual model, voice, stability and speed.
 
 Comparisons go directly to the configured developer Telegram chat, with variant
 labels. They are absent from the publishing queue, have no publication callbacks
-and do not alter production voice variables or rotation history. Scheduled
+and do not alter repository variables or rotation history. Scheduled
 videos retain their existing approval/publishing flow. Manual checkout uses the
 actual dispatched commit so a branch experiment cannot silently run main code.
 
