@@ -126,6 +126,8 @@ def build_state_hash(state: dict[str, Any], decision_point: str) -> str:
         if decision_point in DEATH_REVIEW_DECISIONS
         else None,
     }
+    if decision_point == "HERO_GAMEPLAY":
+        payload["hero_gameplay"] = _gameplay_signature(extra_context, decision_point)
     raw = json.dumps(payload, sort_keys=True, separators=(",", ":"))
     return hashlib.sha1(raw.encode("utf-8")).hexdigest()[:16]
 
@@ -154,5 +156,16 @@ def build_tactical_state_hash(
         if decision_point in DEATH_REVIEW_DECISIONS
         else None,
     }
+    if decision_point == "HERO_GAMEPLAY":
+        payload["hero_gameplay"] = _gameplay_signature(extra_context, decision_point)
     raw = json.dumps(payload, sort_keys=True, separators=(",", ":"))
     return hashlib.sha1(raw.encode("utf-8")).hexdigest()[:16]
+
+
+def _gameplay_signature(extra: object, decision_point: str) -> object:
+    if not isinstance(extra, dict):
+        return None
+    context = extra.get("hero_gameplay")
+    if decision_point != "HERO_GAMEPLAY" or not isinstance(context, dict):
+        return None
+    return {key: context.get(key) for key in ("rule_id", "version", "episode_id")}

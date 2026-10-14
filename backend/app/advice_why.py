@@ -36,6 +36,10 @@ WHY: dict[str, dict[str, str]] = {
         "uk": "Ваш герой легко гине, а здоров'я чи мани мало або поруч бійка.",
         "en": "Your hero dies easily, and health or mana was low or a fight was near.",
     },
+    "HERO_GAMEPLAY": {
+        "uk": "Власна здібність і потрібні ресурси доступні. Це нагадування для підготовки: ціль і готовність ворога застосунок не бачить.",
+        "en": "Your own ability and the required resources are available. This is preparation; the target and enemy readiness are not observed.",
+    },
     "ABILITY_SAFETY_COOLDOWN": {
         "uk": "Ваше вміння для втечі чи захисту ще перезаряджається — без нього ризикувати не можна.",
         "en": "Your escape or defensive ability was on cooldown: without it, risks cost more.",

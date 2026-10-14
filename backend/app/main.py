@@ -124,7 +124,7 @@ app = LocalApiApp(
     lifespan=_lifespan,
     title="Wardly",
     description="MVP-1: rule-based carry coach with local knowledge-base RAG.",
-    version="0.56.3",
+    version="0.56.4",
 )
 app.include_router(player_router)
 
@@ -160,7 +160,7 @@ if _DEBUG_PAGES is not None:
 @app.get("/", summary="Health check")
 def root():
     """Simple health-check endpoint."""
-    return {"status": "ok", "service": "Wardly", "version": "0.56.3"}
+    return {"status": "ok", "service": "Wardly", "version": "0.56.4"}
 
 
 @app.get("/health", summary="Health check")
@@ -722,7 +722,7 @@ def _overlay_decision() -> dict[str, object] | tuple[Any, ...]:
             seconds_since_last_gsi=_seconds_since_timestamp(current.get("timestamp")),
         )
 
-    state = current["state"] or {}
+    state = _with_hero_gameplay(current["state"] or {})
     coverage = _advisor_coverage(state)
     if not coverage:
         ADVICE_SCHEDULER.observe_state(state, "NO_ADVICE")
@@ -792,7 +792,18 @@ def _overlay_decision() -> dict[str, object] | tuple[Any, ...]:
         return rag_context
 
     scheduled = ADVICE_SCHEDULER.evaluate(request, decision_point, context)
+    if scheduled.new_advice and scheduled.hero_gameplay is not None:
+        MATCH_MEMORY.note_gameplay_advice(state, scheduled.hero_gameplay)
     return current, state, request, decision_point, scheduled, rag_context
+
+
+def _with_hero_gameplay(state: dict[str, Any]) -> dict[str, Any]:
+    """Read the owned pending episode while the live operation owns this snapshot."""
+    extra = state.get("extra_context")
+    if not isinstance(extra, dict):
+        return state
+    context = MATCH_MEMORY.gameplay_context(state)
+    return {**state, "extra_context": {**extra, "hero_gameplay": context}}
 
 
 @app.post("/demo/replay-state", summary="Inject one replay-derived state for overlay demo")
@@ -1058,6 +1069,7 @@ def _overlay_response(
         "suppressed_by_game_time_spacing": scheduled.suppressed_by_game_time_spacing,
         "timestamp": gsi_timestamp,
         "event": scheduled.decision_point,
+        "hero_gameplay": scheduled.hero_gameplay,
         **_overlay_live_context(state or {}),
     }
     if log_filename:
@@ -1457,6 +1469,7 @@ SAFETY_ONLY_DECISIONS = {
 # map tips' business (stacks, pulls, wards, save items).
 SUPPORT_DECISIONS = SAFETY_ONLY_DECISIONS | {
     "HERO_SURVIVABILITY_RISK",
+    "HERO_GAMEPLAY",
     "ABILITY_SAFETY_COOLDOWN",
     "OBJECTIVE_FIGHT_CHECK",
     "BAD_FIGHT_RISK",

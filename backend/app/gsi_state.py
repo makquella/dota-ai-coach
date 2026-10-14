@@ -25,7 +25,7 @@ from app.gsi_values import title_from_token as _title_from_token
 from app.hero_profiles import evaluate_laning_context, load_hero_profile
 from app.hero_safety import evaluate_hero_safety
 from app.item_timing import normalize_item_name
-from app.last_moments import ready_savers
+from app.last_moments import active_slot, ready_savers
 from app.live_tools import bottle_rune, regen_items, wand_charges
 from app.map_hints import has_observer_ward, item_names, observer_charges, timers
 from app.signal_capabilities import capability_summary, live_gsi_observed_capabilities
@@ -424,6 +424,21 @@ def _normalize_extra_context(
         "clock_time": _optional_int(map_block.get("clock_time")),
         "daytime": _optional_bool(map_block.get("daytime")),
         "paused": _optional_bool(map_block.get("paused")) or False,
+        "paused_observed": map_block.get("paused")
+        if isinstance(map_block.get("paused"), bool)
+        else None,
+        # Preserve unknown separately from the legacy false defaults. Hero
+        # preparation never treats a missing disable flag as confirmed clear.
+        "observed_status": {
+            flag: hero_block.get(flag) if isinstance(hero_block.get(flag), bool) else None
+            for flag in ("stunned", "hexed", "silenced", "muted", "disarmed", "smoked")
+        },
+        "aghanims_scepter": hero_block.get("aghanims_scepter")
+        if isinstance(hero_block.get("aghanims_scepter"), bool)
+        else None,
+        "aghanims_shard": hero_block.get("aghanims_shard")
+        if isinstance(hero_block.get("aghanims_shard"), bool)
+        else None,
         "has_abilities": has_abilities,
         "has_buildings": has_buildings,
         # TP scroll in its slot or Boots of Travel (None: no items block).
@@ -448,6 +463,7 @@ def _normalize_extra_context(
         "has_aegis": _has_aegis(hero_block, payload.get("items")),
         # What can be pressed right now (live_tools.py: the survival advice names it).
         "ready_savers": _ready_savers(payload.get("items")),
+        "own_castable_items": _own_castable_items(payload.get("items")),
         "wand_charges": wand_charges(payload.get("items")),
         "regen_items": regen_items(payload.get("items")),
         # The rune kept in the Bottle (an escape at low HP, a kill for the mid).
@@ -502,6 +518,22 @@ def _has_aegis(hero_block: dict[str, Any], items: Any) -> bool | None:
     if names is None:
         return None
     return "item_aegis" in names
+
+
+def _own_castable_items(items: Any) -> list[str] | None:
+    """Explicit ready observations, excluding passive/backpack/stash items."""
+    if not isinstance(items, dict):
+        return None
+    return [
+        item["name"]
+        for slot, item in items.items()
+        if active_slot(slot)
+        and isinstance(item, dict)
+        and isinstance(item.get("name"), str)
+        and item.get("passive") is not True
+        and item.get("can_cast") is True
+        and _optional_number(item.get("cooldown")) == 0
+    ]
 
 
 def _ready_savers(items: Any) -> list[str] | None:

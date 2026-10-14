@@ -6,6 +6,8 @@ short, safe action/reason/risk text.
 """
 
 from app.advice_policy import build_advice_policy
+from app.hero_gameplay import selected_rule
+from app.hero_gameplay_texts import GAMEPLAY_RISK
 from app.hero_profiles import evaluate_laning_context
 from app.laning_coach import build_laning_advice
 from app.live_tools import (
@@ -212,6 +214,12 @@ def _fallback_text(req: GameSituationRequest, action_type: str) -> dict[str, str
 
 
 def _base_fallback_text(req: GameSituationRequest, action_type: str) -> dict[str, str]:
+    if action_type == "prepare_hero_action":
+        rule = selected_rule(req.model_dump())
+        if rule is not None:
+            return {"action": rule.action, "reason": rule.reason, "risk": GAMEPLAY_RISK}
+        return FALLBACK_TEXT["no_advice"]
+
     post_laning_text = _post_laning_fallback_text(req, action_type)
     if post_laning_text is not None:
         return post_laning_text

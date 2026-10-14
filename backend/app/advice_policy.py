@@ -17,6 +17,18 @@ def build_advice_policy(game_state: Mapping[str, Any] | Any, decision_point: str
     archetype = _detect_hero_archetype(str(state.get("hero", "")))
     base_goal = _overlay_goal(phase, archetype)
 
+    if decision_point == "HERO_GAMEPLAY":
+        return {
+            "action_type": "prepare_hero_action",
+            "priority": "low",
+            "time_window": "before your next planned action",
+            "safety_constraints": [
+                "preparation only, never a guaranteed escape or target command",
+                "unknown targets, controlled units and enemy readiness stay unknown",
+            ],
+            "overlay_goal": "Prepare the hero's next action using observed own resources.",
+        }
+
     if decision_point == "LOW_HP":
         return {
             "action_type": "retreat_reset",

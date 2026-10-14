@@ -121,6 +121,8 @@ _BASELINE: dict[str, object] = {
     "_last_advice_mode": "urgent",
     "_last_advice_state_hash": "3a880a05553506f4",
     "_last_advice_tactical_state_hash": "4e24c34fe1e86ba9",
+    # New hero-card cancellation metadata is empty in this legacy scenario.
+    "_last_gameplay_context": None,
     "_last_laning_category": {
         "critical_hp_reset": {
             "action": "Reset HP before showing on another lane.",

@@ -30,6 +30,7 @@ from __future__ import annotations
 import threading
 import time
 from collections.abc import Callable, Iterable
+from copy import deepcopy
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from typing import Any
@@ -40,6 +41,7 @@ from app.advice_ux_policy import (
     apply_ux_policy,
 )
 from app.config import ADVICE_FREQUENCY, USE_LLM
+from app.hero_gameplay import rule_valid
 from app.laning_coach import (
     REPEAT_WINDOW_SECONDS,
     build_laning_advice,
@@ -211,6 +213,7 @@ class AdviceScheduler:
 
         with self._lock:
             self._ensure_session_locked(current_time, minute, state)
+            self._cancel_gameplay_if_invalid_locked(state)
             self._game_time_seconds_locked(state, current_time)
             self._update_hashes_locked(state_hash, tactical_hash)
             self._update_low_hp_recovery_locked(state)
@@ -247,6 +250,7 @@ class AdviceScheduler:
         # Runs under the already-held evaluate lock (Zone 1); does NOT acquire it.
         # Produces game_time_seconds and mutates session/hash/recovery state.
         self._ensure_session_locked(current_time, request.minute, state)
+        self._cancel_gameplay_if_invalid_locked(state)
         game_time_seconds = self._game_time_seconds_locked(state, current_time)
         self._update_hashes_locked(state_hash, tactical_hash)
         if decision_point != "LOW_HP":
@@ -368,6 +372,12 @@ class AdviceScheduler:
         self.state._last_advice_state_hash = state_hash
         self.state._last_advice_tactical_state_hash = tactical_hash
         self.state._last_recommendation = fallback
+        gameplay = (state.get("extra_context") or {}).get("hero_gameplay")
+        self.state._last_gameplay_context = (
+            deepcopy(gameplay)
+            if decision_point == "HERO_GAMEPLAY" and isinstance(gameplay, dict)
+            else None
+        )
         self.state._last_source = "fallback"
         self.state._last_llm_used = False
         self.state._last_advice_mode = ux_result["advice_mode"]
@@ -894,6 +904,9 @@ class AdviceScheduler:
             last_visible_advice=fallback.model_dump(),
             is_pinned=self.state._is_pinned,
             game_time_gap_since_previous_advice=gap,
+            hero_gameplay=deepcopy(request.extra_context.get("hero_gameplay"))
+            if decision_point == "HERO_GAMEPLAY"
+            else None,
         )
 
     def evaluate(
@@ -1677,6 +1690,13 @@ class AdviceScheduler:
             state
         )
 
+    def _cancel_gameplay_if_invalid_locked(self, state: dict[str, Any]) -> None:
+        context = self.state._last_gameplay_context
+        if context is not None and not rule_valid(state, context.get("rule_id")):
+            self.state._active_advice_until = None
+            self.state._last_recommendation = None
+            self.state._last_gameplay_context = None
+
     def _ensure_session_locked(self, now: datetime, minute: int, state: dict[str, Any]) -> None:
         session_id = _session_id_from_state(state)
         if self.state.match_started_at is None:
@@ -1955,6 +1975,9 @@ class AdviceScheduler:
             low_hp_episode_id=self.state._low_hp_episode_id if decision_point == "LOW_HP" else None,
             game_time_gap_since_previous_advice=game_time_gap_since_previous_advice,
             suppressed_by_game_time_spacing=suppressed_by_game_time_spacing,
+            hero_gameplay=deepcopy(self.state._last_gameplay_context)
+            if recommendation is not None and decision_point == "HERO_GAMEPLAY"
+            else None,
         )
 
     def _cooldown_remaining_locked(
@@ -2027,7 +2050,13 @@ class AdviceScheduler:
         return "cooldown" if remaining > 0 else None
 
     def _should_start_llm_locked(self, decision_point: str, tactical_hash: str) -> bool:
-        if decision_point in {"NO_ADVICE", "SOFT_STATUS", "LOW_HP", *DEATH_REVIEW_DECISIONS}:
+        if decision_point in {
+            "NO_ADVICE",
+            "SOFT_STATUS",
+            "LOW_HP",
+            "HERO_GAMEPLAY",
+            *DEATH_REVIEW_DECISIONS,
+        }:
             return False
         if not self._llm_enabled():
             return False

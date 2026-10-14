@@ -9,6 +9,10 @@
 
   const TEXT = {
     en: {
+      "0.56.4": [
+        "15 gameplay preparation tips for Sven, Juggernaut and Terrorblade: ultimate windows, Omnislash setup, Healing Ward recovery, Sunder target checks and upgraded Hammer. They use your observed abilities and upgrades; they never choose an unseen target or guarantee an escape.",
+        "The new tips use the main card and normal advice voice. If you enable weekly match recordings, the saved file also identifies the rule and its observed own resources for playtest feedback."
+      ],
       "0.56.3": [
         "Refreshed starting items and builds for 127 heroes using STRATZ Divine–Immortal data from October 13: used by the starting card, game plan and quick-buy tips.",
         "Prepared 73 contextual gameplay advice candidates for Ember Spirit, Juggernaut, Terrorblade, Dazzle and Sven, with conditions and exceptions. This is research for upcoming improvements; these tips are not enabled in matches yet."
@@ -538,6 +542,10 @@
       ]
     },
     uk: {
+      "0.56.4": [
+        "15 порад підготовки для Sven, Juggernaut і Terrorblade: вікна ультимейтів, підготовка Omnislash, відновлення через Healing Ward, перевірка цілі Sunder і покращений Hammer. Враховують ваші здібності й покращення, не обирають невидиму ціль і не гарантують утечу.",
+        "Нові поради працюють на основній картці зі звичайною озвучкою. Якщо ввімкнути тижневі записи матчів, збережений файл також міститиме правило та власні ресурси, на яких воно спрацювало, для відгуку після тесту."
+      ],
       "0.56.3": [
         "Оновлено стартові предмети та білди для 127 героїв за даними STRATZ Divine–Immortal від 13 жовтня: для стартової картки, плану гри та підказок швидкої покупки.",
         "Підготовлено 73 кандидати на контекстні поради для Ember Spirit, Juggernaut, Terrorblade, Dazzle та Sven з умовами й винятками. Це дослідження для наступних покращень; ці поради ще не ввімкнено в матчах."
