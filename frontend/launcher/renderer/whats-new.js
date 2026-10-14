@@ -9,6 +9,10 @@
 
   const TEXT = {
     en: {
+      "0.56.3": [
+        "Refreshed starting items and builds for 127 heroes using STRATZ Divine–Immortal data from October 13: used by the starting card, game plan and quick-buy tips.",
+        "Prepared 73 contextual gameplay advice candidates for Ember Spirit, Juggernaut, Terrorblade, Dazzle and Sven, with conditions and exceptions. This is research for upcoming improvements; these tips are not enabled in matches yet."
+      ],
       "0.56.2": [
         "No more «avoid risky trades until Sunder is ready» before you have even learned Sunder: an ability you have not learned is nothing to wait for.",
         "Low HP while stunned or hexed: the card now says what to press the moment it ends, instead of «Leave the wave now», which you cannot do while stunned."
@@ -534,6 +538,10 @@
       ]
     },
     uk: {
+      "0.56.3": [
+        "Оновлено стартові предмети та білди для 127 героїв за даними STRATZ Divine–Immortal від 13 жовтня: для стартової картки, плану гри та підказок швидкої покупки.",
+        "Підготовлено 73 кандидати на контекстні поради для Ember Spirit, Juggernaut, Terrorblade, Dazzle та Sven з умовами й винятками. Це дослідження для наступних покращень; ці поради ще не ввімкнено в матчах."
+      ],
       "0.56.2": [
         "Більше немає «Не ризикуйте, поки Sunder не готовий», коли Sunder ще навіть не вивчено: на невивчену здібність нема чого чекати.",
         "Мало HP під оглушенням чи хексом: картка тепер каже, що натиснути, щойно контроль мине, замість «Залиште хвилю зараз», чого під оглушенням не зробиш."
