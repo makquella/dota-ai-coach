@@ -40,5 +40,12 @@
   "format": "coach",
   "topic": "spirit_breaker",
   "hook": 2
+ },
+ {
+  "id": "03d97523a19a3ce7",
+  "date": "2026-10-14",
+  "format": "hero",
+  "topic": "ogre_magi",
+  "hook": 1
  }
 ]
