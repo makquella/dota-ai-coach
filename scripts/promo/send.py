@@ -65,6 +65,8 @@ def _request(
         # token in Telegram's URL never reaches the log.
         detail = error.read(300).decode("utf-8", "replace").strip()
         raise SystemExit(f"{method} {redact(url)}: HTTP {error.code} {detail}") from None
+    except (urllib.error.URLError, TimeoutError) as error:
+        raise SystemExit(f"{method} {redact(url)}: {redact(str(error))}") from None
     return json.loads(body) if body else {}
 
 

@@ -83,7 +83,13 @@ def telegram_caption(item: script.Script) -> str:
 
 
 def make(
-    out: Path, today: date, forced: str | None, with_video: bool, allow_silent: bool
+    out: Path,
+    today: date,
+    forced: str | None,
+    with_video: bool,
+    allow_silent: bool,
+    *,
+    item: script.Script | None = None,
 ) -> dict[str, Any]:
     out = out.resolve()  # the page loads its pictures by file:// URI
     out.mkdir(parents=True, exist_ok=True)
@@ -91,7 +97,6 @@ def make(
     post, _, _ = latest_week()
     heroes = build_site.heroes()
     tried: set[str] = set()
-    item = None
     while item is None:
         choice = topics.choose(today, heroes, post, history, forced=forced)
         if choice.format in tried:
@@ -111,16 +116,24 @@ def make(
     voices: list[Path | None] = []
     seconds: list[float | None] = []
     words: list[list[dict[str, Any]] | None] = []
+    continuous = os.environ.get("ELEVENLABS_CONTINUOUS") == "true" and with_video
+    narrated = (
+        voice.synthesize_scenes([scene.voice for scene in item.scenes], out) if continuous else None
+    )
     for index, scene in enumerate(item.scenes):
         result = (
-            voice.synthesize(
-                scene.voice,
-                out / f"voice-{index}.wav",
-                previous=item.scenes[index - 1].voice if index else "",
-                following=item.scenes[index + 1].voice if index + 1 < len(item.scenes) else "",
+            narrated[index]
+            if narrated is not None
+            else (
+                voice.synthesize(
+                    scene.voice,
+                    out / f"voice-{index}.wav",
+                    previous=item.scenes[index - 1].voice if index else "",
+                    following=item.scenes[index + 1].voice if index + 1 < len(item.scenes) else "",
+                )
+                if with_video
+                else None
             )
-            if with_video
-            else None
         )
         if result is None:
             voices.append(None)

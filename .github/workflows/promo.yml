@@ -22,6 +22,15 @@ on:
         type: choice
         options: [auto, draft, coach, meta, hero, fact, release]
         default: auto
+      voice_lab:
+        description: "Voice comparison (catalog checks models/voices without TTS)"
+        type: choice
+        options: [off, catalog, A, B, C, D]
+        default: off
+      voice_catalog:
+        description: "Verified voice-catalog JSON from a catalog run (optional)"
+        type: string
+        default: ""
       send:
         description: "Send to Telegram for approval"
         type: boolean
@@ -46,7 +55,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
         with:
-          ref: main
+          ref: ${{ github.event_name == 'workflow_dispatch' && github.sha || 'main' }}
           fetch-depth: 0 # release notes dates (topics.latest_release)
       - uses: actions/setup-python@v5
         with:
@@ -56,6 +65,7 @@ jobs:
             backend/requirements-dev.txt
             scripts/promo/requirements.txt
       - name: Install
+        if: inputs.voice_lab != 'catalog'
         run: |
           # requirements-dev: the coach video runs the real advice pipeline
           # through FastAPI's TestClient (backend/scripts/simulate_live_gsi.py),
@@ -67,10 +77,12 @@ jobs:
           ffmpeg_version="$("$ffmpeg_exe" -version)"
           echo "${ffmpeg_version%%$'\n'*}"
       - name: What worked (format weights)
+        if: inputs.voice_lab == '' || inputs.voice_lab == 'off'
         env:
           API_ADMIN_TOKEN: ${{ secrets.API_ADMIN_TOKEN }}
         run: python -m scripts.promo.weights
       - name: Build the video
+        if: inputs.voice_lab == '' || inputs.voice_lab == 'off'
         env:
           FORMAT: ${{ inputs.format }}
           ELEVENLABS_API_KEY: ${{ secrets.ELEVENLABS_API_KEY }}
@@ -92,6 +104,23 @@ jobs:
             echo "::error title=Promo build::$(tail -n 1 promo-stderr.log)"
             exit "$status"
           fi
+      - name: Compare Ukrainian male voices
+        if: inputs.voice_lab != '' && inputs.voice_lab != 'off'
+        env:
+          VOICE_VARIANT: ${{ inputs.voice_lab }}
+          VOICE_CATALOG: ${{ inputs.voice_catalog }}
+          SEND_PREVIEW: ${{ inputs.send }}
+          ELEVENLABS_API_KEY: ${{ secrets.ELEVENLABS_API_KEY }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID || vars.TELEGRAM_CHAT_ID }}
+        run: |
+          args=(--out promo-out --variant "$VOICE_VARIANT")
+          if [ -n "$VOICE_CATALOG" ]; then
+            python -c 'import os,json; from pathlib import Path; Path("voice-catalog.json").write_text(json.dumps(json.loads(os.environ["VOICE_CATALOG"])))'
+            args+=(--catalog voice-catalog.json)
+          fi
+          if [ "$SEND_PREVIEW" = true ] && [ "$VOICE_VARIANT" != catalog ]; then args+=(--send); fi
+          python -m scripts.promo.experiments "${args[@]}"
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -99,7 +128,7 @@ jobs:
           path: promo-out
           retention-days: 7
       - name: Send for approval
-        if: github.event_name == 'schedule' || inputs.send
+        if: (inputs.voice_lab == '' || inputs.voice_lab == 'off') && (github.event_name == 'schedule' || inputs.send)
         env:
           API_ADMIN_TOKEN: ${{ secrets.API_ADMIN_TOKEN }}
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
@@ -117,6 +146,7 @@ jobs:
             exit "$status"
           fi
       - name: Remember what was made
+        if: inputs.voice_lab == '' || inputs.voice_lab == 'off'
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
