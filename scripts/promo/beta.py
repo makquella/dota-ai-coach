@@ -16,7 +16,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
-from . import beta_scenes, experiments, render, scenes, send, voice
+from . import beta_scenes, experiments, media, render, scenes, send, voice
 
 KIND = "wardly-beta-recruitment"
 LANGUAGES = ("uk", "en")
@@ -60,7 +60,10 @@ def verify_claims(online: bool) -> dict[str, Any]:
         "site/index.html": ("Безкоштовно", "Windows", "підказки", "розбір"),
         "site/en/index.html": ("Free", "Windows", "in-game", "review"),
     }
-    result: dict[str, Any] = {"checked_at": datetime.now(UTC).isoformat(), "sources": SOURCES}
+    result: dict[str, Any] = {
+        "checked_at": datetime.now(UTC).isoformat(),
+        "sources": SOURCES,
+    }
     for name, required in checks.items():
         text = (root / name).read_text(encoding="utf-8").casefold()
         assert all(token.casefold() in text for token in required), f"Unsupported claim: {name}"
@@ -119,7 +122,9 @@ def timings(
     return timeline, captions, total
 
 
-def storyboard(language: str) -> tuple[list[dict[str, Any]], list[dict[str, Any]], float]:
+def storyboard(
+    language: str,
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]], float]:
     texts = beta_scenes.COPY[language]["voice"]
     lengths = (4, 5.5, 7, 4, 4, 4.5, 4)
     words, at = [], 0.0
@@ -138,6 +143,59 @@ def srt(captions: list[dict[str, Any]]) -> str:
         f"{i}\n{stamp(c['start'])} --> {stamp(c['end'])}\n{c['text']}\n"
         for i, c in enumerate(captions, 1)
     )
+
+
+def prepare_motion(out: Path) -> dict[str, list[str]]:
+    """Reuse the promo pipeline's official Valve idle renders, with alpha intact."""
+    root = out / "motion"
+    root.mkdir(exist_ok=True)
+    result = {}
+    sources = []
+    for hero in beta_scenes.HEROES:
+        url = media.RENDER_VIDEO.format(hero=hero)
+        video = media.download(url, root / f"{hero}.webm")
+        if video is None:
+            raise RuntimeError(f"Official {hero} animation is unavailable")
+        target = root / hero
+        target.mkdir(exist_ok=True)
+        subprocess.run(
+            [
+                render.ffmpeg(),
+                "-y",
+                "-v",
+                "error",
+                "-c:v",
+                "libvpx-vp9",
+                "-i",
+                str(video),
+                "-vf",
+                "fps=20,scale=640:-1",
+                "-an",
+                "-c:v",
+                "libwebp",
+                "-quality",
+                "78",
+                str(target / "%04d.webp"),
+            ],
+            capture_output=True,
+            check=True,
+        )
+        frames = sorted(target.glob("*.webp"))
+        if len(frames) < 20:
+            raise ValueError(f"Incomplete {hero} animation")
+        result[hero] = [beta_scenes.uri(frame) for frame in frames]
+        sources.append(
+            {
+                "hero": hero,
+                "url": url,
+                "sha256": digest(video),
+                "frames": len(frames),
+                "fps": 20,
+            }
+        )
+        print(f"{hero}: {len(frames)} animated frames")
+    save(root / "sources.json", sources)
+    return result
 
 
 def layout_check(page_html: str, timeline: list[dict[str, Any]], folder: Path) -> dict[str, Any]:
@@ -159,17 +217,25 @@ def layout_check(page_html: str, timeline: list[dict[str, Any]], folder: Path) -
             "A real app image failed to load"
         )
         for index, scene in enumerate(timeline):
-            for offset in (0.8, (scene["end"] - scene["start"]) / 2):
+            for offset in (
+                0,
+                0.1,
+                0.8,
+                (scene["end"] - scene["start"]) / 2,
+                scene["end"] - scene["start"] - 0.04,
+            ):
                 t = min(scene["end"] - 0.05, scene["start"] + offset)
                 page.evaluate("t=>window.renderAt(t)", t)
                 errors.extend(page.evaluate("window.layoutErrors()"))
                 checked += 1
+            page.evaluate("t=>window.renderAt(t)", (scene["start"] + scene["end"]) / 2)
             page.screenshot(path=str(folder / f"frame-{index}.jpg"), type="jpeg", quality=90)
         # Check every subtitle, including the longest Ukrainian lines.
         for caption in page.evaluate("captions"):
-            page.evaluate("t=>window.renderAt(t)", (caption["start"] + caption["end"]) / 2)
-            errors.extend(page.evaluate("window.layoutErrors()"))
-            checked += 1
+            for t in (caption["start"] + 0.01, (caption["start"] + caption["end"]) / 2):
+                page.evaluate("t=>window.renderAt(t)", t)
+                errors.extend(page.evaluate("window.layoutErrors()"))
+                checked += 1
         browser.close()
     report = {
         "ok": not errors,
@@ -194,7 +260,17 @@ def media_check(video: Path) -> dict[str, Any]:
     ):
         raise ValueError(f"Video fails delivery requirements: {info}")
     subprocess.run(
-        [render.ffmpeg(), "-v", "error", "-xerror", "-i", str(video), "-f", "null", "-"],
+        [
+            render.ffmpeg(),
+            "-v",
+            "error",
+            "-xerror",
+            "-i",
+            str(video),
+            "-f",
+            "null",
+            "-",
+        ],
         check=True,
         capture_output=True,
     )
@@ -235,6 +311,7 @@ def build(out: Path, *, draft: bool = False) -> None:
     selected = None if draft else catalog()
     if selected:
         save(out / "voice-catalog.json", selected)
+    motion = {} if draft else prepare_motion(out)
     for language in LANGUAGES:
         folder = out / language
         folder.mkdir(exist_ok=True)
@@ -275,10 +352,16 @@ def build(out: Path, *, draft: bool = False) -> None:
                 save(cache_path, identity)
             timeline, captions, total = timings(texts, words, voice.duration(master))
             voice.join([(master, total)], folder / "padded.wav")
+        aligned = [
+            {"word": word["w"], "start": word["s"], "end": word["e"]}
+            for caption in captions
+            for word in caption["words"]
+        ]
+        captions = beta_scenes.phrase_captions(language, aligned, captions[-1]["end"])
         save(folder / "timeline.json", timeline)
         save(folder / "captions.json", captions)
         (folder / "captions.srt").write_text(srt(captions), encoding="utf-8")
-        page_html = beta_scenes.page(language, timeline, captions)
+        page_html = beta_scenes.page(language, timeline, captions, motion)
         layout = layout_check(page_html, timeline, folder)
         package = {
             "kind": KIND,
@@ -289,6 +372,8 @@ def build(out: Path, *, draft: bool = False) -> None:
             "seconds": total,
             "voice_config": voice.configuration() if not draft else None,
             "continuous": True,
+            "visual_revision": 2,
+            "animated_heroes": sorted(motion),
             "layout": layout,
         }
         if not draft:
@@ -363,7 +448,7 @@ def deliver(out: Path) -> None:
             "width": "1080",
             "height": "1920",
             "duration": str(round(package["seconds"])),
-            "caption": f"Wardly · {NAMES[language]} · {package['seconds']:.2f} s\n"
+            "caption": f"Wardly · v{package.get('visual_revision', 1)} · {NAMES[language]} · {package['seconds']:.2f} s\n"
             + (
                 "Бета-тестування · приватний перегляд. Публікацію не заплановано."
                 if language == "uk"
@@ -375,15 +460,22 @@ def deliver(out: Path) -> None:
             fields,
             {
                 "video": (
-                    f"wardly-beta-{language}.mp4",
+                    f"wardly-beta-{language}-v{package.get('visual_revision', 1)}.mp4",
                     "video/mp4",
                     (folder / "video.mp4").read_bytes(),
                 ),
-                "thumbnail": ("cover.jpg", "image/jpeg", (folder / "cover.jpg").read_bytes()),
+                "thumbnail": (
+                    "cover.jpg",
+                    "image/jpeg",
+                    (folder / "cover.jpg").read_bytes(),
+                ),
             },
         )
         answer = send._request(
-            endpoint + "/sendVideo", method="POST", data=body, headers={"Content-Type": kind}
+            endpoint + "/sendVideo",
+            method="POST",
+            data=body,
+            headers={"Content-Type": kind},
         )
         result = answer.get("result", {})
         if not answer.get("ok") or not result.get("message_id") or not result.get("video"):
@@ -450,10 +542,14 @@ def main() -> None:
     parser.add_argument("--out", type=Path, default=Path("promo-out"))
     parser.add_argument("--draft", action="store_true", help="local storyboard only; never send")
     parser.add_argument(
-        "--deliver-only", action="store_true", help="send the exact previously reviewed artifact"
+        "--deliver-only",
+        action="store_true",
+        help="send the exact previously reviewed artifact",
     )
     parser.add_argument(
-        "--speech-check", action="store_true", help="independent ASR/language verification"
+        "--speech-check",
+        action="store_true",
+        help="independent ASR/language verification",
     )
     args = parser.parse_args()
     if sum((args.draft, args.deliver_only, args.speech_check)) > 1:

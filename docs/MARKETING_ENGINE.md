@@ -74,6 +74,15 @@ take. Its character alignment supplies scene cuts and every burned-in subtitle;
 the master recording is never split or sped up. The final card shows the local
 site URL, Free for Windows and the БЕТА/BETA comment call to action.
 
+Visual revision 2 uses one brand mark, no progress bar, and short editorial
+caption phrases that preserve every word and its alignment. The opening caption
+becomes the headline; the final invitation and comment card replace duplicate
+subtitles. `beta_style.css` and `beta_motion.js` control deterministic motion,
+including Valve's official animated hero renders from the existing media source.
+Hero emphasis, the in-game/review cut and feedback highlights follow spoken words.
+Review screenshots are cropped past the sidebar logo. The artifact retains
+source URLs/hashes, frame sequences and self-contained storyboards for review.
+
 Build artifacts include MP4s, covers, scripts, SRTs, word alignment, seven sample
 frames per language, source verification and layout/audio/decode reports.
 An independent CPU Whisper pass checks the actual rendered language and spoken
