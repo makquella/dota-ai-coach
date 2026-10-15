@@ -15,6 +15,7 @@ import subprocess
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
+from zoneinfo import ZoneInfo
 
 from . import beta_scenes, beta_shorts, experiments, media, render, scenes, send, voice
 
@@ -537,6 +538,25 @@ def deliver(out: Path, *, shorts: bool = False) -> None:
             )
             fields["reply_markup"] = json.dumps(
                 beta_shorts.keyboard(language, meta["id"]), ensure_ascii=False
+            )
+        native_path = folder / "native-schedule.json"
+        if not shorts and native_path.exists():
+            native = json.loads(native_path.read_text())
+            if not native.get("verified") or native["sha256"] != package["sha256"]:
+                raise ValueError("Native schedule receipt does not match this video")
+            at = datetime.fromisoformat(
+                native["publish_at"].replace("Z", "+00:00")
+            ).astimezone(ZoneInfo("Europe/Kyiv"))
+            fields["caption"] = (
+                f"Wardly · {NAMES[language]} · {package['seconds']:.2f} s\n"
+                + (
+                    "Автопублікація YouTube: "
+                    if language == "uk"
+                    else "Scheduled on YouTube: "
+                )
+                + at.strftime("%d.%m.%Y %H:%M")
+                + (" (Київ)" if language == "uk" else " (Kyiv)")
+                + f"\n{native['url']}"
             )
         body, kind = send.multipart(
             fields,

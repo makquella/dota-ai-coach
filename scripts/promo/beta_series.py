@@ -8,7 +8,7 @@ from datetime import datetime
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
-from . import beta, beta_shorts
+from . import beta, beta_shorts, experiments, send
 
 CREATIVES = ("sven", "juggernaut", "terrorblade")
 FOLLOWUPS = {"juggernaut": "juggernaut-review", "terrorblade": "terrorblade-feedback"}
@@ -25,6 +25,7 @@ def manifest(out: Path) -> dict:
             assert video["kind"] == beta.KIND and not video["draft"]
             assert video["language"] == speech["language"] == language
             assert video["layout"]["ok"] and speech["ok"]
+            assert video["quality"]["ok"] and video["quality"]["fully_decoded"]
             assert (
                 beta.digest(folder / "video.mp4") == video["sha256"] == speech["sha256"]
             )
@@ -64,8 +65,53 @@ def main() -> None:
     if args.manifest:
         manifest(args.out)
     elif args.deliver:
+        series = manifest(args.out)
+        scheduled = json.loads((args.out / "series-schedule.json").read_text())
+        assert scheduled["complete"] and len(scheduled["videos"]) == 6
+        assert {row["package_id"] for row in series["entries"]} == {
+            row["package_id"] for row in scheduled["videos"] if row["verified"]
+        }
         for name in FOLLOWUPS:
             beta.deliver(args.out / name)
+        receipt_path = args.out / "series-telegram-receipt.json"
+        if not receipt_path.exists():
+            lines = [
+                "Все 6 Shorts поставлены на автопубликацию в YouTube.",
+                "Время — 17:00 по Киеву (14:00 UTC).",
+                "",
+            ]
+            for row in scheduled["videos"]:
+                lines.extend(
+                    [
+                        f"{row['publish_at'][:10]} · {row['creative']} · {row['language']}",
+                        row["url"],
+                    ]
+                )
+            answer = send._request(
+                f"{experiments.TELEGRAM_API}/bot{send._env('TELEGRAM_BOT_TOKEN')}/sendMessage",
+                method="POST",
+                data=json.dumps(
+                    {
+                        "chat_id": send._env("TELEGRAM_CHAT_ID"),
+                        "text": "\n".join(lines),
+                        "disable_web_page_preview": True,
+                    },
+                    ensure_ascii=False,
+                ).encode(),
+                headers={"Content-Type": "application/json"},
+            )
+            if not answer.get("ok") or not answer.get("result", {}).get("message_id"):
+                raise ValueError(
+                    "Telegram did not confirm the schedule summary; do not retry blindly"
+                )
+            beta.save(
+                receipt_path,
+                {
+                    "ok": True,
+                    "message_id": answer["result"]["message_id"],
+                    "scheduled_videos": 6,
+                },
+            )
     elif args.speech_check:
         for name in FOLLOWUPS:
             beta.speech_check(args.out / name)

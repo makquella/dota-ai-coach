@@ -244,6 +244,33 @@ def test_channel_or_altered_pair_is_rejected_before_any_video_upload(monkeypatch
         assert len(calls) == 1
 
 
+def test_native_schedule_preview_shows_kyiv_time_without_manual_publish_buttons(
+    monkeypatch, tmp_path
+):
+    monkeypatch.setenv("TELEGRAM_BOT_TOKEN", "local-fixture-token")
+    monkeypatch.setenv("TELEGRAM_CHAT_ID", "1234")
+    monkeypatch.setattr(beta, "media_check", lambda _path: {"ok": True})
+    pair(tmp_path)
+    for language in beta.LANGUAGES:
+        beta.save(
+            tmp_path / language / "native-schedule.json",
+            {
+                "verified": True,
+                "sha256": beta.digest(tmp_path / language / "video.mp4"),
+                "publish_at": "2026-10-17T14:00:00Z",
+                "url": f"https://www.youtube.com/shorts/{language}-fixture",
+            },
+        )
+    with telegram() as (url, calls):
+        monkeypatch.setattr(experiments, "TELEGRAM_API", url)
+        beta.deliver(tmp_path)
+    videos = [body for route, body in calls if route.endswith("sendVideo")]
+    assert len(videos) == 2
+    assert all(b"17.10.2026 17:00" in body for body in videos)
+    assert all(b"reply_markup" not in body and b"14:00" not in body for body in videos)
+    assert all(b"No publication scheduled" not in body for body in videos)
+
+
 def test_reviewed_pair_gets_only_shorts_buttons_and_exact_localized_metadata(monkeypatch, tmp_path):
     monkeypatch.setenv("TELEGRAM_BOT_TOKEN", "local-fixture-token")
     monkeypatch.setenv("TELEGRAM_CHAT_ID", "1234")

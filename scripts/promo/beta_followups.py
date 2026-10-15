@@ -98,7 +98,9 @@ def metadata(creative: str, language: str) -> dict:
     return {
         "title": title,
         "description": description,
-        "tags": ["Dota 2", hero, local, "Wardly", "low MMR", "beta test"],
+        "tags": list(
+            dict.fromkeys(["Dota 2", hero, local, "Wardly", "low MMR", "beta test"])
+        ),
     }
 
 

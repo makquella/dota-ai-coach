@@ -129,6 +129,34 @@ test("YouTube refreshes an expiring access token, keeps a fresh one", async (t) 
   assert.equal(renewed.account.refresh_token, "r");
 });
 
+test("YouTube native scheduling uploads privately at the explicit UTC time and resumes the same session", async (t) => {
+  const at = "2026-10-16T14:00:00Z";
+  const calls = stub(t, [
+    ["upload/youtube/v3/videos", () => new Response("{}", { headers: { location: "https://upload.test/scheduled" } })],
+    ["upload.test/scheduled", (_url, init) => String(init.headers["content-range"] || "").startsWith("bytes */")
+      ? new Response(null, { status: 308 })
+      : Response.json({ id: "scheduled1", status: { privacyStatus: "private", publishAt: at } })]
+  ]);
+  const first = await NETWORK_CLIENTS.youtube.step({ ...ENV, YOUTUBE_PRIVACY: "public" }, { access_token: "at" }, job({ publish_at: at }), Date.parse("2026-10-15T18:00:00Z"));
+  const meta = JSON.parse(calls[0].body);
+  assert.equal(meta.status.privacyStatus, "private");
+  assert.equal(meta.status.publishAt, at);
+  const done = await NETWORK_CLIENTS.youtube.step(ENV, { access_token: "at" }, job({ publish_at: at, external_id: first.external_id }));
+  assert.equal(done.external_id, "scheduled1");
+  assert.equal(done.scheduled_publish_at, at);
+  assert.equal(done.detail, null);
+  assert.equal(calls.filter(call => call.url.includes("upload/youtube/v3/videos")).length, 1);
+});
+
+test("YouTube refuses invalid or past native schedules before starting an upload", async (t) => {
+  const calls = stub(t, []);
+  for (const publish_at of ["bad", "2026-10-16T17:00:00", "2026-10-14T14:00:00Z"]) {
+    const result = await NETWORK_CLIENTS.youtube.step(ENV, { access_token: "at" }, job({ publish_at }), Date.parse("2026-10-15T18:00:00Z"));
+    assert.equal(result.status, "error");
+  }
+  assert.equal(calls.length, 0);
+});
+
 test("Instagram: a Reel container, polled until finished, published once", async (t) => {
   let status = "IN_PROGRESS";
   const calls = stub(t, [
