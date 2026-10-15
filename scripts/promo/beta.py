@@ -141,8 +141,10 @@ def timings(
 
 def storyboard(
     language: str,
+    *,
+    story: Any = beta_scenes,
 ) -> tuple[list[dict[str, Any]], list[dict[str, Any]], float]:
-    texts = beta_scenes.COPY[language]["voice"]
+    texts = story.COPY[language]["voice"]
     lengths = (3.2, 3.8, 3.5, 2.5, 4, 2.8, 3)
     words, at = [], 0.0
     for text, span in zip(texts, lengths, strict=True):
@@ -325,7 +327,14 @@ def media_check(video: Path) -> dict[str, Any]:
     }
 
 
-def build(out: Path, *, draft: bool = False) -> None:
+def build(out: Path, *, draft: bool = False, creative: str = "sven-under-4k") -> None:
+    story: Any = beta_scenes
+    revision = VISUAL_REVISION
+    if creative != "sven-under-4k":
+        from . import beta_followups
+
+        story = beta_followups.profile(creative)
+        revision = {"juggernaut-review": 5, "terrorblade-feedback": 6}[creative]
     out = out.resolve()
     out.mkdir(parents=True, exist_ok=True)
     save(out / "claims.json", verify_claims(online=not draft))
@@ -336,11 +345,11 @@ def build(out: Path, *, draft: bool = False) -> None:
     for language in LANGUAGES:
         folder = out / language
         folder.mkdir(exist_ok=True)
-        texts = beta_scenes.COPY[language]["voice"]
+        texts = story.COPY[language]["voice"]
         text = " ".join(texts)
         (folder / "script.txt").write_text(text + "\n", encoding="utf-8")
         if draft:
-            timeline, captions, total = storyboard(language)
+            timeline, captions, total = storyboard(language, story=story)
         else:
             assert selected
             os.environ.update(
@@ -382,11 +391,11 @@ def build(out: Path, *, draft: bool = False) -> None:
             for caption in captions
             for word in caption["words"]
         ]
-        captions = beta_scenes.phrase_captions(language, aligned, captions[-1]["end"])
+        captions = story.phrase_captions(language, aligned, captions[-1]["end"])
         save(folder / "timeline.json", timeline)
         save(folder / "captions.json", captions)
         (folder / "captions.srt").write_text(srt(captions), encoding="utf-8")
-        page_html = beta_scenes.page(language, timeline, captions, motion)
+        page_html = story.page(language, timeline, captions, motion)
         layout = layout_check(page_html, timeline, folder)
         package = {
             "kind": KIND,
@@ -397,8 +406,8 @@ def build(out: Path, *, draft: bool = False) -> None:
             "seconds": total,
             "voice_config": voice.configuration() if not draft else None,
             "continuous": True,
-            "visual_revision": VISUAL_REVISION,
-            "creative": "sven-under-4k",
+            "visual_revision": revision,
+            "creative": creative,
             "animated_heroes": sorted(motion),
             "layout": layout,
         }

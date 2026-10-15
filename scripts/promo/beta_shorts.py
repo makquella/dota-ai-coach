@@ -133,6 +133,10 @@ def package(language: str, video: dict[str, Any]) -> dict[str, Any]:
     copy = COPY[language]
     if video["visual_revision"] >= 4:
         copy = {**copy, **SHORTS_COPY[language]}
+    if video.get("creative") in {"juggernaut-review", "terrorblade-feedback"}:
+        from .beta_followups import metadata
+
+        copy = {**copy, **metadata(video["creative"], language)}
     identity = {"video_sha256": video["sha256"], "language": language, "copy": copy}
     package_id = hashlib.sha256(
         json.dumps(identity, sort_keys=True, ensure_ascii=False).encode()

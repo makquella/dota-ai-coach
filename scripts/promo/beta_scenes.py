@@ -125,13 +125,17 @@ PHRASES = {
 
 
 def phrase_captions(
-    language: str, words: list[dict[str, Any]], end: float
+    language: str,
+    words: list[dict[str, Any]],
+    end: float,
+    *,
+    phrases: dict | None = None,
 ) -> list[dict[str, Any]]:
-    phrases = [p for scene in PHRASES[language] for p in scene.split("|")]
-    if " ".join(phrases) != " ".join(w["word"] for w in words):
+    lines = [p for scene in (phrases or PHRASES)[language] for p in scene.split("|")]
+    if " ".join(lines) != " ".join(w["word"] for w in words):
         raise ValueError("Editorial captions must preserve the complete narration")
     result, at = [], 0
-    for phrase in phrases:
+    for phrase in lines:
         count = len(phrase.split())
         group = words[at : at + count]
         at += count
@@ -254,6 +258,21 @@ def page(
   <div class="address" data-safe>{copy["site"]}</div>
   <div class="free" data-safe><span class="windows" aria-hidden="true"><i></i><i></i><i></i><i></i></span>{copy["free"]}</div>
 </section>"""
+    return document(language, timeline, captions, motion, sections, copy)
+
+
+def document(
+    language,
+    timeline,
+    captions,
+    motion,
+    sections,
+    copy,
+    *,
+    extra_css="",
+    javascript=None,
+):
+    assets = SITE / "assets"
     fonts = {
         name: uri(assets / "fonts" / f"{name}-wght-normal.woff2")
         for name in (
@@ -263,8 +282,13 @@ def page(
             "inter-latin",
         )
     }
-    css = (Path(__file__).with_name("beta_style.css")).read_text(encoding="utf-8")
-    js = (Path(__file__).with_name("beta_motion.js")).read_text(encoding="utf-8")
+    css = (Path(__file__).with_name("beta_style.css")).read_text(
+        encoding="utf-8"
+    ) + extra_css
+    js = javascript or (Path(__file__).with_name("beta_motion.js")).read_text(
+        encoding="utf-8"
+    )
+    logo = uri(assets / "logo.png")
     return f'''<!doctype html><html lang="{language}"><meta charset="utf-8">
 <style>
 @font-face{{font-family:Montserrat;src:url("{fonts["montserrat-cyrillic"]}");font-weight:100 900;unicode-range:U+0400-045F,U+0490-0491}}
@@ -275,7 +299,7 @@ def page(
 </style><body>
 <div class="ambient"></div><div class="edge-light"></div>
 {sections}
-<header><img src="{images["logo"]}" data-brand><b data-safe>Wardly</b><span data-safe>{copy["label"]}</span></header>
+<header><img src="{logo}" data-brand><b data-safe>Wardly</b><span data-safe>{copy["label"]}</span></header>
 <div class="captions" data-safe></div>
 <script>
 const timeline={json.dumps(timeline, ensure_ascii=False)}, captions={json.dumps(captions, ensure_ascii=False)};

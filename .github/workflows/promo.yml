@@ -44,7 +44,7 @@ on:
       beta_campaign:
         description: "Beta videos, publication audit, or free outreach pack (deliver reuses a reviewed build)"
         type: choice
-        options: ["off", build, validate, deliver, shorts, audit, outreach]
+        options: ["off", build, validate, deliver, shorts, audit, outreach, series, schedule]
         default: "off"
       beta_run_id:
         description: "Beta artifact run ID (required for deliver; optional build narration cache)"
@@ -93,7 +93,7 @@ jobs:
           ffmpeg_version="$("$ffmpeg_exe" -version)"
           echo "${ffmpeg_version%%$'\n'*}"
       - uses: actions/setup-node@v6
-        if: inputs.beta_campaign == 'audit' || inputs.beta_campaign == 'outreach'
+        if: inputs.beta_campaign == 'audit' || inputs.beta_campaign == 'outreach' || inputs.beta_campaign == 'schedule'
         with:
           node-version-file: .node-version
       - name: Audit published beta Shorts (read only)
@@ -117,6 +117,24 @@ jobs:
         env:
           API_ADMIN_TOKEN: ${{ secrets.API_ADMIN_TOKEN }}
         run: python -m scripts.promo.weights
+      - name: Restore reviewed Sven pair for six-video series
+        if: inputs.beta_campaign == 'series'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BETA_RUN_ID: ${{ inputs.beta_run_id }}
+        run: |
+          if ! [[ "$BETA_RUN_ID" =~ ^[0-9]+$ ]]; then exit 1; fi
+          gh run download "$BETA_RUN_ID" --repo "$GITHUB_REPOSITORY" --name "promo-$BETA_RUN_ID" --dir promo-out/sven
+      - name: Build four follow-up beta Shorts
+        if: inputs.beta_campaign == 'series'
+        env:
+          ELEVENLABS_API_KEY: ${{ secrets.ELEVENLABS_API_KEY }}
+        run: python -m scripts.promo.beta_series --out promo-out
+      - name: Verify follow-up narration and make six-video manifest
+        if: inputs.beta_campaign == 'series'
+        run: |
+          python -m pip install faster-whisper==1.2.1
+          python -m scripts.promo.beta_series --out promo-out --speech-check
       - name: Build the video
         if: (inputs.voice_lab == '' || inputs.voice_lab == 'off') && (inputs.beta_campaign == '' || inputs.beta_campaign == 'off')
         env:
