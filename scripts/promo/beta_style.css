@@ -36,14 +36,14 @@ html[lang=en] .product-title { font-size:74px; }
 .hero-card.selected { border-color:var(--coral); background:linear-gradient(170deg,#71363d88,#1c1920); box-shadow:0 0 46px #f0556020; }
 .hero-art { position:absolute; left:-89px; top:10px; width:435px; height:365px; object-fit:contain; filter:drop-shadow(0 10px 10px #0008); }
 .hero-art.poster { width:255px; height:310px; left:0; top:1px; object-fit:cover; border-radius:17px 17px 0 0; }
-.hero-name { position:absolute; bottom:30px; width:255px; text-align:center; font-size:25px; font-weight:750; }
+.hero-name { position:absolute; bottom:30px; width:255px; text-align:center; font-size:30px; font-weight:750; }
 .hero-foot { position:absolute; left:88px; top:1165px; font-size:25px; color:#9b9fac; }
 .steps { position:absolute; left:88px; top:420px; width:804px; font:800 85px/1.2 Montserrat; letter-spacing:-3px; }
 .steps span { display:block; }
 .steps b { position:absolute; right:30px; top:32px; font-size:102px; color:#f05560; font-weight:400; }
 .steps em { display:block; color:var(--coral); font-style:normal; }
 .review-detail { position:absolute; left:88px; top:665px; width:804px; height:475px; overflow:hidden; border-radius:20px; border:1px solid #ffffff30; box-shadow:0 24px 75px #0008; }
-.review-detail img { width:1320px; position:absolute; left:-258px; top:-75px; }
+.review-detail img { width:1720px; position:absolute; left:-338px; top:-590px; }
 .questions { position:absolute; left:88px; top:440px; width:804px; }
 .question { height:214px; display:flex; align-items:center; gap:32px; border-bottom:1px solid #ffffff20; }
 .question b { font:750 66px/1.24 Montserrat; letter-spacing:-2px; color:#858994; }
@@ -65,8 +65,8 @@ html[lang=en] .goal { font-size:60px; }
 .comment-symbol { position:absolute; top:28px; right:33px; width:39px; height:30px; border:3px solid #15141980; border-radius:7px; }
 .comment-symbol:after { content:''; position:absolute; bottom:-8px; left:5px; height:9px; width:10px; border-left:3px solid #15141980; transform:skewY(-40deg); }
 .comment-label { position:absolute; left:88px; top:975px; width:804px; text-align:center; font:700 43px Montserrat; letter-spacing:-1px; }
-.address { position:absolute; left:88px; top:1130px; width:804px; text-align:center; font:650 38px Inter; letter-spacing:-.8px; }
-.free { position:absolute; left:88px; top:1205px; width:804px; display:flex; align-items:center; justify-content:center; gap:13px; color:#a6a9b2; font-size:28px; font-weight:550; }
+.address { position:absolute; left:88px; top:1130px; width:804px; text-align:center; font:650 44px Inter; letter-spacing:-.8px; }
+.free { position:absolute; left:88px; top:1205px; width:804px; display:flex; align-items:center; justify-content:center; gap:13px; color:#b6b9c2; font-size:32px; font-weight:550; }
 .windows { font-size:35px; }
 .captions { position:absolute; left:88px; top:1260px; width:804px; min-height:92px; text-align:center; font:750 58px/1.24 Inter; letter-spacing:-1.6px; color:#eee9e0; text-shadow:0 3px 5px #000,0 2px 25px #000,0 2px 48px #000; z-index:6; }
 .captions span { display:inline; box-decoration-break:clone; -webkit-box-decoration-break:clone; padding:1px 3px; border-radius:7px; }

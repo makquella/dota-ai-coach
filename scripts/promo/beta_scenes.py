@@ -115,7 +115,7 @@ PHRASES = {
     "en": [
         "Play Dota?|Help us make|Wardly better.",
         "It's a free|Windows coach,|with in-game tips|and post-match reviews.",
-        "We're looking for volunteers|around zero to four|thousand MMR.|Especially Sven,|Juggernaut and Terrorblade players.",
+        "We're looking for volunteers|around zero to four thousand MMR.|Especially Sven,|Juggernaut and Terrorblade players.",
         "Play a few matches|and tell us|what actually helped.",
         "What came too late|or distracted you?|Which advice was wrong?",
         "Your feedback can make|the advice more accurate,|timely and useful.",

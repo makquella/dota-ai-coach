@@ -65,7 +65,6 @@ window.renderAt = async t => {
       card.style.opacity = .25 + .75 * start;
     });
   }
-  if (active === 3) current.querySelector('.review-detail img').style.transform = `translateY(${-local * 37}px)`;
   if (active === 4) {
     const selected = Math.max(0, questionAt.findLastIndex(at => local >= at));
     current.querySelectorAll('.question').forEach((q, i) => {
