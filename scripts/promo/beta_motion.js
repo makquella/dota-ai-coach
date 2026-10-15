@@ -13,11 +13,11 @@ const heroAt = language === 'uk'
   ? ['джагернаута', 'терорблейда'].map(x => findWord(2, x, 1.2))
   : ['juggernaut', 'terrorblade'].map(x => findWord(2, x, 1.2));
 const questionAt = language === 'uk'
-  ? ['допомогло', 'запізнилося', 'хибною'].map(x => findWord(4, x))
+  ? ['допомогло', 'запізнилося', 'помилка'].map(x => findWord(4, x))
   : ['helped', 'late', 'wrong'].map(x => findWord(4, x));
 const ctaAt = findWord(6, language === 'uk' ? 'напиши' : 'comment', .7);
 const escape = s => s.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const emphasis = /wardly|sven|свені|mmr|бета|beta|хибною|wrong|запізнилося|late/i;
+const emphasis = /wardly|sven|свені|mmr|бета|beta|помилка|wrong|запізнилося|late/i;
 window.renderAt = async t => {
   const active = Math.max(0, timeline.findIndex(s => t >= s.start && t < s.end));
   const local = Math.max(0, t - timeline[active].start);

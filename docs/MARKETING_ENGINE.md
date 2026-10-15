@@ -59,7 +59,7 @@ The video needs the network (Valve's animations and clips, ElevenLabs); keep the
 ## Private beta recruitment pair
 
 The manual **Promo** input `beta_campaign=build` makes two 1080×1920,
-30–35-second recruitment videos, Ukrainian and English. It does not send or
+20–27-second recruitment Shorts, Ukrainian and English. It does not send or
 publish, regardless of `send`. The copy asks voluntary 0–4k MMR players,
 especially Sven/Juggernaut/Terrorblade players, for a few matches and honest
 feedback about helpful, late, distracting or incorrect advice. It promises no
@@ -119,6 +119,15 @@ metadata retains the legacy defaults for standard promos. Shorts approval IDs
 include the video hash and metadata, and `shorts-approval-receipt.json` prevents
 duplicate uploads while allowing an interrupted metadata reply to resume.
 Visual revision 3 centres Sven's body independently of his off-centre sword.
+
+Revision 4 opens on Sven and 0–4,000 MMR immediately, then shows the enlarged
+real in-game hint and review fields. It shortens the continuous scripts and
+uses stable phrase captions with emphasis on key words. Layout checks also
+reject overlapping text blocks. The renderer caps the new take at 27 seconds;
+delivery still accepts the reviewed 30–35-second v3 files, and v3 publishing
+metadata/approval IDs remain stable. New source codes are `shorts-sven-uk/en`.
+See the [six-post Shorts plan](marketing/shorts-plan.md) for localized follow-up
+scripts, titles, descriptions, proposed Kyiv slots and measurement rules.
 
 ### Reach audit and acquisition materials
 
