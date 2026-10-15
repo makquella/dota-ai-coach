@@ -44,7 +44,7 @@ on:
       beta_campaign:
         description: "Private UK+EN beta recruitment pair (deliver reuses a reviewed build)"
         type: choice
-        options: ["off", build, validate, deliver, shorts]
+        options: ["off", build, validate, deliver, shorts, audit]
         default: "off"
       beta_run_id:
         description: "Beta artifact run ID (required for deliver; optional build narration cache)"
@@ -81,7 +81,7 @@ jobs:
             backend/requirements-dev.txt
             scripts/promo/requirements.txt
       - name: Install
-        if: inputs.voice_lab != 'catalog'
+        if: inputs.voice_lab != 'catalog' && inputs.beta_campaign != 'audit'
         run: |
           # requirements-dev: the coach video runs the real advice pipeline
           # through FastAPI's TestClient (backend/scripts/simulate_live_gsi.py),
@@ -92,6 +92,19 @@ jobs:
           ffmpeg_exe="$(python -c 'from scripts.promo import render; print(render.ffmpeg())')"
           ffmpeg_version="$("$ffmpeg_exe" -version)"
           echo "${ffmpeg_version%%$'\n'*}"
+      - uses: actions/setup-node@v6
+        if: inputs.beta_campaign == 'audit'
+        with:
+          node-version-file: .node-version
+      - name: Audit published beta Shorts (read only)
+        if: inputs.beta_campaign == 'audit'
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID || secrets.CLOUDFLARE_ACCOUNT_ID }}
+          API_ADMIN_TOKEN: ${{ secrets.API_ADMIN_TOKEN }}
+          YOUTUBE_CLIENT_ID: ${{ secrets.YOUTUBE_CLIENT_ID }}
+          YOUTUBE_CLIENT_SECRET: ${{ secrets.YOUTUBE_CLIENT_SECRET }}
+        run: node scripts/promo/youtube_audit.mjs
       - name: What worked (format weights)
         if: (inputs.voice_lab == '' || inputs.voice_lab == 'off') && (inputs.beta_campaign == '' || inputs.beta_campaign == 'off')
         env:
