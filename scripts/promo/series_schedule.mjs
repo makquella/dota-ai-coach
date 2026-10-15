@@ -107,7 +107,9 @@ try {
       const video = data.items?.[0];
       if (!video || video.snippet.channelId !== channelId) throw new Error('Scheduled video not found on the expected channel');
       if (video.status.privacyStatus !== 'private' || Date.parse(video.status.publishAt) !== Date.parse(entry.publish_at_utc)) throw new Error('YouTube did not confirm the exact private native schedule');
-      if (video.snippet.title !== entry.meta.youtube_title || video.snippet.defaultLanguage !== entry.language || video.snippet.defaultAudioLanguage !== entry.language || JSON.stringify(video.snippet.tags) !== JSON.stringify(entry.meta.youtube_tags)) throw new Error('YouTube video metadata differs from the reviewed package');
+      receipt.youtube_metadata = { title: video.snippet.title, language: video.snippet.defaultLanguage, audio_language: video.snippet.defaultAudioLanguage, tags: video.snippet.tags };
+      // YouTube returns tags alphabetically; their order is not metadata loss.
+      if (video.snippet.title !== entry.meta.youtube_title || video.snippet.defaultLanguage !== entry.language || video.snippet.defaultAudioLanguage !== entry.language || JSON.stringify([...(video.snippet.tags || [])].sort()) !== JSON.stringify([...entry.meta.youtube_tags].sort())) throw new Error('YouTube video metadata differs from the reviewed package');
       if (video.status.rejectionReason || video.status.failureReason || video.processingDetails?.processingStatus === 'failed') throw new Error('YouTube processing failed');
       if (video.processingDetails?.processingStatus === 'succeeded' && video.status.uploadStatus === 'processed') {
         receipt.verified = true;
