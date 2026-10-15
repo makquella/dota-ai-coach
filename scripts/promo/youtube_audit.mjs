@@ -67,6 +67,31 @@ try {
     defaultLanguage: row.snippet.defaultLanguage, created_at: row.snippet.publishedAt,
     statistics: row.statistics, madeForKids: row.status?.madeForKids
   }));
+  // Public, active channels for a targeted outreach shortlist. This only reads
+  // search results; it does not post comments or contact any creator.
+  const candidates = [];
+  const publishedAfter = new Date(Date.now() - 90 * 86400000).toISOString();
+  for (const [language, q] of [
+    ['uk', 'Dota 2 українською'], ['uk', 'Dota 2 Свен українською'],
+    ['en', 'Dota 2 carry low mmr coaching']
+  ]) {
+    const search = await google('search', { part: 'snippet', type: 'video', q, relevanceLanguage: language, publishedAfter, maxResults: '8' });
+    if (!search.ok) { report.errors.push(`Public search: HTTP ${search.status} (${search.reason})`); continue; }
+    for (const item of search.data.items || []) candidates.push({
+      language, channel_id: item.snippet.channelId, channel_title: item.snippet.channelTitle,
+      sample_title: item.snippet.title, sample_url: `https://www.youtube.com/watch?v=${item.id.videoId}`,
+      sample_published_at: item.snippet.publishedAt
+    });
+  }
+  const creatorIds = [...new Set(candidates.map(row => row.channel_id))];
+  if (creatorIds.length) {
+    const creators = await google('channels', { part: 'snippet,statistics', id: creatorIds.join(',') });
+    if (creators.ok) report.outreach_candidates = creators.data.items.map(row => ({
+      channel_id: row.id, title: row.snippet.title, url: `https://www.youtube.com/channel/${row.id}`,
+      subscribers: row.statistics.subscriberCount,
+      examples: candidates.filter(candidate => candidate.channel_id === row.id)
+    }));
+  }
   const ids = [...new Set(report.campaign.map(row => row.video_id).filter(Boolean))];
   if (ids.length) {
     const videos = await google('videos', { part: 'snippet,statistics,status,contentDetails,processingDetails,suggestions', id: ids.join(',') });
@@ -104,7 +129,20 @@ try {
     const response = await fetch(url, { signal: AbortSignal.timeout(20000) });
     const html = await response.text();
     const plain = html.replace(/<script[\s\S]*?<\/script>/gi, '').replace(/<style[\s\S]*?<\/style>/gi, '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ');
-    report.references.push({ name, url, status: response.status, excerpt: plain.slice(plain.indexOf(name === 'tags' ? 'Tags are' : 'Search and discovery'), plain.indexOf(name === 'tags' ? 'Tags are' : 'Search and discovery') + 11000) });
+    const terms = name === 'tags' ? ['Tags are', 'minimal role'] : ['performance', 'personalization', 'average view duration', 'minimum posting', 'competition', 'topic interest'];
+    const excerpts = terms.map(term => {
+      const at = plain.toLowerCase().indexOf(term.toLowerCase());
+      return at < 0 ? null : plain.slice(Math.max(0, at - 150), at + 900);
+    }).filter(Boolean);
+    report.references.push({ name, url, status: response.status, excerpts });
+  }
+  report.community_rules = [];
+  for (const name of ['DotA2', 'learndota2']) {
+    const url = `https://www.reddit.com/r/${name}/about/rules.json`;
+    const response = await fetch(url, { headers: { 'user-agent': 'Wardly research (read-only)' }, signal: AbortSignal.timeout(20000) });
+    if (!response.ok) { report.community_rules.push({ community: name, url, status: response.status, verified: false }); continue; }
+    const data = await response.json();
+    report.community_rules.push({ community: name, url, status: response.status, verified: true, rules: data.rules?.map(rule => ({ title: rule.short_name, description: rule.description })) });
   }
 } catch (error) {
   report.errors.push(redact(error.message));
