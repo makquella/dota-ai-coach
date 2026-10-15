@@ -1,6 +1,6 @@
 // Read-only campaign audit. OAuth credentials stay in memory; only whitelisted
 // publication/channel fields and aggregate analytics enter the artifact.
-import { mkdir, writeFile } from 'node:fs/promises';
+import { copyFile, mkdir, writeFile } from 'node:fs/promises';
 import { NETWORK_CLIENTS, unseal } from '../../services/api/src/social.js';
 
 const required = name => {
@@ -40,6 +40,8 @@ try {
     return result.data.result[0].results;
   };
   const posts = await query("SELECT p.id, p.created_at, p.decided_at, p.topic, p.status AS post_status, p.body, d.status AS delivery_status, d.external_id, d.url, d.detail, d.updated_at FROM promo_posts p LEFT JOIN promo_deliveries d ON d.post_id = p.id AND d.network = 'youtube' WHERE p.topic LIKE 'beta-testers-%' ORDER BY p.created_at DESC LIMIT 12");
+  report.tracked_site_sources = await query("SELECT day, src, visits, downloads FROM channel_counts WHERE src IN ('promo-beta-uk', 'promo-beta-en') AND day >= date('now', '-7 days') ORDER BY day, src");
+  report.attribution_note = 'Visits/downloads are aggregate source counters, not unique people or confirmed testers. Missing rows are not proof of no visits (beacons may be blocked).';
   report.campaign = posts.map(row => {
     const body = JSON.parse(row.body);
     return {
@@ -118,7 +120,7 @@ try {
     const analytics = await request(analyticsUrl, { headers: auth });
     report.analytics = analytics.ok
       ? { ok: true, columns: analytics.data.columnHeaders, rows: analytics.data.rows || [], note: 'Recent analytics may be delayed; no rows is not zero retention.' }
-      : { ok: false, status: analytics.status, reason: analytics.reason, required_scope: 'https://www.googleapis.com/auth/yt-analytics.readonly' };
+      : { ok: false, status: analytics.status, reason: analytics.reason, service_enable_required: analytics.reason === 'accessNotConfigured', required_scope: 'https://www.googleapis.com/auth/yt-analytics.readonly' };
   }
   // Official references are public and independent of all credentialed calls.
   report.references = [];
@@ -152,4 +154,5 @@ await mkdir('promo-out', { recursive: true });
 const serialized = JSON.stringify(report, null, 2);
 if (hidden.filter(Boolean).some(value => value.length > 5 && serialized.includes(value))) throw new Error('Refusing to save a report containing credentials');
 await writeFile('promo-out/youtube-audit.json', serialized + '\n');
+await copyFile(new URL('../../docs/marketing/beta-acquisition.md', import.meta.url), 'promo-out/beta-acquisition.md');
 console.log(JSON.stringify({ ok: !report.errors.length, videos: report.videos?.map(video => ({ id: video.id, language: video.defaultAudioLanguage, privacy: video.privacyStatus, views: video.statistics.viewCount, age_hours: video.age_hours })), analytics: report.analytics?.ok, errors: report.errors }));

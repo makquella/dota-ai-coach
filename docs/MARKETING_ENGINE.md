@@ -120,6 +120,23 @@ include the video hash and metadata, and `shorts-approval-receipt.json` prevents
 duplicate uploads while allowing an interrupted metadata reply to resume.
 Visual revision 3 centres Sven's body independently of his off-centre sword.
 
+### Reach audit and acquisition materials
+
+`beta_campaign=audit`, `send=false` runs `youtube_audit.mjs` with the existing
+Actions secrets. It reads the campaign's D1 rows and aggregate site counters,
+decrypts the existing YouTube connection only in memory, and reads actual video
+privacy, processing state, language, counters and channel age. The artifact
+contains a whitelist of non-secret fields, public outreach candidates and
+[the acquisition plan](marketing/beta-acquisition.md). It does not publish,
+upload videos, contact creators or write to D1. The only OAuth operation is
+refreshing the access token when needed; no credentials are written to artifacts.
+
+Detailed Analytics may need both the enabled YouTube Analytics API and a new
+`yt-analytics.readonly` consent; a failure is recorded with its actual reason.
+Missing analytics are never treated as zero retention or zero feed impressions.
+Public creator search uses language hints, which do not guarantee the creator's
+language; outreach candidates need manual filtering and permission before use.
+
 Local storyboard preview (no credentials and no paid API calls):
 
 ```bash
