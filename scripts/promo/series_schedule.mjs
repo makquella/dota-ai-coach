@@ -5,6 +5,7 @@ import { resolve } from 'node:path';
 import { createHash } from 'node:crypto';
 import { NETWORK_CLIENTS, unseal } from '../../services/api/src/social.js';
 import { claimSchedule, completeSchedule } from './series_schedule_state.mjs';
+import { scheduledVideoState } from './series_schedule_verify.mjs';
 
 const root = resolve(process.argv[2] || 'promo-out');
 const required = name => { const value = process.env[name]?.trim(); if (!value) throw new Error(`${name} is not configured`); return value; };
@@ -105,13 +106,9 @@ try {
     for (let poll = 0; poll < 24; poll++) {
       const data = await google('videos', { part: 'snippet,status,processingDetails,contentDetails', id: external });
       const video = data.items?.[0];
-      if (!video || video.snippet.channelId !== channelId) throw new Error('Scheduled video not found on the expected channel');
-      if (video.status.privacyStatus !== 'private' || Date.parse(video.status.publishAt) !== Date.parse(entry.publish_at_utc)) throw new Error('YouTube did not confirm the exact private native schedule');
-      receipt.youtube_metadata = { title: video.snippet.title, language: video.snippet.defaultLanguage, audio_language: video.snippet.defaultAudioLanguage, tags: video.snippet.tags };
-      // YouTube returns tags alphabetically; their order is not metadata loss.
-      if (video.snippet.title !== entry.meta.youtube_title || video.snippet.defaultLanguage !== entry.language || video.snippet.defaultAudioLanguage !== entry.language || JSON.stringify([...(video.snippet.tags || [])].sort()) !== JSON.stringify([...entry.meta.youtube_tags].sort())) throw new Error('YouTube video metadata differs from the reviewed package');
-      if (video.status.rejectionReason || video.status.failureReason || video.processingDetails?.processingStatus === 'failed') throw new Error('YouTube processing failed');
-      if (video.processingDetails?.processingStatus === 'succeeded' && video.status.uploadStatus === 'processed') {
+      const state = scheduledVideoState(video, entry, channelId);
+      receipt.youtube_metadata = state.metadata;
+      if (state.ready) {
         receipt.verified = true;
         receipt.youtube_status = { privacyStatus: video.status.privacyStatus, publishAt: video.status.publishAt, uploadStatus: video.status.uploadStatus, processingStatus: video.processingDetails.processingStatus };
         receipt.url = await completeSchedule(query, entry, video, Date.now());
@@ -121,7 +118,7 @@ try {
       }
       await pause(5000);
     }
-    if (!receipt.verified) throw new Error('YouTube processing is still pending; schedule retained for verification on resume');
+    if (!receipt.verified) throw new Error('YouTube processing or exact metadata verification is still pending; schedule retained for verification on resume');
   }
   report.complete = report.videos.length === 6 && report.videos.every(video => video.verified);
 } catch (error) {
