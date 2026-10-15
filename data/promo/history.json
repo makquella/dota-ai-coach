@@ -47,5 +47,12 @@
   "format": "hero",
   "topic": "ogre_magi",
   "hook": 1
+ },
+ {
+  "id": "f5fdbacfb872bb48",
+  "date": "2026-10-15",
+  "format": "release",
+  "topic": "0.56.4",
+  "hook": 0
  }
 ]
