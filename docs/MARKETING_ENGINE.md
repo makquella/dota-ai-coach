@@ -56,6 +56,49 @@ python -m scripts.promo.package --out promo-out --format meta --no-video  # scri
 
 The video needs the network (Valve's animations and clips, ElevenLabs); keep the key out of shell history and files.
 
+## Private beta recruitment pair
+
+The manual **Promo** input `beta_campaign=build` makes two 1080×1920,
+30–35-second recruitment videos, Ukrainian and English. It does not send or
+publish, regardless of `send`. The copy asks voluntary 0–4k MMR players,
+especially Sven/Juggernaut/Terrorblade players, for a few matches and honest
+feedback about helpful, late, distracting or incorrect advice. It promises no
+MMR gains and teaches no universal item/HP rules. `scripts/promo/beta_scenes.py`
+uses the site's own Montserrat/Inter fonts, branding and localized screenshots.
+
+`scripts/promo/beta.py` verifies the live site, reads the authenticated
+ElevenLabs model catalog (prefers the actual `eleven_v4` ID, otherwise explicitly
+records supported `eleven_v3`), and keeps Alex Nekrasov
+`9Sj8ugvpK1DmcAXyvi3a`, stability 0.5, speed 1.0. Each script is one continuous
+take. Its character alignment supplies scene cuts and every burned-in subtitle;
+the master recording is never split or sped up. The final card shows the local
+site URL, Free for Windows and the БЕТА/BETA comment call to action.
+
+Build artifacts include MP4s, covers, scripts, SRTs, word alignment, seven sample
+frames per language, source verification and layout/audio/decode reports.
+An independent CPU Whisper pass checks the actual rendered language and spoken
+text. Text bounds stay within x=78–910/y=196–1450, away from Shorts controls.
+
+After inspecting the build artifact, dispatch the same workflow with
+`beta_campaign=deliver`, `beta_run_id=<build run ID>` and `send=true`. This
+downloads the exact existing artifact and checks both videos and their hashes
+before sending either. It requires the configured Telegram chat to be private,
+sends no publication buttons, writes no Worker publishing queue and changes no
+rotation history. Sanitized `telegram-receipt.json` files retain Telegram's
+actual `ok`, message IDs and video metadata without bot credentials or chat IDs.
+The delivery run's artifact contains the receipts. Do not blindly redispatch
+an upload whose response was lost: inspect the previous run/private chat first.
+
+Local storyboard preview (no credentials and no paid API calls):
+
+```bash
+source /workspace/.local/share/dota-ai-coach/headless-env.sh
+CHROME=/usr/bin/chromium python -m scripts.promo.beta --out promo-out/beta-draft --draft
+```
+
+These draft frames have estimated timings; they are not finished voiced videos.
+An application release/version bump is unnecessary for this campaign.
+
 ## Safety
 
 - **Approval is the only way out.** A package is `pending` until a callback whose sender *and* chat are `TELEGRAM_CHAT_ID`. One conditional `UPDATE … WHERE status = 'pending'` moves it, so a double press or a Telegram redelivery publishes once (tested on real D1).
