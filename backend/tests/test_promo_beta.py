@@ -150,6 +150,15 @@ def test_actual_private_upload_returns_two_receipts_without_publishing(monkeypat
         assert all(b"reply_markup" not in body and b"promo:all" not in body for _, body in calls)
         beta.deliver(tmp_path)
         assert len(calls) == 4  # getChat only; existing receipts prevent duplicate uploads.
+        receipt_path = tmp_path / "uk" / "telegram-receipt.json"
+        receipt = json.loads(receipt_path.read_text())
+        receipt["sha256"] = "old render"
+        beta.save(receipt_path, receipt)
+        with pytest.raises(ValueError, match="different video"):
+            beta.deliver(tmp_path)
+        assert len(calls) == 5
+        receipt["sha256"] = beta.digest(tmp_path / "uk" / "video.mp4")
+        beta.save(receipt_path, receipt)
     for language in beta.LANGUAGES:
         receipt = json.loads((tmp_path / language / "telegram-receipt.json").read_text())
         assert receipt["ok"] and receipt["message_id"] and receipt["chat_type"] == "private"

@@ -214,7 +214,8 @@ def media_check(video: Path) -> dict[str, Any]:
         capture_output=True,
         text=True,
     ).stderr
-    measured = json.loads(audio[audio.rfind("{") :])
+    # Some ffmpeg builds print final progress after the filter's JSON.
+    measured, _ = json.JSONDecoder().raw_decode(audio[audio.rfind("{") :])
     loudness, peak = float(measured["input_i"]), float(measured["input_tp"])
     if not -18 <= loudness <= -11 or peak > -0.5:
         raise ValueError(f"Audio loudness/peak failed: {loudness} LUFS, {peak} dBTP")
@@ -344,6 +345,11 @@ def deliver(out: Path) -> None:
         ):
             raise ValueError("The narration has not passed speech/language verification")
         media_check(folder / "video.mp4")
+        receipt_path = folder / "telegram-receipt.json"
+        if receipt_path.exists():
+            previous = json.loads(receipt_path.read_text(encoding="utf-8"))
+            if not previous.get("ok") or previous.get("sha256") != package["sha256"]:
+                raise ValueError("Existing Telegram receipt belongs to a different video")
         packages[language] = package
     for language, package in packages.items():
         folder = out / language
