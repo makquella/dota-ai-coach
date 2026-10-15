@@ -19,6 +19,8 @@ YouTube Analytics API вернул `403 accessNotConfigured`: API не вклю�
 
 ## Цель и последовательность
 
+Владелец выбрал **бесплатные согласованные размещения в сообществах**. Платные предложения не принимаем; рекламный бюджет не используется.
+
 Рабочая цель пилота: найти по 10 активных тестеров на каждом языке. Это цель эксперимента, а не прогноз результата. Считать отдельно охват, переходы, загрузки, согласившихся игроков, сыгранные матчи и полученный полезный фидбек.
 
 1. Сохранить текущие публикации и их исходные показатели. Не удалять и не перезаливать их ради «сброса алгоритма».
@@ -50,7 +52,7 @@ YouTube Analytics API вернул `403 accessNotConfigured`: API не вклю�
 
 > Привіт! Розвиваємо Wardly — безкоштовний Windows-тренер для Dota 2 з підказками в матчі та розбором після гри. Шукаємо невелику групу добровольців приблизно 0–4к MMR, особливо на Свені, Джагернауті й Терорблейді, щоб покращити точність і своєчасність порад.
 >
-> Чи можна погодити один допис від розробника у вашій спільноті? Потрібні кілька матчів і чесний відгук: що допомогло, що відволікало, де порада була хибною. Будемо вдячні й за критику. Публічний приклад: https://www.youtube.com/shorts/Q8etsMs4470
+> Чи можна погодити один безкоштовний допис від розробника у вашій спільноті? Потрібні кілька матчів і чесний відгук: що допомогло, що відволікало, де порада була хибною. Будемо вдячні й за критику. Публічний приклад: https://www.youtube.com/shorts/Q8etsMs4470
 >
 > Обіцянок приросту MMR немає. Можемо надіслати текст допису на перевірку й підлаштувати його під правила спільноти. Чи прийнятний у вас такий формат?
 
@@ -60,7 +62,7 @@ YouTube Analytics API вернул `403 accessNotConfigured`: API не вклю�
 
 > Hi! We're developing Wardly, a free Windows coach for Dota 2 with in-game tips and post-match reviews. We're looking for a small volunteer group around 0–4k MMR, especially Sven, Juggernaut and Terrorblade players, to improve the accuracy and timing of its advice.
 >
-> Would your moderators allow one transparent developer post in the community? Participation means a few matches and honest feedback: what helped, what distracted you, and which advice was wrong. Criticism is useful. Here's the public demo: https://www.youtube.com/shorts/KAwwovVUuMI
+> Would your moderators allow one transparent developer post in the community at no cost? Participation means a few matches and honest feedback: what helped, what distracted you, and which advice was wrong. Criticism is useful. Here's the public demo: https://www.youtube.com/shorts/KAwwovVUuMI
 >
 > We're not promising MMR gains or asking you to endorse the advice. We can send the post for review and follow your community rules. Would this format be appropriate?
 
@@ -133,4 +135,4 @@ EN:
 
 Проверять данные каждой площадки через 24 и 72 часа после фактического поста. Сравнивать результаты с учётом размера и правил сообщества. Для Shorts отдельно фиксировать «Показано в ленте», долю просмотра/пролистывания, среднее время и процент просмотра. Если этих данных мало, не объяснять результат удержанием. Решение о продолжении принимать по качеству пришедших игроков и фидбека вместе с охватом.
 
-Платные размещения или реклама здесь не запущены; бюджет и доступ к рекламному аккаунту не предоставлены. Никаких сообщений авторам или модераторам этот документ и диагностический скрипт не отправляют.
+Выбран бесплатный запуск. Если автор предлагает только платное размещение, пропустить его и продолжить с другими сообществами. Никаких сообщений авторам или модераторам этот документ и диагностический скрипт не отправляют.

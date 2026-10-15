@@ -10,7 +10,29 @@ const required = name => {
 };
 const hidden = Object.entries(process.env).filter(([key]) => /TOKEN|SECRET/.test(key)).map(([, value]) => value).filter(Boolean);
 const redact = value => hidden.reduce((result, secret) => result.split(secret).join('[redacted]'), String(value));
-const report = { checked_at: new Date().toISOString(), read_only: true, errors: [] };
+const report = { checked_at: new Date().toISOString(), read_only: true, errors: [], warnings: [] };
+
+// These channels were manually selected from the public search by language and
+// relevance. A public contact is a way to ask, never permission to advertise.
+const selectedCreators = [
+  ['uk', 'UCQut_NvqjmTcYjlAI6es80w', 'hFHKjO-j6h0'],
+  ['uk', 'UCkei_sEPZde5SRYUxPWQ97Q', 'YYOCJgFf3Q8'],
+  ['uk', 'UCwqbubdeglCU60ntcz7A-7w', 'QL_4xrLzPRc'],
+  ['uk', 'UCXjZjHhyrkODi2PBNvHrRvw', 'ggG8BLsFvV0'],
+  ['en', 'UC4GP0zkMKGbXicHNx3UckSw', 'CvaGSR9ZfWw'],
+  ['en', 'UCYldE7tGQHjNwIVHQ7bDNoA', 'J6m5LDaP_B0']
+];
+function publicContacts(description = '') {
+  const urls = [...new Set(description.match(/https?:\/\/[^\s<>"\u200b]+/gu) || [])];
+  return {
+    links: urls.map(url => url.replace(/[),.;!?]+$/, '')).filter(url => {
+      try {
+        return /(^|\.)(t\.me|telegram\.me|discord\.gg|discord\.com|twitch\.tv|instagram\.com|twitter\.com|x\.com|facebook\.com|maincast\.com)$/.test(new URL(url).hostname);
+      } catch { return false; }
+    }),
+    emails: [...new Set(description.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi) || [])]
+  };
+}
 
 async function request(url, init = {}) {
   const response = await fetch(url, { ...init, signal: AbortSignal.timeout(45000) });
@@ -94,6 +116,25 @@ try {
       examples: candidates.filter(candidate => candidate.channel_id === row.id)
     }));
   }
+  const [contactChannels, contactVideos] = await Promise.all([
+    google('channels', { part: 'snippet', id: selectedCreators.map(row => row[1]).join(',') }),
+    google('videos', { part: 'snippet', id: selectedCreators.map(row => row[2]).join(',') })
+  ]);
+  report.public_contacts = selectedCreators.map(([language, channelId, videoId]) => {
+    const channel = contactChannels.data?.items?.find(row => row.id === channelId);
+    const video = contactVideos.data?.items?.find(row => row.id === videoId && row.snippet.channelId === channelId);
+    return {
+      language, channel_id: channelId, title: channel?.snippet.title,
+      sources: [
+        channel && { url: `https://www.youtube.com/channel/${channelId}/about`, ...publicContacts(channel.snippet.description) },
+        video && { url: `https://www.youtube.com/watch?v=${videoId}`, ...publicContacts(video.snippet.description) }
+      ].filter(Boolean),
+      contacted: false, community_post_permission: 'not requested'
+    };
+  });
+  for (const result of [contactChannels, contactVideos]) {
+    if (!result.ok) report.warnings.push(`Public contacts: HTTP ${result.status} (${result.reason})`);
+  }
   const ids = [...new Set(report.campaign.map(row => row.video_id).filter(Boolean))];
   if (ids.length) {
     const videos = await google('videos', { part: 'snippet,statistics,status,contentDetails,processingDetails,suggestions', id: ids.join(',') });
@@ -128,23 +169,33 @@ try {
     ['tags', 'https://support.google.com/youtube/answer/146402?hl=en'],
     ['shorts_discovery', 'https://support.google.com/youtube/answer/11914225?hl=en']
   ]) {
-    const response = await fetch(url, { signal: AbortSignal.timeout(20000) });
-    const html = await response.text();
-    const plain = html.replace(/<script[\s\S]*?<\/script>/gi, '').replace(/<style[\s\S]*?<\/style>/gi, '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ');
-    const terms = name === 'tags' ? ['Tags are', 'minimal role'] : ['performance', 'personalization', 'average view duration', 'minimum posting', 'competition', 'topic interest'];
-    const excerpts = terms.map(term => {
-      const at = plain.toLowerCase().indexOf(term.toLowerCase());
-      return at < 0 ? null : plain.slice(Math.max(0, at - 150), at + 900);
-    }).filter(Boolean);
-    report.references.push({ name, url, status: response.status, excerpts });
+    try {
+      const response = await fetch(url, { signal: AbortSignal.timeout(20000) });
+      const html = await response.text();
+      const plain = html.replace(/<script[\s\S]*?<\/script>/gi, '').replace(/<style[\s\S]*?<\/style>/gi, '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ');
+      const terms = name === 'tags' ? ['Tags are', 'minimal role'] : ['performance', 'personalization', 'average view duration', 'minimum posting', 'competition', 'topic interest'];
+      const excerpts = terms.map(term => {
+        const at = plain.toLowerCase().indexOf(term.toLowerCase());
+        return at < 0 ? null : plain.slice(Math.max(0, at - 150), at + 900);
+      }).filter(Boolean);
+      report.references.push({ name, url, status: response.status, excerpts });
+    } catch (error) {
+      report.references.push({ name, url, verified: false, error: redact(error.message) });
+      report.warnings.push(`Optional reference ${name}: ${redact(error.message)}`);
+    }
   }
   report.community_rules = [];
   for (const name of ['DotA2', 'learndota2']) {
     const url = `https://www.reddit.com/r/${name}/about/rules.json`;
-    const response = await fetch(url, { headers: { 'user-agent': 'Wardly research (read-only)' }, signal: AbortSignal.timeout(20000) });
-    if (!response.ok) { report.community_rules.push({ community: name, url, status: response.status, verified: false }); continue; }
-    const data = await response.json();
-    report.community_rules.push({ community: name, url, status: response.status, verified: true, rules: data.rules?.map(rule => ({ title: rule.short_name, description: rule.description })) });
+    try {
+      const response = await fetch(url, { headers: { 'user-agent': 'Wardly research (read-only)' }, signal: AbortSignal.timeout(20000) });
+      if (!response.ok) { report.community_rules.push({ community: name, url, status: response.status, verified: false }); continue; }
+      const data = await response.json();
+      report.community_rules.push({ community: name, url, status: response.status, verified: true, rules: data.rules?.map(rule => ({ title: rule.short_name, description: rule.description })) });
+    } catch (error) {
+      report.community_rules.push({ community: name, url, verified: false, error: redact(error.message) });
+      report.warnings.push(`Optional community rules ${name}: ${redact(error.message)}`);
+    }
   }
 } catch (error) {
   report.errors.push(redact(error.message));
