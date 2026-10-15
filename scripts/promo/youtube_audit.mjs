@@ -135,6 +135,22 @@ try {
   for (const result of [contactChannels, contactVideos]) {
     if (!result.ok) report.warnings.push(`Public contacts: HTTP ${result.status} (${result.reason})`);
   }
+  const communityUrls = [...new Set(report.public_contacts.flatMap(row => row.sources.flatMap(source => source.links)))].filter(url => /https:\/\/(t\.me|discord\.gg|discord\.com)\//.test(url) && !/\/\d+\/?$/.test(url));
+  report.public_community_checks = await Promise.all(communityUrls.map(async url => {
+    try {
+      if (url.includes('discord.')) {
+        const code = new URL(url).pathname.split('/').filter(Boolean).at(-1);
+        const result = await request(`https://discord.com/api/v10/invites/${code}?with_counts=true`);
+        return { url, status: result.status, available: result.ok, community: result.data?.guild?.name, member_count: result.data?.approximate_member_count, rules_verified: false };
+      }
+      const response = await fetch(url, { signal: AbortSignal.timeout(15000) });
+      const html = await response.text();
+      const metas = [...html.matchAll(/<meta\s+property="og:(title|description)"\s+content="([^"]*)"/g)];
+      return { url, status: response.status, available: response.ok, public_preview: Object.fromEntries(metas.map(([, key, value]) => [key, value.replace(/&amp;/g, '&').replace(/&#(?:39|x27);/g, "'").replace(/&quot;/g, '"')])), rules_verified: false };
+    } catch (error) {
+      return { url, available: false, error: redact(error.message), rules_verified: false };
+    }
+  }));
   const ids = [...new Set(report.campaign.map(row => row.video_id).filter(Boolean))];
   if (ids.length) {
     const videos = await google('videos', { part: 'snippet,statistics,status,contentDetails,processingDetails,suggestions', id: ids.join(',') });
