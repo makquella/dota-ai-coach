@@ -158,8 +158,9 @@ const youtube = {
         title: job.body.youtube_title,
         description: `${job.body.caption}`.slice(0, 4900),
         categoryId: "20", // Gaming
-        tags: ["dota 2", "дота 2", "wardly", "dota2"],
-        defaultLanguage: "uk"
+        tags: job.body.youtube_tags || ["dota 2", "дота 2", "wardly", "dota2"],
+        defaultLanguage: job.body.youtube_language || "uk",
+        ...(job.body.youtube_language ? { defaultAudioLanguage: job.body.youtube_language } : {})
       },
       status: { privacyStatus: privacy, selfDeclaredMadeForKids: false, embeddable: true }
     };

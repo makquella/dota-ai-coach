@@ -78,3 +78,5 @@ html[lang=en] .captions.hook { font-size:97px; }
 .goal span svg { width:48px; height:48px; }
 .windows { display:grid; grid-template-columns:repeat(2,11px); gap:3px; }
 .windows i { width:11px; height:11px; background:currentColor; }
+/* Sven's sword makes the render's image centre differ from his body centre. */
+.hero-card.h0 .hero-art.animated { left:-170px; }

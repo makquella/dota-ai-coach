@@ -32,6 +32,18 @@ test("a package needs an id, a known format and captions within the limits", () 
   assert.equal(validatePromo({ ...PACKAGE, youtube_title: "" }), null);
 });
 
+test("localized YouTube metadata is bounded and legacy packages retain their defaults", () => {
+  assert.equal(validatePromo(PACKAGE).body.youtube_language, undefined);
+  const metadata = { youtube_tags: ["Dota 2", "Wardly", "beta test"], youtube_language: "en" };
+  const body = validatePromo({ ...PACKAGE, ...metadata }).body;
+  assert.deepEqual(body.youtube_tags, metadata.youtube_tags);
+  assert.equal(body.youtube_language, "en");
+  for (const invalid of [[], [3], [" "], ["a\nb"], ["<bad>"], Array(31).fill("tag"), Array(8).fill("x".repeat(80))]) {
+    assert.equal(validatePromo({ ...PACKAGE, youtube_tags: invalid }), null);
+  }
+  assert.equal(validatePromo({ ...PACKAGE, youtube_language: "invalid" }), null);
+});
+
 test("the webhook secret comes from the bot token and fits Telegram's charset", async () => {
   const secret = await webhookSecret("123:abc");
   assert.match(secret, /^[a-f0-9]{48}$/);

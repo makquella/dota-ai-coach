@@ -12,7 +12,7 @@ from pathlib import Path
 import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
-from scripts.promo import beta, beta_scenes, experiments, scenes  # noqa: E402
+from scripts.promo import beta, beta_scenes, beta_shorts, experiments, scenes  # noqa: E402
 
 
 def test_master_take_scene_cuts_have_no_inserted_pauses_and_keep_every_word():
@@ -78,7 +78,7 @@ def test_actual_ukrainian_transcript_accepts_speech_spelling_without_discarding_
 
 
 @contextmanager
-def telegram(chat_type="private"):
+def telegram(chat_type="private", *, old_metadata_api=False):
     calls = []
 
     class Handler(BaseHTTPRequestHandler):
@@ -86,6 +86,25 @@ def telegram(chat_type="private"):
             body = self.rfile.read(int(self.headers["Content-Length"]))
             calls.append((self.path, body))
             result = {"type": chat_type}
+            if self.path == "/v1/admin/promo":
+                submitted = json.loads(body)
+                response = {
+                    "ok": True,
+                    "media_key": "a" * 32,
+                    "status": "pending",
+                    "youtube_ready": True,
+                }
+                if not old_metadata_api:
+                    response.update(
+                        {key: submitted[key] for key in ("youtube_tags", "youtube_language")}
+                    )
+                encoded = json.dumps(response).encode()
+                self.send_response(200)
+                self.end_headers()
+                self.wfile.write(encoded)
+                return
+            if self.path.endswith("sendMessage"):
+                result = {"message_id": len(calls)}
             if self.path.endswith("sendVideo"):
                 result = {
                     "message_id": len(calls),
@@ -98,6 +117,13 @@ def telegram(chat_type="private"):
             self.send_header("Content-Length", str(len(encoded)))
             self.end_headers()
             self.wfile.write(encoded)
+
+        def do_PUT(self):
+            body = self.rfile.read(int(self.headers["Content-Length"]))
+            calls.append((self.path, body))
+            self.send_response(200)
+            self.end_headers()
+            self.wfile.write(b'{"ok":true}')
 
         def log_message(self, *_args):
             pass
@@ -130,6 +156,7 @@ def pair(folder):
                 "language": language,
                 "draft": False,
                 "seconds": 32,
+                "visual_revision": 3,
                 "layout": {"ok": True},
                 "sha256": beta.digest(target / "video.mp4"),
                 "voice_config": {"name": "Alex Nekrasov", "model": "eleven_v4"},
@@ -181,3 +208,53 @@ def test_channel_or_altered_pair_is_rejected_before_any_video_upload(monkeypatch
         with pytest.raises(ValueError, match="integrity"):
             beta.deliver(tmp_path)
         assert len(calls) == 1
+
+
+def test_reviewed_pair_gets_only_shorts_buttons_and_exact_localized_metadata(monkeypatch, tmp_path):
+    monkeypatch.setenv("TELEGRAM_BOT_TOKEN", "local-fixture-token")
+    monkeypatch.setenv("TELEGRAM_CHAT_ID", "1234")
+    monkeypatch.setenv("API_ADMIN_TOKEN", "local-api-fixture")
+    monkeypatch.setattr(beta, "media_check", lambda _path: {"ok": True})
+    pair(tmp_path)
+    with telegram() as (url, calls):
+        monkeypatch.setattr(experiments, "TELEGRAM_API", url)
+        monkeypatch.setenv("API_URL", url)
+        beta.deliver(tmp_path, shorts=True)
+        registered = [json.loads(body) for route, body in calls if route == "/v1/admin/promo"]
+        assert len(registered) == 2
+        assert [meta["youtube_language"] for meta in registered] == ["uk", "en"]
+        videos = [body for route, body in calls if route.endswith("sendVideo")]
+        assert len(videos) == 2
+        assert all(b"promo:yt:" in body and b"promo:no:" in body for body in videos)
+        assert all(b"promo:all:" not in body and b"promo:tg:" not in body for body in videos)
+        replies = [json.loads(body) for route, body in calls if route.endswith("sendMessage")]
+        assert len(replies) == 2
+        for language, meta, reply in zip(beta.LANGUAGES, registered, replies, strict=True):
+            assert meta["youtube_title"] in reply["text"]
+            assert meta["caption"] in reply["text"]
+            assert ", ".join(meta["youtube_tags"]) in reply["text"]
+            receipt = json.loads((tmp_path / language / "shorts-approval-receipt.json").read_text())
+            assert receipt["youtube_package_id"] == meta["id"]
+            assert receipt["details_message_id"] == reply["reply_to_message_id"] + 1
+            assert receipt["youtube_ready"]
+            assert (
+                "Shorts"
+                in beta_shorts.keyboard(language, meta["id"])["inline_keyboard"][0][0]["text"]
+            )
+        count = len(calls)
+        beta.deliver(tmp_path, shorts=True)
+        assert len(calls) == count + 1  # getChat only: no duplicate uploads/registrations.
+
+
+def test_worker_must_preserve_metadata_before_a_publication_button_is_sent(monkeypatch, tmp_path):
+    monkeypatch.setenv("TELEGRAM_BOT_TOKEN", "local-fixture-token")
+    monkeypatch.setenv("TELEGRAM_CHAT_ID", "1234")
+    monkeypatch.setenv("API_ADMIN_TOKEN", "local-api-fixture")
+    monkeypatch.setattr(beta, "media_check", lambda _path: {"ok": True})
+    pair(tmp_path)
+    with telegram(old_metadata_api=True) as (url, calls):
+        monkeypatch.setattr(experiments, "TELEGRAM_API", url)
+        monkeypatch.setenv("API_URL", url)
+        with pytest.raises(SystemExit, match="preserve youtube_tags"):
+            beta.deliver(tmp_path, shorts=True)
+        assert not any(route.endswith("sendVideo") for route, _ in calls)

@@ -16,7 +16,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
-from . import beta_scenes, experiments, media, render, scenes, send, voice
+from . import beta_scenes, beta_shorts, experiments, media, render, scenes, send, voice
 
 KIND = "wardly-beta-recruitment"
 LANGUAGES = ("uk", "en")
@@ -372,7 +372,7 @@ def build(out: Path, *, draft: bool = False) -> None:
             "seconds": total,
             "voice_config": voice.configuration() if not draft else None,
             "continuous": True,
-            "visual_revision": 2,
+            "visual_revision": 3,
             "animated_heroes": sorted(motion),
             "layout": layout,
         }
@@ -387,13 +387,14 @@ def build(out: Path, *, draft: bool = False) -> None:
             )
             package["quality"] = media_check(folder / "video.mp4")
             package["sha256"] = digest(folder / "video.mp4")
+            save(folder / "youtube-metadata.json", beta_shorts.package(language, package))
             (folder / "padded.wav").unlink()
         save(folder / "package.json", package)
         print(f"{language}: {'storyboard' if draft else 'video'} {total:.2f}s; layout passed")
 
 
-def deliver(out: Path) -> None:
-    """Upload only to the configured private owner chat, without publication callbacks."""
+def deliver(out: Path, *, shorts: bool = False) -> None:
+    """Send privately; the explicit Shorts mode adds the existing YouTube-only callback."""
     bot, chat = send._env("TELEGRAM_BOT_TOKEN"), send._env("TELEGRAM_CHAT_ID")
     endpoint = f"{experiments.TELEGRAM_API}/bot{bot}"
     private = send._request(
@@ -408,6 +409,7 @@ def deliver(out: Path) -> None:
         )
     # Validate the entire pair before the first network upload.
     packages = {}
+    receipt_name = "shorts-approval-receipt.json" if shorts else "telegram-receipt.json"
     for language in LANGUAGES:
         folder = out / language
         package = json.loads((folder / "package.json").read_text(encoding="utf-8"))
@@ -430,17 +432,39 @@ def deliver(out: Path) -> None:
         ):
             raise ValueError("The narration has not passed speech/language verification")
         media_check(folder / "video.mp4")
-        receipt_path = folder / "telegram-receipt.json"
+        receipt_path = folder / receipt_name
         if receipt_path.exists():
             previous = json.loads(receipt_path.read_text(encoding="utf-8"))
             if not previous.get("ok") or previous.get("sha256") != package["sha256"]:
                 raise ValueError("Existing Telegram receipt belongs to a different video")
+            if (
+                shorts
+                and previous.get("youtube_package_id")
+                != beta_shorts.package(language, package)["id"]
+            ):
+                raise ValueError("Existing Shorts receipt belongs to different metadata")
         packages[language] = package
+    metadata = {}
+    if shorts:
+        api, token = send._env("API_URL").rstrip("/"), send._env("API_ADMIN_TOKEN")
+        for language, package in packages.items():
+            folder = out / language
+            metadata[language] = beta_shorts.package(language, package)
+            if not (folder / receipt_name).exists():
+                send.register(metadata[language], folder, api, token)
+                save(folder / "youtube-metadata.json", metadata[language])
+            else:
+                stored = json.loads((folder / "youtube-metadata.json").read_text())
+                if stored["id"] != metadata[language]["id"]:
+                    raise ValueError("Stored YouTube metadata changed")
+                metadata[language] = stored
     for language, package in packages.items():
         folder = out / language
-        receipt_path = folder / "telegram-receipt.json"
+        receipt_path = folder / receipt_name
         if receipt_path.exists():
             print(f"{language}: already delivered; preserving its Telegram receipt")
+            if shorts:
+                shorts_details(endpoint, chat, folder, metadata[language], language)
             continue
         fields = {
             "chat_id": chat,
@@ -456,6 +480,17 @@ def deliver(out: Path) -> None:
             )
             + f"\n{package['voice_config']['name']} · {package['voice_config']['model']}",
         }
+        if shorts:
+            meta = metadata[language]
+            copy = beta_shorts.COPY[language]
+            fields["caption"] = (
+                f"Wardly · v{package['visual_revision']} · {NAMES[language]} · {package['seconds']:.2f} s\n"
+                f"{meta['youtube_title']}\n\n"
+                + copy["ready" if meta.get("youtube_ready") else "not_connected"]
+            )
+            fields["reply_markup"] = json.dumps(
+                beta_shorts.keyboard(language, meta["id"]), ensure_ascii=False
+            )
         body, kind = send.multipart(
             fields,
             {
@@ -492,8 +527,46 @@ def deliver(out: Path) -> None:
             "sha256": package["sha256"],
             "confirmed_at": datetime.now(UTC).isoformat(),
         }
+        if shorts:
+            receipt.update(
+                {
+                    "youtube_package_id": metadata[language]["id"],
+                    "youtube_ready": metadata[language]["youtube_ready"],
+                    "callback_data": f"promo:yt:{metadata[language]['id']}",
+                }
+            )
         save(receipt_path, receipt)
         print(f"{language}: Telegram API confirmed " + json.dumps(receipt))
+        if shorts:
+            shorts_details(endpoint, chat, folder, metadata[language], language)
+
+
+def shorts_details(
+    endpoint: str, chat: str, folder: Path, metadata: dict[str, Any], language: str
+) -> None:
+    """A failed details reply can resume without uploading the video twice."""
+    path = folder / "shorts-approval-receipt.json"
+    receipt = json.loads(path.read_text())
+    if receipt.get("details_message_id"):
+        return
+    answer = send._request(
+        endpoint + "/sendMessage",
+        method="POST",
+        data=json.dumps(
+            {
+                "chat_id": chat,
+                "text": beta_shorts.details(language, metadata),
+                "reply_to_message_id": receipt["message_id"],
+                "disable_web_page_preview": True,
+            },
+            ensure_ascii=False,
+        ).encode(),
+        headers={"Content-Type": "application/json"},
+    )
+    if not answer.get("ok") or not answer.get("result", {}).get("message_id"):
+        raise ValueError("Telegram did not confirm the Shorts metadata reply")
+    receipt["details_message_id"] = answer["result"]["message_id"]
+    save(path, receipt)
 
 
 def transcript_similarity(expected: str, actual: str) -> float:
@@ -551,13 +624,20 @@ def main() -> None:
         action="store_true",
         help="independent ASR/language verification",
     )
+    parser.add_argument(
+        "--shorts-approval",
+        action="store_true",
+        help="register reviewed videos and send YouTube-only buttons",
+    )
     args = parser.parse_args()
-    if sum((args.draft, args.deliver_only, args.speech_check)) > 1:
-        parser.error("choose one of draft, speech-check and deliver-only")
+    if sum((args.draft, args.deliver_only, args.speech_check, args.shorts_approval)) > 1:
+        parser.error("choose one of draft, speech-check, deliver-only and shorts-approval")
     if args.speech_check:
         speech_check(args.out)
     elif args.deliver_only:
         deliver(args.out)
+    elif args.shorts_approval:
+        deliver(args.out, shorts=True)
     else:
         build(args.out, draft=args.draft)
 

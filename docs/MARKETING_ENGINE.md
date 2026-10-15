@@ -102,6 +102,24 @@ actual `ok`, message IDs and video metadata without bot credentials or chat IDs.
 The delivery run's artifact contains the receipts. Do not blindly redispatch
 an upload whose response was lost: inspect the previous run/private chat first.
 
+For the explicitly enabled **YouTube Shorts** handoff, dispatch
+`beta_campaign=shorts`, `beta_run_id=<reviewed build>` and `send=true`.
+`beta_shorts.py` supplies separate UK/EN titles, descriptions, three relevant
+hashtags, search tags, language and campaign URLs. The category is Gaming (20),
+with the existing public visibility and not-made-for-kids setting. Metadata is
+also sent as a reply to each Telegram video. The only publishing callback is
+`promo:yt:<id>`; the other button rejects the package. The existing Worker queues
+YouTube after the owner's press. It does not queue Instagram/TikTok or forward
+the video to the Telegram channel.
+
+Deploy the API revision that accepts `youtube_tags` and `youtube_language` first.
+Registration echoes the saved values; the sender checks them before attaching
+buttons, and displays whether a direct YouTube connection exists. Optional
+metadata retains the legacy defaults for standard promos. Shorts approval IDs
+include the video hash and metadata, and `shorts-approval-receipt.json` prevents
+duplicate uploads while allowing an interrupted metadata reply to resume.
+Visual revision 3 centres Sven's body independently of his off-centre sword.
+
 Local storyboard preview (no credentials and no paid API calls):
 
 ```bash
