@@ -68,15 +68,71 @@ COPY = {
         ],
         "button": "▶️ Publish to Shorts",
         "reject": "❌ Reject",
-        "labels": ["Title", "Description and hashtags", "Tags", "Video language", "Category"],
+        "labels": [
+            "Title",
+            "Description and hashtags",
+            "Tags",
+            "Video language",
+            "Category",
+        ],
         "ready": "Ready for YouTube Shorts. Metadata is in the reply below.",
         "not_connected": "YouTube is not connected yet: /connect youtube. Metadata is below.",
+    },
+}
+
+SHORTS_COPY = {
+    "uk": {
+        "title": "Свен до 4к MMR? Допоможи перевірити Wardly | Dota 2",
+        "description": (
+            "Граєш на Свені приблизно до 4к MMR? Напиши «БЕТА» — допоможи перевірити "
+            "поради Wardly у своїх матчах. Шукаємо також Джагернаута й Терорблейда.\n\n"
+            "Wardly — безкоштовний Windows-тренер для Dota 2: підказки під час матчу "
+            "та розбір після гри. Зіграй кілька матчів і скажи чесно: що допомогло, "
+            "що запізнилося чи відволікало, де порада була хибною. "
+            "Твій відгук допоможе покращити точність, час і користь порад.\n\n"
+            "Сайт і завантаження для Windows: https://luhovyimvp.dev/?ref=shorts-sven-uk\n\n"
+            "Участь добровільна. Обіцянок приросту MMR немає.\n\n"
+            "#Dota2 #ДотаУкраїнською #Sven"
+        ),
+        "tags": [
+            "Dota 2",
+            "Sven",
+            "Свен",
+            "Дота українською",
+            "Wardly",
+            "0–4k MMR",
+            "бета-тест",
+        ],
+    },
+    "en": {
+        "title": "Sven under 4K MMR? Help test a free Dota 2 coach",
+        "description": (
+            "Play Sven around 0–4K MMR? Comment BETA to help test Wardly's advice "
+            "in your matches. Juggernaut and Terrorblade players are welcome too.\n\n"
+            "Wardly is a free Windows coach for Dota 2, with in-game tips and "
+            "post-match reviews. Play a few matches and tell us honestly: what helped, "
+            "what came too late or distracted you, and which advice was wrong. "
+            "Your feedback helps improve the accuracy, timing and usefulness of the advice.\n\n"
+            "Website and Windows download: https://luhovyimvp.dev/en/?ref=shorts-sven-en\n\n"
+            "Voluntary beta testing. No promises of MMR gains.\n\n"
+            "#Dota2 #Sven #Dota2Coach"
+        ),
+        "tags": [
+            "Dota 2",
+            "Sven",
+            "Dota 2 coach",
+            "Wardly",
+            "low MMR",
+            "Dota 2 beta test",
+        ],
     },
 }
 
 
 def package(language: str, video: dict[str, Any]) -> dict[str, Any]:
     copy = COPY[language]
+    if video["visual_revision"] >= 4:
+        copy = {**copy, **SHORTS_COPY[language]}
     identity = {"video_sha256": video["sha256"], "language": language, "copy": copy}
     package_id = hashlib.sha256(
         json.dumps(identity, sort_keys=True, ensure_ascii=False).encode()

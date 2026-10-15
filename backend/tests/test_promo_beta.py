@@ -64,7 +64,18 @@ def test_v4_final_character_rounding_keeps_starts_and_rejects_missing_speech():
 
 
 def test_actual_ukrainian_transcript_accepts_speech_spelling_without_discarding_letters():
-    expected = " ".join(beta_scenes.COPY["uk"]["voice"])
+    # Keep the original long take: it reproduces SequenceMatcher's autojunk
+    # regression even after the campaign copy changes.
+    expected = (
+        "Граєш у Доту? Допоможи зробити Wardly кращим. "
+        "Це безкоштовний Windows-тренер: підказки в матчі та розбір після гри. "
+        "Шукаємо добровольців до чотирьох тисяч MMR. "
+        "Особливо на Свені, Джагернауті й Терорблейді. "
+        "Зіграй кілька матчів і розкажи, що справді допомогло. "
+        "Що запізнилося чи відволікало? Де порада була неправильною? "
+        "Разом зробимо поради точнішими, вчаснішими й кориснішими. "
+        "Хочеш долучитися? Напиши «БЕТА» в коментарях."
+    )
     actual = (
         "Граєш у доту? Допоможи зробити в ордлі кращим. Це безкоштовний віндовстренер. "
         "Підказків матчі та розбір після гри. Шукаємо добровольців до 4000 ммр. "
@@ -75,6 +86,29 @@ def test_actual_ukrainian_transcript_accepts_speech_spelling_without_discarding_
     )
     assert beta.transcript_similarity(expected, actual) > 0.9
     assert beta.transcript_similarity(expected, "Different language and unrelated audio.") < 0.2
+
+
+def test_shorter_take_does_not_insert_a_thirty_second_floor_or_cut_speech():
+    texts = ["Play Sven?", "Help test the advice.", "Comment BETA."]
+    words = scenes.estimated_words(" ".join(texts), 0.1, 21.0)
+    timeline, captions, total = beta.timings(texts, words, 21.2, minimum=20, maximum=27, tail=0.8)
+    assert total == 22.0
+    assert timeline[-1]["end"] == total
+    assert captions[-1]["words"][-1]["e"] == words[-1]["end"]
+    with pytest.raises(ValueError, match="shorten the script"):
+        beta.timings(texts, words, 26.3, minimum=20, maximum=27, tail=0.8)
+
+
+def test_new_sven_metadata_keeps_legacy_approval_ids_stable():
+    old = {"sha256": "a" * 64, "visual_revision": 3}
+    new = {**old, "visual_revision": 4}
+    for language in beta.LANGUAGES:
+        original = beta_shorts.package(language, old)
+        revised = beta_shorts.package(language, new)
+        assert original["youtube_title"] == beta_shorts.COPY[language]["title"]
+        assert revised["id"] != original["id"]
+        assert "shorts-sven-" + language in revised["caption"]
+        assert revised["youtube_language"] == language
 
 
 @contextmanager

@@ -20,12 +20,15 @@ from . import beta_scenes, beta_shorts, experiments, media, render, scenes, send
 
 KIND = "wardly-beta-recruitment"
 LANGUAGES = ("uk", "en")
+VISUAL_REVISION = 4
 NAMES = {"uk": "Українською", "en": "English"}
 SOURCES = ["site/index.html", "site/en/index.html", "README.md", "AGENTS.md"]
 
 
 def save(path: Path, data: Any) -> None:
-    path.write_text(json.dumps(data, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    path.write_text(
+        json.dumps(data, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
+    )
 
 
 def digest(path: Path) -> str:
@@ -46,7 +49,9 @@ def catalog() -> dict[str, Any]:
     return {
         "model": model,
         "v4_available": model == "eleven_v4",
-        "model_ids": [row["model_id"] for row in models if row.get("can_do_text_to_speech")],
+        "model_ids": [
+            row["model_id"] for row in models if row.get("can_do_text_to_speech")
+        ],
         "voice_id": voice.DEFAULT_VOICE,
         "voice_name": found.get("name", voice.DEFAULT_VOICE_NAME),
         "languages": sorted(supported),
@@ -66,24 +71,36 @@ def verify_claims(online: bool) -> dict[str, Any]:
     }
     for name, required in checks.items():
         text = (root / name).read_text(encoding="utf-8").casefold()
-        assert all(token.casefold() in text for token in required), f"Unsupported claim: {name}"
+        assert all(token.casefold() in text for token in required), (
+            f"Unsupported claim: {name}"
+        )
     if online:
         import urllib.request
 
         result["live_site"] = []
         for url in ("https://luhovyimvp.dev/", "https://luhovyimvp.dev/en/"):
-            request = urllib.request.Request(url, headers={"User-Agent": send.USER_AGENT})
+            request = urllib.request.Request(
+                url, headers={"User-Agent": send.USER_AGENT}
+            )
             with urllib.request.urlopen(request, timeout=30) as response:
                 body = response.read()
                 text = body.decode("utf-8").casefold()
                 assert response.status == 200 and "wardly" in text and "windows" in text
                 assert "free" in text if url.endswith("/en/") else "безкоштов" in text
-                result["live_site"].append({"url": url, "sha256": hashlib.sha256(body).hexdigest()})
+                result["live_site"].append(
+                    {"url": url, "sha256": hashlib.sha256(body).hexdigest()}
+                )
     return result
 
 
 def timings(
-    texts: list[str], words: list[dict[str, Any]], seconds: float
+    texts: list[str],
+    words: list[dict[str, Any]],
+    seconds: float,
+    *,
+    minimum: float = 30.0,
+    maximum: float = 35.0,
+    tail: float = 1.2,
 ) -> tuple[list[dict[str, Any]], list[dict[str, Any]], float]:
     """Keep the master take continuous; scene cuts follow its actual alignment."""
     expected = " ".join(texts).split()
@@ -103,8 +120,8 @@ def timings(
             raise ValueError("Invalid word timestamp")
         if index and word["start"] < words[index - 1]["start"]:
             raise ValueError("Word timestamps are not monotonic")
-    total = max(30.0, math.ceil((seconds + 1.2) * scenes.FPS) / scenes.FPS)
-    if total > 35.0:
+    total = max(minimum, math.ceil((seconds + tail) * scenes.FPS) / scenes.FPS)
+    if total > maximum:
         raise ValueError(
             f"Narration is {seconds:.2f}s; shorten the script rather than speeding it up"
         )
@@ -126,12 +143,12 @@ def storyboard(
     language: str,
 ) -> tuple[list[dict[str, Any]], list[dict[str, Any]], float]:
     texts = beta_scenes.COPY[language]["voice"]
-    lengths = (4, 5.5, 7, 4, 4, 4.5, 4)
+    lengths = (3.2, 3.8, 3.5, 2.5, 4, 2.8, 3)
     words, at = [], 0.0
     for text, span in zip(texts, lengths, strict=True):
         words.extend(scenes.estimated_words(text, at + 0.05, at + span - 0.2))
         at += span
-    return timings(texts, words, 33.0)
+    return timings(texts, words, at, minimum=20, maximum=27, tail=0.8)
 
 
 def srt(captions: list[dict[str, Any]]) -> str:
@@ -198,7 +215,9 @@ def prepare_motion(out: Path) -> dict[str, list[str]]:
     return result
 
 
-def layout_check(page_html: str, timeline: list[dict[str, Any]], folder: Path) -> dict[str, Any]:
+def layout_check(
+    page_html: str, timeline: list[dict[str, Any]], folder: Path
+) -> dict[str, Any]:
     from playwright.sync_api import sync_playwright
 
     path = folder / "storyboard.html"
@@ -213,9 +232,9 @@ def layout_check(page_html: str, timeline: list[dict[str, Any]], folder: Path) -
         page.on("pageerror", lambda error: errors.append(str(error)))
         page.set_content(page_html, wait_until="load")
         page.evaluate("document.fonts.ready.then(() => true)")
-        assert page.evaluate("[...document.images].every(x=>x.complete&&x.naturalWidth>0)"), (
-            "A real app image failed to load"
-        )
+        assert page.evaluate(
+            "[...document.images].every(x=>x.complete&&x.naturalWidth>0)"
+        ), "A real app image failed to load"
         for index, scene in enumerate(timeline):
             for offset in (
                 0,
@@ -229,7 +248,9 @@ def layout_check(page_html: str, timeline: list[dict[str, Any]], folder: Path) -
                 errors.extend(page.evaluate("window.layoutErrors()"))
                 checked += 1
             page.evaluate("t=>window.renderAt(t)", (scene["start"] + scene["end"]) / 2)
-            page.screenshot(path=str(folder / f"frame-{index}.jpg"), type="jpeg", quality=90)
+            page.screenshot(
+                path=str(folder / f"frame-{index}.jpg"), type="jpeg", quality=90
+            )
         # Check every subtitle, including the longest Ukrainian lines.
         for caption in page.evaluate("captions"):
             for t in (caption["start"] + 0.01, (caption["start"] + caption["end"]) / 2):
@@ -255,7 +276,7 @@ def media_check(video: Path) -> dict[str, Any]:
         info.get("video")
         and info.get("audio")
         and (info.get("width"), info.get("height")) == (1080, 1920)
-        and 29.95 <= info.get("seconds", 0) <= 35.05
+        and 19.95 <= info.get("seconds", 0) <= 35.05
         and 0 < info["bytes"] < 49 * 1024 * 1024
     ):
         raise ValueError(f"Video fails delivery requirements: {info}")
@@ -346,11 +367,15 @@ def build(out: Path, *, draft: bool = False) -> None:
             else:
                 result = voice.synthesize(text, folder / "narration.wav")
                 if result is None:
-                    raise SystemExit("ELEVENLABS_API_KEY is required; never deliver a silent draft")
+                    raise SystemExit(
+                        "ELEVENLABS_API_KEY is required; never deliver a silent draft"
+                    )
                 master, words = result
                 save(folder / "alignment.json", words)
                 save(cache_path, identity)
-            timeline, captions, total = timings(texts, words, voice.duration(master))
+            timeline, captions, total = timings(
+                texts, words, voice.duration(master), minimum=20, maximum=27, tail=0.8
+            )
             voice.join([(master, total)], folder / "padded.wav")
         aligned = [
             {"word": word["w"], "start": word["s"], "end": word["e"]}
@@ -372,7 +397,8 @@ def build(out: Path, *, draft: bool = False) -> None:
             "seconds": total,
             "voice_config": voice.configuration() if not draft else None,
             "continuous": True,
-            "visual_revision": 3,
+            "visual_revision": VISUAL_REVISION,
+            "creative": "sven-under-4k",
             "animated_heroes": sorted(motion),
             "layout": layout,
         }
@@ -387,10 +413,14 @@ def build(out: Path, *, draft: bool = False) -> None:
             )
             package["quality"] = media_check(folder / "video.mp4")
             package["sha256"] = digest(folder / "video.mp4")
-            save(folder / "youtube-metadata.json", beta_shorts.package(language, package))
+            save(
+                folder / "youtube-metadata.json", beta_shorts.package(language, package)
+            )
             (folder / "padded.wav").unlink()
         save(folder / "package.json", package)
-        print(f"{language}: {'storyboard' if draft else 'video'} {total:.2f}s; layout passed")
+        print(
+            f"{language}: {'storyboard' if draft else 'video'} {total:.2f}s; layout passed"
+        )
 
 
 def deliver(out: Path, *, shorts: bool = False) -> None:
@@ -423,26 +453,34 @@ def deliver(out: Path, *, shorts: bool = False) -> None:
             not package.get("layout", {}).get("ok")
             or digest(folder / "video.mp4") != package["sha256"]
         ):
-            raise ValueError("Reviewed artifact failed layout or integrity verification")
+            raise ValueError(
+                "Reviewed artifact failed layout or integrity verification"
+            )
         speech = json.loads((folder / "speech-check.json").read_text(encoding="utf-8"))
         if (
             not speech.get("ok")
             or speech.get("language") != language
             or speech.get("sha256") != package["sha256"]
         ):
-            raise ValueError("The narration has not passed speech/language verification")
+            raise ValueError(
+                "The narration has not passed speech/language verification"
+            )
         media_check(folder / "video.mp4")
         receipt_path = folder / receipt_name
         if receipt_path.exists():
             previous = json.loads(receipt_path.read_text(encoding="utf-8"))
             if not previous.get("ok") or previous.get("sha256") != package["sha256"]:
-                raise ValueError("Existing Telegram receipt belongs to a different video")
+                raise ValueError(
+                    "Existing Telegram receipt belongs to a different video"
+                )
             if (
                 shorts
                 and previous.get("youtube_package_id")
                 != beta_shorts.package(language, package)["id"]
             ):
-                raise ValueError("Existing Shorts receipt belongs to different metadata")
+                raise ValueError(
+                    "Existing Shorts receipt belongs to different metadata"
+                )
         packages[language] = package
     metadata = {}
     if shorts:
@@ -513,8 +551,14 @@ def deliver(out: Path, *, shorts: bool = False) -> None:
             headers={"Content-Type": kind},
         )
         result = answer.get("result", {})
-        if not answer.get("ok") or not result.get("message_id") or not result.get("video"):
-            raise ValueError("Telegram did not confirm video delivery; do not retry blindly")
+        if (
+            not answer.get("ok")
+            or not result.get("message_id")
+            or not result.get("video")
+        ):
+            raise ValueError(
+                "Telegram did not confirm video delivery; do not retry blindly"
+            )
         receipt = {
             "method": "sendVideo",
             "ok": answer["ok"],
@@ -578,7 +622,9 @@ def transcript_similarity(expected: str, actual: str) -> float:
         text = text.casefold().replace("wardley", "wardly").replace("вордлі", "wardly")
         return " ".join(re.findall(r"[\w]+", text))
 
-    return SequenceMatcher(None, normalize(expected), normalize(actual), autojunk=False).ratio()
+    return SequenceMatcher(
+        None, normalize(expected), normalize(actual), autojunk=False
+    ).ratio()
 
 
 def speech_check(out: Path) -> None:
@@ -588,7 +634,9 @@ def speech_check(out: Path) -> None:
     model = WhisperModel("small", device="cpu", compute_type="int8", cpu_threads=2)
     for language in LANGUAGES:
         folder = out / language
-        segments, info = model.transcribe(str(folder / "video.mp4"), beam_size=5, vad_filter=True)
+        segments, info = model.transcribe(
+            str(folder / "video.mp4"), beam_size=5, vad_filter=True
+        )
         transcript = " ".join(segment.text.strip() for segment in segments)
         expected = (folder / "script.txt").read_text(encoding="utf-8")
 
@@ -613,7 +661,9 @@ def speech_check(out: Path) -> None:
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--out", type=Path, default=Path("promo-out"))
-    parser.add_argument("--draft", action="store_true", help="local storyboard only; never send")
+    parser.add_argument(
+        "--draft", action="store_true", help="local storyboard only; never send"
+    )
     parser.add_argument(
         "--deliver-only",
         action="store_true",
@@ -630,8 +680,13 @@ def main() -> None:
         help="register reviewed videos and send YouTube-only buttons",
     )
     args = parser.parse_args()
-    if sum((args.draft, args.deliver_only, args.speech_check, args.shorts_approval)) > 1:
-        parser.error("choose one of draft, speech-check, deliver-only and shorts-approval")
+    if (
+        sum((args.draft, args.deliver_only, args.speech_check, args.shorts_approval))
+        > 1
+    ):
+        parser.error(
+            "choose one of draft, speech-check, deliver-only and shorts-approval"
+        )
     if args.speech_check:
         speech_check(args.out)
     elif args.deliver_only:

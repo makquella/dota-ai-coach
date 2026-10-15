@@ -13,26 +13,26 @@ from .scenes import SITE
 
 COPY = {
     "uk": {
-        "label": "ШУКАЄМО БЕТА-ТЕСТЕРІВ",
+        "label": "БЕТА · WINDOWS",
         "free": "Безкоштовно для Windows",
         "site": "luhovyimvp.dev",
         "cta": "БЕТА",
         "titles": [
-            "Твоя Дота.\nТвій фідбек.",
+            "Свен?\nДо 4к MMR?",
             "Підказки в матчі.\nРозбір після.",
-            "Граєш на цих героях?",
+            "Також шукаємо\nцих героїв.",
             "Кілька матчів.\nЧесний відгук.",
             "Що варто змінити?",
             "Покращимо\nWardly разом.",
             "Напиши «БЕТА»\nу коментарях",
         ],
         "voice": [
-            "Граєш у Доту? Допоможи зробити Wardly кращим.",
-            "Це безкоштовний Windows-тренер: підказки в матчі та розбір після гри.",
-            "Шукаємо добровольців до чотирьох тисяч MMR. Особливо на Свені, Джагернауті й Терорблейді.",
-            "Зіграй кілька матчів і розкажи, що справді допомогло.",
-            "Що запізнилося чи відволікало? Де порада була неправильною?",
-            "Разом зробимо поради точнішими, вчаснішими й кориснішими.",
+            "Граєш на Свені? Маєш до чотирьох тисяч MMR?",
+            "Перевір Wardly: підказки в матчі та розбір після гри.",
+            "Безкоштовно для Windows. Шукаємо також Джагернаута й Терорблейда.",
+            "Зіграй кілька матчів і скажи чесно.",
+            "Що допомогло? Що запізнилося чи відволікало? Де порада була хибною?",
+            "Твій відгук допоможе покращити поради.",
             "Хочеш долучитися? Напиши «БЕТА» в коментарях.",
         ],
         "heroes": ["Свен", "Джагернаут", "Терорблейд"],
@@ -49,27 +49,27 @@ COPY = {
         "join": "Долучайся до бета-тестування",
     },
     "en": {
-        "label": "BETA TESTERS WANTED",
+        "label": "BETA · WINDOWS",
         "free": "Free for Windows",
         "site": "luhovyimvp.dev/en/",
         "cta": "BETA",
         "titles": [
-            "Your Dota.\nYour feedback.",
+            "Play Sven?\nUnder 4K MMR?",
             "In-game tips.\nPost-match reviews.",
-            "Play these heroes?",
+            "These players,\ntoo.",
             "A few matches.\nHonest feedback.",
             "What should change?",
             "Let's improve\nWardly together.",
             "Comment “BETA”\nbelow",
         ],
         "voice": [
-            "Play Dota? Help us make Wardly better.",
-            "It's a free Windows coach, with in-game tips and post-match reviews.",
-            "We're looking for volunteers around zero to four thousand MMR. Especially Sven, Juggernaut and Terrorblade players.",
-            "Play a few matches and tell us what actually helped.",
-            "What came too late or distracted you? Which advice was wrong?",
-            "Your feedback can make the advice more accurate, timely and useful.",
-            "Want to join? Comment BETA below.",
+            "Play Sven under four thousand MMR?",
+            "Try Wardly: in-game tips and post-match reviews.",
+            "Free for Windows. Juggernaut and Terrorblade players, too.",
+            "Play a few matches and tell us honestly.",
+            "What helped? What came too late or distracted you? Which advice was wrong?",
+            "Your feedback helps improve the advice.",
+            "Want to help? Comment BETA to join.",
         ],
         "heroes": ["Sven", "Juggernaut", "Terrorblade"],
         "live": "DURING THE MATCH",
@@ -88,8 +88,8 @@ COPY = {
 HEROES = ("sven", "juggernaut", "terrorblade")
 ARROW = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M5 19 19 5M5 5h14v14"/></svg>'
 ICONS = (
+    '<circle cx="12" cy="12" r="9"/><path d="m7 12 3 3 7-7"/>',
     '<circle cx="12" cy="12" r="9"/><path d="M12 6v6l4 3"/>',
-    '<path d="m5 5 14 14M19 5 5 19"/>',
     '<circle cx="12" cy="12" r="9"/><path d="M12 6v8m0 2v2"/>',
 )
 
@@ -104,27 +104,29 @@ def uri(path: Path) -> str:
 # articles/prepositions or the generic renderer's arbitrary character cuts.
 PHRASES = {
     "uk": [
-        "Граєш у Доту?|Допоможи зробити|Wardly кращим.",
-        "Це безкоштовний|Windows-тренер:|підказки в матчі|та розбір після гри.",
-        "Шукаємо добровольців|до чотирьох тисяч MMR.|Особливо на Свені,|Джагернауті й Терорблейді.",
-        "Зіграй кілька матчів|і розкажи,|що справді допомогло.",
-        "Що запізнилося|чи відволікало?|Де порада|була неправильною?",
-        "Разом зробимо поради|точнішими,|вчаснішими й кориснішими.",
+        "Граєш на Свені?|Маєш до чотирьох тисяч MMR?",
+        "Перевір Wardly:|підказки в матчі|та розбір після гри.",
+        "Безкоштовно для Windows.|Шукаємо також|Джагернаута й Терорблейда.",
+        "Зіграй кілька матчів|і скажи чесно.",
+        "Що допомогло?|Що запізнилося|чи відволікало?|Де порада була хибною?",
+        "Твій відгук допоможе|покращити поради.",
         "Хочеш долучитися?|Напиши «БЕТА»|в коментарях.",
     ],
     "en": [
-        "Play Dota?|Help us make|Wardly better.",
-        "It's a free|Windows coach,|with in-game tips|and post-match reviews.",
-        "We're looking for volunteers|around zero to four thousand MMR.|Especially Sven,|Juggernaut and Terrorblade players.",
-        "Play a few matches|and tell us|what actually helped.",
-        "What came too late|or distracted you?|Which advice was wrong?",
-        "Your feedback can make|the advice more accurate,|timely and useful.",
-        "Want to join?|Comment BETA below.",
+        "Play Sven|under four thousand MMR?",
+        "Try Wardly:|in-game tips|and post-match reviews.",
+        "Free for Windows.|Juggernaut and Terrorblade|players, too.",
+        "Play a few matches|and tell us honestly.",
+        "What helped?|What came too late|or distracted you?|Which advice was wrong?",
+        "Your feedback helps|improve the advice.",
+        "Want to help?|Comment BETA to join.",
     ],
 }
 
 
-def phrase_captions(language: str, words: list[dict[str, Any]], end: float) -> list[dict[str, Any]]:
+def phrase_captions(
+    language: str, words: list[dict[str, Any]], end: float
+) -> list[dict[str, Any]]:
     phrases = [p for scene in PHRASES[language] for p in scene.split("|")]
     if " ".join(phrases) != " ".join(w["word"] for w in words):
         raise ValueError("Editorial captions must preserve the complete narration")
@@ -139,7 +141,9 @@ def phrase_captions(language: str, words: list[dict[str, Any]], end: float) -> l
                 "text": phrase,
                 "start": group[0]["start"],
                 "end": max(group[-1]["end"], stop),
-                "words": [{"w": w["word"], "s": w["start"], "e": w["end"]} for w in group],
+                "words": [
+                    {"w": w["word"], "s": w["start"], "e": w["end"]} for w in group
+                ],
             }
         )
     return result
@@ -175,11 +179,12 @@ def page(
         f'<div class="hero-card h{i}">{hero(key, "hero-art")}'
         f'<div class="hero-name" data-safe>{esc(name)}</div></div>'
         for i, (key, name) in enumerate(zip(HEROES, copy["heroes"], strict=True))
+        if i > 0
     )
     questions = (
-        ["Запізно?", "Відволікає?", "Помилка?"]
+        ["Допомогло?", "Запізно / відволікає?", "Хибна порада?"]
         if uk
-        else ["Too late?", "Distracting?", "Wrong advice?"]
+        else ["Helpful?", "Late / distracting?", "Wrong advice?"]
     )
     feedback = "".join(
         f'<div class="question q{i}"><span class="question-icon"><svg viewBox="0 0 24 24" '
@@ -191,43 +196,49 @@ def page(
         f'<div class="goal g{i}" data-safe>{esc(text)}<span>{ARROW}</span></div>'
         for i, text in enumerate(copy["goals"])
     )
-    tag = "ТВІЙ ДОСВІД ПОТРІБЕН" if uk else "YOUR EXPERIENCE MATTERS"
-    player = "ШУКАЄМО ГРАВЦІВ" if uk else "LOOKING FOR PLAYERS"
-    steps = ("Зіграй.", "Розкажи.") if uk else ("Play.", "Tell us.")
-    improve = "Твій відгук —<br>кращі поради." if uk else "Your feedback.<br>Better advice."
-    want = "Хочеш долучитися?" if uk else "Want to join?"
-    comment = "Напиши в коментарях" if uk else "Comment below"
+    player = "ТАКОЖ ШУКАЄМО ГРАВЦІВ" if uk else "THESE PLAYERS, TOO"
+    steps = (
+        ("Кілька матчів.", "Чесний відгук.")
+        if uk
+        else ("A few matches.", "Honest feedback.")
+    )
+    improve = (
+        "Твій відгук.<br>Кращі поради." if uk else "Your feedback.<br>Better advice."
+    )
+    want = "Хочеш долучитися?" if uk else "Want to help?"
+    comment = "Напиши в коментарях" if uk else "Comment to join"
     # The in-game image and review crop keep their original pixels. The review
     # crop excludes the sidebar logo, so branding appears only once in a frame.
     sections = f"""
 <section class="scene s0">
   <div class="hook-halo"></div>
-  <div class="eyebrow" data-safe>{tag}</div>
-  <div class="hook-heroes">{hero("sven", "hook-left")}{hero("terrorblade", "hook-right")}{hero("juggernaut", "hook-main")}</div>
-  <div class="audience" data-safe>DOTA 2 <span>·</span> 0–4 000 MMR</div>
+  <div class="eyebrow" data-safe>DOTA 2</div>
+  <h1 class="hook-title" data-safe>{"Свен?" if uk else "Play Sven?"}</h1>
+  <div class="hook-rating" data-safe>0–4 000 <span>MMR</span></div>
+  <div class="hook-heroes">{hero("sven", "hook-main")}</div>
 </section>
 <section class="scene s1">
   <div class="eyebrow" data-safe>{esc(copy["free"])}</div>
   <div class="product-title live-title" data-safe>{"Підказки<br><em>у грі.</em>" if uk else "Tips.<br><em>In the game.</em>"}</div>
   <div class="product-title review-title" data-safe>{"Розбір.<br><em>Після матчу.</em>" if uk else "Reviews.<br><em>After the match.</em>"}</div>
-  <div class="screen live-screen"><img src="{images["game"]}"><div class="focus-corner"></div></div>
+  <div class="screen live-screen"><img class="game-context" src="{images["game"]}"><div class="live-closeup"><img src="{images["game"]}"></div></div>
   <div class="screen review-screen"><img src="{images["review"]}"></div>
-  <div class="screen-note" data-safe>{esc(copy["interface"])}</div>
+  <div class="screen-note" data-safe>{esc(copy["interface"])} · {esc(copy["heroes"][1])}</div>
 </section>
 <section class="scene s2">
   <div class="eyebrow" data-safe>{player}</div>
-  <div class="rating" data-safe>0–4 000<span>MMR</span></div>
+  <div class="product-title" data-safe>{"Джагернаут.<br><em>Терорблейд.</em>" if uk else "Juggernaut.<br><em>Terrorblade.</em>"}</div>
   <div class="hero-deck">{cards}</div>
-  <div class="hero-foot" data-safe>{"Особливо на цих героях" if uk else "Especially these heroes"}</div>
+  <div class="hero-foot" data-safe>{esc(copy["free"])}</div>
 </section>
 <section class="scene s3">
-  <div class="eyebrow" data-safe>{"КІЛЬКА МАТЧІВ. ЧЕСНИЙ ВІДГУК." if uk else "A FEW MATCHES. HONEST FEEDBACK."}</div>
+  <div class="eyebrow" data-safe>{"ДОБРОВІЛЬНЕ ТЕСТУВАННЯ" if uk else "VOLUNTEER BETA TEST"}</div>
   <div class="steps" data-safe><span>{steps[0]}</span><b>{ARROW}</b><em>{steps[1]}</em></div>
   <div class="review-detail"><img src="{images["review"]}"></div>
   <div class="screen-note" data-safe>{esc(copy["interface"])}</div>
 </section>
 <section class="scene s4">
-  <div class="eyebrow" data-safe>{"ЩО ВАРТО ЗМІНИТИ?" if uk else "WHAT SHOULD CHANGE?"}</div>
+  <div class="eyebrow" data-safe>{"СКАЖИ ЧЕСНО" if uk else "TELL US HONESTLY"}</div>
   <div class="questions">{feedback}</div>
 </section>
 <section class="scene s5">
