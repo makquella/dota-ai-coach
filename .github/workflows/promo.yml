@@ -47,7 +47,7 @@ on:
         options: ["off", build, deliver]
         default: "off"
       beta_run_id:
-        description: "Successful beta build run ID, required for deliver"
+        description: "Beta artifact run ID (required for deliver; optional build narration cache)"
         type: string
         default: ""
 
@@ -144,11 +144,26 @@ jobs:
           fi
           if [ "$SEND_PREVIEW" = true ] && [ "$VOICE_VARIANT" != catalog ]; then args+=(--send); fi
           python -m scripts.promo.experiments "${args[@]}"
+      - name: Restore reusable beta narration
+        if: inputs.beta_campaign == 'build' && inputs.beta_run_id != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BETA_RUN_ID: ${{ inputs.beta_run_id }}
+        run: |
+          if ! [[ "$BETA_RUN_ID" =~ ^[0-9]+$ ]]; then exit 1; fi
+          gh run download "$BETA_RUN_ID" --repo "$GITHUB_REPOSITORY" --name "promo-$BETA_RUN_ID" --dir promo-out
       - name: Build private beta recruitment pair
         if: inputs.beta_campaign == 'build'
         env:
           ELEVENLABS_API_KEY: ${{ secrets.ELEVENLABS_API_KEY }}
-        run: python -m scripts.promo.beta --out promo-out
+        run: |
+          status=0
+          python -m scripts.promo.beta --out promo-out 2> beta-stderr.log || status=$?
+          cat beta-stderr.log >&2
+          if [ "$status" -ne 0 ]; then
+            echo "::error title=Beta build::$(tail -n 1 beta-stderr.log)"
+            exit "$status"
+          fi
       - name: Check beta narration independently
         if: inputs.beta_campaign == 'build'
         run: |

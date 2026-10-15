@@ -87,7 +87,10 @@ def timings(
     if [w["word"] for w in words] != expected:
         raise ValueError("Word alignment does not reproduce the exact narration")
     if not words or words[-1]["end"] > seconds + 0.05:
-        raise ValueError("Word alignment extends beyond the audio")
+        raise ValueError(
+            f"Word alignment ends at {words[-1]['end'] if words else 'missing'}s "
+            f"but audio is {seconds:.3f}s"
+        )
     for index, word in enumerate(words):
         if word["start"] < 0 or word["end"] < word["start"]:
             raise ValueError("Invalid word timestamp")
@@ -248,12 +251,24 @@ def build(out: Path, *, draft: bool = False) -> None:
                     "ELEVENLABS_CONTINUOUS": "true",
                 }
             )
-            result = voice.synthesize(text, folder / "narration.wav")
-            if result is None:
-                raise SystemExit("ELEVENLABS_API_KEY is required; never deliver a silent draft")
-            master, words = result
+            cache_path = folder / "narration-config.json"
+            identity = {"text": text, "voice_config": voice.configuration()}
+            cached = json.loads(cache_path.read_text()) if cache_path.exists() else None
+            if (
+                cached == identity
+                and (folder / "narration.wav").exists()
+                and (folder / "alignment.json").exists()
+            ):
+                master = folder / "narration.wav"
+                words = json.loads((folder / "alignment.json").read_text())
+            else:
+                result = voice.synthesize(text, folder / "narration.wav")
+                if result is None:
+                    raise SystemExit("ELEVENLABS_API_KEY is required; never deliver a silent draft")
+                master, words = result
+                save(folder / "alignment.json", words)
+                save(cache_path, identity)
             timeline, captions, total = timings(texts, words, voice.duration(master))
-            save(folder / "alignment.json", words)
             voice.join([(master, total)], folder / "padded.wav")
         save(folder / "timeline.json", timeline)
         save(folder / "captions.json", captions)
