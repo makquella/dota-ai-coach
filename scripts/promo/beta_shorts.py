@@ -165,9 +165,30 @@ def keyboard(language: str, package_id: str) -> dict[str, Any]:
 
 def details(language: str, metadata: dict[str, Any]) -> str:
     title, description, tags, locale, category = COPY[language]["labels"]
-    return (
+    message = (
         f"YouTube Shorts\n\n{title}: {metadata['youtube_title']}\n\n"
         f"{description}:\n{metadata['caption']}\n\n"
         f"{tags}: {', '.join(metadata['youtube_tags'])}\n"
         f"{locale}: {language}\n{category}: Gaming (20)"
     )
+    if metadata.get("topic", "").endswith("-v4"):
+        message += (
+            "\n\nПлан серії, Київ:\n"
+            "16.10 19:30 — Sven UK; 17.10 21:00 — Sven EN.\n"
+            "20–21.10 — Juggernaut; 23–24.10 — Terrorblade.\n"
+            "Перші два MP4 готові; наступні чотири — готові сценарії.\n"
+            "Перевірка результату: 24 години, 72 години й 7 днів після публікації.\n"
+            "Це запропоновані слоти. Кнопка починає публікацію одразу, не ставить таймер."
+            if language == "uk"
+            else "\n\nSeries plan, Kyiv time:\n"
+            "Oct 16, 19:30 — Sven UK; Oct 17, 21:00 — Sven EN.\n"
+            "Oct 20–21 — Juggernaut; Oct 23–24 — Terrorblade.\n"
+            "The first two MP4s are ready; the next four have finished scripts.\n"
+            "Review results 24 hours, 72 hours and 7 days after publication.\n"
+            "These are proposed slots. The button starts publishing now; it does not schedule a timer."
+        )
+        message += (
+            "\nhttps://github.com/makquella/wardly/blob/codex/beta-recruitment-promos/"
+            "docs/marketing/shorts-plan.md"
+        )
+    return message
