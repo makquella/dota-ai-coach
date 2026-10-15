@@ -63,6 +63,20 @@ def test_v4_final_character_rounding_keeps_starts_and_rejects_missing_speech():
         beta.timings(["Comment BETA."], words, 29.0)
 
 
+def test_actual_ukrainian_transcript_accepts_speech_spelling_without_discarding_letters():
+    expected = " ".join(beta_scenes.COPY["uk"]["voice"])
+    actual = (
+        "Граєш у доту? Допоможи зробити в ордлі кращим. Це безкоштовний віндовстренер. "
+        "Підказків матчі та розбір після гри. Шукаємо добровольців до 4000 ммр. "
+        "Особливо на свені Джагернаутій Террорблейді. Зіграй кілька матчів і розкажи, "
+        "що справді допомогло. Що запізнилося чи відволікало, де порада була неправильною. "
+        "Разом зробимо поради точнішими, вчаснішими і кориснішими. Хочеш долучитися? "
+        "Напиши бета в коментарях."
+    )
+    assert beta.transcript_similarity(expected, actual) > 0.9
+    assert beta.transcript_similarity(expected, "Different language and unrelated audio.") < 0.2
+
+
 @contextmanager
 def telegram(chat_type="private"):
     calls = []
@@ -105,7 +119,10 @@ def pair(folder):
         target.mkdir()
         (target / "video.mp4").write_bytes(b"locally reviewed MP4")
         (target / "cover.jpg").write_bytes(b"cover")
-        beta.save(target / "speech-check.json", {"ok": True, "language": language})
+        beta.save(
+            target / "speech-check.json",
+            {"ok": True, "language": language, "sha256": beta.digest(target / "video.mp4")},
+        )
         beta.save(
             target / "package.json",
             {

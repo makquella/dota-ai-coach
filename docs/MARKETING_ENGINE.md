@@ -78,6 +78,10 @@ Build artifacts include MP4s, covers, scripts, SRTs, word alignment, seven sampl
 frames per language, source verification and layout/audio/decode reports.
 An independent CPU Whisper pass checks the actual rendered language and spoken
 text. Text bounds stay within x=78–910/y=196–1450, away from Shorts controls.
+To recheck an existing artifact without TTS or rendering, use
+`beta_campaign=validate` with its `beta_run_id`. A build can also use this ID
+to reuse an exact matching cached narration. Recognition reports include the
+MP4 hash, so delivery cannot use a report from a different render.
 
 After inspecting the build artifact, dispatch the same workflow with
 `beta_campaign=deliver`, `beta_run_id=<build run ID>` and `send=true`. This

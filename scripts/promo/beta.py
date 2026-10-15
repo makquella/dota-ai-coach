@@ -337,7 +337,11 @@ def deliver(out: Path) -> None:
         ):
             raise ValueError("Reviewed artifact failed layout or integrity verification")
         speech = json.loads((folder / "speech-check.json").read_text(encoding="utf-8"))
-        if not speech.get("ok") or speech.get("language") != language:
+        if (
+            not speech.get("ok")
+            or speech.get("language") != language
+            or speech.get("sha256") != package["sha256"]
+        ):
             raise ValueError("The narration has not passed speech/language verification")
         media_check(folder / "video.mp4")
         packages[language] = package
@@ -394,11 +398,20 @@ def deliver(out: Path) -> None:
         print(f"{language}: Telegram API confirmed " + json.dumps(receipt))
 
 
-def speech_check(out: Path) -> None:
-    """Independently recognize the rendered speech, including the English delivery."""
+def transcript_similarity(expected: str, actual: str) -> float:
+    """Compare speech without treating frequent letters in long prose as junk."""
     import re
     from difflib import SequenceMatcher
 
+    def normalize(text: str) -> str:
+        text = text.casefold().replace("wardley", "wardly").replace("вордлі", "wardly")
+        return " ".join(re.findall(r"[\w]+", text))
+
+    return SequenceMatcher(None, normalize(expected), normalize(actual), autojunk=False).ratio()
+
+
+def speech_check(out: Path) -> None:
+    """Independently recognize the rendered speech, including the English delivery."""
     from faster_whisper import WhisperModel
 
     model = WhisperModel("small", device="cpu", compute_type="int8", cpu_threads=2)
@@ -408,11 +421,7 @@ def speech_check(out: Path) -> None:
         transcript = " ".join(segment.text.strip() for segment in segments)
         expected = (folder / "script.txt").read_text(encoding="utf-8")
 
-        def normalize(text: str) -> str:
-            text = text.casefold().replace("wardley", "wardly").replace("вордлі", "wardly")
-            return " ".join(re.findall(r"[\w]+", text))
-
-        similarity = SequenceMatcher(None, normalize(expected), normalize(transcript)).ratio()
+        similarity = transcript_similarity(expected, transcript)
         report = {
             "ok": info.language == language
             and info.language_probability >= 0.65
@@ -422,6 +431,7 @@ def speech_check(out: Path) -> None:
             "transcript": transcript,
             "similarity": round(similarity, 4),
             "model": "faster-whisper/small",
+            "sha256": digest(folder / "video.mp4"),
         }
         save(folder / "speech-check.json", report)
         print(f"{language}: speech check " + json.dumps(report, ensure_ascii=False))
