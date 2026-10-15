@@ -137,6 +137,16 @@ Missing analytics are never treated as zero retention or zero feed impressions.
 Public creator search uses language hints, which do not guarantee the creator's
 language; outreach candidates need manual filtering and permission before use.
 
+`beta_campaign=outreach`, `send=true` sends one [free outreach document](marketing/beta-outreach.md)
+to the existing owner's private Telegram chat, with links to the selected
+communities. It verifies the chat type first and saves a sanitized `sendDocument`
+receipt. `send=false` only prepares the artifact. This mode does not join servers,
+message creators, register publishing packages or create public posts. The
+document includes six personalized UK/EN moderator requests; source links and
+Discord invite availability are checked in the read-only audit. Community rules
+and moderator consent must still be checked before placement. Optional reference
+or Reddit timeouts do not discard the core publication audit.
+
 Local storyboard preview (no credentials and no paid API calls):
 
 ```bash

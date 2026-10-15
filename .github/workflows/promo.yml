@@ -42,9 +42,9 @@ on:
         type: boolean
         default: true
       beta_campaign:
-        description: "Private UK+EN beta recruitment pair (deliver reuses a reviewed build)"
+        description: "Beta videos, publication audit, or free outreach pack (deliver reuses a reviewed build)"
         type: choice
-        options: ["off", build, validate, deliver, shorts, audit]
+        options: ["off", build, validate, deliver, shorts, audit, outreach]
         default: "off"
       beta_run_id:
         description: "Beta artifact run ID (required for deliver; optional build narration cache)"
@@ -81,7 +81,7 @@ jobs:
             backend/requirements-dev.txt
             scripts/promo/requirements.txt
       - name: Install
-        if: inputs.voice_lab != 'catalog' && inputs.beta_campaign != 'audit'
+        if: inputs.voice_lab != 'catalog' && inputs.beta_campaign != 'audit' && inputs.beta_campaign != 'outreach'
         run: |
           # requirements-dev: the coach video runs the real advice pipeline
           # through FastAPI's TestClient (backend/scripts/simulate_live_gsi.py),
@@ -93,7 +93,7 @@ jobs:
           ffmpeg_version="$("$ffmpeg_exe" -version)"
           echo "${ffmpeg_version%%$'\n'*}"
       - uses: actions/setup-node@v6
-        if: inputs.beta_campaign == 'audit'
+        if: inputs.beta_campaign == 'audit' || inputs.beta_campaign == 'outreach'
         with:
           node-version-file: .node-version
       - name: Audit published beta Shorts (read only)
@@ -105,6 +105,13 @@ jobs:
           YOUTUBE_CLIENT_ID: ${{ secrets.YOUTUBE_CLIENT_ID }}
           YOUTUBE_CLIENT_SECRET: ${{ secrets.YOUTUBE_CLIENT_SECRET }}
         run: node scripts/promo/youtube_audit.mjs
+      - name: Prepare free outreach pack for the owner
+        if: inputs.beta_campaign == 'outreach'
+        env:
+          SEND_PREVIEW: ${{ inputs.send }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID || vars.TELEGRAM_CHAT_ID }}
+        run: node scripts/promo/beta_outreach.mjs
       - name: What worked (format weights)
         if: (inputs.voice_lab == '' || inputs.voice_lab == 'off') && (inputs.beta_campaign == '' || inputs.beta_campaign == 'off')
         env:
