@@ -86,11 +86,15 @@ def timings(
     expected = " ".join(texts).split()
     if [w["word"] for w in words] != expected:
         raise ValueError("Word alignment does not reproduce the exact narration")
-    if not words or words[-1]["end"] > seconds + 0.05:
+    # ElevenLabs v4 can put its final character's tail ~80ms beyond the PCM
+    # endpoint. Bound that endpoint-only rounding; never move word starts or
+    # tolerate a missing final word. The independent ASR gate still checks it.
+    if not words or words[-1]["start"] >= seconds or words[-1]["end"] > seconds + 0.12:
         raise ValueError(
             f"Word alignment ends at {words[-1]['end'] if words else 'missing'}s "
             f"but audio is {seconds:.3f}s"
         )
+    words = [{**word, "end": min(word["end"], seconds)} for word in words]
     for index, word in enumerate(words):
         if word["start"] < 0 or word["end"] < word["start"]:
             raise ValueError("Invalid word timestamp")

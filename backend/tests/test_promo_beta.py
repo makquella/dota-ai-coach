@@ -48,6 +48,21 @@ def test_both_scripts_match_source_claims_and_have_localized_final_calls_to_acti
     assert not any("\u0400" <= char <= "\u04ff" for char in english)
 
 
+def test_v4_final_character_rounding_keeps_starts_and_rejects_missing_speech():
+    words = [
+        {"word": "Comment", "start": 28.0, "end": 29.0},
+        {"word": "BETA.", "start": 29.1, "end": 30.24},
+    ]
+    _, captions, _ = beta.timings(["Comment BETA."], words, 30.16)
+    assert captions[-1]["words"][-1]["s"] == 29.1
+    assert captions[-1]["words"][-1]["e"] == 30.16
+    assert words[-1]["end"] == 30.24  # Keep the original provider evidence intact.
+    with pytest.raises(ValueError, match="audio is"):
+        beta.timings(["Comment BETA."], words, 29.9)
+    with pytest.raises(ValueError, match="audio is"):
+        beta.timings(["Comment BETA."], words, 29.0)
+
+
 @contextmanager
 def telegram(chat_type="private"):
     calls = []
