@@ -10,7 +10,8 @@ name: Patch notes
 #
 # For a week after a patch its notes are fetched again: Valve fixes them and the
 # Ukrainian translation can come later. Those updates change the page only; the
-# Telegram post goes out once, for a new patch.
+# Telegram post goes out once, for a new patch. When that post failed, run the
+# workflow by hand with the version and "telegram" ticked to send it again.
 #
 # Telegram: the channel https://t.me/wardlydota (repository variable
 # TELEGRAM_CHANNEL overrides it) and the secret TELEGRAM_BOT_TOKEN.
@@ -24,9 +25,9 @@ on:
         type: string
         default: ""
       telegram:
-        description: "Send a new patch to the Telegram channel"
+        description: "Send the patch to the Telegram channel, new or not (a retry)"
         type: boolean
-        default: true
+        default: false
 
 permissions:
   contents: read
@@ -103,13 +104,17 @@ jobs:
 
   telegram:
     needs: [post, site]
-    if: needs.post.outputs.new == 'true' && (github.event_name == 'schedule' || inputs.telegram)
+    # A new patch, or a manual run asking for the post; never after a failed deploy.
+    if: >-
+      always() && needs.post.result == 'success'
+      && contains(fromJSON('["success", "skipped"]'), needs.site.result)
+      && (needs.post.outputs.new == 'true' || inputs.telegram)
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@v7
         with:
-          ref: ${{ needs.post.outputs.sha }}
+          ref: ${{ needs.post.outputs.sha || 'main' }}
       - uses: actions/setup-python@v5
         with:
           python-version-file: .python-version
