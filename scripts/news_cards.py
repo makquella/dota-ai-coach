@@ -569,6 +569,107 @@ def release_caption(version: str, points: list[tuple[str, str]]) -> str:
     return fit("\n".join(lines), keep_tail=3)
 
 
+# --- a Dota 2 patch ---------------------------------------------------------------------
+
+PATCH_CSS = """
+.head { position: absolute; top: 160px; left: 64px; right: 64px; }
+.kicker { color: var(--muted); font: 700 34px/1 Montserrat, sans-serif; }
+.ver { margin-top: 10px; font: 800 168px/1 Montserrat, sans-serif; letter-spacing: -.04em;
+  background: linear-gradient(90deg, #fff 0%, var(--cream) 40%, var(--accent) 100%);
+  -webkit-background-clip: text; background-clip: text; color: transparent; }
+.counts { display: flex; gap: 14px; margin-top: 26px; }
+.count { padding: 14px 20px; border-radius: 16px; background: rgba(23,24,28,.88); border: 1px solid var(--line); }
+.count b { font: 800 40px/1 Montserrat, sans-serif; color: var(--accent); margin-right: 10px; }
+.count span { color: var(--muted); font-size: 24px; }
+.faces { position: absolute; top: 560px; left: 64px; right: 64px; display: grid;
+  grid-template-columns: repeat(5, 1fr); gap: 16px 14px; }
+.face { min-width: 0; }
+.face img, .face .none { display: block; width: 100%; aspect-ratio: 16 / 9; border-radius: 12px; object-fit: cover;
+  background: #23242a; border: 1px solid var(--line); }
+.face div { margin-top: 8px; font-size: 20px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.face.more { display: flex; align-items: center; justify-content: center; aspect-ratio: 16 / 9; border-radius: 12px;
+  background: rgba(240,85,96,.14); border: 1px solid rgba(240,85,96,.45); color: var(--accent);
+  font: 800 40px/1 Montserrat, sans-serif; }
+.items { position: absolute; top: 1040px; left: 64px; right: 64px; display: flex; flex-wrap: wrap; gap: 10px;
+  max-height: 152px; overflow: hidden; }
+.items h3 { flex-basis: 100%; margin: 0 0 4px; color: var(--accent); font: 800 22px/1 Montserrat, sans-serif;
+  letter-spacing: .12em; text-transform: uppercase; }
+.chip { padding: 10px 16px; border-radius: 12px; background: var(--card); border: 1px solid var(--line); font-size: 22px; }
+"""
+# The card shows this many heroes (the last tile says how many more there are).
+PATCH_FACES = 15
+
+
+def patch_card(patch: dict[str, Any]) -> str:
+    e = html.escape
+    t = news.TEXT["uk"]
+    counts = news.patch_counts(patch)
+    heroes = sorted(patch["languages"]["uk"]["heroes"], key=lambda hero: hero["name"])
+    shown = heroes if len(heroes) <= PATCH_FACES else heroes[: PATCH_FACES - 1]
+    faces = []
+    for hero in shown:
+        src = small_picture(hero["key"])
+        picture = f'<img src="{src}" alt="">' if src else '<span class="none"></span>'
+        faces.append(f'<div class="face">{picture}<div>{e(hero["name"])}</div></div>')
+    if len(shown) < len(heroes):
+        faces.append(f'<div class="face more num">+{len(heroes) - len(shown)}</div>')
+    items = news.patch_names(patch, "items") + news.patch_names(patch, "neutral")
+    chips = "".join(f'<span class="chip">{e(name)}</span>' for name in items[:12])
+    items_html = (
+        f'<section class="layer items"><h3>{e(t["patch_items_title"])}</h3>{chips}</section>'
+        if items
+        else ""
+    )
+    count_html = "".join(
+        f'<div class="count num"><b>{counts[key]}</b><span>{e(label)}</span></div>'
+        for key, label in (
+            ("heroes", "героїв"),
+            ("items", "предметів"),
+            ("general", "загальних розділів"),
+        )
+        if counts[key]
+    )
+    body = f"""
+<section class="layer head"><div class="kicker">Оновлення Dota 2 · {e(news.long_date(patch["date"], "uk"))}</div>
+<div class="ver num">{e(patch["version"])}</div><div class="counts">{count_html}</div></section>
+<section class="layer faces">{"".join(faces)}</section>
+{items_html}"""
+    return page(body, PATCH_CSS).replace("{pill}", _pill("spark", "Патч"))
+
+
+def patch_caption(patch: dict[str, Any]) -> str:
+    e = escape
+    t = news.TEXT["uk"]
+    lines = [
+        f"🛠 <b>{e(news.patch_title(patch, 'uk'))}</b>",
+        f"<i>Valve оновили Dota 2 · {e(news.long_date(patch['date'], 'uk'))}</i>",
+        "",
+    ]
+    for emoji, heading, key, limit in (
+        ("⚔️", t["patch_heroes_title"], "heroes", 20),
+        ("🗡", t["patch_items_title"], "items", 12),
+        ("💎", t["patch_neutral_title"], "neutral", 8),
+    ):
+        names = news.patch_names(patch, key)
+        if names:
+            more = f" та ще {len(names) - limit}" if len(names) > limit else ""
+            lines.append(
+                f"{emoji} <b>{e(heading)} ({len(names)}):</b> {e(', '.join(names[:limit]))}{more}"
+            )
+    general = [group["title"] for group in patch["languages"]["uk"]["general"] if group["title"]]
+    if general:
+        lines.append(f"🌍 <b>{e(t['patch_general'])}:</b> {e(', '.join(general))}")
+    lines += [
+        "",
+        f'👉 <a href="{news.BASE}/news/{news.patch_slug(patch)}.html?ref=tg">Усі зміни на сайті</a>',
+        f'📜 <a href="{news.VALVE_PATCH_PAGE.format(version=e(patch["version"]))}">Офіційні нотатки Valve</a>',
+        f'🎮 <a href="{news.BASE}/?ref=tg">Wardly</a> — безкоштовний тренер, що підказує просто в матчі',
+        "",
+        "#патч #dota2",
+    ]
+    return fit("\n".join(lines), keep_tail=6)
+
+
 # --- captions --------------------------------------------------------------------------
 
 

@@ -1774,6 +1774,100 @@ h2 {
   font: 700 22px/1.2 var(--display, inherit);
 }
 
+/* Patch pages: Valve's notes, nested by their indent level. */
+.patch-cards {
+  align-items: start;
+}
+.patch-wide {
+  grid-column: 1 / -1;
+}
+.patch-section-title {
+  margin: 0 0 20px;
+  font-size: 28px;
+}
+.patch-hero {
+  gap: 14px;
+}
+.patch-hero a {
+  color: inherit;
+  text-decoration: none;
+}
+.patch-hero a:hover {
+  text-decoration: underline;
+}
+.patch-group,
+.patch-name {
+  margin: 18px 0 0;
+  font-size: 16px;
+}
+.patch-group {
+  color: var(--accent);
+  font-size: 13px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.patch-name small {
+  margin-left: 6px;
+  color: var(--accent);
+  font-size: 12px;
+  font-weight: 600;
+}
+.patch-notes {
+  margin: 8px 0 0;
+  padding: 0;
+  list-style: none;
+  color: var(--muted);
+  font-size: 15px;
+  line-height: 1.5;
+}
+.patch-note {
+  position: relative;
+  padding: 3px 0 3px 16px;
+}
+.patch-note::before {
+  content: "";
+  position: absolute;
+  left: 2px;
+  top: 0.85em;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+.patch-note-2 {
+  margin-left: 18px;
+}
+.patch-note-3,
+.patch-note-4 {
+  margin-left: 36px;
+}
+.patch-note-2::before,
+.patch-note-3::before,
+.patch-note-4::before {
+  background: var(--faint);
+}
+.patch-info {
+  display: block;
+  color: var(--faint);
+  font-size: 13px;
+}
+.patch-badge {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(240, 85, 96, 0.45);
+  background: rgba(240, 85, 96, 0.14);
+  color: var(--accent);
+  font: 800 18px/1 var(--display, inherit);
+}
+.patch-badge small {
+  margin-bottom: 3px;
+  font-size: 9px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
 @media (max-width: 1080px) {
   .news-tiles {
     grid-template-columns: 1fr;

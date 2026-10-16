@@ -5,6 +5,8 @@
     python scripts/build_news.py telegram-meta [DATE] [--send] [--out DIR]
     python scripts/build_news.py telegram-hero [--date DATE] [--hero NAME] [--send] [--out DIR]
     python scripts/build_news.py telegram-release 0.55.0 [--send] [--out DIR]
+    python scripts/build_news.py patch [VERSION]         # Valve's newest patch notes
+    python scripts/build_news.py telegram-patch [VERSION] [--send] [--out DIR]
 
 Channel posts are a picture card with a caption (scripts/news_cards.py); without
 a browser to draw the card the post goes as text. `--out DIR` writes the card
@@ -13,7 +15,14 @@ and the caption there instead of printing the caption.
 with the bot token TELEGRAM_BOT_TOKEN (the bot must be an admin of the channel).
 Neither value is ever printed. `telegram-hero --send` also records the hero in
 data/news/hero-week.json, so the next weeks pick someone else.
-After `meta`, run scripts/build_site.py to write the pages.
+After `meta` or `patch`, run scripts/build_site.py to write the pages.
+
+`patch` writes data/news/patches/<date>-<version>.json from Valve's datafeed
+(the notes in Ukrainian and English, with the names of heroes, abilities and
+items) when the newest patch is not there yet, and rewrites the newest one for
+PATCH_REFRESH_DAYS after its release: Valve fixes its notes and adds the
+translation later. Under GitHub Actions it sets the step outputs `version`,
+`new` and `changed`.
 """
 
 from __future__ import annotations
@@ -21,6 +30,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import re
 import sys
 import tempfile
 import urllib.error
@@ -38,12 +48,113 @@ HERO_WEEK = news.ROOT / "data" / "news" / "hero-week.json"
 
 HERO_STATS = "https://api.opendota.com/api/heroStats"
 NOTES = news.ROOT / "docs" / "release-notes"
+PATCH_REFRESH_DAYS = 7
 
 
 def fetch_hero_stats() -> list[dict]:
     request = urllib.request.Request(HERO_STATS, headers={"User-Agent": "Wardly news"})
     with urllib.request.urlopen(request, timeout=60) as response:  # noqa: S310 - fixed https URL
         return json.loads(response.read().decode("utf-8"))
+
+
+def fetch_feed(path: str) -> dict:
+    """One answer of Valve's datafeed (https://www.dota2.com/datafeed/<path>)."""
+    request = urllib.request.Request(
+        f"{news.VALVE_FEED}/{path}", headers={"User-Agent": "Wardly news"}
+    )
+    with urllib.request.urlopen(request, timeout=60) as response:  # noqa: S310 - fixed https URL
+        return json.loads(response.read().decode("utf-8"))
+
+
+def _feed_rows(name: str, language: str) -> list[dict]:
+    """/herolist, /abilitylist and /itemlist: {"result": {"data": {<list>: [rows]}}}."""
+    answer = fetch_feed(f"{name}?language={language}")
+    data = (answer.get("result") or answer).get("data") or {}
+    rows = next(iter(data.values()), []) if isinstance(data, dict) else []
+    return [row for row in rows if isinstance(row, dict) and isinstance(row.get("id"), int)]
+
+
+def feed_names(language: str) -> dict:
+    """The names behind the patch notes' ids, in one language."""
+
+    def named(rows: list[dict]) -> dict[int, str]:
+        return {
+            row["id"]: row.get("name_loc") or row.get("name_english_loc")
+            for row in rows
+            if row.get("name_loc") or row.get("name_english_loc")
+        }
+
+    heroes = {}
+    for row in _feed_rows("herolist", language):
+        key = str(row.get("name") or "").removeprefix("npc_dota_hero_")
+        name = row.get("name_loc") or row.get("name_english_loc")
+        if name:
+            heroes[row["id"]] = {
+                "name": name,
+                "key": key if re.fullmatch(r"[a-z0-9_]+", key) else "",
+            }
+    return {
+        "heroes": heroes,
+        "abilities": named(_feed_rows("abilitylist", language)),
+        "items": named(_feed_rows("itemlist", language)),
+    }
+
+
+def newest_patch() -> str:
+    patches = fetch_feed("patchnoteslist?language=english").get("patches") or []
+    dated = [
+        (p["patch_timestamp"], p["patch_number"])
+        for p in patches
+        if isinstance(p, dict)
+        and isinstance(p.get("patch_timestamp"), int)
+        and isinstance(p.get("patch_number"), str)
+    ]
+    if not dated:
+        raise SystemExit("Valve's patch list is empty")
+    return max(dated)[1]
+
+
+def fetch_patch(version: str) -> dict:
+    """A patch post from Valve's notes; a language Valve does not answer in falls
+    back to English."""
+    feeds, names = {}, {}
+    for lang, language in news.FEED_LANGUAGES.items():
+        try:
+            feed = fetch_feed(f"patchnotes?version={version}&language={language}")
+            if not feed.get("success", True):
+                raise ValueError("no success")
+            feeds[lang], names[lang] = feed, feed_names(language)
+        except (OSError, ValueError) as error:
+            if lang == "en":
+                raise SystemExit(f"no patch notes for {version}: {error}") from None
+            print(f"no {language} patch notes for {version}: English instead")
+    feeds.setdefault("uk", feeds["en"])
+    names.setdefault("uk", names["en"])
+    return news.patch_post(feeds, names)
+
+
+def write_patch(version: str | None, today: date) -> tuple[dict, bool, bool]:
+    """(post, new, changed): the newest patch (or `version`) in data/news/patches."""
+    target = version or newest_patch()
+    stored = next((p for p in news.load_patches() if p["version"] == target), None)
+    if stored and not version:
+        age = (today - date.fromisoformat(stored["date"])).days
+        if age > PATCH_REFRESH_DAYS:
+            print(f"patch {target} is already there")
+            return stored, False, False
+    post = fetch_patch(target)
+    news.PATCHES.mkdir(parents=True, exist_ok=True)
+    path = news.PATCHES / f"{post['date']}-{post['version']}.json"
+    if stored and stored["date"] != post["date"]:  # Valve moved the patch's date
+        (news.PATCHES / f"{stored['date']}-{stored['version']}.json").unlink(missing_ok=True)
+    text = json.dumps(post, ensure_ascii=False, indent=1) + "\n"
+    changed = not path.exists() or path.read_text(encoding="utf-8") != text
+    if changed:
+        path.write_text(text, encoding="utf-8")
+        print(f"wrote {path.relative_to(news.ROOT) if news.ROOT in path.parents else path}")
+    else:
+        print(f"patch {target} has not changed")
+    return post, stored is None, changed
 
 
 def dump(post: dict) -> str:
@@ -179,7 +290,12 @@ def main() -> int:
     tg_hero.add_argument("--hero", help="this hero (a name on the site) instead of the pick")
     tg_release = sub.add_parser("telegram-release", help="the channel post of a release")
     tg_release.add_argument("version")
-    for command in (tg_meta, tg_hero, tg_release):
+    patch = sub.add_parser("patch", help="write Valve's newest patch notes")
+    patch.add_argument("version", nargs="?", help="this patch (e.g. 7.41f) instead of the newest")
+    patch.add_argument("--date", help="today (YYYY-MM-DD) for the refresh window")
+    tg_patch = sub.add_parser("telegram-patch", help="the channel post of a patch")
+    tg_patch.add_argument("version", nargs="?", help="the newest patch by default")
+    for command in (tg_meta, tg_hero, tg_release, tg_patch):
         command.add_argument("--send", action="store_true")
         command.add_argument("--out", help="write the card and its caption to this folder")
     args = parser.parse_args()
@@ -193,6 +309,35 @@ def main() -> int:
         today = date.fromisoformat(args.date) if args.date else datetime.now(UTC).date()
         path = write_meta(stats, today)
         print(f"wrote {path.relative_to(news.ROOT)}")
+        return 0
+
+    if args.command == "patch":
+        today = date.fromisoformat(args.date) if args.date else datetime.now(UTC).date()
+        post, new, changed = write_patch(args.version, today)
+        outputs = os.environ.get("GITHUB_OUTPUT")
+        if outputs:
+            with open(outputs, "a", encoding="utf-8") as out:
+                out.write(f"version={post['version']}\nnew={str(new).lower()}\n")
+                out.write(f"changed={str(changed).lower()}\n")
+        return 0
+
+    if args.command == "telegram-patch":
+        patches = news.load_patches()
+        post = (
+            next((p for p in patches if p["version"] == args.version), None)
+            if args.version
+            else (patches[0] if patches else None)
+        )
+        if post is None:
+            raise SystemExit("no such patch in data/news/patches")
+        publish(
+            cards.patch_card(post),
+            cards.patch_caption(post),
+            news.telegram_patch(post),
+            args.send,
+            args.out,
+            f"patch-{post['version']}",
+        )
         return 0
 
     with tempfile.TemporaryDirectory() as tmp:

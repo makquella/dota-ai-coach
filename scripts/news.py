@@ -1,4 +1,10 @@
-"""News («Новини»): the weekly meta post, its site pages and its Telegram text.
+"""News («Новини»): the weekly meta post and Dota 2 patches, their site pages and
+their Telegram text.
+
+A patch is a JSON file in data/news/patches/ written by `scripts/build_news.py
+patch` from Valve's datafeed: the notes in Ukrainian and English as Valve gives
+them, with the names of the heroes, abilities and items they refer to by id.
+.github/workflows/patch.yml looks for a new patch every few hours.
 
 A post is a JSON file in data/news/posts/ written by `scripts/build_news.py meta`
 from OpenDota's public hero statistics (the last 7 days of public matches, all
@@ -19,13 +25,14 @@ from __future__ import annotations
 import html
 import json
 import re
-from datetime import date
+from datetime import UTC, date, datetime
 from pathlib import Path
 from typing import Any
 from urllib.parse import urlencode
 
 ROOT = Path(__file__).resolve().parents[1]
 POSTS = ROOT / "data" / "news" / "posts"
+PATCHES = ROOT / "data" / "news" / "patches"
 HERO_IMAGES = ROOT / "site" / "assets" / "heroes"
 BASE = "https://luhovyimvp.dev"
 CHANNEL = "https://t.me/wardlydota"
@@ -41,6 +48,12 @@ HALF_MIN_PICKS = 2000
 WIN_BAR_FLOOR = 0.45
 # Telegram's limit for one message is 4096 characters.
 TELEGRAM_LIMIT = 3800
+# Valve's patch notes: the list of patches, each patch's notes, and the names
+# behind their ids (heroes, abilities, items) — https://www.dota2.com/datafeed.
+VALVE_FEED = "https://www.dota2.com/datafeed"
+VALVE_PATCH_PAGE = "https://www.dota2.com/patches/{version}"
+# The site's languages and Valve's names for them.
+FEED_LANGUAGES = {"uk": "ukrainian", "en": "english"}
 
 MONTHS_UK = (
     "січня",
@@ -102,7 +115,7 @@ TEXT = {
         "share_tg": "Надіслати в Telegram",
         "channel": "Канал @wardlydota",
         "list_title": "Новини",
-        "list_lead": "Мета тижня щопонеділка: хто виграє, кого беруть і хто змінився. Ті самі дописи й нові версії — у нашому Telegram-каналі.",
+        "list_lead": "Мета тижня щопонеділка: хто виграє, кого беруть і хто змінився. І кожен новий патч Dota 2: що змінили Valve. Ті самі дописи й нові версії — у нашому Telegram-каналі.",
         "list_channel": "Підписатися на канал @wardlydota",
         "list_top": "Найсильніший: {hero}, {v}",
         "changelog": "Що нового в застосунку →",
@@ -113,6 +126,23 @@ TEXT = {
         "pp": "п. п.",
         "million": "{n} млн",
         "thousand": "{n} тис.",
+        "patch_title": "Патч {version}",
+        "patch_lead": "Усе, що змінили Valve: герої, предмети й загальні правила. Дані з офіційних нотаток до патча.",
+        "patch_heroes": "Героїв змінено",
+        "patch_items": "Предметів змінено",
+        "patch_neutral": "Нейтральних предметів",
+        "patch_general": "Загальні зміни",
+        "patch_general_value": "розділів",
+        "patch_count_value": "у нотатках Valve",
+        "patch_items_title": "Предмети",
+        "patch_neutral_title": "Нейтральні предмети",
+        "patch_creeps_title": "Нейтральні крипи",
+        "patch_heroes_title": "Герої",
+        "patch_talents": "Таланти",
+        "patch_source": "Джерело: офіційні нотатки Valve до патча {version}",
+        "patch_share": "Скиньте друзям, що змінилося в патчі: усі герої й предмети на одній сторінці.",
+        "patch_list": "Героїв змінено: {heroes} · предметів: {items}",
+        "patch_badge": "Патч",
     },
     "en": {
         "title": "Meta of the week: {period}",
@@ -144,7 +174,7 @@ TEXT = {
         "share_tg": "Send in Telegram",
         "channel": "Channel @wardlydota",
         "list_title": "News",
-        "list_lead": "The meta of the week every Monday: who wins, who is picked and who changed. The same posts and new versions go to our Telegram channel.",
+        "list_lead": "The meta of the week every Monday: who wins, who is picked and who changed. And every new Dota 2 patch: what Valve changed. The same posts and new versions go to our Telegram channel.",
         "list_channel": "Follow @wardlydota on Telegram",
         "list_top": "Strongest: {hero}, {v}",
         "changelog": "What's new in the app →",
@@ -155,6 +185,23 @@ TEXT = {
         "pp": "pp",
         "million": "{n} million",
         "thousand": "{n} thousand",
+        "patch_title": "Patch {version}",
+        "patch_lead": "Everything Valve changed: heroes, items and the general rules. From the official patch notes.",
+        "patch_heroes": "Heroes changed",
+        "patch_items": "Items changed",
+        "patch_neutral": "Neutral items",
+        "patch_general": "General changes",
+        "patch_general_value": "sections",
+        "patch_count_value": "in Valve's notes",
+        "patch_items_title": "Items",
+        "patch_neutral_title": "Neutral items",
+        "patch_creeps_title": "Neutral creeps",
+        "patch_heroes_title": "Heroes",
+        "patch_talents": "Talents",
+        "patch_source": "Source: Valve's official notes for patch {version}",
+        "patch_share": "Tell your friends what the patch changed: every hero and item on one page.",
+        "patch_list": "Heroes changed: {heroes} · items: {items}",
+        "patch_badge": "Patch",
     },
 }
 
@@ -310,6 +357,166 @@ def image_keys(data: dict[str, Any]) -> set[str]:
     """The heroes whose pictures a post's page shows."""
     rows = data["win"] + data["pick"] + data["up"] + data["down"]
     return {row["key"] for row in rows if row.get("key")}
+
+
+# --- patches -------------------------------------------------------------------------
+
+
+def load_patches() -> list[dict[str, Any]]:
+    """Every patch post, newest first."""
+    patches = [json.loads(path.read_text(encoding="utf-8")) for path in PATCHES.glob("*.json")]
+    return sorted(patches, key=lambda patch: (patch["date"], patch["version"]), reverse=True)
+
+
+def patch_slug(patch: dict[str, Any]) -> str:
+    return f"{patch['date']}-patch-{patch['version'].replace('.', '-')}"
+
+
+def _clean(value: Any) -> str:
+    """A note as plain text: Valve's notes carry <font>, <span> and <br> tags."""
+    if not isinstance(value, str):
+        return ""
+    text = re.sub(r"<br\s*/?>", " ", value, flags=re.IGNORECASE)
+    text = html.unescape(re.sub(r"<[^>]+>", "", text))
+    return re.sub(r"\s+", " ", text).strip()
+
+
+def _notes(raw: Any) -> list[dict[str, Any]]:
+    """[{"level": 1.., "text": ..., "info"?: ...}] without the empty spacer lines."""
+    notes = []
+    for item in raw if isinstance(raw, list) else []:
+        if not isinstance(item, dict):
+            continue
+        text = _clean(item.get("note"))
+        if not text:
+            continue
+        try:
+            level = max(1, min(4, int(item.get("indent_level") or 1)))
+        except (TypeError, ValueError):
+            level = 1
+        note: dict[str, Any] = {"level": level, "text": text}
+        info = _clean(item.get("info"))
+        if info:
+            note["info"] = info
+        notes.append(note)
+    return notes
+
+
+def _entries(raw: Any, names: dict[int, str]) -> list[dict[str, Any]]:
+    """Items or neutral items: a named item with its notes, or a group of general
+    notes ({"group": title}) such as «Enchantment Changes»."""
+    entries = []
+    for item in raw if isinstance(raw, list) else []:
+        if not isinstance(item, dict):
+            continue
+        notes = _notes(item.get("ability_notes"))
+        label = _clean(item.get("title"))
+        item_id = item.get("ability_id")
+        if item.get("is_general_note") or not isinstance(item_id, int) or item_id < 0:
+            if label:
+                entries.append({"group": label, "notes": notes})
+            continue
+        name = names.get(item_id) or label
+        if not name or not notes:
+            continue
+        entry: dict[str, Any] = {"name": name, "notes": notes}
+        if label and label != name:
+            entry["label"] = label
+        entries.append(entry)
+    return entries
+
+
+def _hero_entries(
+    raw: Any, heroes: dict[int, dict[str, str]], abilities: dict[int, str]
+) -> list[dict[str, Any]]:
+    out = []
+    for item in raw if isinstance(raw, list) else []:
+        if not isinstance(item, dict) or item.get("hero_id") not in heroes:
+            continue
+        hero = heroes[item["hero_id"]]
+        changed = []
+        for ability in item.get("abilities") or []:
+            if not isinstance(ability, dict):
+                continue
+            notes = _notes(ability.get("ability_notes"))
+            ability_id = ability.get("ability_id")
+            name = abilities.get(ability_id) if isinstance(ability_id, int) else None
+            if notes and name:
+                changed.append({"name": name, "notes": notes})
+        entry = {
+            "id": item["hero_id"],
+            "name": hero["name"],
+            "key": hero["key"],
+            "notes": _notes(item.get("hero_notes")),
+            "abilities": changed,
+            "talents": _notes(item.get("talent_notes")),
+        }
+        if entry["notes"] or entry["abilities"] or entry["talents"]:
+            out.append(entry)
+    return out
+
+
+def patch_language(feed: dict[str, Any], names: dict[str, Any]) -> dict[str, Any]:
+    """One language of a patch post from Valve's /patchnotes answer.
+
+    `names` resolves the feed's ids: {"heroes": {id: {"name", "key"}},
+    "abilities": {id: name}, "items": {id: name}} (from /herolist, /abilitylist
+    and /itemlist in the same language). The feed has no names of its own."""
+    general = []
+    for group in feed.get("general_notes") or []:
+        if isinstance(group, dict):
+            notes = _notes(group.get("generic"))
+            if notes:
+                general.append({"title": _clean(group.get("title")), "notes": notes})
+    neutral_names = {**names["abilities"], **names["items"]}
+    creeps = []
+    for creep in feed.get("neutral_creeps") or []:
+        if isinstance(creep, dict):
+            notes = _notes(creep.get("neutral_creep_notes"))
+            name = _clean(creep.get("localized_name"))
+            if notes and name:
+                creeps.append({"name": name, "notes": notes})
+    return {
+        "general": general,
+        "items": _entries(feed.get("items"), names["items"]),
+        "neutral": _entries(feed.get("neutral_items"), neutral_names),
+        "heroes": _hero_entries(feed.get("heroes"), names["heroes"], names["abilities"]),
+        "creeps": creeps,
+    }
+
+
+def patch_post(
+    feeds: dict[str, dict[str, Any]], names: dict[str, dict[str, Any]]
+) -> dict[str, Any]:
+    """A patch post: Valve's notes in each site language ({"uk": ..., "en": ...}),
+    with names for every hero, ability and item."""
+    english = feeds["en"]
+    version = english.get("patch_number") or english.get("patch_name")
+    stamp = english.get("patch_timestamp")
+    if not isinstance(version, str) or not re.fullmatch(r"\d+\.\d+[a-z]?", version):
+        raise ValueError(f"Valve's patch notes have no version: {version!r}")
+    if not isinstance(stamp, int) or stamp <= 0:
+        raise ValueError(f"Valve's patch notes for {version} have no date")
+    languages = {lang: patch_language(feeds[lang], names[lang]) for lang in FEED_LANGUAGES}
+    if not any(languages["en"].values()):
+        raise ValueError(f"Valve's patch notes for {version} are empty")
+    return {
+        "kind": "patch",
+        "version": version,
+        "date": datetime.fromtimestamp(stamp, UTC).date().isoformat(),
+        "source": "Valve datafeed /patchnotes, /herolist, /abilitylist, /itemlist",
+        "languages": languages,
+    }
+
+
+def patch_counts(patch: dict[str, Any]) -> dict[str, int]:
+    notes = patch["languages"]["en"]
+    return {
+        "heroes": len(notes["heroes"]),
+        "items": sum(1 for entry in notes["items"] if "name" in entry),
+        "neutral": sum(1 for entry in notes["neutral"] if "name" in entry),
+        "general": len(notes["general"]),
+    }
 
 
 # --- words and numbers -----------------------------------------------------------------
@@ -554,10 +761,6 @@ def post_main(
                 " news-card-down",
             )
         )
-    share = html.escape(
-        "https://t.me/share/url?"
-        + urlencode({"url": f"{page_url}?ref=tg-share", "text": title(post, lang)})
-    )
     tiles_html = "\n".join(tiles)
     cards_html = "\n".join(cards)
     return f"""    <main id="main">
@@ -581,11 +784,22 @@ def post_main(
         </div>
       </section>
 
-      <section class="section section-alt">
+{_actions(lang, page_url, title(post, lang), t["share_text"])}
+    </main>"""
+
+
+def _actions(lang: str, page_url: str, heading: str, share_text: str) -> str:
+    """Share the page in Telegram, follow the channel, download the app."""
+    t = TEXT[lang]
+    e = html.escape
+    share = e(
+        "https://t.me/share/url?" + urlencode({"url": f"{page_url}?ref=tg-share", "text": heading})
+    )
+    return f"""      <section class="section section-alt">
         <div class="wrap news-actions">
           <div class="hero-cta">
             <h2>{e(t["share_title"])}</h2>
-            <p>{e(t["share_text"])}</p>
+            <p>{e(share_text)}</p>
             <div class="cta-row">
               <a class="btn btn-primary btn-lg" href="{share}" rel="noopener">{_icon("send")}<span>{e(t["share_tg"])}</span></a>
               <a class="btn btn-outline btn-lg" href="{CHANNEL}" rel="noopener">{e(t["channel"])}</a>
@@ -602,7 +816,169 @@ def post_main(
             </div>
           </div>
         </div>
+      </section>"""
+
+
+def patch_title(patch: dict[str, Any], lang: str) -> str:
+    return TEXT[lang]["patch_title"].format(version=patch["version"])
+
+
+def _patch_notes(notes: list[dict[str, Any]]) -> str:
+    e = html.escape
+    items = "\n".join(
+        f'                <li class="patch-note patch-note-{note["level"]}">{e(note["text"])}'
+        + (f'<span class="patch-info">{e(note["info"])}</span>' if note.get("info") else "")
+        + "</li>"
+        for note in notes
+    )
+    return f'              <ul class="patch-notes">\n{items}\n              </ul>'
+
+
+def _patch_card(heading: str, body: list[str], extra: str = "", head: str = "") -> str:
+    """A card of notes; `head` replaces the plain heading (a hero with a picture)."""
+    title = head or f'<h2 class="news-card-title"><span>{html.escape(heading)}</span></h2>'
+    inner = "\n".join(body)
+    return f"""            <article class="mode news-card patch-card{extra}">
+              {title}
+{inner}
+            </article>"""
+
+
+def _patch_entries(entries: list[dict[str, Any]]) -> list[str]:
+    e = html.escape
+    out = []
+    for entry in entries:
+        if "group" in entry:
+            out.append(f'              <h3 class="patch-group">{e(entry["group"])}</h3>')
+        else:
+            label = f" <small>{e(entry['label'])}</small>" if entry.get("label") else ""
+            out.append(f'              <h3 class="patch-name">{e(entry["name"])}{label}</h3>')
+        if entry["notes"]:
+            out.append(_patch_notes(entry["notes"]))
+    return out
+
+
+def _patch_hero(
+    hero: dict[str, Any], lang: str, links: dict[str, str], home: str, up: str, images: set[str]
+) -> str:
+    e = html.escape
+    body = []
+    if hero["notes"]:
+        body.append(_patch_notes(hero["notes"]))
+    for ability in hero["abilities"]:
+        body.append(f'              <h3 class="patch-name">{e(ability["name"])}</h3>')
+        body.append(_patch_notes(ability["notes"]))
+    if hero["talents"]:
+        body.append(f'              <h3 class="patch-name">{e(TEXT[lang]["patch_talents"])}</h3>')
+        body.append(_patch_notes(hero["talents"]))
+    head = (
+        f'<h2 class="news-card-title patch-hero">{_picture(hero, up, images, "lg")}'
+        f"<span>{_name(hero, links, home)}</span></h2>"
+    )
+    return _patch_card(hero["name"], body, head=head)
+
+
+def patch_main(
+    patch: dict[str, Any],
+    lang: str,
+    links: dict[str, str],
+    home: str,
+    up: str = "../",
+    images: set[str] | None = None,
+) -> str:
+    """The <main> of a patch page: Valve's notes in this language, the general
+    changes and items first, then every hero that changed."""
+    t = TEXT[lang]
+    e = html.escape
+    images = images or set()
+    notes = patch["languages"][lang]
+    counts = patch_counts(patch)
+    page_url = f"{BASE}{'' if lang == 'uk' else '/en'}/news/{patch_slug(patch)}.html"
+    valve = VALVE_PATCH_PAGE.format(version=patch["version"])
+    tiles = [
+        _tile("swords", t["patch_heroes"], "", str(counts["heroes"]), t["patch_count_value"]),
+        _tile("flame", t["patch_items"], "", str(counts["items"]), t["patch_count_value"]),
+    ]
+    if counts["general"]:
+        tiles.append(
+            _tile(
+                "trophy",
+                t["patch_general"],
+                "",
+                str(counts["general"]),
+                t["patch_general_value"],
+            )
+        )
+    else:
+        tiles.append(
+            _tile("trophy", t["patch_neutral"], "", str(counts["neutral"]), t["patch_count_value"])
+        )
+    cards = [
+        _patch_card(group["title"], [_patch_notes(group["notes"])], " patch-wide")
+        for group in notes["general"]
+    ]
+    for key, heading in (
+        ("items", t["patch_items_title"]),
+        ("neutral", t["patch_neutral_title"]),
+        ("creeps", t["patch_creeps_title"]),
+    ):
+        if notes[key]:
+            body = (
+                _patch_entries(notes[key])
+                if key != "creeps"
+                else _patch_entries([{"name": c["name"], "notes": c["notes"]} for c in notes[key]])
+            )
+            cards.append(_patch_card(heading, body))
+    heroes = sorted(notes["heroes"], key=lambda hero: hero["name"])
+    hero_cards = "\n".join(_patch_hero(hero, lang, links, home, up, images) for hero in heroes)
+    tiles_html = "\n".join(tiles)
+    cards_html = "\n".join(cards)
+    rules = (
+        f"""      <section class="section section-tight">
+        <div class="wrap">
+          <div class="news-cards patch-cards">
+{cards_html}
+          </div>
+        </div>
       </section>
+
+"""
+        if cards
+        else ""
+    )
+    hero_section = (
+        f"""      <section class="section section-tight">
+        <div class="wrap">
+          <h2 class="patch-section-title">{e(t["patch_heroes_title"])}</h2>
+          <div class="news-cards patch-cards">
+{hero_cards}
+          </div>
+        </div>
+      </section>
+
+"""
+        if heroes
+        else ""
+    )
+    return f"""    <main id="main">
+      <section class="page-head">
+        <div class="wrap">
+          <p class="mode-tag"><a href="{home}news.html">{e(t["list_title"])}</a> · <time datetime="{patch["date"]}">{e(long_date(patch["date"], lang))}</time></p>
+          <h1>{e(patch_title(patch, lang))}</h1>
+          <p class="lead">{e(t["patch_lead"])}</p>
+          <div class="news-tiles">
+{tiles_html}
+          </div>
+        </div>
+      </section>
+
+{rules}{hero_section}      <section class="section section-tight">
+        <div class="wrap">
+          <p class="mode-note news-source"><a href="{valve}" rel="noopener">{e(t["patch_source"].format(version=patch["version"]))}</a></p>
+        </div>
+      </section>
+
+{_actions(lang, page_url, patch_title(patch, lang), t["patch_share"])}
     </main>"""
 
 
@@ -612,24 +988,47 @@ def list_main(
     home: str,
     up: str,
     images: set[str] | None = None,
+    patches: list[dict[str, Any]] | None = None,
 ) -> str:
+    """The news list: meta posts and patches together, newest first."""
     t = TEXT[lang]
     e = html.escape
     images = images or set()
-    items = []
+    entries: list[tuple[str, int, str]] = []
     for post in posts:
         data = summary(post, previous_of(post, posts))
         best = data["win"][0]
-        items.append(
-            f"""            <a class="mode news-item" href="news/{slug(post)}.html">
+        entries.append(
+            (
+                post["date"],
+                0,
+                f"""            <a class="mode news-item" href="news/{slug(post)}.html">
               {_picture(best, up, images, "lg")}
               <span class="news-item-text">
                 <span class="mode-tag"><time datetime="{post["date"]}">{e(long_date(post["date"], lang))}</time></span>
                 <span class="news-item-title">{e(title(post, lang))}</span>
                 <span class="mode-note">{e(t["list_top"].format(hero=best["name"], v=percent(best["win"], lang)))}</span>
               </span>
-            </a>"""
+            </a>""",
+            )
         )
+    for patch in patches or []:
+        counts = patch_counts(patch)
+        entries.append(
+            (
+                patch["date"],
+                1,
+                f"""            <a class="mode news-item" href="news/{patch_slug(patch)}.html">
+              <span class="hero-pic hero-pic-lg patch-badge" aria-hidden="true"><small>{e(t["patch_badge"])}</small>{e(patch["version"])}</span>
+              <span class="news-item-text">
+                <span class="mode-tag"><time datetime="{patch["date"]}">{e(long_date(patch["date"], lang))}</time></span>
+                <span class="news-item-title">{e(patch_title(patch, lang))}</span>
+                <span class="mode-note">{e(t["patch_list"].format(**counts))}</span>
+              </span>
+            </a>""",
+            )
+        )
+    items = [html_ for _, _, html_ in sorted(entries, key=lambda item: item[:2], reverse=True)]
     items_html = "\n".join(items)
     return f"""    <main id="main">
       <section class="page-head">
@@ -708,6 +1107,40 @@ def telegram_release(version: str, notes: str) -> str:
             "",
             f"Що нового: {BASE}/changelog.html?ref=tg#v{version}",
             f"Завантажити: {BASE}/?ref=tg",
+        ]
+    )
+    return "\n".join(lines)
+
+
+def patch_names(patch: dict[str, Any], key: str, lang: str = "uk") -> list[str]:
+    """The names of a patch's changed heroes ("heroes") or items ("items", "neutral")."""
+    entries = patch["languages"][lang][key]
+    names = [entry["name"] for entry in entries if "name" in entry]
+    return sorted(names) if key == "heroes" else names
+
+
+def telegram_patch(patch: dict[str, Any], limit: int = 30) -> str:
+    """The text post of a patch (when the card cannot be drawn)."""
+    e = html.escape
+    t = TEXT["uk"]
+    lines = [f"<b>{e(patch_title(patch, 'uk'))}</b>", "", e(t["patch_lead"])]
+    for icon, heading, key in (
+        ("⚔️", t["patch_heroes_title"], "heroes"),
+        ("🗡", t["patch_items_title"], "items"),
+        ("💎", t["patch_neutral_title"], "neutral"),
+    ):
+        names = patch_names(patch, key)
+        if names:
+            shown = ", ".join(names[:limit]) + (
+                f" +{len(names) - limit}" if len(names) > limit else ""
+            )
+            lines.extend(["", f"{icon} <b>{e(heading)} ({len(names)})</b>", e(shown)])
+    lines.extend(
+        [
+            "",
+            f"Усі зміни: {BASE}/news/{patch_slug(patch)}.html?ref=tg",
+            f"Нотатки Valve: {VALVE_PATCH_PAGE.format(version=patch['version'])}",
+            f"{e(t['tg_app'])}: {BASE}/?ref=tg",
         ]
     )
     return "\n".join(lines)
