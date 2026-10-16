@@ -164,6 +164,34 @@ def test_the_topic_rotation(monkeypatch):
         )
 
 
+def test_a_release_video_waits_for_the_published_tag(tmp_path, monkeypatch):
+    import subprocess
+
+    def git(*args):
+        subprocess.run(["git", *args], cwd=tmp_path, check=True, capture_output=True)
+
+    notes = tmp_path / "docs" / "release-notes"
+    notes.mkdir(parents=True)
+    git("init", "-q")
+    git("config", "user.email", "t@example.com")
+    git("config", "user.name", "t")
+    for version in ("0.56.2", "0.56.10"):
+        (notes / f"v{version}.md").write_text(f"notes {version}", encoding="utf-8")
+    git("add", ".")
+    git("commit", "-q", "-m", "notes")
+    monkeypatch.setattr(topics, "ROOT", tmp_path)
+    monkeypatch.setattr(topics, "NOTES", notes)
+    today = date.today()
+
+    assert topics.latest_release(today) is None  # notes on main, nothing published
+    git("tag", "v0.56.2")
+    assert topics.latest_release(today) == ("0.56.2", "notes 0.56.2")
+    git("tag", "v0.56.10")
+    assert topics.latest_release(today) == ("0.56.10", "notes 0.56.10")
+    later = date.fromordinal(today.toordinal() + topics.RELEASE_DAYS + 1)
+    assert topics.latest_release(later) is None
+
+
 def test_learned_weights_are_bounded(tmp_path, monkeypatch):
     path = tmp_path / "weights.json"
     path.write_text(json.dumps({"multipliers": {"coach": 50, "meta": 0.01, "spam": 9}}))

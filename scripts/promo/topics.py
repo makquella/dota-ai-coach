@@ -1,6 +1,6 @@
 """Which video to make next: a format and a topic, from the data and the history.
 
-  - a release not promoted yet goes first (within RELEASE_DAYS of its notes);
+  - a published release not promoted yet goes first (within RELEASE_DAYS of its tag);
   - the week's meta and its fact once per meta post;
   - coach and hero videos rotate heroes with a site page, the week's popular
     heroes first, none of the last HERO_REPEAT videos' heroes;
@@ -70,29 +70,39 @@ def _done(history: list[dict[str, Any]], fmt: str, topic: str) -> bool:
     return any(h.get("format") == fmt and h.get("topic") == topic for h in history)
 
 
-def latest_release(today: date) -> tuple[str, str] | None:
-    """(version, notes) of the newest release notes added within RELEASE_DAYS (by git date)."""
-    files = sorted(
-        NOTES.glob("v*.md"),
-        key=lambda p: tuple(int(x) for x in p.stem[1:].split(".") if x.isdigit()),
-    )
-    if not files:
-        return None
-    newest = files[-1]
+def released_on(version: str) -> date | None:
+    """Date of the tag "v<version>", which the Release workflow creates when it
+    publishes the installer; None while the version is only in the notes."""
     try:
         stamp = subprocess.run(
-            ["git", "log", "-1", "--format=%cs", "--", str(newest)],
+            ["git", "for-each-ref", "--format=%(creatordate:short)", f"refs/tags/v{version}"],
             capture_output=True,
             text=True,
             check=True,
             cwd=ROOT,
         ).stdout.strip()
-        added = date.fromisoformat(stamp) if stamp else today
+        return date.fromisoformat(stamp) if stamp else None
     except (OSError, subprocess.CalledProcessError, ValueError):
-        added = today
-    if (today - added).days > RELEASE_DAYS:
         return None
-    return newest.stem[1:], newest.read_text(encoding="utf-8")
+
+
+def latest_release(today: date) -> tuple[str, str] | None:
+    """(version, notes) of the newest published release (its tag) within RELEASE_DAYS.
+
+    Release notes land on main before the installer is published; a video about
+    a version nobody can download yet would send viewers to the old one."""
+    files = sorted(
+        NOTES.glob("v*.md"),
+        key=lambda p: tuple(int(x) for x in p.stem[1:].split(".") if x.isdigit()),
+    )
+    for notes in reversed(files):
+        published = released_on(notes.stem[1:])
+        if published is None:
+            continue
+        if (today - published).days > RELEASE_DAYS:
+            return None
+        return notes.stem[1:], notes.read_text(encoding="utf-8")
+    return None
 
 
 def hero_order(
