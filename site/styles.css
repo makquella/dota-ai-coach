@@ -627,9 +627,11 @@ h1 span {
   font: 12px ui-monospace, "Cascadia Mono", Consolas, monospace;
   word-break: break-all;
 }
+/* Its own line under the download button (table: centred, underline as wide as
+   the text); inline it sat right against the button. */
 .install-link {
-  display: inline-block;
-  margin-top: 18px;
+  display: table;
+  margin: 20px auto 0;
   color: var(--muted);
   font-size: 15px;
   text-decoration: none;
