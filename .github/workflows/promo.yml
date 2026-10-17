@@ -4,11 +4,9 @@ name: Promo
 # pick a topic from the project's data, write the script, voice it
 # (ElevenLabs), render a 1080x1920 video from Valve's hero animations and
 # ability clips (headless Chrome + ffmpeg), check it,
-# and send it to the developer's Telegram for approval. Normally the buttons
-# in Telegram go to the Worker (services/api/src/promo.js),
+# and send it to the developer's Telegram for approval. Nothing is published
+# here: the buttons in Telegram go to the Worker (services/api/src/promo.js),
 # which publishes only after «✅ Всюди», «📣 Лише Telegram» or «▶️ Лише YouTube».
-# Exception: manual beta_campaign=schedule executes the owner's explicit
-# six-film authorization for Oct 16/17/18 2026 at 17:00 Europe/Kyiv.
 #
 # Selected voice: Alex Nekrasov, eleven_v4, UK, stability 0.5, speed 1.0.
 # Manual voice_preset=custom uses optional ELEVENLABS_* repository variables.
@@ -40,16 +38,16 @@ on:
         type: string
         default: ""
       send:
-        description: "Send to Telegram (review, or native schedule confirmation)"
+        description: "Send to Telegram for approval"
         type: boolean
         default: true
       beta_campaign:
-        description: "Beta videos; schedule = authorized six-film Oct 16–18 native YouTube schedule"
+        description: "Beta recruitment videos (review builds, private delivery, Shorts buttons)"
         type: choice
-        options: ["off", build, validate, deliver, shorts, audit, outreach, series, schedule]
+        options: ["off", build, validate, deliver, shorts, audit, outreach, series]
         default: "off"
       beta_run_id:
-        description: "Reviewed artifact run ID (required for deliver/shorts/series/schedule)"
+        description: "Reviewed artifact run ID (required for deliver/shorts/series)"
         type: string
         default: ""
 
@@ -95,7 +93,7 @@ jobs:
           ffmpeg_version="$("$ffmpeg_exe" -version)"
           echo "${ffmpeg_version%%$'\n'*}"
       - uses: actions/setup-node@v6
-        if: inputs.beta_campaign == 'audit' || inputs.beta_campaign == 'outreach' || inputs.beta_campaign == 'schedule'
+        if: inputs.beta_campaign == 'audit' || inputs.beta_campaign == 'outreach'
         with:
           node-version-file: .node-version
       - name: Audit published beta Shorts (read only)
@@ -137,30 +135,6 @@ jobs:
         run: |
           python -m pip install faster-whisper==1.2.1
           python -m scripts.promo.beta_series --out promo-out --speech-check
-      - name: Restore reviewed six-video series for native scheduling
-        if: inputs.beta_campaign == 'schedule'
-        env:
-          GH_TOKEN: ${{ github.token }}
-          BETA_RUN_ID: ${{ inputs.beta_run_id }}
-        run: |
-          if ! [[ "$BETA_RUN_ID" =~ ^[0-9]+$ ]]; then exit 1; fi
-          gh run download "$BETA_RUN_ID" --repo "$GITHUB_REPOSITORY" --name "promo-$BETA_RUN_ID" --dir promo-out
-          python -m scripts.promo.beta_series --out promo-out --manifest
-      - name: Schedule all six privately with YouTube native publishAt
-        if: inputs.beta_campaign == 'schedule'
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID || secrets.CLOUDFLARE_ACCOUNT_ID }}
-          API_ADMIN_TOKEN: ${{ secrets.API_ADMIN_TOKEN }}
-          YOUTUBE_CLIENT_ID: ${{ secrets.YOUTUBE_CLIENT_ID }}
-          YOUTUBE_CLIENT_SECRET: ${{ secrets.YOUTUBE_CLIENT_SECRET }}
-        run: node scripts/promo/series_schedule.mjs promo-out
-      - name: Deliver four new videos and confirmed native schedule to owner
-        if: inputs.beta_campaign == 'schedule' && inputs.send
-        env:
-          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
-          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID || vars.TELEGRAM_CHAT_ID }}
-        run: python -m scripts.promo.beta_series --out promo-out --deliver
       - name: Build the video
         if: (inputs.voice_lab == '' || inputs.voice_lab == 'off') && (inputs.beta_campaign == '' || inputs.beta_campaign == 'off')
         env:
