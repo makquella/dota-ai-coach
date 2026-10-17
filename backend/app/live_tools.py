@@ -290,6 +290,76 @@ def low_hp_repeat_reason(extra: Mapping[str, Any]) -> str | None:
     return reason
 
 
+# Critical HP is not the same danger for every hero: these own resources make a
+# death cheaper or low HP part of the hero's plan. The card names the resource
+# and keeps leaving as the default; nothing is claimed about enemies or targets.
+INSURANCE_COPY = {
+    "item_aegis": (
+        "You hold the Aegis: leave unless this fight is worth losing it.",
+        "A death now revives you on the spot, but the Aegis is gone after that.",
+    ),
+    "abaddon_borrowed_time": (
+        "Use Borrowed Time before the next burst: damage will heal you.",
+        "Borrowed Time is ready: while it lasts, incoming damage heals you instead.",
+    ),
+    "terrorblade_sunder": (
+        "If a healthy enemy hero is in range, Sunder swaps your HP with theirs.",
+        "Sunder is ready: at low HP it is your save; with no healthy target, leave.",
+    ),
+    "skeleton_king_reincarnation": (
+        "Reincarnation is ready: leave unless this fight is worth spending it.",
+        "A death now revives you after a few seconds, but its long cooldown starts.",
+    ),
+}
+# Cast first: an active save, then the swap; revives only make a death cheaper.
+CAST_INSURANCE = ("abaddon_borrowed_time", "terrorblade_sunder")
+
+
+def _ability_by_raw_name(abilities: Any, raw_name: str) -> Mapping[str, Any] | None:
+    if not isinstance(abilities, list):
+        return None
+    return next(
+        (a for a in abilities if isinstance(a, Mapping) and a.get("raw_name") == raw_name),
+        None,
+    )
+
+
+def _learned_off_cooldown(ability: Mapping[str, Any] | None) -> bool:
+    if ability is None or not (_number(ability.get("level")) or 0) > 0:
+        return False
+    return _number(ability.get("cooldown")) == 0
+
+
+SUNDER_HP_PERCENT = 40  # above it a swap rarely gives HP back
+
+
+def insurance_copy(extra: Mapping[str, Any], hp_percent: Any = None) -> tuple[str, str] | None:
+    """(action, reason) for critical HP when an observed own resource changes
+    what low HP means (INSURANCE_COPY); None without one. A disable keeps the
+    post-disable wording, so this only applies when the hero can act."""
+    if extra.get("stunned") is True or extra.get("hexed") is True:
+        return None
+    abilities = extra.get("abilities")
+    if not _abilities_blocked(extra):
+        for raw_name in CAST_INSURANCE:
+            hp = _number(hp_percent)
+            if raw_name == "terrorblade_sunder" and (hp is None or hp > SUNDER_HP_PERCENT):
+                continue
+            ability = _ability_by_raw_name(abilities, raw_name)
+            if (
+                ability is not None
+                and _learned_off_cooldown(ability)
+                and ability.get("can_cast") is not False
+            ):
+                return INSURANCE_COPY[raw_name]
+    if extra.get("has_aegis") is True:
+        return INSURANCE_COPY["item_aegis"]
+    # Reincarnation triggers on its own (passive): its cooldown is the signal.
+    if _learned_off_cooldown(_ability_by_raw_name(abilities, "skeleton_king_reincarnation")):
+        return INSURANCE_COPY["skeleton_king_reincarnation"]
+    return None
+
+
 def low_hp_copy(extra: Mapping[str, Any], hero: Any = None) -> tuple[str, str] | None:
     """(action, reason) naming the tool to press at low HP; None without one.
     Stunned, hexed or muted, no item can be pressed: the post-disable wording."""

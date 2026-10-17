@@ -9,9 +9,11 @@ from match_fixtures import gsi_match_stream
 from app.advice_i18n import translate_uk
 from app.gsi_state import normalize_gsi_payload
 from app.live_tools import (
+    INSURANCE_COPY,
     death_items_reason,
     disabled_copy,
     hero_tools,
+    insurance_copy,
     low_hp_copy,
     regen_items,
 )
@@ -520,3 +522,66 @@ def test_the_overlay_counts_the_low_hp_cards_of_the_match(client, monkeypatch):
     state = {"extra_context": {"clock_time": 900}}
     assert _with_low_hp_repeats(state, "LOW_HP")["extra_context"]["low_hp_before"] == 3
     assert "low_hp_before" not in _with_low_hp_repeats(state, "SAFE_FARMING")["extra_context"]
+
+
+AEGIS = {"name": "item_aegis", "can_cast": False, "cooldown": 0, "passive": True}
+
+
+def test_critical_hp_names_an_aegis_or_a_revive_instead_of_only_leaving():
+    aegis = _fallback_text(_request(_extra(AEGIS, FORCE)), "retreat_reset")
+    assert aegis["action"] == "You hold the Aegis: leave unless this fight is worth losing it."
+    reincarnation = {"ability0": _ability("skeleton_king_reincarnation", can_cast=False)}
+    extra = _extra(abilities=reincarnation, hero="npc_dota_hero_skeleton_king")
+    text = _fallback_text(_request(extra), "retreat_reset")
+    assert text["action"].startswith("Reincarnation is ready")
+    # A repeat or HP-falling reason would say «leave now» over the revive.
+    text = _fallback_text(_request(extra | {"hp_falling_fast": 60}), "retreat_reset")
+    assert text["reason"].startswith("A death now revives you")
+    # On cooldown or not learned: the usual card.
+    for ability in (
+        _ability("skeleton_king_reincarnation", 120),
+        _ability("skeleton_king_reincarnation", level=0),
+    ):
+        extra = _extra(abilities={"ability0": ability}, hero="npc_dota_hero_skeleton_king")
+        assert insurance_copy(extra) is None
+
+
+def test_hero_saves_come_before_a_revive_and_need_a_castable_hero():
+    borrowed = {"ability0": _ability("abaddon_borrowed_time")}
+    extra = _extra(AEGIS, abilities=borrowed, hero="npc_dota_hero_abaddon")
+    assert insurance_copy(extra)[0].startswith("Use Borrowed Time")
+    assert insurance_copy(extra | {"silenced": True})[0].startswith("You hold the Aegis")
+    sunder = {"ability0": _ability("terrorblade_sunder")}
+    extra = _extra(abilities=sunder, hero="npc_dota_hero_terrorblade")
+    assert insurance_copy(extra, 20)[0].startswith("If a healthy enemy hero")
+    assert insurance_copy(extra, 80) is None  # HP falling fast, still high: no swap
+    assert insurance_copy(extra) is None  # unknown HP
+    # A stun or hex keeps the post-disable wording.
+    assert insurance_copy(_extra(AEGIS, stunned=True)) is None
+
+
+def test_insurance_is_only_for_critical_hp_not_lane_regen():
+    text = _fallback_text(_request(_extra(AEGIS, WAND)), "play_back_and_regen")
+    assert text["action"] == "Use Magic Wand now, then step back."
+
+
+def test_the_insurance_card_through_gsi_and_in_ukrainian(client):
+    payload = copy.deepcopy(gsi_match_stream(minutes=20, death_minutes=())[-1])
+    payload["hero"]["health_percent"] = 12
+    payload["hero"]["health"] = 200
+    payload["items"]["slot4"] = dict(AEGIS)
+    client.post("/gsi", json=payload)
+    body = client.get("/overlay/recommendation").json()
+    assert body["recommendation"]["action"] == (
+        "You hold the Aegis: leave unless this fight is worth losing it."
+    )
+    assert body["recommendation"]["reason"] == INSURANCE_COPY["item_aegis"][1]
+    ukrainian = client.get("/overlay/recommendation?lang=uk").json()["recommendation"]
+    assert ukrainian["action"] == "У вас Aegis: відходьте, якщо цей бій не вартий його втрати."
+
+
+def test_every_insurance_text_has_ukrainian():
+    for action, reason in INSURANCE_COPY.values():
+        assert translate_uk(action), action
+        assert translate_uk(reason), reason
+        assert translate_uk(f"Consider: {action[0].lower()}{action[1:]}"), action

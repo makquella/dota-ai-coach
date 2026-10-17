@@ -9,6 +9,9 @@
 
   const TEXT = {
     en: {
+      "0.56.5": [
+        "Critical HP no longer always means «leave now». With the Aegis or a ready Reincarnation, the card says a death here revives you and asks whether the fight is worth it; with Borrowed Time ready it says to cast it before the next burst; Terrorblade at low HP with Sunder ready is reminded of the swap with a healthy enemy hero."
+      ],
       "0.56.4": [
         "15 gameplay preparation tips for Sven, Juggernaut and Terrorblade: ultimate windows, Omnislash setup, Healing Ward recovery, Sunder target checks and upgraded Hammer. They use your observed abilities and upgrades; they never choose an unseen target or guarantee an escape.",
         "The new tips use the main card and normal advice voice. If you enable weekly match recordings, the saved file also identifies the rule and its observed own resources for playtest feedback."
@@ -542,6 +545,9 @@
       ]
     },
     uk: {
+      "0.56.5": [
+        "Критично мало HP більше не завжди означає «відходьте». З Aegis або готовою Reincarnation картка нагадує, що смерть тут вас воскресить, і питає, чи вартий цього бій; з готовою Borrowed Time — застосувати її до наступного сплеску шкоди; Terrorblade з малим HP і готовою Sunder отримує нагадування про обмін зі здоровим ворожим героєм."
+      ],
       "0.56.4": [
         "15 порад підготовки для Sven, Juggernaut і Terrorblade: вікна ультимейтів, підготовка Omnislash, відновлення через Healing Ward, перевірка цілі Sunder і покращений Hammer. Враховують ваші здібності й покращення, не обирають невидиму ціль і не гарантують утечу.",
         "Нові поради працюють на основній картці зі звичайною озвучкою. Якщо ввімкнути тижневі записи матчів, збережений файл також міститиме правило та власні ресурси, на яких воно спрацювало, для відгуку після тесту."
