@@ -4,8 +4,9 @@ name: Hero of the week
 # channel. scripts/build_news.py picks the hero with the best win rate in the
 # newest meta post among heroes with a site page (not one of the last 8), draws
 # the picture card with Chrome (preinstalled on the runner) and sends it with the
-# hero's numbers from the site. The pick is recorded in data/news/hero-week.json
-# and committed to main.
+# hero's numbers from the site. The pick is recorded in data/news/hero-week.json,
+# scripts/build_site.py writes its news page (scripts/news_hero.py), the commit
+# goes to main and the site is published.
 #
 # Telegram: the channel https://t.me/wardlydota (repository variable
 # TELEGRAM_CHANNEL overrides it) and the secret TELEGRAM_BOT_TOKEN.
@@ -32,6 +33,9 @@ jobs:
     timeout-minutes: 15
     permissions:
       contents: write
+    outputs:
+      sha: ${{ steps.record.outputs.sha }}
+      changed: ${{ steps.record.outputs.changed }}
     steps:
       - uses: actions/checkout@v7
         with:
@@ -55,14 +59,31 @@ jobs:
           else
             python scripts/build_news.py telegram-hero --send
           fi
-      - name: Record the pick
+      - name: Record the pick and write its page
+        id: record
         run: |
+          python scripts/build_site.py
+          python scripts/build_site.py --check
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add data/news/hero-week.json
+          git add data/news/hero-week.json site
           if git diff --cached --quiet; then
             echo "Nothing new"
+            echo "changed=" >> "$GITHUB_OUTPUT"
           else
             git commit -m "News: hero of the week $(date -u +%F)"
             git push origin HEAD:main
+            echo "changed=yes" >> "$GITHUB_OUTPUT"
           fi
+          echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
+  site:
+    needs: post
+    if: needs.post.outputs.changed == 'yes'
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    uses: ./.github/workflows/pages.yml
+    with:
+      ref: ${{ needs.post.outputs.sha }}

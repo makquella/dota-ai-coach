@@ -36,6 +36,7 @@ from app.live_tools import USABLE_SAFETY  # noqa: E402
 
 sys.path.insert(0, str(ROOT / "scripts"))
 import news  # noqa: E402 - scripts/news.py, after the scripts path
+import news_hero  # noqa: E402
 
 # One version for styles.css, app.js and i18n-en.js on every page, hand-written
 # (index.html, heroes.html) and generated alike. Separate counters let one page
@@ -892,9 +893,11 @@ def _page(
 
 def news_pages(all_heroes: list[dict]) -> dict[Path, str]:
     """site/news.html, site/news/<slug>.html and their /en/ copies (scripts/news.py):
-    the meta posts and the patches."""
+    the meta posts, the patches and the heroes of the week (news_hero.py)."""
     posts = news.load_posts()
     patches = news.load_patches()
+    weeks = news_hero.entries(all_heroes, posts)
+    site = sys.modules[__name__]
     links = {hero["name"]: hero["slug"] for hero in all_heroes}
     images = {path.stem for path in news.HERO_IMAGES.glob("*.webp")}
     files: dict[Path, str] = {}
@@ -902,6 +905,22 @@ def news_pages(all_heroes: list[dict]) -> dict[Path, str]:
         root = SITE if lang == "uk" else SITE / "en"
         up_list = "" if lang == "uk" else "../"
         t = news.TEXT[lang]
+        heroes_week = []
+        for entry in weeks:
+            fact = news_hero.facts(entry["hero"], site, lang)
+            name = f"news/{news_hero.slug(entry)}.html"
+            files[root / name] = _page(
+                lang,
+                up=up_list + "../",
+                home="../",
+                path=name,
+                title=f"{news_hero.title(entry, lang)} — Wardly",
+                description=news_hero.lead(entry, fact, lang),
+                main=news_hero.post_main(entry, fact, lang, "../", up_list + "../", images),
+            )
+            heroes_week.append(
+                (entry["date"], news_hero.list_item(entry, fact, lang, up_list, images))
+            )
         files[root / "news.html"] = _page(
             lang,
             up=up_list,
@@ -909,7 +928,7 @@ def news_pages(all_heroes: list[dict]) -> dict[Path, str]:
             path="news.html",
             title=f"{t['list_title']} — Wardly",
             description=t["list_lead"],
-            main=news.list_main(posts, lang, "./", up_list, images, patches),
+            main=news.list_main(posts, lang, "./", up_list, images, patches, heroes_week),
         )
         for post in posts:
             data = news.summary(post, news.previous_of(post, posts))
@@ -941,9 +960,12 @@ def news_pages(all_heroes: list[dict]) -> dict[Path, str]:
 def sitemap(all_heroes: list[dict]) -> str:
     pairs = [("/", "/en/"), ("/heroes.html", "/en/heroes.html"), ("/news.html", "/en/news.html")]
     pairs += [(f"/heroes/{h['slug']}.html", f"/en/heroes/{h['slug']}.html") for h in all_heroes]
-    for page in [f"/news/{news.slug(post)}.html" for post in news.load_posts()] + [
-        f"/news/{news.patch_slug(patch)}.html" for patch in news.load_patches()
-    ]:
+    posts = news.load_posts()
+    for page in (
+        [f"/news/{news.slug(post)}.html" for post in posts]
+        + [f"/news/{news.patch_slug(patch)}.html" for patch in news.load_patches()]
+        + [f"/news/{news_hero.slug(entry)}.html" for entry in news_hero.entries(all_heroes, posts)]
+    ):
         pairs.append((page, f"/en{page}"))
     lines = [
         '<?xml version="1.0" encoding="UTF-8"?>',

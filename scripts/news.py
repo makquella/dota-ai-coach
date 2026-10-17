@@ -115,7 +115,7 @@ TEXT = {
         "share_tg": "Надіслати в Telegram",
         "channel": "Канал @wardlydota",
         "list_title": "Новини",
-        "list_lead": "Мета тижня щопонеділка: хто виграє, кого беруть і хто змінився. І кожен новий патч Dota 2: що змінили Valve. Ті самі дописи й нові версії — у нашому Telegram-каналі.",
+        "list_lead": "Мета тижня щопонеділка: хто виграє, кого беруть і хто змінився. Герой тижня щочетверга. І кожен новий патч Dota 2: що змінили Valve. Ті самі дописи й нові версії — у нашому Telegram-каналі.",
         "list_channel": "Підписатися на канал @wardlydota",
         "list_top": "Найсильніший: {hero}, {v}",
         "changelog": "Що нового в застосунку →",
@@ -174,7 +174,7 @@ TEXT = {
         "share_tg": "Send in Telegram",
         "channel": "Channel @wardlydota",
         "list_title": "News",
-        "list_lead": "The meta of the week every Monday: who wins, who is picked and who changed. And every new Dota 2 patch: what Valve changed. The same posts and new versions go to our Telegram channel.",
+        "list_lead": "The meta of the week every Monday: who wins, who is picked and who changed. The hero of the week every Thursday. And every new Dota 2 patch: what Valve changed. The same posts and new versions go to our Telegram channel.",
         "list_channel": "Follow @wardlydota on Telegram",
         "list_top": "Strongest: {hero}, {v}",
         "changelog": "What's new in the app →",
@@ -989,8 +989,10 @@ def list_main(
     up: str,
     images: set[str] | None = None,
     patches: list[dict[str, Any]] | None = None,
+    extra: list[tuple[str, str]] | None = None,
 ) -> str:
-    """The news list: meta posts and patches together, newest first."""
+    """The news list: meta posts, patches and `extra` (date, item) entries such as
+    the heroes of the week (news_hero.py) together, newest first."""
     t = TEXT[lang]
     e = html.escape
     images = images or set()
@@ -1028,6 +1030,7 @@ def list_main(
             </a>""",
             )
         )
+    entries += [(day, 2, item) for day, item in extra or []]
     items = [html_ for _, _, html_ in sorted(entries, key=lambda item: item[:2], reverse=True)]
     items_html = "\n".join(items)
     return f"""    <main id="main">

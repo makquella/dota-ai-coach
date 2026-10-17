@@ -41,8 +41,10 @@ cd site && python3 -m http.server 8080
 
 ## Адреса: luhovyimvp.dev
 
-Сайт публікується на GitHub Pages (Actions → *Website* → Run workflow,
-`.github/workflows/pages.yml`) і відкривається за адресою `https://luhovyimvp.dev`.
+Сайт публікується на GitHub Pages (`.github/workflows/pages.yml`): сам після
+кожної зміни `site/` у main, після нових дописів (мета, патч, герой тижня) або
+вручну (Actions → *Website* → Run workflow). Відкривається за адресою
+`https://luhovyimvp.dev`.
 DNS домену — у Cloudflare, записи йдуть **через проксі Cloudflare** (помаранчева
 хмара): HTTPS видає Cloudflare, GitHub віддає сторінки.
 
