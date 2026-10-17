@@ -1,6 +1,6 @@
 """Which video to make next: a format and a topic, from the data and the history.
 
-  - a release not promoted yet goes first (within RELEASE_DAYS of its notes);
+  - a published release not promoted yet goes first (within RELEASE_DAYS of its publication);
   - the week's meta and its fact once per meta post;
   - coach and hero videos rotate heroes with a site page, the week's popular
     heroes first, none of the last HERO_REPEAT videos' heroes;
@@ -15,8 +15,9 @@ The draw is seeded by the date, so a re-run of the same day picks the same."""
 from __future__ import annotations
 
 import json
+import os
 import random
-import subprocess
+import urllib.request
 from dataclasses import dataclass
 from datetime import date
 from pathlib import Path
@@ -26,6 +27,8 @@ ROOT = Path(__file__).resolve().parents[2]
 HISTORY = ROOT / "data" / "promo" / "history.json"
 WEIGHTS_FILE = ROOT / "data" / "promo" / "weights.json"
 NOTES = ROOT / "docs" / "release-notes"
+REPOSITORY = "makquella/wardly"
+USER_AGENT = "Wardly promo"
 
 WEIGHTS = {"draft": 6.0, "coach": 3.0, "hero": 2.0, "meta": 2.0, "fact": 1.0, "release": 5.0}
 DRAFT_REPEAT = 8
@@ -70,29 +73,56 @@ def _done(history: list[dict[str, Any]], fmt: str, topic: str) -> bool:
     return any(h.get("format") == fmt and h.get("topic") == topic for h in history)
 
 
+def published_releases() -> dict[str, date]:
+    """{"v<version>": publication date} of the repository's published GitHub
+    Releases. The Release workflow pushes or creates the tag before the
+    installer is built, smoke-tested and the release published, so a tag alone
+    does not mean anyone can download the version. {} when GitHub cannot be
+    asked: then no release video is made."""
+    repository = os.environ.get("GITHUB_REPOSITORY", "").strip() or REPOSITORY
+    headers = {"Accept": "application/vnd.github+json", "User-Agent": USER_AGENT}
+    token = os.environ.get("GITHUB_TOKEN", "").strip()
+    if token:
+        headers["Authorization"] = f"Bearer {token}"
+    request = urllib.request.Request(
+        f"https://api.github.com/repos/{repository}/releases?per_page=30", headers=headers
+    )
+    try:
+        with urllib.request.urlopen(request, timeout=30) as response:  # noqa: S310
+            releases = json.loads(response.read())
+    except (OSError, ValueError):
+        return {}
+    published: dict[str, date] = {}
+    for release in releases if isinstance(releases, list) else []:
+        stamp = release.get("published_at") if isinstance(release, dict) else None
+        if not stamp or release.get("draft") or release.get("prerelease"):
+            continue
+        try:
+            published[str(release.get("tag_name"))] = date.fromisoformat(str(stamp)[:10])
+        except ValueError:
+            continue
+    return published
+
+
 def latest_release(today: date) -> tuple[str, str] | None:
-    """(version, notes) of the newest release notes added within RELEASE_DAYS (by git date)."""
+    """(version, notes) of the newest published GitHub Release within RELEASE_DAYS
+    of its publication.
+
+    Release notes land on main before the installer is published; a video about
+    a version nobody can download yet would send viewers to the old one."""
     files = sorted(
         NOTES.glob("v*.md"),
         key=lambda p: tuple(int(x) for x in p.stem[1:].split(".") if x.isdigit()),
     )
-    if not files:
-        return None
-    newest = files[-1]
-    try:
-        stamp = subprocess.run(
-            ["git", "log", "-1", "--format=%cs", "--", str(newest)],
-            capture_output=True,
-            text=True,
-            check=True,
-            cwd=ROOT,
-        ).stdout.strip()
-        added = date.fromisoformat(stamp) if stamp else today
-    except (OSError, subprocess.CalledProcessError, ValueError):
-        added = today
-    if (today - added).days > RELEASE_DAYS:
-        return None
-    return newest.stem[1:], newest.read_text(encoding="utf-8")
+    releases = published_releases() if files else {}
+    for notes in reversed(files):
+        published = releases.get(notes.stem)
+        if published is None:
+            continue
+        if (today - published).days > RELEASE_DAYS:
+            return None
+        return notes.stem[1:], notes.read_text(encoding="utf-8")
+    return None
 
 
 def hero_order(
