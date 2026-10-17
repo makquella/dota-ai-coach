@@ -3,9 +3,7 @@
 Short vertical videos (TikTok, Instagram Reels, YouTube Shorts) and Telegram
 posts, made three times a week from the project's own data, with no gameplay
 recording, editing or screen capture. Every video goes to the developer's
-Telegram first; normally publishing requires a button press there. The owner
-explicitly authorized the six-film October 16–18, 2026 campaign at 17:00 Kyiv;
-that one-off native schedule is described below. Publishing
+Telegram first; nothing is published without a button press there. Publishing
 goes straight to YouTube, Instagram and TikTok through their own free APIs.
 
 ## Pipeline
@@ -131,36 +129,20 @@ metadata/approval IDs remain stable. New source codes are `shorts-sven-uk/en`.
 See the [six-post Shorts plan](marketing/shorts-plan.md) for localized follow-up
 scripts, titles, descriptions, authorized Kyiv schedule and measurement rules.
 
-### Six-film native schedule (explicit owner authorization)
+### Six-film series
 
-`beta_campaign=series`, `beta_run_id=38769682009`, `send=false` reuses the
+`beta_campaign=series`, `beta_run_id=<reviewed Sven run>`, `send=false` reuses the
 reviewed Sven pair and builds four distinct Juggernaut/Terrorblade follow-ups.
 Each has continuous Alex narration, timestamped phrase captions, actual site
 materials and independent language/speech checks. The hash-bound manifest
-requires all six finished, fully decoded, verified MP4s.
+(`series-manifest.json`) requires all six finished, fully decoded, verified MP4s.
 
-The owner's 2026-10-15 instruction authorizes two languages daily on October
-16/17/18 at 17:00 `Europe/Kyiv` (14:00 UTC), in Sven/Juggernaut/Terrorblade order.
-Dispatch `beta_campaign=schedule`, `beta_run_id=<reviewed series run>`, `send=true`.
-This is an actual upload with YouTube `privacyStatus=private` and `publishAt`,
-not a future GitHub cron task. No Worker deployment is required. It uses the
-existing Actions secrets and decrypts the connected account only in memory.
-
-`series_schedule.mjs` verifies all hashes/metadata, claims all six pending D1
-posts before upload (excluding old Telegram buttons), saves each resumable
-session before sending bytes, and resumes existing video IDs after interruption.
-`series_schedule_state.mjs` is tested against real local D1. Upload completion
-uses delivery status `published`, while the parent post remains `scheduled`;
-the native YouTube schedule is separately verified before writing receipts.
-It checks the Wardly channel, title, tags, text/audio languages, exact future
-time, private visibility and successful processing. Sanitized proof is in
-`series-schedule.json` and each `native-schedule.json`. Four new MP4s and the
-confirmed calendar are then delivered to the owner's private Telegram.
-
-If interrupted, restore the **latest scheduling artifact**, including its
-receipts, using `beta_run_id`. D1 sessions prevent duplicate YouTube uploads;
-Telegram receipts prevent duplicate previews. Check a lost Telegram response
-before retrying. Other campaigns still require their normal review button.
+The first six (Sven, Juggernaut, Terrorblade; UK and EN) were released once,
+with the owner's explicit approval on 2026-10-15, through YouTube's native
+schedule (`privacyStatus=private` + `publishAt`, 16/17/18 October at 17:00
+Kyiv). Receipts: Actions run 38781318750. That one-off tool was removed after
+it ran; the Worker keeps the generic `publish_at` support in `src/social.js`.
+Every other release goes through the Telegram buttons as above.
 
 ### Reach audit and acquisition materials
 

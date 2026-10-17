@@ -177,24 +177,15 @@ def details(language: str, metadata: dict[str, Any]) -> str:
     )
     if metadata.get("topic", "").endswith("-v4"):
         message += (
-            "\n\nПлан серії, Київ:\n"
-            "16.10 17:00 — Sven UK + EN.\n"
-            "17.10 17:00 — Juggernaut UK + EN.\n"
-            "18.10 17:00 — Terrorblade UK + EN.\n"
-            "Перевірка результату: 24 години, 72 години й 7 днів після публікації.\n"
-            "Час задає окремий нативний планувальник після прямого доручення власника. "
-            "Кнопка сама по собі не ставить таймер. Підтвердження — у звіті YouTube."
+            "\n\nКнопка «Лише YouTube» одразу ставить відео в чергу на публікацію "
+            "в YouTube через Worker: окремого розкладу немає, тож натискайте її тоді, "
+            "коли відео має вийти.\n"
+            "Перевірка результату: 24 години, 72 години й 7 днів після публікації."
             if language == "uk"
-            else "\n\nSeries plan, Kyiv time:\n"
-            "Oct 16, 17:00 — Sven UK + EN.\n"
-            "Oct 17, 17:00 — Juggernaut UK + EN.\n"
-            "Oct 18, 17:00 — Terrorblade UK + EN.\n"
-            "Review results 24 hours, 72 hours and 7 days after publication.\n"
-            "A separate native scheduler sets these times under the owner's explicit instruction. "
-            "The button itself does not set a timer. Verify the YouTube schedule receipt."
+            else "\n\nThe YouTube-only button queues the video for publication on YouTube "
+            "through the Worker right away: there is no separate schedule, so press it "
+            "when the video should go out.\n"
+            "Review results 24 hours, 72 hours and 7 days after publication."
         )
-        message += (
-            "\nhttps://github.com/makquella/wardly/blob/codex/beta-recruitment-promos/"
-            "docs/marketing/shorts-plan.md"
-        )
+        message += "\nhttps://github.com/makquella/wardly/blob/main/docs/marketing/shorts-plan.md"
     return message
