@@ -439,11 +439,24 @@ TIPS = {
     "draft_evasion": {
         "en": (
             "Against their draft: {item}",
-            "{enemy} dodges attacks: plan {item} after your first big item, it never misses.",
+            "{enemy} dodges attacks: plan {item} after your first big item, most of your attacks go through.",
         ),
         "uk": (
             "Проти їхнього драфту: {item}",
-            "{enemy} ухиляється від атак: заплануйте {item} після першого великого предмета, він б'є без промаху.",
+            "{enemy} ухиляється від атак: заплануйте {item} після першого великого предмета, більшість ваших атак пробиватиме ухилення.",
+        ),
+    },
+    # Hero plans (hero_items.py): evasion and an escape a silence stops.
+    "draft_evasion_escape": {
+        "en": (
+            "Against their draft: {item}",
+            "{enemy} dodges attacks and {escape} escapes with {spell}: plan {item}. "
+            "Its silence stops {spell}, and your attacks and illusions never miss the silenced target.",
+        ),
+        "uk": (
+            "Проти їхнього драфту: {item}",
+            "{enemy} ухиляється від атак, а {escape} тікає через {spell}: заплануйте {item}. "
+            "Його тиша не дасть використати {spell}, а по цілі під тишею ваші атаки й ілюзії не промахуються.",
         ),
     },
     "draft_illusions": {
@@ -1066,6 +1079,7 @@ class RoleTips:
             enemy=shown.get("enemy") or "",
             spell=shown.get("spell") or "",
             count=shown.get("count") or 0,
+            escape=shown.get("escape") or "",
         )
         tip["items"] = [{"key": shown["key"], "name": shown["name"]}]
         return tip

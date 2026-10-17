@@ -146,7 +146,7 @@ def test_the_card_and_the_death_screen_say_why():
     state = {"minute": 20, "gold": 900, "extra_context": {"next_item": mkb, "gpm": 520}}
     _, reason = _next_item_copy(state, state["extra_context"])
     assert translate_uk(reason).startswith(
-        "Phantom Assassin ухиляється від атак — Monkey King Bar б'є без промаху"
+        "Phantom Assassin ухиляється від атак — Monkey King Bar пробиває ухилення більшістю атак"
     )
     card = build_death_screen(
         death={"t": 1200, "usable": []},

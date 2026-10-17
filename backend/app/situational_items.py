@@ -16,6 +16,11 @@ The live recording already knows the last seconds of every death
 `draft_item` is the same counter to the enemy lineup, read early (DRAFT_MIN_ENEMIES
 heroes seen) as an item to plan for, without the minute gates.
 
+The player's own hero can have a plan (hero_items.py, data/heroes/item_plans):
+its counters come right after the death patterns and replace the generic ones
+of the same family (Terrorblade: Bloodthorn or Monkey King Bar against
+evasion, his Eye of Skadi earlier against healing, no Maelstrom).
+
 Cores only (the carry advisor): a support's item advice is the save item tip.
 Nothing when the item (or something built from it) is already owned.
 """
@@ -78,13 +83,18 @@ DRAFT_MIN_ENEMIES = 4
 _ANY_MINUTE = 60
 
 
+Candidate = tuple[str, str, str, int, str | None, str | None, dict[str, Any]]
+
+
 def _candidates(
     kinds: Counter[str | None],
     enemies: list[str],
     position: str | None,
     minute: int | None,
-) -> list[tuple[str, str, str, int, str | None, str | None]]:
-    """(why, item key, fallback name, deaths, enemy, spell), in priority order."""
+    hero: str | None = None,
+) -> list[Candidate]:
+    """(why, item key, fallback name, deaths, enemy, spell, extra), in priority
+    order; `extra` carries a hero plan's escape hero and family items."""
     from app.draft_analysis import (
         COUNTERS,
         MAGIC_DAMAGE,
@@ -93,8 +103,9 @@ def _candidates(
         TARGETED_ITEM,
         TARGETED_NAME,
     )
+    from app.hero_items import hero_rows, plan_for, replaced
 
-    rows: list[tuple[str, str, str, int, str | None, str | None]] = []
+    rows: list[Candidate] = []
     targeted = next((e for e in enemies if e in TARGETED_DISABLES), None)
     if targeted and position in CORE_POSITIONS and kinds.get("disabled", 0) >= MIN_DEATHS:
         # Held to death with a single-target disable in the enemy team: Linken's
@@ -107,30 +118,43 @@ def _candidates(
                 kinds["disabled"],
                 targeted,
                 TARGETED_DISABLES[targeted],
+                {},
             )
         )
     for why, key, fallback in RULES:
         if kinds.get(why, 0) >= MIN_DEATHS:
-            rows.append((why, key, fallback, kinds[why], None, None))
+            rows.append((why, key, fallback, kinds[why], None, None, {}))
+    plan = plan_for(hero, position)
+    skip: set[str] = set()
+    if plan is not None:
+        skip = replaced(plan)
+        for row in hero_rows(plan, enemies, minute):
+            extra = {"escape": row["escape"], "family_items": row["family_items"]}
+            rows.append((row["why"], row["key"], row["name"], 0, row["enemy"], row["spell"], extra))
+    generic: list[Candidate] = []
     evasive = next((e for e in enemies if e in COUNTERS["evasion"][0]), None)
     if evasive and position == "carry" and (minute or 0) >= EVASION_MINUTE:
-        rows.append(("evasion", "monkey_king_bar", "Monkey King Bar", 0, evasive, None))
+        generic.append(("evasion", "monkey_king_bar", "Monkey King Bar", 0, evasive, None, {}))
     illusionist = next((e for e in enemies if e in COUNTERS["illusions"][0]), None)
     if illusionist and position == "carry" and (minute or 0) >= ILLUSION_MINUTE:
-        rows.append(("illusions", "maelstrom", "Maelstrom", 0, illusionist, None))
+        generic.append(("illusions", "maelstrom", "Maelstrom", 0, illusionist, None, {}))
     healer = next((e for e in enemies if e in COUNTERS["healing"][0]), None)
     if healer and position == "offlane" and (minute or 0) >= HEALING_MINUTE:
-        rows.append(("healing", "spirit_vessel", "Spirit Vessel", 0, healer, None))
+        generic.append(("healing", "spirit_vessel", "Spirit Vessel", 0, healer, None, {}))
     passive = next((e for e in enemies if e in BREAK_PASSIVES), None)
     if passive and position in ("carry", "mid") and (minute or 0) >= BREAK_MINUTE:
-        rows.append(("break", "silver_edge", "Silver Edge", 0, passive, BREAK_PASSIVES[passive]))
+        generic.append(
+            ("break", "silver_edge", "Silver Edge", 0, passive, BREAK_PASSIVES[passive], {})
+        )
     magic = [e for e in enemies if e in MAGIC_DAMAGE]
     if len(magic) >= MAGIC_LINEUP_MIN and (minute or 0) >= MAGIC_MINUTE:
         if position == "offlane":
-            rows.append(("magic", "pipe", "Pipe of Insight", len(magic), magic[0], None))
+            generic.append(("magic", "pipe", "Pipe of Insight", len(magic), magic[0], None, {}))
         elif position in ("carry", "mid"):
-            rows.append(("magic", "black_king_bar", "Black King Bar", len(magic), magic[0], None))
-    return rows
+            generic.append(
+                ("magic", "black_king_bar", "Black King Bar", len(magic), magic[0], None, {})
+            )
+    return rows + [row for row in generic if row[0] not in skip]
 
 
 def situational_item(
@@ -141,11 +165,13 @@ def situational_item(
     enemies: list[str] | None = None,
     position: str | None = None,
     minute: int | None = None,
+    hero: str | None = None,
 ) -> dict[str, Any] | None:
     """{key, name, cost, gold_left (None when the price is unknown), why, count,
-    enemy, spell} for the first rule that holds: MIN_DEATHS deaths of its kind
-    (a single-target disabler among the enemies turns BKB into Linken's), else
-    a counter to an enemy hero seen; None otherwise."""
+    enemy, spell, escape} for the first rule that holds: MIN_DEATHS deaths of
+    its kind (a single-target disabler among the enemies turns BKB into
+    Linken's), else a counter to an enemy hero seen (the `hero`'s plan first);
+    None otherwise."""
     if owned_names is None:
         return None
     kinds = Counter(
@@ -156,11 +182,17 @@ def situational_item(
     known = (constants.get("items") or {}) if priced else {}
     owned = [item_key(name) for name in owned_names]
     enemy_list = [e for e in enemies or [] if isinstance(e, str)]
-    for why, key, fallback, count, enemy, spell in _candidates(kinds, enemy_list, position, minute):
-        if key in owned or (priced and any(_contains(have, key, constants) for have in owned)):
+    candidates = _candidates(kinds, enemy_list, position, minute, hero)
+    for why, key, fallback, count, enemy, spell, extra in candidates:
+        # A family answered by any of its items (Monkey King Bar or Bloodthorn).
+        if any(
+            have_key in owned
+            or (priced and any(_contains(have, have_key, constants) for have in owned))
+            for have_key in extra.get("family_items") or [key]
+        ):
             continue
         cost = _cost(key, constants) if priced else 0
-        return {
+        item = {
             "key": key,
             "name": item_name(key, constants) if key in known else fallback,
             "cost": cost or None,
@@ -170,6 +202,9 @@ def situational_item(
             "enemy": enemy,
             "spell": spell,
         }
+        if extra.get("escape"):
+            item["escape"] = extra["escape"]
+        return item
     return None
 
 
@@ -178,6 +213,7 @@ def draft_item(
     owned_names: list[str] | None,
     meta: dict[str, Any] | None,
     position: str | None,
+    hero: str | None = None,
 ) -> dict[str, Any] | None:
     """The counter item to plan for against the enemy lineup (situational_item's
     enemy counters, no deaths and no minute gates) once DRAFT_MIN_ENEMIES enemy
@@ -186,7 +222,7 @@ def draft_item(
     if position not in CORE_POSITIONS or len(seen) < DRAFT_MIN_ENEMIES:
         return None
     return situational_item(
-        [], owned_names, meta, enemies=seen, position=position, minute=_ANY_MINUTE
+        [], owned_names, meta, enemies=seen, position=position, minute=_ANY_MINUTE, hero=hero
     )
 
 

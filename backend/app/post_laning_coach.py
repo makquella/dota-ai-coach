@@ -481,14 +481,15 @@ SITUATIONAL_BECAUSE = {
     "disabled": "{count} deaths under stuns with no free second, and {name} stops that",
     "burst": "{count} deaths, each from high health in 3 seconds or less, and {name} gives you time against that",
     "targeted": "{count} deaths under stuns against {enemy}, and {name} blocks {spell}",
-    "evasion": "{enemy} dodges your attacks, and {name} never misses",
+    "evasion": "{enemy} dodges your attacks, and {name} pierces it on most attacks",
+    "evasion_escape": "{enemy} dodges your attacks and {escape} escapes with {spell}, and {name} silences the escape and never misses a silenced target",
     "healing": "{enemy} heals a lot, and {name} cuts the healing",
     "illusions": "{enemy} fights with illusions, and {name} hits them all",
     "magic": "{count} enemy heroes deal magic damage, and {name} protects you from it",
     "break": "{enemy} relies on {spell}, and {name} turns it off",
 }
 # Counters to an enemy hero seen: no death count, the enemy says why.
-ENEMY_WHYS = {"evasion", "healing", "illusions", "magic", "break"}
+ENEMY_WHYS = {"evasion", "evasion_escape", "healing", "illusions", "magic", "break"}
 
 
 def _situational_because(item: Mapping[str, Any]) -> str | None:
@@ -501,9 +502,17 @@ def _situational_because(item: Mapping[str, Any]) -> str | None:
     if why in ENEMY_WHYS:
         if not enemy or (why == "break" and not item.get("spell")):
             return None
+        if why == "evasion_escape" and not (item.get("escape") and item.get("spell")):
+            return None
     elif count < 1 or (why == "targeted" and not (enemy and item.get("spell"))):
         return None
-    return template.format(count=count, name=item["name"], enemy=enemy, spell=item.get("spell"))
+    return template.format(
+        count=count,
+        name=item["name"],
+        enemy=enemy,
+        spell=item.get("spell"),
+        escape=item.get("escape"),
+    )
 
 
 def _buyback_reason(signal: Mapping[str, Any]) -> str:

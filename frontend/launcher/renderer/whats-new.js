@@ -9,6 +9,11 @@
 
   const TEXT = {
     en: {
+      "0.57.0": [
+        "Items for the enemy draft now depend on your hero, starting with Terrorblade. Against Phantom Assassin or Windranger he gets Monkey King Bar, but if the enemies also have an escape a silence stops (Queen of Pain's Blink, Storm Spirit's Ball Lightning, Puck, Ember Spirit and others), Bloodthorn: its silence stops the escape, and his attacks and illusions never miss the silenced target.",
+        "Terrorblade against heavy healing (Huskar, Alchemist, Necrophos…) is told to buy his own Eye of Skadi earlier instead of an off-build Spirit Vessel, and no longer gets Maelstrom against illusion heroes. Other heroes keep the usual counters until their own plan is ready.",
+        "Monkey King Bar no longer «never misses» in the explanations: in the current patch it goes through evasion on 80% of attacks."
+      ],
       "0.56.6": [
         "Items for the enemy draft now answer the real enemies. Before the horn, Dota also lists every picked hero, yours and your allies' included, on the minimap data; Wardly took some of them for enemies (in one match: your own hero and three allies) and could suggest, for example, Silver Edge against an allied Bristleback. Only the heroes shown as enemies on the minimap count now.",
         "The same fix applies to «Your lane opponent is missing»: it no longer names a hero who is not in the enemy team."
@@ -550,6 +555,11 @@
       ]
     },
     uk: {
+      "0.57.0": [
+        "Предмети проти ворожого драфту тепер залежать від вашого героя, почнімо з Terrorblade. Проти Phantom Assassin чи Windranger він отримує Monkey King Bar, а якщо у ворогів є ще й втеча, яку зупиняє тиша (Blink у Queen of Pain, Ball Lightning у Storm Spirit, Puck, Ember Spirit та інші), — Bloodthorn: його тиша не дає втекти, а по цілі під тишею атаки героя та його ілюзій не промахуються.",
+        "Terrorblade проти сильного лікування (Huskar, Alchemist, Necrophos…) отримує пораду купити свій Eye of Skadi раніше замість Spirit Vessel поза збіркою і більше не отримує Maelstrom проти героїв з ілюзіями. Інші герої зберігають звичайні поради, доки не буде готовий їхній план.",
+        "Monkey King Bar у поясненнях більше не «б'є без промаху»: у поточному патчі він пробиває ухилення 80 % атак."
+      ],
       "0.56.6": [
         "Предмети проти ворожого драфту тепер відповідають справжнім ворогам. До горну Dota також передає в даних мінікарти всіх обраних героїв, ваших і союзних теж; Wardly вважав частину з них ворогами (в одному матчі — вашого героя і трьох союзників) і міг порадити, наприклад, Silver Edge проти союзного Bristleback. Тепер враховуються лише герої, яких мінікарта показує як ворогів.",
         "Те саме виправлення стосується «Суперник з вашої лінії зник»: картка більше не називає героя, якого немає у ворожій команді."

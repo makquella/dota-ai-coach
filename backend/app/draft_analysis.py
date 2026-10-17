@@ -101,6 +101,21 @@ TARGETED_DISABLES = {
     "Spirit Breaker": "Charge of Darkness",
     "Winter Wyvern": "Winter's Curse",
 }
+# Heroes who get away with a spell, which a silence (Bloodthorn, Orchid) stops
+# (hero_items.py). Names from Valve's /herodata, patch 7.41f. Not here:
+# Anti-Mage (Counterspell turns a targeted silence back) and Slark (Shadow
+# Dance is no escape a silence answers).
+ESCAPES = {
+    "Queen of Pain": "Blink",
+    "Storm Spirit": "Ball Lightning",
+    "Puck": "Phase Shift",
+    "Ember Spirit": "Fire Remnant",
+    "Void Spirit": "Astral Step",
+    "Weaver": "Shukuchi",
+    "Mirana": "Leap",
+    "Morphling": "Waveform",
+    "Faceless Void": "Time Walk",
+}
 # Lineups (live advice only): heroes whose damage is mostly magic, and
 # right-click carries. LINEUP_MIN of one kind among the enemies seen asks for
 # the item against it (situational_items.py, the support's save item tip).

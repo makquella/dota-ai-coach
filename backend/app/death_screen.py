@@ -37,7 +37,8 @@ TEXT = {
         "why_disabled": "Чому {item}: смертей під контролем — {n}, з ним контроль вас не втримає.",
         "why_burst": "Чому {item}: смертей за пару секунд із високого здоров'я — {n}, він дасть час.",
         "why_targeted": "Чому {item}: смертей під контролем проти {enemy} — {n}, він блокує {spell}.",
-        "why_evasion": "Чому {item}: {enemy} ухиляється від атак, а він б'є без промаху.",
+        "why_evasion": "Чому {item}: {enemy} ухиляється від атак, а з ним більшість атак пробиває ухилення.",
+        "why_evasion_escape": "Чому {item}: {enemy} ухиляється від атак, а {escape} тікає через {spell}; його тиша не дасть утекти, а по цілі під тишею ви не промахуєтеся.",
         "why_healing": "Чому {item}: {enemy} багато лікується, а він ріже лікування.",
         "why_illusions": "Чому {item}: {enemy} б'ється ілюзіями, а він б'є їх усіх одразу.",
         "why_magic": "Чому {item}: героїв ворога з магічною шкодою — {n}, він захистить від неї.",
@@ -57,7 +58,8 @@ TEXT = {
         "why_disabled": "Why {item}: {n} deaths under stuns, and with it no disable holds you.",
         "why_burst": "Why {item}: {n} deaths in seconds from high health, and it buys you time.",
         "why_targeted": "Why {item}: {n} deaths under stuns against {enemy}, and it blocks {spell}.",
-        "why_evasion": "Why {item}: {enemy} dodges attacks, and it never misses.",
+        "why_evasion": "Why {item}: {enemy} dodges attacks, and with it most attacks go through.",
+        "why_evasion_escape": "Why {item}: {enemy} dodges attacks and {escape} escapes with {spell}; its silence stops the escape, and you never miss the silenced target.",
         "why_healing": "Why {item}: {enemy} heals a lot, and it cuts the healing.",
         "why_illusions": "Why {item}: {enemy} fights with illusions, and it hits them all.",
         "why_magic": "Why {item}: {n} enemy heroes deal magic damage, and it protects you.",
@@ -128,6 +130,21 @@ def build_death_screen(
             )
         elif why in ("evasion", "healing", "illusions") and enemy:
             lines.append(text[f"why_{why}"].format(item=next_item["name"], enemy=enemy))
+        elif (
+            why == "evasion_escape"
+            and enemy
+            and isinstance(next_item, dict)
+            and next_item.get("escape")
+            and next_item.get("spell")
+        ):
+            lines.append(
+                text["why_evasion_escape"].format(
+                    item=next_item["name"],
+                    enemy=enemy,
+                    escape=next_item["escape"],
+                    spell=next_item["spell"],
+                )
+            )
         elif why == "break" and enemy and isinstance(next_item, dict) and next_item.get("spell"):
             lines.append(
                 text["why_break"].format(

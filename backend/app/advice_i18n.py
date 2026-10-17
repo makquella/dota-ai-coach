@@ -809,13 +809,23 @@ def _counter_reason(groups: dict[str, str]) -> str:
         count = int(groups["count"])
         head = f"{count} {_deaths_word(count)} під контролем проти {groups['enemy']} — {groups['name']} блокує {groups['spell']}"
     elif groups.get("kind") == "dodges your attacks":
-        head = f"{groups['enemy']} ухиляється від атак — {groups['name']} б'є без промаху"
+        head = f"{groups['enemy']} ухиляється від атак — {groups['name']} пробиває ухилення більшістю атак"
     elif groups.get("kind") == "fights with illusions":
         head = f"{groups['enemy']} б'ється ілюзіями — {groups['name']} б'є їх усіх одразу"
     elif groups.get("passive"):
         head = f"{groups['enemy']} тримається на {groups['passive']} — {groups['name']} це вимикає"
     else:
         head = f"{groups['enemy']} багато лікується — {groups['name']} ріже лікування"
+    tail = _situational_tail(groups["tail"])
+    return head + tail if tail is not None else ""
+
+
+def _escape_reason(groups: dict[str, str]) -> str:
+    """Evasion and an escape a silence stops (hero_items.py, why "evasion_escape")."""
+    head = (
+        f"{groups['enemy']} ухиляється від атак, а {groups['escape']} тікає через "
+        f"{groups['spell']} — {groups['name']} не дасть утекти й по цілі під тишею не промахується"
+    )
     tail = _situational_tail(groups["tail"])
     return head + tail if tail is not None else ""
 
@@ -894,10 +904,18 @@ _UK_FUNCTIONS: tuple[tuple[re.Pattern[str], Callable[[dict[str, str]], str]], ..
     (
         re.compile(
             r"^(?P<enemy>.+?) (?P<kind>dodges your attacks|heals a lot|fights with illusions), "
-            r"and (?P<name>.+?) (?:never misses|cuts the healing|hits them all)"
+            r"and (?P<name>.+?) (?:pierces it on most attacks|cuts the healing|hits them all)"
             + _SITUATIONAL_TAIL_RE
         ),
         _counter_reason,
+    ),
+    (
+        re.compile(
+            r"^(?P<enemy>.+?) dodges your attacks and (?P<escape>.+?) escapes with "
+            r"(?P<spell>.+?), and (?P<name>.+?) silences the escape and never misses a silenced "
+            r"target" + _SITUATIONAL_TAIL_RE
+        ),
+        _escape_reason,
     ),
     (
         re.compile(

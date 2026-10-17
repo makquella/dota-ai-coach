@@ -1,0 +1,48 @@
+{
+  "schema": 1,
+  "hero": "Terrorblade",
+  "positions": ["carry"],
+  "patch": "7.41f",
+  "checked": "2026-10-17",
+  "sources": {
+    "build": "STRATZ Divine-Immortal pos1, 2026-10-13 (data/meta/stratz_builds.json): Falcon Blade ~7 min, Manta Style ~17, Eye of Skadi ~28, Hurricane Pike ~29.",
+    "items": "Valve /datafeed/itemdata, 7.41f: Monkey King Bar (135), Bloodthorn (250), Eye of Skadi (160).",
+    "hero": "Valve /datafeed/herodata hero_id 109: melee (150 range); Conjure Image and Metamorphosis illusions are Terrorblade's controlled units."
+  },
+  "rules": [
+    {
+      "id": "evasion_escape",
+      "why": "evasion_escape",
+      "family": "evasion",
+      "item": "bloodthorn",
+      "name": "Bloodthorn",
+      "enemy": "evasion",
+      "also": "escape",
+      "minute": 15,
+      "basis": "Soul Rend silences for 5 s (no Blink, Ball Lightning...) and gives True Strike to your attacks and your controlled units' attacks on the silenced target; its passive pierces evasion on 40% of attacks. One item answers both heroes."
+    },
+    {
+      "id": "evasion",
+      "why": "evasion",
+      "family": "evasion",
+      "item": "monkey_king_bar",
+      "name": "Monkey King Bar",
+      "enemy": "evasion",
+      "minute": 15,
+      "basis": "Pierce: 80% of attacks go through evasion with 70 magic damage, nothing to cast. Against evasion alone it is cheaper (5000 against 6400) and always on."
+    },
+    {
+      "id": "healing",
+      "why": "healing",
+      "family": "healing",
+      "item": "skadi",
+      "name": "Eye of Skadi",
+      "enemy": "healing",
+      "minute": 12,
+      "basis": "Eye of Skadi is in Terrorblade's usual build (~28 min) and its attacks cut health restoration by 50% for 3 s: buy it earlier rather than an off-build Spirit Vessel."
+    }
+  ],
+  "suppress": {
+    "illusions": "Maelstrom is not in Terrorblade's build (Falcon Blade, Manta Style, Eye of Skadi); his own illusions fight illusion heroes. Open check before a counter is added."
+  }
+}

@@ -611,6 +611,7 @@ class PlayerService:
             enemies=enemies,
             position=get_hero_position(hero),
             minute=minute if isinstance(minute, int) else None,
+            hero=hero,
         )
         return situational or next_build_item(meta, owned)
 
@@ -641,7 +642,7 @@ class PlayerService:
         if hero_id is None or owned is None:
             return None
         position = position or get_hero_position(hero)
-        return draft_counter_item(enemies, owned, self._live_meta(hero_id), position)
+        return draft_counter_item(enemies, owned, self._live_meta(hero_id), position, hero)
 
     def save_item(
         self, hero: str, owned: list[str] | None, enemies: list[str] | None = None
