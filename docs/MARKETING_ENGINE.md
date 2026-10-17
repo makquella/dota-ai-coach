@@ -56,6 +56,131 @@ python -m scripts.promo.package --out promo-out --format meta --no-video  # scri
 
 The video needs the network (Valve's animations and clips, ElevenLabs); keep the key out of shell history and files.
 
+## Private beta recruitment pair
+
+The manual **Promo** input `beta_campaign=build` makes two 1080×1920,
+20–27-second recruitment Shorts, Ukrainian and English. It does not send or
+publish, regardless of `send`. The copy asks voluntary 0–4k MMR players,
+especially Sven/Juggernaut/Terrorblade players, for a few matches and honest
+feedback about helpful, late, distracting or incorrect advice. It promises no
+MMR gains and teaches no universal item/HP rules. `scripts/promo/beta_scenes.py`
+uses the site's own Montserrat/Inter fonts, branding and localized screenshots.
+
+`scripts/promo/beta.py` verifies the live site, reads the authenticated
+ElevenLabs model catalog (prefers the actual `eleven_v4` ID, otherwise explicitly
+records supported `eleven_v3`), and keeps Alex Nekrasov
+`9Sj8ugvpK1DmcAXyvi3a`, stability 0.5, speed 1.0. Each script is one continuous
+take. Its character alignment supplies scene cuts and every burned-in subtitle;
+the master recording is never split or sped up. The final card shows the local
+site URL, Free for Windows and the БЕТА/BETA comment call to action.
+
+Visual revision 2 uses one brand mark, no progress bar, and short editorial
+caption phrases that preserve every word and its alignment. The opening caption
+becomes the headline; the final invitation and comment card replace duplicate
+subtitles. `beta_style.css` and `beta_motion.js` control deterministic motion,
+including Valve's official animated hero renders from the existing media source.
+Hero emphasis, the in-game/review cut and feedback highlights follow spoken words.
+Review screenshots are cropped past the sidebar logo. The artifact retains
+source URLs/hashes, frame sequences and self-contained storyboards for review.
+
+Build artifacts include MP4s, covers, scripts, SRTs, word alignment, seven sample
+frames per language, source verification and layout/audio/decode reports.
+An independent CPU Whisper pass checks the actual rendered language and spoken
+text. Text bounds stay within x=78–910/y=196–1450, away from Shorts controls.
+To recheck an existing artifact without TTS or rendering, use
+`beta_campaign=validate` with its `beta_run_id`. A build can also use this ID
+to reuse an exact matching cached narration. Recognition reports include the
+MP4 hash, so delivery cannot use a report from a different render.
+
+After inspecting the build artifact, dispatch the same workflow with
+`beta_campaign=deliver`, `beta_run_id=<build run ID>` and `send=true`. This
+downloads the exact existing artifact and checks both videos and their hashes
+before sending either. It requires the configured Telegram chat to be private,
+sends no publication buttons, writes no Worker publishing queue and changes no
+rotation history. Sanitized `telegram-receipt.json` files retain Telegram's
+actual `ok`, message IDs and video metadata without bot credentials or chat IDs.
+The delivery run's artifact contains the receipts. Do not blindly redispatch
+an upload whose response was lost: inspect the previous run/private chat first.
+
+For the explicitly enabled **YouTube Shorts** handoff, dispatch
+`beta_campaign=shorts`, `beta_run_id=<reviewed build>` and `send=true`.
+`beta_shorts.py` supplies separate UK/EN titles, descriptions, three relevant
+hashtags, search tags, language and campaign URLs. The category is Gaming (20),
+with the existing public visibility and not-made-for-kids setting. Metadata is
+also sent as a reply to each Telegram video. The only publishing callback is
+`promo:yt:<id>`; the other button rejects the package. The existing Worker queues
+YouTube after the owner's press. It does not queue Instagram/TikTok or forward
+the video to the Telegram channel.
+
+Deploy the API revision that accepts `youtube_tags` and `youtube_language` first.
+Registration echoes the saved values; the sender checks them before attaching
+buttons, and displays whether a direct YouTube connection exists. Optional
+metadata retains the legacy defaults for standard promos. Shorts approval IDs
+include the video hash and metadata, and `shorts-approval-receipt.json` prevents
+duplicate uploads while allowing an interrupted metadata reply to resume.
+Visual revision 3 centres Sven's body independently of his off-centre sword.
+
+Revision 4 opens on Sven and 0–4,000 MMR immediately, then shows the enlarged
+real in-game hint and review fields. It shortens the continuous scripts and
+uses stable phrase captions with emphasis on key words. Layout checks also
+reject overlapping text blocks. The renderer caps the new take at 27 seconds;
+delivery still accepts the reviewed 30–35-second v3 files, and v3 publishing
+metadata/approval IDs remain stable. New source codes are `shorts-sven-uk/en`.
+See the [six-post Shorts plan](marketing/shorts-plan.md) for localized follow-up
+scripts, titles, descriptions, authorized Kyiv schedule and measurement rules.
+
+### Six-film series
+
+`beta_campaign=series`, `beta_run_id=<reviewed Sven run>`, `send=false` reuses the
+reviewed Sven pair and builds four distinct Juggernaut/Terrorblade follow-ups.
+Each has continuous Alex narration, timestamped phrase captions, actual site
+materials and independent language/speech checks. The hash-bound manifest
+(`series-manifest.json`) requires all six finished, fully decoded, verified MP4s.
+
+The first six (Sven, Juggernaut, Terrorblade; UK and EN) were released once,
+with the owner's explicit approval on 2026-10-15, through YouTube's native
+schedule (`privacyStatus=private` + `publishAt`, 16/17/18 October at 17:00
+Kyiv). Receipts: Actions run 38781318750. That one-off tool was removed after
+it ran; the Worker keeps the generic `publish_at` support in `src/social.js`.
+Every other release goes through the Telegram buttons as above.
+
+### Reach audit and acquisition materials
+
+`beta_campaign=audit`, `send=false` runs `youtube_audit.mjs` with the existing
+Actions secrets. It reads the campaign's D1 rows and aggregate site counters,
+decrypts the existing YouTube connection only in memory, and reads actual video
+privacy, processing state, language, counters and channel age. The artifact
+contains a whitelist of non-secret fields, public outreach candidates and
+[the acquisition plan](marketing/beta-acquisition.md). It does not publish,
+upload videos, contact creators or write to D1. The only OAuth operation is
+refreshing the access token when needed; no credentials are written to artifacts.
+
+Detailed Analytics may need both the enabled YouTube Analytics API and a new
+`yt-analytics.readonly` consent; a failure is recorded with its actual reason.
+Missing analytics are never treated as zero retention or zero feed impressions.
+Public creator search uses language hints, which do not guarantee the creator's
+language; outreach candidates need manual filtering and permission before use.
+
+`beta_campaign=outreach`, `send=true` sends one [free outreach document](marketing/beta-outreach.md)
+to the existing owner's private Telegram chat, with links to the selected
+communities. It verifies the chat type first and saves a sanitized `sendDocument`
+receipt. `send=false` only prepares the artifact. This mode does not join servers,
+message creators, register publishing packages or create public posts. The
+document includes six personalized UK/EN moderator requests; source links and
+Discord invite availability are checked in the read-only audit. Community rules
+and moderator consent must still be checked before placement. Optional reference
+or Reddit timeouts do not discard the core publication audit.
+
+Local storyboard preview (no credentials and no paid API calls):
+
+```bash
+source /workspace/.local/share/dota-ai-coach/headless-env.sh
+CHROME=/usr/bin/chromium python -m scripts.promo.beta --out promo-out/beta-draft --draft
+```
+
+These draft frames have estimated timings; they are not finished voiced videos.
+An application release/version bump is unnecessary for this campaign.
+
 ## Safety
 
 - **Approval is the only way out.** A package is `pending` until a callback whose sender *and* chat are `TELEGRAM_CHAT_ID`. One conditional `UPDATE … WHERE status = 'pending'` moves it, so a double press or a Telegram redelivery publishes once (tested on real D1).

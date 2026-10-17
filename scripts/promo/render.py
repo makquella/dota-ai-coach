@@ -83,6 +83,7 @@ def render(
     cover: Path | None = None,
     fps: int = scene_page.FPS,
     cover_at: float = COVER_AT,
+    inline: bool = False,
 ) -> Path:
     from playwright.sync_api import sync_playwright
 
@@ -147,7 +148,10 @@ def render(
             ],
         )
         page = browser.new_page(viewport={"width": scene_page.WIDTH, "height": scene_page.HEIGHT})
-        page.goto(page_file.resolve().as_uri(), wait_until="load")
+        if inline:
+            page.set_content(page_html, wait_until="load")
+        else:
+            page.goto(page_file.resolve().as_uri(), wait_until="load")
         page.evaluate("document.fonts.ready.then(() => true)")
         page.evaluate("window.renderAt(0)")
         encoder = subprocess.Popen(command, stdin=subprocess.PIPE)

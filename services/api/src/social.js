@@ -151,17 +151,25 @@ const youtube = {
     };
   },
 
-  async step(env, account, job) {
-    const privacy = ["public", "unlisted", "private"].includes(String(env.YOUTUBE_PRIVACY)) ? env.YOUTUBE_PRIVACY : "public";
+  async step(env, account, job, now = Date.now()) {
+    // Only an explicitly scheduled job supplies publish_at. Native scheduling
+    // starts private, so upload/processing can finish well before release time.
+    const scheduled = job.publish_at !== undefined;
+    const instant = scheduled ? Date.parse(job.publish_at) : null;
+    if (scheduled && (!Number.isFinite(instant) || !String(job.publish_at).endsWith("Z") || (!job.external_id && instant <= now + 60_000))) {
+      return { status: "error", detail: "YouTube schedule must be a future UTC timestamp" };
+    }
+    const privacy = scheduled ? "private" : ["public", "unlisted", "private"].includes(String(env.YOUTUBE_PRIVACY)) ? env.YOUTUBE_PRIVACY : "public";
     const meta = {
       snippet: {
         title: job.body.youtube_title,
         description: `${job.body.caption}`.slice(0, 4900),
         categoryId: "20", // Gaming
-        tags: ["dota 2", "дота 2", "wardly", "dota2"],
-        defaultLanguage: "uk"
+        tags: job.body.youtube_tags || ["dota 2", "дота 2", "wardly", "dota2"],
+        defaultLanguage: job.body.youtube_language || "uk",
+        ...(job.body.youtube_language ? { defaultAudioLanguage: job.body.youtube_language } : {})
       },
-      status: { privacyStatus: privacy, selfDeclaredMadeForKids: false, embeddable: true }
+      status: { privacyStatus: privacy, selfDeclaredMadeForKids: false, embeddable: true, ...(scheduled ? { publishAt: job.publish_at } : {}) }
     };
     const auth = `Bearer ${account.access_token}`;
     const size = job.media.size;
@@ -221,6 +229,7 @@ const youtube = {
       status: "published",
       external_id: done.data.id,
       url: `https://youtube.com/shorts/${done.data.id}`,
+      ...(scheduled ? { scheduled_publish_at: done.data.status?.publishAt || null } : {}),
       detail: got && got !== privacy ? `YouTube зробив відео ${got} (проєкт API ще не пройшов аудит)` : null
     };
   },

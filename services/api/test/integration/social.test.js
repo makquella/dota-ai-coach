@@ -136,7 +136,7 @@ test("accounts connect through the bot, only for the developer, and are stored s
   assert.match(list, /TikTok: додайте секрети/);
 });
 
-async function approveAndRun(mf, db, calls, action = "all") {
+async function approveAndRun(mf, db, calls, action = "all", metadata = {}) {
   const auth = { authorization: "Bearer admin-secret" };
   const created = await mf.dispatchFetch("https://api.test/v1/admin/promo", {
     method: "POST",
@@ -148,10 +148,17 @@ async function approveAndRun(mf, db, calls, action = "all") {
       title: "Мета тижня",
       youtube_title: "Мета тижня #shorts",
       caption: "Мета тижня — найбільше перемог:\n1. Wraith King",
-      telegram_caption: "Мета тижня"
+      telegram_caption: "Мета тижня",
+      ...metadata
     })
   });
-  const { media_key: key } = await created.json();
+  const registration = await created.json();
+  const { media_key: key } = registration;
+  if (metadata.youtube_language) {
+    assert.equal(registration.youtube_language, metadata.youtube_language);
+    assert.deepEqual(registration.youtube_tags, metadata.youtube_tags);
+    assert.equal(registration.youtube_ready, true);
+  }
   await mf.dispatchFetch(`https://api.test/v1/admin/promo/${ID}/video.mp4`, { method: "PUT", headers: auth, body: new Uint8Array(2048).fill(3) });
   await update(mf, {
     callback_query: {
@@ -227,11 +234,32 @@ test("«Лише YouTube» queues YouTube only and leaves the channel alone", as
   const { mf, db, calls } = await localWorker(t);
   await connect(mf, calls, "youtube", "c1");
   await connect(mf, calls, "instagram", "c2");
-  await approveAndRun(mf, db, calls, "yt");
+  const metadata = {
+    youtube_title: "Dota 2 beta testers wanted",
+    caption: "Comment BETA. #Dota2 #Wardly #Shorts",
+    youtube_tags: ["Dota 2", "Wardly", "beta test"],
+    youtube_language: "en"
+  };
+  await approveAndRun(mf, db, calls, "yt", metadata);
   assert.deepEqual((await deliveries(db)).map((r) => `${r.network}:${r.status}`), ["youtube:queued"]);
   assert.equal(sent(calls, "sendVideo").length, 0); // no channel post
   assert.match(sent(calls, "sendMessage").at(-1).text, /YouTube: у черзі/);
   assert.equal((await db.prepare("SELECT status FROM promo_posts WHERE id = ?").bind(ID).first()).status, "publishing");
+  const stored = JSON.parse((await db.prepare("SELECT body FROM promo_posts WHERE id = ?").bind(ID).first()).body);
+  assert.deepEqual(stored.youtube_tags, metadata.youtube_tags);
+  const worker = await mf.getWorker();
+  await worker.scheduled({ cron: "*/5 * * * *" });
+  const request = calls.find((c) => c.url.includes("upload/youtube/v3/videos"));
+  const sentMetadata = JSON.parse(request.body);
+  assert.equal(sentMetadata.snippet.title, metadata.youtube_title);
+  assert.equal(sentMetadata.snippet.description, metadata.caption);
+  assert.equal(sentMetadata.snippet.defaultLanguage, "en");
+  assert.equal(sentMetadata.snippet.defaultAudioLanguage, "en");
+  assert.deepEqual(sentMetadata.snippet.tags, metadata.youtube_tags);
+  assert.equal(sentMetadata.snippet.categoryId, "20");
+  await worker.scheduled({ cron: "*/5 * * * *" });
+  assert.deepEqual((await deliveries(db)).map((r) => `${r.network}:${r.status}`), ["youtube:published"]);
+  assert.equal(sent(calls, "sendVideo").length, 0);
 });
 
 test("«Лише YouTube» without YouTube connected publishes nothing and says so", async (t) => {

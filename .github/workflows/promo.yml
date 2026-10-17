@@ -41,12 +41,21 @@ on:
         description: "Send to Telegram for approval"
         type: boolean
         default: true
+      beta_campaign:
+        description: "Beta recruitment videos (review builds, private delivery, Shorts buttons)"
+        type: choice
+        options: ["off", build, validate, deliver, shorts, audit, outreach, series]
+        default: "off"
+      beta_run_id:
+        description: "Reviewed artifact run ID (required for deliver/shorts/series)"
+        type: string
+        default: ""
 
 permissions:
   contents: read
 
 concurrency:
-  group: ${{ inputs.voice_lab != '' && inputs.voice_lab != 'off' && format('promo-voice-{0}', inputs.voice_lab) || 'promo' }}
+  group: ${{ inputs.beta_campaign != '' && inputs.beta_campaign != 'off' && 'promo-beta' || inputs.voice_lab != '' && inputs.voice_lab != 'off' && format('promo-voice-{0}', inputs.voice_lab) || 'promo' }}
   cancel-in-progress: false
 
 env:
@@ -58,6 +67,7 @@ jobs:
     timeout-minutes: 30
     permissions:
       contents: write
+      actions: read
     steps:
       - uses: actions/checkout@v7
         with:
@@ -71,7 +81,9 @@ jobs:
             backend/requirements-dev.txt
             scripts/promo/requirements.txt
       - name: Install
-        if: inputs.voice_lab != 'catalog'
+        # A beta build needs Playwright whatever voice_lab says (the voice lab is
+        # off in beta mode); only the read-only beta steps skip the install.
+        if: (inputs.voice_lab != 'catalog' || (inputs.beta_campaign != '' && inputs.beta_campaign != 'off')) && inputs.beta_campaign != 'audit' && inputs.beta_campaign != 'outreach'
         run: |
           # requirements-dev: the coach video runs the real advice pipeline
           # through FastAPI's TestClient (backend/scripts/simulate_live_gsi.py),
@@ -82,13 +94,51 @@ jobs:
           ffmpeg_exe="$(python -c 'from scripts.promo import render; print(render.ffmpeg())')"
           ffmpeg_version="$("$ffmpeg_exe" -version)"
           echo "${ffmpeg_version%%$'\n'*}"
+      - uses: actions/setup-node@v6
+        if: inputs.beta_campaign == 'audit' || inputs.beta_campaign == 'outreach'
+        with:
+          node-version-file: .node-version
+      - name: Audit published beta Shorts (read only)
+        if: inputs.beta_campaign == 'audit'
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID || secrets.CLOUDFLARE_ACCOUNT_ID }}
+          API_ADMIN_TOKEN: ${{ secrets.API_ADMIN_TOKEN }}
+          YOUTUBE_CLIENT_ID: ${{ secrets.YOUTUBE_CLIENT_ID }}
+          YOUTUBE_CLIENT_SECRET: ${{ secrets.YOUTUBE_CLIENT_SECRET }}
+        run: node scripts/promo/youtube_audit.mjs
+      - name: Prepare free outreach pack for the owner
+        if: inputs.beta_campaign == 'outreach'
+        env:
+          SEND_PREVIEW: ${{ inputs.send }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID || vars.TELEGRAM_CHAT_ID }}
+        run: node scripts/promo/beta_outreach.mjs
       - name: What worked (format weights)
-        if: inputs.voice_lab == '' || inputs.voice_lab == 'off'
+        if: (inputs.voice_lab == '' || inputs.voice_lab == 'off') && (inputs.beta_campaign == '' || inputs.beta_campaign == 'off')
         env:
           API_ADMIN_TOKEN: ${{ secrets.API_ADMIN_TOKEN }}
         run: python -m scripts.promo.weights
+      - name: Restore reviewed Sven pair for six-video series
+        if: inputs.beta_campaign == 'series'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BETA_RUN_ID: ${{ inputs.beta_run_id }}
+        run: |
+          if ! [[ "$BETA_RUN_ID" =~ ^[0-9]+$ ]]; then exit 1; fi
+          gh run download "$BETA_RUN_ID" --repo "$GITHUB_REPOSITORY" --name "promo-$BETA_RUN_ID" --dir promo-out/sven
+      - name: Build four follow-up beta Shorts
+        if: inputs.beta_campaign == 'series'
+        env:
+          ELEVENLABS_API_KEY: ${{ secrets.ELEVENLABS_API_KEY }}
+        run: python -m scripts.promo.beta_series --out promo-out
+      - name: Verify follow-up narration and make six-video manifest
+        if: inputs.beta_campaign == 'series'
+        run: |
+          python -m pip install faster-whisper==1.2.1
+          python -m scripts.promo.beta_series --out promo-out --speech-check
       - name: Build the video
-        if: inputs.voice_lab == '' || inputs.voice_lab == 'off'
+        if: (inputs.voice_lab == '' || inputs.voice_lab == 'off') && (inputs.beta_campaign == '' || inputs.beta_campaign == 'off')
         env:
           FORMAT: ${{ inputs.format }}
           GITHUB_TOKEN: ${{ github.token }}
@@ -119,7 +169,7 @@ jobs:
             exit "$status"
           fi
       - name: Compare Ukrainian male voices
-        if: inputs.voice_lab != '' && inputs.voice_lab != 'off'
+        if: inputs.voice_lab != '' && inputs.voice_lab != 'off' && (inputs.beta_campaign == '' || inputs.beta_campaign == 'off')
         env:
           VOICE_VARIANT: ${{ inputs.voice_lab }}
           VOICE_CATALOG: ${{ inputs.voice_catalog }}
@@ -135,6 +185,55 @@ jobs:
           fi
           if [ "$SEND_PREVIEW" = true ] && [ "$VOICE_VARIANT" != catalog ]; then args+=(--send); fi
           python -m scripts.promo.experiments "${args[@]}"
+      - name: Restore beta build or reusable narration
+        if: inputs.beta_campaign == 'validate' || (inputs.beta_campaign == 'build' && inputs.beta_run_id != '')
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BETA_RUN_ID: ${{ inputs.beta_run_id }}
+        run: |
+          if ! [[ "$BETA_RUN_ID" =~ ^[0-9]+$ ]]; then exit 1; fi
+          gh run download "$BETA_RUN_ID" --repo "$GITHUB_REPOSITORY" --name "promo-$BETA_RUN_ID" --dir promo-out
+      - name: Build private beta recruitment pair
+        if: inputs.beta_campaign == 'build'
+        env:
+          ELEVENLABS_API_KEY: ${{ secrets.ELEVENLABS_API_KEY }}
+        run: |
+          status=0
+          python -m scripts.promo.beta --out promo-out 2> beta-stderr.log || status=$?
+          cat beta-stderr.log >&2
+          if [ "$status" -ne 0 ]; then
+            echo "::error title=Beta build::$(tail -n 1 beta-stderr.log)"
+            exit "$status"
+          fi
+      - name: Check beta narration independently
+        if: inputs.beta_campaign == 'build' || inputs.beta_campaign == 'validate'
+        run: |
+          python -m pip install faster-whisper==1.2.1
+          python -m scripts.promo.beta --out promo-out --speech-check
+      - name: Restore the reviewed beta pair
+        if: inputs.beta_campaign == 'deliver' || inputs.beta_campaign == 'shorts'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BETA_RUN_ID: ${{ inputs.beta_run_id }}
+        run: |
+          if ! [[ "$BETA_RUN_ID" =~ ^[0-9]+$ ]]; then
+            echo "::error::beta_run_id must be the reviewed build run ID"
+            exit 1
+          fi
+          gh run download "$BETA_RUN_ID" --repo "$GITHUB_REPOSITORY" --name "promo-$BETA_RUN_ID" --dir promo-out
+      - name: Privately deliver the reviewed beta MP4s
+        if: inputs.beta_campaign == 'deliver' && inputs.send
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID || vars.TELEGRAM_CHAT_ID }}
+        run: python -m scripts.promo.beta --out promo-out --deliver-only
+      - name: Send reviewed beta pair with YouTube Shorts buttons
+        if: inputs.beta_campaign == 'shorts' && inputs.send
+        env:
+          API_ADMIN_TOKEN: ${{ secrets.API_ADMIN_TOKEN }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID || vars.TELEGRAM_CHAT_ID }}
+        run: python -m scripts.promo.beta --out promo-out --shorts-approval
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -142,7 +241,7 @@ jobs:
           path: promo-out
           retention-days: 7
       - name: Send for approval
-        if: (inputs.voice_lab == '' || inputs.voice_lab == 'off') && (github.event_name == 'schedule' || inputs.send)
+        if: (inputs.beta_campaign == '' || inputs.beta_campaign == 'off') && (inputs.voice_lab == '' || inputs.voice_lab == 'off') && (github.event_name == 'schedule' || inputs.send)
         env:
           API_ADMIN_TOKEN: ${{ secrets.API_ADMIN_TOKEN }}
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
@@ -160,7 +259,7 @@ jobs:
             exit "$status"
           fi
       - name: Remember what was made
-        if: github.ref == 'refs/heads/main' && (inputs.voice_lab == '' || inputs.voice_lab == 'off')
+        if: (inputs.beta_campaign == '' || inputs.beta_campaign == 'off') && github.ref == 'refs/heads/main' && (inputs.voice_lab == '' || inputs.voice_lab == 'off')
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"

@@ -89,12 +89,22 @@ def register(package: dict[str, Any], folder: Path, api: str, token: str) -> str
             "telegram_caption",
         )
     }
+    meta.update(
+        {key: package[key] for key in ("youtube_tags", "youtube_language") if key in package}
+    )
     answer = _request(
         f"{api}/v1/admin/promo",
         data=json.dumps(meta, ensure_ascii=False).encode(),
         method="POST",
         headers={**auth, "Content-Type": "application/json"},
     )
+    for key in ("youtube_tags", "youtube_language"):
+        if key in meta and answer.get(key) != meta[key]:
+            raise SystemExit(f"Worker did not preserve {key}; deploy the updated API first")
+    if "youtube_language" in meta:
+        package["youtube_ready"] = answer.get("youtube_ready") is True
+        if answer.get("status") != "pending":
+            raise SystemExit("This Shorts package was already decided; do not send another button")
     for name, kind in (("video.mp4", "video/mp4"), ("cover.jpg", "image/jpeg")):
         path = folder / name
         if path.exists():

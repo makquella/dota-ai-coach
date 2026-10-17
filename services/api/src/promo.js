@@ -84,12 +84,25 @@ export function validatePromo(data) {
   const telegram = text(data.telegram_caption, 1024);
   const topic = text(String(data.topic ?? ""), 80);
   if (!caption || !title || !telegram || !topic) return null;
+  const youtube = {};
+  if (data.youtube_tags !== undefined) {
+    if (!Array.isArray(data.youtube_tags) || !data.youtube_tags.length || data.youtube_tags.length > 30) return null;
+    if (data.youtube_tags.some((tag) => !text(tag, 100) || /[<>\r\n]/.test(tag))) return null;
+    // YouTube counts commas and quotes around multiword tags toward 500 chars.
+    const length = data.youtube_tags.reduce((n, tag) => n + tag.length + (tag.includes(" ") ? 2 : 0), 0) + data.youtube_tags.length - 1;
+    if (length > 450) return null;
+    youtube.youtube_tags = [...new Set(data.youtube_tags.map((tag) => tag.trim()))];
+  }
+  if (data.youtube_language !== undefined) {
+    if (!["uk", "en"].includes(data.youtube_language)) return null;
+    youtube.youtube_language = data.youtube_language;
+  }
   return {
     id,
     format: data.format,
     topic,
     hook: Number.isInteger(data.hook) ? data.hook : 0,
-    body: { caption, youtube_title: title, telegram_caption: telegram, title: text(data.title, 200) || title }
+    body: { caption, youtube_title: title, telegram_caption: telegram, title: text(data.title, 200) || title, ...youtube }
   };
 }
 
@@ -103,9 +116,13 @@ export async function registerPromo(request, env, now = Date.now()) {
   }
   const post = validatePromo(data);
   if (!post) return json({ ok: false, code: "bad_package" }, 400);
-  const existing = await env.DB.prepare("SELECT media_key, status FROM promo_posts WHERE id = ?1").bind(post.id).first();
+  const existing = await env.DB.prepare("SELECT media_key, status, body FROM promo_posts WHERE id = ?1").bind(post.id).first();
+  // Echo persisted metadata so a new publisher cannot silently use an older
+  // deployment that discards per-video tags/language. Never return OAuth tokens.
+  const youtube = (body) => ({ youtube_tags: body.youtube_tags, youtube_language: body.youtube_language });
+  const ready = Boolean((await connectedNetworks(env)).youtube && socialConfigured(env, "youtube"));
   if (existing) {
-    return json({ ok: true, id: post.id, media_key: existing.media_key, status: existing.status });
+    return json({ ok: true, id: post.id, media_key: existing.media_key, status: existing.status, youtube_ready: ready, ...youtube(JSON.parse(existing.body)) });
   }
   const key = randomKey();
   await env.DB.prepare(
@@ -113,7 +130,7 @@ export async function registerPromo(request, env, now = Date.now()) {
   )
     .bind(post.id, key, now, post.format, post.topic, post.hook, JSON.stringify(post.body))
     .run();
-  return json({ ok: true, id: post.id, media_key: key, status: "pending" }, 201);
+  return json({ ok: true, id: post.id, media_key: key, status: "pending", youtube_ready: ready, ...youtube(post.body) }, 201);
 }
 
 export async function putPromoFile(request, id, file, env) {
