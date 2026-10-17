@@ -11,7 +11,7 @@
     en: {
       "0.57.0": [
         "Items for the enemy draft now depend on your hero, starting with Terrorblade. Against Phantom Assassin or Windranger he gets Monkey King Bar, but if the enemies also have an escape a silence stops (Queen of Pain's Blink, Storm Spirit's Ball Lightning, Puck, Ember Spirit and others), Bloodthorn: its silence stops the escape, and his attacks and illusions never miss the silenced target.",
-        "Terrorblade against heavy healing (Huskar, Alchemist, Necrophos…) keeps his own Eye of Skadi after Manta; against illusion heroes Butterfly, with the Dragon Lance going into Hydra's Breath instead of Hurricane Pike; against Slark, Phantom Assassin or Spirit Breaker, Hurricane Pike. With 12k net worth by minute 20 (16k by 25, 21k by 30), where high-rank Terrorblades win about 85%, the counters wait for the tempo build (Manta, Skadi, Butterfly, Daedalus), the Aegis and the throne. Other heroes keep the usual counters until their own plan is ready.",
+        "Terrorblade against heavy healing (Huskar, Alchemist, Necrophos…) keeps his own Eye of Skadi after Manta; against illusion heroes Butterfly, with the Dragon Lance going into Hydra's Breath instead of Hurricane Pike; against Slark, Phantom Assassin or Spirit Breaker, Hurricane Pike. With 12k net worth by minute 20 (17k by 25, 21k by 30), where high-rank Terrorblades win about 85%, the counters wait for the tempo build (Manta, Shard, Dragon Lance, Skadi, Butterfly, Daedalus), the Aegis and the throne. Other heroes keep the usual counters until their own plan is ready.",
         "Monkey King Bar no longer «never misses» in the explanations: in the current patch it goes through evasion on 80% of attacks."
       ],
       "0.56.6": [
@@ -557,7 +557,7 @@
     uk: {
       "0.57.0": [
         "Предмети проти ворожого драфту тепер залежать від вашого героя, почнімо з Terrorblade. Проти Phantom Assassin чи Windranger він отримує Monkey King Bar, а якщо у ворогів є ще й втеча, яку зупиняє тиша (Blink у Queen of Pain, Ball Lightning у Storm Spirit, Puck, Ember Spirit та інші), — Bloodthorn: його тиша не дає втекти, а по цілі під тишею атаки героя та його ілюзій не промахуються.",
-        "Terrorblade проти сильного лікування (Huskar, Alchemist, Necrophos…) отримує пораду брати свій Eye of Skadi після Manta; проти героїв з ілюзіями — Butterfly, а Dragon Lance збирати в Hydra's Breath замість Hurricane Pike; проти Slark, Phantom Assassin чи Spirit Breaker — Hurricane Pike. З нетворсом 12 тис. до 20-ї хвилини (16 тис. до 25-ї, 21 тис. до 30-ї), коли сильні гравці на Terrorblade виграють близько 85 %, поради проти драфту чекають на темпову збірку (Manta, Skadi, Butterfly, Daedalus), Aegis і трон. Інші герої зберігають звичайні поради, доки не буде готовий їхній план.",
+        "Terrorblade проти сильного лікування (Huskar, Alchemist, Necrophos…) отримує пораду брати свій Eye of Skadi після Manta; проти героїв з ілюзіями — Butterfly, а Dragon Lance збирати в Hydra's Breath замість Hurricane Pike; проти Slark, Phantom Assassin чи Spirit Breaker — Hurricane Pike. З нетворсом 12 тис. до 20-ї хвилини (17 тис. до 25-ї, 21 тис. до 30-ї), коли сильні гравці на Terrorblade виграють близько 85 %, поради проти драфту чекають на темпову збірку (Manta, Shard, Dragon Lance, Skadi, Butterfly, Daedalus), Aegis і трон. Інші герої зберігають звичайні поради, доки не буде готовий їхній план.",
         "Monkey King Bar у поясненнях більше не «б'є без промаху»: у поточному патчі він пробиває ухилення 80 % атак."
       ],
       "0.56.6": [

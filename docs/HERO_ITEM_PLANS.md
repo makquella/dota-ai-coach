@@ -15,6 +15,12 @@ allies and the player's own hero are never counted.
 
 ## The checklist for a hero
 
+0. **The numbers first.** `python scripts/hero_item_stats.py <hero> --since <patch start>`
+   reads the open OpenDota Explorer (league games, parsed gold timelines): the
+   win rate by the hero's gold at 20/25/30 min and the 85% line (the tempo
+   curve), the item order in the farmed won games (the tempo build) and each
+   counter's share and win rate per enemy group. Every rule below is checked
+   against it; a rule the high-rank games contradict needs a stated reason.
 1. **The hero's build.** Read `data/meta/stratz_builds.json` (STRATZ
    Divine–Immortal, refreshed weekly) for the position: the core items and
    their minutes. A counter that is already in the build is "buy it earlier";
@@ -78,18 +84,21 @@ Rules in order (the first that holds wins its family; one item per family):
 | lance | Slark, Phantom Assassin, Spirit Breaker | Hurricane Pike | pushes the jumper 425 away, 5 attacks from range with +100 attack speed |
 | (generic) | Bristleback, Spectre, Huskar (after Skadi) | Silver Edge | the generic break counter, unchanged |
 
-**Tempo:** with his own net worth over 12.0k at 20:00, 16.3k at 25:00 and 21.1k
+**Tempo:** with his own net worth over 12.0k at 20:00, 16.8k at 25:00 and 21.1k
 at 30:00 (linear between, the same slope after), the counters wait and the next
-item is the tempo build's — Manta Style, Eye of Skadi, Butterfly, Daedalus —
-then the Aegis and the throne. In 617 league games of patch 7.41 (OpenDota
-Explorer) he wins 86-100% with 12.5k+ gold by 20:00, 85% with 17k+ by 25:00 and
+item is the tempo build's, in the order of his farmed won games — Manta Style
+(100% of them, ~15 min), Aghanim's Shard (78%, 16), Dragon Lance (93%, 18), Eye
+of Skadi (62%, 25), Butterfly (50%, 25), Daedalus (25%, 31) — then the Aegis and
+the throne. In 617 league games of patch 7.41 (OpenDota
+Explorer) he wins 86-100% with 12.5k+ gold by 20:00, 94% with 17.5k+ by 25:00 and
 85% with 22k+ by 30:00, against 52-56% at 10-12k by 20:00.
 
 The same games back the counters: Monkey King Bar in 45% of games against
 Phantom Assassin or Windranger (12% otherwise); Bloodthorn 12% (5%) when an
 escape hero is there too, won 67% against 50%; against illusion heroes Butterfly
-51% (38%), Hurricane Pike 18% (44%) and Maelstrom never. Dragon Lance is his
-third item in 87% of games. Samples are small (25-100 games per lineup) and a
+51% (38%), Hurricane Pike 18% (44%) and Maelstrom never. Dragon Lance is in 87% of
+his games. Silver Edge against Bristleback, Spectre or Huskar: 42% (7%), won 70%
+against 43%. Samples are small (25-100 games per lineup) and a
 bought item also means a farmed hero: these are checks, not proof.
 
 The illusion, Pike and tempo rules come from a player's review (2026-10-17),

@@ -17,8 +17,9 @@ mechanics (each rule keeps its `basis`), e.g. Terrorblade:
 
 `tempo`: with the player's own net worth over the plan's curve (minute → net
 worth, from high-rank games where the hero wins ~85% above it) the counters
-wait and the next item is the tempo build's (Terrorblade: Manta Style, Eye of
-Skadi, Butterfly, Daedalus), then the Aegis and the throne. A player's GSI
+wait and the next item is the tempo build's (Terrorblade, in the order of his
+farmed won games: Manta Style, Aghanim's Shard, Dragon Lance, Eye of Skadi,
+Butterfly, Daedalus), then the Aegis and the throne. A player's GSI
 shows no enemy net worth, so the hero's own farm is the observed sign.
 """
 

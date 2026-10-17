@@ -11,7 +11,7 @@
     "items": "Valve /datafeed/itemdata, 7.41f: Monkey King Bar (135), Bloodthorn (250), Eye of Skadi (160), Butterfly (139), Hurricane Pike (263), Hydra's Breath (1858), Daedalus (141). Recipes: OpenDota constants (Hydra's Breath and Hurricane Pike are both built from Dragon Lance).",
     "hero": "Valve /datafeed/herodata hero_id 109: melee (150 range); Conjure Image and Metamorphosis illusions are Terrorblade's controlled units.",
     "player": "Player review, 2026-10-17: against illusions Butterfly, and Dragon Lance goes into Hydra's Breath instead of Hurricane Pike; Pike against heroes who jump on him; far ahead, the tempo build Manta, Skadi, Butterfly, Daedalus, then Aegis and the throne.",
-    "games": "OpenDota Explorer, 617 league games with Terrorblade in patch 7.41 (2026-03-24..2026-10-17), gold timelines: he wins 86-100% with 12.5k+ gold by 20:00 (52-56% at 10-12k), 85% with 17k+ by 25:00, 85% with 22k+ by 30:00; net worth is ~0.96 of that gold. Dragon Lance is his third item in 87% of games. Against Phantom Assassin or Windranger, Monkey King Bar in 45% (12% otherwise); with an escape hero too, Bloodthorn 12% (5%), won 67% against 50%. Against illusion heroes Butterfly 51% (38%), Hurricane Pike 18% (44%), Maelstrom 0%. Against healing heroes Eye of Skadi 70% (61%) at the same ~27 min."
+    "games": "OpenDota Explorer, 617 league games with Terrorblade in patch 7.41 (2026-03-24..2026-10-17), gold timelines: he wins 86-100% with 12.5k+ gold by 20:00 (52-56% at 10-12k), 94% with 17.5k+ by 25:00 (84.7% at 17k), 85% with 22k+ by 30:00; net worth is ~0.96 of that gold. Dragon Lance is his third item in 87% of games. Against Phantom Assassin or Windranger, Monkey King Bar in 45% (12% otherwise); with an escape hero too, Bloodthorn 12% (5%), won 67% against 50%. Against illusion heroes Butterfly 51% (38%), Hurricane Pike 18% (44%), Maelstrom 0%. Against healing heroes Eye of Skadi 70% (61%) at the same ~27 min. Against Bristleback, Spectre or Huskar Silver Edge 42% (7%), won 70% against 43%. Reproduce: python scripts/hero_item_stats.py terrorblade."
   },
   "rules": [
     {
@@ -84,7 +84,7 @@
       ],
       [
         25,
-        16300
+        16800
       ],
       [
         30,
@@ -95,6 +95,14 @@
       {
         "item": "manta",
         "name": "Manta Style"
+      },
+      {
+        "item": "aghanims_shard",
+        "name": "Aghanim's Shard"
+      },
+      {
+        "item": "dragon_lance",
+        "name": "Dragon Lance"
       },
       {
         "item": "skadi",
@@ -109,6 +117,7 @@
         "name": "Daedalus"
       }
     ],
-    "basis": "His own net worth over this curve (12.5k, 17k and 22k gold by 20, 25 and 30 min in the games above, ~0.96 of it as net worth): he wins ~85% of those games. A player's GSI shows no enemy net worth, so his own farm stands for «their carry is poor». Then the counters wait: the tempo build, the Aegis and the throne."
+    "basis": "His own net worth over this curve (12.5k, 17.5k and 22k gold by 20, 25 and 30 min in the games above, ~0.96 of it as net worth): he wins ~85% of those games. A player's GSI shows no enemy net worth, so his own farm stands for «their carry is poor». Then the counters wait: the tempo build, the Aegis and the throne.",
+    "order": "The order of the 72 won games with 12.5k+ gold by 20:00 (share of games, median minute): Manta Style 100% (15), Aghanim's Shard 78% (16), Dragon Lance 93% (18), Eye of Skadi 62% (25), Butterfly 50% (24), Daedalus 25% (30)."
   }
 }

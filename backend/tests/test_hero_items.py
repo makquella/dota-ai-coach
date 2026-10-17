@@ -184,14 +184,14 @@ def test_one_dragon_lance_upgrade_against_illusions_and_jumpers():
 
 def test_the_tempo_curve_from_high_rank_games():
     plan = plan_for("Terrorblade", "carry")
-    # 12.5k, 17k and 22k gold by 20, 25 and 30 min (~85% wins), as net worth.
+    # 12.5k, 17.5k and 22k gold by 20, 25 and 30 min (85%+ wins), as net worth.
     assert [tempo_threshold(plan, m) for m in (19, 20, 22, 25, 30, 35)] == [
         None,
         12000,
-        13720,
-        16300,
+        13920,
+        16800,
         21100,
-        25900,
+        25400,
     ]
 
 
@@ -219,9 +219,18 @@ def _ahead(owned, net_worth, *, minute=25, deaths=()):
 
 
 def test_farmed_over_the_curve_the_tempo_build_before_the_counters():
-    ahead = _ahead(["item_manta"], 17000)
+    # The order of his farmed won games: Manta, Shard, Dragon Lance, Skadi...
+    assert _ahead(["item_manta"], 17000)["key"] == "aghanims_shard"
+    ahead = _ahead(["item_manta", "item_aghanims_shard", "item_dragon_lance"], 17000)
     assert (ahead["key"], ahead["why"], ahead["count"]) == ("skadi", "tempo", 17000)
-    owned_all = ["item_manta", "item_skadi", "item_butterfly", "item_greater_crit"]
+    owned_all = [
+        "item_manta",
+        "item_aghanims_shard",
+        "item_dragon_lance",
+        "item_skadi",
+        "item_butterfly",
+        "item_greater_crit",
+    ]
     assert _ahead(owned_all, 30000) is None
     # Under the curve, before minute 20, or with no net worth known: the counters.
     for owned, worth, minute in (
@@ -265,9 +274,31 @@ def test_the_live_farm_advice_reads_the_net_worth(monkeypatch):
     )
     assert poor["key"] == "bloodthorn"
     rich = PLAYER_SERVICE.next_item(
-        "Terrorblade", ["item_manta"], enemies=lineup, minute=25, gold=12000
-    )
-    assert (rich["key"], rich["why"]) == ("skadi", "tempo")
+        "Terrorblade", ["item_manta"], enemies=lineup, minute=25, gold=13000
+    )  # 13000 + Manta Style 4650 = 17650 over 16800 at 25:00
+    assert (rich["key"], rich["why"]) == ("aghanims_shard", "tempo")
+
+
+def test_a_consumed_shard_counts_as_owned(monkeypatch):
+    # GSI drops the Shard from the items and sets hero.aghanims_shard instead.
+    from app import main
+    from app.player_api import PLAYER_SERVICE
+
+    seen = {}
+
+    def next_item(hero, owned, **kwargs):
+        seen["owned"] = owned
+        return None
+
+    monkeypatch.setattr(PLAYER_SERVICE, "next_item", next_item)
+    state = {
+        "hero": "Terrorblade",
+        "gold": 500,
+        "minute": 25,
+        "extra_context": {"item_names": ["item_manta"], "aghanims_shard": True},
+    }
+    main._with_next_item(state, "full", "SAFE_FARMING")
+    assert seen["owned"] == ["item_manta", "item_aghanims_shard"]
 
 
 def test_other_heroes_and_other_positions_keep_the_generic_counters():

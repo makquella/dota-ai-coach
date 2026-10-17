@@ -1190,11 +1190,15 @@ def _with_next_item(
     ):
         return state
     names = raw_extra.get("item_names")
+    owned = list(names) if isinstance(names, list) else None
+    # Aghanim's Shard is consumed on purchase: GSI says so on the hero instead.
+    if owned is not None and raw_extra.get("aghanims_shard") is True:
+        owned.append("item_aghanims_shard")
     try:
         enemies = raw_extra.get("enemy_heroes")
         item = PLAYER_SERVICE.next_item(
             str(state.get("hero") or ""),
-            names if isinstance(names, list) else None,
+            owned,
             enemies=enemies if isinstance(enemies, list) else None,
             minute=state.get("minute"),
             gold=state.get("gold"),
