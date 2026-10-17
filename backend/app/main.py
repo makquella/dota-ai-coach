@@ -74,6 +74,7 @@ from app.logger import log_recommendation, prune_logs
 from app.map_hints import DRAFT_UNTIL, timers
 from app.match_memory import MATCH_MEMORY
 from app.match_records import KEEP_DAYS, MATCH_RECORDS
+from app.next_item import owned_items
 from app.player_api import PLAYER_SERVICE, refresh_quieter_advice
 from app.player_api import router as player_router
 from app.rag import KNOWLEDGE_BASE, retrieve_context
@@ -548,8 +549,7 @@ def _gold_hint_inputs(
     gold = state.get("gold")
     role_name = role.get("role") if role else None
     hero = str(state.get("hero") or "")
-    raw_names = extra.get("item_names")
-    names = raw_names if isinstance(raw_names, list) else None
+    names = owned_items(extra)
     next_item = None
     part = None
     if role_name != "support" and isinstance(clock, int) and clock >= 3 * 60:
@@ -1189,11 +1189,8 @@ def _with_next_item(
         or _plays_support(state)
     ):
         return state
-    names = raw_extra.get("item_names")
-    owned = list(names) if isinstance(names, list) else None
     # Aghanim's Shard is consumed on purchase: GSI says so on the hero instead.
-    if owned is not None and raw_extra.get("aghanims_shard") is True:
-        owned.append("item_aghanims_shard")
+    owned = owned_items(raw_extra)
     try:
         enemies = raw_extra.get("enemy_heroes")
         item = PLAYER_SERVICE.next_item(

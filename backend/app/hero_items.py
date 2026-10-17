@@ -15,6 +15,10 @@ mechanics (each rule keeps its `basis`), e.g. Terrorblade:
   (Metamorphosis attacks from range) instead of Hurricane Pike;
 - heroes who jump on him (Slark, Phantom Assassin, Spirit Breaker): Pike.
 
+`build`: the hero's usual order when no counter or tempo holds (high-rank
+won games, instead of the all-ranks OpenDota popularity); `unless` skips an
+entry another item answered (Hurricane Pike after Hydra's Breath).
+
 `tempo`: with the player's own net worth over the plan's curve (minute → net
 worth, from high-rank games where the hero wins ~85% above it) the counters
 wait and the next item is the tempo build's (Terrorblade, in the order of his
@@ -113,6 +117,21 @@ def validate(plan: Any, source: str = "plan") -> dict[str, Any]:
         isinstance(v, str) and v.strip() for v in suppress.values()
     ):
         raise fail("suppress maps a generic why to the reason it does not fit")
+    build = plan.get("build")
+    if build is not None and (
+        not isinstance(build, list)
+        or not build
+        or not all(
+            isinstance(e, dict)
+            and isinstance(e.get("item"), str)
+            and e.get("name")
+            and all(isinstance(u, str) for u in e.get("unless", []))
+            for e in build
+        )
+        or not isinstance(plan.get("build_basis"), str)
+        or not plan["build_basis"].strip()
+    ):
+        raise fail("build needs items [{item, name, unless?}] and a build_basis")
     tempo = plan.get("tempo")
     if tempo is not None:
         items = tempo.get("items") if isinstance(tempo, dict) else None

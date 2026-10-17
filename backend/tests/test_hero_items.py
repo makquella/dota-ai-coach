@@ -383,3 +383,93 @@ def test_the_draft_card_for_terrorblade_reaches_the_overlay(client):
             enemy="Phantom Assassin", escape="Queen of Pain", spell="Blink", item="Bloodthorn"
         ),
     ) in texts
+
+
+# The usual build: real 7.41 recipes (OpenDota constants), so Hydra's Breath
+# contains the Dragon Lance.
+TB_ITEMS = {
+    "power_treads": {"name": "Power Treads", "cost": 1400, "components": ["boots"]},
+    "falcon_blade": {"name": "Falcon Blade", "cost": 1125, "components": ["sobi_mask"]},
+    "manta": {"name": "Manta Style", "cost": 4650, "components": ["yasha", "diadem"]},
+    "aghanims_shard": {"name": "Aghanim's Shard", "cost": 1400, "components": []},
+    "dragon_lance": {"name": "Dragon Lance", "cost": 1900, "components": ["blade_of_alacrity"]},
+    "skadi": {"name": "Eye of Skadi", "cost": 5900, "components": ["ultimate_orb"]},
+    "hurricane_pike": {
+        "name": "Hurricane Pike",
+        "cost": 4450,
+        "components": ["force_staff", "dragon_lance"],
+    },
+    "butterfly": {"name": "Butterfly", "cost": 5450, "components": ["eagle"]},
+    "black_king_bar": {"name": "Black King Bar", "cost": 4050, "components": ["ogre_axe"]},
+    "greater_crit": {"name": "Daedalus", "cost": 5100, "components": ["demon_edge"]},
+    "hydras_breath": {
+        "name": "Hydra's Breath",
+        "cost": 5900,
+        "components": ["specialists_array", "dragon_lance", "orb_of_venom"],
+    },
+}
+TB_META = {"constants": {"items": TB_ITEMS, "by_id": {}}, "popularity": {}}
+
+
+def test_his_usual_build_comes_from_high_rank_won_games(monkeypatch):
+    from app.player_api import PLAYER_SERVICE
+
+    monkeypatch.setattr(PLAYER_SERVICE, "_live_meta", lambda hero_id: TB_META)
+
+    def next_key(owned):
+        # At 45:00 the tempo line (~34k) stays above these items' worth.
+        item = PLAYER_SERVICE.next_item("Terrorblade", owned, enemies=[], minute=45, gold=0)
+        return item and item["key"]
+
+    order = [
+        "power_treads",
+        "falcon_blade",
+        "manta",
+        "aghanims_shard",
+        "dragon_lance",
+        "skadi",
+        "hurricane_pike",
+        "butterfly",
+        "black_king_bar",
+        "greater_crit",
+    ]
+    owned: list[str] = []
+    for key in order:
+        assert next_key(owned) == key
+        owned.append(f"item_{key}")
+    # The Dragon Lance went into Hydra's Breath: no Lance, no Pike after it.
+    hydra = [
+        "item_power_treads",
+        "item_falcon_blade",
+        "item_manta",
+        "item_aghanims_shard",
+        "item_hydras_breath",
+    ]
+    assert next_key(hydra) == "skadi"
+    assert next_key([*hydra, "item_skadi"]) == "butterfly"
+    # A counter still comes first.
+    lineup = ["Phantom Assassin", "Lion", "Axe", "Crystal Maiden"]
+    counter = PLAYER_SERVICE.next_item("Terrorblade", [], enemies=lineup, minute=20, gold=0)
+    assert counter["why"] == "evasion"
+
+
+def test_a_broken_build_is_refused():
+    good = json.loads((ITEM_PLANS_DIR / "terrorblade.json").read_text(encoding="utf-8"))
+    for plan in (
+        {**good, "build": []},
+        {**good, "build": [{"item": "manta"}]},  # no name
+        {**good, "build_basis": ""},
+    ):
+        with pytest.raises(ValueError):
+            validate(plan)
+
+
+def test_the_owned_items_carry_the_consumed_shard():
+    from app.next_item import owned_items
+
+    assert owned_items({"item_names": ["item_manta"], "aghanims_shard": True}) == [
+        "item_manta",
+        "item_aghanims_shard",
+    ]
+    assert owned_items({"item_names": ["item_manta"], "aghanims_shard": False}) == ["item_manta"]
+    assert owned_items({}) is None

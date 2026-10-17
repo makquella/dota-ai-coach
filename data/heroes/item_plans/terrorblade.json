@@ -76,6 +76,52 @@
       "basis": "Hurricane Thrust: pushes him and the target 425 apart, then 5 attacks on it from any range with +100 attack speed for 5 s. In his STRATZ build at ~29 min."
     }
   ],
+  "build": [
+    {
+      "item": "power_treads",
+      "name": "Power Treads"
+    },
+    {
+      "item": "falcon_blade",
+      "name": "Falcon Blade"
+    },
+    {
+      "item": "manta",
+      "name": "Manta Style"
+    },
+    {
+      "item": "aghanims_shard",
+      "name": "Aghanim's Shard"
+    },
+    {
+      "item": "dragon_lance",
+      "name": "Dragon Lance"
+    },
+    {
+      "item": "skadi",
+      "name": "Eye of Skadi"
+    },
+    {
+      "item": "hurricane_pike",
+      "name": "Hurricane Pike",
+      "unless": [
+        "hydras_breath"
+      ]
+    },
+    {
+      "item": "butterfly",
+      "name": "Butterfly"
+    },
+    {
+      "item": "black_king_bar",
+      "name": "Black King Bar"
+    },
+    {
+      "item": "greater_crit",
+      "name": "Daedalus"
+    }
+  ],
+  "build_basis": "The order of all 325 won Terrorblade games in the 7.41 league games above (share of games, median minute): Power Treads 100% (6), Falcon Blade 84% (8), Manta Style 100% (16), Aghanim's Shard 83% (17), Dragon Lance 92% (19), Eye of Skadi 70% (27), Hurricane Pike 44% (27), Butterfly 48% (29), Black King Bar 37% (33), Daedalus 28% (35). It replaces the all-ranks OpenDota popularity (Manta Style, Eye of Skadi, Hurricane Pike, Butterfly, then BKB, Crystalys, Daedalus) for him. Pike is skipped once the Dragon Lance went into Hydra's Breath. Reproduce: python scripts/hero_item_stats.py terrorblade.",
   "tempo": {
     "net_worth": [
       [

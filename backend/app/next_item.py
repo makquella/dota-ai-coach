@@ -120,11 +120,25 @@ def has_components(constants: dict[str, Any] | None) -> bool:
     return any(isinstance(info, dict) and "components" in info for info in items.values())
 
 
-def next_build_item(
-    meta: dict[str, Any] | None, owned_names: list[str] | None
+def owned_items(extra: Any) -> list[str] | None:
+    """The item names the player has (map_hints.item_names), with Aghanim's
+    Shard when GSI says the hero has it: it is consumed on purchase and leaves
+    the items block. None without an items block."""
+    names = extra.get("item_names") if isinstance(extra, dict) else None
+    if not isinstance(names, list):
+        return None
+    owned = list(names)
+    if extra.get("aghanims_shard") is True and "item_aghanims_shard" not in owned:
+        owned.append("item_aghanims_shard")
+    return owned
+
+
+def next_listed_item(
+    entries: list[dict[str, Any]], meta: dict[str, Any] | None, owned_names: list[str] | None
 ) -> dict[str, Any] | None:
-    """{key, name, cost, gold_left} of the first popular mid/late item the player
-    neither owns nor has already built into something bigger; None when unknown."""
+    """{key, name, cost, gold_left} of the first of `entries` ({item or key,
+    name, unless: [keys]}) the player neither owns nor has built into something
+    bigger, nor answered with an `unless` item; None when unknown."""
     if not meta or owned_names is None:
         return None
     constants = meta.get("constants") or {}
@@ -132,22 +146,37 @@ def next_build_item(
     # of the missing parts cannot be told.
     if not has_components(constants):
         return None
-    build = popular_build(meta.get("popularity"), constants)
     owned = [item_key(name) for name in owned_names]
-    for entry in (build.get("mid") or []) + (build.get("late") or []):
-        key = entry["key"]
+    known = constants.get("items") or {}
+    for entry in entries:
+        key = entry.get("item") or entry.get("key")
+        if not isinstance(key, str):
+            continue
         if key in owned or any(_contains(have, key, constants) for have in owned):
+            continue
+        if any(other in owned for other in entry.get("unless") or []):
             continue
         cost = _cost(key, constants)
         if cost <= 0:
             continue
         return {
             "key": key,
-            "name": item_name(key, constants),
+            "name": item_name(key, constants) if key in known else entry.get("name") or key,
             "cost": cost,
             "gold_left": gold_left(key, Counter(owned), constants),
         }
     return None
+
+
+def next_build_item(
+    meta: dict[str, Any] | None, owned_names: list[str] | None
+) -> dict[str, Any] | None:
+    """{key, name, cost, gold_left} of the first popular mid/late item the player
+    neither owns nor has already built into something bigger; None when unknown."""
+    if not meta or owned_names is None:
+        return None
+    build = popular_build(meta.get("popularity"), meta.get("constants") or {})
+    return next_listed_item((build.get("mid") or []) + (build.get("late") or []), meta, owned_names)
 
 
 # How many items per phase the save item is looked for in: a support's build

@@ -3,7 +3,8 @@ open OpenDota Explorer (league games with parsed gold timelines):
 
 - the win rate by the hero's gold at 20, 25 and 30 minutes, and the gold where
   it first reaches --win (the plan's tempo curve; net worth is ~0.96 of it);
-- the item order in the won games over the 20-minute line (the tempo build);
+- the item order in all won games (the usual build) and in those over the
+  20-minute line (the tempo build);
 - how often each counter is bought against each enemy group, and the win rate
   with and without it (draft_analysis / hero_items groups).
 
@@ -83,6 +84,25 @@ def assembled_items() -> set[str]:
     return {key for key, info in items.items() if isinstance(info, dict) and info.get("components")}
 
 
+def order(group: list[dict], built: set[str], title: str) -> None:
+    """Assembled items bought in 20%+ of `group`, by median minute."""
+    share: Counter[str] = Counter()
+    minutes: dict[str, list[float]] = defaultdict(list)
+    for r in group:
+        seen: set[str] = set()
+        for p in r.get("purchase_log") or []:
+            key = p.get("key")
+            if key in built and key not in seen:
+                seen.add(key)
+                minutes[key].append(p["time"] / 60)
+        share.update(seen)
+    print(f"\n{title} (share, median minute):")
+    rows = [(k, c) for k, c in share.items() if group and c / len(group) >= 0.2]
+    for key, count in sorted(rows, key=lambda kc: statistics.median(minutes[kc[0]])):
+        median = statistics.median(minutes[key])
+        print(f"  {key:22} {100 * count / len(group):3.0f}%  {median:4.0f}")
+
+
 def rate(group: list[dict]) -> str:
     return f"{100 * sum(g['win'] for g in group) / len(group):.0f}%" if group else "-"
 
@@ -122,25 +142,12 @@ def main() -> int:
                     f"  -> net worth ~{round(gold * NET_WORTH_SHARE, -2):.0f}"
                 )
                 break
+    built = assembled_items() | {"aghanims_shard"}
+    won = [r for r in rows if r["win"]]
+    order(won, built, f"the usual build: items in all {len(won)} won games")
     if 20 in line:
-        rich = [r for r in rows if r["win"] and (r.get("g20") or 0) >= line[20]]
-        built = assembled_items() | {"aghanims_shard"}
-        share: Counter[str] = Counter()
-        minutes: dict[str, list[float]] = defaultdict(list)
-        for r in rich:
-            seen: set[str] = set()
-            for p in r.get("purchase_log") or []:
-                key = p.get("key")
-                if key in built and key not in seen:
-                    seen.add(key)
-                    minutes[key].append(p["time"] / 60)
-            share.update(seen)
-        print(f"\nitems in the {len(rich)} won games over the 20:00 line (share, median minute):")
-        for key, count in share.most_common(25):
-            if count / len(rich) >= 0.2:
-                print(
-                    f"  {key:22} {100 * count / len(rich):3.0f}%  {statistics.median(minutes[key]):4.0f}"
-                )
+        rich = [r for r in won if (r.get("g20") or 0) >= line[20]]
+        order(rich, built, f"the tempo build: the {len(rich)} won games over the 20:00 line")
 
     lineup = enemies(hero_id, since, rows)
     counters = {

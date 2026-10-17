@@ -50,24 +50,29 @@ allies and the player's own hero are never counted.
    counter (Terrorblade's illusions family: Butterfly, no Maelstrom);
    `suppress` maps a generic `why` the plan leaves unanswered to the reason it
    is wrong for the hero.
-6. **Tempo** (optional). `tempo.net_worth` is a curve `[[minute, net worth], ...]`
+6. **The usual build** (optional). `build` lists the hero's order in all
+   high-rank won games ({item, name, unless}); it replaces the all-ranks
+   OpenDota popularity for the farm advice when no counter or tempo holds.
+   `unless` skips an entry another item answered (Terrorblade: no Pike once the
+   Dragon Lance went into Hydra's Breath).
+7. **Tempo** (optional). `tempo.net_worth` is a curve `[[minute, net worth], ...]`
    from high-rank games of the hero: above it the hero wins most games (read the
    gold timelines in OpenDota Explorer, `player_matches.gold_t`; net worth is
    ~0.96 of that gold). With the player's own net worth over it (gold plus the
    items carried, `next_item.net_worth`), the counters wait and `tempo.items`
    go on. A player's GSI has no enemy or team net worth: the hero's own farm is
    the observed sign.
-7. **The words.** A new `why` needs its reason in each place that shows one,
+8. **The words.** A new `why` needs its reason in each place that shows one,
    in English and Ukrainian: `map_hints.TIPS["draft_<why>"]`,
    `death_screen.TEXT[lang]["why_<why>"]`, `post_laning_coach.SITUATIONAL_BECAUSE`
    with its Ukrainian pattern in `advice_i18n.py`. `test_hero_items.py` fails
    when one is missing.
-8. **The scenarios.** Add the hero's cases to `backend/tests/test_hero_items.py`:
+9. **The scenarios.** Add the hero's cases to `backend/tests/test_hero_items.py`:
    each rule, the rule that must *not* fire (Anti-Mage is no escape for a
    silence: Counterspell), an owned item that answers the family, the minute
    gate, the death patterns still first, other heroes unchanged, and one live
    `/gsi` run to the overlay card.
-9. **A real match.** Replay a recording on the hero (Settings → Keep match
+10. **A real match.** Replay a recording on the hero (Settings → Keep match
    recordings for a week) and read which counter the card names and when.
 
 ## Terrorblade (7.41f, checked 2026-10-17)
@@ -83,6 +88,12 @@ Rules in order (the first that holds wins its family; one item per family):
 | lance | the same illusion heroes | Hydra's Breath | the Dragon Lance goes here, not into Pike: in Metamorphosis 30% of ranged attacks hit up to 3 more enemies, Miasma poisons them |
 | lance | Slark, Phantom Assassin, Spirit Breaker | Hurricane Pike | pushes the jumper 425 away, 5 attacks from range with +100 attack speed |
 | (generic) | Bristleback, Spectre, Huskar (after Skadi) | Silver Edge | the generic break counter, unchanged |
+
+**Usual build** (all 325 won games, share and median minute): Power Treads 100%
+(6) → Falcon Blade 84% (8) → Manta Style 100% (16) → Aghanim's Shard 83% (17) → Dragon Lance 92% (19) →
+Eye of Skadi 70% (27) → Hurricane Pike 44% (27, not after Hydra's Breath) →
+Butterfly 48% (29) → Black King Bar 37% (33) → Daedalus 28% (35). The all-ranks
+OpenDota popularity it replaces had no Falcon Blade, Shard or Dragon Lance step.
 
 **Tempo:** with his own net worth over 12.0k at 20:00, 16.8k at 25:00 and 21.1k
 at 30:00 (linear between, the same slope after), the counters wait and the next

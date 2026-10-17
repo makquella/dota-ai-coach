@@ -75,6 +75,7 @@ from app.finding_history import finding_history
 from app.focus_goal import can_focus, focus_summary, match_result, new_focus, played_after
 from app.friend_compare import compare
 from app.game_plan import build_game_plan, key_item
+from app.hero_items import plan_for
 from app.hero_meta import item_key, start_items
 from app.hero_profiles import get_hero_position
 from app.history_backup import export_backup, import_backup, preview_backup
@@ -86,7 +87,15 @@ from app.map_hints import SAVE_ITEMS
 from app.match_facts import facts_from_opendota, facts_from_timeline, merge_facts
 from app.match_records import MATCH_RECORDS
 from app.match_tracker import MatchTracker, account_from_gsi
-from app.next_item import buy_now, has_components, net_worth, next_build_item, save_build_item
+from app.next_item import (
+    buy_now,
+    has_components,
+    net_worth,
+    next_build_item,
+    next_listed_item,
+    owned_items,
+    save_build_item,
+)
 from app.opendota import (
     TRIM_VERSION,
     OpenDotaClient,
@@ -456,15 +465,15 @@ class PlayerService:
             or not 0 <= clock - death["t"] <= within
         ):
             return None
-        names = extra.get("item_names")
         item = (
             self.next_item(
                 str(state.get("hero") or ""),
-                names if isinstance(names, list) else None,
+                owned_items(extra),
                 enemies=extra.get("enemy_heroes")
                 if isinstance(extra.get("enemy_heroes"), list)
                 else None,
                 minute=state.get("minute"),
+                gold=state.get("gold"),
             )
             if next_item_for_hero
             else None
@@ -617,7 +626,14 @@ class PlayerService:
             hero=hero,
             net_worth=net_worth(owned, gold, (meta or {}).get("constants")),
         )
-        return situational or next_build_item(meta, owned)
+        if situational is not None:
+            return situational
+        # The hero plan's usual order (high-rank won games), else the popular build.
+        plan = plan_for(hero, get_hero_position(hero))
+        listed = (
+            next_listed_item(plan["build"], meta, owned) if plan and plan.get("build") else None
+        )
+        return listed or next_build_item(meta, owned)
 
     def buy_now(
         self, hero: str, item_key: str, owned: list[str] | None, gold: int | None
