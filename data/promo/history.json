@@ -54,5 +54,12 @@
   "format": "release",
   "topic": "0.56.4",
   "hook": 0
+ },
+ {
+  "id": "21719f926b18a5c8",
+  "date": "2026-10-17",
+  "format": "release",
+  "topic": "0.56.5",
+  "hook": 0
  }
 ]

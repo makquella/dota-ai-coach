@@ -1,5 +1,7 @@
 {
- "updated": "2026-10-15",
- "posts": 15,
- "multipliers": {}
+ "updated": "2026-10-17",
+ "posts": 16,
+ "multipliers": {
+  "release": 1.0
+ }
 }
