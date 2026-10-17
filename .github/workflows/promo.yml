@@ -81,7 +81,9 @@ jobs:
             backend/requirements-dev.txt
             scripts/promo/requirements.txt
       - name: Install
-        if: inputs.voice_lab != 'catalog' && inputs.beta_campaign != 'audit' && inputs.beta_campaign != 'outreach'
+        # A beta build needs Playwright whatever voice_lab says (the voice lab is
+        # off in beta mode); only the read-only beta steps skip the install.
+        if: (inputs.voice_lab != 'catalog' || (inputs.beta_campaign != '' && inputs.beta_campaign != 'off')) && inputs.beta_campaign != 'audit' && inputs.beta_campaign != 'outreach'
         run: |
           # requirements-dev: the coach video runs the real advice pipeline
           # through FastAPI's TestClient (backend/scripts/simulate_live_gsi.py),
