@@ -485,11 +485,25 @@ SITUATIONAL_BECAUSE = {
     "evasion_escape": "{enemy} dodges your attacks and {escape} escapes with {spell}, and {name} silences the escape and never misses a silenced target",
     "healing": "{enemy} heals a lot, and {name} cuts the healing",
     "illusions": "{enemy} fights with illusions, and {name} hits them all",
+    "illusion_evasion": "{enemy} fights with illusions, and {name} makes a third of their attacks miss you",
+    "illusion_splash": "{enemy} fights with illusions, and {name} from your Dragon Lance hits up to 3 more of them in Metamorphosis",
+    "jumper": "{enemy} jumps on you with {spell}, and {name} pushes them away and keeps your attacks going",
+    "tempo": "Your team leads by {count} kills, so {name} on the tempo build comes before counters: then take the Aegis and push for the throne",
     "magic": "{count} enemy heroes deal magic damage, and {name} protects you from it",
     "break": "{enemy} relies on {spell}, and {name} turns it off",
 }
 # Counters to an enemy hero seen: no death count, the enemy says why.
-ENEMY_WHYS = {"evasion", "evasion_escape", "healing", "illusions", "magic", "break"}
+ENEMY_WHYS = {
+    "evasion",
+    "evasion_escape",
+    "healing",
+    "illusions",
+    "illusion_evasion",
+    "illusion_splash",
+    "jumper",
+    "magic",
+    "break",
+}
 
 
 def _situational_because(item: Mapping[str, Any]) -> str | None:
@@ -503,6 +517,8 @@ def _situational_because(item: Mapping[str, Any]) -> str | None:
         if not enemy or (why == "break" and not item.get("spell")):
             return None
         if why == "evasion_escape" and not (item.get("escape") and item.get("spell")):
+            return None
+        if why == "jumper" and not item.get("spell"):
             return None
     elif count < 1 or (why == "targeted" and not (enemy and item.get("spell"))):
         return None

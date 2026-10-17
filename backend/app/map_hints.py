@@ -459,6 +459,38 @@ TIPS = {
             "Його тиша не дасть використати {spell}, а по цілі під тишею ваші атаки й ілюзії не промахуються.",
         ),
     },
+    "draft_illusion_evasion": {
+        "en": (
+            "Against their draft: {item}",
+            "{enemy} fights with illusions: plan {item}. With 35% evasion about a third of their attacks miss you.",
+        ),
+        "uk": (
+            "Проти їхнього драфту: {item}",
+            "{enemy} б'ється ілюзіями: заплануйте {item}. З 35 % ухилення приблизно третина їхніх атак по вас промахується.",
+        ),
+    },
+    "draft_illusion_splash": {
+        "en": (
+            "Against their draft: {item}",
+            "{enemy} fights with illusions: upgrade your Dragon Lance into {item}, not Hurricane Pike. "
+            "In Metamorphosis 30% of your attacks also hit up to 3 more enemies, and each one hit is poisoned.",
+        ),
+        "uk": (
+            "Проти їхнього драфту: {item}",
+            "{enemy} б'ється ілюзіями: Dragon Lance збирайте в {item}, а не в Hurricane Pike. "
+            "У Metamorphosis 30 % атак б'ють ще до 3 ворогів поруч, і кожен уражений отруєний.",
+        ),
+    },
+    "draft_jumper": {
+        "en": (
+            "Against their draft: {item}",
+            "{enemy} jumps on you with {spell}: plan {item}. It pushes you both apart, and for 5 seconds you keep hitting them from range.",
+        ),
+        "uk": (
+            "Проти їхнього драфту: {item}",
+            "{enemy} стрибає на вас через {spell}: заплануйте {item}. Він розкидає вас, і 5 секунд ви б'єте ціль здалеку.",
+        ),
+    },
     "draft_illusions": {
         "en": (
             "Against their draft: {item}",

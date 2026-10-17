@@ -43,6 +43,8 @@ def test_every_plan_follows_the_template():
     known = groups()
     for plan in plans.values():
         assert plan["patch"] and plan["checked"] and plan["sources"]
+        for item in plan.get("tempo", {}).get("items", []):
+            assert item["item"] and item["name"]
         for rule in plan["rules"]:
             assert rule["basis"].strip()  # why the item, from the build or the mechanics
             assert rule["enemy"] in known and rule.get("also", "evasion") in known
@@ -69,6 +71,9 @@ def test_a_broken_plan_is_refused():
         {**good, "rules": [{**good["rules"][0], "why": "vibes"}]},
         {**good, "rules": [good["rules"][0], good["rules"][0]]},  # the same id twice
         {**good, "suppress": {"illusions": ""}},
+        {**good, "tempo": {**good["tempo"], "lead": 0}},
+        {**good, "tempo": {**good["tempo"], "items": []}},
+        {**good, "tempo": {**good["tempo"], "basis": ""}},
     ]
     for plan in broken:
         with pytest.raises(ValueError):
@@ -108,8 +113,9 @@ def test_anti_mage_is_no_escape_for_a_silence():
 
 def test_one_answer_to_evasion_is_enough():
     lineup = ["Phantom Assassin", "Queen of Pain", "Lion", "Axe"]
-    assert _tb(lineup, ["item_monkey_king_bar"]) is None
-    assert _tb(lineup, ["item_bloodthorn"]) is None
+    for owned in (["item_monkey_king_bar"], ["item_bloodthorn"]):
+        # Not the other answer to evasion; Phantom Assassin's jump is next.
+        assert _tb(lineup, owned)["key"] == "hurricane_pike"
 
 
 def test_against_healing_his_own_skadi_earlier():
@@ -119,14 +125,120 @@ def test_against_healing_his_own_skadi_earlier():
     assert _tb(["Huskar", "Lion", "Axe", "Crystal Maiden"], ["item_skadi"])["key"] == "silver_edge"
 
 
-def test_no_maelstrom_for_terrorblade():
+def test_against_illusions_butterfly_then_the_dragon_lance_into_hydras_breath():
     lineup = ["Phantom Lancer", "Lion", "Axe", "Crystal Maiden"]
-    assert _tb(lineup) is None
-    # Other carries keep the generic counter.
+    first = _tb(lineup)
+    assert (first["key"], first["why"], first["enemy"]) == (
+        "butterfly",
+        "illusion_evasion",
+        "Phantom Lancer",
+    )
+    second = _tb(lineup, ["item_butterfly"])
+    assert (second["key"], second["why"]) == ("hydras_breath", "illusion_splash")
+    # No Maelstrom for him; other carries keep the generic counter.
+    assert _tb(lineup, ["item_butterfly", "item_hydras_breath"]) is None
     other = situational_item(
         [], [], META, enemies=lineup, position="carry", minute=20, hero="Juggernaut"
     )
     assert other["key"] == "maelstrom"
+
+
+@pytest.mark.parametrize(
+    ("jumper", "spell"),
+    [("Slark", "Pounce"), ("Spirit Breaker", "Charge of Darkness")],
+)
+def test_against_a_hero_who_jumps_on_him_hurricane_pike(jumper, spell):
+    item = _tb([jumper, "Lion", "Axe", "Crystal Maiden"])
+    assert (item["key"], item["why"], item["enemy"], item["spell"]) == (
+        "hurricane_pike",
+        "jumper",
+        jumper,
+        spell,
+    )
+    # Phantom Assassin jumps too: Pike once the evasion is answered.
+    assert _tb(["Phantom Assassin", "Lion", "Axe"], ["item_monkey_king_bar"])["key"] == (
+        "hurricane_pike"
+    )
+
+
+def test_one_dragon_lance_upgrade_against_illusions_and_jumpers():
+    # Illusions win the Dragon Lance: Hydra's Breath, not Pike as well.
+    lineup = ["Phantom Lancer", "Slark", "Axe", "Crystal Maiden"]
+    assert _tb(lineup, ["item_butterfly"])["key"] == "hydras_breath"
+    assert _tb(lineup, ["item_butterfly", "item_hydras_breath"]) is None
+    assert _tb(["Slark", "Axe"], ["item_hurricane_pike"]) is None
+
+
+def test_far_ahead_the_tempo_build_before_the_counters():
+    lineup = ["Phantom Assassin", "Queen of Pain", "Axe", "Crystal Maiden"]
+    ahead = situational_item(
+        [],
+        ["item_manta"],
+        META,
+        enemies=lineup,
+        position="carry",
+        minute=25,
+        hero="Terrorblade",
+        lead=12,
+    )
+    assert (ahead["key"], ahead["why"], ahead["count"]) == ("skadi", "tempo", 12)
+    owned_all = ["item_manta", "item_skadi", "item_butterfly", "item_greater_crit"]
+    assert (
+        situational_item(
+            [],
+            owned_all,
+            META,
+            enemies=lineup,
+            position="carry",
+            minute=25,
+            hero="Terrorblade",
+            lead=12,
+        )
+        is None
+    )
+    # A smaller lead, or too early: the counters.
+    for lead, minute in ((9, 25), (12, 14)):
+        item = situational_item(
+            [],
+            ["item_manta"],
+            META,
+            enemies=lineup,
+            position="carry",
+            minute=minute,
+            hero="Terrorblade",
+            lead=lead,
+        )
+        assert item is None or item["why"] != "tempo"
+    # Deaths under stuns still come first.
+    stunned = situational_item(
+        [_stunned(600), _stunned(900)],
+        [],
+        META,
+        enemies=lineup,
+        position="carry",
+        minute=25,
+        hero="Terrorblade",
+        lead=12,
+    )
+    assert stunned["key"] == "black_king_bar"
+    state = {"minute": 25, "gold": 900, "extra_context": {"next_item": ahead, "gpm": 600}}
+    _, reason = _next_item_copy(state, state["extra_context"])
+    assert reason.startswith("Your team leads by 12 kills, so Eye of Skadi on the tempo build")
+    assert translate_uk(reason).startswith(
+        "Ваша команда попереду, різниця у вбивствах — 12: спершу Eye of Skadi"
+    )
+    for lang in ("en", "uk"):
+        screen = build_death_screen(
+            death={"t": 1500, "usable": []},
+            place=None,
+            respawn=30,
+            gold=900,
+            buyback_cost=None,
+            minute=25,
+            next_item={**ahead, "gold_left": 3000},
+            lang=lang,
+        )
+        assert any("Aegis" in line for line in screen["lines"])
 
 
 def test_other_heroes_and_other_positions_keep_the_generic_counters():

@@ -594,9 +594,11 @@ class PlayerService:
         *,
         enemies: list[str] | None = None,
         minute: Any = None,
+        lead: int | None = None,
     ) -> dict[str, Any] | None:
         """The next item of the hero's usual build and the gold its missing parts
-        cost (app/next_item.py) for a core's live farm advice; None when unknown."""
+        cost (app/next_item.py) for a core's live farm advice; None when unknown.
+        `lead`: the team's kill lead (a hero plan's tempo build)."""
         hero_id = hero_id_from_name(hero)
         if hero_id is None or owned is None:
             return None
@@ -612,6 +614,7 @@ class PlayerService:
             position=get_hero_position(hero),
             minute=minute if isinstance(minute, int) else None,
             hero=hero,
+            lead=lead,
         )
         return situational or next_build_item(meta, owned)
 

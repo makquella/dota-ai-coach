@@ -28,7 +28,8 @@ allies and the player's own hero are never counted.
 3. **The enemy groups.** Rules name groups from `hero_items.groups()`:
    `evasion`, `illusions`, `healing` (`draft_analysis.COUNTERS`), `escape`
    (`draft_analysis.ESCAPES`: escapes a silence stops, spell names from
-   `/herodata`), `break` (`situational_items.BREAK_PASSIVES`). A new group goes
+   `/herodata`), `break` (`situational_items.BREAK_PASSIVES`), `jumpers`
+   (`draft_analysis.JUMPERS`: heroes who jump onto a carry). A new group goes
    into those tables with its own check, not into one plan.
 4. **The rules**, in order; the first that holds wins its `family`:
    - `why` — the reason shown (one of `hero_items.WHYS`);
@@ -39,31 +40,45 @@ allies and the player's own hero are never counted.
    - `basis` — the build line or the Valve fact behind it.
    Put the more specific rule first (Bloodthorn for evasion **and** an escape,
    then Monkey King Bar for evasion alone).
-5. **What does not fit.** `suppress` maps a generic `why` to the reason it is
-   wrong for the hero (Terrorblade: no Maelstrom against illusions).
-6. **The words.** A new `why` needs its reason in each place that shows one,
+5. **What does not fit.** A family the plan answers replaces the generic
+   counter (Terrorblade's illusions family: Butterfly, no Maelstrom);
+   `suppress` maps a generic `why` the plan leaves unanswered to the reason it
+   is wrong for the hero.
+6. **Tempo** (optional). `tempo` names the build to keep when the team leads
+   by `lead` kills from `minute` on: the counters wait. A player's GSI has no
+   enemy net worth; the kill lead is the observed stand-in.
+7. **The words.** A new `why` needs its reason in each place that shows one,
    in English and Ukrainian: `map_hints.TIPS["draft_<why>"]`,
    `death_screen.TEXT[lang]["why_<why>"]`, `post_laning_coach.SITUATIONAL_BECAUSE`
    with its Ukrainian pattern in `advice_i18n.py`. `test_hero_items.py` fails
    when one is missing.
-7. **The scenarios.** Add the hero's cases to `backend/tests/test_hero_items.py`:
+8. **The scenarios.** Add the hero's cases to `backend/tests/test_hero_items.py`:
    each rule, the rule that must *not* fire (Anti-Mage is no escape for a
    silence: Counterspell), an owned item that answers the family, the minute
    gate, the death patterns still first, other heroes unchanged, and one live
    `/gsi` run to the overlay card.
-8. **A real match.** Replay a recording on the hero (Settings → Keep match
+9. **A real match.** Replay a recording on the hero (Settings → Keep match
    recordings for a week) and read which counter the card names and when.
 
 ## Terrorblade (7.41f, checked 2026-10-17)
 
-| Enemy lineup | Item | Why |
-|---|---|---|
-| Phantom Assassin or Windranger, and Queen of Pain, Storm Spirit, Puck, Ember Spirit, Void Spirit, Weaver, Mirana, Morphling or Faceless Void | Bloodthorn | Soul Rend: 5 s silence stops the escape; True Strike for his attacks and his illusions against the silenced target; passive pierce 40% |
-| Phantom Assassin or Windranger alone (or with Anti-Mage) | Monkey King Bar | 80% pierce, nothing to cast, 1400 gold cheaper |
-| Alchemist, Necrophos, Huskar, Oracle or Lifestealer | Eye of Skadi earlier | in his build (~28 min); attacks cut health restoration by 50% |
-| Phantom Lancer, Naga Siren, Chaos Knight, Meepo, Terrorblade | — | no Maelstrom: off his build (open check) |
-| Bristleback, Spectre, Huskar (after Skadi) | Silver Edge | the generic break counter, unchanged |
+Rules in order (the first that holds wins its family; one item per family):
 
-Open checks before the next plans: an answer to illusion heroes for
-Terrorblade; Butterfly and other enemy items are not visible to a player's
-GSI, so no rule may depend on them.
+| Family | Enemy lineup | Item | Why |
+|---|---|---|---|
+| evasion | Phantom Assassin or Windranger, and Queen of Pain, Storm Spirit, Puck, Ember Spirit, Void Spirit, Weaver, Mirana, Morphling or Faceless Void | Bloodthorn | Soul Rend: 5 s silence stops the escape; True Strike for his attacks and his illusions against the silenced target; passive pierce 40% |
+| evasion | Phantom Assassin or Windranger alone (or with Anti-Mage) | Monkey King Bar | 80% pierce, nothing to cast, 1400 gold cheaper |
+| healing | Alchemist, Necrophos, Huskar, Oracle or Lifestealer | Eye of Skadi earlier | in his build (~28 min); attacks cut health restoration by 50% |
+| illusions | Phantom Lancer, Naga Siren, Chaos Knight, Meepo, Terrorblade | Butterfly | 35% evasion: about a third of the illusions' attacks miss |
+| lance | the same illusion heroes | Hydra's Breath | the Dragon Lance goes here, not into Pike: in Metamorphosis 30% of ranged attacks hit up to 3 more enemies, Miasma poisons them |
+| lance | Slark, Phantom Assassin, Spirit Breaker | Hurricane Pike | pushes the jumper 425 away, 5 attacks from range with +100 attack speed |
+| (generic) | Bristleback, Spectre, Huskar (after Skadi) | Silver Edge | the generic break counter, unchanged |
+
+**Tempo:** from minute 15 with the team 10+ kills ahead, the counters wait and
+the next item is the tempo build's — Manta Style, Eye of Skadi, Butterfly,
+Daedalus — then the Aegis and the throne. A player's GSI shows no enemy net
+worth, so the kill lead stands for «their carry is poor».
+
+The illusion, Pike and tempo rules come from a player's review (2026-10-17),
+checked against the items' Valve data. Butterfly and other enemy items are not
+visible to a player's GSI, so no rule may depend on them.

@@ -1,13 +1,16 @@
 {
   "schema": 1,
   "hero": "Terrorblade",
-  "positions": ["carry"],
+  "positions": [
+    "carry"
+  ],
   "patch": "7.41f",
   "checked": "2026-10-17",
   "sources": {
     "build": "STRATZ Divine-Immortal pos1, 2026-10-13 (data/meta/stratz_builds.json): Falcon Blade ~7 min, Manta Style ~17, Eye of Skadi ~28, Hurricane Pike ~29.",
-    "items": "Valve /datafeed/itemdata, 7.41f: Monkey King Bar (135), Bloodthorn (250), Eye of Skadi (160).",
-    "hero": "Valve /datafeed/herodata hero_id 109: melee (150 range); Conjure Image and Metamorphosis illusions are Terrorblade's controlled units."
+    "items": "Valve /datafeed/itemdata, 7.41f: Monkey King Bar (135), Bloodthorn (250), Eye of Skadi (160), Butterfly (139), Hurricane Pike (263), Hydra's Breath (1858), Daedalus (141). Recipes: OpenDota constants (Hydra's Breath and Hurricane Pike are both built from Dragon Lance).",
+    "hero": "Valve /datafeed/herodata hero_id 109: melee (150 range); Conjure Image and Metamorphosis illusions are Terrorblade's controlled units.",
+    "player": "Player review, 2026-10-17: against illusions Butterfly, and Dragon Lance goes into Hydra's Breath instead of Hurricane Pike; Pike against heroes who jump on him; far ahead, the tempo build Manta, Skadi, Butterfly, Daedalus, then Aegis and the throne."
   },
   "rules": [
     {
@@ -40,9 +43,59 @@
       "enemy": "healing",
       "minute": 12,
       "basis": "Eye of Skadi is in Terrorblade's usual build (~28 min) and its attacks cut health restoration by 50% for 3 s: buy it earlier rather than an off-build Spirit Vessel."
+    },
+    {
+      "id": "illusion_evasion",
+      "why": "illusion_evasion",
+      "family": "illusions",
+      "item": "butterfly",
+      "name": "Butterfly",
+      "enemy": "illusions",
+      "minute": 20,
+      "basis": "Butterfly: 35% evasion, so about a third of the illusions' attacks miss him; it is also in his tempo build."
+    },
+    {
+      "id": "illusion_splash",
+      "why": "illusion_splash",
+      "family": "lance",
+      "item": "hydras_breath",
+      "name": "Hydra's Breath",
+      "enemy": "illusions",
+      "minute": 20,
+      "basis": "Hydra's Breath (Dragon Lance + Specialist's Array + Orb of Venom): 30% of ranged attacks also fire at up to 3 nearby enemies, and Miasma poisons each one hit for 2.5% of max HP per second. Terrorblade attacks from range in Metamorphosis, so the Dragon Lance goes into it instead of Hurricane Pike."
+    },
+    {
+      "id": "jumper",
+      "why": "jumper",
+      "family": "lance",
+      "item": "hurricane_pike",
+      "name": "Hurricane Pike",
+      "enemy": "jumpers",
+      "minute": 20,
+      "basis": "Hurricane Thrust: pushes him and the target 425 apart, then 5 attacks on it from any range with +100 attack speed for 5 s. In his STRATZ build at ~29 min."
     }
   ],
-  "suppress": {
-    "illusions": "Maelstrom is not in Terrorblade's build (Falcon Blade, Manta Style, Eye of Skadi); his own illusions fight illusion heroes. Open check before a counter is added."
+  "tempo": {
+    "lead": 10,
+    "minute": 15,
+    "items": [
+      {
+        "item": "manta",
+        "name": "Manta Style"
+      },
+      {
+        "item": "skadi",
+        "name": "Eye of Skadi"
+      },
+      {
+        "item": "butterfly",
+        "name": "Butterfly"
+      },
+      {
+        "item": "greater_crit",
+        "name": "Daedalus"
+      }
+    ],
+    "basis": "A player's GSI shows no enemy net worth; a kill lead of this size is the observed sign the enemy carry is behind. Then the counters wait: the tempo build, the Aegis and the throne."
   }
 }

@@ -10,11 +10,18 @@ mechanics (each rule keeps its `basis`), e.g. Terrorblade:
   of Pain's Blink, Storm Spirit's Ball Lightning...): Bloodthorn — the silence
   stops the escape and gives True Strike to his illusions too;
 - evasion alone: Monkey King Bar;
-- heavy healing: his own Eye of Skadi earlier.
+- heavy healing: his own Eye of Skadi earlier;
+- illusion heroes: Butterfly, and the Dragon Lance into Hydra's Breath
+  (Metamorphosis attacks from range) instead of Hurricane Pike;
+- heroes who jump on him (Slark, Phantom Assassin, Spirit Breaker): Pike.
+
+`tempo`: far ahead on kills (a player's GSI shows no enemy net worth; the kill
+lead is the observed sign), the counters wait and the next item is the tempo
+build's (Manta Style, Eye of Skadi, Butterfly, Daedalus), then the Aegis.
 
 A plan's rules replace the generic counters of the same family (`family`),
-and `suppress` drops generic counters that do not fit the hero (Maelstrom on
-Terrorblade). Rules are tried in order; the first whose enemy groups are seen
+and `suppress` drops generic counters the plan leaves unanswered but that do
+not fit the hero. Rules are tried in order; the first whose enemy groups are seen
 and whose minute has come wins its family. A plan applies only in its
 `positions`; elsewhere the generic counters stay. docs/HERO_ITEM_PLANS.md is
 the checklist for writing one.
@@ -34,14 +41,26 @@ SCHEMA = 1
 # Every why a rule may use has a reason in each place that shows one:
 # map_hints.TIPS (draft_<why>), death_screen.TEXT (why_<why>) and
 # post_laning_coach.SITUATIONAL_BECAUSE (tests/test_hero_items.py checks it).
-WHYS = {"evasion", "evasion_escape", "healing", "illusions", "break", "magic"}
+WHYS = {
+    "evasion",
+    "evasion_escape",
+    "healing",
+    "illusions",
+    "illusion_evasion",
+    "illusion_splash",
+    "jumper",
+    "break",
+    "magic",
+}
+# The tempo build's why: shown on the death screen and in the farm advice.
+TEMPO_WHY = "tempo"
 POSITIONS = {"carry", "mid", "offlane"}
 RULE_KEYS = {"id", "why", "family", "item", "name", "enemy", "also", "minute", "basis"}
 
 
 def groups() -> dict[str, dict[str, str | None]]:
     """Enemy hero groups a rule names: {group: {hero: spell or None}}."""
-    from app.draft_analysis import COUNTERS, ESCAPES
+    from app.draft_analysis import COUNTERS, ESCAPES, JUMPERS
     from app.situational_items import BREAK_PASSIVES
 
     return {
@@ -50,6 +69,7 @@ def groups() -> dict[str, dict[str, str | None]]:
         "healing": dict.fromkeys(COUNTERS["healing"][0]),
         "escape": dict(ESCAPES),
         "break": dict(BREAK_PASSIVES),
+        "jumpers": dict(JUMPERS),
     }
 
 
@@ -97,6 +117,26 @@ def validate(plan: Any, source: str = "plan") -> dict[str, Any]:
         isinstance(v, str) and v.strip() for v in suppress.values()
     ):
         raise fail("suppress maps a generic why to the reason it does not fit")
+    tempo = plan.get("tempo")
+    if tempo is not None:
+        items = tempo.get("items") if isinstance(tempo, dict) else None
+        lead, minute = (tempo.get("lead"), tempo.get("minute")) if items else (None, None)
+        if (
+            not isinstance(items, list)
+            or not items
+            or not all(
+                isinstance(i, dict) and isinstance(i.get("item"), str) and i.get("name")
+                for i in items
+            )
+            or isinstance(lead, bool)
+            or not isinstance(lead, int)
+            or lead < 1
+            or isinstance(minute, bool)
+            or not isinstance(minute, int)
+            or not isinstance(tempo.get("basis"), str)
+            or not tempo["basis"].strip()
+        ):
+            raise fail("tempo needs items [{item, name}], a lead, a minute and a basis")
     return plan
 
 
@@ -166,3 +206,16 @@ def hero_rows(plan: dict[str, Any], enemies: list[str], minute: int | None) -> l
             }
         )
     return rows
+
+
+def tempo_rows(
+    plan: dict[str, Any], lead: int | None, minute: int | None
+) -> list[dict[str, Any]] | None:
+    """The tempo build's items in order when the kill lead and the minute call
+    for it ({key, name}); None otherwise (the counters stay)."""
+    tempo = plan.get("tempo")
+    if not tempo or not isinstance(lead, int) or lead < tempo["lead"]:
+        return None
+    if (minute or 0) < tempo["minute"]:
+        return None
+    return [{"key": i["item"], "name": i["name"]} for i in tempo["items"]]

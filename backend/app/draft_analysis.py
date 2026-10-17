@@ -116,6 +116,14 @@ ESCAPES = {
     "Morphling": "Waveform",
     "Faceless Void": "Time Walk",
 }
+# Heroes who jump onto a carry: Hurricane Pike pushes them away and keeps the
+# attacks going (hero_items.py). Not Legion Commander: Pike does not work in a
+# Duel. Names from Valve's /herodata, patch 7.41f.
+JUMPERS = {
+    "Slark": "Pounce",
+    "Phantom Assassin": "Phantom Strike",
+    "Spirit Breaker": "Charge of Darkness",
+}
 # Lineups (live advice only): heroes whose damage is mostly magic, and
 # right-click carries. LINEUP_MIN of one kind among the enemies seen asks for
 # the item against it (situational_items.py, the support's save item tip).

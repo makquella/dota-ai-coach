@@ -71,7 +71,7 @@ from app.llm_provider import generate_llm_recommendation, is_llm_provider_enable
 from app.local_api_auth import LOCAL_API_AUTH
 from app.local_api_security import LocalApiSecurity, local_origins
 from app.logger import log_recommendation, prune_logs
-from app.map_hints import DRAFT_UNTIL, timers
+from app.map_hints import DRAFT_UNTIL, score_gap, timers
 from app.match_memory import MATCH_MEMORY
 from app.match_records import KEEP_DAYS, MATCH_RECORDS
 from app.player_api import PLAYER_SERVICE, refresh_quieter_advice
@@ -1197,6 +1197,7 @@ def _with_next_item(
             names if isinstance(names, list) else None,
             enemies=enemies if isinstance(enemies, list) else None,
             minute=state.get("minute"),
+            lead=score_gap(raw_extra),
         )
     except Exception as error:  # noqa: BLE001 - never breaks the live path
         record_error("next-item", error)

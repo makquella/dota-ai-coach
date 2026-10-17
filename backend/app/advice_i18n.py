@@ -820,6 +820,12 @@ def _counter_reason(groups: dict[str, str]) -> str:
     return head + tail if tail is not None else ""
 
 
+def _with_tail(head: str, groups: dict[str, str]) -> str:
+    """A counter reason's Ukrainian head with the gold tail translated."""
+    tail = _situational_tail(groups["tail"])
+    return head + tail if tail is not None else ""
+
+
 def _escape_reason(groups: dict[str, str]) -> str:
     """Evasion and an escape a silence stops (hero_items.py, why "evasion_escape")."""
     head = (
@@ -908,6 +914,49 @@ _UK_FUNCTIONS: tuple[tuple[re.Pattern[str], Callable[[dict[str, str]], str]], ..
             + _SITUATIONAL_TAIL_RE
         ),
         _counter_reason,
+    ),
+    (
+        re.compile(
+            r"^(?P<enemy>.+?) fights with illusions, and (?P<name>.+?) makes a third of their "
+            r"attacks miss you" + _SITUATIONAL_TAIL_RE
+        ),
+        lambda g: _with_tail(
+            f"{g['enemy']} б'ється ілюзіями — з {g['name']} третина їхніх атак по вас промахується",
+            g,
+        ),
+    ),
+    (
+        re.compile(
+            r"^(?P<enemy>.+?) fights with illusions, and (?P<name>.+?) from your Dragon Lance hits "
+            r"up to 3 more of them in Metamorphosis" + _SITUATIONAL_TAIL_RE
+        ),
+        lambda g: _with_tail(
+            f"{g['enemy']} б'ється ілюзіями — {g['name']} з вашого Dragon Lance у Metamorphosis "
+            "б'є ще до 3 з них",
+            g,
+        ),
+    ),
+    (
+        re.compile(
+            r"^(?P<enemy>.+?) jumps on you with (?P<spell>.+?), and (?P<name>.+?) pushes them away "
+            r"and keeps your attacks going" + _SITUATIONAL_TAIL_RE
+        ),
+        lambda g: _with_tail(
+            f"{g['enemy']} стрибає на вас через {g['spell']} — {g['name']} відкине ворога, "
+            "і ви битимете далі",
+            g,
+        ),
+    ),
+    (
+        re.compile(
+            r"^Your team leads by (?P<count>\d+) kills, so (?P<name>.+?) on the tempo build comes "
+            r"before counters: then take the Aegis and push for the throne" + _SITUATIONAL_TAIL_RE
+        ),
+        lambda g: _with_tail(
+            f"Ваша команда попереду, різниця у вбивствах — {g['count']}: спершу {g['name']} "
+            "з темпової збірки, потім заберіть Aegis і йдіть на трон",
+            g,
+        ),
     ),
     (
         re.compile(
