@@ -1,10 +1,15 @@
 name: Website
 
-# Publishes site/ to GitHub Pages. Manual until Pages is switched on
-# (Settings -> Pages -> Source: GitHub Actions); see site/README.md.
+# Publishes site/ to GitHub Pages (Settings -> Pages -> Source: GitHub
+# Actions); see site/README.md. Every change of site/ merged into main goes
+# out by itself. The news workflows' own commits (made with the workflow token,
+# which starts no other workflow) call this one directly.
 on:
+  push:
+    branches: [main]
+    paths: ["site/**"]
   workflow_dispatch:
-  # news.yml publishes the site right after committing a post.
+  # news.yml, patch.yml and hero-week.yml publish right after their commit.
   workflow_call:
     inputs:
       ref:
