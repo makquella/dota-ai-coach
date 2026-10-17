@@ -488,7 +488,7 @@ SITUATIONAL_BECAUSE = {
     "illusion_evasion": "{enemy} fights with illusions, and {name} makes a third of their attacks miss you",
     "illusion_splash": "{enemy} fights with illusions, and {name} from your Dragon Lance hits up to 3 more of them in Metamorphosis",
     "jumper": "{enemy} jumps on you with {spell}, and {name} pushes them away and keeps your attacks going",
-    "tempo": "Your team leads by {count} kills, so {name} on the tempo build comes before counters: then take the Aegis and push for the throne",
+    "tempo": "Your net worth is {count}, well ahead for this minute, so {name} on the tempo build comes before counters: then take the Aegis and push for the throne",
     "magic": "{count} enemy heroes deal magic damage, and {name} protects you from it",
     "break": "{enemy} relies on {spell}, and {name} turns it off",
 }

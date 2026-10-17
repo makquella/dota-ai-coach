@@ -101,6 +101,19 @@ def buy_now(
     return {"key": part, "name": item_name(part, constants), "cost": cost}
 
 
+def net_worth(
+    owned_names: list[str] | None, gold: Any, constants: dict[str, Any] | None
+) -> int | None:
+    """Gold plus the shop cost of the items carried (inventory, backpack and
+    stash: map_hints.item_names), as Dota counts net worth; None without the
+    gold or priced item constants."""
+    if owned_names is None or isinstance(gold, bool) or not isinstance(gold, int):
+        return None
+    if not has_components(constants):
+        return None
+    return gold + sum(_cost(item_key(name), constants or {}) for name in owned_names)
+
+
 def has_components(constants: dict[str, Any] | None) -> bool:
     """Whether the cached item constants carry the components (kept since 0.12)."""
     items = (constants or {}).get("items") or {}

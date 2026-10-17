@@ -92,7 +92,7 @@ def _candidates(
     position: str | None,
     minute: int | None,
     hero: str | None = None,
-    lead: int | None = None,
+    net_worth: int | None = None,
 ) -> list[Candidate]:
     """(why, item key, fallback name, deaths, enemy, spell, extra), in priority
     order; `extra` carries a hero plan's escape hero and family items."""
@@ -128,12 +128,14 @@ def _candidates(
     plan = plan_for(hero, position)
     skip: set[str] = set()
     if plan is not None:
-        tempo = tempo_rows(plan, lead, minute)
+        tempo = tempo_rows(plan, net_worth, minute)
         if tempo is not None:
-            # Far ahead: the counters wait, the tempo build goes on (owned
+            # Farmed far ahead of the curve: the counters wait, the tempo build
+            # goes on (owned
             # items are passed over below).
             return rows + [
-                (TEMPO_WHY, row["key"], row["name"], lead or 0, None, None, {}) for row in tempo
+                (TEMPO_WHY, row["key"], row["name"], net_worth or 0, None, None, {})
+                for row in tempo
             ]
         skip = replaced(plan)
         for row in hero_rows(plan, enemies, minute):
@@ -174,13 +176,13 @@ def situational_item(
     position: str | None = None,
     minute: int | None = None,
     hero: str | None = None,
-    lead: int | None = None,
+    net_worth: int | None = None,
 ) -> dict[str, Any] | None:
     """{key, name, cost, gold_left (None when the price is unknown), why, count,
     enemy, spell, escape} for the first rule that holds: MIN_DEATHS deaths of
     its kind (a single-target disabler among the enemies turns BKB into
     Linken's), else a counter to an enemy hero seen (the `hero`'s plan first,
-    or its tempo build when the team's kill `lead` is big enough); None
+    or its tempo build when the player's `net_worth` is over its curve); None
     otherwise."""
     if owned_names is None:
         return None
@@ -192,7 +194,7 @@ def situational_item(
     known = (constants.get("items") or {}) if priced else {}
     owned = [item_key(name) for name in owned_names]
     enemy_list = [e for e in enemies or [] if isinstance(e, str)]
-    candidates = _candidates(kinds, enemy_list, position, minute, hero, lead)
+    candidates = _candidates(kinds, enemy_list, position, minute, hero, net_worth)
     for why, key, fallback, count, enemy, spell, extra in candidates:
         # A family answered by any of its items (Monkey King Bar or Bloodthorn).
         if any(

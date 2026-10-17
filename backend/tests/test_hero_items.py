@@ -14,8 +14,17 @@ from test_situational_items import _stunned
 from app.advice_i18n import translate_uk
 from app.death_screen import TEXT as DEATH_TEXT
 from app.death_screen import build_death_screen
-from app.hero_items import ITEM_PLANS_DIR, WHYS, groups, load_plans, plan_for, validate
+from app.hero_items import (
+    ITEM_PLANS_DIR,
+    WHYS,
+    groups,
+    load_plans,
+    plan_for,
+    tempo_threshold,
+    validate,
+)
 from app.map_hints import TIPS
+from app.next_item import net_worth
 from app.post_laning_coach import SITUATIONAL_BECAUSE, _next_item_copy
 from app.situational_items import draft_item, situational_item
 
@@ -71,7 +80,8 @@ def test_a_broken_plan_is_refused():
         {**good, "rules": [{**good["rules"][0], "why": "vibes"}]},
         {**good, "rules": [good["rules"][0], good["rules"][0]]},  # the same id twice
         {**good, "suppress": {"illusions": ""}},
-        {**good, "tempo": {**good["tempo"], "lead": 0}},
+        {**good, "tempo": {**good["tempo"], "net_worth": [[25, 16000], [20, 12000]]}},
+        {**good, "tempo": {**good["tempo"], "net_worth": [[20, "12k"]]}},
         {**good, "tempo": {**good["tempo"], "items": []}},
         {**good, "tempo": {**good["tempo"], "basis": ""}},
     ]
@@ -118,8 +128,11 @@ def test_one_answer_to_evasion_is_enough():
         assert _tb(lineup, owned)["key"] == "hurricane_pike"
 
 
-def test_against_healing_his_own_skadi_earlier():
-    item = _tb(["Huskar", "Lion", "Axe", "Crystal Maiden"], minute=12)
+def test_against_healing_his_own_skadi_stays_in_the_build():
+    # From minute 20, after Manta Style: the build's own answer, not a Spirit Vessel.
+    # (No magic lineup here: three magic heroes would ask for Black King Bar.)
+    assert _tb(["Huskar", "Axe", "Sven", "Juggernaut"], minute=15) is None
+    item = _tb(["Huskar", "Axe", "Sven", "Juggernaut"], minute=20)
     assert (item["key"], item["why"], item["enemy"]) == ("skadi", "healing", "Huskar")
     # With Skadi bought, the generic answer to Berserker's Blood comes next.
     assert _tb(["Huskar", "Lion", "Axe", "Crystal Maiden"], ["item_skadi"])["key"] == "silver_edge"
@@ -169,63 +182,64 @@ def test_one_dragon_lance_upgrade_against_illusions_and_jumpers():
     assert _tb(["Slark", "Axe"], ["item_hurricane_pike"]) is None
 
 
-def test_far_ahead_the_tempo_build_before_the_counters():
+def test_the_tempo_curve_from_high_rank_games():
+    plan = plan_for("Terrorblade", "carry")
+    # 12.5k, 17k and 22k gold by 20, 25 and 30 min (~85% wins), as net worth.
+    assert [tempo_threshold(plan, m) for m in (19, 20, 22, 25, 30, 35)] == [
+        None,
+        12000,
+        13720,
+        16300,
+        21100,
+        25900,
+    ]
+
+
+def test_net_worth_is_gold_and_the_items_carried():
+    constants = META["constants"]
+    owned = ["item_manta", "item_black_king_bar"]
+    expected = 900 + sum(constants["items"][k]["cost"] for k in ("manta", "black_king_bar"))
+    assert net_worth(owned, 900, constants) == expected
+    assert net_worth(owned, None, constants) is None  # no gold: unknown
+    assert net_worth(owned, 900, {}) is None  # no prices: unknown
+
+
+def _ahead(owned, net_worth, *, minute=25, deaths=()):
     lineup = ["Phantom Assassin", "Queen of Pain", "Axe", "Crystal Maiden"]
-    ahead = situational_item(
-        [],
-        ["item_manta"],
+    return situational_item(
+        list(deaths),
+        list(owned),
         META,
         enemies=lineup,
         position="carry",
-        minute=25,
+        minute=minute,
         hero="Terrorblade",
-        lead=12,
+        net_worth=net_worth,
     )
-    assert (ahead["key"], ahead["why"], ahead["count"]) == ("skadi", "tempo", 12)
+
+
+def test_farmed_over_the_curve_the_tempo_build_before_the_counters():
+    ahead = _ahead(["item_manta"], 17000)
+    assert (ahead["key"], ahead["why"], ahead["count"]) == ("skadi", "tempo", 17000)
     owned_all = ["item_manta", "item_skadi", "item_butterfly", "item_greater_crit"]
-    assert (
-        situational_item(
-            [],
-            owned_all,
-            META,
-            enemies=lineup,
-            position="carry",
-            minute=25,
-            hero="Terrorblade",
-            lead=12,
-        )
-        is None
-    )
-    # A smaller lead, or too early: the counters.
-    for lead, minute in ((9, 25), (12, 14)):
-        item = situational_item(
-            [],
-            ["item_manta"],
-            META,
-            enemies=lineup,
-            position="carry",
-            minute=minute,
-            hero="Terrorblade",
-            lead=lead,
-        )
+    assert _ahead(owned_all, 30000) is None
+    # Under the curve, before minute 20, or with no net worth known: the counters.
+    for owned, worth, minute in (
+        (["item_manta"], 16000, 25),
+        (["item_manta"], 17000, 19),
+        (["item_manta"], None, 25),
+    ):
+        item = _ahead(owned, worth, minute=minute)
         assert item is None or item["why"] != "tempo"
     # Deaths under stuns still come first.
-    stunned = situational_item(
-        [_stunned(600), _stunned(900)],
-        [],
-        META,
-        enemies=lineup,
-        position="carry",
-        minute=25,
-        hero="Terrorblade",
-        lead=12,
-    )
-    assert stunned["key"] == "black_king_bar"
+    assert _ahead([], 17000, deaths=[_stunned(600), _stunned(900)])["key"] == "black_king_bar"
     state = {"minute": 25, "gold": 900, "extra_context": {"next_item": ahead, "gpm": 600}}
     _, reason = _next_item_copy(state, state["extra_context"])
-    assert reason.startswith("Your team leads by 12 kills, so Eye of Skadi on the tempo build")
+    assert reason.startswith(
+        "Your net worth is 17000, well ahead for this minute, so Eye of Skadi on the tempo build"
+    )
     assert translate_uk(reason).startswith(
-        "Ваша команда попереду, різниця у вбивствах — 12: спершу Eye of Skadi"
+        "Ваш нетворс — 17000, набагато більше звичайного для цієї хвилини: спершу Eye of Skadi"
     )
     for lang in ("en", "uk"):
         screen = build_death_screen(
@@ -239,6 +253,21 @@ def test_far_ahead_the_tempo_build_before_the_counters():
             lang=lang,
         )
         assert any("Aegis" in line for line in screen["lines"])
+
+
+def test_the_live_farm_advice_reads_the_net_worth(monkeypatch):
+    from app.player_api import PLAYER_SERVICE
+
+    monkeypatch.setattr(PLAYER_SERVICE, "_live_meta", lambda hero_id: META)
+    lineup = ["Phantom Assassin", "Queen of Pain", "Axe", "Crystal Maiden"]
+    poor = PLAYER_SERVICE.next_item(
+        "Terrorblade", ["item_manta"], enemies=lineup, minute=25, gold=500
+    )
+    assert poor["key"] == "bloodthorn"
+    rich = PLAYER_SERVICE.next_item(
+        "Terrorblade", ["item_manta"], enemies=lineup, minute=25, gold=12000
+    )
+    assert (rich["key"], rich["why"]) == ("skadi", "tempo")
 
 
 def test_other_heroes_and_other_positions_keep_the_generic_counters():

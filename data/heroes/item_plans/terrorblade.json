@@ -10,7 +10,8 @@
     "build": "STRATZ Divine-Immortal pos1, 2026-10-13 (data/meta/stratz_builds.json): Falcon Blade ~7 min, Manta Style ~17, Eye of Skadi ~28, Hurricane Pike ~29.",
     "items": "Valve /datafeed/itemdata, 7.41f: Monkey King Bar (135), Bloodthorn (250), Eye of Skadi (160), Butterfly (139), Hurricane Pike (263), Hydra's Breath (1858), Daedalus (141). Recipes: OpenDota constants (Hydra's Breath and Hurricane Pike are both built from Dragon Lance).",
     "hero": "Valve /datafeed/herodata hero_id 109: melee (150 range); Conjure Image and Metamorphosis illusions are Terrorblade's controlled units.",
-    "player": "Player review, 2026-10-17: against illusions Butterfly, and Dragon Lance goes into Hydra's Breath instead of Hurricane Pike; Pike against heroes who jump on him; far ahead, the tempo build Manta, Skadi, Butterfly, Daedalus, then Aegis and the throne."
+    "player": "Player review, 2026-10-17: against illusions Butterfly, and Dragon Lance goes into Hydra's Breath instead of Hurricane Pike; Pike against heroes who jump on him; far ahead, the tempo build Manta, Skadi, Butterfly, Daedalus, then Aegis and the throne.",
+    "games": "OpenDota Explorer, 617 league games with Terrorblade in patch 7.41 (2026-03-24..2026-10-17), gold timelines: he wins 86-100% with 12.5k+ gold by 20:00 (52-56% at 10-12k), 85% with 17k+ by 25:00, 85% with 22k+ by 30:00; net worth is ~0.96 of that gold. Dragon Lance is his third item in 87% of games. Against Phantom Assassin or Windranger, Monkey King Bar in 45% (12% otherwise); with an escape hero too, Bloodthorn 12% (5%), won 67% against 50%. Against illusion heroes Butterfly 51% (38%), Hurricane Pike 18% (44%), Maelstrom 0%. Against healing heroes Eye of Skadi 70% (61%) at the same ~27 min."
   },
   "rules": [
     {
@@ -41,8 +42,8 @@
       "item": "skadi",
       "name": "Eye of Skadi",
       "enemy": "healing",
-      "minute": 12,
-      "basis": "Eye of Skadi is in Terrorblade's usual build (~28 min) and its attacks cut health restoration by 50% for 3 s: buy it earlier rather than an off-build Spirit Vessel."
+      "minute": 20,
+      "basis": "Eye of Skadi is in Terrorblade's usual build and its attacks cut health restoration by 50% for 3 s: against heavy healing keep it in the build (high-rank players buy it more often, at the same ~27 min) rather than an off-build Spirit Vessel."
     },
     {
       "id": "illusion_evasion",
@@ -76,8 +77,20 @@
     }
   ],
   "tempo": {
-    "lead": 10,
-    "minute": 15,
+    "net_worth": [
+      [
+        20,
+        12000
+      ],
+      [
+        25,
+        16300
+      ],
+      [
+        30,
+        21100
+      ]
+    ],
     "items": [
       {
         "item": "manta",
@@ -96,6 +109,6 @@
         "name": "Daedalus"
       }
     ],
-    "basis": "A player's GSI shows no enemy net worth; a kill lead of this size is the observed sign the enemy carry is behind. Then the counters wait: the tempo build, the Aegis and the throne."
+    "basis": "His own net worth over this curve (12.5k, 17k and 22k gold by 20, 25 and 30 min in the games above, ~0.96 of it as net worth): he wins ~85% of those games. A player's GSI shows no enemy net worth, so his own farm stands for «their carry is poor». Then the counters wait: the tempo build, the Aegis and the throne."
   }
 }

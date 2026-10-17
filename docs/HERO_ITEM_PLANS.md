@@ -44,9 +44,13 @@ allies and the player's own hero are never counted.
    counter (Terrorblade's illusions family: Butterfly, no Maelstrom);
    `suppress` maps a generic `why` the plan leaves unanswered to the reason it
    is wrong for the hero.
-6. **Tempo** (optional). `tempo` names the build to keep when the team leads
-   by `lead` kills from `minute` on: the counters wait. A player's GSI has no
-   enemy net worth; the kill lead is the observed stand-in.
+6. **Tempo** (optional). `tempo.net_worth` is a curve `[[minute, net worth], ...]`
+   from high-rank games of the hero: above it the hero wins most games (read the
+   gold timelines in OpenDota Explorer, `player_matches.gold_t`; net worth is
+   ~0.96 of that gold). With the player's own net worth over it (gold plus the
+   items carried, `next_item.net_worth`), the counters wait and `tempo.items`
+   go on. A player's GSI has no enemy or team net worth: the hero's own farm is
+   the observed sign.
 7. **The words.** A new `why` needs its reason in each place that shows one,
    in English and Ukrainian: `map_hints.TIPS["draft_<why>"]`,
    `death_screen.TEXT[lang]["why_<why>"]`, `post_laning_coach.SITUATIONAL_BECAUSE`
@@ -68,16 +72,25 @@ Rules in order (the first that holds wins its family; one item per family):
 |---|---|---|---|
 | evasion | Phantom Assassin or Windranger, and Queen of Pain, Storm Spirit, Puck, Ember Spirit, Void Spirit, Weaver, Mirana, Morphling or Faceless Void | Bloodthorn | Soul Rend: 5 s silence stops the escape; True Strike for his attacks and his illusions against the silenced target; passive pierce 40% |
 | evasion | Phantom Assassin or Windranger alone (or with Anti-Mage) | Monkey King Bar | 80% pierce, nothing to cast, 1400 gold cheaper |
-| healing | Alchemist, Necrophos, Huskar, Oracle or Lifestealer | Eye of Skadi earlier | in his build (~28 min); attacks cut health restoration by 50% |
+| healing | Alchemist, Necrophos, Huskar, Oracle or Lifestealer | Eye of Skadi, from minute 20 | in his build; attacks cut health restoration by 50%; high-rank players buy it more often against them (70% vs 61%), at the same ~27 min |
 | illusions | Phantom Lancer, Naga Siren, Chaos Knight, Meepo, Terrorblade | Butterfly | 35% evasion: about a third of the illusions' attacks miss |
 | lance | the same illusion heroes | Hydra's Breath | the Dragon Lance goes here, not into Pike: in Metamorphosis 30% of ranged attacks hit up to 3 more enemies, Miasma poisons them |
 | lance | Slark, Phantom Assassin, Spirit Breaker | Hurricane Pike | pushes the jumper 425 away, 5 attacks from range with +100 attack speed |
 | (generic) | Bristleback, Spectre, Huskar (after Skadi) | Silver Edge | the generic break counter, unchanged |
 
-**Tempo:** from minute 15 with the team 10+ kills ahead, the counters wait and
-the next item is the tempo build's — Manta Style, Eye of Skadi, Butterfly,
-Daedalus — then the Aegis and the throne. A player's GSI shows no enemy net
-worth, so the kill lead stands for «their carry is poor».
+**Tempo:** with his own net worth over 12.0k at 20:00, 16.3k at 25:00 and 21.1k
+at 30:00 (linear between, the same slope after), the counters wait and the next
+item is the tempo build's — Manta Style, Eye of Skadi, Butterfly, Daedalus —
+then the Aegis and the throne. In 617 league games of patch 7.41 (OpenDota
+Explorer) he wins 86-100% with 12.5k+ gold by 20:00, 85% with 17k+ by 25:00 and
+85% with 22k+ by 30:00, against 52-56% at 10-12k by 20:00.
+
+The same games back the counters: Monkey King Bar in 45% of games against
+Phantom Assassin or Windranger (12% otherwise); Bloodthorn 12% (5%) when an
+escape hero is there too, won 67% against 50%; against illusion heroes Butterfly
+51% (38%), Hurricane Pike 18% (44%) and Maelstrom never. Dragon Lance is his
+third item in 87% of games. Samples are small (25-100 games per lineup) and a
+bought item also means a farmed hero: these are checks, not proof.
 
 The illusion, Pike and tempo rules come from a player's review (2026-10-17),
 checked against the items' Valve data. Butterfly and other enemy items are not

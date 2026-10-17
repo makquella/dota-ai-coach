@@ -10,21 +10,16 @@ mechanics (each rule keeps its `basis`), e.g. Terrorblade:
   of Pain's Blink, Storm Spirit's Ball Lightning...): Bloodthorn — the silence
   stops the escape and gives True Strike to his illusions too;
 - evasion alone: Monkey King Bar;
-- heavy healing: his own Eye of Skadi earlier;
+- heavy healing: his own Eye of Skadi after Manta Style;
 - illusion heroes: Butterfly, and the Dragon Lance into Hydra's Breath
   (Metamorphosis attacks from range) instead of Hurricane Pike;
 - heroes who jump on him (Slark, Phantom Assassin, Spirit Breaker): Pike.
 
-`tempo`: far ahead on kills (a player's GSI shows no enemy net worth; the kill
-lead is the observed sign), the counters wait and the next item is the tempo
-build's (Manta Style, Eye of Skadi, Butterfly, Daedalus), then the Aegis.
-
-A plan's rules replace the generic counters of the same family (`family`),
-and `suppress` drops generic counters the plan leaves unanswered but that do
-not fit the hero. Rules are tried in order; the first whose enemy groups are seen
-and whose minute has come wins its family. A plan applies only in its
-`positions`; elsewhere the generic counters stay. docs/HERO_ITEM_PLANS.md is
-the checklist for writing one.
+`tempo`: with the player's own net worth over the plan's curve (minute → net
+worth, from high-rank games where the hero wins ~85% above it) the counters
+wait and the next item is the tempo build's (Terrorblade: Manta Style, Eye of
+Skadi, Butterfly, Daedalus), then the Aegis and the throne. A player's GSI
+shows no enemy net worth, so the hero's own farm is the observed sign.
 """
 
 from __future__ import annotations
@@ -120,7 +115,9 @@ def validate(plan: Any, source: str = "plan") -> dict[str, Any]:
     tempo = plan.get("tempo")
     if tempo is not None:
         items = tempo.get("items") if isinstance(tempo, dict) else None
-        lead, minute = (tempo.get("lead"), tempo.get("minute")) if items else (None, None)
+        raw = tempo.get("net_worth") if isinstance(tempo, dict) else None
+        curve: list[Any] = raw if isinstance(raw, list) else []
+        points = [p for p in curve if isinstance(p, list) and len(p) == 2]
         if (
             not isinstance(items, list)
             or not items
@@ -128,15 +125,20 @@ def validate(plan: Any, source: str = "plan") -> dict[str, Any]:
                 isinstance(i, dict) and isinstance(i.get("item"), str) and i.get("name")
                 for i in items
             )
-            or isinstance(lead, bool)
-            or not isinstance(lead, int)
-            or lead < 1
-            or isinstance(minute, bool)
-            or not isinstance(minute, int)
+            or not points
+            or len(points) != len(curve)
+            or not all(
+                all(isinstance(v, int) and not isinstance(v, bool) and v > 0 for v in p)
+                for p in points
+            )
+            or [p[0] for p in points] != sorted({p[0] for p in points})
             or not isinstance(tempo.get("basis"), str)
             or not tempo["basis"].strip()
         ):
-            raise fail("tempo needs items [{item, name}], a lead, a minute and a basis")
+            raise fail(
+                "tempo needs items [{item, name}], a net_worth curve [[minute, gold], ...] "
+                "with rising minutes, and a basis"
+            )
     return plan
 
 
@@ -208,14 +210,30 @@ def hero_rows(plan: dict[str, Any], enemies: list[str], minute: int | None) -> l
     return rows
 
 
-def tempo_rows(
-    plan: dict[str, Any], lead: int | None, minute: int | None
-) -> list[dict[str, Any]] | None:
-    """The tempo build's items in order when the kill lead and the minute call
-    for it ({key, name}); None otherwise (the counters stay)."""
+def tempo_threshold(plan: dict[str, Any], minute: int | None) -> int | None:
+    """The plan's tempo net worth for `minute`: linear between the curve's
+    points, the last segment's slope after them; None before the first point."""
     tempo = plan.get("tempo")
-    if not tempo or not isinstance(lead, int) or lead < tempo["lead"]:
+    if not tempo or not isinstance(minute, int):
         return None
-    if (minute or 0) < tempo["minute"]:
+    points = tempo["net_worth"]
+    if minute < points[0][0]:
         return None
-    return [{"key": i["item"], "name": i["name"]} for i in tempo["items"]]
+    for (m0, g0), (m1, g1) in zip(points, points[1:], strict=False):
+        if m0 <= minute <= m1:
+            return round(g0 + (g1 - g0) * (minute - m0) / (m1 - m0))
+    if len(points) == 1:
+        return points[0][1]
+    (m0, g0), (m1, g1) = points[-2], points[-1]
+    return round(g1 + (g1 - g0) * (minute - m1) / (m1 - m0))
+
+
+def tempo_rows(
+    plan: dict[str, Any], net_worth: int | None, minute: int | None
+) -> list[dict[str, Any]] | None:
+    """The tempo build's items in order when the player's net worth is over the
+    plan's curve ({key, name}); None otherwise (the counters stay)."""
+    threshold = tempo_threshold(plan, minute)
+    if threshold is None or not isinstance(net_worth, int) or net_worth < threshold:
+        return None
+    return [{"key": i["item"], "name": i["name"]} for i in plan["tempo"]["items"]]

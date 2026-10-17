@@ -949,11 +949,12 @@ _UK_FUNCTIONS: tuple[tuple[re.Pattern[str], Callable[[dict[str, str]], str]], ..
     ),
     (
         re.compile(
-            r"^Your team leads by (?P<count>\d+) kills, so (?P<name>.+?) on the tempo build comes "
+            r"^Your net worth is (?P<count>\d+), well ahead for this minute, so (?P<name>.+?) on "
+            r"the tempo build comes "
             r"before counters: then take the Aegis and push for the throne" + _SITUATIONAL_TAIL_RE
         ),
         lambda g: _with_tail(
-            f"Ваша команда попереду, різниця у вбивствах — {g['count']}: спершу {g['name']} "
+            f"Ваш нетворс — {g['count']}, набагато більше звичайного для цієї хвилини: спершу {g['name']} "
             "з темпової збірки, потім заберіть Aegis і йдіть на трон",
             g,
         ),

@@ -86,7 +86,7 @@ from app.map_hints import SAVE_ITEMS
 from app.match_facts import facts_from_opendota, facts_from_timeline, merge_facts
 from app.match_records import MATCH_RECORDS
 from app.match_tracker import MatchTracker, account_from_gsi
-from app.next_item import buy_now, has_components, next_build_item, save_build_item
+from app.next_item import buy_now, has_components, net_worth, next_build_item, save_build_item
 from app.opendota import (
     TRIM_VERSION,
     OpenDotaClient,
@@ -594,11 +594,12 @@ class PlayerService:
         *,
         enemies: list[str] | None = None,
         minute: Any = None,
-        lead: int | None = None,
+        gold: Any = None,
     ) -> dict[str, Any] | None:
         """The next item of the hero's usual build and the gold its missing parts
         cost (app/next_item.py) for a core's live farm advice; None when unknown.
-        `lead`: the team's kill lead (a hero plan's tempo build)."""
+        `gold`: the gold carried, for the net worth a hero plan's tempo build
+        reads (next_item.net_worth)."""
         hero_id = hero_id_from_name(hero)
         if hero_id is None or owned is None:
             return None
@@ -614,7 +615,7 @@ class PlayerService:
             position=get_hero_position(hero),
             minute=minute if isinstance(minute, int) else None,
             hero=hero,
-            lead=lead,
+            net_worth=net_worth(owned, gold, (meta or {}).get("constants")),
         )
         return situational or next_build_item(meta, owned)
 
