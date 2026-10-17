@@ -55,6 +55,11 @@ allies and the player's own hero are never counted.
    OpenDota popularity for the farm advice when no counter or tempo holds.
    `unless` skips an entry another item answered (Terrorblade: no Pike once the
    Dragon Lance went into Hydra's Breath).
+6b. **The skill build** (optional). `skills` keeps the hero's order of maxing
+   the basic abilities, the first point and the talent picks per row, with
+   their counts (the skill tips quote them: «463 of 634 games»), from the same
+   games; it replaces the 3-5 recent pro games of `skill_build.py`. Check the
+   order against the enemy groups too: if it does not change, one order stays.
 7. **Tempo** (optional). `tempo.net_worth` is a curve `[[minute, net worth], ...]`
    from high-rank games of the hero: above it the hero wins most games (read the
    gold timelines in OpenDota Explorer, `player_matches.gold_t`; net worth is
@@ -94,6 +99,14 @@ Rules in order (the first that holds wins its family; one item per family):
 Eye of Skadi 70% (27) → Hurricane Pike 44% (27, not after Hydra's Breath) →
 Butterfly 48% (29) → Black King Bar 37% (33) → Daedalus 28% (35). The all-ranks
 OpenDota popularity it replaces had no Falcon Blade, Shard or Dragon Lance step.
+
+**Skill build** (634 games): max Conjure Image → Metamorphosis → Reflection (62%,
+won 56%; Conjure Image first in 560); first point Conjure Image (463),
+Metamorphosis at level 2 (82%); Sunder at 6 (49%) or 7-9 (45%) wins the same
+(53%/52%), so the level-6 ultimate tip stays. Talents: 10 Conjure Image
+Cooldown (623 of 632), 15 Metamorphosis Cooldown (409 of 584), 20 Conjure Image
+Duration (347 of 445), 25 Metamorphosis Duration (40 of 63). Against illusion
+heroes the order is the same.
 
 **Tempo:** with his own net worth over 12.0k at 20:00, 16.8k at 25:00 and 21.1k
 at 30:00 (linear between, the same slope after), the counters wait and the next

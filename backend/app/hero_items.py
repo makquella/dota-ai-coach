@@ -19,6 +19,10 @@ mechanics (each rule keeps its `basis`), e.g. Terrorblade:
 won games, instead of the all-ranks OpenDota popularity); `unless` skips an
 entry another item answered (Hurricane Pike after Hydra's Breath).
 
+`skills`: the hero's skill build from the same high-rank games (the order the
+basic abilities are maxed, the first point, the talents), instead of the few
+recent pro games skill_build.py reads.
+
 `tempo`: with the player's own net worth over the plan's curve (minute → net
 worth, from high-rank games where the hero wins ~85% above it) the counters
 wait and the next item is the tempo build's (Terrorblade, in the order of his
@@ -117,6 +121,9 @@ def validate(plan: Any, source: str = "plan") -> dict[str, Any]:
         isinstance(v, str) and v.strip() for v in suppress.values()
     ):
         raise fail("suppress maps a generic why to the reason it does not fit")
+    skills = plan.get("skills")
+    if skills is not None:
+        validate_skills(skills, fail)
     build = plan.get("build")
     if build is not None and (
         not isinstance(build, list)
@@ -257,3 +264,60 @@ def tempo_rows(
     if threshold is None or not isinstance(net_worth, int) or net_worth < threshold:
         return None
     return [{"key": i["item"], "name": i["name"]} for i in plan["tempo"]["items"]]
+
+
+def validate_skills(skills: Any, fail: Any) -> None:
+    """A plan's `skills`: {order, games, first_agree, opening {name, agree},
+    talents {tier: {name, label, picked, games}}, basis}."""
+
+    def count(value: Any) -> bool:
+        return isinstance(value, int) and not isinstance(value, bool) and value > 0
+
+    if not isinstance(skills, dict):
+        raise fail("skills must be an object")
+    order = skills.get("order")
+    if not isinstance(order, list) or not order or not all(isinstance(n, str) for n in order):
+        raise fail("skills.order lists ability names")
+    games = skills.get("games")
+    if not count(games) or not count(skills.get("first_agree")) or skills["first_agree"] > games:
+        raise fail("skills needs games and first_agree (at most games)")
+    opening = skills.get("opening")
+    if opening is not None and (
+        not isinstance(opening, dict)
+        or not isinstance(opening.get("name"), str)
+        or not count(opening.get("agree"))
+        or opening["agree"] > games
+    ):
+        raise fail("skills.opening is {name, agree}")
+    talents = skills.get("talents") or {}
+    for tier, talent in talents.items() if isinstance(talents, dict) else []:
+        if (
+            str(tier) not in ("10", "15", "20", "25")
+            or not isinstance(talent, dict)
+            or not isinstance(talent.get("name"), str)
+            or not talent.get("label")
+            or not count(talent.get("picked"))
+            or not count(talent.get("games"))
+            or talent["picked"] > talent["games"]
+        ):
+            raise fail(f"skills.talents[{tier}] is {{name, label, picked, games}}")
+    if not isinstance(skills.get("basis"), str) or not skills["basis"].strip():
+        raise fail("skills needs a basis")
+
+
+def plan_skills(plan: dict[str, Any] | None) -> dict[str, Any] | None:
+    """The plan's skill build in skill_build.skill_order's shape (order,
+    talents by hero level, opening, first_agree, games); None without one."""
+    skills = (plan or {}).get("skills")
+    if not skills:
+        return None
+    opening = skills.get("opening")
+    return {
+        "order": list(skills["order"]),
+        "games": skills["games"],
+        "first_agree": skills["first_agree"],
+        "opening": {**opening, "games": skills["games"]} if opening else None,
+        "talents": {
+            int(tier): dict(talent) for tier, talent in (skills.get("talents") or {}).items()
+        },
+    }

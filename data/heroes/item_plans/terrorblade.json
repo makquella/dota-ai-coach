@@ -165,5 +165,45 @@
     ],
     "basis": "His own net worth over this curve (12.5k, 17.5k and 22k gold by 20, 25 and 30 min in the games above, ~0.96 of it as net worth): he wins ~85% of those games. A player's GSI shows no enemy net worth, so his own farm stands for «their carry is poor». Then the counters wait: the tempo build, the Aegis and the throne.",
     "order": "The order of the 72 won games with 12.5k+ gold by 20:00 (share of games, median minute): Manta Style 100% (15), Aghanim's Shard 78% (16), Dragon Lance 93% (18), Eye of Skadi 62% (25), Butterfly 50% (24), Daedalus 25% (30)."
+  },
+  "skills": {
+    "order": [
+      "terrorblade_conjure_image",
+      "terrorblade_metamorphosis",
+      "terrorblade_reflection"
+    ],
+    "games": 634,
+    "first_agree": 560,
+    "opening": {
+      "name": "terrorblade_conjure_image",
+      "agree": 463
+    },
+    "talents": {
+      "10": {
+        "name": "special_bonus_unique_terrorblade_4",
+        "label": "Conjure Image Cooldown",
+        "picked": 623,
+        "games": 632
+      },
+      "15": {
+        "name": "special_bonus_unique_terrorblade_metamorphosis_cooldown",
+        "label": "Metamorphosis Cooldown",
+        "picked": 409,
+        "games": 584
+      },
+      "20": {
+        "name": "special_bonus_unique_terrorblade_5",
+        "label": "Conjure Image Duration",
+        "picked": 347,
+        "games": 445
+      },
+      "25": {
+        "name": "special_bonus_unique_terrorblade_3",
+        "label": "Metamorphosis Duration",
+        "picked": 40,
+        "games": 63
+      }
+    },
+    "basis": "634 Terrorblade games of the 7.41 league data (OpenDota Explorer ability_upgrades_arr), instead of the 3-5 recent pro games: maxed Conjure Image → Metamorphosis → Reflection in 62% (won 56%), Conjure Image maxed first in 560; first point Conjure Image in 463 (Metamorphosis at level 2 in 82%). Sunder at 6 in 49% and at 7-9 in 45%, won 53% and 52%: the level-6 ultimate tip stays. Talents: 10 Conjure Image Cooldown 99%; 15 Metamorphosis Cooldown 70% (Sunder HP 30%); 20 Conjure Image Duration 78% (+10 All Attributes 22%); 25 Metamorphosis Duration 63% of 63 games. The order does not change against illusion heroes (Conjure Image first in 87% of those games, 88% of the rest). Reproduce: python scripts/hero_item_stats.py terrorblade."
   }
 }

@@ -75,7 +75,7 @@ from app.finding_history import finding_history
 from app.focus_goal import can_focus, focus_summary, match_result, new_focus, played_after
 from app.friend_compare import compare
 from app.game_plan import build_game_plan, key_item
-from app.hero_items import plan_for
+from app.hero_items import plan_for, plan_skills
 from app.hero_meta import item_key, start_items
 from app.hero_profiles import get_hero_position
 from app.history_backup import export_backup, import_backup, preview_backup
@@ -593,6 +593,11 @@ class PlayerService:
                 ),
             )
         build = skill_order(stored)
+        # A hero plan's skill build (high-rank games) replaces the few pro games;
+        # their ability names stay for the texts (the ultimate's too).
+        planned = plan_skills(plan_for(hero, get_hero_position(hero)))
+        if planned is not None:
+            build = {**planned, "names": dict((build or {}).get("names") or {})}
         self._plans[key] = (now, build)
         return build
 

@@ -473,3 +473,85 @@ def test_the_owned_items_carry_the_consumed_shard():
     ]
     assert owned_items({"item_names": ["item_manta"], "aghanims_shard": False}) == ["item_manta"]
     assert owned_items({}) is None
+
+
+# --- the skill build from the same high-rank games ------------------------------------
+
+
+def _tb_skills(level, levels, *, sunder=0, talents=None):
+    names = ("terrorblade_reflection", "terrorblade_conjure_image", "terrorblade_metamorphosis")
+    abilities = {
+        f"ability{i}": {"name": name, "level": lvl, "ultimate": False}
+        for i, (name, lvl) in enumerate(zip(names, levels, strict=True))
+    }
+    abilities["ability3"] = {"name": "terrorblade_sunder", "level": sunder, "ultimate": True}
+    hero = {"level": level, "name": "npc_dota_hero_terrorblade"}
+    if talents is not None:
+        hero.update({f"talent_{i + 1}": taken for i, taken in enumerate(talents)})
+    return {"hero": hero, "abilities": abilities}
+
+
+def test_his_skill_build_comes_from_high_rank_games():
+    from app.player_api import PLAYER_SERVICE
+    from app.skill_build import next_skill
+
+    build = PLAYER_SERVICE.skill_build("Terrorblade")
+    assert build["order"] == [
+        "terrorblade_conjure_image",
+        "terrorblade_metamorphosis",
+        "terrorblade_reflection",
+    ]
+    assert (build["games"], build["first_agree"]) == (634, 560)
+    assert build["opening"] == {"name": "terrorblade_conjure_image", "agree": 463, "games": 634}
+    assert build["talents"][15]["label"] == "Metamorphosis Cooldown"
+    # Conjure Image first, then Metamorphosis, Reflection last.
+    levels = {
+        "terrorblade_reflection": 0,
+        "terrorblade_conjure_image": 1,
+        "terrorblade_metamorphosis": 1,
+    }
+    assert next_skill(build, levels, 3) == "terrorblade_conjure_image"
+    levels["terrorblade_conjure_image"] = 4
+    assert next_skill(build, levels, 9) == "terrorblade_metamorphosis"
+    levels["terrorblade_metamorphosis"] = 4
+    assert next_skill(build, levels, 13) == "terrorblade_reflection"
+
+
+def test_the_first_point_and_the_talents_name_the_high_rank_choice():
+    from app.player_api import PLAYER_SERVICE
+    from app.skill_tips import UNSPENT_WAIT, SkillTips, read_skills
+
+    build = PLAYER_SERVICE.skill_build("Terrorblade")
+    tips = SkillTips()
+    tips.observe(-80, read_skills(_tb_skills(1, [0, 0, 0])))
+    tips.observe(-79, read_skills(_tb_skills(1, [0, 0, 0])))
+    hint = tips.tip(-79 + UNSPENT_WAIT, "en", alive=True, build=build)
+    assert hint["title"] == "First point: Conjure Image"
+    assert "463 of 634" in hint["hint"]
+    tips = SkillTips()
+    talents = [False, True] + [False] * 6  # the level-10 talent taken
+    tips.observe(1500, read_skills(_tb_skills(14, [2, 4, 4], sunder=2, talents=talents)))
+    tips.observe(1510, read_skills(_tb_skills(15, [2, 4, 4], sunder=2, talents=talents)))
+    hint = tips.tip(1510 + UNSPENT_WAIT, "uk", alive=True, build=build)
+    assert "Metamorphosis Cooldown" in hint["hint"] and "409 з 584" in hint["hint"]
+
+
+def test_other_heroes_keep_the_pro_games_skill_build():
+    from app.player_api import PLAYER_SERVICE
+
+    assert PLAYER_SERVICE.skill_build("Juggernaut") is None  # nothing cached in the tests
+
+
+def test_a_broken_skill_plan_is_refused():
+    good = json.loads((ITEM_PLANS_DIR / "terrorblade.json").read_text(encoding="utf-8"))
+    skills = good["skills"]
+    for broken in (
+        {**skills, "order": []},
+        {**skills, "first_agree": 9999},
+        {**skills, "opening": {"name": "terrorblade_conjure_image", "agree": 0}},
+        {**skills, "talents": {"11": skills["talents"]["10"]}},
+        {**skills, "talents": {"10": {**skills["talents"]["10"], "picked": 9999}}},
+        {**skills, "basis": ""},
+    ):
+        with pytest.raises(ValueError):
+            validate({**good, "skills": broken})

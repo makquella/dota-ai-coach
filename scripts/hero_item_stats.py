@@ -6,7 +6,9 @@ open OpenDota Explorer (league games with parsed gold timelines):
 - the item order in all won games (the usual build) and in those over the
   20-minute line (the tempo build);
 - how often each counter is bought against each enemy group, and the win rate
-  with and without it (draft_analysis / hero_items groups).
+  with and without it (draft_analysis / hero_items groups);
+- the skill build: the order the basic abilities are maxed, the first point
+  and each talent row's picks, with win rates (a plan's `skills`).
 
     python scripts/hero_item_stats.py terrorblade --since 2026-03-24
 
@@ -103,6 +105,70 @@ def order(group: list[dict], built: set[str], title: str) -> None:
         print(f"  {key:22} {100 * count / len(group):3.0f}%  {median:4.0f}")
 
 
+def constants(name: str) -> dict:
+    request = urllib.request.Request(
+        f"https://api.opendota.com/api/constants/{name}", headers={"User-Agent": USER_AGENT}
+    )
+    with urllib.request.urlopen(request, timeout=TIMEOUT) as response:  # noqa: S310
+        return dict(json.loads(response.read()))
+
+
+def skills(hero_id: int, since: int, npc: str) -> None:
+    """The skill build of the hero's games (ability_upgrades_arr)."""
+    rows = explorer(
+        "SELECT pm.player_slot, m.radiant_win, pm.ability_upgrades_arr AS ups "
+        "FROM player_matches pm JOIN matches m USING(match_id) "
+        f"WHERE pm.hero_id={hero_id} AND m.start_time > {since} "
+        "AND pm.ability_upgrades_arr IS NOT NULL"
+    )
+    ids = constants("ability_ids")
+    abilities = constants("abilities")
+    hero = constants("hero_abilities").get(npc) or {}
+    tiers = {t["name"]: (10, 15, 20, 25)[t["level"] - 1] for t in hero.get("talents") or []}
+    games = []
+    for r in rows:
+        names = [ids.get(str(a)) for a in r["ups"] or []]
+        games.append(
+            {
+                "names": [n for n in names if n],
+                "win": r["radiant_win"] == (r["player_slot"] < 128),
+            }
+        )
+    orders: dict[tuple[str, ...], list[dict]] = defaultdict(list)
+    openings: dict[str, list[dict]] = defaultdict(list)
+    for g in games:
+        counts: Counter[str] = Counter()
+        maxed = []
+        for name in g["names"]:
+            if name.startswith("special_bonus"):
+                continue
+            counts[name] += 1
+            if counts[name] == 4:
+                maxed.append(name)
+        orders[tuple(maxed)].append(g)
+        first = next((n for n in g["names"] if not n.startswith("special_bonus")), None)
+        if first:
+            openings[first].append(g)
+    print(f"\nskill build ({len(games)} games):")
+    print("  maxed in this order:")
+    for order, group in sorted(orders.items(), key=lambda kv: -len(kv[1]))[:4]:
+        print(f"    {' > '.join(order) or '-'}: {len(group)} games, win {rate(group)}")
+    print("  first point:")
+    for name, group in sorted(openings.items(), key=lambda kv: -len(kv[1]))[:3]:
+        print(f"    {name}: {len(group)} games, win {rate(group)}")
+    print("  talents:")
+    for level in (10, 15, 20, 25):
+        picks: dict[str, list[dict]] = defaultdict(list)
+        for g in games:
+            talent = next((n for n in g["names"] if tiers.get(n) == level), None)
+            if talent:
+                picks[talent].append(g)
+        total = sum(len(v) for v in picks.values())
+        for name, group in sorted(picks.items(), key=lambda kv: -len(kv[1])):
+            label = (abilities.get(name) or {}).get("dname") or name
+            print(f"    {level}: {label} — {len(group)} of {total}, win {rate(group)}  [{name}]")
+
+
 def rate(group: list[dict]) -> str:
     return f"{100 * sum(g['win'] for g in group) / len(group):.0f}%" if group else "-"
 
@@ -149,6 +215,9 @@ def main() -> int:
         rich = [r for r in won if (r.get("g20") or 0) >= line[20]]
         order(rich, built, f"the tempo build: the {len(rich)} won games over the 20:00 line")
 
+    from app.dota_constants import hero_npc_name
+
+    skills(hero_id, since, hero_npc_name(hero_id))
     lineup = enemies(hero_id, since, rows)
     counters = {
         "evasion": ["monkey_king_bar", "bloodthorn", "javelin"],
