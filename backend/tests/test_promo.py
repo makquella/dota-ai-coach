@@ -164,32 +164,60 @@ def test_the_topic_rotation(monkeypatch):
         )
 
 
-def test_a_release_video_waits_for_the_published_tag(tmp_path, monkeypatch):
-    import subprocess
-
-    def git(*args):
-        subprocess.run(["git", *args], cwd=tmp_path, check=True, capture_output=True)
-
-    notes = tmp_path / "docs" / "release-notes"
-    notes.mkdir(parents=True)
-    git("init", "-q")
-    git("config", "user.email", "t@example.com")
-    git("config", "user.name", "t")
+def test_a_release_video_waits_for_the_published_release(tmp_path, monkeypatch):
+    notes = tmp_path / "release-notes"
+    notes.mkdir()
     for version in ("0.56.2", "0.56.10"):
         (notes / f"v{version}.md").write_text(f"notes {version}", encoding="utf-8")
-    git("add", ".")
-    git("commit", "-q", "-m", "notes")
-    monkeypatch.setattr(topics, "ROOT", tmp_path)
     monkeypatch.setattr(topics, "NOTES", notes)
     today = date.today()
+    published: dict[str, date] = {}
+    monkeypatch.setattr(topics, "published_releases", lambda: published)
 
-    assert topics.latest_release(today) is None  # notes on main, nothing published
-    git("tag", "v0.56.2")
+    assert topics.latest_release(today) is None  # notes (and maybe a tag), nothing published
+    published["v0.56.2"] = today
     assert topics.latest_release(today) == ("0.56.2", "notes 0.56.2")
-    git("tag", "v0.56.10")
+    published["v0.56.10"] = today
     assert topics.latest_release(today) == ("0.56.10", "notes 0.56.10")
     later = date.fromordinal(today.toordinal() + topics.RELEASE_DAYS + 1)
     assert topics.latest_release(later) is None
+
+
+def test_published_releases_skip_drafts_and_use_the_publication_date(monkeypatch):
+    answer = [
+        {"tag_name": "v0.56.5", "draft": True, "prerelease": False, "published_at": None},
+        {
+            "tag_name": "v0.56.4",
+            "draft": False,
+            "prerelease": False,
+            "published_at": "2026-10-17T10:29:59Z",
+        },
+        {
+            "tag_name": "v0.57.0-beta",
+            "draft": False,
+            "prerelease": True,
+            "published_at": "2026-10-16T10:00:00Z",
+        },
+    ]
+
+    class Response:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *exc):
+            return False
+
+        def read(self):
+            return json.dumps(answer).encode()
+
+    monkeypatch.setattr(topics.urllib.request, "urlopen", lambda request, timeout: Response())
+    assert topics.published_releases() == {"v0.56.4": date(2026, 10, 17)}
+
+    def offline(request, timeout):
+        raise OSError("offline")
+
+    monkeypatch.setattr(topics.urllib.request, "urlopen", offline)
+    assert topics.published_releases() == {}
 
 
 def test_learned_weights_are_bounded(tmp_path, monkeypatch):

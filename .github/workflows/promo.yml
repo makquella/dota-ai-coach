@@ -91,6 +91,7 @@ jobs:
         if: inputs.voice_lab == '' || inputs.voice_lab == 'off'
         env:
           FORMAT: ${{ inputs.format }}
+          GITHUB_TOKEN: ${{ github.token }}
           ELEVENLABS_API_KEY: ${{ secrets.ELEVENLABS_API_KEY }}
           ELEVENLABS_VOICE_ID: ${{ inputs.voice_preset == 'custom' && vars.ELEVENLABS_VOICE_ID || '9Sj8ugvpK1DmcAXyvi3a' }}
           ELEVENLABS_VOICE_NAME: ${{ inputs.voice_preset == 'custom' && vars.ELEVENLABS_VOICE_NAME || '' }}
