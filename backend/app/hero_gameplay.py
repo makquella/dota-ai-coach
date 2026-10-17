@@ -17,6 +17,8 @@ from app.hero_gameplay_texts import GAMEPLAY_VERSION, RULE_BY_ID, RULES, Gamepla
 PENDING_SECONDS = 180
 HERO_SPACING_SECONDS = 90
 RULE_REPEAT_SECONDS = 300
+# A preparation tip teaches one thing about the hero: twice a match is enough.
+MAX_SHOWS_PER_RULE = 2
 OBSERVATION_GAP_SECONDS = 5
 HEROES = frozenset(rule.hero for rule in RULES)
 BLOCKING_STATUS = ("stunned", "hexed", "silenced", "muted", "disarmed", "smoked")
@@ -143,6 +145,7 @@ class HeroGameplay:
         self._ready: set[str] = set()
         self._pending: dict[str, dict[str, Any]] = {}
         self._shown: dict[str, int] = {}
+        self._shown_count: dict[str, int] = {}
         self._last_shown: int | None = None
         self._episode = 0
 
@@ -167,6 +170,8 @@ class HeroGameplay:
         }
         for rule in RULES:
             if rule.id in ready - self._ready:
+                if self._shown_count.get(rule.id, 0) >= MAX_SHOWS_PER_RULE:
+                    continue
                 previous = self._shown.get(rule.id)
                 if previous is not None and clock - previous < RULE_REPEAT_SECONDS:
                     continue
@@ -221,4 +226,5 @@ class HeroGameplay:
             return
         self._pending.pop(rule_id)
         self._shown[rule_id] = clock
+        self._shown_count[rule_id] = self._shown_count.get(rule_id, 0) + 1
         self._last_shown = clock
