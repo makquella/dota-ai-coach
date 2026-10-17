@@ -12,6 +12,8 @@ from typing import Any
 import pytest
 from fastapi.testclient import TestClient
 
+from app.gsi_state import normalize_gsi_payload
+from app.hero_gameplay import MAX_SHOWS_PER_RULE, RULE_REPEAT_SECONDS, HeroGameplay
 from app.hero_gameplay_texts import GAMEPLAY_VERSION, RULES, GameplayRule
 
 HERO_KEYS = {"Sven": "sven", "Juggernaut": "juggernaut", "Terrorblade": "terrorblade"}
@@ -355,3 +357,30 @@ def test_hero_preparation_works_when_the_player_selects_a_support_role(client: T
     response = read(client, packet(RULES[2]))
     assert response["decision_point"] == "HERO_GAMEPLAY" and response["new_advice"]
     assert response["hero_gameplay"]["rule_id"] == RULES[2].id
+
+
+def test_each_preparation_tip_is_shown_at_most_twice_a_match() -> None:
+    rule = RULES[2]
+    gameplay = HeroGameplay()
+    shown = 0
+    for cycle in range(6):
+        start = 600 + cycle * (RULE_REPEAT_SECONDS + 10)
+        spent = packet(rule, clock=start)
+        spent["abilities"]["ability0"].update(cooldown=30, can_cast=False)
+        gameplay.observe(normalize_gsi_payload(spent))
+        for clock in range(start + 1, start + 4):
+            state = normalize_gsi_payload(packet(rule, clock=clock))
+            gameplay.observe(state)
+            context = gameplay.context(state)
+            if context is not None:
+                gameplay.shown(context, clock)
+                shown += 1
+    assert shown == MAX_SHOWS_PER_RULE
+
+
+def test_a_lane_farm_check_comes_before_a_preparation_tip(client: TestClient) -> None:
+    value = packet(RULES[2])
+    value["player"]["last_hits"] = 5  # far behind the lane pace at 10 minutes
+    response = read(client, value)
+    assert response["decision_point"] == "LANING_FARM_CHECK"
+    assert not response.get("hero_gameplay")

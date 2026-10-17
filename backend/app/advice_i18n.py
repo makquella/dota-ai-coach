@@ -1006,6 +1006,39 @@ _UK_FUNCTIONS: tuple[tuple[re.Pattern[str], Callable[[dict[str, str]], str]], ..
     ),
 )
 
+# Critical HP with an Aegis, a revive or a hero save ready (live_tools.INSURANCE_COPY);
+# patterns, since the exact table keeps Latin words to HP only.
+_UK_INSURANCE: dict[str, str] = {
+    "You hold the Aegis: leave unless this fight is worth losing it.": (
+        "У вас Aegis: відходьте, якщо цей бій не вартий його втрати."
+    ),
+    "A death now revives you on the spot, but the Aegis is gone after that.": (
+        "Смерть зараз воскресить вас на місці, але після цього Aegis зникне."
+    ),
+    "Use Borrowed Time before the next burst: damage will heal you.": (
+        "Застосуйте Borrowed Time до наступного сплеску шкоди: шкода вас лікуватиме."
+    ),
+    "Borrowed Time is ready: while it lasts, incoming damage heals you instead.": (
+        "Borrowed Time готова: поки вона діє, вхідна шкода лікує вас."
+    ),
+    "If a healthy enemy hero is in range, Sunder swaps your HP with theirs.": (
+        "Якщо поруч ворожий герой із високим HP, Sunder обміняє ваше HP на його."
+    ),
+    "Sunder is ready: at low HP it is your save; with no healthy target, leave.": (
+        "Sunder готова: при низькому HP це ваш порятунок; без здорової цілі відходьте."
+    ),
+    "Reincarnation is ready: leave unless this fight is worth spending it.": (
+        "Reincarnation готова: відходьте, якщо цей бій не вартий її витрати."
+    ),
+    "A death now revives you after a few seconds, but its long cooldown starts.": (
+        "Смерть зараз воскресить вас за кілька секунд, але почнеться її довга перезарядка."
+    ),
+}
+_UK_PATTERNS += tuple(
+    (re.compile(r"^" + re.escape(source) + r"$"), translated)
+    for source, translated in _UK_INSURANCE.items()
+)
+
 # advice_ux_policy rewords coaching-mode actions as "Consider: <action>" (older
 # logs and history have "Consider <action>").
 _UK_PATTERNS += tuple(

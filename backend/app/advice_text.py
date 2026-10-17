@@ -6,6 +6,7 @@ from __future__ import annotations
 
 import re
 
+from app.live_tools import INSURANCE_COPY
 from app.schemas import RecommendationResponse
 
 ACTION_REPLACEMENTS = {
@@ -130,6 +131,9 @@ LOW_HP_REASON_PATTERNS = (
     re.compile(r"^The [A-Za-z ]+ rune in your Bottle (?:is ready: |heals you at once\.$)"),
     re.compile(r"^The Regeneration rune heals fast but stops at the first hit: "),
 )
+# Critical HP with an Aegis, a revive or a hero save ready (live_tools.insurance_copy).
+LOW_HP_INSURANCE_ACTIONS = frozenset(action for action, _ in INSURANCE_COPY.values())
+LOW_HP_INSURANCE_REASONS = frozenset(reason for _, reason in INSURANCE_COPY.values())
 
 
 def clean_action_text(action: str, decision_point: str | None = None) -> str:
@@ -161,7 +165,7 @@ def clean_action_text(action: str, decision_point: str | None = None) -> str:
         if key.startswith("reset hp before showing on another lane"):
             return "Reset HP before showing on another lane."
         # The tool that is ready right now (live_tools.low_hp_copy) stays as it is.
-        if key.startswith(LOW_HP_TOOL_PREFIXES):
+        if key.startswith(LOW_HP_TOOL_PREFIXES) or text in LOW_HP_INSURANCE_ACTIONS:
             return text
         return "Leave the wave now and reset HP before rejoining."
 
@@ -196,6 +200,8 @@ def clean_reason_text(reason: str, decision_point: str | None = None) -> str:
         return "Enemy pressure is active, and a low-value fight can delay your next timing."
 
     if decision_point == "LOW_HP":
+        if text in LOW_HP_INSURANCE_REASONS:
+            return text
         if any(pattern.match(text) for pattern in LOW_HP_REASON_PATTERNS):
             return text
         if text.startswith("At this HP, one more spell or rotation can turn into a death"):

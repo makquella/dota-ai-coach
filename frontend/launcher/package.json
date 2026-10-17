@@ -1,7 +1,7 @@
 {
   "name": "dota-ai-coach-launcher",
   "productName": "Wardly",
-  "version": "0.56.4",
+  "version": "0.56.5",
   "private": true,
   "description": "Wardly, a Dota 2 coach: tray launcher, local backend and always-on-top overlay.",
   "author": "Wardly",
@@ -39,7 +39,7 @@
       "main.js",
       "preload.js",
       "settings.js",
-    "secret-codec.js",
+      "secret-codec.js",
       "local-api.js",
       "renderer-security.js",
       "renderer-security-smoke.js",

@@ -16,6 +16,7 @@ from app.live_tools import (
     disabled_copy,
     hero_tools,
     hp_falling_reason,
+    insurance_copy,
     low_hp_copy,
     low_hp_repeat_reason,
 )
@@ -189,13 +190,18 @@ def _fallback_text(req: GameSituationRequest, action_type: str) -> dict[str, str
     # Name what can be pressed right now (live_tools.py); the plain text stays
     # when GSI shows nothing ready.
     tool = None
-    if action_type in LOW_HP_ACTION_TYPES:
+    # Critical HP with an Aegis, a revive or a hero save ready: name it instead
+    # of a plain «leave now» (live_tools.INSURANCE_COPY).
+    insured = insurance_copy(extra, req.hp_percent) if action_type == "retreat_reset" else None
+    if insured is not None:
+        tool = insured
+    elif action_type in LOW_HP_ACTION_TYPES:
         tool = low_hp_copy(extra, req.hero)
     elif action_type == "wait_out_disable":
         tool = disabled_copy(extra, req.hero)
     if tool is not None:
         text = {**text, "action": tool[0], "reason": tool[1]}
-    if action_type in LOW_HP_ACTION_TYPES:
+    if action_type in LOW_HP_ACTION_TYPES and insured is None:
         repeat = hp_falling_reason(extra) or low_hp_repeat_reason(extra)
         if repeat is not None:
             text = {**text, "reason": repeat}
