@@ -9,6 +9,10 @@
 
   const TEXT = {
     en: {
+      "0.56.6": [
+        "Items for the enemy draft now answer the real enemies. Before the horn, Dota also lists every picked hero, yours and your allies' included, on the minimap data; Wardly took some of them for enemies (in one match: your own hero and three allies) and could suggest, for example, Silver Edge against an allied Bristleback. Only the heroes shown as enemies on the minimap count now.",
+        "The same fix applies to «Your lane opponent is missing»: it no longer names a hero who is not in the enemy team."
+      ],
       "0.56.5": [
         "Critical HP no longer always means «leave now». With the Aegis or a ready Reincarnation, the card says a death here revives you and asks whether the fight is worth it; with Borrowed Time ready it says to cast it before the next burst; Terrorblade at low HP with Sunder ready is reminded of the swap with a healthy enemy hero.",
         "The Sven, Juggernaut and Terrorblade preparation tips are shown at most twice a match each, and a lane farm tip comes before them."
@@ -546,6 +550,10 @@
       ]
     },
     uk: {
+      "0.56.6": [
+        "Предмети проти ворожого драфту тепер відповідають справжнім ворогам. До горну Dota також передає в даних мінікарти всіх обраних героїв, ваших і союзних теж; Wardly вважав частину з них ворогами (в одному матчі — вашого героя і трьох союзників) і міг порадити, наприклад, Silver Edge проти союзного Bristleback. Тепер враховуються лише герої, яких мінікарта показує як ворогів.",
+        "Те саме виправлення стосується «Суперник з вашої лінії зник»: картка більше не називає героя, якого немає у ворожій команді."
+      ],
       "0.56.5": [
         "Критично мало HP більше не завжди означає «відходьте». З Aegis або готовою Reincarnation картка нагадує, що смерть тут вас воскресить, і питає, чи вартий цього бій; з готовою Borrowed Time — застосувати її до наступного сплеску шкоди; Terrorblade з малим HP і готовою Sunder отримує нагадування про обмін зі здоровим ворожим героєм.",
         "Поради підготовки для Sven, Juggernaut і Terrorblade звучать щонайбільше двічі за матч кожна, а порада про фарм у лінії йде перед ними."
