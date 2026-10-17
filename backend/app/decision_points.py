@@ -456,11 +456,12 @@ def detect_decision_point(state: Mapping[str, Any] | None) -> DecisionPoint:
     if low_mana:
         return "LOW_MANA"
 
-    if selected_rule(state) is not None:
-        return "HERO_GAMEPLAY"
-
+    # A lane farm problem comes first: preparation tips can wait for calm farm.
     if has_laning_farm_check(laning_context, minute=minute):
         return "LANING_FARM_CHECK"
+
+    if selected_rule(state) is not None:
+        return "HERO_GAMEPLAY"
 
     if _ctx_bool(state, "smoked"):
         return "SMOKED_STATUS"
