@@ -252,6 +252,29 @@ def test_write_patch_adds_the_newest_and_refreshes_it_for_a_week(tmp_path, monke
     assert not any(call.startswith("patchnotes?") for call in calls)
 
 
+def test_two_patches_between_polls_are_both_posted_oldest_first(tmp_path, monkeypatch):
+    monkeypatch.setattr(news, "PATCHES", tmp_path)
+    released = {"7.41e": "2026-09-01", "7.41f": "2026-09-15", "7.41g": "2026-09-15"}
+    monkeypatch.setattr(build_news, "patch_list", lambda: [(day, v) for v, day in released.items()])
+
+    def fetch_patch(version: str) -> dict:
+        return {"kind": "patch", "version": version, "date": released[version], "languages": {}}
+
+    monkeypatch.setattr(build_news, "fetch_patch", fetch_patch)
+    today = date(2026, 9, 15)
+    (tmp_path / "2026-09-01-7.41e.json").write_text(
+        json.dumps(fetch_patch("7.41e")), encoding="utf-8"
+    )
+
+    first, new, _ = build_news.write_patch(None, today)
+    assert (first["version"], new) == ("7.41f", True)
+    second, new, _ = build_news.write_patch(None, today)
+    assert (second["version"], new) == ("7.41g", True)
+    # Both stored: the newest is refreshed, nothing is new.
+    third, new, _ = build_news.write_patch(None, today)
+    assert (third["version"], new) == ("7.41g", False)
+
+
 def test_without_ukrainian_notes_the_page_shows_the_english_ones(tmp_path, monkeypatch):
     monkeypatch.setattr(news, "PATCHES", tmp_path)
     monkeypatch.setattr(build_news, "fetch_feed", _fake_feed([], ukrainian=False))

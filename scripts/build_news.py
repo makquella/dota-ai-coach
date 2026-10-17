@@ -19,7 +19,8 @@ After `meta` or `patch`, run scripts/build_site.py to write the pages.
 
 `patch` writes data/news/patches/<date>-<version>.json from Valve's datafeed
 (the notes in Ukrainian and English, with the names of heroes, abilities and
-items) when the newest patch is not there yet, and rewrites the newest one for
+items) for each patch Valve released after the stored ones, one per run, oldest
+first, and otherwise rewrites the newest one for
 PATCH_REFRESH_DAYS after its release: Valve fixes its notes and adds the
 translation later. Under GitHub Actions it sets the step outputs `version`,
 `new` and `changed`.
@@ -100,18 +101,32 @@ def feed_names(language: str) -> dict:
     }
 
 
-def newest_patch() -> str:
+def patch_list() -> list[tuple[str, str]]:
+    """Valve's patches as (release date, version), oldest first."""
     patches = fetch_feed("patchnoteslist?language=english").get("patches") or []
-    dated = [
+    dated = sorted(
         (p["patch_timestamp"], p["patch_number"])
         for p in patches
         if isinstance(p, dict)
         and isinstance(p.get("patch_timestamp"), int)
         and isinstance(p.get("patch_number"), str)
-    ]
+    )
     if not dated:
         raise SystemExit("Valve's patch list is empty")
-    return max(dated)[1]
+    return [(datetime.fromtimestamp(stamp, UTC).date().isoformat(), v) for stamp, v in dated]
+
+
+def next_patch(stored: list[dict]) -> str:
+    """The oldest patch Valve released after the newest stored one and not stored
+    yet (two patches between polls: one per run, none skipped), else the newest
+    patch. Nothing stored: the newest only, no back catalogue."""
+    patches = patch_list()
+    if not stored:
+        return patches[-1][1]
+    known = {p["version"] for p in stored}
+    newest = max(p["date"] for p in stored)
+    unseen = [v for day, v in patches if v not in known and day >= newest]
+    return unseen[0] if unseen else patches[-1][1]
 
 
 def fetch_patch(version: str) -> dict:
@@ -135,8 +150,9 @@ def fetch_patch(version: str) -> dict:
 
 def write_patch(version: str | None, today: date) -> tuple[dict, bool, bool]:
     """(post, new, changed): the newest patch (or `version`) in data/news/patches."""
-    target = version or newest_patch()
-    stored = next((p for p in news.load_patches() if p["version"] == target), None)
+    patches = news.load_patches()
+    target = version or next_patch(patches)
+    stored = next((p for p in patches if p["version"] == target), None)
     if stored and not version:
         age = (today - date.fromisoformat(stored["date"])).days
         if age > PATCH_REFRESH_DAYS:
