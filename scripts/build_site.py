@@ -36,11 +36,12 @@ from app.live_tools import USABLE_SAFETY  # noqa: E402
 
 sys.path.insert(0, str(ROOT / "scripts"))
 import news  # noqa: E402 - scripts/news.py, after the scripts path
+import news_hero  # noqa: E402
 
 # One version for styles.css, app.js and i18n-en.js on every page, hand-written
 # (index.html, heroes.html) and generated alike. Separate counters let one page
 # reuse a URL that browsers had already cached with older files.
-ASSET_VERSION = "25"
+ASSET_VERSION = "26"
 POSITIONS = ("carry", "mid", "offlane", "support")
 POSITION_NAMES = {
     "uk": {"carry": "Керрі", "mid": "Мід", "offlane": "Хардлайн", "support": "Саппорт"},
@@ -891,8 +892,12 @@ def _page(
 
 
 def news_pages(all_heroes: list[dict]) -> dict[Path, str]:
-    """site/news.html, site/news/<slug>.html and their /en/ copies (scripts/news.py)."""
+    """site/news.html, site/news/<slug>.html and their /en/ copies (scripts/news.py):
+    the meta posts, the patches and the heroes of the week (news_hero.py)."""
     posts = news.load_posts()
+    patches = news.load_patches()
+    weeks = news_hero.entries(all_heroes, posts)
+    site = sys.modules[__name__]
     links = {hero["name"]: hero["slug"] for hero in all_heroes}
     images = {path.stem for path in news.HERO_IMAGES.glob("*.webp")}
     files: dict[Path, str] = {}
@@ -900,6 +905,22 @@ def news_pages(all_heroes: list[dict]) -> dict[Path, str]:
         root = SITE if lang == "uk" else SITE / "en"
         up_list = "" if lang == "uk" else "../"
         t = news.TEXT[lang]
+        heroes_week = []
+        for entry in weeks:
+            fact = news_hero.facts(entry["hero"], site, lang)
+            name = f"news/{news_hero.slug(entry)}.html"
+            files[root / name] = _page(
+                lang,
+                up=up_list + "../",
+                home="../",
+                path=name,
+                title=f"{news_hero.title(entry, lang)} — Wardly",
+                description=news_hero.lead(entry, fact, lang),
+                main=news_hero.post_main(entry, fact, lang, "../", up_list + "../", images),
+            )
+            heroes_week.append(
+                (entry["date"], news_hero.list_item(entry, fact, lang, up_list, images))
+            )
         files[root / "news.html"] = _page(
             lang,
             up=up_list,
@@ -907,7 +928,7 @@ def news_pages(all_heroes: list[dict]) -> dict[Path, str]:
             path="news.html",
             title=f"{t['list_title']} — Wardly",
             description=t["list_lead"],
-            main=news.list_main(posts, lang, "./", up_list, images),
+            main=news.list_main(posts, lang, "./", up_list, images, patches, heroes_week),
         )
         for post in posts:
             data = news.summary(post, news.previous_of(post, posts))
@@ -920,6 +941,16 @@ def news_pages(all_heroes: list[dict]) -> dict[Path, str]:
                 description=news.lead(post, data, lang),
                 main=news.post_main(post, data, lang, links, "../", up_list + "../", images),
             )
+        for patch in patches:
+            files[root / "news" / f"{news.patch_slug(patch)}.html"] = _page(
+                lang,
+                up=up_list + "../",
+                home="../",
+                path=f"news/{news.patch_slug(patch)}.html",
+                title=f"{news.patch_title(patch, lang)} — Wardly",
+                description=t["patch_lead"],
+                main=news.patch_main(patch, lang, links, "../", up_list + "../", images),
+            )
     return files
 
 
@@ -929,8 +960,12 @@ def news_pages(all_heroes: list[dict]) -> dict[Path, str]:
 def sitemap(all_heroes: list[dict]) -> str:
     pairs = [("/", "/en/"), ("/heroes.html", "/en/heroes.html"), ("/news.html", "/en/news.html")]
     pairs += [(f"/heroes/{h['slug']}.html", f"/en/heroes/{h['slug']}.html") for h in all_heroes]
-    for post in news.load_posts():
-        page = f"/news/{news.slug(post)}.html"
+    posts = news.load_posts()
+    for page in (
+        [f"/news/{news.slug(post)}.html" for post in posts]
+        + [f"/news/{news.patch_slug(patch)}.html" for patch in news.load_patches()]
+        + [f"/news/{news_hero.slug(entry)}.html" for entry in news_hero.entries(all_heroes, posts)]
+    ):
         pairs.append((page, f"/en{page}"))
     lines = [
         '<?xml version="1.0" encoding="UTF-8"?>',
